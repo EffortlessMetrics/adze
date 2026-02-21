@@ -2,7 +2,7 @@
 
 **Status**: Phase 3.1 - Core GLR Runtime
 **Feature Flag**: `pure-rust-glr`
-**Dependencies**: `glr-core`, `rust-sitter-ir`
+**Dependencies**: `glr-core`, `adze-ir`
 
 ---
 
@@ -24,7 +24,7 @@ This document defines the contract for the pure-Rust GLR parser API that bypasse
 impl Parser {
     pub fn set_glr_table(
         &mut self,
-        table: &'static rust_sitter_glr_core::ParseTable
+        table: &'static adze_glr_core::ParseTable
     ) -> Result<(), ParseError>
 }
 ```
@@ -147,7 +147,7 @@ impl Parser {
 #[cfg(feature = "pure-rust-glr")]
 struct GLRState {
     /// Direct reference to ParseTable (no copying)
-    parse_table: &'static rust_sitter_glr_core::ParseTable,
+    parse_table: &'static adze_glr_core::ParseTable,
     /// Symbol metadata for tree construction
     symbol_metadata: Vec<SymbolMetadata>,
     /// Optional tokenizer (defaults to simple lexical scanner)
@@ -253,9 +253,9 @@ pub struct GLRConfig {
 ### Pattern 1: Simple GLR Parsing
 
 ```rust
-use rust_sitter_runtime::Parser;
-use rust_sitter_glr_core::build_lr1_automaton;
-use rust_sitter_ir::builder::GrammarBuilder;
+use adze_runtime::Parser;
+use adze_glr_core::build_lr1_automaton;
+use adze_ir::builder::GrammarBuilder;
 
 // Build grammar
 let mut grammar = GrammarBuilder::new("expr")
@@ -282,7 +282,7 @@ assert!(tree.root_node().is_some());
 
 ```rust
 // In generated parser crate:
-pub static PARSE_TABLE: rust_sitter_glr_core::ParseTable = /* ... */;
+pub static PARSE_TABLE: adze_glr_core::ParseTable = /* ... */;
 pub static SYMBOL_METADATA: &[SymbolMetadata] = /* ... */;
 
 // User code:

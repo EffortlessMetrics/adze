@@ -1,7 +1,7 @@
 // Example: Generate an LSP server for JavaScript
 
+use adze_lsp_generator::LspBuilder;
 use anyhow::Result;
-use rust_sitter_lsp_generator::LspBuilder;
 
 fn main() -> Result<()> {
     // Generate JavaScript LSP server with all features

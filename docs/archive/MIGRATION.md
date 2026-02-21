@@ -2,7 +2,7 @@
 
 ## Overview
 
-Rust-sitter v0.6.0 introduces the revolutionary **Direct Forest Splicing** algorithm for incremental GLR parsing, delivering 16× performance improvements. This release includes several breaking API changes required to support the new architecture.
+Adze v0.6.0 introduces the revolutionary **Direct Forest Splicing** algorithm for incremental GLR parsing, delivering 16× performance improvements. This release includes several breaking API changes required to support the new architecture.
 
 ## Breaking Changes
 
@@ -47,14 +47,14 @@ External scanner imports have been moved to a dedicated module.
 
 **Before (v0.5.x):**
 ```rust
-use rust_sitter::pure_external_scanner::TSExtScanner;
-use rust_sitter::pure_external_scanner::TSExtSymbol;
+use adze::pure_external_scanner::TSExtScanner;
+use adze::pure_external_scanner::TSExtSymbol;
 ```
 
 **After (v0.6.0):**
 ```rust
-use rust_sitter::external_scanner::ExternalScanner;
-use rust_sitter::external_scanner::Symbol as ExtSymbol;
+use adze::external_scanner::ExternalScanner;
+use adze::external_scanner::Symbol as ExtSymbol;
 ```
 
 ### 4. Incremental Parsing API
@@ -89,7 +89,7 @@ let root = parser.reparse(&edited_input, vec![edit]);
 The new incremental parser achieves O(edit size) complexity:
 
 ```rust
-use rust_sitter::{Parser, GLREdit};
+use adze::{Parser, GLREdit};
 
 let mut parser = Parser::new(&language);
 
@@ -134,8 +134,8 @@ After migration, expect:
 
 ## Getting Help
 
-- Report issues: https://github.com/EffortlessSteven/rust-sitter/issues
-- Documentation: https://docs.rs/rust-sitter/0.6.0
+- Report issues: https://github.com/EffortlessSteven/adze/issues
+- Documentation: https://docs.rs/adze/0.6.0
 - Examples: See `/example/` directory for updated usage patterns
 
 ## Deprecations

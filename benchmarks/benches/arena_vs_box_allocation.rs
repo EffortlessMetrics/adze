@@ -6,8 +6,8 @@
 //!
 //! Run with: cargo bench --bench arena_vs_box_allocation
 
+use adze::arena_allocator::{TreeArena, TreeNode};
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
-use rust_sitter::arena_allocator::{TreeArena, TreeNode};
 
 /// Benchmark arena allocation for N nodes
 fn bench_arena_allocation(c: &mut Criterion) {
@@ -115,7 +115,7 @@ fn build_binary_tree(arena: &mut TreeArena, depth: u32) {
         arena: &mut TreeArena,
         depth: u32,
         value: &mut i32,
-    ) -> rust_sitter::arena_allocator::NodeHandle {
+    ) -> adze::arena_allocator::NodeHandle {
         if depth == 0 {
             let handle = arena.alloc(TreeNode::leaf(*value));
             *value += 1;
@@ -133,9 +133,10 @@ fn build_binary_tree(arena: &mut TreeArena, depth: u32) {
 
 /// Boxed tree node for comparison
 #[derive(Clone)]
+#[allow(dead_code)]
 enum BoxedTreeNode {
     Leaf { value: i32 },
-    Branch { children: Vec<Box<BoxedTreeNode>> },
+    Branch { children: Vec<BoxedTreeNode> },
 }
 
 /// Build a complete binary tree using Box allocation
@@ -149,7 +150,7 @@ fn build_boxed_tree(depth: u32) -> Box<BoxedTreeNode> {
             let left = build_subtree(depth - 1, value);
             let right = build_subtree(depth - 1, value);
             Box::new(BoxedTreeNode::Branch {
-                children: vec![left, right],
+                children: vec![*left, *right],
             })
         }
     }

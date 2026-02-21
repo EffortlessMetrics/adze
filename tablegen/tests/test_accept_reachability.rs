@@ -1,10 +1,10 @@
 //! Test that Accept action is reachable and actually executed during parsing
 //! This verifies the normalization pipeline produces valid tables that can terminate parsing
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 #[allow(unused_imports)]
-use rust_sitter_tablegen::{
+use adze_tablegen::{
     AbiLanguageBuilder,
     abi::{TSLanguage, TSParseAction},
 };
@@ -206,7 +206,7 @@ fn test_accept_action_in_parse_table() {
     for (state_idx, row) in parse_table.action_table.iter().enumerate() {
         for (symbol_idx, actions) in row.iter().enumerate() {
             for action in actions {
-                if let rust_sitter_glr_core::Action::Accept = action {
+                if let adze_glr_core::Action::Accept = action {
                     accept_found = true;
                     accept_state = state_idx;
                     accept_symbol = SymbolId(symbol_idx as u16);

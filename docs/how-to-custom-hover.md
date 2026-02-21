@@ -1,6 +1,6 @@
 # How-To: Implement Custom Hover Providers
 
-This guide shows you how to extend rust-sitter's LSP generator with custom hover functionality for domain-specific languages or specialized documentation needs.
+This guide shows you how to extend adze's LSP generator with custom hover functionality for domain-specific languages or specialized documentation needs.
 
 ## Problem: Default Hover Not Sufficient
 
@@ -17,7 +17,7 @@ The built-in hover provider includes 45+ common language constructs, but you may
 Create a custom hover provider that extends the built-in functionality:
 
 ```rust
-use rust_sitter_lsp_generator::features::HoverProvider;
+use adze_lsp_generator::features::HoverProvider;
 use std::collections::HashMap;
 
 pub struct CustomHoverProvider {
@@ -76,7 +76,7 @@ impl CustomHoverProvider {
 Add context awareness based on cursor position and surrounding code:
 
 ```rust
-use rust_sitter::{Tree, Node};
+use adze::{Tree, Node};
 use lsp_types::{Position, HoverParams};
 
 impl CustomHoverProvider {
@@ -154,7 +154,7 @@ impl CustomHoverProvider {
 Override the handler generation to use your custom logic:
 
 ```rust
-use rust_sitter_lsp_generator::LspFeature;
+use adze_lsp_generator::LspFeature;
 
 impl LspFeature for CustomHoverProvider {
     fn name(&self) -> &str {
@@ -311,7 +311,7 @@ fn get_word_at_position(params: &HoverParams) -> Result<String> {
 Integrate your custom provider with the LSP configuration:
 
 ```rust
-use rust_sitter_lsp_generator::{LspConfig, generate_lsp};
+use adze_lsp_generator::{LspConfig, generate_lsp};
 
 let custom_hover = CustomHoverProvider::new(&grammar);
 
@@ -394,7 +394,7 @@ impl CachedHoverProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::Grammar;
+    use adze_ir::Grammar;
     
     #[test]
     fn test_custom_documentation_lookup() {
@@ -442,4 +442,4 @@ mod tests {
 - **Internal Documentation**: Company-specific coding standards
 - **Multilingual Support**: Provide documentation in multiple languages
 
-This approach gives you complete control over hover functionality while leveraging rust-sitter's infrastructure for LSP generation.
+This approach gives you complete control over hover functionality while leveraging adze's infrastructure for LSP generation.

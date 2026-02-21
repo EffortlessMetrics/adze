@@ -2,7 +2,7 @@
 // This implements the final tie-breaker when all other comparisons are equal
 
 use crate::CompareResult;
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 
 /// Compare two parse trees by their root symbols lexicographically
 /// This is Tree-sitter's final tie-breaker for conflict resolution

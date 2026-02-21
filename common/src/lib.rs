@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-//! Shared utilities for rust-sitter macro and tool crates
+//! Shared utilities for adze macro and tool crates
 
 use std::collections::HashSet;
 
@@ -141,10 +141,10 @@ pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
                 panic!("Expected angle bracketed path");
             }
         } else {
-            parse_quote!(rust_sitter::WithLeaf<#ty>)
+            parse_quote!(adze::WithLeaf<#ty>)
         }
     } else {
-        parse_quote!(rust_sitter::WithLeaf<#ty>)
+        parse_quote!(adze::WithLeaf<#ty>)
     }
 }
 
@@ -228,7 +228,7 @@ mod tests {
         let wrapped = wrap_leaf_type(&ty, &skip_over);
         assert_eq!(
             quote::quote!(#wrapped).to_string(),
-            "rust_sitter :: WithLeaf < String >"
+            "adze :: WithLeaf < String >"
         );
 
         // Test skipping over Vec
@@ -236,7 +236,7 @@ mod tests {
         let wrapped = wrap_leaf_type(&ty, &skip_over);
         assert_eq!(
             quote::quote!(#wrapped).to_string(),
-            "Vec < rust_sitter :: WithLeaf < String > >"
+            "Vec < adze :: WithLeaf < String > >"
         );
 
         // Test nested skipping
@@ -244,7 +244,7 @@ mod tests {
         let wrapped = wrap_leaf_type(&ty, &skip_over);
         assert_eq!(
             quote::quote!(#wrapped).to_string(),
-            "Option < Vec < rust_sitter :: WithLeaf < String > > >"
+            "Option < Vec < adze :: WithLeaf < String > > >"
         );
     }
 }

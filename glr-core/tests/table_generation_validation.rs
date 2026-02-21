@@ -6,9 +6,9 @@
 ///
 /// Spec: docs/specs/TABLE_GENERATION_VALIDATION_CONTRACT.md
 /// Phase: 2 - GLR Conflict Preservation Validation
-use rust_sitter_glr_core::conflict_inspection::*;
-use rust_sitter_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_glr_core::conflict_inspection::*;
+use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::collections::BTreeMap;
 
 /// Helper to create a test grammar from a simplified specification
@@ -125,7 +125,7 @@ pub fn generate_and_validate_table(
     grammar: &mut Grammar,
     min_sr: usize,
     min_rr: usize,
-) -> Result<(ParseTable, ConflictSummary), rust_sitter_glr_core::GLRError> {
+) -> Result<(ParseTable, ConflictSummary), adze_glr_core::GLRError> {
     // Step 1: Compute FIRST/FOLLOW sets with normalization
     // This handles complex symbols (Repeat, Choice, etc.)
     let first_follow = FirstFollowSets::compute_normalized(grammar)?;

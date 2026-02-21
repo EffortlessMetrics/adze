@@ -1,16 +1,16 @@
-# Empty Production Rules in rust-sitter
+# Empty Production Rules in adze
 
 Tree-sitter does not support empty production rules. This means that a grammar rule cannot match zero characters without matching at least one token (even if it's an empty string literal).
 
 ## The Problem
 
-When you have a struct with only a `Vec<T>` field that can be empty, rust-sitter generates a grammar rule that can match zero tokens, which causes tree-sitter-generate to fail with an `EmptyString` error.
+When you have a struct with only a `Vec<T>` field that can be empty, adze generates a grammar rule that can match zero tokens, which causes tree-sitter-generate to fail with an `EmptyString` error.
 
 ```rust
 // This will cause an EmptyString error
-#[rust_sitter::language]
+#[adze::language]
 pub struct Module {
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub statements: Vec<Statement>,
 }
 ```
@@ -42,9 +42,9 @@ The generated grammar would have a rule like:
 Require at least one element in the Vec:
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub struct Module {
-    #[rust_sitter::repeat(non_empty = true)]
+    #[adze::repeat(non_empty = true)]
     pub statements: Vec<Statement>,
 }
 ```
@@ -53,14 +53,14 @@ pub struct Module {
 Add another field that always matches something (even if skipped):
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub struct Module {
     // Match optional whitespace to ensure non-empty rule
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _whitespace: (),
     
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub statements: Vec<Statement>,
 }
 ```
@@ -69,11 +69,11 @@ pub struct Module {
 For cases where you need to distinguish between empty and non-empty:
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum Module {
-    Empty(#[rust_sitter::leaf(pattern = r"\s*")] String),
+    Empty(#[adze::leaf(pattern = r"\s*")] String),
     WithStatements {
-        #[rust_sitter::repeat(non_empty = true)]
+        #[adze::repeat(non_empty = true)]
         statements: Vec<Statement>,
     }
 }
@@ -86,17 +86,17 @@ For structures like dotted names (`foo` vs `foo.bar.baz`):
 // Instead of:
 pub struct DottedName {
     first: Identifier,
-    #[rust_sitter::repeat]  // Can be empty!
+    #[adze::repeat]  // Can be empty!
     rest: Vec<DottedPart>,
 }
 
 // Use:
-#[rust_sitter::language]
+#[adze::language]
 pub enum DottedName {
     Single(Identifier),
     Dotted {
         first: Identifier,
-        #[rust_sitter::repeat(non_empty = true)]
+        #[adze::repeat(non_empty = true)]
         rest: Vec<DottedPart>,
     }
 }
@@ -116,31 +116,31 @@ When implementing container literals that can be empty:
 
 ```rust
 // Problem: Empty list [] causes EmptyString error
-#[rust_sitter::language]
+#[adze::language]
 pub struct ListExpression {
-    #[rust_sitter::leaf(text = "[")]
+    #[adze::leaf(text = "[")]
     _open: (),
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub elements: Vec<Expression>,
-    #[rust_sitter::leaf(text = "]")]
+    #[adze::leaf(text = "]")]
     _close: (),
 }
 
 // Solution: Add whitespace tokens
-#[rust_sitter::language]
+#[adze::language]
 pub struct ListExpression {
-    #[rust_sitter::leaf(text = "[")]
+    #[adze::leaf(text = "[")]
     _open: (),
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _ws1: (),
-    #[rust_sitter::repeat]
-    #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+    #[adze::repeat]
+    #[adze::delimited(#[adze::leaf(text = ",")] ())]
     pub elements: Vec<Expression>,
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _ws2: (),
-    #[rust_sitter::leaf(text = "]")]
+    #[adze::leaf(text = "]")]
     _close: (),
 }
 ```
@@ -148,20 +148,20 @@ pub struct ListExpression {
 ### Function Parameters
 ```rust
 // Solution for optional parameter lists
-#[rust_sitter::language]
+#[adze::language]
 pub struct Parameters {
-    #[rust_sitter::leaf(text = "(")]
+    #[adze::leaf(text = "(")]
     _open: (),
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _ws1: (),
-    #[rust_sitter::repeat]
-    #[rust_sitter::delimited(#[rust_sitter::leaf(text = ",")] ())]
+    #[adze::repeat]
+    #[adze::delimited(#[adze::leaf(text = ",")] ())]
     pub params: Vec<Parameter>,
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _ws2: (),
-    #[rust_sitter::leaf(text = ")")]
+    #[adze::leaf(text = ")")]
     _close: (),
 }
 ```
@@ -172,7 +172,7 @@ When you encounter an `EmptyString` error:
 
 1. **Enable artifact emission** to see the generated grammar:
    ```bash
-   RUST_SITTER_EMIT_ARTIFACTS=true cargo build
+   ADZE_EMIT_ARTIFACTS=true cargo build
    ```
 
 2. **Look for the error message** which will indicate the problematic rule:
@@ -190,7 +190,7 @@ Tree-sitter's parsing algorithm requires every grammar rule to consume at least 
 
 ## Future Work
 
-A future version of rust-sitter may automatically handle empty production rules by:
+A future version of adze may automatically handle empty production rules by:
 - Detecting structs with only Vec fields during macro expansion
 - Automatically inserting whitespace tokens or wrapper rules
 - Providing better error messages with suggested fixes

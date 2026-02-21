@@ -77,7 +77,7 @@
    Compiling regex v1.11.1
    Compiling c2rust-bitfields v0.3.0
    Compiling synstructure v0.13.1
-   Compiling rust-sitter-common v0.5.0-beta (/home/steven/code/rust-sitter/common)
+   Compiling adze-common v0.5.0-beta (/home/steven/code/adze/common)
    Compiling syn-inline-mod v0.6.0
    Compiling serde_derive v1.0.218
    Compiling zerofrom-derive v0.1.5
@@ -88,7 +88,7 @@
    Compiling thiserror-impl v1.0.69
    Compiling thiserror-impl v2.0.11
    Compiling clap_derive v4.5.41
-   Compiling rust-sitter-macro v0.5.0-beta (/home/steven/code/rust-sitter/macro)
+   Compiling adze-macro v0.5.0-beta (/home/steven/code/adze/macro)
    Compiling zerofrom v0.1.5
    Compiling yoke v0.7.5
    Compiling zerovec v0.10.4
@@ -103,12 +103,12 @@
    Compiling icu_normalizer v1.5.0
    Compiling idna_adapter v1.2.0
    Compiling idna v1.0.3
-   Compiling rust-sitter-ir v0.5.0-beta (/home/steven/code/rust-sitter/ir)
+   Compiling adze-ir v0.5.0-beta (/home/steven/code/adze/ir)
    Compiling url v2.5.4
    Compiling tree-sitter v0.25.2
-   Compiling rust-sitter-glr-core v0.5.0-beta (/home/steven/code/rust-sitter/glr-core)
-   Compiling rust-sitter-tablegen v0.5.0-beta (/home/steven/code/rust-sitter/tablegen)
-   Compiling rust-sitter v0.5.0-beta (/home/steven/code/rust-sitter/runtime)
+   Compiling adze-glr-core v0.5.0-beta (/home/steven/code/adze/glr-core)
+   Compiling adze-tablegen v0.5.0-beta (/home/steven/code/adze/tablegen)
+   Compiling adze v0.5.0-beta (/home/steven/code/adze/runtime)
 warning: unused variable: `extra_subtree`
    --> runtime/src/pure_parser.rs:370:21
     |
@@ -131,8 +131,8 @@ warning: methods `get_production_id` and `get_goto_state` are never used
     |
     = note: `#[warn(dead_code)]` on by default
 
-warning: `rust-sitter` (lib) generated 2 warnings
-   Compiling rust-sitter-tool v0.5.0-beta (/home/steven/code/rust-sitter/tool)
+warning: `adze` (lib) generated 2 warnings
+   Compiling adze-tool v0.5.0-beta (/home/steven/code/adze/tool)
 warning: function `parse_with_rust_parser` is never used
   --> tool/src/cli/parse.rs:83:8
    |
@@ -153,12 +153,12 @@ warning: function `generate_corpus` is never used
 172 | pub fn generate_corpus(
     |        ^^^^^^^^^^^^^^^
 
-warning: `rust-sitter-tool` (lib) generated 3 warnings
-   Compiling rust-sitter-example v0.4.5 (/home/steven/code/rust-sitter/example)
-warning: unused import: `rust_sitter::Extract`
+warning: `adze-tool` (lib) generated 3 warnings
+   Compiling adze-example v0.4.5 (/home/steven/code/adze/example)
+warning: unused import: `adze::Extract`
  --> example/src/external_word_example.rs:3:5
   |
-3 | use rust_sitter::Extract;
+3 | use adze::Extract;
   |     ^^^^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` on by default
@@ -235,7 +235,7 @@ warning: field `0` is never read
    |
 24 |         Number(
    |         ------ field in this variant
-25 |             #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+25 |             #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
 26 |             i32
    |             ^^^
    |
@@ -250,9 +250,9 @@ warning: field `name` is never read
    |
 32 |     pub struct Identifier {
    |                ---------- field in this struct
-33 |         #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+33 |         #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
 34 |         name: String,
    |         ^^^^
 
-warning: `rust-sitter-example` (bin "rust-sitter-example") generated 8 warnings (run `cargo fix --bin "rust-sitter-example"` to apply 2 suggestions)
+warning: `adze-example` (bin "adze-example") generated 8 warnings (run `cargo fix --bin "adze-example"` to apply 2 suggestions)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.97s

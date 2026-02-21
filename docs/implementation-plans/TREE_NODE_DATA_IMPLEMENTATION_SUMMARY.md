@@ -188,7 +188,7 @@ TreeNodeData is now ready to be used in:
 
 ### Dependencies Satisfied
 
-- ✅ Arena allocator available (`rust_sitter::arena_allocator`)
+- ✅ Arena allocator available (`adze::arena_allocator`)
 - ✅ NodeHandle type available (8 bytes, Copy)
 - ✅ SmallVec dependency available (version 1.13)
 - ✅ Complete API for tree construction

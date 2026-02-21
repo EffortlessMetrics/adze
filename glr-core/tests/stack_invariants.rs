@@ -1,5 +1,5 @@
 // Stack invariant tests to ensure correctness of the persistent stack implementation
-use rust_sitter_glr_core::stack::StackNode;
+use adze_glr_core::stack::StackNode;
 
 #[test]
 fn depth_equals_states_len() {

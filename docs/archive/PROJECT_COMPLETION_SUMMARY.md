@@ -57,12 +57,12 @@ The pure-Rust Tree-sitter implementation has been successfully completed through
 ## Key Deliverables
 
 ### Code
-- `rust-sitter-ir`: Grammar IR with optimization and validation
-- `rust-sitter-glr-core`: GLR parser generation
-- `rust-sitter-tablegen`: Table generation and compression
-- `rust-sitter`: Runtime library with enhanced features
-- `rust-sitter-macro`: Procedural macros for grammar definition
-- `rust-sitter-tool`: Build tool for parser generation
+- `adze-ir`: Grammar IR with optimization and validation
+- `adze-glr-core`: GLR parser generation
+- `adze-tablegen`: Table generation and compression
+- `adze`: Runtime library with enhanced features
+- `adze-macro`: Procedural macros for grammar definition
+- `adze-tool`: Build tool for parser generation
 
 ### Documentation
 - [README.md](./README.md) - Project overview

@@ -3,7 +3,7 @@
 # Build script for WASM demo
 set -e
 
-echo "Building rust-sitter WASM demo..."
+echo "Building adze WASM demo..."
 
 # Install wasm-pack if not already installed
 if ! command -v wasm-pack &> /dev/null; then

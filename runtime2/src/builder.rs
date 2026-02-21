@@ -8,7 +8,7 @@ use crate::engine::Forest;
 use crate::tree::{Tree, TreeNode};
 
 #[cfg(feature = "glr-core")]
-use rust_sitter_glr_core::ForestView as CoreForestView;
+use adze_glr_core::ForestView as CoreForestView;
 
 /// Converts a GLR parse forest into a Tree-sitter compatible tree.
 ///
@@ -23,7 +23,7 @@ use rust_sitter_glr_core::ForestView as CoreForestView;
 /// 3. **Tree Construction**: Recursively builds a tree by selecting the "best"
 ///    children at each ambiguous node using `best_children()`
 /// 4. **Performance Tracking**: Optionally logs conversion metrics when
-///    `RUST_SITTER_LOG_PERFORMANCE` environment variable is set
+///    `ADZE_LOG_PERFORMANCE` environment variable is set
 ///
 /// # Arguments
 ///
@@ -49,11 +49,11 @@ use rust_sitter_glr_core::ForestView as CoreForestView;
 ///
 /// # Performance Monitoring
 ///
-/// Set the `RUST_SITTER_LOG_PERFORMANCE` environment variable to enable detailed
+/// Set the `ADZE_LOG_PERFORMANCE` environment variable to enable detailed
 /// performance logging:
 ///
 /// ```bash
-/// RUST_SITTER_LOG_PERFORMANCE=1 cargo run
+/// ADZE_LOG_PERFORMANCE=1 cargo run
 /// ```
 ///
 /// This will log:
@@ -110,7 +110,7 @@ pub fn forest_to_tree(_forest: Forest) -> Tree {
 /// 2. Retrieves all root nodes (multiple roots indicate parse ambiguity)
 /// 3. Selects the first root for tree construction
 /// 4. Recursively builds the tree with performance metrics tracking
-/// 5. Logs metrics if `RUST_SITTER_LOG_PERFORMANCE` is set
+/// 5. Logs metrics if `ADZE_LOG_PERFORMANCE` is set
 ///
 /// # Performance Metrics
 ///
@@ -119,7 +119,7 @@ pub fn forest_to_tree(_forest: Forest) -> Tree {
 /// - **Max Depth**: Maximum depth from root to any leaf
 /// - **Conversion Time**: Wall-clock time for the entire conversion
 #[cfg(feature = "glr-core")]
-fn build_from_glr(core: rust_sitter_glr_core::Forest) -> Tree {
+fn build_from_glr(core: adze_glr_core::Forest) -> Tree {
     use std::time::Instant;
 
     let start_time = Instant::now();
@@ -141,7 +141,7 @@ fn build_from_glr(core: rust_sitter_glr_core::Forest) -> Tree {
     let conversion_time = start_time.elapsed();
 
     // Log performance metrics (can be enabled via environment variable)
-    if std::env::var("RUST_SITTER_LOG_PERFORMANCE").is_ok() {
+    if std::env::var("ADZE_LOG_PERFORMANCE").is_ok() {
         eprintln!(
             "🚀 Forest->Tree conversion: {} nodes, depth {}, took {:?}",
             node_count, max_depth, conversion_time

@@ -1,6 +1,6 @@
 # Grammar Compatibility Dashboard
 
-This dashboard tracks the compatibility status of popular Tree-sitter grammars with rust-sitter v0.5.0-beta.
+This dashboard tracks the compatibility status of popular Tree-sitter grammars with adze v0.5.0-beta.
 
 Last updated: 2025-01-23
 
@@ -70,7 +70,7 @@ Last updated: 2025-01-23
 
 ## Testing Your Grammar
 
-To test if your grammar works with rust-sitter:
+To test if your grammar works with adze:
 
 ```bash
 # Clone your grammar
@@ -80,9 +80,9 @@ git clone https://github.com/tree-sitter/tree-sitter-yourlang
 cargo new --lib test-yourlang
 cd test-yourlang
 
-# Add rust-sitter dependency
-echo 'rust-sitter = "0.5.0-beta"' >> Cargo.toml
-echo 'rust-sitter-tool = "0.5.0-beta"' >> Cargo.toml
+# Add adze dependency
+echo 'adze = "0.5.0-beta"' >> Cargo.toml
+echo 'adze-tool = "0.5.0-beta"' >> Cargo.toml
 
 # Copy grammar.js
 cp ../tree-sitter-yourlang/grammar.js .
@@ -95,7 +95,7 @@ cargo build
 
 Help us improve grammar support! If you find a grammar that works but isn't listed, or if you've implemented support for new features, please:
 
-1. [Open an issue](https://github.com/EffortlessMetrics/rust-sitter/issues) with your findings
+1. [Open an issue](https://github.com/EffortlessMetrics/adze/issues) with your findings
 2. Submit a PR updating this dashboard
 3. Add test cases for the grammar
 

@@ -1,7 +1,7 @@
 //! Visitor utilities for traversing parsed trees.
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
-// Parse tree visitor API for the pure-Rust Tree-sitter implementation
+// Parse tree visitor API for Adze
 // This module provides flexible visitor patterns for traversing and analyzing parse trees
 
 #[cfg(feature = "pure-rust")]

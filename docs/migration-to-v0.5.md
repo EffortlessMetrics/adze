@@ -1,6 +1,6 @@
-# Migration Guide: rust-sitter v0.4 to v0.5
+# Migration Guide: adze v0.4 to v0.5
 
-This guide covers the major architectural changes in rust-sitter v0.5 and how to update your code to work with the new APIs.
+This guide covers the major architectural changes in adze v0.5 and how to update your code to work with the new APIs.
 
 ## Major Changes
 
@@ -104,7 +104,7 @@ The v0.5 release includes a completely rewritten GLR parser with:
 Example of using the new conflict resolver:
 
 ```rust
-use rust_sitter_glr_core::VecWrapperResolver;
+use adze_glr_core::VecWrapperResolver;
 
 let resolver = VecWrapperResolver::new(&grammar, &first_follow_sets);
 let parser = Parser::with_resolver(Box::new(resolver));
@@ -116,17 +116,17 @@ v0.5 introduces a pure Rust parser implementation alongside the C-based Tree-sit
 
 ```toml
 # Use pure Rust implementation (WASM-compatible)
-rust-sitter = { version = "0.5", features = ["pure-rust"] }
+adze = { version = "0.5", features = ["pure-rust"] }
 
 # Use standard C-based Tree-sitter (default)
-rust-sitter = { version = "0.5" }
+adze = { version = "0.5" }
 ```
 
 ## Migration Steps
 
 1. **Update Dependencies**: Change your `Cargo.toml` to use v0.5:
    ```toml
-   rust-sitter = "0.5.0"
+   adze = "0.5.0"
    ```
 
 2. **Update Grammar Construction**: Replace all `HashMap` insertions with the new `BTreeMap` pattern using `entry().or_insert_with(Vec::new).push()`.

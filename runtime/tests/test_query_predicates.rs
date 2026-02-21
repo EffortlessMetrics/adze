@@ -5,11 +5,11 @@
 #![cfg(skip_outdated_tests)]
 
 mod tests {
-    use rust_sitter::{
+    use adze::{
         parser_v3::{ParseNode, Parser},
         query::{Query, QueryCursor, compile_query},
     };
-    use rust_sitter_ir::{Grammar, Rule, RuleExpr, Symbol, SymbolId};
+    use adze_ir::{Grammar, Rule, RuleExpr, Symbol, SymbolId};
     use std::collections::HashMap;
 
     /// Create a simple test grammar
@@ -110,7 +110,7 @@ mod tests {
         "#;
 
         // Test with the enhanced matcher
-        use rust_sitter::query::matcher_v2::{QueryMatch, QueryMatcher};
+        use adze::query::matcher_v2::{QueryMatch, QueryMatcher};
 
         // Create a mock query
         let mut query = Query {
@@ -123,7 +123,7 @@ mod tests {
 
         query.capture_names.insert("kw".to_string(), 0);
 
-        use rust_sitter::query::ast::{Pattern, PatternNode, Predicate, Quantifier};
+        use adze::query::ast::{Pattern, PatternNode, Predicate, Quantifier};
 
         let pattern = Pattern {
             root: PatternNode {
@@ -201,7 +201,7 @@ mod tests {
         );
 
         // Query that matches identifiers starting with underscore
-        use rust_sitter::query::{
+        use adze::query::{
             ast::{Pattern, PatternNode, Predicate, Quantifier, Query},
             matcher_v2::QueryMatcher,
         };
@@ -262,7 +262,7 @@ mod tests {
         );
 
         // Query that matches control flow keywords
-        use rust_sitter::query::{
+        use adze::query::{
             ast::{Pattern, PatternNode, Predicate, Quantifier, Query},
             matcher_v2::QueryMatcher,
         };
@@ -323,7 +323,7 @@ mod tests {
         );
 
         // Query that matches identifiers NOT equal to "test"
-        use rust_sitter::query::{
+        use adze::query::{
             ast::{Pattern, PatternNode, Predicate, Quantifier, Query},
             matcher_v2::QueryMatcher,
         };

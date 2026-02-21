@@ -5,8 +5,8 @@
 
 mod support;
 
-use rust_sitter::decoder;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze::decoder;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 
 #[test]
 fn test_rule_count_preservation() {
@@ -159,7 +159,7 @@ fn test_reduce_action_child_count() {
     let (ts_actions, _) = support::language_builder::encode_actions(&parse_table);
 
     // Verify reduce actions have correct child count
-    use rust_sitter::ts_format::TSActionTag;
+    use adze::ts_format::TSActionTag;
     for action in &ts_actions {
         if action.action_type == TSActionTag::Reduce as u8 {
             let rule_id = action.symbol as usize;
@@ -179,7 +179,7 @@ fn test_reduce_action_child_count() {
 
 #[test]
 fn test_accept_action_existence() {
-    use rust_sitter_glr_core::Action;
+    use adze_glr_core::Action;
 
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
@@ -234,7 +234,7 @@ fn test_accept_action_existence() {
 
 #[test]
 fn test_accept_goto_shape() {
-    use rust_sitter_glr_core::Action;
+    use adze_glr_core::Action;
 
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
@@ -401,8 +401,8 @@ fn test_no_sentinel_leakage() {
     );
 
     // Check action table doesn't contain shifts to state 65535
-    use rust_sitter_glr_core::Action;
-    use rust_sitter_ir::StateId;
+    use adze_glr_core::Action;
+    use adze_ir::StateId;
     for (st, row) in decoded_table.action_table.iter().enumerate() {
         for (col, cell) in row.iter().enumerate() {
             for action in cell {

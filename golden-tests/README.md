@@ -1,6 +1,6 @@
-# Golden-Master Tests for rust-sitter
+# Golden-Master Tests for adze
 
-This directory contains golden-master tests that ensure rust-sitter parsers produce identical output to the official Tree-sitter parsers.
+This directory contains golden-master tests that ensure adze parsers produce identical output to the official Tree-sitter parsers.
 
 ## Structure
 
@@ -108,7 +108,7 @@ fn python_my_new_test() -> Result<()> {
 
 ## Benefits
 
-- **Byte-for-byte compatibility**: Ensures rust-sitter matches Tree-sitter exactly
+- **Byte-for-byte compatibility**: Ensures adze matches Tree-sitter exactly
 - **Real-world code**: Tests against actual Python/JS code, not just synthetic examples
 - **Fast comparison**: SHA256 hashes avoid storing large S-expression files in git
 - **Easy debugging**: On failure, both expected and actual outputs are available

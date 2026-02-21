@@ -1,9 +1,9 @@
 // Simple benchmarks for the pure-Rust Tree-sitter parser
 // Focuses on lexer performance which is working correctly
 
+use adze::lexer::{self, GrammarLexer};
+use adze_ir::{SymbolId, TokenPattern};
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::lexer::{self, GrammarLexer};
-use rust_sitter_ir::{SymbolId, TokenPattern};
 
 // Helper function to lex an entire input
 fn lex_all(lexer: &mut GrammarLexer, input: &str) -> Vec<lexer::Token> {

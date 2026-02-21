@@ -1,11 +1,11 @@
 [package]
-name = "rust-sitter-tool"
-description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
+name = "adze-tool"
+description = "The external tool for Adze that extracts grammars from Rust definitions"
 readme = "../README.md"
-repository = "https://github.com/EffortlessMetrics/rust-sitter"
+repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
-license = "MIT"
+license = "MIT OR Apache-2.0"
 edition = "2024"
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
@@ -18,9 +18,9 @@ build_parsers = [
     "dep:tree-sitter-generate",
     "dep:cc",
 ]
-serialization = ["rust-sitter-tablegen/serialization", "rust-sitter-glr-core/serialization"]
+serialization = ["adze-tablegen/serialization", "adze-glr-core/serialization"]
 no_opt = []   # compile without the optimizer for debugging
-optimize = ["rust-sitter-ir/optimize"]
+optimize = ["adze-ir/optimize"]
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
@@ -28,10 +28,10 @@ syn = { version = "2", features = ["full", "extra-traits"] }
 syn-inline-mod = "0.6"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-rust-sitter-common = { version = "0.8.0-dev", path = "../common" }
-rust-sitter-ir = { version = "0.8.0-dev", path = "../ir" }
-rust-sitter-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
-rust-sitter-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
+adze-common = { version = "0.8.0-dev", path = "../common" }
+adze-ir = { version = "0.8.0-dev", path = "../ir" }
+adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 regex = "1.10"
 anyhow = "1.0"
 thiserror = "2.0"
@@ -48,8 +48,8 @@ tree-sitter-generate = { version = "0.25.1", optional = true }
 cc = { version = "1", optional = true }
 
 [[bin]]
-name = "rust-sitter-gen"
-path = "src/bin/rust-sitter.rs"
+name = "adze-gen"
+path = "src/bin/adze.rs"
 
 [dev-dependencies]
 insta = "1.39"

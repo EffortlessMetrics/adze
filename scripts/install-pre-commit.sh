@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# Install pre-commit hooks for rust-sitter
+# Install pre-commit hooks for adze
 
-echo "rust-sitter Pre-commit Hook Installer"
+echo "adze Pre-commit Hook Installer"
 echo "====================================="
 echo ""
 

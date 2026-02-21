@@ -1,8 +1,8 @@
-# Query Predicate Evaluation in rust-sitter
+# Query Predicate Evaluation in adze
 
 ## Overview
 
-rust-sitter now supports Tree-sitter's query predicate system, allowing you to filter pattern matches based on conditions. This is essential for many language-specific queries where syntax alone isn't sufficient.
+adze now supports Tree-sitter's query predicate system, allowing you to filter pattern matches based on conditions. This is essential for many language-specific queries where syntax alone isn't sufficient.
 
 ## Supported Predicates
 
@@ -73,7 +73,7 @@ The predicate evaluation system consists of:
 ### Usage Example
 
 ```rust
-use rust_sitter::{
+use adze::{
     parser::ParseNode,
     query::{Query, matcher_v2::QueryMatcher},
 };
@@ -126,7 +126,7 @@ The predicate system includes comprehensive tests:
 
 Run the example:
 ```bash
-cargo run -p rust-sitter --example predicate_demo
+cargo run -p adze --example predicate_demo
 ```
 
 ## Compatibility Note

@@ -17,7 +17,7 @@ git push origin v0.6.1-beta
 ```
 
 ## Create GitHub Release
-1. Go to https://github.com/EffortlessMetrics/rust-sitter/releases/new
+1. Go to https://github.com/EffortlessMetrics/adze/releases/new
 2. Select tag: `v0.6.1-beta`
 3. Title: `v0.6.1-beta - Algorithmically Correct GLR Parser`
 4. Copy contents from `GITHUB_RELEASE.md` into description
@@ -30,39 +30,39 @@ git push origin v0.6.1-beta
 
 ```bash
 # 1. Core crates (no dependencies)
-cargo publish -p rust-sitter-glr-core
+cargo publish -p adze-glr-core
 
 # Wait 1-2 minutes for crates.io indexing
 
 # 2. IR and common crates
-cargo publish -p rust-sitter-ir
-cargo publish -p rust-sitter-common
+cargo publish -p adze-ir
+cargo publish -p adze-common
 
 # Wait 1-2 minutes
 
 # 3. Runtime and macro crates
-cargo publish -p rust-sitter
-cargo publish -p rust-sitter-macro
+cargo publish -p adze
+cargo publish -p adze-macro
 
 # Wait 1-2 minutes
 
 # 4. Tool crate
-cargo publish -p rust-sitter-tool
+cargo publish -p adze-tool
 
 # 5. Optional: example crate (if publishing)
-# cargo publish -p rust-sitter-example
+# cargo publish -p adze-example
 ```
 
 ## Post-Release Verification
 ```bash
 # Verify crates are available
-cargo search rust-sitter --limit 10
+cargo search adze --limit 10
 
 # Test installation in a new project
 cd /tmp
-cargo new test-rust-sitter
-cd test-rust-sitter
-echo 'rust-sitter = "0.6.1-beta"' >> Cargo.toml
+cargo new test-adze
+cd test-adze
+echo 'adze = "0.6.1-beta"' >> Cargo.toml
 cargo build
 ```
 
@@ -70,7 +70,7 @@ cargo build
 
 ### Quick announcement
 ```
-rust-sitter v0.6.1-beta released! 🚀
+adze v0.6.1-beta released! 🚀
 
 ✅ Algorithmically correct GLR parser
 ✅ 100% pass rate on core test suites
@@ -78,8 +78,8 @@ rust-sitter v0.6.1-beta released! 🚀
 ✅ True fork/merge with multi-action cells
 ✅ Stable query results
 
-Upgrade: rust-sitter = "0.6.1-beta"
-Release notes: https://github.com/EffortlessMetrics/rust-sitter/releases/tag/v0.6.1-beta
+Upgrade: adze = "0.6.1-beta"
+Release notes: https://github.com/EffortlessMetrics/adze/releases/tag/v0.6.1-beta
 ```
 
 ### Channels to announce

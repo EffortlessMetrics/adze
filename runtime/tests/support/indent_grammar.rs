@@ -1,7 +1,7 @@
 //! Minimal indent grammar for testing external tokens
 //! This grammar uses an INDENT external token to test external scanner integration
 
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Build a minimal grammar with an external INDENT token
 #[allow(dead_code)]

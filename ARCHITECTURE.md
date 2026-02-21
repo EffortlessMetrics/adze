@@ -1,6 +1,6 @@
-# rust-sitter Architecture Overview
+# adze Architecture Overview
 
-A visual guide to how rust-sitter components fit together.
+A visual guide to how adze components fit together.
 
 ---
 
@@ -12,9 +12,9 @@ A visual guide to how rust-sitter components fit together.
 │                                                              │
 │  src/main.rs                                                 │
 │  ┌────────────────────────────────────────┐                 │
-│  │ #[rust_sitter::grammar("mylang")]      │                 │
+│  │ #[adze::grammar("mylang")]      │                 │
 │  │ mod grammar {                           │                 │
-│  │     #[rust_sitter::language]           │                 │
+│  │     #[adze::language]           │                 │
 │  │     pub enum Expr { ... }              │                 │
 │  │ }                                       │                 │
 │  │                                         │                 │
@@ -27,37 +27,37 @@ A visual guide to how rust-sitter components fit together.
 │           ▼                                                  │
 │  ┌────────────────────────────────────────┐                 │
 │  │        build.rs (build script)         │                 │
-│  │  rust_sitter_tool::build_parsers()    │                 │
+│  │  adze_tool::build_parsers()    │                 │
 │  └────────────────────────────────────────┘                 │
 └───────────────│──────────────────────────────────────────────┘
                 │
                 │ calls
                 ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              rust-sitter Workspace                           │
+│              adze Workspace                           │
 │                                                              │
 │  ┌──────────────────┐        ┌──────────────────┐           │
-│  │ rust-sitter-macro│───────▶│ rust-sitter-common│           │
+│  │ adze-macro│───────▶│ adze-common│           │
 │  │  (proc macros)   │        │  (shared utils)   │           │
 │  └──────────────────┘        └──────────────────┘           │
 │           │                           │                      │
 │           │                           │                      │
 │           ▼                           ▼                      │
 │  ┌──────────────────┐        ┌──────────────────┐           │
-│  │ rust-sitter-tool │───────▶│  rust-sitter-ir  │           │
+│  │ adze-tool │───────▶│  adze-ir  │           │
 │  │ (build-time gen) │        │ (IR representation)│          │
 │  └──────────────────┘        └──────────────────┘           │
 │           │                           │                      │
 │           │                           ▼                      │
 │           │                  ┌──────────────────┐            │
-│           │                  │rust-sitter-glr   │            │
+│           │                  │adze-glr   │            │
 │           │                  │      -core       │            │
 │           │                  │ (GLR algorithm)  │            │
 │           │                  └──────────────────┘            │
 │           │                           │                      │
 │           │                           ▼                      │
 │           │                  ┌──────────────────┐            │
-│           │                  │rust-sitter-      │            │
+│           │                  │adze-      │            │
 │           │                  │   tablegen       │            │
 │           │                  │(table compression)│           │
 │           │                  └──────────────────┘            │
@@ -66,7 +66,7 @@ A visual guide to how rust-sitter components fit together.
 │                           │                                  │
 │                           ▼                                  │
 │                  ┌──────────────────┐                        │
-│                  │  rust-sitter     │                        │
+│                  │  adze     │                        │
 │                  │   (runtime)      │                        │
 │                  │ - Parser API     │                        │
 │                  │ - Tree API       │                        │
@@ -91,45 +91,45 @@ A visual guide to how rust-sitter components fit together.
 ```
 1. Source Code (Rust with attributes)
    ↓
-   #[rust_sitter::grammar("name")]
+   #[adze::grammar("name")]
    mod grammar { ... }
 
 2. Macro Expansion (compile time)
    ↓
-   rust-sitter-macro processes attributes
+   adze-macro processes attributes
    → Generates marker traits
    → Validation happens here
 
 3. Build Script Execution (build time)
    ↓
-   build.rs calls rust_sitter_tool::build_parsers()
+   build.rs calls adze_tool::build_parsers()
    → Extracts grammar from annotated types
    → Converts to Intermediate Representation (IR)
 
 4. IR Processing
    ↓
-   rust-sitter-ir
+   adze-ir
    → Grammar optimization
    → Validation
    → Symbol resolution
 
 5. Parser Generation
    ↓
-   rust-sitter-glr-core
+   adze-glr-core
    → Build LR(1) automaton
    → Detect and handle conflicts
    → Generate action/goto tables
 
 6. Table Compression
    ↓
-   rust-sitter-tablegen
+   adze-tablegen
    → Compress parse tables (tree-sitter format)
    → Generate static Language struct
    → FFI compatibility layer
 
 7. Runtime Linking
    ↓
-   rust-sitter (runtime)
+   adze (runtime)
    → Links compressed tables
    → Provides Parser API
    → Returns typed AST
@@ -154,34 +154,34 @@ A visual guide to how rust-sitter components fit together.
           (compile time)              (build time)
                      │                       │
              ┌───────▼───────┐      ┌───────▼──────┐
-             │ rust-sitter-  │      │ rust-sitter- │
+             │ adze-  │      │ adze- │
              │    macro      │      │     tool     │
              └───────┬───────┘      └───────┬──────┘
                      │                      │
                      └──────┬───────────────┘
                             │
                     ┌───────▼──────┐
-                    │ rust-sitter- │
+                    │ adze- │
                     │   common     │
                     └───────┬──────┘
                             │
                     ┌───────▼──────┐
-                    │ rust-sitter- │
+                    │ adze- │
                     │      ir      │
                     └───────┬──────┘
                             │
                     ┌───────▼──────┐
-                    │ rust-sitter- │
+                    │ adze- │
                     │   glr-core   │
                     └───────┬──────┘
                             │
                     ┌───────▼──────┐
-                    │ rust-sitter- │
+                    │ adze- │
                     │   tablegen   │
                     └───────┬──────┘
                             │
                     ┌───────▼──────┐
-                    │ rust-sitter  │◀───── (runtime dependency)
+                    │ adze  │◀───── (runtime dependency)
                     │  (runtime)   │
                     └──────────────┘
 ```
@@ -193,9 +193,9 @@ A visual guide to how rust-sitter components fit together.
 ### Two-Phase Processing
 
 **Phase 1: Compile Time (Macros)**
-- `#[rust_sitter::grammar]` → Marks grammar module
-- `#[rust_sitter::language]` → Marks root type
-- `#[rust_sitter::leaf]` → Defines token patterns
+- `#[adze::grammar]` → Marks grammar module
+- `#[adze::language]` → Marks root type
+- `#[adze::leaf]` → Defines token patterns
 - Macros generate marker traits, no parser code yet
 
 **Phase 2: Build Time (build.rs)**
@@ -213,7 +213,7 @@ Pure-Rust Backend (default, recommended):
        │
        ▼
 ┌──────────────┐     ┌──────────────┐
-│ rust-sitter- │────▶│ rust-sitter- │
+│ adze- │────▶│ adze- │
 │   glr-core   │     │   tablegen   │
 └──────────────┘     └──────┬───────┘
                             │
@@ -233,7 +233,7 @@ C Backend (legacy, tree-sitter compatible):
        │
        ▼
 ┌──────────────┐     ┌──────────────┐
-│ rust-sitter- │────▶│ grammar.json │
+│ adze- │────▶│ grammar.json │
 │     tool     │     │(tree-sitter) │
 └──────────────┘     └──────┬───────┘
                             │
@@ -254,7 +254,7 @@ C Backend (legacy, tree-sitter compatible):
 
 ### Parser Runtime Modes
 
-rust-sitter supports multiple parser runtime implementations:
+adze supports multiple parser runtime implementations:
 
 | Mode | Runtime File | GLR Support | Status | Implementation |
 |------|-------------|-------------|---------|----------------|
@@ -421,7 +421,7 @@ Let's trace `grammar::parse("2 + 3")`:
 ## File Organization
 
 ```
-rust-sitter/
+adze/
 ├── runtime/              # Runtime library (what you depend on)
 │   ├── src/
 │   │   ├── lib.rs       # Main API
@@ -483,7 +483,7 @@ rust-sitter/
 
 ```rust
 // In your code:
-use rust_sitter::Parser;
+use adze::Parser;
 
 // Parse text
 let ast = grammar::parse("source code")?;
@@ -498,7 +498,7 @@ let tree = parser.parse("source", None)?;
 
 ```rust
 // In build.rs:
-use rust_sitter_tool::build_parsers;
+use adze_tool::build_parsers;
 use std::path::PathBuf;
 
 fn main() {
@@ -509,12 +509,12 @@ fn main() {
 ### Grammar Definition API
 
 ```rust
-#[rust_sitter::grammar("name")]
+#[adze::grammar("name")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum MyType {
         Variant1(
-            #[rust_sitter::leaf(pattern = r"...")]
+            #[adze::leaf(pattern = r"...")]
             FieldType
         ),
     }
@@ -528,7 +528,7 @@ mod grammar {
 ### Custom External Scanners
 
 ```rust
-impl rust_sitter::ExternalScanner for MyScanner {
+impl adze::ExternalScanner for MyScanner {
     fn scan(&mut self, lexer: &mut Lexer, valid: &[bool]) -> ScanResult {
         // Custom lexing logic
     }
@@ -538,7 +538,7 @@ impl rust_sitter::ExternalScanner for MyScanner {
 ### Tree Visitors (coming v0.7.0)
 
 ```rust
-impl rust_sitter::Visitor for MyVisitor {
+impl adze::Visitor for MyVisitor {
     fn visit_node(&mut self, node: &Node) {
         // Custom tree traversal
     }
@@ -583,7 +583,7 @@ let query = compile_query(r#"
 
 ## Comparison to tree-sitter Architecture
 
-| Component | tree-sitter | rust-sitter |
+| Component | tree-sitter | adze |
 |-----------|-------------|-------------|
 | Grammar Language | JavaScript DSL | Rust types |
 | Parser Generator | Node.js CLI | Rust build.rs |
@@ -593,7 +593,7 @@ let query = compile_query(r#"
 | Incremental Parsing | Mature | In progress |
 | Language Bindings | Many languages | Rust-first |
 
-**Compatibility**: rust-sitter can import tree-sitter grammars and generate compatible parsers via ts-bridge.
+**Compatibility**: adze can import tree-sitter grammars and generate compatible parsers via ts-bridge.
 
 ---
 
@@ -602,14 +602,14 @@ let query = compile_query(r#"
 ### View Generated Grammar
 
 ```bash
-RUST_SITTER_EMIT_ARTIFACTS=true cargo build
+ADZE_EMIT_ARTIFACTS=true cargo build
 cat target/debug/build/*/out/grammar.json
 ```
 
 ### Enable Logging
 
 ```bash
-RUST_LOG=rust_sitter=debug cargo run
+RUST_LOG=adze=debug cargo run
 ```
 
 ### Profile Performance
@@ -638,4 +638,4 @@ cargo build 2>&1 | grep "IR:"
 
 ---
 
-**Questions?** See [FAQ.md](./FAQ.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
+**Questions?** See [FAQ.md](./FAQ.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)

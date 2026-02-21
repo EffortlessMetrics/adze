@@ -1,9 +1,9 @@
-# Rust-Sitter: Known Gaps and Contribution Opportunities
+# Adze: Known Gaps and Contribution Opportunities
 
 **Last Updated**: November 15, 2025
 **Version**: v0.6.1-beta
 
-This document provides a comprehensive, structured view of what needs to be completed in rust-sitter. Each section is designed to make it easy for contributors to pick up and complete specific tasks.
+This document provides a comprehensive, structured view of what needs to be completed in adze. Each section is designed to make it easy for contributors to pick up and complete specific tasks.
 
 ---
 
@@ -494,7 +494,7 @@ pub fn parse_command(grammar_path: &Path, input_path: &Path) -> Result<()> {
 ```
 
 **Acceptance Criteria**:
-- `rust-sitter parse grammar.so input.txt` works
+- `adze parse grammar.so input.txt` works
 - Error messages are clear
 - Supports all grammar formats
 
@@ -513,7 +513,7 @@ pub fn parse_command(grammar_path: &Path, input_path: &Path) -> Result<()> {
 - [ ] Generate test reports
 
 **Acceptance Criteria**:
-- `rust-sitter test` runs all corpus tests
+- `adze test` runs all corpus tests
 - Reports which tests passed/failed
 - Exit code reflects test success
 
@@ -667,8 +667,8 @@ pub fn parse_command(grammar_path: &Path, input_path: &Path) -> Result<()> {
 
 ### 2. Set Up Development Environment
 ```bash
-git clone https://github.com/EffortlessMetrics/rust-sitter
-cd rust-sitter
+git clone https://github.com/EffortlessMetrics/adze
+cd adze
 cargo build
 cargo test
 ```
@@ -727,7 +727,7 @@ Contributors who complete tasks will be:
 ---
 
 **Last Updated**: November 15, 2025
-**Maintained By**: rust-sitter core team
+**Maintained By**: adze core team
 **Next Review**: Monthly
 
 ---

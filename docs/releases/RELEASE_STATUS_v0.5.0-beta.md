@@ -1,4 +1,4 @@
-# Rust-Sitter v0.5.0-beta Release Status
+# Adze v0.5.0-beta Release Status
 
 ## ✅ Completed Tasks
 
@@ -59,7 +59,7 @@
 
 ## 🎯 Recommended Usage
 
-For v0.5.0-beta, rust-sitter is best suited for:
+For v0.5.0-beta, adze is best suited for:
 - Prototyping new language grammars
 - Educational purposes
 - Simple DSLs without complex precedence

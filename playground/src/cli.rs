@@ -1,4 +1,4 @@
-// CLI interface for the rust-sitter playground
+// CLI interface for the adze playground
 
 use crate::{PlaygroundSession, TestCase};
 use anyhow::Result;
@@ -7,10 +7,7 @@ use std::io::{self, Write};
 
 /// Run interactive CLI session
 pub fn run_interactive(mut session: PlaygroundSession) -> Result<()> {
-    println!(
-        "{}",
-        "🎮 Rust Sitter Grammar Playground".bright_green().bold()
-    );
+    println!("{}", "🎮 Adze Grammar Playground".bright_green().bold());
     println!("{}", "Type 'help' for commands, 'quit' to exit".dimmed());
     println!();
 

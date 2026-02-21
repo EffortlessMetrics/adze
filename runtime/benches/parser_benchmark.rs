@@ -1,39 +1,37 @@
 #![cfg(feature = "unstable-benches")]
 
+use adze::tree_sitter::Parser;
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::tree_sitter::Parser;
 
 // Simple arithmetic grammar for benchmarking
-#[rust_sitter::grammar("benchmark")]
+#[adze::grammar("benchmark")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
-        Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse::<i32>().unwrap())] i32,
-        ),
-        #[rust_sitter::prec_left(1)]
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse::<i32>().unwrap())] i32),
+        #[adze::prec_left(1)]
         Add(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "+")] (),
+            #[adze::leaf(text = "+")] (),
             Box<Expression>,
         ),
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         Multiply(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "*")] (),
+            #[adze::leaf(text = "*")] (),
             Box<Expression>,
         ),
-        #[rust_sitter::prec(3)]
+        #[adze::prec(3)]
         Parenthesized(
-            #[rust_sitter::leaf(text = "(")] (),
+            #[adze::leaf(text = "(")] (),
             Box<Expression>,
-            #[rust_sitter::leaf(text = ")")] (),
+            #[adze::leaf(text = ")")] (),
         ),
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     pub struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }

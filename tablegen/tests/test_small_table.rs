@@ -3,9 +3,9 @@
 
 #![cfg(feature = "small-table")]
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use rust_sitter_tablegen::AbiLanguageBuilder;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_tablegen::AbiLanguageBuilder;
 
 /// Create a simple JSON grammar for testing compressed tables
 fn build_json_grammar() -> Grammar {

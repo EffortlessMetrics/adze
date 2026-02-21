@@ -34,11 +34,11 @@ pub use generated::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
 // This creates INHERENT AMBIGUITY that LR(1) cannot resolve.
 // Perfect test case for GLR conflict preservation!
 
-#[rust_sitter::grammar("ambiguous_expr")]
+#[adze::grammar("ambiguous_expr")]
 pub mod grammar {
     /// Expression: intentionally ambiguous binary operations
     /// NO precedence or associativity defined - this will create conflicts!
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(PartialEq, Eq, Debug, Clone)]
     pub enum Expr {
         /// Single binary operation variant - NO precedence!
@@ -46,18 +46,18 @@ pub mod grammar {
         /// This creates genuine shift/reduce conflicts.
         Binary(
             Box<Expr>,
-            #[rust_sitter::leaf(pattern = r"[-+*/]")] String,
+            #[adze::leaf(pattern = r"[-+*/]")] String,
             Box<Expr>,
         ),
 
         /// Number terminal
-        Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
     }
 
     /// Whitespace handling
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }
@@ -139,10 +139,10 @@ mod tests {
         // This test documents the EXPECTED conflicts in this grammar
         // and validates that they are properly preserved in the parse table
 
-        use rust_sitter_glr_core::conflict_inspection::*;
+        use adze_glr_core::conflict_inspection::*;
 
         // Decode the LANGUAGE into a ParseTable
-        let table = rust_sitter::decoder::decode_parse_table(&LANGUAGE);
+        let table = adze::decoder::decode_parse_table(&LANGUAGE);
 
         // Run conflict inspection
         let summary = count_conflicts(&table);

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-push hook for rust-sitter development
+# Pre-push hook for Adze development
 # Runs comprehensive checks before pushing to remote
 set -euo pipefail
 
@@ -148,7 +148,7 @@ fi
 
 # Step 7: Run core tests to ensure basic functionality
 echo -e "${YELLOW}→${NC} Running core test suite..."
-if ! cargo test -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --lib; then
+if ! cargo test -p adze-glr-core -p adze-ir -p adze-tablegen --lib; then
     echo -e "${RED}✖ Core tests failed${NC}"
     echo ""
     echo "Please ensure all tests pass before pushing"

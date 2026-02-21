@@ -2,7 +2,7 @@
 
 ## Summary
 
-Comprehensive cleanup and reorganization of the Rust Sitter documentation to improve maintainability and discoverability.
+Comprehensive cleanup and reorganization of the Adze documentation to improve maintainability and discoverability.
 
 ## Changes Made
 

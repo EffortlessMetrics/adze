@@ -3,9 +3,9 @@
 
 #[cfg(all(feature = "ts-compat", feature = "incremental_glr"))]
 mod pr58_validation {
-    use rust_sitter::ts_compat::{Language, Parser};
-    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use adze::ts_compat::{Language, Parser};
+    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;
 
     /// Create a test language to validate the fix
@@ -145,13 +145,13 @@ mod pr58_validation {
 
         // Test edit application (this was part of the PR)
         let mut tree2 = tree1.clone();
-        let edit = rust_sitter::ts_compat::InputEdit {
+        let edit = adze::ts_compat::InputEdit {
             start_byte: 3,
             old_end_byte: 3,
             new_end_byte: 6,
-            start_position: rust_sitter::ts_compat::Point { row: 0, column: 3 },
-            old_end_position: rust_sitter::ts_compat::Point { row: 0, column: 3 },
-            new_end_position: rust_sitter::ts_compat::Point { row: 0, column: 6 },
+            start_position: adze::ts_compat::Point { row: 0, column: 3 },
+            old_end_position: adze::ts_compat::Point { row: 0, column: 3 },
+            new_end_position: adze::ts_compat::Point { row: 0, column: 6 },
         };
 
         tree2.edit(&edit);

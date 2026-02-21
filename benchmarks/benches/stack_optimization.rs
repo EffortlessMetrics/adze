@@ -1,6 +1,6 @@
+use adze::pool::NodePool;
+use adze_glr_core::stack::StackNode;
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::pool::NodePool;
-use rust_sitter_glr_core::stack::StackNode;
 use std::sync::Arc;
 
 /// Benchmark comparing old Vec-based stacks vs new persistent stacks

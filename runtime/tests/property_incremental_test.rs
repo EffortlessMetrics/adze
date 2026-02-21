@@ -8,7 +8,7 @@ mod common;
 fn test_fresh_parse_sanity() {
     // This test verifies basic parsing works even without incremental features
     // It serves as a compile-time check that the test infrastructure is valid
-    use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("test".to_string());
     let num_id = SymbolId(1);
@@ -37,12 +37,12 @@ fn test_fresh_parse_sanity() {
 
 #[cfg(all(test, feature = "incremental_glr"))]
 mod incremental_properties {
+    use adze::parser_v4::{Parser, Tree};
+    use adze::pure_incremental::Edit;
+    use adze::pure_parser::Point;
+    use adze_glr_core::ParseTable;
+    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use proptest::prelude::*;
-    use rust_sitter::parser_v4::{Parser, Tree};
-    use rust_sitter::pure_incremental::Edit;
-    use rust_sitter::pure_parser::Point;
-    use rust_sitter_glr_core::ParseTable;
-    use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     use super::common::build_table;
 

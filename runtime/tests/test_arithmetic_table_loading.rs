@@ -10,10 +10,10 @@
 #[test]
 fn inspect_arithmetic_parse_table() {
     // Access the generated arithmetic language
-    let lang = unsafe { &rust_sitter_example::arithmetic::generated::LANGUAGE };
+    let lang = unsafe { &adze_example::arithmetic::generated::LANGUAGE };
 
     // Decode the parse table
-    let parse_table = rust_sitter::decoder::decode_parse_table(lang);
+    let parse_table = adze::decoder::decode_parse_table(lang);
 
     eprintln!("\n=== Arithmetic Grammar Parse Table Inspection ===");
     eprintln!("Total states: {}", parse_table.action_table.len());

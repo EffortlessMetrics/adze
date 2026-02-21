@@ -1,8 +1,8 @@
-// LSP (Language Server Protocol) generator for rust-sitter
-// Automatically generates language servers from rust-sitter grammars
+// LSP (Language Server Protocol) generator for adze
+// Automatically generates language servers from adze grammars
 
+use adze_ir::Grammar;
 use anyhow::{Context, Result};
-use rust_sitter_ir::Grammar;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -14,7 +14,7 @@ use codegen::LspCodeGenerator;
 pub use config::LspConfig;
 use features::{CompletionProvider, DiagnosticsProvider, HoverProvider, LspFeature};
 
-/// Main LSP generator for rust-sitter grammars
+/// Main LSP generator for adze grammars
 pub struct LspGenerator {
     grammar: Grammar,
     config: LspConfig,
@@ -37,24 +37,32 @@ impl LspGenerator {
         self
     }
 
+    fn enable_feature_once(&mut self, feature: Box<dyn LspFeature>) {
+        if self
+            .features
+            .iter()
+            .any(|existing| existing.name() == feature.name())
+        {
+            return;
+        }
+        self.features.push(feature);
+    }
+
     /// Enable completion support
     pub fn with_completion(mut self) -> Self {
-        self.features
-            .push(Box::new(CompletionProvider::new(&self.grammar)));
+        self.enable_feature_once(Box::new(CompletionProvider::new(&self.grammar)));
         self
     }
 
     /// Enable hover support  
     pub fn with_hover(mut self) -> Self {
-        self.features
-            .push(Box::new(HoverProvider::new(&self.grammar)));
+        self.enable_feature_once(Box::new(HoverProvider::new(&self.grammar)));
         self
     }
 
     /// Enable diagnostics support
     pub fn with_diagnostics(mut self) -> Self {
-        self.features
-            .push(Box::new(DiagnosticsProvider::new(&self.grammar)));
+        self.enable_feature_once(Box::new(DiagnosticsProvider::new(&self.grammar)));
         self
     }
 
@@ -175,9 +183,10 @@ fn load_grammar(path: &Path) -> Result<Grammar> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use adze_ir::builder::GrammarBuilder;
     use anyhow::Result;
-    use rust_sitter_ir::builder::GrammarBuilder;
-    use tempfile::NamedTempFile;
+    use std::fs;
+    use tempfile::{NamedTempFile, tempdir};
 
     #[test]
     fn test_lsp_builder() {
@@ -200,7 +209,7 @@ mod tests {
         let generator = LspGenerator::new(grammar);
 
         assert!(generator.features.is_empty());
-        assert_eq!(generator.config.name, "rust-sitter-lsp");
+        assert_eq!(generator.config.name, "adze-lsp");
     }
 
     #[test]
@@ -301,6 +310,81 @@ mod tests {
         assert_eq!(loaded.tokens.len(), 1);
         let start = loaded.start_symbol().expect("start symbol");
         assert_eq!(loaded.rules.get(&start).map(|r| r.len()), Some(1));
+        Ok(())
+    }
+
+    #[test]
+    fn given_generator_with_all_features_when_generate_then_writes_complete_lsp_project()
+    -> Result<()> {
+        // Given
+        let grammar = GrammarBuilder::new("mini_lang")
+            .token("KW_LET", "let")
+            .token("IDENT", "[a-zA-Z_][a-zA-Z0-9_]*")
+            .rule("stmt", vec!["KW_LET", "IDENT"])
+            .start("stmt")
+            .build();
+        let output_dir = tempdir()?;
+        let generator = LspGenerator::new(grammar)
+            .with_config(LspConfig {
+                name: "mini_lang_lsp".to_string(),
+                version: "0.3.0".to_string(),
+                ..Default::default()
+            })
+            .with_all_features();
+
+        // When
+        generator.generate(output_dir.path())?;
+
+        // Then
+        let server_path = output_dir.path().join("server.rs");
+        let handlers_path = output_dir.path().join("handlers.rs");
+        let cargo_path = output_dir.path().join("Cargo.toml");
+        let main_path = output_dir.path().join("main.rs");
+        assert!(server_path.exists());
+        assert!(handlers_path.exists());
+        assert!(cargo_path.exists());
+        assert!(main_path.exists());
+
+        let server = fs::read_to_string(server_path)?;
+        let handlers = fs::read_to_string(handlers_path)?;
+        let cargo_toml = fs::read_to_string(cargo_path)?;
+        let main = fs::read_to_string(main_path)?;
+
+        assert!(server.contains("pub struct MiniLangLsp"));
+        assert!(handlers.contains("handle_completion"));
+        assert!(handlers.contains("handle_hover"));
+        assert!(handlers.contains("handle_diagnostics"));
+        assert!(cargo_toml.contains("name = \"mini_lang_lsp\""));
+        assert!(cargo_toml.contains("mini_lang = { path = \"../grammars/mini_lang\" }"));
+        assert!(main.contains("server::MiniLangLsp::new(client)"));
+        Ok(())
+    }
+
+    #[test]
+    fn given_builder_with_unknown_feature_when_build_then_known_features_still_generate()
+    -> Result<()> {
+        // Given
+        let grammar = GrammarBuilder::new("feature_lang")
+            .token("KW_IF", "if")
+            .rule("stmt", vec!["KW_IF"])
+            .start("stmt")
+            .build();
+        let mut grammar_file = NamedTempFile::new()?;
+        serde_json::to_writer(grammar_file.as_file_mut(), &grammar)?;
+        let output_dir = tempdir()?;
+
+        // When
+        LspBuilder::new("feature_lang_lsp")
+            .grammar_path(grammar_file.path())
+            .output_dir(output_dir.path())
+            .feature("completion")
+            .feature("unknown-feature")
+            .build()?;
+
+        // Then
+        let handlers = fs::read_to_string(output_dir.path().join("handlers.rs"))?;
+        assert!(handlers.contains("handle_completion"));
+        assert!(!handlers.contains("handle_hover"));
         Ok(())
     }
 
@@ -450,5 +534,81 @@ mod tests {
 
         assert_eq!(generator.features.len(), 3);
         assert!(generator.features.iter().any(|f| f.name() == "hover"));
+    }
+
+    #[test]
+    fn given_duplicate_feature_enablement_when_configuring_generator_then_feature_set_is_unique() {
+        // Given
+        let grammar = Grammar::default();
+
+        // When
+        let generator = LspGenerator::new(grammar)
+            .with_hover()
+            .with_hover()
+            .with_all_features()
+            .with_completion();
+
+        // Then
+        assert_eq!(generator.features.len(), 3);
+        assert_eq!(
+            generator
+                .features
+                .iter()
+                .filter(|f| f.name() == "completion")
+                .count(),
+            1
+        );
+        assert_eq!(
+            generator
+                .features
+                .iter()
+                .filter(|f| f.name() == "hover")
+                .count(),
+            1
+        );
+        assert_eq!(
+            generator
+                .features
+                .iter()
+                .filter(|f| f.name() == "diagnostics")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn given_builder_with_all_and_specific_features_when_building_then_handlers_are_not_duplicated()
+    -> Result<()> {
+        // Given
+        let grammar = GrammarBuilder::new("dedupe_lang")
+            .token("KW_FN", "fn")
+            .rule("item", vec!["KW_FN"])
+            .start("item")
+            .build();
+        let mut grammar_file = NamedTempFile::new()?;
+        serde_json::to_writer(grammar_file.as_file_mut(), &grammar)?;
+        let output_dir = tempdir()?;
+
+        // When
+        LspBuilder::new("dedupe_lang_lsp")
+            .grammar_path(grammar_file.path())
+            .output_dir(output_dir.path())
+            .feature("all")
+            .feature("hover")
+            .feature("completion")
+            .build()?;
+
+        // Then
+        let handlers = fs::read_to_string(output_dir.path().join("handlers.rs"))?;
+        assert_eq!(
+            handlers.matches("pub async fn handle_completion(").count(),
+            1
+        );
+        assert_eq!(handlers.matches("pub async fn handle_hover(").count(), 1);
+        assert_eq!(
+            handlers.matches("pub async fn handle_diagnostics(").count(),
+            1
+        );
+        Ok(())
     }
 }

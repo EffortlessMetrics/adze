@@ -9,7 +9,7 @@ use crate::Tree;
 use crate::error::ParseError;
 use crate::glr_engine::{ForestNode, ForestNodeId, ParseForest};
 use crate::tree::TreeNode;
-use rust_sitter_glr_core::SymbolId;
+use adze_glr_core::SymbolId;
 use std::collections::HashSet;
 use std::fmt;
 
@@ -284,6 +284,7 @@ impl ForestConverter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::glr_engine::ForestNodeId;
 
     #[test]
     fn test_disambiguation_strategy_equality() {
@@ -292,5 +293,161 @@ mod tests {
             DisambiguationStrategy::First,
             DisambiguationStrategy::PreferShift
         );
+    }
+
+    fn single_terminal_forest(symbol: u16, range: std::ops::Range<usize>) -> ParseForest {
+        ParseForest {
+            nodes: vec![ForestNode {
+                symbol: SymbolId(symbol),
+                children: vec![],
+                range,
+            }],
+            roots: vec![ForestNodeId(0)],
+        }
+    }
+
+    #[test]
+    fn given_single_root_forest_when_converting_then_tree_preserves_root_symbol_range_and_source() {
+        // Given
+        let forest = single_terminal_forest(42, 1..3);
+        let converter = ForestConverter::new(DisambiguationStrategy::First);
+
+        // When
+        let tree = converter
+            .to_tree(&forest, b"xyz")
+            .expect("conversion should succeed");
+
+        // Then
+        let root = tree.root_node();
+        assert_eq!(root.kind_id(), 42);
+        assert_eq!(root.byte_range(), 1..3);
+        assert_eq!(tree.source_bytes(), Some("xyz".as_bytes()));
+    }
+
+    #[test]
+    fn given_forest_with_no_roots_when_converting_then_returns_no_roots_error() {
+        // Given
+        let forest = ParseForest {
+            nodes: vec![],
+            roots: vec![],
+        };
+        let converter = ForestConverter::new(DisambiguationStrategy::First);
+
+        // When
+        let err = converter
+            .to_tree(&forest, b"")
+            .expect_err("forest without roots should fail");
+
+        // Then
+        assert!(matches!(err, ConversionError::NoRoots));
+    }
+
+    #[test]
+    fn given_multiple_roots_and_reject_strategy_when_converting_then_returns_ambiguity_error() {
+        // Given
+        let forest = ParseForest {
+            nodes: vec![
+                ForestNode {
+                    symbol: SymbolId(1),
+                    children: vec![],
+                    range: 0..1,
+                },
+                ForestNode {
+                    symbol: SymbolId(2),
+                    children: vec![],
+                    range: 0..1,
+                },
+            ],
+            roots: vec![ForestNodeId(0), ForestNodeId(1)],
+        };
+        let converter = ForestConverter::new(DisambiguationStrategy::RejectAmbiguity);
+
+        // When
+        let err = converter
+            .to_tree(&forest, b"a")
+            .expect_err("ambiguity should be rejected");
+
+        // Then
+        assert!(matches!(err, ConversionError::AmbiguousForest { count: 2 }));
+    }
+
+    #[test]
+    fn given_multiple_roots_and_first_strategy_when_converting_then_first_root_is_selected() {
+        // Given
+        let forest = ParseForest {
+            nodes: vec![
+                ForestNode {
+                    symbol: SymbolId(7),
+                    children: vec![],
+                    range: 0..1,
+                },
+                ForestNode {
+                    symbol: SymbolId(8),
+                    children: vec![],
+                    range: 1..2,
+                },
+            ],
+            roots: vec![ForestNodeId(0), ForestNodeId(1)],
+        };
+        let converter = ForestConverter::new(DisambiguationStrategy::First);
+
+        // When
+        let tree = converter
+            .to_tree(&forest, b"ab")
+            .expect("first strategy should select one root");
+
+        // Then
+        assert_eq!(tree.root_node().kind_id(), 7);
+    }
+
+    #[test]
+    fn given_forest_with_invalid_child_reference_when_converting_then_returns_invalid_node_id() {
+        // Given
+        let forest = ParseForest {
+            nodes: vec![ForestNode {
+                symbol: SymbolId(9),
+                children: vec![ForestNodeId(99)],
+                range: 0..1,
+            }],
+            roots: vec![ForestNodeId(0)],
+        };
+        let converter = ForestConverter::new(DisambiguationStrategy::First);
+
+        // When
+        let err = converter
+            .to_tree(&forest, b"a")
+            .expect_err("invalid child reference should fail");
+
+        // Then
+        assert!(matches!(
+            err,
+            ConversionError::InvalidNodeId { node_id: 99 }
+        ));
+    }
+
+    #[test]
+    fn given_converter_when_detecting_ambiguity_then_multiple_roots_are_reported() {
+        // Given
+        let converter = ForestConverter::new(DisambiguationStrategy::First);
+        let ambiguous = ParseForest {
+            nodes: vec![
+                ForestNode {
+                    symbol: SymbolId(1),
+                    children: vec![],
+                    range: 0..1,
+                },
+                ForestNode {
+                    symbol: SymbolId(2),
+                    children: vec![],
+                    range: 0..1,
+                },
+            ],
+            roots: vec![ForestNodeId(0), ForestNodeId(1)],
+        };
+        let unambiguous = single_terminal_forest(1, 0..1);
+
+        // When / Then
+        assert_eq!(converter.detect_ambiguity(&ambiguous), Some(2));
+        assert_eq!(converter.detect_ambiguity(&unambiguous), None);
     }
 }

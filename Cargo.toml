@@ -35,9 +35,17 @@ exclude = [
   "example",               # has mutually exclusive pure-rust/c-backend features
 ]
 
+
 [workspace.package]
-rust-version = "1.89"
+authors = ["Steven Zimmerman, CPA <git@effortlesssteven.com>"]
+documentation = "https://github.com/effortlessmetrics/adze"
 edition = "2024"
+homepage = "https://github.com/effortlessmetrics/adze"
+license = "Apache-2.0 OR MIT"
+publish = false
+repository = "https://github.com/effortlessmetrics/adze"
+rust-version = "1.92.0"
+
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
@@ -46,7 +54,7 @@ missing_docs = "warn"
 unused_extern_crates = "deny"
 
 [workspace.dependencies]
-tree-sitter = "=0.25.8"
+tree-sitter = "=0.26.5"
 
 [profile.ci]
 inherits = "dev"

@@ -1,8 +1,8 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 // Enhanced external scanner generator with state-based validity computation
+use adze_glr_core::ParseTable;
+use adze_ir::{ExternalToken, Grammar, SymbolId};
 use quote::quote;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{ExternalToken, Grammar, SymbolId};
 use std::collections::HashMap;
 
 /// Enhanced external scanner generator that computes state-based validity
@@ -94,7 +94,7 @@ impl ExternalScannerGenerator {
 
             // External scanner data
             #[allow(dead_code)]
-            static EXTERNAL_SCANNER_DATA: rust_sitter::ffi::TSExternalScannerData = rust_sitter::ffi::TSExternalScannerData {
+            static EXTERNAL_SCANNER_DATA: adze::ffi::TSExternalScannerData = adze::ffi::TSExternalScannerData {
                 states: EXTERNAL_SCANNER_STATES.as_ptr(),
                 symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr(),
                 create: None, // TODO: Link to user scanner
@@ -156,8 +156,8 @@ impl ExternalScannerGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-    use rust_sitter_ir::{ProductionId, Rule, Symbol, Token, TokenPattern};
+    use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use adze_ir::{ProductionId, Rule, Symbol, Token, TokenPattern};
 
     #[test]
     fn test_state_validity_computation() {
@@ -178,9 +178,9 @@ mod tests {
             vec![vec![vec![Action::Error]; 2]; 2], // 2 states, 2 symbols
             vec![vec![crate::test_helpers::test::INVALID; 2]; 2],
             vec![],
-            rust_sitter_ir::SymbolId(1), // start_symbol
-            rust_sitter_ir::SymbolId(1), // eof_symbol
-            0,                           // external_token_count
+            adze_ir::SymbolId(1), // start_symbol
+            adze_ir::SymbolId(1), // eof_symbol
+            0,                    // external_token_count
         );
         parse_table.external_scanner_states = vec![
             vec![true, false], // State 0: INDENT is valid
@@ -192,10 +192,10 @@ mod tests {
         parse_table.symbol_to_index.insert(SymbolId(101), 1); // DEDENT
 
         // State 0: INDENT is valid (shift to state 1)
-        parse_table.action_table[0][0] = vec![Action::Shift(rust_sitter_ir::StateId(1))];
+        parse_table.action_table[0][0] = vec![Action::Shift(adze_ir::StateId(1))];
 
         // State 1: DEDENT is valid (shift to state 2)
-        parse_table.action_table[1][1] = vec![Action::Shift(rust_sitter_ir::StateId(2))];
+        parse_table.action_table[1][1] = vec![Action::Shift(adze_ir::StateId(2))];
 
         let generator = ExternalScannerGenerator::new(grammar, parse_table);
         let validity = generator.compute_state_validity();

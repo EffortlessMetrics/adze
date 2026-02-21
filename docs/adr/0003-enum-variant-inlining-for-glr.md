@@ -47,18 +47,18 @@ Implement **default variant inlining with opt-out attribute** for enum variants.
 
 Enum variants will be inlined directly into CHOICE members by default, eliminating intermediate symbols, when ALL of the following conditions are met:
 
-1. **No precedence on variant**: Variant lacks `#[rust_sitter::prec]`, `#[rust_sitter::prec_left]`, or `#[rust_sitter::prec_right]`
-2. **No explicit no_inline attribute**: Variant lacks `#[rust_sitter::no_inline]`
+1. **No precedence on variant**: Variant lacks `#[adze::prec]`, `#[adze::prec_left]`, or `#[adze::prec_right]`
+2. **No explicit no_inline attribute**: Variant lacks `#[adze::no_inline]`
 3. **Non-unit fields**: Variant has fields (not a unit variant)
 
-### New Attribute: `#[rust_sitter::no_inline]`
+### New Attribute: `#[adze::no_inline]`
 
 Users can preserve the current intermediate symbol behavior for specific variants:
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
-    #[rust_sitter::no_inline]  // Keeps intermediate Expr_Binary symbol
+    #[adze::no_inline]  // Keeps intermediate Expr_Binary symbol
     Binary(Box<Expr>, String, Box<Expr>),
 
     Number(i32),  // Inlined by default
@@ -162,7 +162,7 @@ enum Expr {
 ### Phase 4: Documentation
 
 1. Update `CLAUDE.md` with inlining behavior
-2. Document `#[rust_sitter::no_inline]` attribute
+2. Document `#[adze::no_inline]` attribute
 3. Create migration guide for breaking changes
 4. Update tutorial examples
 

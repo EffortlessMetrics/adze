@@ -1,4 +1,4 @@
-use rust_sitter_python::grammar_python::LANGUAGE;
+use adze_python::grammar_python::LANGUAGE;
 
 #[test]
 fn test_language_struct_compiles() {

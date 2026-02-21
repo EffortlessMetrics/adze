@@ -1,18 +1,18 @@
-# Rust-Sitter v0.5.0-beta Release Summary
+# Adze v0.5.0-beta Release Summary
 
 ## 🎉 Release Overview
 
-Rust-Sitter v0.5.0-beta is the first public beta release of a revolutionary approach to parser generation that allows defining Tree-sitter-compatible grammars directly in Rust using derive macros.
+Adze v0.5.0-beta is the first public beta release of a revolutionary approach to parser generation that allows defining Tree-sitter-compatible grammars directly in Rust using derive macros.
 
 ## 🚀 Key Features
 
 ### Write Grammars in Rust
 ```rust
-#[rust_sitter::grammar("my_language")]
+#[adze::grammar("my_language")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
-        #[rust_sitter::repeat]
+        #[adze::repeat]
         pub statements: Vec<Statement>,
     }
 }
@@ -33,10 +33,10 @@ pub mod grammar {
 ## 📦 What's Included
 
 ### Core Crates
-- **rust-sitter** - Runtime parsing library
-- **rust-sitter-macro** - Grammar definition macros
-- **rust-sitter-tool** - Build-time parser generation
-- **rust-sitter-cli** - Command-line interface
+- **adze** - Runtime parsing library
+- **adze-macro** - Grammar definition macros
+- **adze-tool** - Build-time parser generation
+- **adze-cli** - Command-line interface
 
 ### Example Grammars
 - JavaScript (simplified subset)
@@ -83,10 +83,10 @@ This beta is ideal for:
 
 ```toml
 [dependencies]
-rust-sitter = "0.5.0-beta"
+adze = "0.5.0-beta"
 
 [build-dependencies]
-rust-sitter-tool = "0.5.0-beta"
+adze-tool = "0.5.0-beta"
 ```
 
 See QUICKSTART_BETA.md for a complete tutorial.

@@ -1,8 +1,8 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 #[allow(unused_imports)]
 use std::collections::HashMap;
 

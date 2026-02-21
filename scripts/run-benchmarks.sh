@@ -3,7 +3,7 @@
 
 set -e
 
-echo "=== Running rust-sitter benchmarks ==="
+echo "=== Running adze benchmarks ==="
 
 # Colors for output
 RED='\033[0;31m'

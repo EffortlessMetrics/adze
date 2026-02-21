@@ -1,5 +1,5 @@
 // Demo of the pure-Rust parser implementation
-use rust_sitter::pure_parser::{ParsedNode, Parser};
+use adze::pure_parser::{ParsedNode, Parser};
 
 fn print_tree(node: &ParsedNode, depth: usize) {
     let indent = "  ".repeat(depth);
@@ -29,7 +29,7 @@ fn main() {
     // In a real scenario, you would load a language from a generated module
     // For now, we'll demonstrate the API
     println!("\nNote: To use this demo with a real language:");
-    println!("1. Generate a language using rust-sitter-tool");
+    println!("1. Generate a language using adze-tool");
     println!("2. Load the generated language module");
     println!("3. Pass it to parser.set_language()");
 

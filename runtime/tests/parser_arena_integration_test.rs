@@ -9,7 +9,7 @@
 //! - Add with_arena_capacity() constructor
 //! - Verify no behavior changes to existing functionality
 
-use rust_sitter::arena_allocator::{ArenaMetrics, TreeArena};
+use adze::arena_allocator::TreeArena;
 
 // ============================================================================
 // Spec 1: Arena Metrics API
@@ -72,10 +72,10 @@ fn spec_1_arena_custom_capacity() {
 fn arena_and_tree_node_data_integration() {
     // Verify TreeArena and TreeNodeData work together
 
-    use rust_sitter::arena_allocator::NodeHandle;
-    use rust_sitter::tree_node_data::TreeNodeData;
+    use adze::arena_allocator::NodeHandle;
+    use adze::tree_node_data::TreeNodeData;
 
-    let mut arena = TreeArena::new();
+    let arena = TreeArena::new();
 
     // Create TreeNodeData that can be allocated in arena (future work)
     let node = TreeNodeData::leaf(1, 0, 10);
@@ -83,7 +83,7 @@ fn arena_and_tree_node_data_integration() {
 
     // Verify we can create nodes with handles for future integration
     let handle = NodeHandle::new(0, 0);
-    let _child_vec = vec![handle];
+    let _child_vec = [handle];
 
     // Arena is ready for integration
     let metrics = arena.metrics();
@@ -143,7 +143,7 @@ fn parser_compiles_with_arena_field() {
     // field integration, this would fail at compile time.
 
     // The fact that this test compiles and runs is the verification
-    assert!(true, "Parser compiles with arena field");
+    // The fact that this test compiles and runs is the verification.
 }
 
 // ============================================================================

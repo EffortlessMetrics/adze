@@ -1,6 +1,7 @@
-// LSP feature implementations for rust-sitter grammars
+// LSP feature implementations for adze grammars
 
-use rust_sitter_ir::{Grammar, TokenPattern};
+use adze_ir::{Grammar, TokenPattern};
+use std::collections::BTreeSet;
 
 /// Trait for LSP features
 pub trait LspFeature: Send + Sync {
@@ -25,24 +26,27 @@ pub struct CompletionProvider {
 
 impl CompletionProvider {
     pub fn new(grammar: &Grammar) -> Self {
-        let mut keywords = Vec::new();
-        let mut symbols = Vec::new();
+        let mut keywords = BTreeSet::new();
+        let mut symbols = BTreeSet::new();
 
         // Extract keywords from tokens
         for (_id, token) in &grammar.tokens {
             if let TokenPattern::String(value) = &token.pattern
                 && value.chars().all(|c| c.is_alphabetic() || c == '_')
             {
-                keywords.push(value.clone());
+                keywords.insert(value.clone());
             }
         }
 
         // Extract symbols from rule names
         for (_symbol_id, name) in &grammar.rule_names {
-            symbols.push(name.clone());
+            symbols.insert(name.clone());
         }
 
-        Self { keywords, symbols }
+        Self {
+            keywords: keywords.into_iter().collect(),
+            symbols: symbols.into_iter().collect(),
+        }
     }
 }
 
@@ -345,7 +349,7 @@ pub async fn handle_diagnostics(
                     severity: Some(lsp_types::DiagnosticSeverity::ERROR),
                     code: None,
                     code_description: None,
-                    source: Some("rust-sitter".to_string()),
+                    source: Some("adze".to_string()),
                     message: error.message,
                     related_information: None,
                     tags: None,
@@ -397,7 +401,9 @@ fn offset_to_position(text: &str, offset: usize) -> lsp_types::Position {{
 
 #[cfg(test)]
 mod tests {
-    use anyhow::{Result, anyhow};
+    use super::*;
+    use adze_ir::builder::GrammarBuilder;
+    use anyhow::Result;
     use lsp_types::{
         HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
     };
@@ -464,6 +470,54 @@ mod tests {
     }
 
     #[test]
+    fn given_cursor_on_whitespace_when_extracting_word_then_previous_identifier_is_selected() {
+        // Given
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(file, "let value = 1;").unwrap();
+        let uri = Url::from_file_path(file.path()).unwrap();
+        let params = HoverParams {
+            text_document_position_params: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri },
+                position: Position {
+                    line: 0,
+                    character: 3,
+                },
+            },
+            work_done_progress_params: Default::default(),
+        };
+
+        // When
+        let word = test_get_word_at_position(&params).unwrap();
+
+        // Then
+        assert_eq!(word, "let");
+    }
+
+    #[test]
+    fn given_utf8_identifier_when_extracting_word_then_full_identifier_is_returned() {
+        // Given
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(file, "let café_name = 1;").unwrap();
+        let uri = Url::from_file_path(file.path()).unwrap();
+        let params = HoverParams {
+            text_document_position_params: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri },
+                position: Position {
+                    line: 0,
+                    character: 7,
+                },
+            },
+            work_done_progress_params: Default::default(),
+        };
+
+        // When
+        let word = test_get_word_at_position(&params).unwrap();
+
+        // Then
+        assert_eq!(word, "café_name");
+    }
+
+    #[test]
     fn finds_documentation_for_word() {
         let mut docs = HashMap::new();
         docs.insert(
@@ -476,5 +530,120 @@ mod tests {
             Some("Sample documentation".to_string())
         );
         assert_eq!(test_lookup_documentation("missing", &docs), None);
+    }
+
+    #[test]
+    fn given_mixed_token_patterns_when_building_completion_provider_then_only_word_keywords_are_suggested()
+     {
+        // Given
+        let grammar = GrammarBuilder::new("completion_lang")
+            .token("KW_IF", "if")
+            .token("KW_ASYNC", "async")
+            .token("PLUS", "+")
+            .token("NUMBER", "[0-9]+")
+            .rule("expr", vec!["KW_IF"])
+            .start("expr")
+            .build();
+
+        // When
+        let provider = CompletionProvider::new(&grammar);
+
+        // Then
+        let mut keywords = provider.keywords.clone();
+        keywords.sort();
+        assert_eq!(keywords, vec!["async".to_string(), "if".to_string()]);
+        assert!(provider.symbols.contains(&"expr".to_string()));
+
+        let handler = provider.generate_handler();
+        assert!(handler.contains("label: \"if\".to_string()"));
+        assert!(handler.contains("label: \"expr\".to_string()"));
+        assert!(!handler.contains("label: \"+\".to_string()"));
+    }
+
+    #[test]
+    fn given_duplicate_and_unsorted_grammar_entries_when_building_completion_provider_then_suggestions_are_unique_and_sorted()
+     {
+        // Given
+        let grammar = GrammarBuilder::new("completion_ordering")
+            .token("KW_Z", "zeta")
+            .token("KW_IF", "if")
+            .token("KW_IF_ALIAS", "if")
+            .rule("z_statement", vec!["KW_Z"])
+            .rule("a_statement", vec!["KW_IF"])
+            .start("z_statement")
+            .build();
+
+        // When
+        let provider = CompletionProvider::new(&grammar);
+        let handler = provider.generate_handler();
+
+        // Then
+        assert_eq!(
+            provider.keywords,
+            vec!["if".to_string(), "zeta".to_string()]
+        );
+        assert_eq!(
+            provider.symbols,
+            vec!["a_statement".to_string(), "z_statement".to_string()]
+        );
+        assert_eq!(handler.matches("label: \"if\".to_string()").count(), 2);
+    }
+
+    #[test]
+    fn given_completion_provider_when_requesting_capabilities_then_trigger_characters_are_exposed()
+    {
+        // Given
+        let grammar = GrammarBuilder::new("completion_caps")
+            .token("KW_LET", "let")
+            .rule("statement", vec!["KW_LET"])
+            .start("statement")
+            .build();
+        let provider = CompletionProvider::new(&grammar);
+
+        // When
+        let capabilities = provider.capabilities();
+
+        // Then
+        assert_eq!(
+            capabilities["completionProvider"]["resolveProvider"],
+            serde_json::json!(false)
+        );
+        assert_eq!(
+            capabilities["completionProvider"]["triggerCharacters"],
+            serde_json::json!([".", ":"])
+        );
+    }
+
+    #[test]
+    fn given_grammar_name_when_generating_diagnostics_handler_then_parse_uses_that_grammar() {
+        // Given
+        let grammar = GrammarBuilder::new("mini_parser")
+            .token("IDENT", "[a-zA-Z_][a-zA-Z0-9_]*")
+            .rule("stmt", vec!["IDENT"])
+            .start("stmt")
+            .build();
+        let provider = DiagnosticsProvider::new(&grammar);
+
+        // When
+        let handler = provider.generate_handler();
+        let imports = provider.required_imports();
+        let capabilities = provider.capabilities();
+
+        // Then
+        assert!(handler.contains("match mini_parser::parse(text)"));
+        assert!(handler.contains("fn offset_to_position"));
+        assert!(
+            imports
+                .iter()
+                .any(|i| i.contains("DiagnosticSeverity") && i.contains("Url"))
+        );
+        assert_eq!(
+            capabilities["textDocumentSync"]["change"],
+            serde_json::json!(1)
+        );
+        assert_eq!(
+            capabilities["textDocumentSync"]["openClose"],
+            serde_json::json!(true)
+        );
     }
 }

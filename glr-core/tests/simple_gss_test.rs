@@ -5,7 +5,7 @@
 /*
 #[cfg(test)]
 mod tests {
-    use rust_sitter_glr_core::gss_arena::{ArenaGSS, ArenaStackNode};
+    use adze_glr_core::gss_arena::{ArenaGSS, ArenaStackNode};
     // Original test implementations commented out
     // Need to be updated for new API
 }

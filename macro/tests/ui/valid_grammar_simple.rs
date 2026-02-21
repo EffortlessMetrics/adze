@@ -1,21 +1,21 @@
 //! Test case: Valid simple grammar should compile
 
-#[rust_sitter::grammar("arithmetic")]
-#[rust_sitter::language]
+#[adze::grammar("arithmetic")]
+#[adze::language]
 pub struct Arithmetic {
     pub expr: Expr,
 }
 
 #[derive(Debug)]
 pub enum Expr {
-    #[rust_sitter::leaf(text = r"[0-9]+")]
+    #[adze::leaf(text = r"[0-9]+")]
     Number(String),
 
-    #[rust_sitter::prec_left(1)]
-    Add(Box<Expr>, #[rust_sitter::leaf(text = "+")] (), Box<Expr>),
+    #[adze::prec_left(1)]
+    Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
 
-    #[rust_sitter::prec_left(2)]
-    Mul(Box<Expr>, #[rust_sitter::leaf(text = "*")] (), Box<Expr>),
+    #[adze::prec_left(2)]
+    Mul(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>),
 }
 
 fn main() {

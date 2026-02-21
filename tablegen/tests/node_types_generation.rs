@@ -1,5 +1,5 @@
-use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use rust_sitter_tablegen::NodeTypesGenerator;
+use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_tablegen::NodeTypesGenerator;
 
 fn create_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar::new("arithmetic".to_string());

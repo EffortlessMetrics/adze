@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rust-sitter = { path = "../runtime", features = ["tree-sitter-c2rust"] }
+adze = { path = "../runtime", features = ["tree-sitter-c2rust"] }
 
 [build-dependencies]
-rust-sitter-tool = { path = "../tool" }
+adze-tool = { path = "../tool" }
 
 [workspace]

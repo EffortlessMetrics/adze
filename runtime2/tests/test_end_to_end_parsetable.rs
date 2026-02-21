@@ -1,7 +1,7 @@
 //! End-to-end integration test for .parsetable pipeline
 //!
 //! This test demonstrates the complete workflow:
-//! 1. Build grammar using rust-sitter IR
+//! 1. Build grammar using adze IR
 //! 2. Generate .parsetable file using tablegen
 //! 3. Load .parsetable in runtime2
 //! 4. Parse input with GLR engine
@@ -11,17 +11,17 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{
     Associativity, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
-use rust_sitter_runtime::{
+use adze_runtime::{
     Parser,
     language::SymbolMetadata,
     tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
 };
-use rust_sitter_tablegen::ParsetableWriter;
+use adze_tablegen::ParsetableWriter;
 use std::collections::HashMap;
 
 /// Helper: Create a minimal arithmetic grammar for testing

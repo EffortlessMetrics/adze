@@ -12,7 +12,7 @@
     clippy::needless_range_loop
 )]
 
-//! GLR parser generation algorithms for pure-Rust Tree-sitter
+//! GLR parser generation algorithms for Adze
 //! This module implements the core GLR state machine generation and conflict resolution
 //!
 //! ## Contracts & Invariants
@@ -49,9 +49,9 @@
 //! Enable the `strict-invariants` feature to validate parse tables at runtime.
 //! This adds overhead but catches invariant violations early in development.
 
+use adze_ir::*;
 use fixedbitset::FixedBitSet;
 use indexmap::IndexMap;
-use rust_sitter_ir::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -65,8 +65,8 @@ pub use GLRError as GlrError;
 /// Conflict inspection API for analyzing GLR parse table conflicts
 pub mod conflict_inspection;
 
-// Re-export key types from rust-sitter-ir for API consumers
-pub use rust_sitter_ir::{Grammar, StateId, SymbolId};
+// Re-export key types from adze-ir for API consumers
+pub use adze_ir::{Grammar, StateId, SymbolId};
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {
@@ -209,7 +209,7 @@ fn build_prec_tables(
     token_count: u32,
     production_count: u32,
 ) -> PrecTables {
-    use rust_sitter_ir::{Associativity, PrecedenceKind};
+    use adze_ir::{Associativity, PrecedenceKind};
 
     // Guard rail: ensure we have the right table structure
     // Note: token_count can be 0 for empty grammars (only EOF token)
@@ -2934,16 +2934,16 @@ pub fn build_lr1_automaton(
 
         // Extract precedence value for this rule
         let prec = match rule.precedence {
-            Some(rust_sitter_ir::PrecedenceKind::Static(p)) => p,
-            Some(rust_sitter_ir::PrecedenceKind::Dynamic(p)) => p,
+            Some(adze_ir::PrecedenceKind::Static(p)) => p,
+            Some(adze_ir::PrecedenceKind::Dynamic(p)) => p,
             None => 0,
         };
         dynamic_prec_by_rule.push(prec);
 
         // Extract associativity for this rule
         let assoc = match rule.associativity {
-            Some(rust_sitter_ir::Associativity::Left) => 1,
-            Some(rust_sitter_ir::Associativity::Right) => -1,
+            Some(adze_ir::Associativity::Left) => 1,
+            Some(adze_ir::Associativity::Right) => -1,
             _ => 0,
         };
         rule_assoc_by_rule.push(assoc);

@@ -1,5 +1,5 @@
 // Query AST representation
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 use std::collections::HashMap;
 use thiserror::Error;
 

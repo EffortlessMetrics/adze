@@ -1,8 +1,8 @@
-//! Common external scanners for rust-sitter.
+//! Common external scanners for adze.
 //! These are Rust implementations of common scanning patterns.
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
-// Common external scanners for rust-sitter
+// Common external scanners for adze
 // These are Rust implementations of common scanning patterns
 
 /// Heredoc scanner implementation.

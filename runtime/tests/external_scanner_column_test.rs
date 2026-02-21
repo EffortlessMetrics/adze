@@ -1,5 +1,5 @@
 #![allow(unused_unsafe)]
-use rust_sitter::external_scanner_ffi::{RustLexerAdapter, TSLexer};
+use adze::external_scanner_ffi::{RustLexerAdapter, TSLexer};
 
 #[test]
 fn test_column_tracking_basic() {

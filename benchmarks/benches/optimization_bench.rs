@@ -1,6 +1,6 @@
+use adze::arena_allocator::{TreeArena, TreeNode};
+use adze::stack_pool::StackPool;
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::arena_allocator::{Arena, TypedArena};
-use rust_sitter::stack_pool::StackPool;
 
 fn benchmark_stack_pool(c: &mut Criterion) {
     let mut group = c.benchmark_group("stack_pool");
@@ -62,63 +62,25 @@ fn benchmark_stack_pool(c: &mut Criterion) {
 fn benchmark_arena_allocator(c: &mut Criterion) {
     let mut group = c.benchmark_group("arena_allocator");
 
-    // Node allocation benchmark
-    #[derive(Clone)]
-    struct ParseNode {
-        #[allow(dead_code)]
-        symbol: u16,
-        #[allow(dead_code)]
-        start: usize,
-        #[allow(dead_code)]
-        end: usize,
-        #[allow(dead_code)]
-        children: Vec<usize>, // Indices instead of pointers for simplicity
-    }
-
     group.bench_function("vec_allocation", |b| {
         b.iter(|| {
             let mut nodes = Vec::new();
             for i in 0..1000 {
-                nodes.push(ParseNode {
-                    symbol: (i % 256) as u16,
-                    start: i * 10,
-                    end: i * 10 + 5,
-                    children: vec![],
-                });
+                nodes.push(TreeNode::leaf(i % 256));
             }
             black_box(nodes)
         });
     });
 
     group.bench_function("arena_allocation", |b| {
-        let arena = Arena::new(256);
         b.iter(|| {
-            let mut refs = Vec::new();
+            let mut arena = TreeArena::with_capacity(256);
+            let mut handles = Vec::new();
             for i in 0..1000 {
-                let node = arena.alloc(ParseNode {
-                    symbol: (i % 256) as u16,
-                    start: i * 10,
-                    end: i * 10 + 5,
-                    children: vec![],
-                });
-                refs.push(node);
+                let handle = arena.alloc(TreeNode::leaf(i % 256));
+                handles.push(handle);
             }
-            black_box(refs)
-        });
-    });
-
-    // Heterogeneous allocation benchmark
-    group.bench_function("typed_arena", |b| {
-        let arena = TypedArena::new(4096);
-        b.iter(|| unsafe {
-            let mut ptrs = Vec::new();
-            for i in 0..100 {
-                let i32_ptr = arena.alloc(i);
-                let f64_ptr = arena.alloc(i as f64);
-                let vec_ptr = arena.alloc(vec![i; 10]);
-                ptrs.push((i32_ptr, f64_ptr, vec_ptr));
-            }
-            black_box(ptrs)
+            black_box(handles)
         });
     });
 
@@ -131,12 +93,12 @@ fn benchmark_combined_optimizations(c: &mut Criterion) {
     // Simulate a parsing workload with both optimizations
     group.bench_function("parse_simulation", |b| {
         let pool = StackPool::new(32);
-        let arena = Arena::new(512);
 
         b.iter(|| {
+            let mut arena = TreeArena::with_capacity(512);
             // Simulate parsing with forks
             let mut stacks = Vec::new();
-            let mut nodes = Vec::new();
+            let mut handles = Vec::new();
 
             // Initial stack
             let mut stack = pool.acquire();
@@ -151,8 +113,8 @@ fn benchmark_combined_optimizations(c: &mut Criterion) {
                 }
 
                 // Allocate parse nodes
-                let node = arena.alloc(step);
-                nodes.push(node);
+                let handle = arena.alloc(TreeNode::leaf(step));
+                handles.push(handle);
 
                 // Update stack
                 stack.push(step);
@@ -169,7 +131,7 @@ fn benchmark_combined_optimizations(c: &mut Criterion) {
                 pool.release(s);
             }
 
-            black_box(nodes)
+            black_box(handles)
         });
     });
 

@@ -1,22 +1,22 @@
-// Integration tests for the complete rust-sitter parsing pipeline
+// Integration tests for the complete adze parsing pipeline
 // These tests verify that all components work together correctly
 
 // TODO: These tests need to be updated to match the new API
 #![cfg(skip_integration_tests)]
 
+use adze::error_recovery::ErrorRecoveryConfigBuilder;
 use anyhow::Result;
 use indexmap::IndexMap;
-use rust_sitter::error_recovery::ErrorRecoveryConfigBuilder;
-// use rust_sitter::external_scanner::ExternalScanner; // Unused
-// use rust_sitter::incremental_v3::{Edit, IncrementalParser, Position}; // Feature-gated
-use rust_sitter::query::{QueryCursor, compile_query};
-use rust_sitter::scanner_registry::ExternalScannerBuilder;
-use rust_sitter::scanners::IndentationScanner;
-use rust_sitter::tree_sitter::Point as Position;
-use rust_sitter::unified_parser::Parser;
-use rust_sitter_glr_core::*;
-use rust_sitter_ir::*;
-use rust_sitter_tablegen::StaticLanguageGenerator;
+// use adze::external_scanner::ExternalScanner; // Unused
+// use adze::incremental_v3::{Edit, IncrementalParser, Position}; // Feature-gated
+use adze::query::{QueryCursor, compile_query};
+use adze::scanner_registry::ExternalScannerBuilder;
+use adze::scanners::IndentationScanner;
+use adze::tree_sitter::Point as Position;
+use adze::unified_parser::Parser;
+use adze_glr_core::*;
+use adze_ir::*;
+use adze_tablegen::StaticLanguageGenerator;
 use std::collections::BTreeMap;
 
 /// Create a simple Python-like grammar with indentation
@@ -436,8 +436,8 @@ def foo:
 }
 
 #[test]
-fn test_full_rust_sitter_capabilities() {
-    println!("\n=== Rust-Sitter Feature Summary ===");
+fn test_full_adze_capabilities() {
+    println!("\n=== Adze Feature Summary ===");
     println!("✅ Grammar definition with macros");
     println!("✅ Pure-Rust parser implementation");
     println!("✅ GLR fork/merge for ambiguous grammars");

@@ -5,7 +5,6 @@
 ///
 /// These tests verify that the parse() function correctly routes to the
 /// appropriate parser backend based on feature flags and grammar metadata.
-
 #[cfg(test)]
 mod parser_routing_tests {
     // These tests document the expected behavior of parser routing.
@@ -58,7 +57,7 @@ mod parser_routing_tests {
         //
         // This behavior is already tested in parser_selection.rs,
         // but we document it here in the context of parsing.
-        use crate::parser_selection::ParserBackend;
+        use adze::parser_selection::ParserBackend;
 
         // Simulate a grammar with conflicts
         let _backend = ParserBackend::select(true);
@@ -82,9 +81,9 @@ mod integration_tests {
         //
         // Example:
         // ```rust
-        // #[rust_sitter::grammar("simple")]
+        // #[adze::grammar("simple")]
         // mod grammar {
-        //     #[rust_sitter::language]
+        //     #[adze::language]
         //     pub enum Expr {
         //         Number(#[leaf(pattern = r"\d+")] i32),
         //     }
@@ -118,7 +117,7 @@ mod integration_tests {
 /// living documentation of design decisions.
 #[cfg(test)]
 mod architecture_tests {
-    use rust_sitter::parser_selection::ParserBackend;
+    use adze::parser_selection::ParserBackend;
 
     /// Document: Backend selection is compile-time
     #[test]

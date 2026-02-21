@@ -3,7 +3,7 @@
 #[cfg(feature = "perf-counters")]
 #[test]
 fn test_perf_counters_enabled() {
-    use rust_sitter_glr_core::perf;
+    use adze_glr_core::perf;
 
     // Reset counters
     perf::reset();
@@ -40,7 +40,7 @@ fn test_perf_counters_enabled() {
 #[cfg(not(feature = "perf-counters"))]
 #[test]
 fn test_perf_counters_disabled() {
-    use rust_sitter_glr_core::perf;
+    use adze_glr_core::perf;
 
     // When disabled, counters should always be zero
     perf::inc_shifts(100);

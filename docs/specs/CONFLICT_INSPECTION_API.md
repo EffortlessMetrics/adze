@@ -266,7 +266,7 @@ pub enum ConflictType {
 /// # Examples
 ///
 /// ```rust
-/// use rust_sitter_glr_core::conflict_inspection::count_conflicts;
+/// use adze_glr_core::conflict_inspection::count_conflicts;
 ///
 /// let grammar = load_ambiguous_grammar();
 /// let summary = count_conflicts(&grammar.parse_table);
@@ -581,7 +581,7 @@ fn test_ambiguous_expr_conflict_detection() {
 ### Example 1: Validate Grammar Properties
 
 ```rust
-use rust_sitter_glr_core::conflict_inspection::*;
+use adze_glr_core::conflict_inspection::*;
 
 // Load a grammar
 let grammar = load_dangling_else_grammar();

@@ -17,17 +17,17 @@ test(runtime): port GLR integration tests to current API; harden gating; fix sca
 
 ```bash
 # Just this file (noisy logs)
-cargo test -p rust-sitter --test test_glr_parsing -- --nocapture
+cargo test -p adze --test test_glr_parsing -- --nocapture
 
 # Show tests the harness sees
-cargo test -p rust-sitter --test test_glr_parsing -- --list --format terse
+cargo test -p adze --test test_glr_parsing -- --list --format terse
 
 # Feature matrix for the crate
-cargo test -p rust-sitter
-cargo test -p rust-sitter --features external_scanners
-cargo test -p rust-sitter --features incremental_glr
+cargo test -p adze
+cargo test -p adze --features external_scanners
+cargo test -p adze --features incremental_glr
 # (Optional) if query is stubbed/green:
-# cargo test -p rust-sitter --all-features
+# cargo test -p adze --all-features
 
 # Tripwires
 ./scripts/check-test-connectivity.sh
@@ -64,6 +64,6 @@ rg -n '\.rs\.disabled' || true
 - Status: Already pushed to origin
 
 ## How to Create the PR
-1. Go to: https://github.com/EffortlessSteven/rust-sitter/pull/new/tests/port-glr
+1. Go to: https://github.com/EffortlessSteven/adze/pull/new/tests/port-glr
 2. Copy and paste the content above (from Title through Notes for Reviewers)
 3. Click "Create pull request"

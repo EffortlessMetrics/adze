@@ -3,7 +3,7 @@
 ## Problem Analysis
 
 PR #11 experienced two critical failures:
-1. **Rust job timeout** (30 minutes) during `cargo build && cargo test` for `rust-sitter-python`
+1. **Rust job timeout** (30 minutes) during `cargo build && cargo test` for `adze-python`
 2. **Node runner crash** with `Error: spawn ps EAGAIN` on Node v24.1.0
 
 ### Root Causes
@@ -17,9 +17,9 @@ PR #11 experienced two critical failures:
 
 **File**: `.github/workflows/ci.yml`
 
-Added dedicated `rust-sitter-python` job with:
+Added dedicated `adze-python` job with:
 ```yaml
-rust-sitter-python:
+adze-python:
   timeout-minutes: 45
   env:
     CARGO_BUILD_JOBS: 2              # cap parallelism
@@ -27,12 +27,12 @@ rust-sitter-python:
     RUSTFLAGS: "-C debuginfo=0 -C codegen-units=8"
   steps:
     - uses: Swatinem/rust-cache@v2   # aggressive caching
-    - name: Build rust-sitter-python
-      run: cargo build -p rust-sitter-python --locked --jobs 2
+    - name: Build adze-python
+      run: cargo build -p adze-python --locked --jobs 2
     - name: Compile tests (no run)   # separate compile/run phases
-      run: cargo test -p rust-sitter-python --locked --no-run --jobs 2
+      run: cargo test -p adze-python --locked --no-run --jobs 2
     - name: Run tests
-      run: cargo test -p rust-sitter-python -- --test-threads 1 --nocapture
+      run: cargo test -p adze-python -- --test-threads 1 --nocapture
 ```
 
 **Benefits**:
@@ -180,7 +180,7 @@ pub struct TreeStatistics {
 ### For CI/Automation
 ```bash
 # Use safe process management
-./scripts/safe-run.sh run cargo test -p rust-sitter-python
+./scripts/safe-run.sh run cargo test -p adze-python
 ./scripts/safe-run.sh run-with-lock build-lock cargo build --workspace
 
 # Cleanup stale locks periodically  

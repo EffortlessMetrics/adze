@@ -1,6 +1,6 @@
-# CI Infrastructure for rust-sitter
+# CI Infrastructure for adze
 
-This document describes the comprehensive CI setup for rust-sitter.
+This document describes the comprehensive CI setup for adze.
 
 ## Overview
 
@@ -8,30 +8,30 @@ The CI pipeline ensures code quality, API stability, and security through multip
 
 ### Jobs
 
-1. **Lint** - Enforces code formatting and clippy warnings
-2. **Test** - Runs all tests using cargo-nextest for speed
-3. **Feature Matrix** - Tests all feature combinations
-4. **MSRV** - Ensures compatibility with Rust 1.75.0
-5. **API Stability** - Detects breaking changes in public APIs
-6. **Security** - Scans for vulnerabilities and license issues
-7. **Documentation** - Builds docs with warnings as errors
-8. **Coverage** - Tracks test coverage (main branch only)
-9. **Unsafe Audit** - Reports unsafe code usage
+1. **ci-supported** - Stable green gate (`just ci-supported`); runs on every push/PR
+2. **Lint** - Enforces code formatting and clippy warnings
+3. **Test** - Runs all tests using cargo-nextest for speed
+4. **Feature Matrix** - Tests all feature combinations
+5. **MSRV** - Ensures compatibility with Rust 1.89.0
+6. **API Stability** - Detects breaking changes in public APIs
+7. **Security** - Scans for vulnerabilities and license issues
+8. **Documentation** - Builds docs with warnings as errors
+9. **Coverage** - Tracks test coverage (main branch only)
+10. **Unsafe Audit** - Reports unsafe code usage
 
 ## Required GitHub Settings
 
 To make the CI effective, configure these branch protection rules:
 
 ### Required Status Checks
-- `lint`
-- `test`
-- `msrv`
-- `security`
-- `docs`
+
+Required status checks are currently disabled pending stabilization of the full
+test suite. The `ci-supported` workflow (`just ci-supported`) is the intended
+stable gate for PRs. See `docs/status/KNOWN_RED.md` for details on what is
+excluded and why.
 
 ### Recommended Settings
 - Require branches to be up to date before merging
-- Include administrators
 - Require conversation resolution
 
 ## Local Development
@@ -43,7 +43,7 @@ To make the CI effective, configure these branch protection rules:
 cargo install cargo-nextest cargo-hack cargo-deny cargo-llvm-cov
 
 # Run the full CI suite locally
-cargo ci           # Clippy with warnings as errors
+just ci-supported  # Stable green CI lane
 cargo nextest run  # Fast parallel test runner
 cargo deny check   # Security and license checks
 

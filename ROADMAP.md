@@ -1,4 +1,4 @@
-# Rust-Sitter Roadmap
+# Adze Roadmap
 
 **Last Updated**: November 15, 2025
 **Current Version**: v0.6.1-beta
@@ -28,7 +28,7 @@
 ### What Actually Works Today
 
 **Macro-Based Grammar Generation** (100% Complete)
-- Define grammars with `#[rust_sitter::grammar]` annotations
+- Define grammars with `#[adze::grammar]` annotations
 - Generate working parsers at compile time
 - Correct operator precedence (`1-2*3` → `1-(2*3)`) ✓
 - Left associativity (`20-10-5` → `(20-10)-5`) ✓
@@ -394,7 +394,7 @@
 
 ---
 
-**Maintained by**: rust-sitter core team
+**Maintained by**: adze core team
 **Last Review**: November 15, 2025
 **Next Review**: January 2026 (post-v0.7.0 planning)
 

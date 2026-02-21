@@ -1,8 +1,8 @@
-# Incremental Parsing in rust-sitter
+# Incremental Parsing in adze
 
 ## Overview
 
-rust-sitter includes incremental parsing infrastructure (implemented in PR #62) designed to improve performance when handling text edits. The incremental parser identifies and reuses unchanged subtrees, making parse time proportional to the edit size rather than document size.
+adze includes incremental parsing infrastructure (implemented in PR #62) designed to improve performance when handling text edits. The incremental parser identifies and reuses unchanged subtrees, making parse time proportional to the edit size rather than document size.
 
 **Status**: ⚠️ **Experimental / Currently Disabled** - The incremental parsing path is currently disabled and falls back to fresh parsing for consistency. The infrastructure exists but has architectural issues causing behavioral differences between incremental and fresh parsing. See `glr_incremental.rs` for details.
 
@@ -79,10 +79,10 @@ The GLR parser integrates incremental parsing through:
 ## Usage Example (Production API - PR #62)
 
 ```rust
-use rust_sitter::parser_v4::{Parser, Tree};
-use rust_sitter::pure_incremental::Edit;
-use rust_sitter::pure_parser::Point;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::parser_v4::{Parser, Tree};
+use adze::pure_incremental::Edit;
+use adze::pure_parser::Point;
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 // Create parser (requires grammar, table, and language name)
 let mut parser = Parser::new(grammar, parse_table, "my_language".to_string());
@@ -205,13 +205,13 @@ Incremental parsing requires specific feature flags:
 ```toml
 [dependencies]
 # Production incremental parsing (recommended)
-rust-sitter = { version = "0.6", features = ["incremental_glr"] }
+adze = { version = "0.6", features = ["incremental_glr"] }
 
 # Alternative: basic incremental support (legacy)
-rust-sitter = { version = "0.6", features = ["incremental"] }
+adze = { version = "0.6", features = ["incremental"] }
 
 # All features (comprehensive)
-rust-sitter = { version = "0.6", features = ["all-features"] }
+adze = { version = "0.6", features = ["all-features"] }
 ```
 
 **Feature Behavior**:
@@ -224,7 +224,7 @@ rust-sitter = { version = "0.6", features = ["all-features"] }
 Track incremental parsing performance using built-in counters:
 
 ```rust
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 // Reset counter before testing
 reset_reuse_counter();
@@ -258,7 +258,7 @@ if reused_count > 0 {
 
 ## Conclusion
 
-Incremental parsing is now a **production-ready cornerstone feature** that enables rust-sitter to power real-time IDE experiences. The implementation provides Tree-sitter compatible performance with the safety and extensibility of pure Rust.
+Incremental parsing is now a **production-ready cornerstone feature** that enables adze to power real-time IDE experiences. The implementation provides Tree-sitter compatible performance with the safety and extensibility of pure Rust.
 
 **Key Achievements**:
 - ✅ **16x performance improvement** for typical edits

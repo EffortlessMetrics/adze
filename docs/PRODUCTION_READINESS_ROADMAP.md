@@ -2,13 +2,13 @@
 
 **Date**: 2025-11-19
 **Status**: ACTIVE
-**Goal**: Transform rust-sitter from "strong beta" to "production-ready v1.0"
+**Goal**: Transform adze from "strong beta" to "production-ready v1.0"
 
 ---
 
 ## Executive Summary
 
-This roadmap takes rust-sitter from its current state (strong beta, macro path working, GLR algorithmically correct but not fully integrated) to a production-ready v1.0 release suitable for pointing at hiring managers and real-world use.
+This roadmap takes adze from its current state (strong beta, macro path working, GLR algorithmically correct but not fully integrated) to a production-ready v1.0 release suitable for pointing at hiring managers and real-world use.
 
 ### Current State (v0.6.1-beta)
 - ✅ Macro-based grammar generation: 100% working
@@ -523,7 +523,7 @@ fn scenario_left_associative_multiplication() {
 #### Release announcement
 - **Platforms**: Blog, Reddit, HN, Twitter
 - **Content**:
-  1. What rust-sitter does
+  1. What adze does
   2. Why GLR matters
   3. Use cases and examples
   4. Migration guide link
@@ -625,4 +625,4 @@ fn scenario_left_associative_multiplication() {
 
 ---
 
-**Let's build production-ready rust-sitter! 🚀**
+**Let's build production-ready adze! 🚀**

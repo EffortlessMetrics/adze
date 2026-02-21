@@ -1,10 +1,10 @@
-//! Demonstrates incremental tree editing with rust-sitter runtime2
+//! Demonstrates incremental tree editing with adze runtime2
 //!
 //! This example shows how to use the Tree::edit() method for efficient
 //! incremental parsing with comprehensive error handling and memory safety.
 
 #[cfg(feature = "incremental")]
-use rust_sitter_runtime2::{EditError, InputEdit, Point, Tree, TreeNode};
+use adze_runtime2::{EditError, InputEdit, Point, Tree, TreeNode};
 
 #[cfg(not(feature = "incremental"))]
 fn main() {

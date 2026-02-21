@@ -14,10 +14,10 @@
 #[test]
 fn inspect_ambiguous_expr_conflicts() {
     // Access the generated ambiguous_expr language
-    let lang = unsafe { &rust_sitter_example::ambiguous_expr::generated::LANGUAGE };
+    let lang = unsafe { &adze_example::ambiguous_expr::generated::LANGUAGE };
 
     // Decode the parse table
-    let parse_table = rust_sitter::decoder::decode_parse_table(lang);
+    let parse_table = adze::decoder::decode_parse_table(lang);
 
     eprintln!("\n=== Ambiguous Expression Grammar Parse Table Inspection ===");
     eprintln!("Total states: {}", parse_table.action_table.len());

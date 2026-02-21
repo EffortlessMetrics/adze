@@ -43,7 +43,7 @@ This document summarizes the comprehensive documentation updates completed for P
 **New Section**: PR #58 Validation Testing
 - **Node Metadata Testing**: `pr58_validation_test` and `ts_compat_node_test` commands
 - **Incremental Algorithm Testing**: `test_incremental_forest_splicing` validation  
-- **Performance Monitoring**: `RUST_SITTER_LOG_PERFORMANCE` usage for 16x speedup verification
+- **Performance Monitoring**: `ADZE_LOG_PERFORMANCE` usage for 16x speedup verification
 - **Comprehensive Test Suite**: `incremental_glr_comprehensive_test` for production validation
 
 ### ✅ Working Examples (`/runtime/examples/pr58_features_demo.rs`)
@@ -98,14 +98,14 @@ All code examples have been tested for:
 ### New Test Commands Added
 ```bash
 # PR #58 specific validation
-cargo test -p rust-sitter-runtime pr58_validation_test -- --nocapture
-cargo test -p rust-sitter-runtime ts_compat_node_test -- --nocapture
+cargo test -p adze-runtime pr58_validation_test -- --nocapture
+cargo test -p adze-runtime ts_compat_node_test -- --nocapture
 
 # Direct Forest Splicing algorithm testing
-cargo test -p rust-sitter-runtime test_incremental_forest_splicing -- --nocapture
+cargo test -p adze-runtime test_incremental_forest_splicing -- --nocapture
 
 # Performance validation with logging
-RUST_SITTER_LOG_PERFORMANCE=true cargo test -p rust-sitter-runtime incremental_glr_comprehensive_test -- --nocapture
+ADZE_LOG_PERFORMANCE=true cargo test -p adze-runtime incremental_glr_comprehensive_test -- --nocapture
 ```
 
 ### Example Execution

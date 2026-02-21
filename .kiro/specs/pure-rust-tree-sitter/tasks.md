@@ -10,10 +10,10 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
 
 ## Phase 0: Research & Macro Hardening (Week 1)
 
-**CRITICAL**: Fix rust-sitter macro system debuggability before proceeding with GLR implementation.
+**CRITICAL**: Fix adze macro system debuggability before proceeding with GLR implementation.
 
-- [x] 0.1 Fix RUST_SITTER_EMIT_ARTIFACTS debugging (BLOCKING)
-  - Investigate and resolve rust-sitter Issue #63: "RUST_SITTER_EMIT_ARTIFACTS=true causes the build to fail"
+- [x] 0.1 Fix ADZE_EMIT_ARTIFACTS debugging (BLOCKING)
+  - Investigate and resolve adze Issue #63: "ADZE_EMIT_ARTIFACTS=true causes the build to fail"
   - Restore reliable grammar.js and IR artifact emission for debugging
   - Create golden-test pipeline comparing C output vs Rust IR vs round-tripped output
   - Build IR inspection tooling for development workflow
@@ -54,7 +54,7 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
   - _Requirements: 1.4, Research Priority #2_
 
 - [x] 1.3 Create grammar extraction with emit_ir!() macro
-  - Implement rust-sitter::emit_ir!() macro to generate const GRAMMAR_JSON
+  - Implement adze::emit_ir!() macro to generate const GRAMMAR_JSON
   - Build Grammar::from_json() parser with comprehensive validation
   - Extract IR from sample grammars and serialize back to JSON identical to tree-sitter generate --json
   - Create round-trip testing: C output vs Rust IR vs round-tripped output
@@ -231,7 +231,7 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
 ## Phase 9: Beta Release and Feedback (Week 12)
 
 - [ ] 9. Beta release and community testing
-  - Publish rust-sitter 0.5.0-beta
+  - Publish adze 0.5.0-beta
   - Gather community feedback on API and performance
   - Address critical issues and edge cases
   - Refine documentation based on user experience
@@ -255,7 +255,7 @@ Focus on GLR state machine fidelity, conflict resolution logic, and bit-for-bit 
 
 Each phase must meet these criteria before proceeding:
 
-**Phase 0**: RUST_SITTER_EMIT_ARTIFACTS works reliably and macro system handles incomplete input gracefully
+**Phase 0**: ADZE_EMIT_ARTIFACTS works reliably and macro system handles incomplete input gracefully
 **Phase 1**: Grammar IR can parse and validate all major Tree-sitter grammars with GLR support
 **Phase 2**: GLR parse tables match Tree-sitter CLI output bit-for-bit for test grammars
 **Phase 3**: Generated Language objects work with tree_sitter::Parser and pass ABI 15 compliance

@@ -1,6 +1,6 @@
-# rust-sitter Git Hooks
+# adze Git Hooks
 
-This directory contains version-controlled Git hooks for the rust-sitter project. These hooks provide robust validation and formatting to maintain code quality and prevent common issues.
+This directory contains version-controlled Git hooks for the adze project. These hooks provide robust validation and formatting to maintain code quality and prevent common issues.
 
 ## Installation
 
@@ -87,7 +87,7 @@ This will create symlinks from `.git/hooks/` to the hooks in this directory.
 ```
 [pre-push] Running comprehensive checks before push...
 → Using robust pre-push hook from .githooks/
-→ Pushing to: origin (https://github.com/user/rust-sitter.git)
+→ Pushing to: origin (https://github.com/user/adze.git)
 → Found 2 commit(s) to push
 → Checking commits for disabled test files...
 ✓ No disabled test files in push

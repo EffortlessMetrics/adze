@@ -1,13 +1,13 @@
 #![cfg(feature = "unstable-benches")]
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::{
+use adze::{
     glr_incremental::{Edit, GLRToken, IncrementalGLRParser},
     glr_lexer::TokenWithPosition,
     glr_parser::GLRParser,
 };
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use std::sync::Arc;
 
 /// Create a simple left-recursive repetition grammar

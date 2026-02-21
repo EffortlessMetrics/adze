@@ -3,10 +3,10 @@
 // This module creates a valid Tree-sitter Language structure from our IR
 
 use crate::abi::TREE_SITTER_LANGUAGE_VERSION;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
 
 /// Language generator that creates proper TSLanguage structures
 pub struct LanguageGenerator<'a> {
@@ -50,7 +50,7 @@ impl<'a> LanguageGenerator<'a> {
         let production_id_count = self.count_production_ids() as u32;
 
         quote! {
-            use rust_sitter::tree_sitter as ts;
+            use adze::tree_sitter as ts;
             use crate::abi::{TSLanguage, TSSymbol, TSStateId, TSLexState, TSParseAction, ExternalScanner};
             const TREE_SITTER_LANGUAGE_VERSION: u32 = 15;
             const EXTERNAL_TOKEN_COUNT: u32 = #external_token_count;
@@ -296,12 +296,12 @@ impl<'a> LanguageGenerator<'a> {
             } else {
                 let action = &action_cell[0];
                 match action {
-                    rust_sitter_glr_core::Action::Shift(s) => s.0,
-                    rust_sitter_glr_core::Action::Reduce(r) => 0x8000 | (r.0 << 1),
-                    rust_sitter_glr_core::Action::Accept => 0xFFFF,
-                    rust_sitter_glr_core::Action::Error => 0xFFFE,
-                    rust_sitter_glr_core::Action::Recover => 0xFFFD, // Use distinct value for Recover
-                    rust_sitter_glr_core::Action::Fork(_) => 0xFFFE, // TODO: Handle GLR forks
+                    adze_glr_core::Action::Shift(s) => s.0,
+                    adze_glr_core::Action::Reduce(r) => 0x8000 | (r.0 << 1),
+                    adze_glr_core::Action::Accept => 0xFFFF,
+                    adze_glr_core::Action::Error => 0xFFFE,
+                    adze_glr_core::Action::Recover => 0xFFFD, // Use distinct value for Recover
+                    adze_glr_core::Action::Fork(_) => 0xFFFE, // TODO: Handle GLR forks
                     _ => 0xFFFE, // Unknown action type - treat as error
                 }
             }
@@ -341,7 +341,7 @@ impl<'a> LanguageGenerator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::*;
+    use adze_ir::*;
 
     #[test]
     fn test_language_generation() {

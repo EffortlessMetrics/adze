@@ -14,7 +14,7 @@
 //! # Example
 //!
 //! ```
-//! use rust_sitter::arena_allocator::{TreeArena, TreeNode};
+//! use adze::arena_allocator::{TreeArena, TreeNode};
 //!
 //! let mut arena = TreeArena::new();
 //!
@@ -442,7 +442,7 @@ impl TreeNode {
 /// # Example
 ///
 /// ```
-/// use rust_sitter::arena_allocator::{TreeArena, TreeNode};
+/// use adze::arena_allocator::{TreeArena, TreeNode};
 ///
 /// let mut arena = TreeArena::new();
 ///

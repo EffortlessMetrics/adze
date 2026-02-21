@@ -1,4 +1,4 @@
-use rust_sitter_tool::grammar_js::GrammarJsParserV3;
+use adze_tool::grammar_js::GrammarJsParserV3;
 
 #[test]
 fn test_parse_precedence_rules() {

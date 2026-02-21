@@ -56,16 +56,16 @@ Route external scanner results through tokenization:
 
 ```bash
 # Run all GLR tests
-cargo test -p rust-sitter-glr-core
+cargo test -p adze-glr-core
 
 # Enable trace output for debugging
-cargo test -p rust-sitter-glr-core --features glr-trace -- --nocapture
+cargo test -p adze-glr-core --features glr-trace -- --nocapture
 
 # Build ts-bridge
 cd tools/ts-bridge && cargo build
 
 # Check runtime integration
-cargo build -p rust-sitter-runtime2 --features glr-core
+cargo build -p adze-runtime2 --features glr-core
 ```
 
 ## 📊 Metrics
@@ -94,13 +94,13 @@ cargo test --workspace --all-features
 cargo test --workspace -- memory_safety
 
 # GLR-specific functionality
-cargo test -p rust-sitter-glr-core
+cargo test -p adze-glr-core
 
 # Runtime integration tests
-cargo test -p rust-sitter-runtime --features "glr-core,incremental"
+cargo test -p adze-runtime --features "glr-core,incremental"
 
 # Performance validation
-RUST_SITTER_LOG_PERFORMANCE=true cargo test performance_
+ADZE_LOG_PERFORMANCE=true cargo test performance_
 ```
 
 ### Production Validation
@@ -122,7 +122,7 @@ cargo test test_span_bounds_checking
 
 **GLR Parser v0.6.0 Status: PRODUCTION READY**
 
-The rust-sitter GLR implementation has achieved production readiness with:
+The adze GLR implementation has achieved production readiness with:
 - **Complete Memory Safety**: Zero FFI segmentation faults
 - **Enhanced Performance**: Significant improvements across all metrics
 - **Comprehensive Testing**: 190+ tests covering all scenarios

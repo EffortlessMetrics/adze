@@ -1,6 +1,6 @@
 # Pure-Rust Tree-sitter Ecosystem Specification
 
-This specification outlines the complete design and implementation plan for evolving rust-sitter into a pure-Rust Tree-sitter language generator ecosystem that eliminates all C dependencies while maintaining 100% compatibility with the existing Tree-sitter ecosystem.
+This specification outlines the complete design and implementation plan for evolving adze into a pure-Rust Tree-sitter language generator ecosystem that eliminates all C dependencies while maintaining 100% compatibility with the existing Tree-sitter ecosystem.
 
 ## 📋 Specification Documents
 
@@ -47,7 +47,7 @@ Executive summary with key research findings and strategic priorities.
 Tree-sitter's power comes from its GLR (Generalized LR) algorithm with compile-time conflict resolution, not simple LR(1) parsing. This fundamentally changes our implementation approach.
 
 ### Macro System Fragility
-The existing rust-sitter macro system has critical debuggability issues that must be resolved before GLR implementation can proceed.
+The existing adze macro system has critical debuggability issues that must be resolved before GLR implementation can proceed.
 
 ### Performance Target Precision
 The 4-8x performance improvement target is realistic when framed as improvement over FFI-based Rust bindings, not specialized compiler frontends.
@@ -92,11 +92,11 @@ This specification provides a complete roadmap for building the pure-Rust Tree-s
 ## 📚 Additional Resources
 
 - [Tree-sitter Documentation](https://tree-sitter.github.io/tree-sitter/)
-- [rust-sitter Repository](https://github.com/EffortlessMetrics/rust-sitter)
+- [adze Repository](https://github.com/EffortlessMetrics/adze)
 - [Tree-sitter Grammar Development Guide](https://tree-sitter.github.io/tree-sitter/creating-parsers)
 
 ---
 
 **Status**: Specification Complete - Ready for Implementation  
-**Target**: rust-sitter 0.6.0 MVP Release  
+**Target**: adze 0.6.0 MVP Release  
 **Timeline**: 12 weeks with disciplined execution

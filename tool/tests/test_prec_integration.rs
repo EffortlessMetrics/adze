@@ -12,48 +12,48 @@ fn precedence_error_preserves_other_grammar_elements() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_integration")]
+        #[adze::grammar("test_integration")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
                 // This should cause a precedence error
-                #[rust_sitter::prec(1)]
-                #[rust_sitter::prec_left(2)]
+                #[adze::prec(1)]
+                #[adze::prec_left(2)]
                 BadPrecedence(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "+")]
+                    #[adze::leaf(text = "+")]
                     (),
                     Box<Expression>,
                 ),
                 // This should be valid
                 ValidRule(
                     Box<Expression>,
-                    #[rust_sitter::leaf(text = "*")]
+                    #[adze::leaf(text = "*")]
                     (),
                     Box<Expression>,
                 ),
             }
 
             // Extra should still be processed
-            #[rust_sitter::extra]
+            #[adze::extra]
             struct Whitespace {
-                #[rust_sitter::leaf(pattern = r"\s")]
+                #[adze::leaf(pattern = r"\s")]
                 _ws: (),
             }
 
             // External should still be processed  
-            #[rust_sitter::external]
+            #[adze::external]
             struct IndentToken;
         }
     "#,
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
 
     // Should get precedence error
@@ -79,17 +79,17 @@ fn precedence_error_in_struct_fields() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_struct_prec")]
+        #[adze::grammar("test_struct_prec")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Statement {
                 expr: Expression,
             }
 
-            #[rust_sitter::prec(5)]
-            #[rust_sitter::prec_right(10)]
+            #[adze::prec(5)]
+            #[adze::prec_right(10)]
             pub struct Expression {
-                #[rust_sitter::leaf(pattern = r"\d+")]
+                #[adze::leaf(pattern = r"\d+")]
                 value: i32,
             }
         }
@@ -97,7 +97,7 @@ fn precedence_error_in_struct_fields() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
 
     assert!(
@@ -120,20 +120,20 @@ fn multiple_precedence_errors_reports_first() {
     fs::write(
         &grammar_path,
         r#"
-        #[rust_sitter::grammar("test_multiple_errors")]
+        #[adze::grammar("test_multiple_errors")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+")]
+                    #[adze::leaf(pattern = r"\d+")]
                     i32
                 ),
-                #[rust_sitter::prec(1)]
-                #[rust_sitter::prec_left(2)]
+                #[adze::prec(1)]
+                #[adze::prec_left(2)]
                 FirstBad(Box<Expression>),
                 
-                #[rust_sitter::prec_left(3)]
-                #[rust_sitter::prec_right(4)]
+                #[adze::prec_left(3)]
+                #[adze::prec_right(4)]
                 SecondBad(Box<Expression>),
             }
         }
@@ -141,7 +141,7 @@ fn multiple_precedence_errors_reports_first() {
     )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
 
     // Should get an error (implementation may report first error encountered)
@@ -157,23 +157,26 @@ fn precedence_error_with_complex_expressions() {
     let dir = tempdir().unwrap();
     let grammar_path = dir.path().join("grammar.rs");
 
-    fs::write(&grammar_path, r#"
-        #[rust_sitter::grammar("test_non_integer")]
+    fs::write(
+        &grammar_path,
+        r#"
+        #[adze::grammar("test_non_integer")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expression {
                 Number(
-                    #[rust_sitter::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                    #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
                     i32
                 ),
-                #[rust_sitter::prec("high")]
+                #[adze::prec("high")]
                 Priority(Box<Expression>),
             }
         }
-    "#)
+    "#,
+    )
     .unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
 
     // Should get non-integer precedence error
@@ -196,17 +199,17 @@ fn precedence_error_line_information_preserved() {
 
     // Create grammar with error on a specific line
     let grammar_content = r#"
-#[rust_sitter::grammar("test_line_info")]
+#[adze::grammar("test_line_info")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+")]
+            #[adze::leaf(pattern = r"\d+")]
             i32
         ),
         // Line 9: This should cause error
-        #[rust_sitter::prec(1)]
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec(1)]
+        #[adze::prec_left(2)]
         BadRule(Box<Expression>),
     }
 }
@@ -214,7 +217,7 @@ mod grammar {
 
     fs::write(&grammar_path, grammar_content).unwrap();
 
-    let err = rust_sitter_tool::generate_grammars(&grammar_path).unwrap_err();
+    let err = adze_tool::generate_grammars(&grammar_path).unwrap_err();
     let error_msg = err.to_string();
 
     // Error should contain precedence conflict message

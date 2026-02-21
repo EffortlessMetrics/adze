@@ -1,6 +1,6 @@
+use adze_glr_core::{ParseRule, ParseTable};
+use adze_ir::{StateId, SymbolId};
 use glr_test_support::*;
-use rust_sitter_glr_core::{ParseRule, ParseTable};
-use rust_sitter_ir::{StateId, SymbolId};
 
 /// Assert that a ParseTable satisfies all structural invariants
 fn assert_parse_table_invariants(t: &ParseTable) {

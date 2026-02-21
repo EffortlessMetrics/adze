@@ -7,7 +7,7 @@
 use crate::{error::ParseError, language::Language, tree::Tree};
 
 #[cfg(feature = "glr-core")]
-use rust_sitter_glr_core::{Driver, Forest as CoreForest};
+use adze_glr_core::{Driver, Forest as CoreForest};
 
 /// Parse forest representation containing all valid parse trees.
 ///

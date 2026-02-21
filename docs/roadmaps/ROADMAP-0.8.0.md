@@ -1,4 +1,4 @@
-# Rust-Sitter 0.8.0 Development Roadmap
+# Adze 0.8.0 Development Roadmap
 
 ## Overview
 

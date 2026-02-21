@@ -8,10 +8,10 @@ This guide helps you find the right document for your needs.
 
 ## 🎯 I Want To...
 
-### ...Start Using rust-sitter RIGHT NOW (5 minutes)
+### ...Start Using adze RIGHT NOW (5 minutes)
 → **[QUICK_START.md](./QUICK_START.md)** - Get parsing in 5 minutes
 
-### ...Learn rust-sitter Properly (30 minutes)
+### ...Learn adze Properly (30 minutes)
 → **[docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)** - Complete tutorial
 
 ### ...Understand How It Works
@@ -23,7 +23,7 @@ This guide helps you find the right document for your needs.
 ### ...See Working Examples
 → **[example/src/](./example/src/)** - Real grammars (arithmetic, JSON, etc.)
 
-### ...Contribute to rust-sitter
+### ...Contribute to adze
 → **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Development setup
 → **[GAPS.md](./GAPS.md)** - 43 tasks ready to pick up
 
@@ -154,7 +154,7 @@ Status & Planning
 
 ### Root Directory
 ```
-rust-sitter/
+adze/
 ├── README.md                    # Start here
 ├── QUICK_START.md              # 5-minute guide
 ├── FAQ.md                      # Common questions
@@ -210,19 +210,19 @@ example/src/
 
 ### Stuck?
 1. Check [FAQ.md](./FAQ.md)
-2. Search [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
-3. Ask in [GitHub Discussions](https://github.com/EffortlessMetrics/rust-sitter/discussions)
+2. Search [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
+3. Ask in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
 
 ---
 
 ## 🔗 External Links
 
-- **GitHub**: https://github.com/EffortlessMetrics/rust-sitter
-- **Crates.io**: https://crates.io/crates/rust-sitter
-- **Issues**: https://github.com/EffortlessMetrics/rust-sitter/issues
-- **Discussions**: https://github.com/EffortlessMetrics/rust-sitter/discussions
+- **GitHub**: https://github.com/EffortlessMetrics/adze
+- **Crates.io**: https://crates.io/crates/adze
+- **Issues**: https://github.com/EffortlessMetrics/adze/issues
+- **Discussions**: https://github.com/EffortlessMetrics/adze/discussions
 
 ---
 
 **Still can't find what you need?**
-Open a [GitHub Discussion](https://github.com/EffortlessMetrics/rust-sitter/discussions) and we'll help!
+Open a [GitHub Discussion](https://github.com/EffortlessMetrics/adze/discussions) and we'll help!

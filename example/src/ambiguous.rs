@@ -6,26 +6,26 @@
 //! 2. if a then (if b then c) else d
 
 #[allow(dead_code)]
-#[rust_sitter::grammar("ambiguous")]
+#[adze::grammar("ambiguous")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Statement {
         If(IfStatement),
         Expression(Expression),
     }
 
     pub struct IfStatement {
-        #[rust_sitter::leaf(text = "if")]
+        #[adze::leaf(text = "if")]
         _if: (),
         condition: Expression,
-        #[rust_sitter::leaf(text = "then")]
+        #[adze::leaf(text = "then")]
         _then: (),
         then_branch: Box<Statement>,
         else_branch: Option<ElseBranch>,
     }
 
     pub struct ElseBranch {
-        #[rust_sitter::leaf(text = "else")]
+        #[adze::leaf(text = "else")]
         _else: (),
         statement: Box<Statement>,
     }
@@ -35,13 +35,13 @@ pub mod grammar {
     }
 
     pub struct Identifier {
-        #[rust_sitter::leaf(pattern = r"[a-z]+")]
+        #[adze::leaf(pattern = r"[a-z]+")]
         name: String,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }

@@ -1,6 +1,6 @@
-// Python indentation scanner for rust-sitter
+// Python indentation scanner for adze
 
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 // These are the actual symbol IDs from the Python grammar
 // Found from test output: Valid externals for state 0: {SymbolId(203-211)}

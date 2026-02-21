@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Based on comprehensive technical research, this document outlines the strategy for evolving rust-sitter into a complete, pure-Rust Tree-sitter ecosystem. The research revealed critical insights that fundamentally change our approach from a simple LR(1) parser generator to a sophisticated GLR (Generalized LR) system with compile-time conflict resolution.
+Based on comprehensive technical research, this document outlines the strategy for evolving adze into a complete, pure-Rust Tree-sitter ecosystem. The research revealed critical insights that fundamentally change our approach from a simple LR(1) parser generator to a sophisticated GLR (Generalized LR) system with compile-time conflict resolution.
 
 ## Key Research Findings
 
@@ -17,8 +17,8 @@ Based on comprehensive technical research, this document outlines the strategy f
 
 ### 2. Macro System Fragility is a Blocking Issue
 
-**Critical Problem**: The existing rust-sitter macro system has severe debuggability issues:
-- `RUST_SITTER_EMIT_ARTIFACTS=true` causes build failures (Issue #63)
+**Critical Problem**: The existing adze macro system has severe debuggability issues:
+- `ADZE_EMIT_ARTIFACTS=true` causes build failures (Issue #63)
 - Procedural macros fail on incomplete code, breaking IDE experience
 - No reliable way to debug grammar generation process
 
@@ -49,7 +49,7 @@ Based on comprehensive technical research, this document outlines the strategy f
 ## Strategic Implementation Priorities
 
 ### Phase 0: Foundation (Week 1) - BLOCKING
-1. **Fix RUST_SITTER_EMIT_ARTIFACTS** - Restore debugging capability
+1. **Fix ADZE_EMIT_ARTIFACTS** - Restore debugging capability
 2. **Harden macro system** - Handle incomplete input gracefully for IDE compatibility
 3. **Set up GLR-aware project structure** - Support multiple actions per state
 
@@ -68,7 +68,7 @@ Based on comprehensive technical research, this document outlines the strategy f
 ### Core Components
 
 ```
-rust-sitter/
+adze/
 ├── ir/             # Grammar IR with GLR support
 ├── glr-core/       # GLR state machine generation
 ├── tablegen/       # Table compression (small table optimization)
@@ -109,7 +109,7 @@ pub struct CompressedTable {
 ## Success Metrics
 
 ### Phase-Level Gates
-- **Phase 0**: RUST_SITTER_EMIT_ARTIFACTS works + macro handles incomplete input
+- **Phase 0**: ADZE_EMIT_ARTIFACTS works + macro handles incomplete input
 - **Phase 1**: Grammar IR supports GLR + conflict resolution matches C exactly
 - **Phase 2**: GLR parse tables bit-for-bit identical to Tree-sitter CLI output
 - **Phase 6**: 4-8x performance improvement over FFI-based Rust bindings
@@ -137,7 +137,7 @@ pub struct CompressedTable {
 ## Implementation Recommendations
 
 ### Immediate Actions (Week 1)
-1. **Investigate rust-sitter Issue #63** - Critical blocking issue
+1. **Investigate adze Issue #63** - Critical blocking issue
 2. **Set up golden-test pipeline** - C output vs Rust IR comparison
 3. **Create GLR-aware project structure** - Support multiple actions per state
 

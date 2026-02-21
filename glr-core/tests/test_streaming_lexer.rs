@@ -1,8 +1,8 @@
 //! Test streaming lexer implementation for Tree-sitter compatibility
 
-use rust_sitter_glr_core::ts_lexer::NextToken;
-use rust_sitter_glr_core::{Driver, LexMode, ParseTable};
-use rust_sitter_ir::{StateId, SymbolId};
+use adze_glr_core::ts_lexer::NextToken;
+use adze_glr_core::{Driver, LexMode, ParseTable};
+use adze_ir::{StateId, SymbolId};
 use std::collections::BTreeMap;
 
 /// Simple test lexer that mimics Tree-sitter's JSON lexer
@@ -180,10 +180,10 @@ fn test_streaming_json_parser() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol,
         start_symbol,
-        grammar: rust_sitter_ir::Grammar::new("json".to_string()),
+        grammar: adze_ir::Grammar::new("json".to_string()),
         initial_state: StateId(1), // Tree-sitter uses 1 (0 is error recovery)
         token_count,
         external_token_count: external_count,

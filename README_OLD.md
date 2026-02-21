@@ -1,14 +1,14 @@
-# Rust Sitter
-[![CI](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/rust-sitter/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/rust-sitter)](https://crates.io/crates/rust-sitter)
+# Adze
+[![CI](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
 
-Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Rust Sitter, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
+Adze makes it easy to create efficient parsers in Rust by leveraging the [Tree Sitter](https://tree-sitter.github.io/tree-sitter/) parser generator. With Adze, you can define your entire grammar with annotations on idiomatic Rust code, and let macros generate the parser and type-safe bindings for you!
 
 > **v0.6.1-beta Status (November 2025)**: **Macro-based grammar generation is now 100% working!** All parser runtime bugs fixed - correct Accept action encoding, GOTO table generation, and token counting. The GLR parser is **algorithmically correct** with 100% pass rates on all core test suites and macro-based grammar tests. Recent enhancements include **precedence disambiguation** (correctly parsing `1+2*3` as `1+(2*3)`), **robust error recovery** for malformed input, and **enhanced EOF processing**. The parser successfully handles complex grammars like Python (273 symbols) with true GLR semantics.
 
 ## Documentation
 
-📚 **[Read the Book](https://hydro-project.github.io/rust-sitter/)** - Comprehensive guide and reference
+📚 **[Read the Book](https://hydro-project.github.io/adze/)** - Comprehensive guide and reference
 
 ### Quick Links
 
@@ -62,7 +62,7 @@ Rust Sitter makes it easy to create efficient parsers in Rust by leveraging the 
 ## Quick Start
 
 ```rust
-use rust_sitter::unified_parser::Parser;
+use adze::unified_parser::Parser;
 
 fn main() {
     // Create a parser instance
@@ -101,9 +101,9 @@ fn main() {
 
 The CLI provides honest feedback about current capabilities:
 
-- `rust-sitter parse`: Shows clear message about dynamic loading not yet implemented
-- `rust-sitter test`: Validates corpus format but doesn't run parsing tests yet
-- `rust-sitter generate`: Works for grammar.js → Rust conversion
+- `adze parse`: Shows clear message about dynamic loading not yet implemented
+- `adze test`: Validates corpus format but doesn't run parsing tests yet
+- `adze generate`: Works for grammar.js → Rust conversion
 - Exit codes follow Unix conventions (64 for usage errors)
 
 ### Feature Flags 🏴
@@ -112,7 +112,7 @@ Optional features available for testing:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = ["incremental_glr", "queries", "serialization"] }
+adze = { version = "0.6", features = ["incremental_glr", "queries", "serialization"] }
 ```
 
 ### Coming in v0.6.x 🚀
@@ -127,7 +127,7 @@ rust-sitter = { version = "0.6", features = ["incremental_glr", "queries", "seri
 
 #### ts-bridge: Tree-sitter Grammar Bridge
 
-The new `ts-bridge` tool (located in `tools/ts-bridge/`) allows extraction of parse tables from compiled Tree-sitter grammars for use with Rust Sitter's GLR runtime:
+The new `ts-bridge` tool (located in `tools/ts-bridge/`) allows extraction of parse tables from compiled Tree-sitter grammars for use with Adze's GLR runtime:
 
 ```bash
 # Extract parse tables from a Tree-sitter grammar
@@ -144,18 +144,18 @@ Features:
 
 See [tools/ts-bridge/README.md](tools/ts-bridge/README.md) for details.
 
-For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Track progress on the [issue tracker](https://github.com/EffortlessMetrics/rust-sitter/issues).
+For the most reliable experience, use the core parsing functionality with the pure-Rust backend. Track progress on the [issue tracker](https://github.com/EffortlessMetrics/adze/issues).
 
 ## Installation
 
-Add rust-sitter to your `Cargo.toml`:
+Add adze to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = "0.6.0"
+adze = "0.6.0"
 
 [build-dependencies]
-rust-sitter-tool = "0.6.0"
+adze-tool = "0.6.0"
 ```
 
 Choose your backend via features:
@@ -166,7 +166,7 @@ Choose your backend via features:
 
 ### Building with Different Backends
 
-Rust Sitter supports multiple backend configurations:
+Adze supports multiple backend configurations:
 
 #### Pure-Rust Backend (Default, Recommended)
 
@@ -174,10 +174,10 @@ The pure-Rust backend generates parsers entirely at compile-time without C depen
 
 ```bash
 # Build with default pure-Rust backend
-cargo build -p rust-sitter-example
+cargo build -p adze-example
 
 # Or explicitly specify pure-rust feature
-cargo build -p rust-sitter-example --features pure-rust
+cargo build -p adze-example --features pure-rust
 ```
 
 #### C Backend (Legacy Tree-sitter)
@@ -190,7 +190,7 @@ npm install -g tree-sitter-cli
 tree-sitter --version
 
 # Build with C backend
-cargo build -p rust-sitter-example --no-default-features --features c-backend
+cargo build -p adze-example --no-default-features --features c-backend
 ```
 
 #### Configuration in Cargo.toml
@@ -198,10 +198,10 @@ cargo build -p rust-sitter-example --no-default-features --features c-backend
 ```toml
 [features]
 default = ["pure-rust"]
-pure-rust = ["rust-sitter/pure-rust"]
+pure-rust = ["adze/pure-rust"]
 c-backend = [
-    "rust-sitter/tree-sitter-c2rust",
-    "rust-sitter/tree-sitter-standard"
+    "adze/tree-sitter-c2rust",
+    "adze/tree-sitter-standard"
 ]
 ```
 
@@ -216,46 +216,46 @@ use std::path::PathBuf;
 
 fn main() {
     println!("cargo:rerun-if-changed=src");
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/main.rs"));
+    adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
 }
 ```
 
 ## Defining a Grammar
 
-Now that we have Rust Sitter added to our project, we can define our grammar. Rust Sitter grammars are defined in annotated Rust modules. First, we define the module that will contain our grammar
+Now that we have Adze added to our project, we can define our grammar. Adze grammars are defined in annotated Rust modules. First, we define the module that will contain our grammar
 
 ```rust
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 mod grammar {
 
 }
 ```
 
-Then, inside the module, we can define individual AST nodes. For this simple example, we'll define an expression that can be used in a mathematical expression. Note that we annotate this type as `#[rust_sitter::language]` to indicate that it is the root AST type.
+Then, inside the module, we can define individual AST nodes. For this simple example, we'll define an expression that can be used in a mathematical expression. Note that we annotate this type as `#[adze::language]` to indicate that it is the root AST type.
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum Expr {
     Number(u32),
     Add(Box<Expr>, Box<Expr>)
 }
 ```
 
-Now that we have the type defined, we must annotate the enum variants to describe how to identify them in the text being parsed. First, we can apply `rust_sitter::leaf` to use a regular expression to match digits corresponding to a number, and define a transformation that parses the resulting string into a `u32`.
+Now that we have the type defined, we must annotate the enum variants to describe how to identify them in the text being parsed. First, we can apply `adze::leaf` to use a regular expression to match digits corresponding to a number, and define a transformation that parses the resulting string into a `u32`.
 
 ```rust
 Number(
-    #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
     u32,
 )
 ```
 
-For the `Add` variant, things are a bit more complicated. First, we add an extra field corresponding to the `+` that must sit between the two sub-expressions. This can be achieved with `text` parameter of `rust_sitter::leaf`, which instructs the parser to match a specific string. Because we are parsing to `()`, we do not need to provide a transformation.
+For the `Add` variant, things are a bit more complicated. First, we add an extra field corresponding to the `+` that must sit between the two sub-expressions. This can be achieved with `text` parameter of `adze::leaf`, which instructs the parser to match a specific string. Because we are parsing to `()`, we do not need to provide a transformation.
 
 ```rust
 Add(
     Box<Expr>,
-    #[rust_sitter::leaf(text = "+")] (),
+    #[adze::leaf(text = "+")] (),
     Box<Expr>,
 )
 ```
@@ -263,10 +263,10 @@ Add(
 If we try to compile this grammar, however, we will see ane error due to conflicting parse trees for expressions like `1 + 2 + 3`, which could be parsed as `(1 + 2) + 3` or `1 + (2 + 3)`. We want the former, so we can add a further annotation specifying that we want left-associativity for this rule.
 
 ```rust
-#[rust_sitter::prec_left(1)]
+#[adze::prec_left(1)]
 Add(
     Box<Expr>,
-    #[rust_sitter::leaf(text = "+")] (),
+    #[adze::leaf(text = "+")] (),
     Box<Expr>,
 )
 ```
@@ -274,18 +274,18 @@ Add(
 All together, our grammar looks like this:
 
 ```rust
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             u32,
         ),
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Add(
             Box<Expr>,
-            #[rust_sitter::leaf(text = "+")] (),
+            #[adze::leaf(text = "+")] (),
             Box<Expr>,
         )
     }
@@ -317,36 +317,36 @@ grammar::parse("1+2+3") = Ok(Add(
 
 ## Type Annotations
 
-Rust Sitter supports a number of annotations that can be applied to type and fields in your grammar. These annotations can be used to control how the parser behaves, and how the resulting AST is constructed.
+Adze supports a number of annotations that can be applied to type and fields in your grammar. These annotations can be used to control how the parser behaves, and how the resulting AST is constructed.
 
-### `#[rust_sitter::language]`
+### `#[adze::language]`
 
 This annotation marks the entrypoint for parsing, and determines which AST type will be returned from parsing. Only one type in the grammar can be marked as the entrypoint.
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 struct Code {
     ...
 }
 ````
 
-### `#[rust_sitter::extra]`
+### `#[adze::extra]`
 
 This annotation marks a node as extra and can safely be skipped while parsing. This is useful for handling whitespace/newlines/comments.
 
 ```rust
-#[rust_sitter::extra]
+#[adze::extra]
 struct Whitespace {
-    #[rust_sitter::leaf(pattern = r"\s")]
+    #[adze::leaf(pattern = r"\s")]
     _whitespace: (),
 }
 ```
 
 ## Field Annotations
 
-### `#[rust_sitter::leaf(...)]`
+### `#[adze::leaf(...)]`
 
-The `#[rust_sitter::leaf(...)]` annotation can be used to define a leaf node in the AST. This annotation takes a number of parameters that control how the parser behaves:
+The `#[adze::leaf(...)]` annotation can be used to define a leaf node in the AST. This annotation takes a number of parameters that control how the parser behaves:
 
 - the `pattern` parameter takes a regular expression that is used to match the text of the leaf node. This parameter is required.
 - the `text` parameter takes a string that is used to match the text of the leaf node. This parameter is mutually exclusive with `pattern`.
@@ -355,56 +355,56 @@ The `#[rust_sitter::leaf(...)]` annotation can be used to define a leaf node in 
 `leaf` can either be applied to a field in a struct / enum variant (as seen above), or directly on a type with no fields:
 
 ```rust
-#[rust_sitter::leaf(text = "9")]
+#[adze::leaf(text = "9")]
 struct BigDigit;
 
 enum SmallDigit {
-    #[rust_sitter::leaf(text = "0")]
+    #[adze::leaf(text = "0")]
     Zero,
-    #[rust_sitter::leaf(text = "1")]
+    #[adze::leaf(text = "1")]
     One,
 }
 ```
 
-### `#[rust_sitter::prec(...)]` / `#[rust_sitter::prec_left(...)]` / `#[rust_sitter::prec_right(...)]`
+### `#[adze::prec(...)]` / `#[adze::prec_left(...)]` / `#[adze::prec_right(...)]`
 
 This annotation can be used to define a non/left/right-associative operator. This annotation takes a single parameter, which is the precedence level of the operator (higher binds more tightly).
 
-### `#[rust_sitter::skip(...)]`
+### `#[adze::skip(...)]`
 
 This annotation can be used to define a field that does not correspond to anything in the input string, such as some metadata. This annotation takes a single parameter, which is the value that should be used to populate that field at runtime.
 
-### `#[rust_sitter::word]`
+### `#[adze::word]`
 
 This annotation marks the field as a Tree Sitter [word](https://tree-sitter.github.io/tree-sitter/creating-parsers#keywords), which is useful when handling errors involving keywords. Only one field in the grammar can be marked as a word.
 
 ## Special Types
 
-Rust Sitter has a few special types that can be used to define more complex grammars.
+Adze has a few special types that can be used to define more complex grammars.
 
 ### `Vec<T>`
 
 To parse repeating structures, you can use a `Vec<T>` to parse a list of `T`s. Note that the `Vec<T>` type **cannot** be wrapped in another `Vec` (create additional structs if this is necessary). There are two special attributes that can be applied to a `Vec` field to control the parsing behavior.
 
-The `#[rust_sitter::delimited(...)]` attribute can be used to specify a separator between elements of the list, and takes a parameter of the same format as an unnamed field. For example, we can define a grammar that parses a comma-separated list of expressions:
+The `#[adze::delimited(...)]` attribute can be used to specify a separator between elements of the list, and takes a parameter of the same format as an unnamed field. For example, we can define a grammar that parses a comma-separated list of expressions:
 
 ```rust
 pub struct CommaSeparatedExprs {
-    #[rust_sitter::delimited(
-        #[rust_sitter::leaf(text = ",")]
+    #[adze::delimited(
+        #[adze::leaf(text = ",")]
         ()
     )]
     numbers: Vec<Expr>,
 }
 ```
 
-The `#[rust_sitter::repeat(...)]` attribute can be used to specify additional configuration for the parser. Currently, there is only one available parameter: `non_empty`, which takes a boolean that specifies if the list must contain at least one element. For example, we can define a grammar that parses a non-empty comma-separated list of numbers:
+The `#[adze::repeat(...)]` attribute can be used to specify additional configuration for the parser. Currently, there is only one available parameter: `non_empty`, which takes a boolean that specifies if the list must contain at least one element. For example, we can define a grammar that parses a non-empty comma-separated list of numbers:
 
 ```rust
 pub struct CommaSeparatedExprs {
-    #[rust_sitter::repeat(non_empty = true)]
-    #[rust_sitter::delimited(
-        #[rust_sitter::leaf(text = ",")]
+    #[adze::repeat(non_empty = true)]
+    #[adze::delimited(
+        #[adze::leaf(text = ",")]
         ()
     )]
     numbers: Vec<Expr>,
@@ -417,24 +417,24 @@ To parse optional structures, you can use an `Option<T>` to parse a single `T` o
 
 ```rust
 pub struct CommaSeparatedExprs {
-    #[rust_sitter::repeat(non_empty = true)]
-    #[rust_sitter::delimited(
-        #[rust_sitter::leaf(text = ",")]
+    #[adze::repeat(non_empty = true)]
+    #[adze::delimited(
+        #[adze::leaf(text = ",")]
         ()
     )]
     numbers: Vec<Option<Expr>>,
 }
 ```
 
-### `rust_sitter::Spanned<T>`
+### `adze::Spanned<T>`
 
-When using Rust Sitter to power diagnostic tools, it can be helpful to access spans marking the sections of text corresponding to a parsed node. To do this, you can use the `Spanned<T>` type, which captures the underlying parsed `T` and a pair of indices for the start (inclusive) and end (exclusive) of the corresponding substring. `Spanned` types can be used anywhere, and do not affect the parsing logic. For example, we could capture the spans of the expressions in our previous example:
+When using Adze to power diagnostic tools, it can be helpful to access spans marking the sections of text corresponding to a parsed node. To do this, you can use the `Spanned<T>` type, which captures the underlying parsed `T` and a pair of indices for the start (inclusive) and end (exclusive) of the corresponding substring. `Spanned` types can be used anywhere, and do not affect the parsing logic. For example, we could capture the spans of the expressions in our previous example:
 
 ```rust
 pub struct CommaSeparatedExprs {
-    #[rust_sitter::repeat(non_empty = true)]
-    #[rust_sitter::delimited(
-        #[rust_sitter::leaf(text = ",")]
+    #[adze::repeat(non_empty = true)]
+    #[adze::delimited(
+        #[adze::leaf(text = ",")]
         ()
     )]
     numbers: Vec<Option<Spanned<Expr>>>,
@@ -443,13 +443,13 @@ pub struct CommaSeparatedExprs {
 
 ### `Box<T>`
 
-Boxes are automatically constructed around the inner type when parsing, but Rust Sitter doesn't do anything extra beyond that.
+Boxes are automatically constructed around the inner type when parsing, but Adze doesn't do anything extra beyond that.
 
 ## Testing & Quality Assurance
 
 ### Golden Tests: Tree-sitter Compatibility
 
-Golden tests ensure byte-for-byte compatibility between rust-sitter and official Tree-sitter parsers:
+Golden tests ensure byte-for-byte compatibility between adze and official Tree-sitter parsers:
 
 ```bash
 # Generate reference files (one-time setup)
@@ -512,18 +512,18 @@ cargo test --all-features
 
 ## Debugging
 
-To view the generated grammar, you can set the `RUST_SITTER_EMIT_ARTIFACTS` environment variable to `true`. This will cause the generated grammar to be written to wherever cargo sets `OUT_DIR` (usually `target/debug/build/<crate>-<hash>/out`).
+To view the generated grammar, you can set the `ADZE_EMIT_ARTIFACTS` environment variable to `true`. This will cause the generated grammar to be written to wherever cargo sets `OUT_DIR` (usually `target/debug/build/<crate>-<hash>/out`).
 
 ## Enhanced Features
 
-Rust Sitter includes powerful features for grammar development, testing, and deployment:
+Adze includes powerful features for grammar development, testing, and deployment:
 
 ### External Scanner Support
 
 Define custom lexical analyzers for context-sensitive tokens:
 
 ```rust
-use rust_sitter::external_scanner::{ExternalScanner, ScanResult};
+use adze::external_scanner::{ExternalScanner, ScanResult};
 
 #[derive(Default)]
 struct IndentationScanner {
@@ -542,7 +542,7 @@ impl ExternalScanner for IndentationScanner {
 Use Tree-sitter's S-expression query language for pattern matching:
 
 ```rust
-use rust_sitter::query::{compile_query, QueryCursor};
+use adze::query::{compile_query, QueryCursor};
 
 let query = compile_query(r#"
 (function_definition
@@ -561,8 +561,8 @@ for match_ in cursor.matches(&query, tree.root_node(), source.as_bytes()) {
 Handle ambiguous grammars with a production-ready Generalized LR parser featuring runtime conflict resolution:
 
 ```rust
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets, VecWrapperResolver};
-use rust_sitter::parser_v4::Parser;
+use adze_glr_core::{build_lr1_automaton, FirstFollowSets, VecWrapperResolver};
+use adze::parser_v4::Parser;
 
 // Build LR(1) automaton with GLR support
 let first_follow = FirstFollowSets::compute(&grammar);
@@ -596,7 +596,7 @@ let result = parser.parse(source_code)?;
 Build robust parsers that handle syntax errors gracefully:
 
 ```rust
-use rust_sitter::error_recovery::{ErrorRecoveryConfig, RecoveryAction};
+use adze::error_recovery::{ErrorRecoveryConfig, RecoveryAction};
 
 let config = ErrorRecoveryConfig::builder()
     .sync_tokens(vec![SEMICOLON, RBRACE])
@@ -615,7 +615,7 @@ Efficiently edit trees in-place and reparse only changed portions:
 
 ```rust
 #[cfg(feature = "incremental")]
-use rust_sitter_runtime2::{Tree, InputEdit, Point, EditError};
+use adze_runtime2::{Tree, InputEdit, Point, EditError};
 
 // Apply edits directly to existing trees
 let edit = InputEdit {
@@ -648,7 +648,7 @@ let analysis_tree = tree.clone();
 **Full Incremental Parsing**:
 
 ```rust
-use rust_sitter::incremental_v3::{IncrementalParser, Edit};
+use adze::incremental_v3::{IncrementalParser, Edit};
 
 let mut parser = IncrementalParser::new(grammar, table);
 let tree = parser.parse(source)?;
@@ -657,10 +657,10 @@ let new_tree = parser.reparse(&tree, &edit, new_source)?;
 
 ### High-Performance Incremental GLR Parsing
 
-Rust Sitter v0.5.0 introduces Direct Forest Splicing, a breakthrough algorithm for incremental parsing of ambiguous grammars:
+Adze v0.5.0 introduces Direct Forest Splicing, a breakthrough algorithm for incremental parsing of ambiguous grammars:
 
 ```rust
-use rust_sitter::glr_incremental::IncrementalGLRParser;
+use adze::glr_incremental::IncrementalGLRParser;
 
 // Create incremental parser
 let mut parser = IncrementalGLRParser::new(grammar, table);
@@ -688,7 +688,7 @@ let updated_forest = parser.parse_incremental(&new_tokens, &[edit])?;
 Comprehensive testing with property-based tests and fuzzing:
 
 ```rust
-use rust_sitter::testing::{GrammarTester, FuzzConfig};
+use adze::testing::{GrammarTester, FuzzConfig};
 
 let mut tester = GrammarTester::new(grammar);
 tester.add_corpus("tests/corpus/**/*.txt");
@@ -706,7 +706,7 @@ tester.fuzz(config)?;
 Automatically generate fully-featured language servers with enhanced hover functionality:
 
 ```rust
-use rust_sitter::lsp::{generate_lsp, LspConfig};
+use adze::lsp::{generate_lsp, LspConfig};
 
 let config = LspConfig::builder()
     .with_hover(true)               // NEW: Intelligent hover with 45+ language constructs
@@ -731,7 +731,7 @@ generate_lsp(&grammar, &config, "target/my-language-lsp")?;
 Built-in performance analysis and optimization:
 
 ```rust
-use rust_sitter::performance::{Profiler, optimize_grammar};
+use adze::performance::{Profiler, optimize_grammar};
 
 let mut profiler = Profiler::new();
 let stats = profiler.analyze(&grammar, &corpus)?;
@@ -745,7 +745,7 @@ let optimized = optimize_grammar(&grammar)
 
 ## Production Status
 
-Rust Sitter v1.0 is production-ready with all planned features implemented:
+Adze v1.0 is production-ready with all planned features implemented:
 
 ### ✅ Core Features
 
@@ -766,7 +766,7 @@ Rust Sitter v1.0 is production-ready with all planned features implemented:
 
 ### ✅ Language Support
 
-Rust Sitter has been validated with 150+ production grammars:
+Adze has been validated with 150+ production grammars:
 
 - **Systems**: C, C++, Rust, Go, Zig
 - **Web**: JavaScript, TypeScript, HTML, CSS, WebAssembly
@@ -787,16 +787,16 @@ For a complete list of known limitations and workarounds, see [Known Limitations
 
 ```bash
 # Install the CLI tool
-cargo install rust-sitter-cli
+cargo install adze-cli
 
 # Create a new grammar project
-rust-sitter new my-language
+adze new my-language
 
 # Test your grammar interactively
-rust-sitter playground
+adze playground
 
 # Generate an LSP server
-rust-sitter generate-lsp
+adze generate-lsp
 ```
 
 For detailed guides, see our comprehensive documentation above.
@@ -825,4 +825,4 @@ Each task includes estimated time, difficulty level, and step-by-step guidance.
 5. **Run the fast lint**: `cargo lint --fast --since origin/main`
 6. **Run tests**: `cargo test`
 
-For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/EffortlessMetrics/rust-sitter/issues).
+For bug reports and feature requests, please use the [GitHub issue tracker](https://github.com/EffortlessMetrics/adze/issues).

@@ -11,7 +11,7 @@
 
 The .parsetable binary file format pipeline is **100% functionally complete** and production-ready. This implementation completes Phases 1-3.3 + Phase 4 of the GLR v1 roadmap, delivering a fully working solution for generating, distributing, loading, and **parsing** with pre-compiled parse tables.
 
-**Key Achievement**: Rust-sitter now supports the complete pipeline from grammar to parse tree:
+**Key Achievement**: Adze now supports the complete pipeline from grammar to parse tree:
 - ✅ **Generate**: .parsetable files from grammars
 - ✅ **Distribute**: Compact binary format ~3-5× smaller than JSON
 - ✅ **Load**: Runtime loading with Parser::load_glr_table_from_bytes()
@@ -373,7 +373,7 @@ Scenario: Multi-action cells preserved through encoding
 13. `glr-core/Cargo.toml` - Added `serialization` feature
 14. `tablegen/Cargo.toml` - Added dependencies (serde_json, sha2, chrono, rustc_version_runtime)
 15. `tool/Cargo.toml` - Added `serialization` feature
-16. `runtime2/Cargo.toml` - Added `serialization` feature, rust-sitter-tablegen dev dependency
+16. `runtime2/Cargo.toml` - Added `serialization` feature, adze-tablegen dev dependency
 
 ---
 
@@ -393,7 +393,7 @@ Scenario: Multi-action cells preserved through encoding
 ### Complete Working Example
 ```rust
 // In build.rs - generates .parsetable file
-use rust_sitter_tool::{build_parsers, BuildOptions};
+use adze_tool::{build_parsers, BuildOptions};
 
 fn main() {
     let options = BuildOptions {
@@ -404,7 +404,7 @@ fn main() {
 }
 
 // In runtime - load and parse
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 let bytes = include_bytes!("../target/grammar_arithmetic/arithmetic.parsetable");
 let mut parser = Parser::new();

@@ -5,11 +5,11 @@ edition = "2024"
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["rust-sitter/pure-rust"]
+pure-rust = ["adze/pure-rust"]
 
 [dependencies]
-rust-sitter = { path = "../../runtime" }
+adze = { path = "../../runtime" }
 
 [build-dependencies]
-rust-sitter-tool = { path = "../../tool" }
+adze-tool = { path = "../../tool" }
 serde_json = "1.0"

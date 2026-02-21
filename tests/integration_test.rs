@@ -1,6 +1,6 @@
-// Integration tests for rust-sitter
-use rust_sitter::Extract;
-use rust_sitter_tool::build_parsers;
+// Integration tests for adze
+use adze::Extract;
+use adze_tool::build_parsers;
 use std::path::PathBuf;
 use tempfile::TempDir;
 use std::fs;
@@ -13,19 +13,19 @@ fn test_simple_arithmetic_grammar() {
     
     // Write a simple arithmetic grammar
     let grammar_code = r#"
-        #[rust_sitter::grammar("arithmetic")]
+        #[adze::grammar("arithmetic")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Expr {
                 pub left: Box<Expr>,
-                #[rust_sitter::leaf(text = "+")]
+                #[adze::leaf(text = "+")]
                 _plus: (),
                 pub right: Box<Expr>,
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Expr {
-                #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
+                #[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
                 pub value: i32,
             }
         }
@@ -44,16 +44,16 @@ fn test_string_literals() {
     let temp_dir = TempDir::new().unwrap();
     let grammar_file = temp_dir.path().join("string_grammar.rs");
     
-    let grammar_code = r#"
-        #[rust_sitter::grammar("strings")]
+    let grammar_code = r##"
+        #[adze::grammar("strings")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct StringLit {
-                #[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#)]
+                #[adze::leaf(pattern = r#""([^"\\]|\\.)*""#)]
                 pub value: String,
             }
         }
-    "#;
+    "##;
     
     fs::write(&grammar_file, grammar_code).unwrap();
     build_parsers(&grammar_file);
@@ -65,17 +65,17 @@ fn test_repetition_patterns() {
     let grammar_file = temp_dir.path().join("repetition_grammar.rs");
     
     let grammar_code = r#"
-        #[rust_sitter::grammar("repetition")]
+        #[adze::grammar("repetition")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct List {
-                #[rust_sitter::repeat(non_empty = true)]
+                #[adze::repeat(non_empty = true)]
                 pub items: Vec<Item>,
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Item {
-                #[rust_sitter::leaf(pattern = r"\w+")]
+                #[adze::leaf(pattern = r"\w+")]
                 pub name: String,
             }
         }
@@ -91,31 +91,31 @@ fn test_optional_fields() {
     let grammar_file = temp_dir.path().join("optional_grammar.rs");
     
     let grammar_code = r#"
-        #[rust_sitter::grammar("optional")]
+        #[adze::grammar("optional")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Function {
-                #[rust_sitter::leaf(text = "fn")]
+                #[adze::leaf(text = "fn")]
                 _fn: (),
-                #[rust_sitter::leaf(pattern = r"\w+")]
+                #[adze::leaf(pattern = r"\w+")]
                 pub name: String,
                 pub params: Option<ParamList>,
                 pub body: Block,
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct ParamList {
-                #[rust_sitter::leaf(text = "(")]
+                #[adze::leaf(text = "(")]
                 _lparen: (),
-                #[rust_sitter::leaf(text = ")")]
+                #[adze::leaf(text = ")")]
                 _rparen: (),
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Block {
-                #[rust_sitter::leaf(text = "{")]
+                #[adze::leaf(text = "{")]
                 _lbrace: (),
-                #[rust_sitter::leaf(text = "}")]
+                #[adze::leaf(text = "}")]
                 _rbrace: (),
             }
         }
@@ -131,36 +131,36 @@ fn test_precedence_and_associativity() {
     let grammar_file = temp_dir.path().join("precedence_grammar.rs");
     
     let grammar_code = r#"
-        #[rust_sitter::grammar("precedence")]
+        #[adze::grammar("precedence")]
         mod grammar {
-            #[rust_sitter::language]
-            #[rust_sitter::precedence(1)]
+            #[adze::language]
+            #[adze::precedence(1)]
             pub struct Add {
                 pub left: Box<Expr>,
-                #[rust_sitter::leaf(text = "+")]
+                #[adze::leaf(text = "+")]
                 _op: (),
                 pub right: Box<Expr>,
             }
             
-            #[rust_sitter::language]
-            #[rust_sitter::precedence(2)]
+            #[adze::language]
+            #[adze::precedence(2)]
             pub struct Mul {
                 pub left: Box<Expr>,
-                #[rust_sitter::leaf(text = "*")]
+                #[adze::leaf(text = "*")]
                 _op: (),
                 pub right: Box<Expr>,
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expr {
                 Add(Add),
                 Mul(Mul),
                 Num(Num),
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Num {
-                #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
+                #[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
                 pub value: i32,
             }
         }
@@ -176,14 +176,14 @@ fn test_external_scanner() {
     let grammar_file = temp_dir.path().join("external_grammar.rs");
     
     let grammar_code = r#"
-        use rust_sitter::external_scanner::{ExternalScanner, ScanResult};
+        use adze::external_scanner::{ExternalScanner, ScanResult};
         
-        #[rust_sitter::grammar("external")]
+        #[adze::grammar("external")]
         mod grammar {
-            #[rust_sitter::language]
-            #[rust_sitter::external_scanner(StringScanner)]
+            #[adze::language]
+            #[adze::external_scanner(StringScanner)]
             pub struct StringLit {
-                #[rust_sitter::external]
+                #[adze::external]
                 pub value: String,
             }
         }
@@ -208,7 +208,7 @@ fn test_external_scanner() {
                     }
                     if i < input.len() {
                         Some(ScanResult {
-                            symbol: rust_sitter_ir::SymbolId(0),
+                            symbol: adze_ir::SymbolId(0),
                             length: i - position + 1,
                         })
                     } else {
@@ -234,37 +234,37 @@ fn test_error_recovery() {
     let grammar_file = temp_dir.path().join("error_grammar.rs");
     
     let grammar_code = r#"
-        #[rust_sitter::grammar("error_recovery")]
+        #[adze::grammar("error_recovery")]
         mod grammar {
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Program {
-                #[rust_sitter::repeat]
+                #[adze::repeat]
                 pub statements: Vec<Statement>,
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Statement {
                 pub expr: Expr,
-                #[rust_sitter::leaf(text = ";")]
+                #[adze::leaf(text = ";")]
                 _semi: (),
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub enum Expr {
                 Num(Num),
                 Error(ErrorNode),
             }
             
-            #[rust_sitter::language]
+            #[adze::language]
             pub struct Num {
-                #[rust_sitter::leaf(pattern = r"\d+")]
+                #[adze::leaf(pattern = r"\d+")]
                 pub value: String,
             }
             
-            #[rust_sitter::language]
-            #[rust_sitter::error]
+            #[adze::language]
+            #[adze::error]
             pub struct ErrorNode {
-                #[rust_sitter::leaf(pattern = r".+")]
+                #[adze::leaf(pattern = r".+")]
                 pub text: String,
             }
         }

@@ -1,5 +1,5 @@
-use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_testing::{BetaTester, TestConfig};
+use adze_ir::builder::GrammarBuilder;
+use adze_testing::{BetaTester, TestConfig};
 use std::fs;
 use tempfile::tempdir;
 

@@ -11,7 +11,7 @@ mod api_contract_tests {
         // For now, we just verify the crate compiles with the trait
 
         // The type should exist in the public API
-        let type_name = std::any::type_name::<rust_sitter::TSSymbol>();
+        let type_name = std::any::type_name::<adze::TSSymbol>();
         assert!(!type_name.is_empty(), "TSSymbol type should have a name");
     }
 
@@ -19,14 +19,14 @@ mod api_contract_tests {
     #[test]
     fn test_core_types_exist() {
         // SymbolId should be publicly available
-        type _Symbol = rust_sitter::SymbolId;
+        type _Symbol = adze::SymbolId;
 
         // TSSymbol should be re-exported from FFI
-        type _TSSymbol = rust_sitter::TSSymbol;
+        type _TSSymbol = adze::TSSymbol;
 
         // These types should exist at module level
         assert_eq!(
-            std::mem::size_of::<rust_sitter::TSSymbol>(),
+            std::mem::size_of::<adze::TSSymbol>(),
             std::mem::size_of::<u16>()
         );
     }
@@ -36,8 +36,8 @@ mod api_contract_tests {
     fn test_module_structure() {
         // These modules should always be present
 
-        // Verify we're in the rust_sitter test module
-        let _ = std::module_path!().contains("rust_sitter");
+        // Verify we're in the adze test module
+        let _ = std::module_path!().contains("adze");
     }
 
     /// Test semver-sensitive changes
@@ -47,10 +47,10 @@ mod api_contract_tests {
         // Changes here indicate potential breaking changes.
 
         // SymbolId is a u16 newtype
-        const _: () = assert!(std::mem::size_of::<rust_sitter::SymbolId>() == 2);
+        const _: () = assert!(std::mem::size_of::<adze::SymbolId>() == 2);
 
         // TSSymbol is also u16
-        const _: () = assert!(std::mem::size_of::<rust_sitter::TSSymbol>() == 2);
+        const _: () = assert!(std::mem::size_of::<adze::TSSymbol>() == 2);
     }
 
     /// Test that types have expected sizes
@@ -58,7 +58,7 @@ mod api_contract_tests {
     fn test_type_sizes() {
         // These are sanity checks to catch unexpected changes
         // Symbol types should be 2 bytes (u16)
-        assert_eq!(std::mem::size_of::<rust_sitter::TSSymbol>(), 2);
-        assert_eq!(std::mem::size_of::<rust_sitter::SymbolId>(), 2);
+        assert_eq!(std::mem::size_of::<adze::TSSymbol>(), 2);
+        assert_eq!(std::mem::size_of::<adze::SymbolId>(), 2);
     }
 }

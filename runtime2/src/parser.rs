@@ -26,7 +26,7 @@ pub struct Parser {
 #[derive(Debug)]
 struct GLRState {
     /// Direct reference to ParseTable from glr-core
-    parse_table: &'static rust_sitter_glr_core::ParseTable,
+    parse_table: &'static adze_glr_core::ParseTable,
     /// Symbol metadata for tree construction
     symbol_metadata: Vec<crate::language::SymbolMetadata>,
     /// Token patterns for tokenizer (Phase 3.2)
@@ -250,7 +250,7 @@ impl Parser {
     ///
     #[cfg(feature = "pure-rust-glr")]
     fn build_language_from_parse_table(
-        parse_table: &'static rust_sitter_glr_core::ParseTable,
+        parse_table: &'static adze_glr_core::ParseTable,
     ) -> Language {
         use std::collections::BTreeMap;
 
@@ -334,8 +334,8 @@ impl Parser {
     /// # Example
     ///
     /// ```ignore
-    /// use rust_sitter_runtime::Parser;
-    /// use rust_sitter_glr_core::build_lr1_automaton;
+    /// use adze_runtime::Parser;
+    /// use adze_glr_core::build_lr1_automaton;
     ///
     /// let mut parser = Parser::new();
     /// parser.set_glr_table(&PARSE_TABLE)?;
@@ -351,7 +351,7 @@ impl Parser {
     #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust-glr")))]
     pub fn set_glr_table(
         &mut self,
-        table: &'static rust_sitter_glr_core::ParseTable,
+        table: &'static adze_glr_core::ParseTable,
     ) -> Result<(), ParseError> {
         // Validate ParseTable invariants
         if table.state_count == 0 {
@@ -383,7 +383,7 @@ impl Parser {
     ///
     /// This is the primary method for loading pre-generated parse tables in production.
     /// The .parsetable file format is a binary format that includes:
-    /// - **Magic number**: "RSPT" (Rust Sitter Parse Table)
+    /// - **Magic number**: "RSPT" (Adze Parse Table)
     /// - **Format version**: u32 version number (currently 1)
     /// - **Grammar hash**: SHA-256 hash for verification
     /// - **Metadata**: JSON metadata with grammar info, statistics, and feature flags
@@ -426,7 +426,7 @@ impl Parser {
     /// # Example
     ///
     /// ```ignore
-    /// use rust_sitter_runtime::{Parser, language::SymbolMetadata, tokenizer::TokenPattern};
+    /// use adze_runtime::{Parser, language::SymbolMetadata, tokenizer::TokenPattern};
     ///
     /// // Step 1: Load .parsetable file
     /// let bytes = std::fs::read("grammar.parsetable")?;
@@ -475,9 +475,9 @@ impl Parser {
     ///
     /// # Specification
     ///
-    /// See [`docs/specs/PARSETABLE_FILE_FORMAT_SPEC.md`](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/specs/PARSETABLE_FILE_FORMAT_SPEC.md) for complete file format specification.
+    /// See [`docs/specs/PARSETABLE_FILE_FORMAT_SPEC.md`](https://github.com/EffortlessMetrics/adze/blob/main/docs/specs/PARSETABLE_FILE_FORMAT_SPEC.md) for complete file format specification.
     ///
-    /// See [`docs/GLR_PARSETABLE_QUICKSTART.md`](https://github.com/EffortlessMetrics/rust-sitter/blob/main/docs/GLR_PARSETABLE_QUICKSTART.md) for usage guide.
+    /// See [`docs/GLR_PARSETABLE_QUICKSTART.md`](https://github.com/EffortlessMetrics/adze/blob/main/docs/GLR_PARSETABLE_QUICKSTART.md) for usage guide.
     ///
     #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
     #[cfg_attr(
@@ -562,13 +562,13 @@ impl Parser {
         let table_bytes = &bytes[table_start..table_end];
 
         // Deserialize ParseTable using glr-core serialization
-        let table = rust_sitter_glr_core::ParseTable::from_bytes(table_bytes).map_err(|e| {
+        let table = adze_glr_core::ParseTable::from_bytes(table_bytes).map_err(|e| {
             ParseError::with_msg(&format!("Failed to deserialize ParseTable: {}", e))
         })?;
 
         // Leak the table to get a 'static reference
         // This is safe because parse tables are immutable and live for the entire program
-        let table_static: &'static rust_sitter_glr_core::ParseTable = Box::leak(Box::new(table));
+        let table_static: &'static adze_glr_core::ParseTable = Box::leak(Box::new(table));
 
         // Set the GLR table
         self.set_glr_table(table_static)?;

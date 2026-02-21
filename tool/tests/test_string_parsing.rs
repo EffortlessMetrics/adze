@@ -1,4 +1,4 @@
-use rust_sitter_tool::grammar_js::parse_grammar_js_v2;
+use adze_tool::grammar_js::parse_grammar_js_v2;
 
 #[test]
 fn test_inline_array_parsing() {
@@ -69,7 +69,7 @@ module.exports = grammar({{
             Ok(parsed) => {
                 if let Some(rule) = parsed.rules.get("rule") {
                     match rule {
-                        rust_sitter_tool::grammar_js::Rule::Symbol { name } => {
+                        adze_tool::grammar_js::Rule::Symbol { name } => {
                             assert_eq!(name, expected, "Expected {} but got {}", expected, name);
                         }
                         _ => panic!("Expected Symbol rule"),

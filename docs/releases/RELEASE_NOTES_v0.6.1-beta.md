@@ -1,4 +1,4 @@
-# 🎯 rust-sitter v0.6.1-beta
+# 🎯 adze v0.6.1-beta
 
 ## Algorithmically Correct GLR Parser
 
@@ -61,7 +61,7 @@ See [GLR_GUARDRAILS.md](docs/GLR_GUARDRAILS.md) for:
 
 ```toml
 [dependencies]
-rust-sitter = "0.6.1-beta"
+adze = "0.6.1-beta"
 ```
 
 ## 🙏 Acknowledgments

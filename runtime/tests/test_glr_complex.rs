@@ -1,10 +1,10 @@
 // Complex GLR parser tests with real-world grammar patterns
 
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{
+use adze::glr_parser::GLRParser;
+use adze_glr_core::{
     CompareResult, FirstFollowSets, VersionInfo, build_lr1_automaton, compare_versions_with_symbols,
 };
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     Token, TokenPattern,
 };

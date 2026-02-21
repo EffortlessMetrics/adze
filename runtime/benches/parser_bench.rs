@@ -3,12 +3,12 @@
 #![cfg(feature = "unstable-benches")]
 #![allow(unused_imports, dead_code)]
 
+use adze::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer};
+use adze::parser_v4::{ParserV4 as ParserV2, Token};
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer};
-use rust_sitter::parser_v4::{ParserV4 as ParserV2, Token};
-// use rust_sitter::incremental::{IncrementalParser, Edit, IncrementalTree};
-use rust_sitter_glr_core::{Action, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{
+// use adze::incremental::{IncrementalParser, Edit, IncrementalTree};
+use adze_glr_core::{Action, ParseTable, SymbolMetadata};
+use adze_ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern,
 };
 use std::collections::HashMap;
@@ -199,7 +199,7 @@ fn create_parse_table() -> ParseTable {
     actions.insert(SymbolId(1), Action::Shift(StateId(1)));
     actions.insert(SymbolId(4), Action::Shift(StateId(2)));
 
-    table.states.push(rust_sitter_glr_core::State {
+    table.states.push(adze_glr_core::State {
         actions,
         gotos: HashMap::new(),
         default_reduction: None,
@@ -212,7 +212,7 @@ fn create_parse_table() -> ParseTable {
         actions.insert(SymbolId(3), Action::Shift(StateId((i + 2) % 10)));
         actions.insert(SymbolId(0), Action::Accept); // EOF
 
-        table.states.push(rust_sitter_glr_core::State {
+        table.states.push(adze_glr_core::State {
             actions,
             gotos: HashMap::new(),
             default_reduction: Some(RuleId(i % 6)),

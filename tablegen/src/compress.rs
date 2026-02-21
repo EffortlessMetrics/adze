@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 use crate::{Result, TableGenError};
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{StateId, SymbolId};
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{StateId, SymbolId};
 use std::collections::{BTreeMap, HashMap};
 
 /// Compressed parse table representation
@@ -180,9 +180,9 @@ impl TableCompressor {
     /// Returns compressed tables suitable for embedding.
     ///
     /// ```ignore
-    /// # use rust_sitter_ir::builder::GrammarBuilder;
-    /// # use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-    /// # use rust_sitter_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
+    /// # use adze_ir::builder::GrammarBuilder;
+    /// # use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    /// # use adze_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
     /// # let g = GrammarBuilder::new("demo").start("module").build();
     /// # let ff = FirstFollowSets::compute(&g);
     /// # let pt = build_lr1_automaton(&g, &ff).unwrap();
@@ -519,8 +519,8 @@ impl TableCompressor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::Action;
-    use rust_sitter_ir::{RuleId, StateId};
+    use adze_glr_core::Action;
+    use adze_ir::{RuleId, StateId};
 
     #[test]
     fn test_compressed_parse_table_creation() {

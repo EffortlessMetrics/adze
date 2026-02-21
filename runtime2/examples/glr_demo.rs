@@ -4,7 +4,7 @@
 //! is fully integrated with grammar generation.
 
 #[cfg(feature = "glr-core")]
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 #[cfg(feature = "glr-core")]
 fn main() {

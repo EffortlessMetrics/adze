@@ -438,7 +438,7 @@ mod tests {
 
     #[test]
     fn test_fixture_generation() {
-        let temp_dir = std::env::temp_dir().join("rust-sitter-fixtures-test");
+        let temp_dir = std::env::temp_dir().join("adze-fixtures-test");
         std::fs::create_dir_all(&temp_dir).unwrap();
 
         let generator = FixtureGenerator::new(&temp_dir);
@@ -456,7 +456,7 @@ mod tests {
         let python_small = std::fs::read_to_string(temp_dir.join("python/small.py")).unwrap();
         let small_loc = python_small.lines().count();
         assert!(
-            small_loc >= 80 && small_loc <= 120,
+            (80..=120).contains(&small_loc),
             "Python small LOC {} not in range [80, 120]",
             small_loc
         );

@@ -13,7 +13,7 @@ fn debug_unified_json_helper_disabled() {
 fn test_safe_mock_language_creation() {
     // Test the safe alternative to FFI-based language creation
     // This test verifies we can create parsers without FFI dependencies
-    use rust_sitter::unified_parser::Parser;
+    use adze::unified_parser::Parser;
 
     // Create parser and test basic functionality without language
     let mut parser = Parser::new();

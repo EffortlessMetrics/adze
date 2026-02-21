@@ -1,7 +1,7 @@
 # Query Language Implementation Summary
 
 ## Overview
-Successfully implemented full Tree-sitter query language support in rust-sitter, fixing all failing tests and achieving 100% test pass rate (48/48 tests).
+Successfully implemented full Tree-sitter query language support in adze, fixing all failing tests and achieving 100% test pass rate (48/48 tests).
 
 ## Implemented Features
 
@@ -80,4 +80,4 @@ While all tests now pass, potential future improvements include:
 4. Query validation and optimization passes
 
 ## Conclusion
-The rust-sitter query language implementation is now feature-complete and fully compatible with Tree-sitter's query syntax. All standard query patterns, predicates, and quantifiers are supported, making rust-sitter ready for production use in query-based applications.
+The adze query language implementation is now feature-complete and fully compatible with Tree-sitter's query syntax. All standard query patterns, predicates, and quantifiers are supported, making adze ready for production use in query-based applications.

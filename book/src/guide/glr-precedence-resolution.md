@@ -1,6 +1,6 @@
 # GLR Precedence Resolution: A How-To Guide
 
-This guide explains how to effectively use precedence rules with rust-sitter's GLR parser to handle operator precedence and resolve ambiguous grammars.
+This guide explains how to effectively use precedence rules with adze's GLR parser to handle operator precedence and resolve ambiguous grammars.
 
 ## Understanding GLR Precedence
 
@@ -18,59 +18,59 @@ Traditional LR parsers eliminate conflicts by choosing one action (shift or redu
 ### Basic Arithmetic Example
 
 ```rust
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
         Number(Number),
         Binary(BinaryOp),
     }
 
     // Lower precedence (looser binding)
-    #[rust_sitter::prec_left(1)]
+    #[adze::prec_left(1)]
     pub struct Addition {
         pub left: Box<Expression>,
-        #[rust_sitter::leaf(text = "+")]
+        #[adze::leaf(text = "+")]
         _op: (),
         pub right: Box<Expression>,
     }
 
-    #[rust_sitter::prec_left(1)]
+    #[adze::prec_left(1)]
     pub struct Subtraction {
         pub left: Box<Expression>,
-        #[rust_sitter::leaf(text = "-")]
+        #[adze::leaf(text = "-")]
         _op: (),
         pub right: Box<Expression>,
     }
 
     // Higher precedence (tighter binding)
-    #[rust_sitter::prec_left(2)]
+    #[adze::prec_left(2)]
     pub struct Multiplication {
         pub left: Box<Expression>,
-        #[rust_sitter::leaf(text = "*")]
+        #[adze::leaf(text = "*")]
         _op: (),
         pub right: Box<Expression>,
     }
 
-    #[rust_sitter::prec_left(2)]
+    #[adze::prec_left(2)]
     pub struct Division {
         pub left: Box<Expression>,
-        #[rust_sitter::leaf(text = "/")]
+        #[adze::leaf(text = "/")]
         _op: (),
         pub right: Box<Expression>,
     }
 
     // Highest precedence (tightest binding)
-    #[rust_sitter::prec_right(3)]
+    #[adze::prec_right(3)]
     pub struct Exponentiation {
         pub base: Box<Expression>,
-        #[rust_sitter::leaf(text = "^")]
+        #[adze::leaf(text = "^")]
         _op: (),
         pub exponent: Box<Expression>,
     }
 
     pub struct Number {
-        #[rust_sitter::leaf(pattern = r"\d+")]
+        #[adze::leaf(pattern = r"\d+")]
         pub value: (),
     }
 }
@@ -115,7 +115,7 @@ Add {
 ### Left Associativity: `prec_left`
 
 ```rust
-#[rust_sitter::prec_left(1)]
+#[adze::prec_left(1)]
 pub struct Subtraction { /* ... */ }
 ```
 
@@ -124,7 +124,7 @@ pub struct Subtraction { /* ... */ }
 ### Right Associativity: `prec_right`
 
 ```rust
-#[rust_sitter::prec_right(3)]
+#[adze::prec_right(3)]
 pub struct Exponentiation { /* ... */ }
 ```
 
@@ -133,7 +133,7 @@ pub struct Exponentiation { /* ... */ }
 ### Non-Associative: `prec`
 
 ```rust
-#[rust_sitter::prec(5)]
+#[adze::prec(5)]
 pub struct Comparison { /* ... */ }
 ```
 
@@ -145,28 +145,28 @@ pub struct Comparison { /* ... */ }
 
 ```rust
 // Logical operators (lowest precedence)
-#[rust_sitter::prec_left(1)]
+#[adze::prec_left(1)]
 Or(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_left(2)]
+#[adze::prec_left(2)]
 And(Box<Expr>, (), Box<Expr>),
 
 // Comparison operators (middle precedence, non-associative)
-#[rust_sitter::prec(3)]
+#[adze::prec(3)]
 Equal(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec(3)]
+#[adze::prec(3)]
 LessThan(Box<Expr>, (), Box<Expr>),
 
 // Arithmetic operators (higher precedence)
-#[rust_sitter::prec_left(4)]
+#[adze::prec_left(4)]
 Add(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_left(5)]
+#[adze::prec_left(5)]
 Multiply(Box<Expr>, (), Box<Expr>),
 
 // Unary operators (highest precedence)
-#[rust_sitter::prec(6)]
+#[adze::prec(6)]
 Negate((), Box<Expr>),
 ```
 
@@ -200,19 +200,19 @@ Or {
 
 ```rust
 // ❌ Problem: Same precedence for different operator types
-#[rust_sitter::prec_left(1)]
+#[adze::prec_left(1)]
 Add(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_left(1)]  // Same as addition!
+#[adze::prec_left(1)]  // Same as addition!
 LessThan(Box<Expr>, (), Box<Expr>),
 ```
 
 **Solution**: Use different precedence levels:
 ```rust
-#[rust_sitter::prec_left(2)]   // Arithmetic first
+#[adze::prec_left(2)]   // Arithmetic first
 Add(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec(1)]        // Comparison second (and non-associative)
+#[adze::prec(1)]        // Comparison second (and non-associative)
 LessThan(Box<Expr>, (), Box<Expr>),
 ```
 
@@ -236,30 +236,30 @@ GLR: Choosing Reduce(mul_rule) due to higher precedence
 
 ```rust
 // ✅ Good: Leave room for expansion
-#[rust_sitter::prec_left(10)]   // Addition
-#[rust_sitter::prec_left(20)]   // Multiplication  
-#[rust_sitter::prec_right(30)]  // Exponentiation
+#[adze::prec_left(10)]   // Addition
+#[adze::prec_left(20)]   // Multiplication  
+#[adze::prec_right(30)]  // Exponentiation
 
 // ❌ Bad: No room for new operators
-#[rust_sitter::prec_left(1)]
-#[rust_sitter::prec_left(2)]
-#[rust_sitter::prec_left(3)]
+#[adze::prec_left(1)]
+#[adze::prec_left(2)]
+#[adze::prec_left(3)]
 ```
 
 ### 2. Group Related Operators
 
 ```rust
 // Comparison operators: precedence 10-19
-#[rust_sitter::prec(10)] Equal(/* ... */),
-#[rust_sitter::prec(10)] NotEqual(/* ... */),
-#[rust_sitter::prec(10)] LessThan(/* ... */),
-#[rust_sitter::prec(10)] GreaterThan(/* ... */),
+#[adze::prec(10)] Equal(/* ... */),
+#[adze::prec(10)] NotEqual(/* ... */),
+#[adze::prec(10)] LessThan(/* ... */),
+#[adze::prec(10)] GreaterThan(/* ... */),
 
 // Arithmetic operators: precedence 20-29
-#[rust_sitter::prec_left(20)] Add(/* ... */),
-#[rust_sitter::prec_left(20)] Subtract(/* ... */),
-#[rust_sitter::prec_left(25)] Multiply(/* ... */),
-#[rust_sitter::prec_left(25)] Divide(/* ... */),
+#[adze::prec_left(20)] Add(/* ... */),
+#[adze::prec_left(20)] Subtract(/* ... */),
+#[adze::prec_left(25)] Multiply(/* ... */),
+#[adze::prec_left(25)] Divide(/* ... */),
 ```
 
 ### 3. Test Precedence Behavior
@@ -321,10 +321,10 @@ For languages with context-sensitive precedence (like C++ templates), GLR's acti
 
 ```rust
 // Multiple parsing strategies preserved
-#[rust_sitter::prec(1)]
+#[adze::prec(1)]
 TemplateParams(/* ... */),     // Parse < > as template brackets
 
-#[rust_sitter::prec(2)]  
+#[adze::prec(2)]  
 Comparison(/* ... */),         // Parse < > as comparison operators
 
 // GLR explores both interpretations, context determines winner
@@ -342,11 +342,11 @@ prec.right(2, seq($.base, '^', $.exp))
 
 Becomes:
 ```rust
-// rust-sitter
-#[rust_sitter::prec_left(1)]
+// adze
+#[adze::prec_left(1)]
 Add(Box<Expr>, (), Box<Expr>),
 
-#[rust_sitter::prec_right(2)]
+#[adze::prec_right(2)]
 Pow(Box<Expr>, (), Box<Expr>),
 ```
 

@@ -215,7 +215,7 @@
 ## ✅ Consistency Checks
 
 ### Terminology
-- [x] "rust-sitter" (lowercase, hyphenated) used consistently
+- [x] "adze" (lowercase, hyphenated) used consistently
 - [x] "v0.6.1-beta" format consistent
 - [x] "v0.7.0" format consistent
 - [x] "GLR" (all caps) used consistently
@@ -309,7 +309,7 @@ Path: NAVIGATION → Find what you need
 
 ### Code Examples
 - [x] Rust syntax correct
-- [x] Attribute names correct (#[rust_sitter::grammar])
+- [x] Attribute names correct (#[adze::grammar])
 - [x] API calls match current version
 - [x] Build.rs example works
 - [x] Cargo.toml examples correct
@@ -358,7 +358,7 @@ Path: NAVIGATION → Find what you need
 - [x] SESSION_SUMMARY documents what was done
 - [x] WEEK1_PROGRESS tracks ongoing work
 - [x] CHANGELOG updated for v0.7.0
-- [x] Clear ownership (rust-sitter core team)
+- [x] Clear ownership (adze core team)
 
 ### Sustainability
 - [x] Templates make future updates easy

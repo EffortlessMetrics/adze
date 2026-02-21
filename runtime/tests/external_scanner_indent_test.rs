@@ -1,7 +1,7 @@
 // Test for Python-style indentation external scanner
 #![cfg(all(test, feature = "external_scanners"))]
 
-use rust_sitter::external_scanner::{ExternalScanner, Lexer, ScanResult};
+use adze::external_scanner::{ExternalScanner, Lexer, ScanResult};
 
 /// Token types for indentation
 const INDENT: u16 = 1000;

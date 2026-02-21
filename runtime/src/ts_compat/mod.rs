@@ -4,13 +4,13 @@
 //! Tree-sitter compatibility API
 //!
 //! This module provides a compatibility layer that mimics the Tree-sitter API,
-//! allowing existing Tree-sitter code to work with rust-sitter with minimal changes.
+//! allowing existing Tree-sitter code to work with adze with minimal changes.
 
 use crate::parser_v4::{ParseNode, Parser as CoreParser};
 use crate::pure_incremental::Edit as CoreEdit;
 use crate::pure_parser;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 use std::sync::Arc;
 
 /// An owned tree representation for ts_compat layer.
@@ -198,7 +198,7 @@ impl Tree {
             .language
             .grammar
             .rule_names
-            .get(&rust_sitter_ir::SymbolId(sym))
+            .get(&adze_ir::SymbolId(sym))
         {
             return name.as_str();
         }

@@ -5,7 +5,7 @@
 //! analysis statistics.
 
 use crate::{Action, ParseTable};
-use rust_sitter_ir::{Associativity, Grammar, PrecedenceKind, SymbolId};
+use adze_ir::{Associativity, Grammar, PrecedenceKind, SymbolId};
 use std::collections::HashMap;
 
 /// Statistics about conflict resolution
@@ -149,7 +149,7 @@ pub enum PrecedenceDecision {
 mod tests {
     use super::*;
     use crate::{Action, LexMode, ParseTable, StateId};
-    use rust_sitter_ir::{
+    use adze_ir::{
         Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     };
     use std::collections::BTreeMap;

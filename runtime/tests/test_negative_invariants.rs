@@ -58,7 +58,7 @@ mod tests {
         // This test intentionally uses the WRONG tag value
         // to verify that our tag constant tests would catch drift
         // The assertion should fail because Reduce is actually 3, not 2
-        use rust_sitter::ts_format::TSActionTag;
+        use adze::ts_format::TSActionTag;
         assert_eq!(
             TSActionTag::Reduce as u8,
             2,

@@ -1,10 +1,10 @@
 use crate::language_builder;
 
+use adze::pure_parser::TSLanguage;
+use adze_glr_core::GotoIndexing;
+use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+use adze_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
 use anyhow::Result;
-use rust_sitter::pure_parser::TSLanguage;
-use rust_sitter_glr_core::GotoIndexing;
-use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
 use ts_bridge::{extract, schema::Action as TsAction};
 
 /// Return a `TSLanguage` built from the real Tree-sitter JSON grammar.
@@ -121,7 +121,7 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
         token_count: data.token_count as usize,
         external_token_count: data.external_token_count as usize,
         lex_modes: vec![
-            rust_sitter_glr_core::LexMode {
+            adze_glr_core::LexMode {
                 lex_state: 0,
                 external_lex_state: 0,
             };
@@ -201,7 +201,7 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
         for a in &cell.actions {
             row.push(match a {
                 TsAction::Shift { state, .. } => Action::Shift(StateId(*state)),
-                TsAction::Reduce { rule, .. } => Action::Reduce(rust_sitter_ir::RuleId(*rule)),
+                TsAction::Reduce { rule, .. } => Action::Reduce(adze_ir::RuleId(*rule)),
                 TsAction::Accept => Action::Accept,
                 TsAction::Recover => Action::Recover,
             });

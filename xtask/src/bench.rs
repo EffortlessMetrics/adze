@@ -8,7 +8,7 @@ pub fn run_benchmarks(
     save_baseline: bool,
     baseline_name: Option<String>,
 ) -> Result<()> {
-    println!("Running rust-sitter benchmarks...");
+    println!("Running adze benchmarks...");
 
     if save_baseline {
         let version = baseline_name.unwrap_or_else(|| {

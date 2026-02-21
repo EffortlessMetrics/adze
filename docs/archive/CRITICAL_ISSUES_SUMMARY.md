@@ -2,7 +2,7 @@
 
 ## 🚨 MAIN DISCOVERY: Performance Claims Based on Mocks, Not Real Parsing
 
-After comprehensive analysis, we discovered that rust-sitter's impressive performance claims are completely false. Here's what each issue represents and how to fix it:
+After comprehensive analysis, we discovered that adze's impressive performance claims are completely false. Here's what each issue represents and how to fix it:
 
 ---
 

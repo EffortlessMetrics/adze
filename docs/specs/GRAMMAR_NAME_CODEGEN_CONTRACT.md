@@ -20,7 +20,7 @@ This specification defines the contract for emitting `GRAMMAR_NAME` in generated
 ### Scope
 
 - **In Scope**: Emitting `GRAMMAR_NAME` const in generated code
-- **In Scope**: Extracting name from `#[rust_sitter::grammar("name")]` attribute
+- **In Scope**: Extracting name from `#[adze::grammar("name")]` attribute
 - **In Scope**: Validation that name is a valid string literal
 - **Out of Scope**: External scanner implementation itself
 - **Out of Scope**: Scanner registration mechanism
@@ -33,10 +33,10 @@ This specification defines the contract for emitting `GRAMMAR_NAME` in generated
 
 #### 1.1 Grammar Attribute Format
 
-User code MUST use the `#[rust_sitter::grammar("name")]` attribute:
+User code MUST use the `#[adze::grammar("name")]` attribute:
 
 ```rust
-#[rust_sitter::grammar("python")]
+#[adze::grammar("python")]
 mod python_grammar {
     // grammar definition
 }
@@ -50,10 +50,10 @@ mod python_grammar {
 
 **Invalid Examples**:
 ```rust
-#[rust_sitter::grammar()]           // Error: missing name
-#[rust_sitter::grammar(python)]     // Error: not a string literal
-#[rust_sitter::grammar("")]         // Error: empty name
-#[rust_sitter::grammar("a", "b")]   // Error: multiple arguments
+#[adze::grammar()]           // Error: missing name
+#[adze::grammar(python)]     // Error: not a string literal
+#[adze::grammar("")]         // Error: empty name
+#[adze::grammar("a", "b")]   // Error: multiple arguments
 ```
 
 ---
@@ -62,10 +62,10 @@ mod python_grammar {
 
 #### 2.1 Generated Code Format
 
-For a grammar annotated with `#[rust_sitter::grammar("my_grammar")]`, the generated code MUST include:
+For a grammar annotated with `#[adze::grammar("my_grammar")]`, the generated code MUST include:
 
 ```rust
-impl ::rust_sitter::Extract<Self> for MyGrammarRoot {
+impl ::adze::Extract<Self> for MyGrammarRoot {
     type LeafFn = /* ... */;
 
     const HAS_CONFLICTS: bool = /* computed */;
@@ -93,10 +93,10 @@ impl ::rust_sitter::Extract<Self> for MyGrammarRoot {
 If multiple grammar modules exist in the same crate, each MUST have its own name:
 
 ```rust
-#[rust_sitter::grammar("python")]
+#[adze::grammar("python")]
 mod python { /* ... */ }
 
-#[rust_sitter::grammar("javascript")]
+#[adze::grammar("javascript")]
 mod javascript { /* ... */ }
 ```
 
@@ -117,10 +117,10 @@ No name collision checking required (Rust's module system handles this).
 
 #### 3.1 Missing Attribute
 
-If `#[rust_sitter::grammar(...)]` is missing:
+If `#[adze::grammar(...)]` is missing:
 
 ```rust
-// Error: "Each grammar module must have a #[rust_sitter::grammar(\"name\")] attribute"
+// Error: "Each grammar module must have a #[adze::grammar(\"name\")] attribute"
 mod some_grammar { /* ... */ }
 ```
 
@@ -133,7 +133,7 @@ mod some_grammar { /* ... */ }
 If attribute argument is not a string literal:
 
 ```rust
-#[rust_sitter::grammar(python)]  // Missing quotes
+#[adze::grammar(python)]  // Missing quotes
 ```
 
 **Action**: Emit error: "Expected string literal for grammar name, got: <type>"
@@ -145,7 +145,7 @@ If attribute argument is not a string literal:
 If string literal is empty:
 
 ```rust
-#[rust_sitter::grammar("")]
+#[adze::grammar("")]
 ```
 
 **Action**: Emit error: "Grammar name cannot be empty"
@@ -164,7 +164,7 @@ let grammar_name = input
     .attrs
     .iter()
     .find_map(|a| {
-        if a.path() == &syn::parse_quote!(rust_sitter::grammar) {
+        if a.path() == &syn::parse_quote!(adze::grammar) {
             let grammar_name_expr = a.parse_args_with(Expr::parse).ok();
             if let Some(Expr::Lit(ExprLit {
                 attrs: _,
@@ -221,7 +221,7 @@ let grammar_name = grammar_value
 #[test]
 fn test_grammar_name_extraction() {
     let input = quote! {
-        #[rust_sitter::grammar("test_lang")]
+        #[adze::grammar("test_lang")]
         mod grammar {}
     };
 
@@ -239,9 +239,9 @@ fn test_grammar_name_extraction() {
 ```rust
 #[test]
 fn test_grammar_name_in_generated_code() {
-    #[rust_sitter::grammar("integration_test")]
+    #[adze::grammar("integration_test")]
     mod test_grammar {
-        #[rust_sitter::language]
+        #[adze::language]
         struct Root;
     }
 
@@ -260,9 +260,9 @@ fn test_grammar_name_in_generated_code() {
 #[test]
 #[cfg(feature = "glr")]
 fn test_external_scanner_lookup_by_name() {
-    use rust_sitter::scanner_registry::get_global_registry;
+    use adze::scanner_registry::get_global_registry;
 
-    #[rust_sitter::grammar("scanner_test")]
+    #[adze::grammar("scanner_test")]
     mod grammar {
         // Grammar with external scanner
     }
@@ -292,7 +292,7 @@ fn test_external_scanner_lookup_by_name() {
 - No compilation errors
 
 **Migration Path**:
-1. User updates rust-sitter dependency
+1. User updates adze dependency
 2. Re-compiles grammar (code generation runs)
 3. GRAMMAR_NAME automatically emitted
 4. External scanners work
@@ -346,7 +346,7 @@ fn test_external_scanner_lookup_by_name() {
 
 **Acceptance Criteria**:
 1. Generated code includes `const GRAMMAR_NAME: &'static str = "..."`
-2. Value matches `#[rust_sitter::grammar("...")]` attribute
+2. Value matches `#[adze::grammar("...")]` attribute
 3. GLR parser can look up external scanners by name
 4. All tests pass
 5. No regressions in existing grammars
@@ -402,9 +402,9 @@ fn test_external_scanner_lookup_by_name() {
 ### Input
 
 ```rust
-#[rust_sitter::grammar("python")]
+#[adze::grammar("python")]
 mod python {
-    #[rust_sitter::language]
+    #[adze::language]
     enum Stmt {
         // ...
     }
@@ -416,7 +416,7 @@ mod python {
 ```rust
 #[cfg(feature = "pure-rust")]
 mod python {
-    use ::rust_sitter::Extract;
+    use ::adze::Extract;
 
     // ... generated types ...
 
@@ -445,7 +445,7 @@ mod python {
 
 pub static GRAMMAR_NAME: &str = "python";
 
-pub fn language() -> &'static ::rust_sitter::pure_parser::TSLanguage {
+pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
     // ... existing language struct generation ...
 }
 ```

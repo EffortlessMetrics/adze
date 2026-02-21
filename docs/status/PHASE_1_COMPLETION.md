@@ -221,7 +221,7 @@ Phase 1 (Critical Correctness Fixes) has been substantially completed. All core 
 **Required Work**:
 - Update `tool/src/pure_rust_builder.rs` to emit GRAMMAR_NAME in generated code
 - OR update `macro/src/expansion.rs` to include GRAMMAR_NAME in Extract impl
-- Extract name from `#[rust_sitter::grammar("name")]` attribute
+- Extract name from `#[adze::grammar("name")]` attribute
 
 **Priority**: High (blocks external scanner support in GLR)
 

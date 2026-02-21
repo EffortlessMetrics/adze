@@ -1,12 +1,12 @@
 [package]
-name = "rust-sitter"
-description = "A package for defining tree-sitter grammars alongside Rust logic"
+name = "adze"
+description = "Adze: Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable (not affiliated)."
 readme = "../README.md"
-repository = "https://github.com/EffortlessMetrics/rust-sitter"
+repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
 build = "build.rs"
@@ -16,7 +16,7 @@ path = "src/lib.rs"
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["rust-sitter-macro/pure-rust"]
+pure-rust = ["adze-macro/pure-rust"]
 tree-sitter-c2rust = ["dep:tree-sitter-c2rust"]
 tree-sitter-standard = ["dep:tree-sitter"]
 wasm = ["wasm-bindgen", "pure-rust"]
@@ -41,10 +41,10 @@ unstable-benches = [] # Enable benchmarks that depend on unstable APIs
 [dependencies]
 tree-sitter-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
 tree-sitter = { version = "0.25.8", optional = true }
-rust-sitter-macro = { version = "0.8.0-dev", path = "../macro" }
-rust-sitter-ir = { version = "0.8.0-dev", path = "../ir" }
-rust-sitter-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
-rust-sitter-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
+adze-macro = { version = "0.8.0-dev", path = "../macro" }
+adze-ir = { version = "0.8.0-dev", path = "../ir" }
+adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.142", optional = true }
@@ -67,9 +67,9 @@ serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
 glr-test-support = { path = "../glr-test-support" }
-rust-sitter-example = { path = "../example", features = ["ts-compat"] }
-rust-sitter-python-simple = { path = "../grammars/python-simple" }
-rust-sitter-python = { path = "../grammars/python" }
+adze-example = { path = "../example", features = ["ts-compat"] }
+adze-python-simple = { path = "../grammars/python-simple" }
+adze-python = { path = "../grammars/python" }
 serial_test = "3.0"
 
 # Tree-sitter dependencies for ts-compat golden tests

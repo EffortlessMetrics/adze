@@ -6,9 +6,9 @@
 use crate::{Language, Token, language::SymbolMetadata};
 
 #[cfg(feature = "glr-core")]
-fn empty_parse_table() -> &'static rust_sitter_glr_core::ParseTable {
-    use rust_sitter_glr_core::{GotoIndexing, ParseTable};
-    use rust_sitter_ir::{Grammar, StateId, SymbolId};
+fn empty_parse_table() -> &'static adze_glr_core::ParseTable {
+    use adze_glr_core::{GotoIndexing, ParseTable};
+    use adze_ir::{Grammar, StateId, SymbolId};
     use std::collections::BTreeMap;
 
     Box::leak(Box::new(ParseTable {

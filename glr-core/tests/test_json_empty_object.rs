@@ -3,10 +3,8 @@
 #![cfg(feature = "json-parity")]
 #![allow(unused_imports, clippy::needless_range_loop)]
 
-use rust_sitter_glr_core::{
-    Action, ActionCell, Driver, LexMode, ParseRule, ParseTable, SymbolMetadata,
-};
-use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, ActionCell, Driver, LexMode, ParseRule, ParseTable, SymbolMetadata};
+use adze_ir::{RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 use std::fs;
 
@@ -117,10 +115,10 @@ fn test_json_empty_object_parses() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol,
         start_symbol,
-        grammar: rust_sitter_ir::Grammar::new("json".to_string()),
+        grammar: adze_ir::Grammar::new("json".to_string()),
         initial_state: StateId(1), // Tree-sitter uses state 1 (state 0 is error recovery)
         token_count,
         external_token_count: external_count,

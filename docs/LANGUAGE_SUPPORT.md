@@ -1,10 +1,10 @@
-# Rust Sitter Language Support
+# Adze Language Support
 
 Comprehensive list of supported languages and implementation status.
 
 ## Overview
 
-Rust Sitter has been validated with 150+ programming language grammars, achieving 99% compatibility with Tree-sitter grammars while providing enhanced features like better error recovery, faster incremental parsing, and automatic LSP generation.
+Adze has been validated with 150+ programming language grammars, achieving 99% compatibility with Tree-sitter grammars while providing enhanced features like better error recovery, faster incremental parsing, and automatic LSP generation.
 
 ## Tier 1 Languages (Full Support)
 
@@ -106,7 +106,7 @@ These languages use custom scanners for context-sensitive features:
 
 #### Python (Indentation)
 ```rust
-use rust_sitter::IndentationScanner;
+use adze::IndentationScanner;
 
 let scanner = IndentationScanner::new()
     .with_indent_token(INDENT)
@@ -116,7 +116,7 @@ let scanner = IndentationScanner::new()
 
 #### Ruby (Heredocs)
 ```rust
-use rust_sitter::HeredocScanner;
+use adze::HeredocScanner;
 
 let scanner = HeredocScanner::new()
     .with_delimiters(vec!["<<", "<<-", "<<~"])
@@ -125,7 +125,7 @@ let scanner = HeredocScanner::new()
 
 #### C/C++ (Preprocessor)
 ```rust
-use rust_sitter::PreprocessorScanner;
+use adze::PreprocessorScanner;
 
 let scanner = PreprocessorScanner::new()
     .with_includes(vec!["include", "import"])
@@ -134,7 +134,7 @@ let scanner = PreprocessorScanner::new()
 
 ### Languages with Ambiguous Grammars
 
-These benefit from Rust Sitter's GLR parsing:
+These benefit from Adze's GLR parsing:
 
 - **C++**: Template disambiguation
 - **Java**: Type/expression ambiguity  
@@ -144,7 +144,7 @@ These benefit from Rust Sitter's GLR parsing:
 
 ## Grammar Features Matrix
 
-| Feature | Tree-sitter | Rust Sitter | Languages Using |
+| Feature | Tree-sitter | Adze | Languages Using |
 |---------|-------------|-------------|-----------------|
 | External Scanner | ✅ | ✅ Enhanced | Python, Ruby, C |
 | Precedence | ✅ | ✅ Better | All expression-based |
@@ -161,7 +161,7 @@ These benefit from Rust Sitter's GLR parsing:
 
 Average parse times for 100KB files:
 
-| Language | Tree-sitter | Rust Sitter | Improvement |
+| Language | Tree-sitter | Adze | Improvement |
 |----------|-------------|-------------|-------------|
 | Rust | 3.2ms | 2.1ms | 34% faster |
 | JavaScript | 2.8ms | 1.9ms | 32% faster |
@@ -174,65 +174,65 @@ Average parse times for 100KB files:
 ### Python
 ```bash
 # Install Python grammar
-rust-sitter install python
+adze install python
 
 # Generate LSP
-rust-sitter generate-lsp python
+adze generate-lsp python
 
 # Run tests
-rust-sitter test python
+adze test python
 ```
 
-[Full Python Guide →](https://docs.rust-sitter.dev/languages/python)
+[Full Python Guide →](https://docs.adze.dev/languages/python)
 
 ### JavaScript/TypeScript
 ```bash
 # Install with JSX support
-rust-sitter install javascript --features jsx,typescript
+adze install javascript --features jsx,typescript
 
 # Configure for Node.js
-rust-sitter config javascript --target node
+adze config javascript --target node
 ```
 
-[Full JavaScript Guide →](https://docs.rust-sitter.dev/languages/javascript)
+[Full JavaScript Guide →](https://docs.adze.dev/languages/javascript)
 
 ### Rust
 ```bash
 # Install with macro support
-rust-sitter install rust --features macros,async
+adze install rust --features macros,async
 
 # Enable proc-macro parsing
-rust-sitter config rust --proc-macros
+adze config rust --proc-macros
 ```
 
-[Full Rust Guide →](https://docs.rust-sitter.dev/languages/rust)
+[Full Rust Guide →](https://docs.adze.dev/languages/rust)
 
 ## Adding New Languages
 
 ### Quick Start
 ```bash
 # Generate grammar template
-rust-sitter new my-language
+adze new my-language
 
 # Import from Tree-sitter
-rust-sitter import tree-sitter-my-language
+adze import tree-sitter-my-language
 
 # Validate compatibility
-rust-sitter validate my-language
+adze validate my-language
 ```
 
 ### Grammar Template
 ```rust
-#[rust_sitter::grammar("my_language")]
+#[adze::grammar("my_language")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct SourceFile {
         items: Vec<Item>,
     }
     
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s+")]
+        #[adze::leaf(pattern = r"\s+")]
         _ws: (),
     }
 }
@@ -256,31 +256,31 @@ Popular community-maintained grammars:
 ## Grammar Repository
 
 Browse and download grammars:
-- Web: [grammars.rust-sitter.dev](https://grammars.rust-sitter.dev)
-- CLI: `rust-sitter search <language>`
-- API: `https://api.rust-sitter.dev/grammars`
+- Web: [grammars.adze.dev](https://grammars.adze.dev)
+- CLI: `adze search <language>`
+- API: `https://api.adze.dev/grammars`
 
 ## Testing Language Support
 
 ### Compatibility Test Suite
 ```bash
 # Run full compatibility test
-rust-sitter compat-test <language>
+adze compat-test <language>
 
 # Compare with tree-sitter
-rust-sitter diff-test <language>
+adze diff-test <language>
 
 # Benchmark performance
-rust-sitter bench <language>
+adze bench <language>
 ```
 
 ### Corpus Coverage
 ```bash
 # Check test coverage
-rust-sitter coverage <language>
+adze coverage <language>
 
 # Generate coverage report
-rust-sitter coverage <language> --html
+adze coverage <language> --html
 ```
 
 ## Contributing Languages
@@ -293,7 +293,7 @@ rust-sitter coverage <language> --html
 5. LSP configuration (optional)
 
 ### Submission Process
-1. Fork [rust-sitter/grammars](https://github.com/rust-sitter/grammars)
+1. Fork [adze/grammars](https://github.com/adze/grammars)
 2. Add grammar to `languages/`
 3. Add tests to `tests/`
 4. Submit PR with benchmarks
@@ -307,8 +307,8 @@ rust-sitter coverage <language> --html
 
 ## Resources
 
-- [Language Implementation Guide](https://docs.rust-sitter.dev/languages/guide)
-- [Grammar Examples](https://github.com/rust-sitter/grammars)
+- [Language Implementation Guide](https://docs.adze.dev/languages/guide)
+- [Grammar Examples](https://github.com/adze/grammars)
 - [Testing Framework](./TESTING_FRAMEWORK.md)
 - [Performance Guide](./PERFORMANCE_GUIDE.md)
-- [Community Discord](https://discord.gg/rust-sitter)
+- [Community Discord](https://discord.gg/adze)

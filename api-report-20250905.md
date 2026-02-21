@@ -10,12 +10,12 @@ Generated: Fri Sep  5 12:04:03 EDT 2025
 
 ## Breaking Change Check Results
 
-### rust-sitter
+### adze
 ⚠️  Potential breaking changes detected
 
-### rust-sitter-macro
+### adze-macro
 ⚠️  Potential breaking changes detected
 
-### rust-sitter-tool
+### adze-tool
 ⚠️  Potential breaking changes detected
 

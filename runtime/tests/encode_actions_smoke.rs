@@ -5,8 +5,8 @@ mod support {
     pub mod language_builder; // encode_actions
 }
 
-use rust_sitter_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+use adze_ir::{RuleId, StateId, SymbolId};
 use support::language_builder::encode_actions;
 
 #[test]
@@ -15,7 +15,7 @@ fn encode_actions_minimal() {
     // (0,0) -> Shift to state 1
     // (0,1) -> Reduce by rule 0 (lhs=S1, rhs_len=2)
     // (1,2) -> Accept
-    let grammar = rust_sitter_ir::Grammar::new("toy".into());
+    let grammar = adze_ir::Grammar::new("toy".into());
 
     // Symbols: 3 total (S0..S2). We'll mark S1 as the LHS for the rule.
     let mut symbol_to_index = std::collections::BTreeMap::new();
@@ -79,12 +79,12 @@ fn encode_actions_minimal() {
         goto_table: vec![vec![], vec![]],
         external_scanner_states: vec![vec![], vec![]],
         nonterminal_to_index: std::collections::BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         initial_state: StateId(0),
         token_count: 2,
         external_token_count: 0,
         lex_modes: vec![
-            rust_sitter_glr_core::LexMode {
+            adze_glr_core::LexMode {
                 lex_state: 0,
                 external_lex_state: 0
             };

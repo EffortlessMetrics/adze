@@ -23,45 +23,45 @@ pub use generated::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
 // This is a classic ambiguity that CANNOT be resolved by LR(1) lookahead alone,
 // making it perfect for testing GLR conflict preservation.
 
-#[rust_sitter::grammar("dangling_else")]
+#[adze::grammar("dangling_else")]
 pub mod grammar {
     /// Statement: if-then or if-then-else constructs
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(PartialEq, Eq, Debug, Clone)]
     pub enum Statement {
         /// If-then without else clause (creates the ambiguity)
         IfThen(
-            #[rust_sitter::leaf(text = "if")] (),
+            #[adze::leaf(text = "if")] (),
             Box<Expr>,
-            #[rust_sitter::leaf(text = "then")] (),
+            #[adze::leaf(text = "then")] (),
             Box<Statement>,
         ),
 
         /// If-then-else with else clause
         IfThenElse(
-            #[rust_sitter::leaf(text = "if")] (),
+            #[adze::leaf(text = "if")] (),
             Box<Expr>,
-            #[rust_sitter::leaf(text = "then")] (),
+            #[adze::leaf(text = "then")] (),
             Box<Statement>,
-            #[rust_sitter::leaf(text = "else")] (),
+            #[adze::leaf(text = "else")] (),
             Box<Statement>,
         ),
 
         /// Simple statement (base case)
-        Other(#[rust_sitter::leaf(text = "other")] ()),
+        Other(#[adze::leaf(text = "other")] ()),
     }
 
     /// Expression: simple variable names
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(PartialEq, Eq, Debug, Clone)]
     pub enum Expr {
-        Var(#[rust_sitter::leaf(pattern = r"[a-z]+")] String),
+        Var(#[adze::leaf(pattern = r"[a-z]+")] String),
     }
 
     /// Whitespace handling
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }
@@ -154,10 +154,10 @@ mod tests {
         // This test verifies that the grammar DOES generate conflicts
         // by inspecting the generated parse table
 
-        use rust_sitter_glr_core::conflict_inspection::*;
+        use adze_glr_core::conflict_inspection::*;
 
         // Decode the LANGUAGE into a ParseTable
-        let table = rust_sitter::decoder::decode_parse_table(&LANGUAGE);
+        let table = adze::decoder::decode_parse_table(&LANGUAGE);
 
         // Run conflict inspection
         let summary = count_conflicts(&table);

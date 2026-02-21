@@ -1,6 +1,6 @@
 # GLR (Generalized LR) Parsing
 
-GLR parsing is a powerful parsing technique that extends traditional LR parsing to handle ambiguous grammars. With the GLR parser implementation in PR #56, rust-sitter can now parse languages with inherent ambiguities, multiple interpretations, and complex grammar conflicts.
+GLR parsing is a powerful parsing technique that extends traditional LR parsing to handle ambiguous grammars. With the GLR parser implementation in PR #56, adze can now parse languages with inherent ambiguities, multiple interpretations, and complex grammar conflicts.
 
 ## What is GLR Parsing?
 
@@ -184,8 +184,8 @@ fn create_ambiguous_grammar() -> Grammar {
 ### Basic GLR Parsing
 
 ```rust
-use rust_sitter::glr_parser_no_error_recovery::GLRParser;
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use adze::glr_parser_no_error_recovery::GLRParser;
+use adze_glr_core::{build_lr1_automaton, FirstFollowSets};
 
 // Create grammar and parse table
 let grammar = create_ambiguous_grammar();
@@ -399,7 +399,7 @@ The GLR parser integrates with the high-level runtime2 API:
 
 ```rust
 // Using GLR through the main Parser API
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(glr_language)?;
@@ -427,7 +427,7 @@ println!("Resolved parse: {}", root.kind());
 // Debug GLR parsing with detailed forest information
 use std::env;
 
-env::set_var("RUST_SITTER_GLR_DEBUG", "true");
+env::set_var("ADZE_GLR_DEBUG", "true");
 
 let forest = parser.parse(&tokens)?;
 

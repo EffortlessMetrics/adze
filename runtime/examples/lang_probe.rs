@@ -1,6 +1,6 @@
 // runtime/examples/lang_probe.rs
 // Minimal check that the generated Python LANGUAGE object is sound.
-use rust_sitter_python::grammar_python::LANGUAGE as PY_LANGUAGE;
+use adze_python::grammar_python::LANGUAGE as PY_LANGUAGE;
 
 fn main() {
     // Enable backtrace for debugging - safe in examples

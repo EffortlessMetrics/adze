@@ -162,7 +162,7 @@ impl CorpusRunner {
             fs::read_to_string(&grammar_js_path).context("Failed to read grammar.js")?;
 
         // Try to parse with our grammar.js parser
-        match rust_sitter_tool::parse_grammar_js(&grammar_content) {
+        match adze_tool::parse_grammar_js(&grammar_content) {
             Ok(_grammar) => Ok(GrammarTestResult {
                 name: grammar_name.to_string(),
                 status: TestStatus::Pass,

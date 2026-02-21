@@ -7,7 +7,7 @@ The arena allocator provides **3.7x-5.0x faster** parse tree allocation with **9
 ## Quick Example
 
 ```rust
-use rust_sitter::arena_allocator::{TreeArena, TreeNode};
+use adze::arena_allocator::{TreeArena, TreeNode};
 
 let mut arena = TreeArena::new();
 
@@ -77,7 +77,7 @@ arena.memory_usage()  // Bytes used
 The arena stores **TreeNodeData** - a 64-byte struct optimized for parse tree nodes:
 
 ```rust
-use rust_sitter::tree_node_data::TreeNodeData;
+use adze::tree_node_data::TreeNodeData;
 
 // Create node data
 let leaf = TreeNodeData::leaf(5, 0, 10);  // symbol, start, end
@@ -117,10 +117,10 @@ node.is_named();      // Node flags
 
 ```bash
 # Run tests
-cargo test -p rust-sitter arena_allocator
+cargo test -p adze arena_allocator
 
 # Memory safety
-cargo +nightly miri test -p rust-sitter --test arena_allocator_test
+cargo +nightly miri test -p adze --test arena_allocator_test
 
 # Benchmarks
 cargo bench --bench arena_vs_box_allocation

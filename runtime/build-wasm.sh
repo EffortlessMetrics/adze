@@ -3,7 +3,7 @@
 
 set -e
 
-echo "Building rust-sitter for WASM..."
+echo "Building adze for WASM..."
 
 # Add WASM target if not already added
 rustup target add wasm32-unknown-unknown 2>/dev/null || true
@@ -17,11 +17,11 @@ if command -v wasm-bindgen &> /dev/null; then
     wasm-bindgen \
         --target web \
         --out-dir pkg \
-        --out-name rust_sitter \
-        target/wasm32-unknown-unknown/debug/rust_sitter.wasm
+        --out-name adze \
+        target/wasm32-unknown-unknown/debug/adze.wasm
     
     echo "WASM build complete! Output in pkg/"
 else
     echo "wasm-bindgen-cli not found. Install with: cargo install wasm-bindgen-cli"
-    echo "WASM library built at: target/wasm32-unknown-unknown/debug/rust_sitter.wasm"
+    echo "WASM library built at: target/wasm32-unknown-unknown/debug/adze.wasm"
 fi

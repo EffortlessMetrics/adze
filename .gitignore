@@ -1,5 +1,7 @@
 /target
 **/target/
+/target-*/
+**/target-*/
 
 # Bench/fuzz artifacts
 bench-output.txt
@@ -52,3 +54,12 @@ __pycache__/
 /dist/
 /out/
 *.snap.new
+
+# Stale API report artifacts
+api-report-*.md
+
+# Compiled test binaries
+test_doc_examples
+
+# Benchmark results (generated)
+benchmarks/results/

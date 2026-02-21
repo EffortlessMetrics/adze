@@ -28,11 +28,11 @@ Enable these features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter-runtime = { version = "0.1", features = ["pure-rust-glr", "serialization"] }
+adze-runtime = { version = "0.1", features = ["pure-rust-glr", "serialization"] }
 
 [build-dependencies]
-rust-sitter-tool = { version = "0.8.0-dev", features = ["serialization"] }
-rust-sitter-tablegen = { version = "0.8.0-dev", features = ["serialization"] }
+adze-tool = { version = "0.8.0-dev", features = ["serialization"] }
+adze-tablegen = { version = "0.8.0-dev", features = ["serialization"] }
 ```
 
 ### System Requirements
@@ -51,7 +51,7 @@ In your `build.rs`, enable .parsetable generation:
 
 ```rust
 // build.rs
-use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
 
 fn main() {
     let options = BuildOptions {
@@ -74,7 +74,7 @@ fn main() {
 In your application code:
 
 ```rust
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read .parsetable file
@@ -132,7 +132,7 @@ for input in inputs {
 ### 2. Build Script (build.rs)
 
 ```rust
-use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
 
 fn main() {
     let options = BuildOptions {
@@ -159,12 +159,12 @@ fn main() {
 ### 3. Parser Setup (src/main.rs)
 
 ```rust
-use rust_sitter_runtime::{
+use adze_runtime::{
     Parser,
     language::SymbolMetadata,
     tokenizer::{TokenPattern, Matcher},
 };
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 
 fn create_arithmetic_parser() -> Result<Parser, Box<dyn std::error::Error>> {
     // Load .parsetable file
@@ -383,7 +383,7 @@ mod tests {
 
 ```rust
 // tests/integration_test.rs
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 #[test]
 fn test_end_to_end_pipeline() {
@@ -424,14 +424,14 @@ fn test_end_to_end_pipeline() {
 
 **Cause**: .parsetable version mismatch
 
-**Solution**: Upgrade rust-sitter-runtime or regenerate table
+**Solution**: Upgrade adze-runtime or regenerate table
 
 ### Error: "Failed to deserialize ParseTable"
 
 **Cause**: Corrupted bincode data or version mismatch
 
 **Solution**:
-1. Check rust-sitter-glr-core version compatibility
+1. Check adze-glr-core version compatibility
 2. Regenerate .parsetable with matching tool version
 3. Verify file integrity (not truncated)
 
@@ -476,7 +476,7 @@ Using .parsetable reduces build time by:
 - [PARSETABLE_FILE_FORMAT_SPEC.md](specs/PARSETABLE_FILE_FORMAT_SPEC.md) - Binary format specification
 - [PARSE_TABLE_SERIALIZATION_SPEC.md](specs/PARSE_TABLE_SERIALIZATION_SPEC.md) - ParseTable serialization details
 - [GLR_V1_COMPLETION_CONTRACT.md](specs/GLR_V1_COMPLETION_CONTRACT.md) - Completion contract and acceptance criteria
-- [GETTING_STARTED.md](GETTING_STARTED.md) - General rust-sitter usage guide
+- [GETTING_STARTED.md](GETTING_STARTED.md) - General adze usage guide
 
 ---
 
@@ -508,7 +508,7 @@ Using .parsetable reduces build time by:
    ```
 
 3. **Version pinning**:
-   - Pin rust-sitter-runtime version in Cargo.toml
+   - Pin adze-runtime version in Cargo.toml
    - Regenerate .parsetable on version upgrades
    - Include format version in filename: `lang-v1.0.0.parsetable`
 
@@ -543,7 +543,7 @@ Using .parsetable reduces build time by:
 
 ---
 
-**Questions?** Open an issue at https://github.com/EffortlessMetrics/rust-sitter/issues
+**Questions?** Open an issue at https://github.com/EffortlessMetrics/adze/issues
 
 **Feedback?** We'd love to hear about your experience with .parsetable!
 
@@ -551,4 +551,4 @@ Using .parsetable reduces build time by:
 
 **Version**: 1.0
 **Last Updated**: 2025-11-20
-**Maintainer**: rust-sitter core team
+**Maintainer**: adze core team

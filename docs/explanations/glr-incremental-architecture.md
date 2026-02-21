@@ -3,7 +3,7 @@
 **Status**: Implementation Complete (September 2025)  
 **Completion**: PR Finalization with conservative fallback strategy
 
-This document explains the architectural decisions and design rationale behind rust-sitter's GLR incremental parsing implementation.
+This document explains the architectural decisions and design rationale behind adze's GLR incremental parsing implementation.
 
 ## Architecture Overview
 
@@ -259,4 +259,4 @@ fn apply_edit(&mut self, edit: &GLREdit) -> Result<(), String> {
 
 The GLR incremental parsing architecture represents a strategic investment in correctness-first design that provides a robust foundation for future performance optimizations. The conservative fallback approach ensures production readiness while maintaining the flexibility needed for advanced GLR-specific incremental parsing techniques.
 
-The implementation successfully demonstrates that GLR incremental parsing is architecturally sound and can be integrated into rust-sitter's ecosystem while maintaining backward compatibility and production quality standards.
+The implementation successfully demonstrates that GLR incremental parsing is architecturally sound and can be integrated into adze's ecosystem while maintaining backward compatibility and production quality standards.

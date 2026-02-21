@@ -38,13 +38,13 @@ mod doc_coverage_tests {
         // Example patterns that should work with appropriate features:
         #[cfg(feature = "tree-sitter-standard")]
         {
-            use rust_sitter::tree_sitter::Parser;
+            use adze::tree_sitter::Parser;
             let _ = Parser::new();
         }
 
         #[cfg(feature = "ts-compat")]
         {
-            use rust_sitter::ts_compat::Tree;
+            use adze::ts_compat::Tree;
             // Tree creation typically happens through parser
             let _tree_type_marker = std::marker::PhantomData::<Tree>;
         }
@@ -78,7 +78,7 @@ mod doc_coverage_tests {
         // Pattern from README: Basic parsing
         #[cfg(feature = "pure-rust")]
         {
-            use rust_sitter::pure_parser::Parser;
+            use adze::pure_parser::Parser;
             let mut parser = Parser::new();
             let _result = parser.parse_string("fn main() {}");
         }
@@ -88,7 +88,7 @@ mod doc_coverage_tests {
         {
             // Tree traversal APIs exist but require a parsed tree
             // Using type marker for documentation coverage
-            let _tree_type_marker = std::marker::PhantomData::<rust_sitter::ts_compat::Tree>;
+            let _tree_type_marker = std::marker::PhantomData::<adze::ts_compat::Tree>;
         }
     }
 

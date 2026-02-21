@@ -33,7 +33,7 @@ This specification defines the contract for validating that parse table generati
 ### Current Table Generation Pipeline
 
 ```
-Grammar IR (rust-sitter-ir::Grammar)
+Grammar IR (adze-ir::Grammar)
     ↓
 FirstFollowSets::compute_normalized()
     ↓
@@ -64,7 +64,7 @@ ConflictSummary (validation results)
 
 #### 1.1 Grammar IR Requirements
 
-Test grammars MUST be provided as `rust_sitter_ir::Grammar` instances with:
+Test grammars MUST be provided as `adze_ir::Grammar` instances with:
 
 ```rust
 pub struct Grammar {
@@ -393,7 +393,7 @@ fn test_precedence_free_expr_table_generation() {
 
 **Validation**:
 ```bash
-cargo test -p rust-sitter-glr-core --test table_generation_validation
+cargo test -p adze-glr-core --test table_generation_validation
 # All tests should pass
 ```
 

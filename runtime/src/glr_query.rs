@@ -4,7 +4,7 @@
 // Query support for GLR parse results
 // Implements Tree-sitter's query language for pattern matching on GLR trees
 
-use rust_sitter_ir::{Grammar, SymbolId};
+use adze_ir::{Grammar, SymbolId};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -888,9 +888,9 @@ mod tests {
         let add_id = SymbolId(1);
         grammar.tokens.insert(
             add_id,
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "plus".to_string(),
-                pattern: rust_sitter_ir::TokenPattern::String("+".to_string()),
+                pattern: adze_ir::TokenPattern::String("+".to_string()),
                 fragile: false,
             },
         );

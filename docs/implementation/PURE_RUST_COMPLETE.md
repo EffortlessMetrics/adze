@@ -1,6 +1,6 @@
 # Pure-Rust Tree-sitter Implementation - Complete
 
-This document summarizes the complete pure-Rust Tree-sitter implementation that has been added to rust-sitter.
+This document summarizes the complete pure-Rust Tree-sitter implementation that has been added to adze.
 
 ## What Was Implemented
 
@@ -70,7 +70,7 @@ The implementation is 100% Rust, enabling:
 
 ### Basic Parsing
 ```rust
-use rust_sitter::pure_parser::Parser;
+use adze::pure_parser::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(language)?;
@@ -83,7 +83,7 @@ if let Some(root) = result.root {
 
 ### Incremental Parsing
 ```rust
-use rust_sitter::pure_incremental::{IncrementalParser, Edit};
+use adze::pure_incremental::{IncrementalParser, Edit};
 
 let mut parser = IncrementalParser::new();
 parser.set_language(language)?;
@@ -103,7 +103,7 @@ let result2 = parser.parse_with_edits("let x = 42", Some(&mut tree), &[edit]);
 
 ### External Scanner
 ```rust
-use rust_sitter::pure_external_scanner::{ExternalScanner, Lexer};
+use adze::pure_external_scanner::{ExternalScanner, Lexer};
 
 struct MyScanner;
 impl ExternalScanner for MyScanner {
@@ -116,7 +116,7 @@ impl ExternalScanner for MyScanner {
 
 ### WASM Usage
 ```javascript
-import init, { WasmParser } from './rust_sitter.js';
+import init, { WasmParser } from './adze.js';
 
 await init();
 const parser = new WasmParser();
@@ -126,12 +126,12 @@ const result = parser.parse("console.log('Hello')");
 console.log(result.root_to_json());
 ```
 
-## Integration with rust-sitter-tool
+## Integration with adze-tool
 
 The pure-Rust parser is integrated with the build tool:
 
 ```rust
-use rust_sitter_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
+use adze_tool::pure_rust_builder::{build_parser_from_grammar_js, BuildOptions};
 
 let options = BuildOptions {
     out_dir: "target/parsers".to_string(),

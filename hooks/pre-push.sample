@@ -1,5 +1,5 @@
 #!/bin/sh
-# Pre-push hook for rust-sitter
+# Pre-push hook for Adze
 # 
 # This hook runs the fast lint suite before pushing to ensure code quality.
 # To enable this hook, copy it to your git hooks directory:

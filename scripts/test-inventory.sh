@@ -63,13 +63,13 @@ count_tests() {
 echo -e "${GREEN}=== Generating Test Inventory ===${NC}"
 
 # Core crates
-count_tests "$REPO_ROOT/runtime" "rust-sitter (runtime)"
-count_tests "$REPO_ROOT/macro" "rust-sitter-macro"
-count_tests "$REPO_ROOT/glr-core" "rust-sitter-glr-core"
-count_tests "$REPO_ROOT/tablegen" "rust-sitter-tablegen"
-count_tests "$REPO_ROOT/tool" "rust-sitter-tool"
-count_tests "$REPO_ROOT/ir" "rust-sitter-ir"
-count_tests "$REPO_ROOT/common" "rust-sitter-common"
+count_tests "$REPO_ROOT/runtime" "adze (runtime)"
+count_tests "$REPO_ROOT/macro" "adze-macro"
+count_tests "$REPO_ROOT/glr-core" "adze-glr-core"
+count_tests "$REPO_ROOT/tablegen" "adze-tablegen"
+count_tests "$REPO_ROOT/tool" "adze-tool"
+count_tests "$REPO_ROOT/ir" "adze-ir"
+count_tests "$REPO_ROOT/common" "adze-common"
 
 # Example crates
 count_tests "$REPO_ROOT/example" "example"

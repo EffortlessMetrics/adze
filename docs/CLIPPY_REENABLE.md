@@ -5,8 +5,8 @@ When Tree-sitter dependency edges are unified, use this guide to re-enable full 
 ## Step 1: Check Current Dependency State
 
 ```bash
-cargo tree -p rust-sitter -i tree-sitter -e features
-cargo tree -p rust-sitter | rg "tree-sitter"
+cargo tree -p adze -i tree-sitter -e features
+cargo tree -p adze | rg "tree-sitter"
 ```
 
 ## Step 2: (Optional) Temporary Pin

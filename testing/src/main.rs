@@ -1,13 +1,13 @@
-// CLI tool for running rust-sitter beta tests
+// CLI tool for running adze beta tests
 
+use adze_testing::{BetaTester, TestConfig, TestSuite};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use rust_sitter_testing::{BetaTester, TestConfig, TestSuite};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
-#[command(name = "rust-sitter-test")]
-#[command(about = "Beta testing tool for rust-sitter", long_about = None)]
+#[command(name = "adze-test")]
+#[command(about = "Beta testing tool for adze", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

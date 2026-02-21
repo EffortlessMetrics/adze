@@ -1,14 +1,14 @@
-use rust_sitter::glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser};
-use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter::glr_query::{QueryCursor, QueryParser};
-use rust_sitter::subtree::Subtree;
+use adze::glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser};
+use adze::glr_lexer::{GLRLexer, TokenWithPosition};
+use adze::glr_parser::GLRParser;
+use adze::glr_query::{QueryCursor, QueryParser};
+use adze::subtree::Subtree;
 // Integration test for the full GLR parsing pipeline
 // This test demonstrates parsing a complete grammar from definition to tree output
 
-use rust_sitter::glr_validation::GLRGrammarValidator;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze::glr_validation::GLRGrammarValidator;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
@@ -56,7 +56,7 @@ fn tokens_to_glr(tokens: &[TokenWithPosition]) -> Vec<GLRToken> {
 }
 
 // Helper function to convert ForestNode to query Subtree
-fn convert_forest_to_query_subtree(forest: &Arc<ForestNode>) -> rust_sitter::glr_query::Subtree {
+fn convert_forest_to_query_subtree(forest: &Arc<ForestNode>) -> adze::glr_query::Subtree {
     // Prefer first alternative (keeps this simple)
     let alt = forest.alternatives.first();
 
@@ -73,7 +73,7 @@ fn convert_forest_to_query_subtree(forest: &Arc<ForestNode>) -> rust_sitter::glr
         }
     }
 
-    rust_sitter::glr_query::Subtree {
+    adze::glr_query::Subtree {
         symbol: forest.symbol,
         children: alt
             .map(|a| {
@@ -89,8 +89,8 @@ fn convert_forest_to_query_subtree(forest: &Arc<ForestNode>) -> rust_sitter::glr
 }
 
 // Helper function to convert subtree::Subtree to glr_query::Subtree
-fn convert_to_query_subtree(subtree: &Arc<Subtree>) -> rust_sitter::glr_query::Subtree {
-    rust_sitter::glr_query::Subtree {
+fn convert_to_query_subtree(subtree: &Arc<Subtree>) -> adze::glr_query::Subtree {
+    adze::glr_query::Subtree {
         symbol: subtree.node.symbol_id,
         children: subtree
             .children

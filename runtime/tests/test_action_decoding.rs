@@ -6,7 +6,6 @@
 /// This test ensures that the action encoding used by tablegen's compress.rs
 /// matches the decoding logic in pure_parser.rs, preventing subtle bugs
 /// where actions are misinterpreted.
-
 #[cfg(test)]
 mod action_decoding_tests {
     // Note: This test file validates the encoding/decoding contract.

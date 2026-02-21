@@ -8,11 +8,11 @@
 ///
 /// Spec: docs/specs/TABLE_GENERATION_VALIDATION_CONTRACT.md
 /// Phase: 2-3 Bridge - GLR Conflict Preservation across ABI
-
 // These tests require example grammars to be built with pure-rust feature
 #[cfg(feature = "pure-rust")]
 mod runtime_conflict_preservation {
-    use rust_sitter_glr_core::conflict_inspection::*;
+    #[allow(unused_imports)]
+    use adze_glr_core::conflict_inspection::*;
 
     /// Test: Ambiguous Expression Grammar Conflicts Survive Encoding/Decoding
     ///
@@ -43,10 +43,10 @@ mod runtime_conflict_preservation {
 
         // TODO: Implement once example grammars export LANGUAGE symbols
         /*
-        use rust_sitter::decoder::decode_parse_table;
+        use adze::decoder::decode_parse_table;
 
         // Get LANGUAGE from generated parser
-        let lang = unsafe { &rust_sitter_example::ambiguous_expr::generated::LANGUAGE };
+        let lang = unsafe { &adze_example::ambiguous_expr::generated::LANGUAGE };
 
         // Decode runtime ParseTable
         let table = decode_parse_table(lang);
@@ -93,9 +93,9 @@ mod runtime_conflict_preservation {
 
         // TODO: Validate that conflict-free grammars stay conflict-free
         /*
-        use rust_sitter::decoder::decode_parse_table;
+        use adze::decoder::decode_parse_table;
 
-        let lang = unsafe { &rust_sitter_example::arithmetic::generated::LANGUAGE };
+        let lang = unsafe { &adze_example::arithmetic::generated::LANGUAGE };
         let table = decode_parse_table(lang);
         let summary = count_conflicts(&table);
 
@@ -111,10 +111,6 @@ mod runtime_conflict_preservation {
 #[test]
 fn test_conflict_preservation_runtime_module_exists() {
     // This test ensures the module structure is correct
-    // even without pure-rust feature
-    #[cfg(feature = "pure-rust")]
-    {
-        // Module is available when feature is enabled
-        let _ = std::any::type_name::<runtime_conflict_preservation>();
-    }
+    // even without pure-rust feature.
+    // The fact that this file compiles is the verification.
 }

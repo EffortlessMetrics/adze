@@ -1,4 +1,4 @@
-# Post-Merge Hardening for rust-sitter v0.6.0
+# Post-Merge Hardening for adze v0.6.0
 
 ## Summary
 
@@ -18,7 +18,7 @@ This PR implements critical CI hardening and test improvements following the GLR
 
 ### 3. FFI Generation Verification ✅
 - Verified pure-Rust FFI generation works with clean builds
-- Confirmed `RUST_SITTER_EMIT_ARTIFACTS=true` produces expected outputs
+- Confirmed `ADZE_EMIT_ARTIFACTS=true` produces expected outputs
 - No compilation errors in experimental examples
 
 ### 4. Tracking Issues Documentation ✅

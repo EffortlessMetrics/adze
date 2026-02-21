@@ -5,9 +5,9 @@
 
 #[cfg(feature = "pure-rust")]
 mod pure_rust_real_grammar_tests {
-    use rust_sitter::pure_incremental::{Edit, Tree};
-    use rust_sitter::pure_parser::Parser;
-    use rust_sitter::pure_parser::Point;
+    use adze::pure_incremental::{Edit, Tree};
+    use adze::pure_parser::Parser;
+    use adze::pure_parser::Point;
 
     // Use an actual generated language from a test grammar
     // The test-mini crate is a simple grammar that should be available

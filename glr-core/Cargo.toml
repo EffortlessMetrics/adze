@@ -1,13 +1,13 @@
 [package]
-name = "rust-sitter-glr-core"
+name = "adze-glr-core"
 version = "0.8.0-dev"
 edition.workspace = true
 rust-version.workspace = true
-description = "GLR parser generation algorithms for pure-Rust Tree-sitter"
-license = "MIT"
-repository = "https://github.com/EffortlessMetrics/rust-sitter"
-homepage = "https://github.com/EffortlessMetrics/rust-sitter"
-documentation = "https://docs.rs/rust-sitter-glr-core"
+description = "GLR parser generation algorithms for Adze"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-glr-core"
 readme = "README.md"
 publish = false
 include = [
@@ -21,7 +21,7 @@ include = [
 all-features = true
 
 [dependencies]
-rust-sitter-ir = { version = "0.8.0-dev", path = "../ir" }
+adze-ir = { version = "0.8.0-dev", path = "../ir" }
 indexmap = { version = "2.0", features = ["serde"] }
 fixedbitset = { version = "0.5", default-features = false }
 serde = { version = "1.0", features = ["derive"] }

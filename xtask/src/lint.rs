@@ -240,7 +240,7 @@ fn get_core_crates() -> Result<Vec<String>> {
     let core_crates = packages
         .iter()
         .filter_map(|pkg| pkg["name"].as_str().map(|s| s.to_string()))
-        .filter(|name| name.starts_with("rust-sitter"))
+        .filter(|name| name.starts_with("adze"))
         .collect();
     Ok(core_crates)
 }

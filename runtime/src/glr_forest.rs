@@ -7,7 +7,7 @@
 
 use crate::parser_v4::ParseNode;
 use crate::stack_pool::StackPool;
-use rust_sitter_ir::{RuleId, SymbolId};
+use adze_ir::{RuleId, SymbolId};
 use std::collections::HashMap;
 use std::rc::Rc;
 

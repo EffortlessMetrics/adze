@@ -8,7 +8,7 @@ fn test_state0_has_token_actions() {
     use std::sync::Once;
 
     // Import the symbols from the arithmetic module
-    use rust_sitter_example::arithmetic::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
+    use adze_example::arithmetic::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
 
     // Access the language structure and tables directly
     let lang = &LANGUAGE;
@@ -85,7 +85,7 @@ fn test_state0_has_token_actions() {
 #[test]
 fn test_parse_arithmetic_expression() {
     // Import the symbols from the arithmetic module
-    use rust_sitter_example::arithmetic::{LANGUAGE, SMALL_PARSE_TABLE};
+    use adze_example::arithmetic::{LANGUAGE, SMALL_PARSE_TABLE};
 
     // For now, just validate that the parser compiles and the language structure is valid
     let lang = &LANGUAGE;
@@ -109,7 +109,7 @@ fn test_parse_arithmetic_expression() {
     println!("  - State count: {}", lang.state_count);
     println!("  - Symbol count: {}", lang.symbol_count);
 
-    // Note: Full parsing with rust_sitter::Parser would require implementing
+    // Note: Full parsing with adze::Parser would require implementing
     // the full pure-rust parser runtime, which is beyond this test's scope.
     // The key validation is that state 0 now has token actions (tested above).
 }

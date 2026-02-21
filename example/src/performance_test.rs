@@ -1,4 +1,4 @@
-// Performance comparison test for rust-sitter
+// Performance comparison test for adze
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,4 @@
-# rust-sitter v0.6.0 Release Checklist
+# adze v0.6.0 Release Checklist
 
 ## Pre-Release Status ✅
 
@@ -11,13 +11,13 @@
 
 ### Version Status
 All core crates already at v0.6.0:
-- `rust-sitter-common` v0.6.0
-- `rust-sitter-ir` v0.6.0
-- `rust-sitter-glr-core` v0.6.0
-- `rust-sitter-tablegen` v0.6.0
-- `rust-sitter` v0.6.0
-- `rust-sitter-macro` v0.6.0
-- `rust-sitter-tool` v0.6.0
+- `adze-common` v0.6.0
+- `adze-ir` v0.6.0
+- `adze-glr-core` v0.6.0
+- `adze-tablegen` v0.6.0
+- `adze` v0.6.0
+- `adze-macro` v0.6.0
+- `adze-tool` v0.6.0
 
 ### Tests Status
 - ✅ All workspace tests passing
@@ -29,7 +29,7 @@ All core crates already at v0.6.0:
 ### 1. Create and Merge PR
 ```bash
 # Open PR at:
-https://github.com/EffortlessSteven/rust-sitter/compare/main...post-merge-hardening?expand=1
+https://github.com/EffortlessSteven/adze/compare/main...post-merge-hardening?expand=1
 ```
 
 ### 2. Publish to crates.io (in order)
@@ -150,4 +150,4 @@ git push origin v0.6.0
 ## Support
 
 For questions or issues, please open an issue at:
-https://github.com/EffortlessSteven/rust-sitter/issues
+https://github.com/EffortlessSteven/adze/issues

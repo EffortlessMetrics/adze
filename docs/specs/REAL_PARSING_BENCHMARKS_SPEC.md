@@ -13,7 +13,7 @@ This specification defines how benchmarks transition from placeholder logic (cha
 
 **Problem**: Current benchmarks use character iteration, producing false performance claims (100x faster than Tree-sitter).
 
-**Solution**: Use actual rust-sitter parsers with real fixtures, measure true parse time.
+**Solution**: Use actual adze parsers with real fixtures, measure true parse time.
 
 ---
 
@@ -179,7 +179,7 @@ cargo bench --bench glr_performance
 ```rust
 // NOTE: Currently using arithmetic grammar on Python fixtures.
 // This exercises real parsing logic but doesn't validate Python semantics.
-// TODO (#123): Switch to rust-sitter-python when lexer is fixed.
+// TODO (#123): Switch to adze-python when lexer is fixed.
 ```
 
 ---
@@ -264,7 +264,7 @@ cargo bench --bench glr_performance
 **Tasks**:
 1. Fix Python lexer/tokenizer
 2. Un-ignore Python smoke tests
-3. Update benchmarks to use `rust-sitter-python`
+3. Update benchmarks to use `adze-python`
 4. Validate parse trees match expected Python AST
 5. Compare with tree-sitter-python
 
@@ -358,7 +358,7 @@ grep -E "(time:|µs)" benchmark_output.txt
 **Specification Version**: 1.0.0
 **Last Updated**: 2025-11-20
 **Status**: ACTIVE - Implementation in progress
-**Owner**: rust-sitter performance team
+**Owner**: adze performance team
 
 ---
 

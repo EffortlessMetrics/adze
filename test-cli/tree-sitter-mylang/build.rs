@@ -1,3 +1,3 @@
 fn main() {
-    rust_sitter_tool::build_parsers();
+    adze_tool::build_parsers();
 }

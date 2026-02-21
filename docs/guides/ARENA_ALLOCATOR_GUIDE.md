@@ -2,7 +2,7 @@
 
 **Version**: v0.8.0
 **Status**: Production Ready
-**Target Audience**: rust-sitter library users
+**Target Audience**: adze library users
 
 ## Overview
 
@@ -31,7 +31,7 @@ struct Node {
 ### Arena Approach
 
 ```rust
-use rust_sitter::arena_allocator::{TreeArena, NodeHandle};
+use adze::arena_allocator::{TreeArena, NodeHandle};
 
 let mut arena = TreeArena::new();
 let handle = arena.alloc(TreeNode::leaf(42));
@@ -51,7 +51,7 @@ let handle = arena.alloc(TreeNode::leaf(42));
 ### Basic Usage
 
 ```rust
-use rust_sitter::arena_allocator::{TreeArena, TreeNode, NodeHandle};
+use adze::arena_allocator::{TreeArena, TreeNode, NodeHandle};
 
 // Create arena
 let mut arena = TreeArena::new();
@@ -96,8 +96,8 @@ The arena allocator works with **TreeNodeData** - a carefully optimized struct t
 TreeNodeData is the actual data stored in the arena for each parse tree node:
 
 ```rust
-use rust_sitter::tree_node_data::TreeNodeData;
-use rust_sitter::arena_allocator::NodeHandle;
+use adze::tree_node_data::TreeNodeData;
+use adze::arena_allocator::NodeHandle;
 
 // Create node data
 let leaf = TreeNodeData::leaf(5, 0, 10);  // symbol=5, bytes 0-10
@@ -431,7 +431,7 @@ fn build() -> Box<Node> {
 
 **After:**
 ```rust
-use rust_sitter::arena_allocator::{TreeArena, NodeHandle};
+use adze::arena_allocator::{TreeArena, NodeHandle};
 
 fn build(arena: &mut TreeArena) -> NodeHandle {
     arena.alloc(TreeNode::leaf(42))
@@ -533,13 +533,13 @@ Run arena allocator tests:
 
 ```bash
 # Unit tests
-cargo test -p rust-sitter arena_allocator
+cargo test -p adze arena_allocator
 
 # Memory safety (Miri)
-cargo +nightly miri test -p rust-sitter --test arena_allocator_test
+cargo +nightly miri test -p adze --test arena_allocator_test
 
 # Address sanitizer
-RUSTFLAGS="-Z sanitizer=address" cargo +nightly test -p rust-sitter --test arena_allocator_test
+RUSTFLAGS="-Z sanitizer=address" cargo +nightly test -p adze --test arena_allocator_test
 
 # Benchmark
 cargo bench --bench arena_vs_box_allocation

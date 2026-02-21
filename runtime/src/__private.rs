@@ -1,6 +1,6 @@
 //! # DO NOT USE THIS MODULE!
 //!
-//! This module contains functions for use in the expanded macros produced by rust-sitter.
+//! This module contains functions for use in the expanded macros produced by adze.
 //! They need to be public so they can be accessed at all (\*cough\* macro hygiene), but
 //! they are not intended to actually be called in any other circumstance.
 
@@ -446,7 +446,7 @@ fn convert_parse_node_v4_to_pure(
         is_error: node.symbol.0 == 0, // Symbol 0 typically indicates error
         is_missing: false,
         is_named,
-        field_name: node.field_name.clone(),
+        field_id: None, // TODO: Convert field_name to field_id using language field_names
         language: Some(lang as *const _),
     }
 }
@@ -458,4 +458,240 @@ fn parse_with_glr<T: Extract<T>>(
     _language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     unreachable!("GLR parser should not be called when glr feature is disabled")
+}
+
+#[cfg(all(test, feature = "pure-rust"))]
+mod tests {
+    use super::*;
+    use crate::pure_parser::{
+        ExternalScanner, ParsedNode, Point, TSLanguage, TSLexState, TSParseAction, TSRule,
+    };
+    use core::ptr;
+
+    static FIELD_NAME_VALUE: &[u8] = b"value\0";
+    static FIELD_NAME_NAME: &[u8] = b"name\0";
+
+    #[repr(transparent)]
+    struct FieldNames([*const u8; 2]);
+    unsafe impl Sync for FieldNames {}
+
+    static FIELD_NAMES: FieldNames =
+        FieldNames([FIELD_NAME_VALUE.as_ptr(), FIELD_NAME_NAME.as_ptr()]);
+    static LEX_MODES: [TSLexState; 1] = [TSLexState {
+        lex_state: 0,
+        external_lex_state: 0,
+    }];
+
+    static FIELD_LANGUAGE: TSLanguage = TSLanguage {
+        version: 15,
+        symbol_count: 0,
+        alias_count: 0,
+        token_count: 0,
+        external_token_count: 0,
+        state_count: 0,
+        large_state_count: 0,
+        production_id_count: 0,
+        field_count: 2,
+        max_alias_sequence_length: 0,
+        production_id_map: ptr::null(),
+        parse_table: ptr::null(),
+        small_parse_table: ptr::null(),
+        small_parse_table_map: ptr::null(),
+        parse_actions: ptr::null::<TSParseAction>(),
+        symbol_names: ptr::null(),
+        field_names: FIELD_NAMES.0.as_ptr(),
+        field_map_slices: ptr::null(),
+        field_map_entries: ptr::null(),
+        symbol_metadata: ptr::null(),
+        public_symbol_map: ptr::null(),
+        alias_map: ptr::null(),
+        alias_sequences: ptr::null(),
+        lex_modes: LEX_MODES.as_ptr(),
+        lex_fn: None,
+        keyword_lex_fn: None,
+        keyword_capture_token: 0,
+        external_scanner: ExternalScanner::default(),
+        primary_state_ids: ptr::null(),
+        production_lhs_index: ptr::null(),
+        production_count: 0,
+        eof_symbol: 0,
+        rules: ptr::null::<TSRule>(),
+        rule_count: 0,
+    };
+
+    fn node(
+        symbol: u16,
+        start: usize,
+        end: usize,
+        field_id: Option<u16>,
+        children: Vec<ParsedNode>,
+    ) -> ParsedNode {
+        ParsedNode {
+            symbol,
+            children,
+            start_byte: start,
+            end_byte: end,
+            start_point: Point {
+                row: 0,
+                column: start as u32,
+            },
+            end_point: Point {
+                row: 0,
+                column: end as u32,
+            },
+            is_extra: false,
+            is_error: false,
+            is_missing: false,
+            is_named: true,
+            field_id,
+            language: None,
+        }
+    }
+
+    #[test]
+    fn given_parent_with_children_when_extracting_struct_then_cursor_starts_at_first_child() {
+        // Given
+        let first = node(11, 0, 1, None, vec![]);
+        let second = node(22, 1, 2, None, vec![]);
+        let root = node(99, 5, 7, None, vec![first, second]);
+
+        // When
+        let (first_symbol, initial_start_byte, can_move_to_second, second_symbol) =
+            extract_struct_or_variant(&root, |cursor_opt, start_byte| {
+                let cursor = cursor_opt
+                    .as_mut()
+                    .expect("cursor should start at first child");
+                let first_symbol = cursor.node().symbol;
+                let can_move_to_second = cursor.goto_next_sibling();
+                let second_symbol = cursor.node().symbol;
+                (first_symbol, *start_byte, can_move_to_second, second_symbol)
+            });
+
+        // Then
+        assert_eq!(first_symbol, 11);
+        assert_eq!(initial_start_byte, 5);
+        assert!(can_move_to_second);
+        assert_eq!(second_symbol, 22);
+    }
+
+    #[test]
+    fn given_single_field_struct_when_extract_field_then_parent_node_is_extracted() {
+        // Given
+        let root = node(7, 2, 5, None, vec![]);
+        let mut cursor_opt = Some(TreeCursor::new(&root));
+        let mut last_idx = 0;
+
+        // When
+        let extracted: String = extract_field::<String, String>(
+            &mut cursor_opt,
+            b"xxabc",
+            &mut last_idx,
+            "value",
+            None,
+        );
+
+        // Then
+        assert_eq!(extracted, "abc");
+        assert!(cursor_opt.is_none());
+        assert_eq!(last_idx, 5);
+    }
+
+    #[test]
+    fn given_unlabeled_children_when_extracting_named_field_then_result_is_default() {
+        // Given
+        let child1 = node(1, 0, 1, None, vec![]);
+        let child2 = node(2, 1, 2, None, vec![]);
+        let root = node(9, 0, 2, None, vec![child1, child2]);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+        assert!(cursor.goto_next_sibling());
+        let mut cursor_opt = Some(cursor);
+        let mut last_idx = 1;
+
+        // When
+        let extracted: String = extract_field::<String, String>(
+            &mut cursor_opt,
+            b"ab",
+            &mut last_idx,
+            "missing_field",
+            None,
+        );
+
+        // Then
+        assert_eq!(extracted, "");
+        assert_eq!(last_idx, 2);
+        assert!(cursor_opt.is_some());
+    }
+
+    #[test]
+    fn given_child_with_field_id_but_no_language_when_reading_field_name_then_returns_none() {
+        // Given
+        let child = node(2, 0, 1, Some(0), vec![]);
+        let root = node(1, 0, 1, None, vec![child]);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+
+        // When / Then
+        assert_eq!(cursor.field_name(), None);
+    }
+
+    #[test]
+    fn given_valid_field_table_when_reading_field_name_then_cursor_resolves_field_label() {
+        // Given
+        let child = node(2, 0, 1, Some(1), vec![]);
+        let mut root = node(1, 0, 1, None, vec![child]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+
+        // When / Then
+        assert_eq!(cursor.field_name(), Some("name"));
+    }
+
+    #[test]
+    fn given_out_of_range_field_id_when_reading_field_name_then_returns_none() {
+        // Given
+        let child = node(2, 0, 1, Some(2), vec![]);
+        let mut root = node(1, 0, 1, None, vec![child]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+
+        // When / Then
+        assert_eq!(cursor.field_name(), None);
+    }
+
+    #[test]
+    fn given_struct_without_children_when_extracting_variant_then_cursor_is_absent() {
+        // Given
+        let root = node(77, 3, 9, None, vec![]);
+
+        // When
+        let (cursor_missing, start_byte) =
+            extract_struct_or_variant(&root, |cursor_opt, idx| (cursor_opt.is_none(), *idx));
+
+        // Then
+        assert!(cursor_missing);
+        assert_eq!(start_byte, 3);
+    }
+
+    #[test]
+    fn given_missing_cursor_when_extracting_field_then_default_is_returned_without_advancing() {
+        // Given
+        let mut cursor_opt: Option<TreeCursor> = None;
+        let mut last_idx = 4;
+
+        // When
+        let extracted: String = extract_field::<String, String>(
+            &mut cursor_opt,
+            b"abcdef",
+            &mut last_idx,
+            "name",
+            None,
+        );
+
+        // Then
+        assert_eq!(extracted, "");
+        assert_eq!(last_idx, 4);
+    }
 }

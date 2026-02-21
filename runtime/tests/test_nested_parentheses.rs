@@ -1,10 +1,10 @@
-use rust_sitter::glr_lexer::{GLRLexer, TokenWithPosition};
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter::subtree::Subtree;
+use adze::glr_lexer::{GLRLexer, TokenWithPosition};
+use adze::glr_parser::GLRParser;
+use adze::subtree::Subtree;
 // Test for nested parentheses issue in GLR parser
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };

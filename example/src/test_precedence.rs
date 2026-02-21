@@ -14,7 +14,7 @@ pub fn test_precedence() {
     ];
 
     // Check if using pure-Rust parser
-    if std::env::var("RUST_SITTER_USE_PURE_PARSER").is_ok() {
+    if std::env::var("ADZE_USE_PURE_PARSER").is_ok() {
         println!("  Using pure-Rust parser");
     } else {
         println!("  Using C parser");

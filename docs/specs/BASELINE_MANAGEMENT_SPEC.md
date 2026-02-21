@@ -496,7 +496,7 @@ cargo xtask compare-baseline baseline_v1 --threshold 5
 **Specification Version**: 1.0.0
 **Last Updated**: 2025-11-20
 **Status**: ACTIVE - Implementation starting
-**Owner**: rust-sitter performance team
+**Owner**: adze performance team
 
 ---
 

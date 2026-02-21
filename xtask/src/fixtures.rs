@@ -117,7 +117,7 @@ fn validate_fixtures(sh: &Shell, _fixtures_dir: &Path) -> Result<()> {
     println!("   Running validation tests...");
 
     // Run the verification test
-    xshell::cmd!(sh, "cargo test -p rust-sitter-benchmarks --test verify_fixture_parsing verify_valid_arithmetic_expressions_do_parse -- --nocapture")
+    xshell::cmd!(sh, "cargo test -p adze-benchmarks --test verify_fixture_parsing verify_valid_arithmetic_expressions_do_parse -- --nocapture")
         .run()
         .context("Fixture validation failed")?;
 

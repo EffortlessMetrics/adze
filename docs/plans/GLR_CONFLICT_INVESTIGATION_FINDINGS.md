@@ -94,7 +94,7 @@ The variants are **distinguished at grammar construction time**, not parse time.
 
 ### 1. Enum Variants Create Implicit Disambiguation
 
-Rust-sitter's grammar macro translates Rust enums into grammar productions. Each enum variant becomes a distinct production rule. This creates implicit disambiguation that prevents conflicts.
+Adze's grammar macro translates Rust enums into grammar productions. Each enum variant becomes a distinct production rule. This creates implicit disambiguation that prevents conflicts.
 
 **Traditional BNF** (creates conflicts):
 ```bnf
@@ -102,7 +102,7 @@ stmt ::= "if" expr "then" stmt
        | "if" expr "then" stmt "else" stmt
 ```
 
-**Rust-sitter** (conflict-free):
+**Adze** (conflict-free):
 ```rust
 enum Statement {
     IfThen(if, Expr, then, Statement),
@@ -130,18 +130,18 @@ To test GLR conflict preservation, we need grammars with **inherent ambiguity** 
 Create a grammar where the SAME production can appear in multiple contexts:
 
 ```rust
-#[rust_sitter::grammar("ambiguous_expr")]
+#[adze::grammar("ambiguous_expr")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         // Single binary operation rule (no precedence)
         Binary(
             Box<Expr>,
-            #[rust_sitter::leaf(pattern = r"[-+*/]")] String,
+            #[adze::leaf(pattern = r"[-+*/]")] String,
             Box<Expr>,
         ),
 
-        Number(#[rust_sitter::leaf(pattern = r"\d+")] i32),
+        Number(#[adze::leaf(pattern = r"\d+")] i32),
     }
 }
 ```
@@ -157,21 +157,21 @@ pub mod grammar {
 ### Option B: Grammar with Indirect Left Recursion
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum S {
     A(Box<A>),
     B(Box<B>),
 }
 
-#[rust_sitter::language]
+#[adze::language]
 pub enum A {
-    SA(Box<S>, #[rust_sitter::leaf(text = "a")] ()),
+    SA(Box<S>, #[adze::leaf(text = "a")] ()),
     Epsilon,
 }
 
-#[rust_sitter::language]
+#[adze::language]
 pub enum B {
-    SB(Box<S>, #[rust_sitter::leaf(text = "b")] ()),
+    SB(Box<S>, #[adze::leaf(text = "b")] ()),
     Epsilon,
 }
 ```
@@ -183,25 +183,25 @@ pub enum B {
 Use a single Statement production with optional else:
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum Statement {
     If(
-        #[rust_sitter::leaf(text = "if")] (),
+        #[adze::leaf(text = "if")] (),
         Box<Expr>,
-        #[rust_sitter::leaf(text = "then")] (),
+        #[adze::leaf(text = "then")] (),
         Box<Statement>,
         Option<ElseClause>,  // Optional!
     ),
-    Other(#[rust_sitter::leaf(text = "other")] ()),
+    Other(#[adze::leaf(text = "other")] ()),
 }
 
 pub struct ElseClause {
-    #[rust_sitter::leaf(text = "else")] (),
+    #[adze::leaf(text = "else")] (),
     Box<Statement>,
 }
 ```
 
-**Problem**: Rust-sitter's `Option` handling may still create distinct productions.
+**Problem**: Adze's `Option` handling may still create distinct productions.
 
 ---
 
@@ -240,7 +240,7 @@ pub struct ElseClause {
 Simply having a "classically ambiguous" problem (like dangling-else) doesn't guarantee conflicts in all grammar formulations. The specific way the grammar is written matters enormously.
 
 ### 2. Enum Variants are Powerful Disambiguation
-Rust-sitter's enum-based grammar definition creates strong separation between alternatives, which LR(1) can exploit to avoid conflicts.
+Adze's enum-based grammar definition creates strong separation between alternatives, which LR(1) can exploit to avoid conflicts.
 
 ### 3. Explicit Precedence Works Early
 Precedence annotations likely affect grammar construction, not just conflict resolution. This makes them invisible to conflict detection.

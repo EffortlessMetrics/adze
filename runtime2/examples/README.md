@@ -86,19 +86,19 @@ Statement ::= if Expression Statement
 
 ```bash
 # From workspace root
-cargo build -p rust-sitter-runtime --features pure-rust-glr --examples
+cargo build -p adze-runtime --features pure-rust-glr --examples
 ```
 
 ### Run Specific Example
 
 ```bash
-cargo run -p rust-sitter-runtime --features pure-rust-glr --example arithmetic
+cargo run -p adze-runtime --features pure-rust-glr --example arithmetic
 ```
 
 ### Run All Example Tests
 
 ```bash
-cargo test -p rust-sitter-runtime --features pure-rust-glr --examples
+cargo test -p adze-runtime --features pure-rust-glr --examples
 ```
 
 ---
@@ -134,9 +134,9 @@ Each example follows this pattern:
 //! Contract: <test contract>
 //! Phase: 3.3 Integration Testing
 
-use rust_sitter_runtime::{Parser, Tree};
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
-use rust_sitter_ir::Grammar;
+use adze_runtime::{Parser, Tree};
+use adze_glr_core::{build_lr1_automaton, FirstFollowSets};
+use adze_ir::Grammar;
 
 // Grammar definition
 fn create_grammar() -> Grammar {

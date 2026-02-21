@@ -5,8 +5,8 @@ mod support;
 
 #[cfg(all(test, feature = "pure-rust"))]
 mod tests {
-    use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-    use rust_sitter_ir::SymbolId;
+    use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use adze_ir::SymbolId;
 
     use super::support;
 
@@ -27,16 +27,13 @@ mod tests {
         }
 
         // Simplified parse loop to demonstrate Accept tracking
-        fn parse_with_tracking(
-            &mut self,
-            lang: &'static rust_sitter::pure_parser::TSLanguage,
-        ) -> bool {
+        fn parse_with_tracking(&mut self, lang: &'static adze::pure_parser::TSLanguage) -> bool {
             // In a real parser, this would process tokens
             // For this test, we just verify Accept is present and reachable
 
             // Check that Accept exists in the action table
             // This would be part of the actual parsing logic
-            let decoder = rust_sitter::decoder::decode_parse_table(lang);
+            let decoder = adze::decoder::decode_parse_table(lang);
 
             // Find the accept state (typically the second state for start symbol)
             // In a real parse, we'd encounter this naturally
@@ -108,7 +105,7 @@ mod tests {
 
         let lang = support::language_builder::build_json_ts_language(&grammar, &parse_table);
         let lang = Box::leak(Box::new(lang));
-        let decoder = rust_sitter::decoder::decode_parse_table(lang);
+        let decoder = adze::decoder::decode_parse_table(lang);
 
         // Find EOF column
         let eof_symbol = SymbolId(0); // EOF is typically 0

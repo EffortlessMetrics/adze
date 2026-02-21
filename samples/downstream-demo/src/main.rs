@@ -1,10 +1,10 @@
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_tablegen::compress::TableCompressor;
-use rust_sitter_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::builder::GrammarBuilder;
+use adze_tablegen::compress::TableCompressor;
+use adze_tablegen::helpers::{collect_token_indices, eof_accepts_or_reduces};
 
 fn main() {
-    println!("=== Downstream Demo: Testing rust-sitter integration ===\n");
+    println!("=== Downstream Demo: Testing adze integration ===\n");
 
     // Create a nullable-start grammar: "module ::= ε | IDENT"
     let grammar = GrammarBuilder::new("demo")
@@ -59,5 +59,5 @@ fn main() {
     );
 
     println!("\n✅ Demo completed successfully!");
-    println!("This proves the rust-sitter crates integrate correctly.");
+    println!("This proves the adze crates integrate correctly.");
 }

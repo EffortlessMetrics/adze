@@ -3,19 +3,19 @@
 # from clippy checks. Remove crates from this list as they are cleaned up.
 #
 # Format: one crate name per line
-rust-sitter-playground
-rust-sitter
-rust-sitter-runtime
-rust-sitter-glr-core
-rust-sitter-tablegen
-rust-sitter-tool
-rust-sitter-testing
+adze-playground
+adze
+adze-runtime
+adze-glr-core
+adze-tablegen
+adze-tool
+adze-testing
 glr-test-support
 test-mini
-rust-sitter-benchmarks
-rust-sitter-cli
-rust-sitter-go
-rust-sitter-javascript
-rust-sitter-python
-rust-sitter-python-simple
+adze-benchmarks
+adze-cli
+adze-go
+adze-javascript
+adze-python
+adze-python-simple
 test-vec-wrapper

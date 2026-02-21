@@ -152,7 +152,7 @@ impl<'a> PredicateContext<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::SymbolId;
+    use adze_ir::SymbolId;
 
     fn make_node(start: usize, end: usize) -> ParseNode {
         let symbol_id = SymbolId(0);

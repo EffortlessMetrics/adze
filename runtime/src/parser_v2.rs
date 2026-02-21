@@ -1,8 +1,8 @@
 // Enhanced parser with full reduction support
 // This implements a complete LR parser with grammar-aware reductions
 
-use rust_sitter_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
-use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, CompareResult, ParseTable, VersionInfo, compare_versions};
+use adze_ir::{Grammar, Rule, RuleId, StateId, SymbolId};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
@@ -400,10 +400,10 @@ impl ParserV2 {
         // Update version info if rule has dynamic precedence
         if let Some(prec) = rule.precedence {
             match prec {
-                rust_sitter_ir::PrecedenceKind::Dynamic(val) => {
+                adze_ir::PrecedenceKind::Dynamic(val) => {
                     stack.version.add_dynamic_prec(val as i32);
                 }
-                rust_sitter_ir::PrecedenceKind::Static(_) => {
+                adze_ir::PrecedenceKind::Static(_) => {
                     // Static precedence is handled during conflict resolution
                 }
             }
@@ -526,7 +526,7 @@ impl ParserV2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::{ProductionId, Symbol, TokenPattern};
+    use adze_ir::{ProductionId, Symbol, TokenPattern};
 
     fn create_simple_grammar() -> Grammar {
         // Create a simple arithmetic grammar
@@ -539,7 +539,7 @@ mod tests {
         // Add tokens
         grammar.tokens.insert(
             SymbolId(1),
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "num".to_string(),
                 pattern: TokenPattern::Regex(r"\d+".to_string()),
                 fragile: false,
@@ -548,7 +548,7 @@ mod tests {
 
         grammar.tokens.insert(
             SymbolId(2),
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "+".to_string(),
                 pattern: TokenPattern::String("+".to_string()),
                 fragile: false,
@@ -557,7 +557,7 @@ mod tests {
 
         grammar.tokens.insert(
             SymbolId(3),
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "*".to_string(),
                 pattern: TokenPattern::String("*".to_string()),
                 fragile: false,

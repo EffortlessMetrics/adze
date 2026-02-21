@@ -169,9 +169,9 @@ pub fn init_dashboard(dir: &Path) -> Result<()> {
 
     // Create package.json
     let package_json = r#"{
-  "name": "rust-sitter-dashboard",
+  "name": "adze-dashboard",
   "version": "1.0.0",
-  "description": "Compatibility dashboard for Rust-Sitter",
+  "description": "Compatibility dashboard for Adze",
   "scripts": {
     "build": "cp index.html style.css dist/ && cp src/dashboard.js dist/",
     "serve": "python3 -m http.server 8000 --directory dist"
@@ -180,9 +180,9 @@ pub fn init_dashboard(dir: &Path) -> Result<()> {
     fs::write(dir.join("package.json"), package_json)?;
 
     // Create README
-    let readme = r#"# Rust-Sitter Compatibility Dashboard
+    let readme = r#"# Adze Compatibility Dashboard
 
-This dashboard tracks the compatibility status of Rust-Sitter with various Tree-sitter grammars.
+This dashboard tracks the compatibility status of Adze with various Tree-sitter grammars.
 
 ## Building
 

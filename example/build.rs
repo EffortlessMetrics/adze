@@ -8,7 +8,7 @@ fn main() {
     if env::var("CARGO_FEATURE_PURE_RUST").is_ok() {
         // SAFETY: This is safe in a build script as it runs in a single-threaded context
         unsafe {
-            env::set_var("RUST_SITTER_USE_PURE_RUST", "1");
+            env::set_var("ADZE_USE_PURE_RUST", "1");
         }
     }
 
@@ -24,13 +24,13 @@ fn main() {
         .and_then(|e| e.as_str());
 
     if edition == Some("2024") {
-        println!("cargo:rustc-cfg=rust_sitter_unsafe_attrs");
+        println!("cargo:rustc-cfg=adze_unsafe_attrs");
     }
 
     // Always tell rustc this cfg is intentional
-    println!("cargo:rustc-check-cfg=cfg(rust_sitter_unsafe_attrs)");
+    println!("cargo:rustc-check-cfg=cfg(adze_unsafe_attrs)");
 
     // Use lib.rs as the root since that's where the grammar modules are defined
     eprintln!("DEBUG: Building parsers...");
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/lib.rs"));
+    adze_tool::build_parsers(&PathBuf::from("src/lib.rs"));
 }

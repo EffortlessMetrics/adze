@@ -29,7 +29,7 @@ All integration tasks completed successfully:
 ### 3. Performance Check
 ```bash
 # Quick smoke test (should complete in < 45s locally)
-cargo bench -p rust-sitter-benchmarks --bench incremental_bench --profile release
+cargo bench -p adze-benchmarks --bench incremental_bench --profile release
 ```
 ⚠️ Note: Currently takes longer due to compilation, but runtime is reasonable
 

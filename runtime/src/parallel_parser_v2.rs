@@ -1,4 +1,4 @@
-// Simplified parallel parser for rust-sitter
+// Simplified parallel parser for adze
 // Uses rayon for data-parallel parsing of large files
 
 use anyhow::Result;
@@ -6,8 +6,8 @@ use rayon::prelude::*;
 use std::sync::Arc;
 
 use crate::parser_v4::{ParseNode, Parser};
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 
 /// Parallel parser configuration
 #[derive(Debug, Clone)]

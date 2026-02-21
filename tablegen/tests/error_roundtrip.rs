@@ -1,6 +1,6 @@
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_tablegen::{
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::builder::GrammarBuilder;
+use adze_tablegen::{
     Result, TableCompressor,
     helpers::{collect_token_indices, eof_accepts_or_reduces},
 };

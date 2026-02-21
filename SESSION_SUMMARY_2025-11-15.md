@@ -188,10 +188,10 @@
 - Roadmap & Future (4 Q&A)
 
 **Includes comparison tables**:
-- rust-sitter vs tree-sitter
-- rust-sitter vs nom
-- rust-sitter vs pest
-- rust-sitter vs lalrpop
+- adze vs tree-sitter
+- adze vs nom
+- adze vs pest
+- adze vs lalrpop
 
 **Impact**: Self-service for 80% of questions
 
@@ -199,7 +199,7 @@
 
 #### 9. **ARCHITECTURE.md** - Visual System Design
 **Lines**: 600+
-**Purpose**: Explain how rust-sitter works visually
+**Purpose**: Explain how adze works visually
 
 **Contents**:
 - System overview (ASCII diagram)
@@ -247,7 +247,7 @@ User Code → Macros → build.rs → IR → GLR Core → Tables → Runtime
 - Executive summary (20 lines)
 - Comparison table at top
 - Working example in first 30 lines
-- Clear "Why rust-sitter?" section
+- Clear "Why adze?" section
 - Prominent QUICK_START link
 - Reduced duplication (link to other docs)
 - Better organization (scannable sections)
@@ -342,7 +342,7 @@ User Code → Macros → build.rs → IR → GLR Core → Tables → Runtime
 
 ### Root Directory (Clean & Organized)
 ```
-rust-sitter/
+adze/
 ├── README.md                    # NEW: Rewritten (350 lines)
 ├── QUICK_START.md              # NEW: 5-minute guide
 ├── FAQ.md                      # NEW: 40+ questions
@@ -628,4 +628,4 @@ docs/
 
 **Ready for**: PR to main branch → v0.7.0 development → Community growth
 
-🚀 **rust-sitter is now ready for the world!** 🚀
+🚀 **adze is now ready for the world!** 🚀

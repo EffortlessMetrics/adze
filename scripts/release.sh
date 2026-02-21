@@ -48,13 +48,13 @@ publish() {
 }
 
 # Publish in safe order:
-publish rust-sitter-glr-core
-publish rust-sitter-ir
-publish rust-sitter-common
-publish rust-sitter
-publish rust-sitter-macro
-publish rust-sitter-tool
+publish adze-glr-core
+publish adze-ir
+publish adze-common
+publish adze
+publish adze-macro
+publish adze-tool
 # optional:
-# publish rust-sitter-example
+# publish adze-example
 
 echo "Done. If not dry-run: double-check crates.io and run smoke tests."

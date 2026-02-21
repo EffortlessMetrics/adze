@@ -1,6 +1,6 @@
 // Test helper functions for creating valid ParseTable instances
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{Grammar, StateId, SymbolId};
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
+use adze_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 /// Create a minimal valid ParseTable for testing

@@ -2,11 +2,11 @@
 
 ## ❌ TRANSFORM FUNCTIONS DON'T WORK (Issue #74)
 
-This grammar demonstrates the core problem with rust-sitter's current state:
+This grammar demonstrates the core problem with Adze's current state:
 
 ### Line 64-65: Transform Function That Doesn't Execute
 ```rust
-#[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
+#[adze::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
 pub value: i32,
 ```
 
@@ -19,7 +19,7 @@ pub value: i32,
 
 ### Line 76-77: Pattern That Can't Match
 ```rust
-#[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
+#[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
 pub name: String,
 ```
 

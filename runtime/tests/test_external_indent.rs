@@ -5,9 +5,9 @@
 
 mod support;
 
-use rust_sitter::decoder;
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::SymbolId;
+use adze::decoder;
+use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use adze_ir::SymbolId;
 
 #[test]
 #[ignore = "pure-rust parser integration unstable"]

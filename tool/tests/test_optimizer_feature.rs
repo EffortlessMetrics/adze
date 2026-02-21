@@ -1,10 +1,10 @@
 // Test that the optimizer feature flag works correctly
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use rust_sitter_ir::Grammar;
+    use adze_ir::Grammar;
     #[cfg(feature = "optimize")]
-    use rust_sitter_ir::optimizer::GrammarOptimizer;
+    use adze_ir::optimizer::GrammarOptimizer;
+    use anyhow::Result;
 
     #[test]
     #[cfg(feature = "optimize")]

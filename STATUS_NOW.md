@@ -224,4 +224,4 @@
 
 ---
 
-**Questions?** Check [FAQ.md](./FAQ.md) or [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+**Questions?** Check [FAQ.md](./FAQ.md) or [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)

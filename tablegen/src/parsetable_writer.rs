@@ -23,15 +23,15 @@
 //! └────────────────────────────────────────────┘
 //! ```
 
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use thiserror::Error;
 
-/// Magic number identifying .parsetable files: "RSPT" (Rust Sitter Parse Table)
+/// Magic number identifying .parsetable files: "RSPT" (Adze Parse Table)
 pub const MAGIC_NUMBER: [u8; 4] = [0x52, 0x53, 0x50, 0x54]; // "RSPT"
 
 /// Current .parsetable format version

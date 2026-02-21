@@ -1,6 +1,6 @@
 // Debug parse table generation
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     Token, TokenPattern,
 };
@@ -157,7 +157,7 @@ fn test_parse_table_debug() {
         if !actions.is_empty()
             && !actions
                 .iter()
-                .all(|a| matches!(a, rust_sitter_glr_core::Action::Error))
+                .all(|a| matches!(a, adze_glr_core::Action::Error))
         {
             println!("  Index {} -> {:?}", idx, actions);
         }
@@ -168,7 +168,7 @@ fn test_parse_table_debug() {
         if !actions.is_empty()
             && !actions
                 .iter()
-                .all(|a| matches!(a, rust_sitter_glr_core::Action::Error))
+                .all(|a| matches!(a, adze_glr_core::Action::Error))
         {
             println!("  Index {} -> {:?}", idx, actions);
         }
@@ -180,7 +180,7 @@ fn test_parse_table_debug() {
         if !actions.is_empty()
             && !actions
                 .iter()
-                .all(|a| matches!(a, rust_sitter_glr_core::Action::Error))
+                .all(|a| matches!(a, adze_glr_core::Action::Error))
         {
             println!("  Symbol {} (idx {}) -> {:?}", symbol.0, idx, actions);
         }

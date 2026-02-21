@@ -1,4 +1,4 @@
-# Rust-Sitter Usage Examples
+# Adze Usage Examples
 
 This document provides comprehensive examples of using the pure-Rust Tree-sitter implementation.
 
@@ -19,55 +19,55 @@ This document provides comprehensive examples of using the pure-Rust Tree-sitter
 ### Simple Calculator
 
 ```rust
-#[rust_sitter::grammar("calculator")]
+#[adze::grammar("calculator")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
         Number(
-            #[rust_sitter::leaf(pattern = r"-?\d+(\.\d+)?", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"-?\d+(\.\d+)?", transform = |v| v.parse().unwrap())]
             f64
         ),
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Add(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "+")]
+            #[adze::leaf(text = "+")]
             (),
             Box<Expression>
         ),
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Subtract(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "-")]
+            #[adze::leaf(text = "-")]
             (),
             Box<Expression>
         ),
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         Multiply(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "*")]
+            #[adze::leaf(text = "*")]
             (),
             Box<Expression>
         ),
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         Divide(
             Box<Expression>,
-            #[rust_sitter::leaf(text = "/")]
+            #[adze::leaf(text = "/")]
             (),
             Box<Expression>
         ),
-        #[rust_sitter::prec(3)]
+        #[adze::prec(3)]
         Parenthesized(
-            #[rust_sitter::leaf(text = "(")]
+            #[adze::leaf(text = "(")]
             (),
             Box<Expression>,
-            #[rust_sitter::leaf(text = ")")]
+            #[adze::leaf(text = ")")]
             ()
         ),
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s+")]
+        #[adze::leaf(pattern = r"\s+")]
         _ws: (),
     }
 }
@@ -87,45 +87,45 @@ fn main() {
 ### Boolean Expression Grammar
 
 ```rust
-#[rust_sitter::grammar("boolean")]
+#[adze::grammar("boolean")]
 pub mod bool_grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum BoolExpr {
-        True(#[rust_sitter::leaf(text = "true")] ()),
-        False(#[rust_sitter::leaf(text = "false")] ()),
+        True(#[adze::leaf(text = "true")] ()),
+        False(#[adze::leaf(text = "false")] ()),
         
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Or(
             Box<BoolExpr>,
-            #[rust_sitter::leaf(text = "||")]
+            #[adze::leaf(text = "||")]
             (),
             Box<BoolExpr>
         ),
         
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         And(
             Box<BoolExpr>,
-            #[rust_sitter::leaf(text = "&&")]
+            #[adze::leaf(text = "&&")]
             (),
             Box<BoolExpr>
         ),
         
-        #[rust_sitter::prec(3)]
+        #[adze::prec(3)]
         Not(
-            #[rust_sitter::leaf(text = "!")]
+            #[adze::leaf(text = "!")]
             (),
             Box<BoolExpr>
         ),
         
         Variable(
-            #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
             String
         ),
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s+")]
+        #[adze::leaf(pattern = r"\s+")]
         _ws: (),
     }
 }
@@ -151,13 +151,13 @@ impl bool_grammar::BoolExpr {
 ### Complete JSON Grammar
 
 ```rust
-#[rust_sitter::grammar("json")]
+#[adze::grammar("json")]
 pub mod json_grammar {
     use std::collections::HashMap;
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Value {
-        Null(#[rust_sitter::leaf(text = "null")] ()),
+        Null(#[adze::leaf(text = "null")] ()),
         Bool(Bool),
         Number(Number),
         String(String),
@@ -166,22 +166,22 @@ pub mod json_grammar {
     }
 
     pub enum Bool {
-        #[rust_sitter::leaf(text = "true")]
+        #[adze::leaf(text = "true")]
         True,
-        #[rust_sitter::leaf(text = "false")]
+        #[adze::leaf(text = "false")]
         False,
     }
 
-    #[rust_sitter::leaf(pattern = r"-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?")]
+    #[adze::leaf(pattern = r"-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?")]
     pub struct Number(pub f64);
 
-    impl rust_sitter::Deserialize for Number {
+    impl adze::Deserialize for Number {
         fn deserialize(s: &str) -> Self {
             Number(s.parse().unwrap())
         }
     }
 
-    #[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = parse_string)]
+    #[adze::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = parse_string)]
     pub struct String(pub std::string::String);
 
     fn parse_string(s: &str) -> std::string::String {
@@ -195,41 +195,41 @@ pub mod json_grammar {
     }
 
     pub struct Array {
-        #[rust_sitter::leaf(text = "[")]
+        #[adze::leaf(text = "[")]
         _open: (),
-        #[rust_sitter::repeat(non_empty = false)]
-        #[rust_sitter::delimited(
-            #[rust_sitter::leaf(text = ",")]
+        #[adze::repeat(non_empty = false)]
+        #[adze::delimited(
+            #[adze::leaf(text = ",")]
             ()
         )]
         pub elements: Vec<Value>,
-        #[rust_sitter::leaf(text = "]")]
+        #[adze::leaf(text = "]")]
         _close: (),
     }
 
     pub struct Object {
-        #[rust_sitter::leaf(text = "{")]
+        #[adze::leaf(text = "{")]
         _open: (),
-        #[rust_sitter::repeat(non_empty = false)]
-        #[rust_sitter::delimited(
-            #[rust_sitter::leaf(text = ",")]
+        #[adze::repeat(non_empty = false)]
+        #[adze::delimited(
+            #[adze::leaf(text = ",")]
             ()
         )]
         pub members: Vec<Member>,
-        #[rust_sitter::leaf(text = "}")]
+        #[adze::leaf(text = "}")]
         _close: (),
     }
 
     pub struct Member {
         pub key: String,
-        #[rust_sitter::leaf(text = ":")]
+        #[adze::leaf(text = ":")]
         _colon: (),
         pub value: Value,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"[ \t\n\r]+")]
+        #[adze::leaf(pattern = r"[ \t\n\r]+")]
         _ws: (),
     }
 }
@@ -268,11 +268,11 @@ impl json_grammar::Value {
 ### Mini C-like Language
 
 ```rust
-#[rust_sitter::grammar("mini_c")]
+#[adze::grammar("mini_c")]
 pub mod mini_c {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
-        #[rust_sitter::repeat(non_empty = false)]
+        #[adze::repeat(non_empty = false)]
         pub declarations: Vec<Declaration>,
     }
 
@@ -284,15 +284,15 @@ pub mod mini_c {
     pub struct Function {
         pub return_type: Type,
         pub name: Identifier,
-        #[rust_sitter::leaf(text = "(")]
+        #[adze::leaf(text = "(")]
         _open: (),
-        #[rust_sitter::repeat(non_empty = false)]
-        #[rust_sitter::delimited(
-            #[rust_sitter::leaf(text = ",")]
+        #[adze::repeat(non_empty = false)]
+        #[adze::delimited(
+            #[adze::leaf(text = ",")]
             ()
         )]
         pub parameters: Vec<Parameter>,
-        #[rust_sitter::leaf(text = ")")]
+        #[adze::leaf(text = ")")]
         _close: (),
         pub body: Block,
     }
@@ -306,33 +306,33 @@ pub mod mini_c {
         pub var_type: Type,
         pub name: Identifier,
         pub init: Option<Initializer>,
-        #[rust_sitter::leaf(text = ";")]
+        #[adze::leaf(text = ";")]
         _semi: (),
     }
 
     pub struct Initializer {
-        #[rust_sitter::leaf(text = "=")]
+        #[adze::leaf(text = "=")]
         _eq: (),
         pub value: Expression,
     }
 
     pub enum Type {
-        #[rust_sitter::leaf(text = "int")]
+        #[adze::leaf(text = "int")]
         Int,
-        #[rust_sitter::leaf(text = "float")]
+        #[adze::leaf(text = "float")]
         Float,
-        #[rust_sitter::leaf(text = "bool")]
+        #[adze::leaf(text = "bool")]
         Bool,
-        #[rust_sitter::leaf(text = "void")]
+        #[adze::leaf(text = "void")]
         Void,
     }
 
     pub struct Block {
-        #[rust_sitter::leaf(text = "{")]
+        #[adze::leaf(text = "{")]
         _open: (),
-        #[rust_sitter::repeat(non_empty = false)]
+        #[adze::repeat(non_empty = false)]
         pub statements: Vec<Statement>,
-        #[rust_sitter::leaf(text = "}")]
+        #[adze::leaf(text = "}")]
         _close: (),
     }
 
@@ -347,128 +347,128 @@ pub mod mini_c {
 
     pub struct ExpressionStmt {
         pub expr: Expression,
-        #[rust_sitter::leaf(text = ";")]
+        #[adze::leaf(text = ";")]
         _semi: (),
     }
 
     pub struct ReturnStmt {
-        #[rust_sitter::leaf(text = "return")]
+        #[adze::leaf(text = "return")]
         _return: (),
         pub value: Option<Expression>,
-        #[rust_sitter::leaf(text = ";")]
+        #[adze::leaf(text = ";")]
         _semi: (),
     }
 
     pub struct IfStmt {
-        #[rust_sitter::leaf(text = "if")]
+        #[adze::leaf(text = "if")]
         _if: (),
-        #[rust_sitter::leaf(text = "(")]
+        #[adze::leaf(text = "(")]
         _open: (),
         pub condition: Expression,
-        #[rust_sitter::leaf(text = ")")]
+        #[adze::leaf(text = ")")]
         _close: (),
         pub then_stmt: Box<Statement>,
         pub else_stmt: Option<ElseClause>,
     }
 
     pub struct ElseClause {
-        #[rust_sitter::leaf(text = "else")]
+        #[adze::leaf(text = "else")]
         _else: (),
         pub stmt: Box<Statement>,
     }
 
     pub struct WhileStmt {
-        #[rust_sitter::leaf(text = "while")]
+        #[adze::leaf(text = "while")]
         _while: (),
-        #[rust_sitter::leaf(text = "(")]
+        #[adze::leaf(text = "(")]
         _open: (),
         pub condition: Expression,
-        #[rust_sitter::leaf(text = ")")]
+        #[adze::leaf(text = ")")]
         _close: (),
         pub body: Box<Statement>,
     }
 
-    #[rust_sitter::prec]
+    #[adze::prec]
     pub enum Expression {
-        #[rust_sitter::prec_left(1)]
-        Assign(Box<Expression>, #[rust_sitter::leaf(text = "=")] (), Box<Expression>),
+        #[adze::prec_left(1)]
+        Assign(Box<Expression>, #[adze::leaf(text = "=")] (), Box<Expression>),
         
-        #[rust_sitter::prec_left(2)]
-        LogicalOr(Box<Expression>, #[rust_sitter::leaf(text = "||")] (), Box<Expression>),
+        #[adze::prec_left(2)]
+        LogicalOr(Box<Expression>, #[adze::leaf(text = "||")] (), Box<Expression>),
         
-        #[rust_sitter::prec_left(3)]
-        LogicalAnd(Box<Expression>, #[rust_sitter::leaf(text = "&&")] (), Box<Expression>),
+        #[adze::prec_left(3)]
+        LogicalAnd(Box<Expression>, #[adze::leaf(text = "&&")] (), Box<Expression>),
         
-        #[rust_sitter::prec_left(4)]
-        Equal(Box<Expression>, #[rust_sitter::leaf(text = "==")] (), Box<Expression>),
-        #[rust_sitter::prec_left(4)]
-        NotEqual(Box<Expression>, #[rust_sitter::leaf(text = "!=")] (), Box<Expression>),
+        #[adze::prec_left(4)]
+        Equal(Box<Expression>, #[adze::leaf(text = "==")] (), Box<Expression>),
+        #[adze::prec_left(4)]
+        NotEqual(Box<Expression>, #[adze::leaf(text = "!=")] (), Box<Expression>),
         
-        #[rust_sitter::prec_left(5)]
-        Less(Box<Expression>, #[rust_sitter::leaf(text = "<")] (), Box<Expression>),
-        #[rust_sitter::prec_left(5)]
-        Greater(Box<Expression>, #[rust_sitter::leaf(text = ">")] (), Box<Expression>),
+        #[adze::prec_left(5)]
+        Less(Box<Expression>, #[adze::leaf(text = "<")] (), Box<Expression>),
+        #[adze::prec_left(5)]
+        Greater(Box<Expression>, #[adze::leaf(text = ">")] (), Box<Expression>),
         
-        #[rust_sitter::prec_left(6)]
-        Add(Box<Expression>, #[rust_sitter::leaf(text = "+")] (), Box<Expression>),
-        #[rust_sitter::prec_left(6)]
-        Subtract(Box<Expression>, #[rust_sitter::leaf(text = "-")] (), Box<Expression>),
+        #[adze::prec_left(6)]
+        Add(Box<Expression>, #[adze::leaf(text = "+")] (), Box<Expression>),
+        #[adze::prec_left(6)]
+        Subtract(Box<Expression>, #[adze::leaf(text = "-")] (), Box<Expression>),
         
-        #[rust_sitter::prec_left(7)]
-        Multiply(Box<Expression>, #[rust_sitter::leaf(text = "*")] (), Box<Expression>),
-        #[rust_sitter::prec_left(7)]
-        Divide(Box<Expression>, #[rust_sitter::leaf(text = "/")] (), Box<Expression>),
+        #[adze::prec_left(7)]
+        Multiply(Box<Expression>, #[adze::leaf(text = "*")] (), Box<Expression>),
+        #[adze::prec_left(7)]
+        Divide(Box<Expression>, #[adze::leaf(text = "/")] (), Box<Expression>),
         
-        #[rust_sitter::prec(8)]
-        UnaryMinus(#[rust_sitter::leaf(text = "-")] (), Box<Expression>),
-        #[rust_sitter::prec(8)]
-        Not(#[rust_sitter::leaf(text = "!")] (), Box<Expression>),
+        #[adze::prec(8)]
+        UnaryMinus(#[adze::leaf(text = "-")] (), Box<Expression>),
+        #[adze::prec(8)]
+        Not(#[adze::leaf(text = "!")] (), Box<Expression>),
         
-        #[rust_sitter::prec(9)]
+        #[adze::prec(9)]
         Call(Box<Expression>, ArgumentList),
         
-        #[rust_sitter::prec(10)]
+        #[adze::prec(10)]
         Primary(Primary),
     }
 
     pub struct ArgumentList {
-        #[rust_sitter::leaf(text = "(")]
+        #[adze::leaf(text = "(")]
         _open: (),
-        #[rust_sitter::repeat(non_empty = false)]
-        #[rust_sitter::delimited(
-            #[rust_sitter::leaf(text = ",")]
+        #[adze::repeat(non_empty = false)]
+        #[adze::delimited(
+            #[adze::leaf(text = ",")]
             ()
         )]
         pub args: Vec<Expression>,
-        #[rust_sitter::leaf(text = ")")]
+        #[adze::leaf(text = ")")]
         _close: (),
     }
 
     pub enum Primary {
         Identifier(Identifier),
         Number(Number),
-        True(#[rust_sitter::leaf(text = "true")] ()),
-        False(#[rust_sitter::leaf(text = "false")] ()),
+        True(#[adze::leaf(text = "true")] ()),
+        False(#[adze::leaf(text = "false")] ()),
         Parenthesized(ParenExpr),
     }
 
     pub struct ParenExpr {
-        #[rust_sitter::leaf(text = "(")]
+        #[adze::leaf(text = "(")]
         _open: (),
         pub expr: Box<Expression>,
-        #[rust_sitter::leaf(text = ")")]
+        #[adze::leaf(text = ")")]
         _close: (),
     }
 
-    #[rust_sitter::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*", transform = |s| s.to_string())]
+    #[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*", transform = |s| s.to_string())]
     pub struct Identifier(pub String);
 
-    #[rust_sitter::leaf(pattern = r"\d+(\.\d+)?", transform = |s| s.parse().unwrap())]
+    #[adze::leaf(pattern = r"\d+(\.\d+)?", transform = |s| s.parse().unwrap())]
     pub struct Number(pub f64);
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"([ \t\n\r]+|//[^\n]*\n?)")]
+        #[adze::leaf(pattern = r"([ \t\n\r]+|//[^\n]*\n?)")]
         _ws: (),
     }
 }
@@ -479,7 +479,7 @@ pub mod mini_c {
 ### Comprehensive Error Handling
 
 ```rust
-use rust_sitter::errors::{ParseError, ParseErrorReason};
+use adze::errors::{ParseError, ParseErrorReason};
 
 fn parse_with_diagnostics(input: &str) -> Result<(), Vec<String>> {
     match grammar::parse(input) {
@@ -540,8 +540,8 @@ fn display_error_context(input: &str, error: &ParseError) {
 ### Using the Visitor API
 
 ```rust
-use rust_sitter::visitor::{Visitor, TreeWalker, VisitorAction};
-use rust_sitter::tree_sitter::Node;
+use adze::visitor::{Visitor, TreeWalker, VisitorAction};
+use adze::tree_sitter::Node;
 
 // Count specific node types
 struct NodeCounter {
@@ -628,7 +628,7 @@ fn analyze_code(source: &str) {
 ### Using Grammar Validation and Optimization
 
 ```rust
-use rust_sitter_ir::{GrammarValidator, GrammarOptimizer};
+use adze_ir::{GrammarValidator, GrammarOptimizer};
 
 fn analyze_grammar(grammar: &mut Grammar) {
     // Validate grammar
@@ -745,7 +745,7 @@ impl mini_c::Expression {
 
 ```rust
 use std::sync::Arc;
-use rust_sitter::Parser;
+use adze::Parser;
 
 // Reuse parser instances
 struct ParserPool {
@@ -824,13 +824,13 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-struct RustSitterLanguageServer {
+struct AdzeLanguageServer {
     client: Client,
     parser: Mutex<Parser<grammar::Language>>,
 }
 
 #[tower_lsp::async_trait]
-impl LanguageServer for RustSitterLanguageServer {
+impl LanguageServer for AdzeLanguageServer {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
@@ -855,7 +855,7 @@ impl LanguageServer for RustSitterLanguageServer {
     }
 }
 
-impl RustSitterLanguageServer {
+impl AdzeLanguageServer {
     async fn parse_and_diagnose(&self, document: TextDocumentItem) {
         let parser = self.parser.lock().unwrap();
         
@@ -885,7 +885,7 @@ impl RustSitterLanguageServer {
 ### Syntax Highlighting
 
 ```rust
-use rust_sitter::tree_sitter::{Node, TreeCursor};
+use adze::tree_sitter::{Node, TreeCursor};
 
 #[derive(Debug, Clone)]
 struct Highlight {

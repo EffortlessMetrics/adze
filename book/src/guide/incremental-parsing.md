@@ -1,8 +1,8 @@
-# Incremental Parsing in rust-sitter
+# Incremental Parsing in adze
 
 ## Overview
 
-rust-sitter provides **production-ready incremental parsing** with the revolutionary **Direct Forest Splicing algorithm** (PR #58), achieving **16x performance improvements** over traditional approaches. Instead of reparsing entire documents, the system surgically reuses unchanged parse forest segments.
+adze provides **production-ready incremental parsing** with the revolutionary **Direct Forest Splicing algorithm** (PR #58), achieving **16x performance improvements** over traditional approaches. Instead of reparsing entire documents, the system surgically reuses unchanged parse forest segments.
 
 ## Key Benefits (PR #58 - Production Ready)
 
@@ -12,7 +12,7 @@ rust-sitter provides **production-ready incremental parsing** with the revolutio
 - **Conservative Correctness**: Only reuses subtrees completely outside edit ranges
 - **Tree-sitter API**: Seamless integration via `Parser::parse(source, Some(&old_tree))`
 
-This revolutionary approach makes rust-sitter the fastest incremental parser for real-time IDE features, language servers, and live editing scenarios.
+This revolutionary approach makes adze the fastest incremental parser for real-time IDE features, language servers, and live editing scenarios.
 
 ## Direct Forest Splicing Architecture
 
@@ -29,7 +29,7 @@ The Direct Forest Splicing algorithm revolutionizes incremental parsing by elimi
 
 1. **Tree-sitter Compatible Edit Operations**
    ```rust
-   use rust_sitter::ts_compat::{InputEdit, Point};
+   use adze::ts_compat::{InputEdit, Point};
    
    let edit = InputEdit {
        start_byte: 10,
@@ -43,7 +43,7 @@ The Direct Forest Splicing algorithm revolutionizes incremental parsing by elimi
 
 2. **Production Parser API**
    ```rust
-   use rust_sitter::ts_compat::{Parser, Tree};
+   use adze::ts_compat::{Parser, Tree};
    
    let mut parser = Parser::new();
    parser.set_language(language)?;
@@ -65,10 +65,10 @@ The Direct Forest Splicing algorithm revolutionizes incremental parsing by elimi
 4. **Performance Monitoring**
    ```bash
    # Enable performance logging
-   RUST_SITTER_LOG_PERFORMANCE=true cargo test incremental
+   ADZE_LOG_PERFORMANCE=true cargo test incremental
    
    # Global reuse counters
-   use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+   use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
    ```
 
 ## How It Works: Direct Forest Splicing Algorithm
@@ -114,10 +114,10 @@ This approach is specifically designed for GLR parsers:
 ## Usage Example (Production API - PR #62)
 
 ```rust
-use rust_sitter::parser_v4::{Parser, Tree};
-use rust_sitter::pure_incremental::Edit;
-use rust_sitter::pure_parser::Point;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::parser_v4::{Parser, Tree};
+use adze::pure_incremental::Edit;
+use adze::pure_parser::Point;
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 // Create parser (requires grammar, table, and language name)
 let mut parser = Parser::new(grammar, parse_table, "my_language".to_string());
@@ -161,13 +161,13 @@ Incremental parsing requires specific feature flags:
 ```toml
 [dependencies]
 # Production incremental parsing (recommended)
-rust-sitter = { version = "0.6", features = ["incremental_glr"] }
+adze = { version = "0.6", features = ["incremental_glr"] }
 
 # Alternative: basic incremental support (legacy)
-rust-sitter = { version = "0.6", features = ["incremental"] }
+adze = { version = "0.6", features = ["incremental"] }
 
 # All features (comprehensive)
-rust-sitter = { version = "0.6", features = ["all-features"] }
+adze = { version = "0.6", features = ["all-features"] }
 ```
 
 ## Performance Characteristics (Validated in PR #62)
@@ -290,7 +290,7 @@ This compares:
 
 ## Conclusion
 
-Incremental parsing is now a **production-ready cornerstone feature** that enables rust-sitter to power real-time IDE experiences. The implementation provides Tree-sitter compatible performance with the safety and extensibility of pure Rust.
+Incremental parsing is now a **production-ready cornerstone feature** that enables adze to power real-time IDE experiences. The implementation provides Tree-sitter compatible performance with the safety and extensibility of pure Rust.
 
 **Key Achievements**:
 - ✅ **16x performance improvement** for typical edits

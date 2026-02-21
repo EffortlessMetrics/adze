@@ -54,15 +54,15 @@ jobs:
         
         # Run GLR parser benchmarks
         echo "Running GLR parser benchmarks..."
-        cargo bench -p rust-sitter --bench glr_parser_bench -- --output-format bencher | tee bench-results/glr_parser_bench.txt || true
+        cargo bench -p adze --bench glr_parser_bench -- --output-format bencher | tee bench-results/glr_parser_bench.txt || true
         
         # Run simple benchmarks
         echo "Running simple benchmarks..."
-        cargo bench -p rust-sitter --bench simple_bench -- --output-format bencher | tee bench-results/simple_bench.txt || true
+        cargo bench -p adze --bench simple_bench -- --output-format bencher | tee bench-results/simple_bench.txt || true
         
         # Run parser benchmarks
         echo "Running parser benchmarks..."
-        cargo bench -p rust-sitter --bench parser_benchmark -- --output-format bencher | tee bench-results/parser_benchmark.txt || true
+        cargo bench -p adze --bench parser_benchmark -- --output-format bencher | tee bench-results/parser_benchmark.txt || true
         
         # Combine all results
         echo "Combining benchmark results..."

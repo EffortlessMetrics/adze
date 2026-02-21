@@ -9,7 +9,7 @@
 #![allow(clippy::needless_range_loop)] // Sometimes clearer than iterators
 #![allow(clippy::only_used_in_recursion)] // Recursive algorithms in parsers
 
-//! rust-sitter runtime library for Tree-sitter parsing
+//! Adze runtime library — GLR-capable parsing with typed extraction
 
 /// Private implementation details exposed for macro use only.
 pub mod __private;
@@ -158,9 +158,9 @@ pub mod ts_compat;
 
 // Re-export IR and GLR core for ts-compat language construction
 #[cfg(feature = "ts-compat")]
-pub use rust_sitter_glr_core;
+pub use adze_glr_core;
 #[cfg(feature = "ts-compat")]
-pub use rust_sitter_ir;
+pub use adze_ir;
 // TODO: Update parallel_parser for new Parser API
 // pub mod parallel_parser {
 //     pub use super::parallel_parser_v2::*;
@@ -172,7 +172,7 @@ mod tree_sitter_compat;
 
 use std::ops::Deref;
 
-pub use rust_sitter_macro::*;
+pub use adze_macro::*;
 
 #[cfg(all(
     feature = "tree-sitter-standard",
@@ -203,7 +203,7 @@ pub mod tree_sitter {
 /// Private module for sealing traits to preserve future extensibility.
 pub mod sealed {
     /// Marker trait for types that can implement Extract.
-    /// This trait is automatically implemented by the rust_sitter macros.
+    /// This trait is automatically implemented by the adze macros.
     pub trait Sealed {}
 
     // Auto-implement for all types by default to support macro-generated code
@@ -243,7 +243,7 @@ pub trait Extract<Output>: sealed::Sealed {
     /// ```
     const HAS_CONFLICTS: bool = false;
 
-    /// Grammar name as specified in `#[rust_sitter::grammar("name")]`.
+    /// Grammar name as specified in `#[adze::grammar("name")]`.
     ///
     /// This constant is used to look up external scanners in the scanner registry.
     /// Must match the name used when registering the external scanner.
@@ -251,7 +251,7 @@ pub trait Extract<Output>: sealed::Sealed {
     /// # Examples
     ///
     /// ```ignore
-    /// #[rust_sitter::grammar("python")]
+    /// #[adze::grammar("python")]
     /// mod python {
     ///     // GRAMMAR_NAME will be "python"
     /// }

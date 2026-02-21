@@ -8,9 +8,9 @@
 //! Related: docs/specs/AMBIGUOUS_GRAMMAR_TEST_SUITE.md
 
 mod conflict_detection {
-    use rust_sitter_glr_core::conflict_inspection::*;
-    use rust_sitter_glr_core::{Action, GotoIndexing, ParseTable, StateId};
-    use rust_sitter_ir::{Grammar, RuleId, SymbolId};
+    use adze_glr_core::conflict_inspection::*;
+    use adze_glr_core::{Action, GotoIndexing, ParseTable, StateId};
+    use adze_ir::{Grammar, RuleId, SymbolId};
 
     /// Helper to create a test parse table for validation
     fn create_test_table(action_table: Vec<Vec<Vec<Action>>>) -> ParseTable {
@@ -199,7 +199,7 @@ fn test_conflict_inspection_module_exists() {
     // as it's a core part of the GLR implementation
 
     // If this test compiles, the module exists and is exported
-    use rust_sitter_glr_core::conflict_inspection;
+    use adze_glr_core::conflict_inspection;
     // Force usage to avoid unused import warning
     let _ = std::any::type_name::<conflict_inspection::ConflictSummary>();
 }

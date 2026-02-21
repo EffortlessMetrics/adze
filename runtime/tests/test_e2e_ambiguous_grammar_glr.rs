@@ -15,9 +15,9 @@
 //!   3. Valid AST produced from parse forest
 //!   4. Backward compatibility with precedence grammars maintained
 
-use rust_sitter::decoder;
-use rust_sitter::pure_parser::TSLanguage;
-use rust_sitter_glr_core::Action;
+use adze::decoder;
+use adze::pure_parser::TSLanguage;
+use adze_glr_core::Action;
 
 /// Helper: Count multi-action cells (GLR conflicts) in a parse table
 fn count_multi_action_cells(lang: &'static TSLanguage) -> usize {
@@ -52,7 +52,7 @@ fn test_ambiguous_grammar_conflict_generation() {
 
     // Load ambiguous_expr grammar parse table
     // This grammar has NO precedence, so it MUST generate conflicts
-    use rust_sitter_example::ambiguous_expr::grammar;
+    use adze_example::ambiguous_expr::grammar;
 
     let lang = grammar::language();
 
@@ -121,8 +121,8 @@ fn test_ambiguous_grammar_conflict_generation() {
 fn test_ambiguous_grammar_glr_parsing() {
     eprintln!("\n=== E2E TEST: Ambiguous Grammar GLR Parsing ===\n");
 
-    use rust_sitter_example::ambiguous_expr::grammar;
-    use rust_sitter_example::ambiguous_expr::grammar::Expr;
+    use adze_example::ambiguous_expr::grammar;
+    use adze_example::ambiguous_expr::grammar::Expr;
 
     // Test 1: Simple ambiguous input
     eprintln!("Test 1: Parse '1 + 2 + 3' (ambiguous associativity)");
@@ -198,8 +198,8 @@ fn test_glr_backward_compatibility() {
 
     // This test uses the arithmetic grammar which HAS precedence
     // It should work identically with or without GLR feature
-    use rust_sitter_example::arithmetic::grammar;
-    use rust_sitter_example::arithmetic::grammar::Expression;
+    use adze_example::arithmetic::grammar;
+    use adze_example::arithmetic::grammar::Expression;
 
     eprintln!("Testing precedence grammar: arithmetic");
 
@@ -254,8 +254,8 @@ fn test_ambiguous_vs_arithmetic_comparison() {
     eprintln!("\n=== E2E TEST: Ambiguous vs Arithmetic Comparison ===\n");
 
     // Load both grammars
-    use rust_sitter_example::ambiguous_expr::grammar as ambiguous;
-    use rust_sitter_example::arithmetic::grammar as arithmetic;
+    use adze_example::ambiguous_expr::grammar as ambiguous;
+    use adze_example::arithmetic::grammar as arithmetic;
 
     eprintln!("Step 1: Load ambiguous_expr grammar");
     let ambiguous_lang = ambiguous::language();
@@ -309,7 +309,7 @@ fn test_contract_documentation() {
     eprintln!("  4. ✓ Backward compatibility with precedence grammars");
     eprintln!();
     eprintln!("To run validation:");
-    eprintln!("  cargo test -p rust-sitter --features glr --test test_e2e_ambiguous_grammar_glr");
+    eprintln!("  cargo test -p adze --features glr --test test_e2e_ambiguous_grammar_glr");
     eprintln!();
     eprintln!("Expected Results:");
     eprintln!("  - test_ambiguous_grammar_conflict_generation: PASS");

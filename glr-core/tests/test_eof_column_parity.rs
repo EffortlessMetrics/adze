@@ -4,8 +4,8 @@
 #[test]
 #[cfg(feature = "test-helpers")]
 fn eof_column_matches_ts_end_column() {
-    use rust_sitter_glr_core::{Action, ParseTable};
-    use rust_sitter_ir::{RuleId, StateId, SymbolId};
+    use adze_glr_core::{Action, ParseTable};
+    use adze_ir::{RuleId, StateId, SymbolId};
 
     // Helper to extract action kinds from a cell (for comparison)
     fn action_kinds(cell: &Vec<Action>) -> Vec<char> {

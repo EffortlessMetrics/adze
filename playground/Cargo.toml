@@ -1,12 +1,12 @@
 [package]
-name = "rust-sitter-playground"
+name = "adze-playground"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rust-sitter = { path = "../runtime" }
-rust-sitter-ir = { path = "../ir" }
-rust-sitter-glr-core = { path = "../glr-core" }
+adze = { path = "../runtime" }
+adze-ir = { path = "../ir" }
+adze-glr-core = { path = "../glr-core" }
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -17,5 +17,5 @@ colored = "3.0"
 clap = { version = "4.0", features = ["derive"] }
 
 [[bin]]
-name = "rust-sitter-playground"
+name = "adze-playground"
 path = "src/bin/playground.rs"

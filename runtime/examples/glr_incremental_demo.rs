@@ -1,11 +1,11 @@
-//! Demonstrates incremental parsing with rust-sitter GLR parser
+//! Demonstrates incremental parsing with adze GLR parser
 
-use rust_sitter::{
+use adze::{
     glr_incremental::{ForestNode, GLREdit, GLRToken, IncrementalGLRParser},
     glr_parser::GLRParser,
 };
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
+use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 use std::ops::Range;
 use std::sync::Arc;
 

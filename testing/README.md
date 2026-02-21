@@ -1,6 +1,6 @@
-# Rust Sitter Beta Testing Framework
+# Adze Beta Testing Framework
 
-This crate provides automated testing tools for validating rust-sitter compatibility with Tree-sitter grammars.
+This crate provides automated testing tools for validating adze compatibility with Tree-sitter grammars.
 
 ## Features
 
@@ -21,7 +21,7 @@ cargo install --path testing
 ### Test a Single Grammar
 
 ```bash
-rust-sitter-test test \
+adze-test test \
   --grammar javascript \
   --path grammars/javascript/grammar.js \
   --files grammars/javascript/test/corpus/*.txt \
@@ -49,13 +49,13 @@ Create a configuration file (`test-suite.json`):
 Run the suite:
 
 ```bash
-rust-sitter-test suite --config test-suite.json --output reports/
+adze-test suite --config test-suite.json --output reports/
 ```
 
 ### Test Tree-sitter Corpus
 
 ```bash
-rust-sitter-test corpus \
+adze-test corpus \
   --tree-sitter-path ~/tree-sitter \
   --grammars javascript python rust \
   --output corpus-reports/
@@ -115,9 +115,9 @@ The tool generates human-readable Markdown reports with:
 ### Debugging Failed Tests
 
 Set environment variables:
-- `RUST_SITTER_DEBUG=1` - Enable debug output
-- `RUST_SITTER_TRACE=1` - Trace parser execution
-- `RUST_SITTER_EMIT_ARTIFACTS=1` - Save intermediate files
+- `ADZE_DEBUG=1` - Enable debug output
+- `ADZE_TRACE=1` - Trace parser execution
+- `ADZE_EMIT_ARTIFACTS=1` - Save intermediate files
 
 ## Future Enhancements
 

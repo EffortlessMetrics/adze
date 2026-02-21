@@ -1,9 +1,9 @@
 use crate::compress::CompressedParseTable;
 use crate::validation::TSLanguage;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
 
 /// Language builder that produces validated Language structs
 pub struct LanguageBuilder {
@@ -170,7 +170,7 @@ impl LanguageBuilder {
         // Add metadata for terminals
         for (_, token) in &self.grammar.tokens {
             let visible = !token.name.starts_with('_');
-            let named = matches!(&token.pattern, rust_sitter_ir::TokenPattern::Regex(_)) && visible;
+            let named = matches!(&token.pattern, adze_ir::TokenPattern::Regex(_)) && visible;
 
             metadata.push(crate::validation::TSSymbolMetadata { visible, named });
         }
@@ -217,8 +217,8 @@ impl LanguageBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_glr_core::Action;
-    use rust_sitter_ir::*;
+    use adze_glr_core::Action;
+    use adze_ir::*;
 
     fn create_test_grammar() -> Grammar {
         let mut grammar = Grammar {
@@ -257,9 +257,9 @@ mod tests {
             vec![vec![vec![]; 2]; 3], // 3 states, 2 symbols
             vec![vec![crate::test_helpers::test::INVALID; 2]; 3],
             vec![],
-            rust_sitter_ir::SymbolId(1), // start_symbol
-            rust_sitter_ir::SymbolId(1), // eof_symbol
-            0,                           // external_token_count
+            adze_ir::SymbolId(1), // start_symbol
+            adze_ir::SymbolId(1), // eof_symbol
+            0,                    // external_token_count
         );
 
         // Add some basic actions

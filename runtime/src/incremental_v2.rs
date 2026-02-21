@@ -3,8 +3,8 @@
 //! This module provides efficient reparsing by reusing unchanged subtrees
 
 use crate::parser_v2::{ParseError, ParseNode, Token};
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::HashMap;
 use std::ops::Range;
 

@@ -1,4 +1,4 @@
-# Rust-Sitter Roadmap: Path to v1.0.0
+# Adze Roadmap: Path to v1.0.0
 
 ## Current Status: v0.6.0 (Internal Milestone) ✅
 **Date**: January 2025  
@@ -196,7 +196,7 @@
 - Grammar library: >50 languages
 
 ### Impact:
-- Papers citing rust-sitter: >10
+- Papers citing adze: >10
 - Dependent crates: >100
 - Weekly downloads: >10,000
 - Conference talks: >5

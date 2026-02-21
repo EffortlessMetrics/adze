@@ -1,23 +1,23 @@
-#[rust_sitter::grammar("optionals")]
+#[adze::grammar("optionals")]
 #[allow(dead_code)]
 mod grammar {
-    use rust_sitter::Spanned;
+    use adze::Spanned;
 
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(Debug)]
     pub struct Language {
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
         v: Option<i32>,
-        #[rust_sitter::leaf(text = "_")]
+        #[adze::leaf(text = "_")]
         _s: (),
         t: Spanned<Option<Number>>,
-        #[rust_sitter::leaf(text = ".")]
+        #[adze::leaf(text = ".")]
         _d: Option<()>,
     }
 
     #[derive(Debug)]
     pub struct Number {
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
         v: i32,
     }
 }

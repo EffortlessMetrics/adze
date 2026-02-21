@@ -1,17 +1,17 @@
-# Rust-Sitter v0.6.1-beta Quick Start Guide
+# Adze v0.6.1-beta Quick Start Guide
 
 **Production-Ready GLR Parser with 100% Working Macro-Based Grammar Generation**
 
 ## Installation
 
-Add rust-sitter to your `Cargo.toml` with enhanced GLR and safety features:
+Add adze to your `Cargo.toml` with enhanced GLR and safety features:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6.1", features = ["glr-core", "incremental"] }
+adze = { version = "0.6.1", features = ["glr-core", "incremental"] }
 
 [build-dependencies]
-rust-sitter-tool = "0.6.1"
+adze-tool = "0.6.1"
 ```
 
 **Key Features in v0.6.1:**
@@ -31,43 +31,43 @@ rust-sitter-tool = "0.6.1"
 Use Rust annotations to define your grammar - the macro system now works perfectly!
 
 ```rust
-#[rust_sitter::grammar("my_language")]
+#[adze::grammar("my_language")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Program {
-        #[rust_sitter::repeat(non_empty = false)]
+        #[adze::repeat(non_empty = false)]
         pub statements: Vec<Statement>,
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Statement {
         Assignment(Assignment),
         Expression(Expression),
     }
 
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Assignment {
         pub name: Identifier,
-        #[rust_sitter::leaf(text = "=")]
+        #[adze::leaf(text = "=")]
         _eq: (),
         pub value: Expression,
     }
     
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expression {
         Number(Number),
         Identifier(Identifier),
     }
     
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Number {
-        #[rust_sitter::leaf(pattern = r"\d+")]
+        #[adze::leaf(pattern = r"\d+")]
         pub value: (),
     }
     
-    #[rust_sitter::language]
+    #[adze::language]
     pub struct Identifier {
-        #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
         pub name: (),
     }
 }
@@ -76,7 +76,7 @@ pub mod grammar {
 ### 2. Create Build Script (build.rs)
 
 ```rust
-use rust_sitter_tool::build_parsers;
+use adze_tool::build_parsers;
 use std::path::PathBuf;
 
 fn main() {
@@ -104,7 +104,7 @@ fn main() {
 ### ✅ Production Ready (v0.6.0)
 - **GLR Grammar Normalization**: Enhanced SymbolMetadata with 4 new fields (`is_extra`, `is_fragile`, `is_terminal`, `symbol_id`)
 - **Memory Safety Breakthrough**: 100% elimination of FFI segmentation faults through safe mock language approach
-- **Precedence declarations**: Full support with `#[rust_sitter::prec_left(1)]`, `#[rust_sitter::prec_right(1)]`
+- **Precedence declarations**: Full support with `#[adze::prec_left(1)]`, `#[adze::prec_right(1)]`
 - **External scanners**: Complete API with memory-safe FFI and comprehensive error handling
 - **Advanced conflict resolution**: GLR-based automatic conflict handling with multi-action cells
 - **Enhanced Tree-sitter compatibility**: Full support for `word`, `extras`, and advanced features
@@ -127,7 +127,7 @@ fn main() {
 2. **Enable Safety Features** - Always include `glr-core` and `incremental` features for best performance
 3. **Monitor Memory Safety** - Use the built-in safety validation during development
 4. **Test Symbol Metadata** - Validate enhanced SymbolMetadata fields in your grammar definitions
-5. **Check Performance** - Enable `RUST_SITTER_LOG_PERFORMANCE` to monitor parsing efficiency
+5. **Check Performance** - Enable `ADZE_LOG_PERFORMANCE` to monitor parsing efficiency
 6. **Explore Examples** - Look at enhanced JavaScript, Python, and Go examples with GLR support
 7. **Validate Safety** - Run memory safety tests regularly: `cargo test memory_safety`
 
@@ -138,12 +138,12 @@ Enable production-ready GLR parsing with memory safety:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6.0", features = ["glr-core", "incremental"] }
-rust-sitter-runtime = { version = "0.6.0", features = ["glr-core", "memory-safe"] }
+adze = { version = "0.6.0", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.6.0", features = ["glr-core", "memory-safe"] }
 ```
 
 ```rust
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let language = my_language::language();
@@ -161,11 +161,11 @@ Enable true incremental parsing for large files:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5.0-beta", features = ["incremental_glr"] }
+adze = { version = "0.5.0-beta", features = ["incremental_glr"] }
 ```
 
 ```rust
-use rust_sitter_runtime::{Parser, glr_incremental};
+use adze_runtime::{Parser, glr_incremental};
 
 // Monitor reuse effectiveness
 glr_incremental::reset_reuse_counter();
@@ -184,7 +184,7 @@ Enable performance monitoring to optimize your parser:
 use std::env;
 
 // Enable detailed logging
-env::set_var("RUST_SITTER_LOG_PERFORMANCE", "true");
+env::set_var("ADZE_LOG_PERFORMANCE", "true");
 
 // Parse with metrics
 let tree = parser.parse_utf8(large_input, None)?;
@@ -195,7 +195,7 @@ let tree = parser.parse_utf8(large_input, None)?;
 - Use incremental parsing for large files or frequent edits
 - Monitor subtree reuse with `SUBTREE_REUSE_COUNT` 
 - Set `RUST_TEST_THREADS=2` for consistent benchmarking
-- Enable `RUST_SITTER_LOG_PERFORMANCE` during development
+- Enable `ADZE_LOG_PERFORMANCE` during development
 
 ## Common Patterns
 
@@ -210,7 +210,7 @@ pub struct Function {
 ### Repeated Elements
 ```rust
 pub struct Block {
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub statements: Vec<Statement>,
 }
 ```
@@ -218,7 +218,7 @@ pub struct Block {
 ### Token Patterns
 ```rust
 pub struct StringLiteral {
-    #[rust_sitter::leaf(pattern = r#""[^"]*""#)]
+    #[adze::leaf(pattern = r#""[^"]*""#)]
     pub value: (),
 }
 ```

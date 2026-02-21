@@ -87,7 +87,7 @@
 
 ### Phase 2: Python Grammar Integration
 
-**Goal**: Use `rust-sitter-python` instead of arithmetic grammar
+**Goal**: Use `adze-python` instead of arithmetic grammar
 
 **Blockers**:
 - Python lexer issues (see `grammars/python/tests/smoke_test.rs:29`)

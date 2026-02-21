@@ -1,5 +1,5 @@
 // Test enhanced grammar validation with helpful error messages
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // NOTE: These tests use internal modules not exported by the public API
 #[path = "../src/glr_validation.rs"]

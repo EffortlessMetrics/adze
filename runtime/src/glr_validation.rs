@@ -5,7 +5,7 @@
 // Enhanced grammar validation for GLR parser with detailed diagnostics
 // This module provides comprehensive validation with helpful error messages
 
-use rust_sitter_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
+use adze_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 
@@ -1249,7 +1249,7 @@ impl GLRGrammarValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::ProductionId;
+    use adze_ir::ProductionId;
 
     #[test]
     fn test_empty_grammar_error() {
@@ -1273,7 +1273,7 @@ mod tests {
         // Define a token
         grammar.tokens.insert(
             SymbolId(1),
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "number".to_string(),
                 pattern: TokenPattern::Regex(r"\d+".to_string()),
                 fragile: false,
@@ -1321,7 +1321,7 @@ mod tests {
 
         grammar.tokens.insert(
             plus_id,
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "plus".to_string(),
                 pattern: TokenPattern::String("+".to_string()),
                 fragile: false,
@@ -1330,7 +1330,7 @@ mod tests {
 
         grammar.tokens.insert(
             number_id,
-            rust_sitter_ir::Token {
+            adze_ir::Token {
                 name: "number".to_string(),
                 pattern: TokenPattern::Regex(r"\d+".to_string()),
                 fragile: false,

@@ -1,17 +1,17 @@
 // Demonstration of GLR query support
 #![allow(unused_imports, dead_code)]
 
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // ---- shims so included ../src files compile when built as an example ----
 #[allow(dead_code, unused_imports)]
 mod subtree {
-    pub use rust_sitter::subtree::*;
+    pub use adze::subtree::*;
 }
 
 #[allow(dead_code, unused_imports)]
 mod error_recovery {
-    pub use rust_sitter::error_recovery::*;
+    pub use adze::error_recovery::*;
 }
 // -------------------------------------------------------------------------
 

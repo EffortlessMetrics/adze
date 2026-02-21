@@ -1,6 +1,6 @@
-//! # rust-sitter-tablegen
+//! # adze-tablegen
 //!
-//! Generate and compress LR(1) parse tables for pure-Rust Tree-sitter grammars.
+//! Generate and compress LR(1) parse tables for Adze grammars.
 
 // Table generation requires unsafe for FFI-compatible Language struct generation
 #![forbid(unsafe_op_in_unsafe_fn)]
@@ -61,10 +61,10 @@ pub use parsetable_writer::{ParsetableError, ParsetableMetadata, ParsetableWrite
 pub use validation::{LanguageValidator, ValidationError};
 
 // use indexmap::IndexMap; // Currently unused
+use adze_glr_core::*;
+use adze_ir::*;
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_sitter_glr_core::*;
-use rust_sitter_ir::*;
 
 // Tree-sitter backend selection will be done in the relevant modules
 
@@ -232,7 +232,7 @@ impl StaticLanguageGenerator {
             let supertype = false;
 
             metadata.push(quote! {
-                rust_sitter::ffi::TSSymbolMetadata {
+                adze::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -252,7 +252,7 @@ impl StaticLanguageGenerator {
             let supertype = self.grammar.supertypes.contains(symbol_id);
 
             metadata.push(quote! {
-                rust_sitter::ffi::TSSymbolMetadata {
+                adze::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -268,7 +268,7 @@ impl StaticLanguageGenerator {
             let supertype = false;
 
             metadata.push(quote! {
-                rust_sitter::ffi::TSSymbolMetadata {
+                adze::ffi::TSSymbolMetadata {
                     visible: #visible,
                     named: #named,
                     supertype: #supertype,
@@ -292,7 +292,7 @@ impl StaticLanguageGenerator {
         let goto_entries = self.generate_goto_table_entries();
 
         let action_table = quote! {
-            static ACTION_TABLE: &[&[rust_sitter::ffi::TSParseActionEntry]] = &[#(#action_entries),*];
+            static ACTION_TABLE: &[&[adze::ffi::TSParseActionEntry]] = &[#(#action_entries),*];
         };
 
         let goto_table = quote! {
@@ -419,8 +419,8 @@ impl StaticLanguageGenerator {
                             Action::Shift(state) => {
                                 let state_id = state.0;
                                 quote! {
-                                    rust_sitter::ffi::TSParseActionEntry {
-                                        type_: rust_sitter::ffi::TSParseActionType::Shift,
+                                    adze::ffi::TSParseActionEntry {
+                                        type_: adze::ffi::TSParseActionType::Shift,
                                         state: #state_id,
                                         symbol: 0,
                                         child_count: 0,
@@ -432,8 +432,8 @@ impl StaticLanguageGenerator {
                             Action::Reduce(rule) => {
                                 let rule_id = rule.0;
                                 quote! {
-                                    rust_sitter::ffi::TSParseActionEntry {
-                                        type_: rust_sitter::ffi::TSParseActionType::Reduce,
+                                    adze::ffi::TSParseActionEntry {
+                                        type_: adze::ffi::TSParseActionType::Reduce,
                                         state: 0,
                                         symbol: #rule_id,
                                         child_count: 0, // Will be filled with actual child count
@@ -444,8 +444,8 @@ impl StaticLanguageGenerator {
                             }
                             Action::Accept => {
                                 quote! {
-                                    rust_sitter::ffi::TSParseActionEntry {
-                                        type_: rust_sitter::ffi::TSParseActionType::Accept,
+                                    adze::ffi::TSParseActionEntry {
+                                        type_: adze::ffi::TSParseActionType::Accept,
                                         state: 0,
                                         symbol: 0,
                                         child_count: 0,
@@ -456,8 +456,8 @@ impl StaticLanguageGenerator {
                             }
                             Action::Error => {
                                 quote! {
-                                    rust_sitter::ffi::TSParseActionEntry {
-                                        type_: rust_sitter::ffi::TSParseActionType::Error,
+                                    adze::ffi::TSParseActionEntry {
+                                        type_: adze::ffi::TSParseActionType::Error,
                                         state: 0,
                                         symbol: 0,
                                         child_count: 0,
@@ -469,8 +469,8 @@ impl StaticLanguageGenerator {
                             Action::Recover => {
                                 // Treat Recover as Error for FFI compatibility
                                 quote! {
-                                    rust_sitter::ffi::TSParseActionEntry {
-                                        type_: rust_sitter::ffi::TSParseActionType::Error,
+                                    adze::ffi::TSParseActionEntry {
+                                        type_: adze::ffi::TSParseActionType::Error,
                                         state: 0,
                                         symbol: 0,
                                         child_count: 0,
@@ -485,8 +485,8 @@ impl StaticLanguageGenerator {
                                 if let Some(Action::Shift(state)) = actions.first() {
                                     let state_id = state.0;
                                     quote! {
-                                        rust_sitter::ffi::TSParseActionEntry {
-                                            type_: rust_sitter::ffi::TSParseActionType::Shift,
+                                        adze::ffi::TSParseActionEntry {
+                                            type_: adze::ffi::TSParseActionType::Shift,
                                             state: #state_id,
                                             symbol: 0,
                                             child_count: 0,
@@ -496,8 +496,8 @@ impl StaticLanguageGenerator {
                                     }
                                 } else {
                                     quote! {
-                                        rust_sitter::ffi::TSParseActionEntry {
-                                            type_: rust_sitter::ffi::TSParseActionType::Error,
+                                        adze::ffi::TSParseActionEntry {
+                                            type_: adze::ffi::TSParseActionType::Error,
                                             state: 0,
                                             symbol: 0,
                                             child_count: 0,
@@ -510,8 +510,8 @@ impl StaticLanguageGenerator {
                             _ => {
                                 // Unknown action type - treat as error
                                 quote! {
-                                    rust_sitter::ffi::TSParseActionEntry {
-                                        type_: rust_sitter::ffi::TSParseActionType::Error,
+                                    adze::ffi::TSParseActionEntry {
+                                        type_: adze::ffi::TSParseActionType::Error,
                                         state: 0,
                                         symbol: 0,
                                         child_count: 0,

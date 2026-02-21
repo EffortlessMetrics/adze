@@ -22,8 +22,8 @@
 
 use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, RuleId, SymbolId};
+use adze_glr_core::ParseTable;
+use adze_ir::{Grammar, RuleId, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
@@ -275,8 +275,7 @@ pub fn reparse<'arena>(
         // Convert back to v4 tree format
         match new_forest {
             Ok(forest) => {
-                let _v4_tree =
-                    forest_to_v4_tree(&forest, String::from_utf8_lossy(source).to_string());
+                let _v4_tree = forest_to_v4_tree(&forest);
 
                 // CRITICAL FIX: The GLR incremental parser has architectural issues that cause
                 // inconsistencies with fresh parsing:

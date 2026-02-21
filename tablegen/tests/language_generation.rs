@@ -1,6 +1,6 @@
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token, TokenPattern};
-use rust_sitter_tablegen::{LanguageBuilder, StaticLanguageGenerator};
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
+use adze_ir::{Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token, TokenPattern};
+use adze_tablegen::{LanguageBuilder, StaticLanguageGenerator};
 
 fn create_simple_grammar() -> (Grammar, ParseTable) {
     let mut grammar = Grammar::new("simple".to_string());
@@ -147,7 +147,7 @@ fn test_table_compression() {
     // Add some real actions
     parse_table.action_table[0][0] = vec![Action::Shift(StateId(1))];
     parse_table.action_table[1][0] = vec![Action::Shift(StateId(2))];
-    parse_table.action_table[2][0] = vec![Action::Reduce(rust_sitter_ir::RuleId(0))];
+    parse_table.action_table[2][0] = vec![Action::Reduce(adze_ir::RuleId(0))];
     parse_table.action_table[9][0] = vec![Action::Accept];
 
     let mut generator = StaticLanguageGenerator::new(grammar, parse_table);

@@ -1,4 +1,4 @@
-// Grammar validation and diagnostics for the pure-Rust Tree-sitter implementation
+// Grammar validation and diagnostics for Adze
 // This module provides comprehensive validation and diagnostic capabilities
 
 use crate::{FieldId, Grammar, Symbol, SymbolId};

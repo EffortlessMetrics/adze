@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide will walk you through creating your first Rust-Sitter grammar and parser.
+This guide will walk you through creating your first Adze grammar and parser.
 
 ## Creating a Simple Arithmetic Parser
 
@@ -11,47 +11,47 @@ Let's build a parser for basic arithmetic expressions like `1 + 2 * 3`.
 Create a new Rust project and add this to your `src/main.rs`:
 
 ```rust
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     pub enum Expr {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             u32,
         ),
         
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Add(
             Box<Expr>,
-            #[rust_sitter::leaf(text = "+")] (),
+            #[adze::leaf(text = "+")] (),
             Box<Expr>,
         ),
         
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         Multiply(
             Box<Expr>,
-            #[rust_sitter::leaf(text = "*")] (),
+            #[adze::leaf(text = "*")] (),
             Box<Expr>,
         ),
         
         Parenthesized(
-            #[rust_sitter::leaf(text = "(")] (),
+            #[adze::leaf(text = "(")] (),
             Box<Expr>,
-            #[rust_sitter::leaf(text = ")")] (),
+            #[adze::leaf(text = ")")] (),
         ),
     }
     
     // Define whitespace as extra (automatically skipped)
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create parser with GLR runtime (production ready)
-    use rust_sitter_runtime::Parser;
+    use adze_runtime::Parser;
     
     let mut parser = Parser::new();
     parser.set_language(grammar::language())?; // Generated GLR language
@@ -94,18 +94,18 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-sitter = { version = "0.6", features = ["glr-core", "incremental"] }
-rust-sitter-runtime = "0.1"  # GLR runtime
+adze = { version = "0.6", features = ["glr-core", "incremental"] }
+adze-runtime = "0.1"  # GLR runtime
 
 [build-dependencies]
-rust-sitter-tool = "0.6"
+adze-tool = "0.6"
 ```
 
 Create `build.rs`:
 
 ```rust
 fn main() {
-    rust_sitter_tool::build_parsers().unwrap();
+    adze_tool::build_parsers().unwrap();
 }
 ```
 
@@ -138,7 +138,7 @@ Let's break down what each part does:
 ### The Grammar Module
 
 ```rust
-#[rust_sitter::grammar("arithmetic")]
+#[adze::grammar("arithmetic")]
 mod grammar { ... }
 ```
 
@@ -150,7 +150,7 @@ This creates a grammar named "arithmetic" and generates:
 ### The Language Root
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum Expr { ... }
 ```
 
@@ -159,7 +159,7 @@ This marks `Expr` as the root type that the parser will return.
 ### Leaf Nodes
 
 ```rust
-#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
 u32,
 ```
 
@@ -170,8 +170,8 @@ u32,
 ### Precedence
 
 ```rust
-#[rust_sitter::prec_left(1)]  // Lower precedence
-#[rust_sitter::prec_left(2)]  // Higher precedence
+#[adze::prec_left(1)]  // Lower precedence
+#[adze::prec_left(2)]  // Higher precedence
 ```
 
 Higher numbers bind more tightly. Multiplication (2) binds tighter than addition (1).
@@ -179,7 +179,7 @@ Higher numbers bind more tightly. Multiplication (2) binds tighter than addition
 ### Extra Tokens
 
 ```rust
-#[rust_sitter::extra]
+#[adze::extra]
 struct Whitespace { ... }
 ```
 
@@ -200,7 +200,7 @@ pub struct Function {
 
 ```rust
 pub struct Block {
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub statements: Vec<Statement>,
 }
 ```
@@ -209,7 +209,7 @@ pub struct Block {
 
 ```rust
 pub struct ArgList {
-    #[rust_sitter::repeat(separator = ",")]
+    #[adze::repeat(separator = ",")]
     pub args: Vec<Expression>,
 }
 ```
@@ -218,7 +218,7 @@ pub struct ArgList {
 
 ```rust
 pub struct StringLiteral {
-    #[rust_sitter::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = |s| s[1..s.len()-1].to_string())]
+    #[adze::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = |s| s[1..s.len()-1].to_string())]
     pub value: String,
 }
 ```
@@ -231,8 +231,8 @@ The new GLR parser brings advanced capabilities for handling ambiguous grammars:
 The GLR parser uses **ActionCells** - each parser state can hold multiple conflicting actions:
 
 ```rust
-use rust_sitter::glr_parser_no_error_recovery::GLRParser;
-use rust_sitter_glr_core::{build_lr1_automaton, FirstFollowSets};
+use adze::glr_parser_no_error_recovery::GLRParser;
+use adze_glr_core::{build_lr1_automaton, FirstFollowSets};
 
 // Build GLR parser with ActionCell support
 let grammar = create_grammar();
@@ -296,7 +296,7 @@ match parser.parse_utf8("1 + + 2", None) {
 Enable GLR performance metrics:
 
 ```bash
-RUST_SITTER_LOG_PERFORMANCE=true cargo run
+ADZE_LOG_PERFORMANCE=true cargo run
 ```
 
 Outputs forest-to-tree conversion statistics:
@@ -400,6 +400,6 @@ Now that you've created your first GLR grammar:
 3. **Use the Playground**: The interactive playground helps visualize parse trees
 4. **Check Examples**: The repository includes many example grammars
 5. **Enable Debug Output**: Set `RUST_LOG=debug` to see GLR parser decisions
-6. **Use Performance Monitoring**: Enable `RUST_SITTER_LOG_PERFORMANCE` for conversion metrics
+6. **Use Performance Monitoring**: Enable `ADZE_LOG_PERFORMANCE` for conversion metrics
 7. **Start with GLR Runtime**: runtime2 provides the most features and Tree-sitter compatibility
 8. **Test Incrementally**: Use incremental parsing for responsive applications

@@ -8,12 +8,12 @@
 
 #![cfg(feature = "serialization")]
 
-use rust_sitter_glr_core::{Action, ParseTable, StateId, SymbolId};
-use rust_sitter_ir::RuleId;
+use adze_glr_core::{Action, ParseTable, StateId, SymbolId};
+use adze_ir::RuleId;
 
 /// Helper: Create a minimal test ParseTable with known structure
 fn create_minimal_test_table() -> ParseTable {
-    use rust_sitter_glr_core::LexMode;
+    use adze_glr_core::LexMode;
 
     ParseTable {
         action_table: vec![
@@ -29,7 +29,7 @@ fn create_minimal_test_table() -> ParseTable {
         external_scanner_states: vec![vec![], vec![]],
         rules: vec![],
         nonterminal_to_index: Default::default(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(1),
         grammar: Default::default(),
@@ -121,7 +121,7 @@ fn test_empty_table() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: Default::default(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(0),
         grammar: Default::default(),

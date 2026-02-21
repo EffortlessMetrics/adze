@@ -4,7 +4,7 @@ fn eof_column_is_in_token_range() {
     // For now, just verify the constant is set correctly
 
     // Create a dummy language to test
-    use rust_sitter::pure_parser::TSLanguage;
+    use adze::pure_parser::TSLanguage;
     use std::ptr;
 
     let lang = TSLanguage {
@@ -35,7 +35,7 @@ fn eof_column_is_in_token_range() {
         lex_fn: None,
         keyword_lex_fn: None,
         keyword_capture_token: 0,
-        external_scanner: rust_sitter::pure_parser::ExternalScanner {
+        external_scanner: adze::pure_parser::ExternalScanner {
             states: ptr::null(),
             symbol_map: ptr::null(),
             create: None,

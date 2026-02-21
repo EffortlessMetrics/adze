@@ -22,7 +22,7 @@ This specification covers:
 ### Given: A Rust enum with multiple variants
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 enum Expr {
     Binary(Box<Expr>, String, Box<Expr>),
     Number(i32),
@@ -53,7 +53,7 @@ Expr → NUMBER
 ```
 
 **MUST NOT**: Create intermediate non-terminals unless explicitly required for:
-- Field names (when using `#[rust_sitter::field]`)
+- Field names (when using `#[adze::field]`)
 - Precedence grouping
 - External scanner integration
 
@@ -76,7 +76,7 @@ Expr → Expr ...
 
 **Test Case**:
 ```rust
-// No #[rust_sitter::prec_left] or #[rust_sitter::prec_right]
+// No #[adze::prec_left] or #[adze::prec_right]
 Binary(Box<Expr>, String, Box<Expr>)
 ```
 
@@ -119,11 +119,11 @@ Rule {
 
 **Given**:
 ```rust
-#[rust_sitter::prec_left(1)]
-Add(Box<Expr>, #[rust_sitter::leaf(text = "+")] (), Box<Expr>)
+#[adze::prec_left(1)]
+Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>)
 
-#[rust_sitter::prec_left(2)]
-Mul(Box<Expr>, #[rust_sitter::leaf(text = "*")] (), Box<Expr>)
+#[adze::prec_left(2)]
+Mul(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>)
 ```
 
 **Expected**: Conflicts detected then resolved by precedence
@@ -215,7 +215,7 @@ IfThenElse(/* distinct through different token sequence */)
 ### Phase 3: Solution Design
 
 - [ ] Option A: Fix extraction to inline completely
-- [ ] Option B: Add `#[rust_sitter::inline]` attribute
+- [ ] Option B: Add `#[adze::inline]` attribute
 - [ ] Option C: Document as architectural limitation
 - [ ] Choose approach based on impact analysis
 

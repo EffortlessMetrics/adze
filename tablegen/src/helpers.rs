@@ -1,5 +1,5 @@
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::Grammar;
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::Grammar;
 
 /// Collect all token column indices from a parse table
 ///
@@ -16,9 +16,9 @@ use rust_sitter_ir::Grammar;
 /// # Examples
 ///
 /// ```ignore
-/// # use rust_sitter_ir::Grammar;
-/// # use rust_sitter_glr_core::ParseTable;
-/// # use rust_sitter_tablegen::helpers::collect_token_indices;
+/// # use adze_ir::Grammar;
+/// # use adze_glr_core::ParseTable;
+/// # use adze_tablegen::helpers::collect_token_indices;
 /// # let grammar = Grammar::new("my_grammar".to_string());
 /// # let parse_table = ParseTable::default();
 /// let token_indices = collect_token_indices(&grammar, &parse_table);
@@ -72,8 +72,8 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
 /// # Examples
 ///
 /// ```ignore
-/// # use rust_sitter_glr_core::ParseTable;
-/// # use rust_sitter_tablegen::helpers::eof_accepts_or_reduces;
+/// # use adze_glr_core::ParseTable;
+/// # use adze_tablegen::helpers::eof_accepts_or_reduces;
 /// # let parse_table = ParseTable::default();
 /// let start_can_be_empty = eof_accepts_or_reduces(&parse_table);
 /// if start_can_be_empty {
@@ -105,7 +105,7 @@ pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::{Grammar, SymbolId};
+    use adze_ir::{Grammar, SymbolId};
 
     #[test]
     fn test_collect_token_indices() {
@@ -116,7 +116,7 @@ mod tests {
         let eof_symbol = parse_table.eof_symbol; // Use the actual eof_symbol from the table
 
         // Add tokens to the grammar
-        use rust_sitter_ir::{Token, TokenPattern};
+        use adze_ir::{Token, TokenPattern};
         grammar.tokens.insert(
             SymbolId(1),
             Token {

@@ -3,12 +3,12 @@
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    // Build the parser using rust-sitter
-    rust_sitter_tool::build_parsers()?;
+    // Build the parser using adze
+    adze_tool::build_parsers()?;
 
     // Build external scanner if present
     // This will look for scanner.c, scanner.cc, or scanner.rs in the src directory
-    rust_sitter_tool::scanner_build::build_scanner("my_language")?;
+    adze_tool::scanner_build::build_scanner("my_language")?;
 
     Ok(())
 }

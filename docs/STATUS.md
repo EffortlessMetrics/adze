@@ -1,4 +1,4 @@
-# rust-sitter Development Status
+# adze Development Status
 
 **Last Updated**: 2025-01-20
 **Branch**: `claude/rust-iac-pac-01Y4nA4NyjkDycGsqAumtxnG`

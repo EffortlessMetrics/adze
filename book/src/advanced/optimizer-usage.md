@@ -1,6 +1,6 @@
 # Grammar Optimizer Usage Guide
 
-The rust-sitter grammar optimizer is an optional feature that can significantly improve parser performance by applying various optimization passes to your grammar.
+The adze grammar optimizer is an optional feature that can significantly improve parser performance by applying various optimization passes to your grammar.
 
 ## Enabling the Optimizer
 
@@ -10,13 +10,13 @@ The optimizer is disabled by default to ensure stability. To enable it, use the 
 
 ```toml
 [dependencies]
-rust-sitter-tool = { version = "0.5.0-beta", features = ["optimize"] }
+adze-tool = { version = "0.5.0-beta", features = ["optimize"] }
 ```
 
 ### Via Command Line
 
 ```bash
-cargo build --features rust-sitter-tool/optimize
+cargo build --features adze-tool/optimize
 ```
 
 ## What the Optimizer Does
@@ -42,7 +42,7 @@ The optimizer can provide:
 1. **Tree-sitter Compatibility**: The optimizer preserves Tree-sitter semantics
 2. **source_file Preservation**: The special `source_file` symbol is never optimized away
 3. **FIRST/FOLLOW Safety**: Optimizations preserve FIRST/FOLLOW sets for GLR parsing
-4. **Debug Artifacts**: Use `RUST_SITTER_EMIT_ARTIFACTS=true` to inspect optimization results
+4. **Debug Artifacts**: Use `ADZE_EMIT_ARTIFACTS=true` to inspect optimization results
 
 ## Example
 
@@ -68,7 +68,7 @@ product -> NUMBER
 If you encounter issues with the optimizer:
 
 1. **Disable optimization**: Remove the `optimize` feature to compare behavior
-2. **Check artifacts**: Set `RUST_SITTER_EMIT_ARTIFACTS=true` to see the IR before/after
+2. **Check artifacts**: Set `ADZE_EMIT_ARTIFACTS=true` to see the IR before/after
 3. **Report issues**: File a bug with the grammar that causes problems
 
 The optimizer is designed to be conservative and should never change the language accepted by your grammar.

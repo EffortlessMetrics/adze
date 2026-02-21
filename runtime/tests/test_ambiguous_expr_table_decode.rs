@@ -1,15 +1,16 @@
 //! Deep decode of ambiguous_expr parse table to understand why no conflicts are found
 
-use rust_sitter_glr_core::Action;
+#[cfg(all(feature = "pure-rust", feature = "glr"))]
+use adze_glr_core::Action;
 
 #[cfg(all(feature = "pure-rust", feature = "glr"))]
 #[test]
 fn decode_ambiguous_expr_table_deep() {
     // Access the generated ambiguous_expr language
-    let lang = unsafe { &rust_sitter_example::ambiguous_expr::generated::LANGUAGE };
+    let lang = unsafe { &adze_example::ambiguous_expr::generated::LANGUAGE };
 
     // Decode the parse table
-    let parse_table = rust_sitter::decoder::decode_parse_table(lang);
+    let parse_table = adze::decoder::decode_parse_table(lang);
 
     eprintln!("\n=== DEEP TABLE DECODE FOR AMBIGUOUS_EXPR ===\n");
     eprintln!("Total states: {}", parse_table.action_table.len());

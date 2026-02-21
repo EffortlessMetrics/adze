@@ -4,8 +4,8 @@
 // Lexer integration for GLR parser
 // This module provides tokenization for GLR parsing
 
+use adze_ir::{Grammar, SymbolId, TokenPattern};
 use regex::Regex;
-use rust_sitter_ir::{Grammar, SymbolId, TokenPattern};
 
 /// Token with position information
 #[derive(Debug, Clone)]
@@ -211,7 +211,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::{Grammar, Token, TokenPattern};
+    use adze_ir::{Grammar, Token, TokenPattern};
 
     #[test]
     fn test_literal_token_matching() {

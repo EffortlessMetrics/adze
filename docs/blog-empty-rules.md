@@ -2,11 +2,11 @@
 
 ## The Journey
 
-When building a macro-driven Tree-sitter grammar generator in Rust, I encountered one of the most notorious pitfalls in parser generation: the "empty production rule" problem. This post documents the journey of discovering, understanding, and solving this issue in rust-sitter.
+When building a macro-driven Tree-sitter grammar generator in Rust, I encountered one of the most notorious pitfalls in parser generation: the "empty production rule" problem. This post documents the journey of discovering, understanding, and solving this issue in adze.
 
 ## The Problem Manifests
 
-It started innocently enough. I was porting a Python grammar to rust-sitter when the build failed with:
+It started innocently enough. I was porting a Python grammar to adze when the build failed with:
 
 ```
 Error: EmptyString("Module")
@@ -21,9 +21,9 @@ After hours of debugging, I discovered that Tree-sitter's parsing algorithm fund
 Consider this innocent-looking Rust struct:
 
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub struct Module {
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub statements: Vec<Statement>,
 }
 ```
@@ -41,42 +41,42 @@ This generates a grammar where `Module` can match nothing when the Vec is empty.
 
 ### Pattern 1: Mandatory Elements
 ```rust
-#[rust_sitter::repeat(non_empty = true)]
+#[adze::repeat(non_empty = true)]
 pub statements: Vec<Statement>,
 ```
 
 ### Pattern 2: Whitespace Anchors
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub struct ListExpression {
-    #[rust_sitter::leaf(text = "[")]
+    #[adze::leaf(text = "[")]
     _open: (),
     
     // These ensure the rule is never empty
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _ws1: (),
     
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub elements: Vec<Expression>,
     
-    #[rust_sitter::leaf(pattern = r"\s*")]
-    #[rust_sitter::skip]
+    #[adze::leaf(pattern = r"\s*")]
+    #[adze::skip]
     _ws2: (),
     
-    #[rust_sitter::leaf(text = "]")]
+    #[adze::leaf(text = "]")]
     _close: (),
 }
 ```
 
 ### Pattern 3: Enum Modeling
 ```rust
-#[rust_sitter::language]
+#[adze::language]
 pub enum DottedName {
     Single(Identifier),
     Dotted {
         first: Identifier,
-        #[rust_sitter::repeat(non_empty = true)]
+        #[adze::repeat(non_empty = true)]
         rest: Vec<DottedPart>,
     }
 }
@@ -94,7 +94,7 @@ pub enum DottedName {
 2. **Documentation is critical**: This edge case needs to be front-and-center for new users
 3. **Macro systems can help**: We could potentially detect and auto-fix these patterns at compile time
 
-## Impact on rust-sitter
+## Impact on adze
 
 This investigation led to:
 - Comprehensive documentation for grammar authors
@@ -110,13 +110,13 @@ When you're building on top of complex systems like Tree-sitter, you inherit not
 
 ## What's Next?
 
-Future versions of rust-sitter could:
+Future versions of adze could:
 - Detect empty rules at macro expansion time
 - Automatically insert whitespace tokens
 - Provide clearer error messages with suggested fixes
 
-But for now, understanding and documenting these patterns is a major step forward for the rust-sitter ecosystem.
+But for now, understanding and documenting these patterns is a major step forward for the adze ecosystem.
 
 ---
 
-*Building rust-sitter has been a journey through the depths of parser theory, Rust macros, and developer experience design. The empty rule problem is just one of many challenges, but solving it properly sets the foundation for a robust, production-ready parser generator.*
+*Building adze has been a journey through the depths of parser theory, Rust macros, and developer experience design. The empty rule problem is just one of many challenges, but solving it properly sets the foundation for a robust, production-ready parser generator.*

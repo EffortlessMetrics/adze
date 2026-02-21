@@ -1,5 +1,5 @@
-use rust_sitter_glr_core::{Action, LexMode, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, StateId, SymbolId};
+use adze_glr_core::{Action, LexMode, ParseRule, ParseTable};
+use adze_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 /// Test helpers for constructing minimal parse tables
@@ -113,7 +113,7 @@ pub fn make_minimal_table(
         symbol_to_index,
         index_to_symbol,
         nonterminal_to_index,
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         symbol_metadata: vec![], // tests don't need metadata
         // token layout / sentinels
         token_count,

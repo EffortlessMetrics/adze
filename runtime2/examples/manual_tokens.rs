@@ -1,4 +1,4 @@
-use rust_sitter_runtime::{Language, Parser, Token, test_helpers::stub_language_with_tokens};
+use adze_runtime::{Language, Parser, Token, test_helpers::stub_language_with_tokens};
 
 fn main() {
     // Create a stub language with test tokens to validate the tokenizer hookup

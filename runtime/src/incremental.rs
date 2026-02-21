@@ -1,9 +1,9 @@
-// Incremental parsing support for the pure-Rust Tree-sitter runtime
+// Incremental parsing support for the Adze runtime
 // This module provides efficient reparsing of edited documents
 
 use crate::parser_v2::{ParseNode, ParserV2};
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::Grammar;
+use adze_glr_core::ParseTable;
+use adze_ir::Grammar;
 use std::ops::Range;
 
 /// Represents an edit to a document
@@ -200,7 +200,7 @@ impl IncrementalParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::SymbolId;
+    use adze_ir::SymbolId;
 
     #[test]
     fn test_edit_application() {

@@ -114,12 +114,12 @@ ensure_any_tests() {
 echo "${BLD}Formatting & linting…${RST}"
 cargo fmt --all -- --check
 # Only lint core crates with strict warnings - other crates may have more relaxed requirements
-cargo clippy -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --lib -- -D warnings
+cargo clippy -p adze -p adze-glr-core -p adze-ir -p adze-tablegen --lib -- -D warnings
 
 # (opt-in) Lint test code too: CLIPPY_TESTS=1 .githooks/pre-commit
 if [[ -n "${CLIPPY_TESTS:-}" ]]; then
   echo "${BLD}Clippy (tests)…${RST}"
-  cargo clippy -p rust-sitter -p rust-sitter-glr-core -p rust-sitter-ir -p rust-sitter-tablegen --tests -- -D warnings
+  cargo clippy -p adze -p adze-glr-core -p adze-ir -p adze-tablegen --tests -- -D warnings
 fi
 
 # (opt-in) Enforce strict docs across the workspace: STRICT_DOCS=1 .githooks/pre-commit
@@ -131,27 +131,27 @@ fi
 echo "${BLD}Running test matrix…${RST}"
 
 # Core (dev features)
-ensure_tests "glr-core (dev)" -p rust-sitter-glr-core
+ensure_tests "glr-core (dev)" -p adze-glr-core
 
 # Core (strict invariants) — some manual-table tests should be gated off here
-ensure_tests "glr-core (strict)" -p rust-sitter-glr-core --features strict-invariants
+ensure_tests "glr-core (strict)" -p adze-glr-core --features strict-invariants
 
 # Runtime (lib + integration): pass if either exists, run both if present
 ensure_any_tests \
-  "runtime (lib)" -p rust-sitter --lib -- \
-  "runtime (integration)" -p rust-sitter --tests
+  "runtime (lib)" -p adze --lib -- \
+  "runtime (integration)" -p adze --tests
 
 # Tablegen tests
-ensure_tests "tablegen" -p rust-sitter-tablegen
+ensure_tests "tablegen" -p adze-tablegen
 
 # IR tests
-ensure_tests "ir" -p rust-sitter-ir
+ensure_tests "ir" -p adze-ir
 
 # Tool tests
-ensure_tests "tool" -p rust-sitter-tool
+ensure_tests "tool" -p adze-tool
 
 # Macro tests
-ensure_tests "macro" -p rust-sitter-macro
+ensure_tests "macro" -p adze-macro
 
 # Example tests
 ensure_tests "example" -p example
@@ -163,7 +163,7 @@ fi
 
 # Optional: runtime E2E pack (opt-in only)
 if [ "${RUNTIME_E2E:-0}" = "1" ]; then
-  ensure_tests "runtime (e2e)" -p rust-sitter --features runtime-e2e
+  ensure_tests "runtime (e2e)" -p adze --features runtime-e2e
 fi
 
 echo "${GRN}${BLD}All checks passed.${RST}"

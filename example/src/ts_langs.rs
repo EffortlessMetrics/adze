@@ -1,16 +1,14 @@
 #![cfg(feature = "ts-compat")]
 
-use rust_sitter::ts_compat::Language;
+use adze::ts_compat::Language;
 use std::sync::Arc;
 
 /// Build a `Language` from the generated Tree-sitter style tables for arithmetic.
 /// Creates a minimal working parse table that will parse arithmetic expressions.
 pub fn arithmetic() -> Arc<Language> {
     use crate::arithmetic::generated::{LANGUAGE, SMALL_PARSE_TABLE, SMALL_PARSE_TABLE_MAP};
-    use rust_sitter::rust_sitter_glr_core::{
-        Action, GotoIndexing, ParseRule, ParseTable, SymbolMetadata,
-    };
-    use rust_sitter::rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+    use adze::adze_glr_core::{Action, GotoIndexing, ParseRule, ParseTable, SymbolMetadata};
+    use adze::adze_ir::{Grammar, RuleId, StateId, SymbolId};
     use std::collections::BTreeMap;
 
     // Basic sizes from generated language
@@ -53,7 +51,7 @@ pub fn arithmetic() -> Arc<Language> {
     }
 
     // Populate tokens for the lexer
-    use rust_sitter::rust_sitter_ir::{Token, TokenPattern};
+    use adze::adze_ir::{Token, TokenPattern};
 
     // Add the basic tokens that the lexer needs
     // Symbols from generated parser:
@@ -185,7 +183,7 @@ pub fn arithmetic() -> Arc<Language> {
     ];
 
     // Also populate grammar.rules for parser_v4 compatibility
-    use rust_sitter::rust_sitter_ir::{ProductionId, Rule, Symbol};
+    use adze::adze_ir::{ProductionId, Rule, Symbol};
 
     // Expression rules
     let expr_rules = vec![
@@ -206,7 +204,7 @@ pub fn arithmetic() -> Arc<Language> {
                 Symbol::Terminal(SymbolId(1)),    // *
                 Symbol::NonTerminal(SymbolId(5)), // Expression
             ],
-            precedence: Some(rust_sitter::rust_sitter_ir::PrecedenceKind::Static(2)), // Higher precedence for multiplication
+            precedence: Some(adze::adze_ir::PrecedenceKind::Static(2)), // Higher precedence for multiplication
             associativity: None,
             fields: vec![],
             production_id: ProductionId(1),
@@ -219,7 +217,7 @@ pub fn arithmetic() -> Arc<Language> {
                 Symbol::Terminal(SymbolId(3)),    // -
                 Symbol::NonTerminal(SymbolId(5)), // Expression
             ],
-            precedence: Some(rust_sitter::rust_sitter_ir::PrecedenceKind::Static(1)), // Lower precedence for subtraction
+            precedence: Some(adze::adze_ir::PrecedenceKind::Static(1)), // Lower precedence for subtraction
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),

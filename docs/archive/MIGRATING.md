@@ -11,7 +11,7 @@ The biggest breaking change is the introduction of the production-ready `runtime
 **Before (runtime):**
 ```toml
 [dependencies]
-rust-sitter = { version = "0.5", features = ["runtime"] }
+adze = { version = "0.5", features = ["runtime"] }
 ```
 
 ```rust
@@ -21,14 +21,14 @@ let result = grammar::parse(input)?;
 **After (runtime2):**
 ```toml
 [dependencies]
-rust-sitter-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
 
 [build-dependencies]
-rust-sitter-tool = "0.6"
+adze-tool = "0.6"
 ```
 
 ```rust
-use rust_sitter_runtime::Parser;
+use adze_runtime::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(grammar::language())?;  // Generated GLR language
@@ -117,7 +117,7 @@ match result {
 **After:**
 ```rust
 // Comprehensive error handling with GLR capabilities
-use rust_sitter_runtime::{ParseError, EditError};
+use adze_runtime::{ParseError, EditError};
 
 match parser.parse_utf8(input, old_tree) {
     Ok(tree) => {
@@ -150,12 +150,12 @@ match tree.edit(&edit) {
 
 **Before:**
 ```toml
-rust-sitter = { version = "0.5", features = ["pure-rust"] }
+adze = { version = "0.5", features = ["pure-rust"] }
 ```
 
 **After:**
 ```toml
-rust-sitter-runtime = { 
+adze-runtime = { 
     version = "0.1", 
     features = [
         "glr-core",          # GLR parsing (default)
@@ -177,7 +177,7 @@ rust-sitter-runtime = {
 ```rust
 // build.rs - Required for GLR grammar generation
 fn main() {
-    rust_sitter_tool::build_parsers().unwrap();
+    adze_tool::build_parsers().unwrap();
 }
 ```
 
@@ -186,7 +186,7 @@ fn main() {
 **New in runtime2:**
 ```bash
 # Enable GLR performance monitoring
-RUST_SITTER_LOG_PERFORMANCE=true cargo run
+ADZE_LOG_PERFORMANCE=true cargo run
 ```
 
 Outputs:
@@ -210,10 +210,10 @@ pub enum TableGenError {
     // ... existing variants ...
     
     #[error(transparent)]
-    Glr(#[from] rust_sitter_glr_core::GLRError),
+    Glr(#[from] adze_glr_core::GLRError),
     
     #[error(transparent)]
-    Ir(#[from] rust_sitter_ir::error::IrError),
+    Ir(#[from] adze_ir::error::IrError),
 }
 ```
 
@@ -237,7 +237,7 @@ if let Err(e) = result {
 When handling errors, you can now match on the specific typed variants:
 
 ```rust
-use rust_sitter_tablegen::error::TableGenError;
+use adze_tablegen::error::TableGenError;
 
 match err {
     TableGenError::Ir(e)  => eprintln!("IR error: {e}"),
@@ -270,8 +270,8 @@ RUSTDOCFLAGS="--cfg docsrs" cargo doc --features strict_docs
 The deprecated `compress_default` method has been removed. Replace with:
 
 ```rust
-use rust_sitter_tablegen::compress::TableCompressor;
-use rust_sitter_tablegen::helpers::collect_token_indices;
+use adze_tablegen::compress::TableCompressor;
+use adze_tablegen::helpers::collect_token_indices;
 
 // Before (0.7.x):
 let compressed = compressor.compress_default(&parse_table, &grammar)?;

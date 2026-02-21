@@ -17,10 +17,10 @@ cd my-parser
 cat >> Cargo.toml <<'EOF'
 
 [dependencies]
-rust-sitter = "0.6"
+adze = "0.6"
 
 [build-dependencies]
-rust-sitter-tool = "0.6"
+adze-tool = "0.6"
 EOF
 ```
 
@@ -34,7 +34,7 @@ Create `build.rs`:
 use std::path::PathBuf;
 
 fn main() {
-    rust_sitter_tool::build_parsers(&PathBuf::from("src/main.rs"));
+    adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
 }
 ```
 
@@ -46,34 +46,34 @@ Replace `src/main.rs` with this:
 
 ```rust
 // Define a simple calculator grammar
-#[rust_sitter::grammar("calc")]
+#[adze::grammar("calc")]
 mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(Debug)]
     pub enum Expr {
         Number(
-            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             i32
         ),
 
-        #[rust_sitter::prec_left(1)]
+        #[adze::prec_left(1)]
         Add(
             Box<Expr>,
-            #[rust_sitter::leaf(text = "+")] (),
+            #[adze::leaf(text = "+")] (),
             Box<Expr>,
         ),
 
-        #[rust_sitter::prec_left(2)]
+        #[adze::prec_left(2)]
         Mul(
             Box<Expr>,
-            #[rust_sitter::leaf(text = "*")] (),
+            #[adze::leaf(text = "*")] (),
             Box<Expr>,
         ),
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }
@@ -127,10 +127,10 @@ You just:
 
 ## What Just Happened?
 
-1. **`#[rust_sitter::grammar("calc")]`** - Declares a grammar named "calc"
-2. **`#[rust_sitter::language]`** - Marks the root type for parsing
-3. **`#[rust_sitter::leaf]`** - Defines how to match text (`pattern` or `text`)
-4. **`#[rust_sitter::prec_left(N)]`** - Sets operator precedence (higher = tighter)
+1. **`#[adze::grammar("calc")]`** - Declares a grammar named "calc"
+2. **`#[adze::language]`** - Marks the root type for parsing
+3. **`#[adze::leaf]`** - Defines how to match text (`pattern` or `text`)
+4. **`#[adze::prec_left(N)]`** - Sets operator precedence (higher = tighter)
 5. **`build.rs`** - Generates the parser at build time
 6. **`grammar::parse()`** - Parse text into your Rust type
 
@@ -153,20 +153,20 @@ for input in &["1 + 2", "5 * 6", "1 + 2 * 3", "10"] {
 ### Add More Operators
 
 ```rust
-#[rust_sitter::prec_left(1)]
-Sub(Box<Expr>, #[rust_sitter::leaf(text = "-")] (), Box<Expr>),
+#[adze::prec_left(1)]
+Sub(Box<Expr>, #[adze::leaf(text = "-")] (), Box<Expr>),
 
-#[rust_sitter::prec_left(2)]
-Div(Box<Expr>, #[rust_sitter::leaf(text = "/")] (), Box<Expr>),
+#[adze::prec_left(2)]
+Div(Box<Expr>, #[adze::leaf(text = "/")] (), Box<Expr>),
 ```
 
 ### Add Parentheses
 
 ```rust
 Paren(
-    #[rust_sitter::leaf(text = "(")] (),
+    #[adze::leaf(text = "(")] (),
     Box<Expr>,
-    #[rust_sitter::leaf(text = ")")] (),
+    #[adze::leaf(text = ")")] (),
 ),
 ```
 
@@ -199,7 +199,7 @@ Paren(
 - **Questions?** Check [FAQ.md](./FAQ.md)
 - **Stuck?** See [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) (coming in v0.7.0)
 - **Want to contribute?** See [CONTRIBUTING.md](./CONTRIBUTING.md)
-- **Report bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/rust-sitter/issues)
+- **Report bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 
 ---
 

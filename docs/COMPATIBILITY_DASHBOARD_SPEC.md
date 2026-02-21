@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Rust-Sitter Compatibility Dashboard provides real-time visibility into grammar compatibility, performance metrics, and adoption progress. It serves as the primary communication tool for the community during the beta phase.
+The Adze Compatibility Dashboard provides real-time visibility into grammar compatibility, performance metrics, and adoption progress. It serves as the primary communication tool for the community during the beta phase.
 
 ## Dashboard Components
 
@@ -29,15 +29,15 @@ Real-time benchmarks against C Tree-sitter:
 ```yaml
 Performance Metrics:
   Parse Speed:
-    rust-sitter: 145 MB/s (↑ 5% vs last week)
+    adze: 145 MB/s (↑ 5% vs last week)
     tree-sitter-c: 142 MB/s
     
   Memory Usage:
-    rust-sitter: 24 bytes/node
+    adze: 24 bytes/node
     tree-sitter-c: 28 bytes/node
     
   WASM Bundle:
-    rust-sitter: 68 KB (gzipped)
+    adze: 68 KB (gzipped)
     tree-sitter-c: 85 KB (gzipped)
 ```
 
@@ -165,12 +165,12 @@ impl DashboardData {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Rust-Sitter Compatibility Dashboard</title>
+    <title>Adze Compatibility Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>🦀 Rust-Sitter Compatibility Dashboard</h1>
+        <h1>🦀 Adze Compatibility Dashboard</h1>
         <p>Last updated: <span id="last-updated"></span></p>
     </header>
     
@@ -204,7 +204,7 @@ impl DashboardData {
 ## Monthly Compatibility Bulletin Template
 
 ```markdown
-# Rust-Sitter Compatibility Bulletin #1 - January 2025
+# Adze Compatibility Bulletin #1 - January 2025
 
 ## 🎯 This Month's Highlights
 
@@ -259,9 +259,9 @@ Special thanks to:
 
 ---
 
-Try the beta: `cargo add rust-sitter@0.5.0-beta`
-Report issues: github.com/rust-sitter/rust-sitter/issues
-Join discussion: discord.gg/rust-sitter
+Try the beta: `cargo add adze@0.5.0-beta`
+Report issues: github.com/adze/adze/issues
+Join discussion: discord.gg/adze
 ```
 
 ## Badge System
@@ -269,9 +269,9 @@ Join discussion: discord.gg/rust-sitter
 Generate status badges for README files:
 
 ```markdown
-![Grammar Compatibility](https://rust-sitter.github.io/dashboard/badges/compatibility.svg)
-![Performance](https://rust-sitter.github.io/dashboard/badges/performance.svg)
-![Build Status](https://rust-sitter.github.io/dashboard/badges/build.svg)
+![Grammar Compatibility](https://adze.github.io/dashboard/badges/compatibility.svg)
+![Performance](https://adze.github.io/dashboard/badges/performance.svg)
+![Build Status](https://adze.github.io/dashboard/badges/build.svg)
 ```
 
 ## Success Metrics

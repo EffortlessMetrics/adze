@@ -1,4 +1,4 @@
-// Tree visualization for the rust-sitter playground
+// Tree visualization for the adze playground
 
 use anyhow::Result;
 

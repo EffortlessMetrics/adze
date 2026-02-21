@@ -1,10 +1,8 @@
 #[cfg(feature = "glr-core")]
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 #[cfg(feature = "glr-core")]
-use rust_sitter_ir::{
-    Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern,
-};
-use rust_sitter_runtime::{Language, Parser, Token, language::SymbolMetadata};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};
+use adze_runtime::{Language, Parser, Token, language::SymbolMetadata};
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},

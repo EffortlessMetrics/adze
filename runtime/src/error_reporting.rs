@@ -4,7 +4,7 @@
 // User-friendly error reporting for the GLR parser
 use crate::glr_parser::GLRParser;
 use crate::subtree::Subtree;
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 use std::fmt;
 use std::sync::Arc;
 

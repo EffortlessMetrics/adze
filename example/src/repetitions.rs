@@ -1,67 +1,67 @@
-#[rust_sitter::grammar("repetitions")]
+#[adze::grammar("repetitions")]
 pub mod grammar {
-    use rust_sitter::Spanned;
+    use adze::Spanned;
 
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(Debug)]
     #[allow(dead_code)]
     pub struct NumberList {
-        #[rust_sitter::repeat(non_empty = true)]
-        #[rust_sitter::delimited(
-            #[rust_sitter::leaf(text = ",")]
+        #[adze::repeat(non_empty = true)]
+        #[adze::delimited(
+            #[adze::leaf(text = ",")]
             ()
         )]
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
         numbers: Spanned<Vec<Spanned<i32>>>,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }
 
-#[rust_sitter::grammar("repetitions_without_delim")]
+#[adze::grammar("repetitions_without_delim")]
 pub mod grammar2 {
-    use rust_sitter::Spanned;
+    use adze::Spanned;
 
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(Debug)]
     #[allow(dead_code)]
     pub struct NumberList {
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
         numbers: Spanned<Vec<Spanned<i32>>>,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }
 
-#[rust_sitter::grammar("repetitions_optional_elem")]
+#[adze::grammar("repetitions_optional_elem")]
 pub mod grammar3 {
-    use rust_sitter::Spanned;
+    use adze::Spanned;
 
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(Debug)]
     #[allow(dead_code)]
     pub struct NumberList {
-        #[rust_sitter::delimited(
-            #[rust_sitter::leaf(text = ",")]
+        #[adze::delimited(
+            #[adze::leaf(text = ",")]
             ()
         )]
-        #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
         numbers: Spanned<Vec<Spanned<Option<i32>>>>,
-        #[rust_sitter::skip(123)]
+        #[adze::skip(123)]
         metadata: u32,
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }

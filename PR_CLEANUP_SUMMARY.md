@@ -155,7 +155,7 @@ The ComplexSymbolsNotNormalized error has been completely resolved through imple
 4. **Provides comprehensive testing** (extensive test coverage)
 5. **Includes thorough documentation** (implementation guide and API docs)
 
-The PR is now unblocked and ready for progression through the rust-sitter GLR parser pipeline.
+The PR is now unblocked and ready for progression through the adze GLR parser pipeline.
 
 ## Next Steps
 

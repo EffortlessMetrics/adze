@@ -1,4 +1,4 @@
-// Parallel parser for rust-sitter
+// Parallel parser for adze
 // Uses rayon for data-parallel parsing of large files
 
 use anyhow::Result;
@@ -8,8 +8,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::incremental_v3::{Subtree, SubtreePool, Tree};
 use crate::parser_v3::{ParseNode, Parser};
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, SymbolId};
+use adze_glr_core::ParseTable;
+use adze_ir::{Grammar, SymbolId};
 
 /// Parallel parser configuration
 #[derive(Debug, Clone)]

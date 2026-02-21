@@ -200,7 +200,7 @@ PARSE_ACTIONS: 9 actions
 ## ✅ Success Criteria
 
 **When blocker is resolved**:
-- `cargo test -p rust-sitter-example --features glr test_glr_precedence_disambiguation` passes
+- `cargo test -p adze-example --features glr test_glr_precedence_disambiguation` passes
 - parser_v4 successfully parses "1 - 2 * 3" with correct precedence
 - Extraction produces valid AST (no ParseIntError)
 - All arithmetic tests pass with GLR feature

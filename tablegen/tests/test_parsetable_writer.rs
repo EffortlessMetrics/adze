@@ -4,9 +4,9 @@
 
 #![cfg(feature = "serialization")]
 
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
-use rust_sitter_ir::{Grammar, RuleId};
-use rust_sitter_tablegen::parsetable_writer::{FORMAT_VERSION, MAGIC_NUMBER, ParsetableWriter};
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
+use adze_ir::{Grammar, RuleId};
+use adze_tablegen::parsetable_writer::{FORMAT_VERSION, MAGIC_NUMBER, ParsetableWriter};
 use std::fs;
 use std::io::Read;
 

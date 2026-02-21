@@ -1,4 +1,4 @@
-# Rust Sitter Codebase Audit Report (v0.6.0 Release Readiness)
+# Adze Codebase Audit Report (v0.6.0 Release Readiness)
 
 ## Executive Summary
 
@@ -157,7 +157,7 @@ The codebase is fundamentally sound with the GLR parser working well. However, s
 3. **Dead code cleanup** would improve maintainability
 4. **Feature gate hygiene** prevents user confusion
 
-With these issues addressed, rust-sitter v0.6.0 would represent a solid, production-ready release. The GLR implementation is a significant achievement, and cleaning up these peripheral issues would properly showcase that accomplishment.
+With these issues addressed, adze v0.6.0 would represent a solid, production-ready release. The GLR implementation is a significant achievement, and cleaning up these peripheral issues would properly showcase that accomplishment.
 
 ## Audit Methodology
 

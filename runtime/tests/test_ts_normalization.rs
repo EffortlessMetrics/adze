@@ -3,16 +3,15 @@
 #![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 #![allow(clippy::duplicate_mod)]
 
-use rust_sitter::decoder::decode_parse_table;
-use rust_sitter::ts_format::choose_action;
-use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze::decoder::decode_parse_table;
+use adze::ts_format::choose_action;
+use adze_glr_core::{Action, ParseRule, ParseTable};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 #[path = "support/json_grammar.rs"]
 mod json_grammar;
 #[allow(clippy::duplicate_mod)]
 #[path = "support/language_builder.rs"]
-#[allow(clippy::duplicate_mod)]
 mod language_builder;
 
 // Note: unified_json_helper removed to avoid FFI segmentation faults
@@ -197,7 +196,7 @@ fn create_simple_table() -> ParseTable {
         symbol_metadata: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         alias_sequences: vec![],
         extras: vec![],
         grammar: Grammar::default(),

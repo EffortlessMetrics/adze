@@ -5,9 +5,9 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use rust_sitter_runtime::{
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_runtime::{
     Parser,
     language::SymbolMetadata,
     tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
@@ -269,7 +269,7 @@ fn test_parser_glr_mode_setup() {
 /// Diagnostic Test 6: Check tokenizer output
 #[test]
 fn test_tokenizer_output() {
-    use rust_sitter_runtime::tokenizer::{Tokenizer, WhitespaceMode};
+    use adze_runtime::tokenizer::{Tokenizer, WhitespaceMode};
 
     let patterns = vec![
         RuntimeTokenPattern {

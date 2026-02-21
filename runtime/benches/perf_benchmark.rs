@@ -1,20 +1,20 @@
-// Performance benchmarks for rust-sitter optimizations
+// Performance benchmarks for adze optimizations
 // Compares standard vs SIMD lexing and single vs parallel parsing
 // NOTE: Temporarily disabled as parallel_parser and parser_v3 modules have been removed
 #![cfg(feature = "unstable-benches")]
 
 /*
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::lexer::GrammarLexer;
-use rust_sitter::parallel_parser::{ParallelConfig, ParallelParser};
-use rust_sitter::parser_v3::Parser;
-use rust_sitter::simd_lexer::SimdLexer;
+use adze::lexer::GrammarLexer;
+use adze::parallel_parser::{ParallelConfig, ParallelParser};
+use adze::parser_v3::Parser;
+use adze::simd_lexer::SimdLexer;
 */
 
+use adze::lexer::GrammarLexer;
+use adze_glr_core::{Action, ParseTable};
+use adze_ir::{Grammar, Rule, SymbolId, TokenPattern};
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use rust_sitter::lexer::GrammarLexer;
-use rust_sitter_glr_core::{Action, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, SymbolId, TokenPattern};
 use std::time::Duration;
 
 /// Create a test grammar for benchmarking
@@ -30,7 +30,7 @@ fn create_benchmark_grammar() -> (Grammar, ParseTable) {
 
     grammar.tokens.insert(
         id_symbol,
-        rust_sitter_ir::Token {
+        adze_ir::Token {
             name: "identifier".to_string(),
             pattern: TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".to_string()),
             fragile: false,
@@ -39,7 +39,7 @@ fn create_benchmark_grammar() -> (Grammar, ParseTable) {
 
     grammar.tokens.insert(
         number_symbol,
-        rust_sitter_ir::Token {
+        adze_ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -48,7 +48,7 @@ fn create_benchmark_grammar() -> (Grammar, ParseTable) {
 
     grammar.tokens.insert(
         whitespace_symbol,
-        rust_sitter_ir::Token {
+        adze_ir::Token {
             name: "whitespace".to_string(),
             pattern: TokenPattern::Regex(r"\s+".to_string()),
             fragile: false,
@@ -57,7 +57,7 @@ fn create_benchmark_grammar() -> (Grammar, ParseTable) {
 
     grammar.tokens.insert(
         keyword_symbol,
-        rust_sitter_ir::Token {
+        adze_ir::Token {
             name: "function".to_string(),
             pattern: TokenPattern::String("function".to_string()),
             fragile: false,
@@ -66,7 +66,7 @@ fn create_benchmark_grammar() -> (Grammar, ParseTable) {
 
     grammar.tokens.insert(
         operator_symbol,
-        rust_sitter_ir::Token {
+        adze_ir::Token {
             name: "plus".to_string(),
             pattern: TokenPattern::String("+".to_string()),
             fragile: false,
@@ -75,9 +75,9 @@ fn create_benchmark_grammar() -> (Grammar, ParseTable) {
 
     // Create a simple parse table
     let mut action_table = vec![vec![Action::Error; 6]; 10];
-    action_table[0][id_symbol.0 as usize] = Action::Shift(rust_sitter_ir::StateId(1));
-    action_table[0][number_symbol.0 as usize] = Action::Shift(rust_sitter_ir::StateId(2));
-    action_table[0][keyword_symbol.0 as usize] = Action::Shift(rust_sitter_ir::StateId(3));
+    action_table[0][id_symbol.0 as usize] = Action::Shift(adze_ir::StateId(1));
+    action_table[0][number_symbol.0 as usize] = Action::Shift(adze_ir::StateId(2));
+    action_table[0][keyword_symbol.0 as usize] = Action::Shift(adze_ir::StateId(3));
 
     let parse_table = ParseTable {
         action_table,

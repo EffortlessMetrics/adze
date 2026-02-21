@@ -551,7 +551,7 @@ cargo xtask compare-baseline v0.8.0 --threshold 10.0 # Custom threshold
 # Future Commands (to be implemented in later phases)
 cargo xtask ts-import-grammar <repo>                 # Import TS grammar (v0.10.0)
 cargo xtask ts-parse <file>                          # TS-compatible parse (v0.10.0)
-cargo xtask ts-compare <grammar> <file>              # Compare TS vs rust-sitter (v0.10.0)
+cargo xtask ts-compare <grammar> <file>              # Compare TS vs adze (v0.10.0)
 cargo xtask perf-report                              # Generate perf report (TBD)
 ```
 

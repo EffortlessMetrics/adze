@@ -1,6 +1,6 @@
 // Common test utilities to reduce boilerplate
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-use rust_sitter_ir::Grammar;
+use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::Grammar;
 
 /// Build a parse table from a grammar - centralizes the construction logic
 #[allow(dead_code)]

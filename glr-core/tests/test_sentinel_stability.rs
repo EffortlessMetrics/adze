@@ -1,8 +1,8 @@
 //! Regression canaries to ensure sentinel values never change.
 //! These values are part of the ABI contract with Tree-sitter.
 
-use rust_sitter_glr_core::*;
-use rust_sitter_ir::{StateId, SymbolId};
+use adze_glr_core::*;
+use adze_ir::{StateId, SymbolId};
 
 /// Tree-sitter sentinel codepoint values that must remain stable.
 pub const ACCEPT_CODEPOINT: u16 = 0xFFFF;
@@ -51,10 +51,10 @@ fn eof_invariants() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(3),
-        grammar: rust_sitter_ir::Grammar::new("test".to_string()),
+        grammar: adze_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
         token_count: 2,
         external_token_count: 0,
@@ -93,10 +93,10 @@ fn eof_must_be_zero() {
         index_to_symbol: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0), // Valid: EOF = 0 by convention
         start_symbol: SymbolId(1),
-        grammar: rust_sitter_ir::Grammar::new("test".to_string()),
+        grammar: adze_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
         token_count: 2,
         external_token_count: 0,

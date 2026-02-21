@@ -56,7 +56,7 @@ impl std::error::Error for EditError {}
 ///
 /// Basic usage:
 /// ```no_run
-/// # use rust_sitter_runtime::{Parser, Tree};
+/// # use adze_runtime::{Parser, Tree};
 /// # let mut parser = Parser::new();
 /// let tree = parser.parse_utf8("fn main() {}", None)?;
 /// let root = tree.root_node();
@@ -66,7 +66,7 @@ impl std::error::Error for EditError {}
 ///
 /// Tree cloning for analysis:
 /// ```no_run
-/// # use rust_sitter_runtime::{Tree, InputEdit, Point};
+/// # use adze_runtime::{Tree, InputEdit, Point};
 /// # let tree = Tree::new_stub();
 /// // Clone for non-destructive analysis
 /// let analysis_tree = tree.clone();

@@ -1,4 +1,4 @@
-# cargo-deny configuration for rust-sitter
+# cargo-deny configuration for adze
 # https://embarkstudios.github.io/cargo-deny/
 
 [graph]

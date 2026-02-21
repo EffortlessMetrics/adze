@@ -4,7 +4,7 @@
 #[cfg(feature = "pure-rust")]
 #[ignore] // Temporarily ignore while fixing API
 fn test_symbol_id_mapping() {
-    use rust_sitter::pure_parser::Parser;
+    use adze::pure_parser::Parser;
 
     // Parse "42" and check the parse tree directly
     eprintln!("\n=== Testing symbol ID mapping for '42' ===");

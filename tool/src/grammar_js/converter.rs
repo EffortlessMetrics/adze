@@ -1,16 +1,16 @@
-//! Converter from Grammar.js to Rust-sitter IR
+//! Converter from Grammar.js to Adze IR
 
 use super::{GrammarJs, Rule as JsRule};
-use anyhow::{Context, Result};
-use indexmap::IndexMap;
-use indexmap::IndexMap as OrderedMap;
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId, Grammar,
     PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token, TokenPattern,
 };
+use anyhow::{Context, Result};
+use indexmap::IndexMap;
+use indexmap::IndexMap as OrderedMap;
 use std::collections::HashMap;
 
-/// Converts a Grammar.js structure to Rust-sitter IR
+/// Converts a Grammar.js structure to Adze IR
 pub struct GrammarJsConverter {
     grammar_js: GrammarJs,
     symbol_names: OrderedMap<String, SymbolId>,
@@ -34,7 +34,7 @@ impl GrammarJsConverter {
         }
     }
 
-    /// Convert Grammar.js to Rust-sitter Grammar IR
+    /// Convert Grammar.js to Adze Grammar IR
     pub fn convert(mut self) -> Result<Grammar> {
         eprintln!(
             "DEBUG converter.convert: Starting conversion for grammar '{}'",

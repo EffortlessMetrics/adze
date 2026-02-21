@@ -5,9 +5,9 @@
 
 #![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
 
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
-use rust_sitter_ir::RuleId;
-use rust_sitter_runtime::Parser;
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
+use adze_ir::RuleId;
+use adze_runtime::Parser;
 
 /// Helper: Create a minimal .parsetable file for testing
 fn create_minimal_parsetable() -> Vec<u8> {

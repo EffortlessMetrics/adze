@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-Integrate the arena allocator into rust-sitter's parser and tree types, enabling zero-copy parsing with memory reuse across parse sessions while maintaining lifetime safety.
+Integrate the arena allocator into adze's parser and tree types, enabling zero-copy parsing with memory reuse across parse sessions while maintaining lifetime safety.
 
 ## Current State Analysis
 

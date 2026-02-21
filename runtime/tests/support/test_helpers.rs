@@ -1,6 +1,6 @@
-/// Common test helper utilities for rust-sitter tests
-use rust_sitter_glr_core::ParseTable;
-use rust_sitter_ir::{Grammar, StateId, SymbolId};
+/// Common test helper utilities for adze tests
+use adze_glr_core::ParseTable;
+use adze_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 /// Creates a minimal ParseTable for testing purposes.
@@ -19,7 +19,7 @@ pub fn make_test_table(grammar: Grammar) -> ParseTable {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(1),
         grammar,

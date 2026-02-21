@@ -61,7 +61,7 @@ mod tests {
     use super::*;
     use crate::glr_incremental::ForkAlternative;
     use crate::subtree::{Subtree, SubtreeNode};
-    use rust_sitter_ir::SymbolId;
+    use adze_ir::SymbolId;
 
     #[test]
     #[ignore = "v4_tree_to_forest is unimplemented - requires arena-based Tree construction"]
@@ -70,7 +70,7 @@ mod tests {
         // 1. V4Tree (parser_v4::Tree<'arena>) doesn't have root_kind/source fields
         // 2. v4_tree_to_forest is unimplemented
         // Once Phase 2 Day 5 is complete, update this test.
-        let _forest: Arc<ForestNode> = unimplemented!();
+        unimplemented!();
     }
 
     #[test]

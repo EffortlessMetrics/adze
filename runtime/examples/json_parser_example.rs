@@ -1,7 +1,7 @@
 // Example: Building and using a JSON parser with the GLR parser
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::glr_parser::GLRParser;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Build a complete JSON grammar
 fn build_json_grammar() -> Grammar {

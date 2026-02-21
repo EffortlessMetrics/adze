@@ -1,7 +1,7 @@
 //! Verification test to confirm that Python/JS fixtures cannot be parsed
 //! by the arithmetic grammar (exposing the benchmark correctness issue).
 
-use rust_sitter_example::arithmetic::grammar::parse;
+use adze_example::arithmetic::grammar::parse;
 
 // Load the same fixtures used in the benchmark
 const PYTHON_SMALL: &str = include_str!("../fixtures/python/small.py");

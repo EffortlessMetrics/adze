@@ -1,5 +1,5 @@
 [package]
-name = "rust-sitter-fuzz"
+name = "adze-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2024"
@@ -10,7 +10,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-rust-sitter = { path = "../runtime" }
+adze = { path = "../runtime" }
 
 [[bin]]
 name = "fuzz_lexer"

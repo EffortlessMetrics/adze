@@ -1,5 +1,5 @@
 // Test the pure-Rust parser implementation
-use rust_sitter::pure_parser::{ExternalScanner, Parser, TSLanguage, TSParseAction};
+use adze::pure_parser::{ExternalScanner, Parser, TSLanguage, TSParseAction};
 use std::ptr;
 
 // Create a simple test language

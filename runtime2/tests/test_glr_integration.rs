@@ -1,6 +1,6 @@
 //! Comprehensive tests for GLR core integration and incremental parsing
 
-use rust_sitter_runtime::{
+use adze_runtime::{
     Language, Parser, Tree,
     language::SymbolMetadata,
     test_helpers::{multi_symbol_test_language, stub_language},

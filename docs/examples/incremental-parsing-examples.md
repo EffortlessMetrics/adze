@@ -2,15 +2,15 @@
 
 > **⚠️ Status**: The incremental parsing path is currently **disabled** and falls back to fresh parsing for consistency. The examples below document the intended API, but the implementation currently falls back to fresh parsing.
 
-This document provides examples demonstrating the incremental parsing infrastructure in rust-sitter (PR #62).
+This document provides examples demonstrating the incremental parsing infrastructure in adze (PR #62).
 
 ## Example 1: Basic Single Edit
 
 ```rust
-use rust_sitter::parser_v4::{Parser, Tree};
-use rust_sitter::pure_incremental::Edit;
-use rust_sitter::pure_parser::Point;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::parser_v4::{Parser, Tree};
+use adze::pure_incremental::Edit;
+use adze::pure_parser::Point;
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 fn basic_incremental_example() -> Result<(), Box<dyn std::error::Error>> {
     // Create parser with your grammar
@@ -59,7 +59,7 @@ fn basic_incremental_example() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use std::time::Instant;
-use rust_sitter::glr_incremental::{get_reuse_count, reset_reuse_counter};
+use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 
 fn measure_performance() -> Result<(), Box<dyn std::error::Error>> {
     let mut parser = Parser::new(grammar, table, "perf_test".to_string());
@@ -528,7 +528,7 @@ To run these examples in your own project:
 1. **Add the feature flag**:
    ```toml
    [dependencies]
-   rust-sitter = { version = "0.6", features = ["incremental_glr"] }
+   adze = { version = "0.6", features = ["incremental_glr"] }
    ```
 
 2. **Create a test binary**:

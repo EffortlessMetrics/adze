@@ -5,7 +5,7 @@
 
 use crate::glr_incremental::{ForestNode, GLREdit, GLRToken};
 use crate::subtree::Subtree;
-use rust_sitter_ir::SymbolId;
+use adze_ir::SymbolId;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 

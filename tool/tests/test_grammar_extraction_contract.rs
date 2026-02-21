@@ -6,8 +6,8 @@
 //! 3. Verifying production structures match expected patterns
 //! 4. Ensuring ambiguous grammars remain ambiguous
 
-use rust_sitter_ir::builder::GrammarBuilder;
-use rust_sitter_ir::{Grammar, Symbol};
+use adze_ir::builder::GrammarBuilder;
+use adze_ir::{Grammar, Symbol};
 use std::collections::BTreeSet;
 
 /// Helper to analyze Grammar IR structure
@@ -35,10 +35,10 @@ impl GrammarAnalysis {
         let mut production_patterns = Vec::new();
 
         // Collect all symbol names
-        for (id, name) in &grammar.rule_names {
+        for (_id, name) in &grammar.rule_names {
             symbol_names.insert(name.clone());
         }
-        for (id, token) in &grammar.tokens {
+        for (_id, token) in &grammar.tokens {
             symbol_names.insert(token.name.clone());
         }
 
@@ -192,7 +192,7 @@ fn test_contract_manual_grammar_structure() {
 fn test_contract_enum_grammar_extraction() {
     eprintln!("\n=== CONTRACT TEST: Enum Grammar JSON Extraction ===\n");
 
-    use rust_sitter_tool::generate_grammars;
+    use adze_tool::generate_grammars;
     use std::path::PathBuf;
 
     // Path to the ambiguous_expr example
@@ -420,18 +420,8 @@ fn test_contract_precedence_handling() {
         .token("n", r"\d+")
         .token("+", r"\+")
         .token("*", r"\*")
-        .rule_with_precedence(
-            "E",
-            vec!["E", "+", "E"],
-            1,
-            rust_sitter_ir::Associativity::Left,
-        )
-        .rule_with_precedence(
-            "E",
-            vec!["E", "*", "E"],
-            2,
-            rust_sitter_ir::Associativity::Left,
-        )
+        .rule_with_precedence("E", vec!["E", "+", "E"], 1, adze_ir::Associativity::Left)
+        .rule_with_precedence("E", vec!["E", "*", "E"], 2, adze_ir::Associativity::Left)
         .rule("E", vec!["n"])
         .start("E")
         .build();
@@ -488,7 +478,7 @@ fn test_contract_precedence_handling() {
 fn test_inlined_enum_matches_manual_grammar() {
     eprintln!("\n=== TDD TEST: Inlined Enum Matches Manual Grammar ===\n");
 
-    use rust_sitter_tool::generate_grammars;
+    use adze_tool::generate_grammars;
     use std::path::PathBuf;
 
     // Extract grammar from ambiguous_expr (should be inlined by default)
@@ -580,12 +570,12 @@ fn test_inlined_enum_matches_manual_grammar() {
 fn test_no_inline_attribute_preserves_intermediates() {
     eprintln!("\n=== TDD TEST: no_inline Attribute Preserves Intermediates ===\n");
 
-    // This test will use a grammar with #[rust_sitter::no_inline]
+    // This test will use a grammar with #[adze::no_inline]
     // For now, we document the expected behavior
 
     eprintln!("Expected behavior:");
     eprintln!("  enum Expr {{");
-    eprintln!("      #[rust_sitter::no_inline]");
+    eprintln!("      #[adze::no_inline]");
     eprintln!("      Binary(Box<Expr>, String, Box<Expr>),");
     eprintln!("      Number(i32),");
     eprintln!("  }}");
@@ -604,7 +594,7 @@ fn test_no_inline_attribute_preserves_intermediates() {
 fn test_precedence_prevents_inlining() {
     eprintln!("\n=== TDD TEST: Precedence Prevents Inlining ===\n");
 
-    use rust_sitter_tool::generate_grammars;
+    use adze_tool::generate_grammars;
     use std::path::PathBuf;
 
     // Test with arithmetic grammar which has precedence
@@ -650,7 +640,7 @@ fn test_precedence_prevents_inlining() {
 fn test_inlining_preserves_field_structure() {
     eprintln!("\n=== TDD TEST: Inlining Preserves Field Structure ===\n");
 
-    use rust_sitter_tool::generate_grammars;
+    use adze_tool::generate_grammars;
     use std::path::PathBuf;
 
     let example_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -684,24 +674,24 @@ fn test_inlining_preserves_field_structure() {
     // The implementation uses full path (Expr_Binary_0) which provides more context
     // and better collision avoidance than just Binary_0
     for (i, field) in seq_members.iter().enumerate() {
-        if let Some(field_obj) = field.as_object() {
-            if field_obj.get("type").and_then(|t| t.as_str()) == Some("FIELD") {
-                let field_name = field_obj
-                    .get("name")
-                    .and_then(|n| n.as_str())
-                    .expect("Field must have name");
+        if let Some(field_obj) = field.as_object()
+            && field_obj.get("type").and_then(|t| t.as_str()) == Some("FIELD")
+        {
+            let field_name = field_obj
+                .get("name")
+                .and_then(|n| n.as_str())
+                .expect("Field must have name");
 
-                // Check that field name includes variant context and index
-                // Current implementation: Expr_Binary_0, Expr_Binary_1, etc.
-                // Alternative valid: Binary_0, Binary_1, etc.
-                let has_variant_context =
-                    field_name.contains("Binary") && field_name.contains(&i.to_string());
-                assert!(
-                    has_variant_context,
-                    "TDD FAIL: Field name '{}' should preserve variant context and index {}",
-                    field_name, i
-                );
-            }
+            // Check that field name includes variant context and index
+            // Current implementation: Expr_Binary_0, Expr_Binary_1, etc.
+            // Alternative valid: Binary_0, Binary_1, etc.
+            let has_variant_context =
+                field_name.contains("Binary") && field_name.contains(&i.to_string());
+            assert!(
+                has_variant_context,
+                "TDD FAIL: Field name '{}' should preserve variant context and index {}",
+                field_name, i
+            );
         }
     }
 
@@ -719,14 +709,14 @@ fn test_contract_enum_transformation_spec() {
 
     eprintln!("Input: Rust enum definition");
     eprintln!("```rust");
-    eprintln!("#[rust_sitter::language]");
+    eprintln!("#[adze::language]");
     eprintln!("enum Expr {{");
     eprintln!("    Binary(");
     eprintln!("        Box<Expr>,");
-    eprintln!("        #[rust_sitter::leaf(pattern = r\"[-+*/]\")] String,");
+    eprintln!("        #[adze::leaf(pattern = r\"[-+*/]\")] String,");
     eprintln!("        Box<Expr>)");
     eprintln!("    ),");
-    eprintln!("    Number(#[rust_sitter::leaf(pattern = r\"\\d+\")] i32),");
+    eprintln!("    Number(#[adze::leaf(pattern = r\"\\d+\")] i32),");
     eprintln!("}}");
     eprintln!("```");
     eprintln!();

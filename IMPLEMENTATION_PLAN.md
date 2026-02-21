@@ -1,4 +1,4 @@
-# Rust-Sitter v0.7.0 Implementation Plan
+# Adze v0.7.0 Implementation Plan
 
 **Version**: v0.6.1-beta → v0.7.0
 **Target Release**: March 2026
@@ -138,7 +138,7 @@ Depends on Phase 2 for feature completeness.
 #### Monday-Tuesday: Design & API
 - [ ] Design subtree reuse algorithm
   - Read tree-sitter incremental parsing docs
-  - Design rust-sitter adaptation for GLR
+  - Design adze adaptation for GLR
   - Document algorithm in `docs/INCREMENTAL_DESIGN.md`
   - **Time**: 8 hours
 
@@ -604,7 +604,7 @@ Week 6 (CLI & Tests) ──────────┘
 ---
 
 **Last Updated**: November 15, 2025
-**Maintained By**: rust-sitter core team
+**Maintained By**: adze core team
 **Next Review**: Weekly during v0.7.0 development
 
 **Let's ship v0.7.0! 🚀**

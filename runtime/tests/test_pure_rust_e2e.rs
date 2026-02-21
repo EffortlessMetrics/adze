@@ -3,7 +3,7 @@
 #![cfg(test)]
 #![allow(unused_imports, dead_code)]
 
-use rust_sitter::pure_parser::{ExternalScanner, Parser, TSLanguage, TSLexState, TSParseAction};
+use adze::pure_parser::{ExternalScanner, Parser, TSLanguage, TSLexState, TSParseAction};
 use std::ptr;
 
 // Create a complete arithmetic language
@@ -327,7 +327,7 @@ fn test_arithmetic_parser_e2e() {
     }
 }
 
-fn print_tree(node: &rust_sitter::pure_parser::ParsedNode, depth: usize) {
+fn print_tree(node: &adze::pure_parser::ParsedNode, depth: usize) {
     let indent = "  ".repeat(depth);
     println!(
         "{}Symbol {}: byte range [{}, {}]",

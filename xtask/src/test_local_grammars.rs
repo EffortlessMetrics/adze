@@ -1,5 +1,5 @@
+use adze_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
 use anyhow::Result;
-use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
 
 pub fn test_local_grammars() -> Result<()> {
     println!("Testing local grammar files...\n");

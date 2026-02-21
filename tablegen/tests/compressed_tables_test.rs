@@ -1,8 +1,8 @@
 // Tests for compressed table generation
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::*;
-use rust_sitter_tablegen::{TableCompressor, abi_builder::AbiLanguageBuilder, helpers};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::*;
+use adze_tablegen::{TableCompressor, abi_builder::AbiLanguageBuilder, helpers};
 
 #[test]
 fn test_compressed_table_generation() {
@@ -79,9 +79,9 @@ fn test_compressed_table_generation() {
 
 #[test]
 fn test_table_compression_algorithms() {
-    use rust_sitter_glr_core::Action;
-    use rust_sitter_ir::{RuleId, StateId};
-    use rust_sitter_tablegen::compress::*;
+    use adze_glr_core::Action;
+    use adze_ir::{RuleId, StateId};
+    use adze_tablegen::compress::*;
 
     let compressor = TableCompressor::new();
 
@@ -106,8 +106,8 @@ fn test_table_compression_algorithms() {
 
 #[test]
 fn test_goto_table_compression() {
-    use rust_sitter_ir::StateId;
-    use rust_sitter_tablegen::compress::*;
+    use adze_ir::StateId;
+    use adze_tablegen::compress::*;
 
     let compressor = TableCompressor::new();
 

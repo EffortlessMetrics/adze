@@ -1,7 +1,7 @@
-# Rust-Sitter v0.5.0-beta Fixes Summary
+# Adze v0.5.0-beta Fixes Summary
 
 ## Overview
-This document summarizes the fixes applied to prepare rust-sitter v0.5.0-beta for release.
+This document summarizes the fixes applied to prepare adze v0.5.0-beta for release.
 
 ## Test Results Improvement
 
@@ -56,23 +56,23 @@ This document summarizes the fixes applied to prepare rust-sitter v0.5.0-beta fo
 ### Working Examples
 ```rust
 // Simple struct-based grammar
-#[rust_sitter::language]
+#[adze::language]
 pub struct Program {
-    #[rust_sitter::repeat]
+    #[adze::repeat]
     pub statements: Vec<Statement>,
 }
 
 // Basic enum for alternatives
-#[rust_sitter::language]
+#[adze::language]
 pub enum Statement {
     Assignment(Assignment),
     Expression(Expression),
 }
 
 // Token patterns
-#[rust_sitter::language]
+#[adze::language]
 pub struct Identifier {
-    #[rust_sitter::leaf(pattern = r"[a-zA-Z_]\w*")]
+    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
     pub name: (),
 }
 ```
@@ -80,16 +80,16 @@ pub struct Identifier {
 ### Not Yet Supported
 ```rust
 // Precedence declarations
-#[rust_sitter::prec_left(1)]
+#[adze::prec_left(1)]
 pub struct BinaryExpression { ... }
 
 // External scanners (full API)
-#[rust_sitter::external]
+#[adze::external]
 pub fn scan_indent(...) { ... }
 
 // Advanced features
-#[rust_sitter::word]
-#[rust_sitter::extras]
+#[adze::word]
+#[adze::extras]
 ```
 
 ## Release Readiness

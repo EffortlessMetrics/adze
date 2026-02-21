@@ -2,13 +2,13 @@
 //!
 //! This test runs the precedence case multiple times to detect non-determinism
 
-use rust_sitter_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
-use rust_sitter_ir::{
+use adze_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
+use adze_ir::{
     Grammar, ProductionId, Rule, Symbol, Token as IrToken, TokenPattern as IrTokenPattern,
 };
-use rust_sitter_runtime::language::SymbolMetadata;
-use rust_sitter_runtime::tokenizer::{Matcher, TokenPattern};
-use rust_sitter_runtime::{Parser, Tree};
+use adze_runtime::language::SymbolMetadata;
+use adze_runtime::tokenizer::{Matcher, TokenPattern};
+use adze_runtime::{Parser, Tree};
 
 fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec<TokenPattern>) {
     let mut grammar = Grammar::new("arithmetic".to_string());
@@ -65,8 +65,8 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(minus_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(1)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(1),
         fields: vec![],
     });
@@ -79,8 +79,8 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
             Symbol::Terminal(star_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(rust_sitter_ir::PrecedenceKind::Static(2)),
-        associativity: Some(rust_sitter_ir::Associativity::Left),
+        precedence: Some(adze_ir::PrecedenceKind::Static(2)),
+        associativity: Some(adze_ir::Associativity::Left),
         production_id: ProductionId(2),
         fields: vec![],
     });
@@ -138,7 +138,7 @@ fn create_arithmetic_grammar() -> (&'static ParseTable, Vec<SymbolMetadata>, Vec
     (table_static, symbol_metadata, token_patterns)
 }
 
-fn parse(input: &str) -> Result<Tree, rust_sitter_runtime::error::ParseError> {
+fn parse(input: &str) -> Result<Tree, adze_runtime::error::ParseError> {
     let (table, metadata, patterns) = create_arithmetic_grammar();
 
     let mut parser = Parser::new();
@@ -154,7 +154,7 @@ fn print_tree(tree: &Tree, prefix: &str) {
     print_node(&root, prefix, 0, tree.source_bytes().unwrap_or(b""));
 }
 
-fn print_node(node: &rust_sitter_runtime::node::Node, prefix: &str, depth: usize, source: &[u8]) {
+fn print_node(node: &adze_runtime::node::Node, prefix: &str, depth: usize, source: &[u8]) {
     let indent = "  ".repeat(depth);
     let range = node.byte_range();
     let text = std::str::from_utf8(&source[range.clone()]).unwrap_or("<invalid>");
@@ -242,7 +242,7 @@ fn main() {
     }
 }
 
-fn nodes_equal(n1: &rust_sitter_runtime::node::Node, n2: &rust_sitter_runtime::node::Node) -> bool {
+fn nodes_equal(n1: &adze_runtime::node::Node, n2: &adze_runtime::node::Node) -> bool {
     if n1.kind_id() != n2.kind_id() {
         return false;
     }

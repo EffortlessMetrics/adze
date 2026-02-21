@@ -1,11 +1,11 @@
 //! Lexer implementation and token processing.
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
-// Lexer implementation for the pure-Rust Tree-sitter runtime
+// Lexer implementation for the Adze runtime
 // This module provides lexical analysis capabilities
 
+use adze_ir::{SymbolId, TokenPattern};
 use regex::Regex;
-use rust_sitter_ir::{SymbolId, TokenPattern};
 use std::collections::HashMap;
 
 /// Advanced lexer that uses token patterns from the grammar

@@ -1,8 +1,8 @@
 //! This test fixture intentionally omits the index_to_symbol field to ensure compile-time errors
 //! This helps catch regressions where ParseTable initializers forget required fields
 
-use rust_sitter_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
-use rust_sitter_ir::{Grammar, StateId, SymbolId};
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, SymbolMetadata};
+use adze_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 fn main() {

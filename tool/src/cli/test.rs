@@ -26,7 +26,7 @@ pub fn run_tests(
     let corpus = corpus_path.unwrap_or(Path::new("corpus"));
 
     if parser_path.is_some() {
-        eprintln!("rust-sitter CLI v0.6.0 - Test Command");
+        eprintln!("adze CLI v0.6.0 - Test Command");
         eprintln!("=====================================");
         eprintln!();
         eprintln!("STATUS: Corpus testing with external parsers is not yet implemented.");
@@ -63,13 +63,13 @@ pub fn run_tests(
         eprintln!("  - Tree-sitter compatible corpus testing");
         eprintln!("  - Automatic test generation from corpus files");
         eprintln!();
-        eprintln!("For updates, see: https://github.com/EffortlessMetrics/rust-sitter");
+        eprintln!("For updates, see: https://github.com/EffortlessMetrics/adze");
 
         std::process::exit(64); // EX_USAGE
     }
 
     if !corpus.exists() {
-        eprintln!("rust-sitter test - Corpus directory not found");
+        eprintln!("adze test - Corpus directory not found");
         eprintln!("=============================================");
         eprintln!();
         eprintln!("Looking for corpus at: {:?}", corpus);
@@ -97,7 +97,7 @@ pub fn run_tests(
     }
 
     // Basic corpus validation only (no actual parsing)
-    println!("rust-sitter test - Validating corpus format");
+    println!("adze test - Validating corpus format");
     println!("===========================================");
     println!();
     println!("Checking corpus at: {:?}", corpus);

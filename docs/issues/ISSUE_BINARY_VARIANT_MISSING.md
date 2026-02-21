@@ -19,14 +19,14 @@ The `ambiguous_expr.rs` grammar's Binary variant is completely missing from the 
 ### Source Definition (Correct)
 ```rust
 // example/src/ambiguous_expr.rs
-#[rust_sitter::language]
+#[adze::language]
 pub enum Expr {
     Binary(
         Box<Expr>,
-        #[rust_sitter::leaf(pattern = r"[-+*/]")] String,
+        #[adze::leaf(pattern = r"[-+*/]")] String,
         Box<Expr>,
     ),
-    Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+    Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
 }
 ```
 
@@ -180,12 +180,12 @@ The Binary variant is being partially processed:
 
 2. Examine generated grammar:
    ```bash
-   cat target/debug/build/rust-sitter-example-*/out/grammar_ambiguous_expr/grammar.ir.json
+   cat target/debug/build/adze-example-*/out/grammar_ambiguous_expr/grammar.ir.json
    ```
 
 3. Run E2E tests:
    ```bash
-   cd /home/user/rust-sitter
+   cd /home/user/adze
    cargo test --manifest-path runtime/Cargo.toml --features glr --test test_e2e_ambiguous_grammar_glr -- --nocapture
    ```
 

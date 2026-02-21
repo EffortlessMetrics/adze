@@ -9,9 +9,9 @@ use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
+use adze_glr_core::{Action, ParseRule, ParseTable};
+use adze_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use anyhow::{Result, anyhow, bail};
-use rust_sitter_glr_core::{Action, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use std::collections::HashSet;
 use std::rc::Rc;
 
@@ -432,7 +432,7 @@ impl Parser {
             // PROBLEM: All grammars with custom lexers (transform functions) fall back
             // to this broken path. The "type conversion not yet implemented safely"
             // means NO REAL PARSING HAPPENS for grammars like:
-            //   #[rust_sitter::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
+            //   #[adze::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
             //
             // IMPACT:
             // - Python grammar can't parse numbers, strings, or identifiers
@@ -1878,15 +1878,15 @@ mod tests {
         let mut grammar = Grammar::new("test_python".to_string());
 
         // Add external tokens
-        grammar.externals.push(rust_sitter_ir::ExternalToken {
+        grammar.externals.push(adze_ir::ExternalToken {
             name: "NEWLINE".to_string(),
             symbol_id: SymbolId(100),
         });
-        grammar.externals.push(rust_sitter_ir::ExternalToken {
+        grammar.externals.push(adze_ir::ExternalToken {
             name: "INDENT".to_string(),
             symbol_id: SymbolId(101),
         });
-        grammar.externals.push(rust_sitter_ir::ExternalToken {
+        grammar.externals.push(adze_ir::ExternalToken {
             name: "DEDENT".to_string(),
             symbol_id: SymbolId(102),
         });
@@ -1903,7 +1903,7 @@ mod tests {
             external_scanner_states: vec![],
             rules: vec![],
             nonterminal_to_index: std::collections::BTreeMap::new(),
-            goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+            goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
             eof_symbol: SymbolId(0),
             start_symbol: SymbolId(1),
             grammar: Grammar::default(),

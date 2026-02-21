@@ -1,9 +1,9 @@
-// Integration tests for rust-sitter example grammars
+// Integration tests for adze example grammars
 // These tests demonstrate real-world usage of macro-based grammars
 
 #[test]
 fn test_arithmetic_simple_numbers() {
-    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
+    use adze_example::arithmetic::grammar::{Expression, parse};
 
     // Test simple number parsing
     let result = parse("42");
@@ -19,7 +19,7 @@ fn test_arithmetic_simple_numbers() {
 
 #[test]
 fn test_arithmetic_subtraction() {
-    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
+    use adze_example::arithmetic::grammar::{Expression, parse};
 
     // Test simple subtraction
     let result = parse("10 - 5");
@@ -60,7 +60,7 @@ fn test_arithmetic_subtraction() {
 
 #[test]
 fn test_arithmetic_multiplication() {
-    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
+    use adze_example::arithmetic::grammar::{Expression, parse};
 
     // Test simple multiplication
     let result = parse("3 * 4");
@@ -80,7 +80,7 @@ fn test_arithmetic_multiplication() {
 
 #[test]
 fn test_arithmetic_precedence() {
-    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
+    use adze_example::arithmetic::grammar::{Expression, parse};
 
     // Test precedence: "1 - 2 * 3" should parse as "1 - (2 * 3)"
     // Multiplication has higher precedence than subtraction
@@ -133,7 +133,7 @@ fn test_arithmetic_precedence() {
 
 #[test]
 fn test_arithmetic_whitespace() {
-    use rust_sitter_example::arithmetic::grammar::{Expression, parse};
+    use adze_example::arithmetic::grammar::{Expression, parse};
 
     // Test with no whitespace
     let result = parse("1-2");
@@ -150,7 +150,7 @@ fn test_arithmetic_whitespace() {
 
 #[test]
 fn test_arithmetic_error_handling() {
-    use rust_sitter_example::arithmetic::grammar::parse;
+    use adze_example::arithmetic::grammar::parse;
 
     // Test invalid operators
     let result = parse("++");
@@ -172,7 +172,7 @@ mod bench {
     #[test]
     #[ignore] // Run with cargo test -- --ignored
     fn bench_deep_subtraction_tree() {
-        use rust_sitter_example::arithmetic::grammar::parse;
+        use adze_example::arithmetic::grammar::parse;
 
         // Generate large expression: "1 - 2 - 3 - ... - 100"
         // This creates a deep left-associative tree
@@ -199,7 +199,7 @@ mod bench {
     #[test]
     #[ignore] // Run with cargo test -- --ignored
     fn bench_complex_precedence() {
-        use rust_sitter_example::arithmetic::grammar::parse;
+        use adze_example::arithmetic::grammar::parse;
 
         // Generate expression with many precedence levels
         // Pattern: "1 - 2 * 3 - 4 * 5 - 6 * 7 ..."

@@ -1,11 +1,11 @@
 # Testing Guide
 
-rust-sitter uses a comprehensive testing strategy combining multiple test types to ensure parser correctness, performance, and compatibility. This guide covers all testing approaches used in the project.
+adze uses a comprehensive testing strategy combining multiple test types to ensure parser correctness, performance, and compatibility. This guide covers all testing approaches used in the project.
 
 ## Test Architecture Overview
 
 ```
-rust-sitter testing ecosystem:
+adze testing ecosystem:
 ├── Unit Tests           # Individual component testing
 ├── Integration Tests    # Cross-component workflow testing  
 ├── Golden Tests        # Tree-sitter compatibility verification
@@ -69,13 +69,13 @@ Unit tests focus on individual functions and modules:
 cargo test
 
 # Run tests for specific components
-cargo test -p rust-sitter-glr-core
-cargo test -p rust-sitter-tablegen
-cargo test -p rust-sitter
+cargo test -p adze-glr-core
+cargo test -p adze-tablegen
+cargo test -p adze
 
 # Run tests with specific features
-cargo test -p rust-sitter --features glr-core
-cargo test -p rust-sitter --features incremental
+cargo test -p adze --features glr-core
+cargo test -p adze --features incremental
 ```
 
 ### Test Categories
@@ -83,25 +83,25 @@ cargo test -p rust-sitter --features incremental
 **Parser Core Tests:**
 ```bash
 # GLR parsing engine
-cargo test -p rust-sitter-glr-core
+cargo test -p adze-glr-core
 
 # Table generation and compression
-cargo test -p rust-sitter-tablegen
+cargo test -p adze-tablegen
 
 # Runtime parsing functionality
-cargo test -p rust-sitter test_parse
+cargo test -p adze test_parse
 ```
 
 **Grammar Processing Tests:**
 ```bash
 # Grammar extraction from Rust code
-cargo test -p rust-sitter-tool
+cargo test -p adze-tool
 
 # Macro expansion and attribute processing
-cargo test -p rust-sitter-macro
+cargo test -p adze-macro
 
 # Common utilities and shared logic
-cargo test -p rust-sitter-common
+cargo test -p adze-common
 ```
 
 ## Integration Tests: Workflow Validation
@@ -270,7 +270,7 @@ cargo test test_external_lexer_eof
 cargo test test_external_lexer_included_range_start
 
 # Run runtime tests with external lexer integration
-cargo test -p rust-sitter --features all-features
+cargo test -p adze --features all-features
 ```
 
 ### Integration Testing
@@ -347,7 +347,7 @@ cargo bench -- --output-format html
 fn bench_python_large_file(b: &mut Bencher) {
     let source = load_large_python_file();
     b.iter(|| {
-        rust_sitter_python::parse(&source)
+        adze_python::parse(&source)
     });
 }
 ```
@@ -400,7 +400,7 @@ cargo fuzz run fuzz_glr_conflicts
 ```rust
 fuzz_target!(|data: &[u8]| {
     if let Ok(source) = std::str::from_utf8(data) {
-        let _ = rust_sitter_python::parse(source);
+        let _ = adze_python::parse(source);
         // Should never crash, even on invalid input
     }
 });
@@ -420,7 +420,7 @@ fuzz_target!(|edits: Vec<Edit>| {
 
 ## Concurrency-Safe Testing
 
-rust-sitter implements concurrency caps to ensure stable testing:
+adze implements concurrency caps to ensure stable testing:
 
 ```bash
 # Use concurrency-capped test commands
@@ -486,7 +486,7 @@ jobs:
 
 ### Test Connectivity Safeguards
 
-rust-sitter includes multiple layers of protection against test disconnection:
+adze includes multiple layers of protection against test disconnection:
 
 **CI Test Connectivity Job:**
 - Blocks commits containing `.rs.disabled` files
@@ -589,4 +589,4 @@ fn test_independent_parsing() {
 - **Read [Contributing Guide](contributing.md)** for development workflows
 - **See [Performance Guide](../guide/performance.md)** for optimization strategies
 
-A robust testing strategy ensures rust-sitter remains reliable, performant, and compatible with Tree-sitter's reference implementations across all supported use cases.
+A robust testing strategy ensures adze remains reliable, performant, and compatible with Tree-sitter's reference implementations across all supported use cases.

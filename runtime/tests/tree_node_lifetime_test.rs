@@ -10,8 +10,7 @@
 //! - Implement Node<'arena> wrapper for arena-allocated nodes
 //! - Implement Tree::root_node() and Node accessors
 
-use rust_sitter::arena_allocator::{NodeHandle, TreeArena};
-use rust_sitter::tree_node_data::TreeNodeData;
+use adze::arena_allocator::{TreeArena, TreeNode};
 
 // These types will be implemented during Day 4
 // For now, tests are structured to define the contract
@@ -25,11 +24,10 @@ fn spec_1_node_creation() {
     // Node should provide access to underlying TreeNodeData
 
     let mut arena = TreeArena::new();
-    let data = TreeNodeData::leaf(42, 10, 20);
-    let handle = arena.alloc(data);
+    let _handle = arena.alloc(TreeNode::leaf(42));
 
     // TODO: Uncomment when Node is implemented
-    // let node = Node::new(handle, &arena);
+    // let node = Node::new(_handle, &arena);
     //
     // assert_eq!(node.symbol(), 42);
     // assert_eq!(node.byte_range(), (10, 20));
@@ -43,7 +41,7 @@ fn spec_1_node_size() {
 
     // TODO: Uncomment when Node is implemented
     // use std::mem::size_of;
-    // use rust_sitter::node::Node;
+    // use adze::node::Node;
     //
     // assert_eq!(size_of::<Node>(), 16);
 }
@@ -57,10 +55,10 @@ fn spec_2_node_is_copy() {
     // Node should implement Copy (no clone required)
 
     let mut arena = TreeArena::new();
-    let handle = arena.alloc(TreeNodeData::leaf(1, 0, 10));
+    let _handle = arena.alloc(TreeNode::leaf(1));
 
     // TODO: Uncomment when Node is implemented
-    // let node1 = Node::new(handle, &arena);
+    // let node1 = Node::new(_handle, &arena);
     // let node2 = node1; // Copy, not move
     //
     // // Both usable
@@ -79,15 +77,14 @@ fn spec_3_child_access() {
     let mut arena = TreeArena::new();
 
     // Create children
-    let child1 = arena.alloc(TreeNodeData::leaf(1, 0, 5));
-    let child2 = arena.alloc(TreeNodeData::leaf(2, 5, 10));
+    let child1 = arena.alloc(TreeNode::leaf(1));
+    let child2 = arena.alloc(TreeNode::leaf(2));
 
     // Create parent
-    let parent_data = TreeNodeData::branch(10, 0, 10, vec![child1, child2]);
-    let parent_handle = arena.alloc(parent_data);
+    let _parent_handle = arena.alloc(TreeNode::branch(vec![child1, child2]));
 
     // TODO: Uncomment when Node is implemented
-    // let parent = Node::new(parent_handle, &arena);
+    // let parent = Node::new(_parent_handle, &arena);
     //
     // // Test child access
     // assert_eq!(parent.child_count(), 2);
@@ -107,12 +104,11 @@ fn spec_3_child_bounds_checking() {
     // child() should return None for out-of-bounds indices
 
     let mut arena = TreeArena::new();
-    let child1 = arena.alloc(TreeNodeData::leaf(1, 0, 5));
-    let parent_data = TreeNodeData::branch(10, 0, 5, vec![child1]);
-    let parent_handle = arena.alloc(parent_data);
+    let child1 = arena.alloc(TreeNode::leaf(1));
+    let _parent_handle = arena.alloc(TreeNode::branch(vec![child1]));
 
     // TODO: Uncomment when Node is implemented
-    // let parent = Node::new(parent_handle, &arena);
+    // let parent = Node::new(_parent_handle, &arena);
     //
     // assert!(parent.child(0).is_some());
     // assert!(parent.child(1).is_none());
@@ -129,21 +125,17 @@ fn spec_4_named_children() {
 
     let mut arena = TreeArena::new();
 
-    // Named child (is_named flag set)
-    let mut named = TreeNodeData::leaf(1, 0, 5);
-    named.set_named(true);
-    let named_handle = arena.alloc(named);
+    // Named child
+    let named_handle = arena.alloc(TreeNode::leaf(1));
 
     // Anonymous child
-    let anon = TreeNodeData::leaf(2, 5, 6);
-    let anon_handle = arena.alloc(anon);
+    let anon_handle = arena.alloc(TreeNode::leaf(2));
 
     // Parent with both
-    let parent_data = TreeNodeData::branch(10, 0, 6, vec![named_handle, anon_handle]);
-    let parent_handle = arena.alloc(parent_data);
+    let _parent_handle = arena.alloc(TreeNode::branch(vec![named_handle, anon_handle]));
 
     // TODO: Uncomment when Node is implemented
-    // let parent = Node::new(parent_handle, &arena);
+    // let parent = Node::new(_parent_handle, &arena);
     //
     // assert_eq!(parent.child_count(), 2);
     // assert_eq!(parent.named_child_count(), 1);
@@ -162,23 +154,18 @@ fn spec_4_named_children_iterator() {
 
     let mut arena = TreeArena::new();
 
-    let mut named1 = TreeNodeData::leaf(1, 0, 5);
-    named1.set_named(true);
-    let named1_handle = arena.alloc(named1);
+    let named1_handle = arena.alloc(TreeNode::leaf(1));
+    let anon_handle = arena.alloc(TreeNode::leaf(2));
+    let named2_handle = arena.alloc(TreeNode::leaf(3));
 
-    let anon = TreeNodeData::leaf(2, 5, 6);
-    let anon_handle = arena.alloc(anon);
-
-    let mut named2 = TreeNodeData::leaf(3, 6, 10);
-    named2.set_named(true);
-    let named2_handle = arena.alloc(named2);
-
-    let parent_data =
-        TreeNodeData::branch(10, 0, 10, vec![named1_handle, anon_handle, named2_handle]);
-    let parent_handle = arena.alloc(parent_data);
+    let _parent_handle = arena.alloc(TreeNode::branch(vec![
+        named1_handle,
+        anon_handle,
+        named2_handle,
+    ]));
 
     // TODO: Uncomment when Node is implemented
-    // let parent = Node::new(parent_handle, &arena);
+    // let parent = Node::new(_parent_handle, &arena);
     //
     // let named: Vec<_> = parent.named_children().collect();
     // assert_eq!(named.len(), 2);
@@ -195,17 +182,10 @@ fn spec_5_node_flags() {
     // Flag accessor methods should reflect TreeNodeData state
 
     let mut arena = TreeArena::new();
-
-    let mut data = TreeNodeData::leaf(1, 0, 10);
-    data.set_named(true);
-    data.set_missing(true);
-    data.set_extra(false);
-    data.set_has_error(true);
-
-    let handle = arena.alloc(data);
+    let _handle = arena.alloc(TreeNode::leaf(1));
 
     // TODO: Uncomment when Node is implemented
-    // let node = Node::new(handle, &arena);
+    // let node = Node::new(_handle, &arena);
     //
     // assert!(node.is_named());
     // assert!(node.is_missing());
@@ -218,11 +198,10 @@ fn spec_5_all_flags_false() {
     // Default flags should all be false
 
     let mut arena = TreeArena::new();
-    let data = TreeNodeData::leaf(1, 0, 10);
-    let handle = arena.alloc(data);
+    let _handle = arena.alloc(TreeNode::leaf(1));
 
     // TODO: Uncomment when Node is implemented
-    // let node = Node::new(handle, &arena);
+    // let node = Node::new(_handle, &arena);
     //
     // assert!(!node.is_named());
     // assert!(!node.is_missing());
@@ -239,11 +218,10 @@ fn spec_6_data_access() {
     // node.data() should return reference to underlying TreeNodeData
 
     let mut arena = TreeArena::new();
-    let data = TreeNodeData::leaf(42, 100, 200);
-    let handle = arena.alloc(data);
+    let _handle = arena.alloc(TreeNode::leaf(42));
 
     // TODO: Uncomment when Node is implemented
-    // let node = Node::new(handle, &arena);
+    // let node = Node::new(_handle, &arena);
     // let retrieved_data = node.data();
     //
     // assert_eq!(retrieved_data.symbol(), 42);
@@ -259,10 +237,10 @@ fn tree_lifetime_parameter() {
     // Tree should have 'arena lifetime parameter
 
     // TODO: Uncomment when Tree<'arena> is implemented
-    // use rust_sitter::parser_v4::Tree;
+    // use adze::parser_v4::Tree;
     //
     // let mut arena = TreeArena::new();
-    // let root = arena.alloc(TreeNodeData::leaf(1, 0, 10));
+    // let root = arena.alloc(TreeNode::leaf(1));
     //
     // let tree = Tree {
     //     root,
@@ -279,11 +257,10 @@ fn tree_root_node() {
     // Tree::root_node() should return Node<'arena>
 
     // TODO: Uncomment when Tree<'arena> and Node are implemented
-    // use rust_sitter::parser_v4::Tree;
+    // use adze::parser_v4::Tree;
     //
     // let mut arena = TreeArena::new();
-    // let root_data = TreeNodeData::leaf(42, 0, 100);
-    // let root_handle = arena.alloc(root_data);
+    // let root_handle = arena.alloc(TreeNode::leaf(42));
     //
     // let tree = Tree {
     //     root: root_handle,
@@ -301,12 +278,12 @@ fn tree_get_node() {
     // Tree::get_node(handle) should return Node<'arena>
 
     // TODO: Uncomment when Tree<'arena> and Node are implemented
-    // use rust_sitter::parser_v4::Tree;
+    // use adze::parser_v4::Tree;
     //
     // let mut arena = TreeArena::new();
     //
-    // let child = arena.alloc(TreeNodeData::leaf(5, 0, 10));
-    // let root = arena.alloc(TreeNodeData::branch(10, 0, 10, vec![child]));
+    // let child = arena.alloc(TreeNode::leaf(5));
+    // let root = arena.alloc(TreeNode::branch(vec![child]));
     //
     // let tree = Tree {
     //     root,
@@ -327,13 +304,12 @@ fn children_iterator_lazy() {
     // children() iterator should be lazy (not allocate until consumed)
 
     let mut arena = TreeArena::new();
-    let child1 = arena.alloc(TreeNodeData::leaf(1, 0, 5));
-    let child2 = arena.alloc(TreeNodeData::leaf(2, 5, 10));
-    let parent_data = TreeNodeData::branch(10, 0, 10, vec![child1, child2]);
-    let parent_handle = arena.alloc(parent_data);
+    let child1 = arena.alloc(TreeNode::leaf(1));
+    let child2 = arena.alloc(TreeNode::leaf(2));
+    let _parent_handle = arena.alloc(TreeNode::branch(vec![child1, child2]));
 
     // TODO: Uncomment when Node is implemented
-    // let parent = Node::new(parent_handle, &arena);
+    // let parent = Node::new(_parent_handle, &arena);
     //
     // // Creating iterator shouldn't allocate
     // let iter = parent.children();
@@ -348,13 +324,12 @@ fn children_iterator_exactsizeiterator() {
     // NodeChildren should implement ExactSizeIterator
 
     let mut arena = TreeArena::new();
-    let child1 = arena.alloc(TreeNodeData::leaf(1, 0, 5));
-    let child2 = arena.alloc(TreeNodeData::leaf(2, 5, 10));
-    let parent_data = TreeNodeData::branch(10, 0, 10, vec![child1, child2]);
-    let parent_handle = arena.alloc(parent_data);
+    let child1 = arena.alloc(TreeNode::leaf(1));
+    let child2 = arena.alloc(TreeNode::leaf(2));
+    let _parent_handle = arena.alloc(TreeNode::branch(vec![child1, child2]));
 
     // TODO: Uncomment when Node is implemented
-    // let parent = Node::new(parent_handle, &arena);
+    // let parent = Node::new(_parent_handle, &arena);
     // let iter = parent.children();
     //
     // assert_eq!(iter.len(), 2);
@@ -371,11 +346,11 @@ fn lifetime_safety_compiles() {
     // This pattern is safe and should compile
 
     let mut arena = TreeArena::new();
-    let handle = arena.alloc(TreeNodeData::leaf(1, 0, 10));
+    let _handle = arena.alloc(TreeNode::leaf(1));
 
     // TODO: Uncomment when Node is implemented
     // {
-    //     let node = Node::new(handle, &arena);
+    //     let node = Node::new(_handle, &arena);
     //     let _ = node.symbol(); // Use node while arena is alive
     // } // node dropped here
     // // arena still alive
@@ -390,7 +365,7 @@ fn lifetime_safety_compiles() {
 fn lifetime_safety_prevents_use_after_free() {
     let node = {
         let mut arena = TreeArena::new();
-        let handle = arena.alloc(TreeNodeData::leaf(1, 0, 10));
+        let handle = arena.alloc(TreeNode::leaf(1));
         Node::new(handle, &arena)
     }; // arena dropped here
 

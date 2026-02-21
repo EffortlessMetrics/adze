@@ -1,8 +1,8 @@
 //! Test case: Grammar without a start symbol should fail
 
-#[rust_sitter::grammar("test")]
+#[adze::grammar("test")]
 pub struct Grammar {
-    // Missing #[rust_sitter::language] attribute
+    // Missing #[adze::language] attribute
     pub expr: Expr,
 }
 

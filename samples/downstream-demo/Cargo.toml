@@ -6,6 +6,6 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-rust-sitter-ir = { path = "../../ir" }
-rust-sitter-glr-core = { path = "../../glr-core" }
-rust-sitter-tablegen = { path = "../../tablegen" }
+adze-ir = { path = "../../ir" }
+adze-glr-core = { path = "../../glr-core" }
+adze-tablegen = { path = "../../tablegen" }

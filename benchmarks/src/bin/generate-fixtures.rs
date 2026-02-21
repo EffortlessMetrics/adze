@@ -8,11 +8,11 @@
 //! Fixtures are written to benchmarks/fixtures/ and validated with
 //! reference parsers (python3, node).
 
-use rust_sitter_benchmarks::fixtures::FixtureGenerator;
+use adze_benchmarks::fixtures::FixtureGenerator;
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("rust-sitter Fixture Generator");
+    println!("adze Fixture Generator");
     println!("==============================\n");
 
     // Determine output directory (benchmarks/fixtures/)

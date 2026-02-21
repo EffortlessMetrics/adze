@@ -44,7 +44,7 @@ This specification defines the `.parsetable` binary file format for distributing
 ### Field Definitions
 
 #### 1. Magic Number (4 bytes, offset 0x00)
-- **Value**: ASCII "RSPT" (Rust Sitter Parse Table)
+- **Value**: ASCII "RSPT" (Adze Parse Table)
 - **Bytes**: `0x52 0x53 0x50 0x54`
 - **Purpose**: File type identification
 
@@ -223,7 +223,7 @@ python-3.12.0-x86_64-unknown-linux-gnu.parsetable
 ### 1. Generation (Build Time)
 
 ```rust
-use rust_sitter_tablegen::generate_parsetable_file;
+use adze_tablegen::generate_parsetable_file;
 
 // In build.rs
 fn main() {
@@ -237,7 +237,7 @@ fn main() {
 ### 2. Loading (Runtime)
 
 ```rust
-use rust_sitter::Parser;
+use adze::Parser;
 
 let parser = Parser::from_parsetable_file(
     "python-3.12.0.parsetable"
@@ -249,7 +249,7 @@ parser.parse(source_code)?;
 ### 3. Verification (Runtime)
 
 ```rust
-use rust_sitter::verify_parsetable;
+use adze::verify_parsetable;
 
 verify_parsetable(
     "python-3.12.0.parsetable",

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document details the performance optimizations implemented in rust-sitter v0.6.0, focusing on GLR parser efficiency, memory management, and parse tree construction.
+This document details the performance optimizations implemented in adze v0.6.0, focusing on GLR parser efficiency, memory management, and parse tree construction.
 
 ## Key Optimizations
 
@@ -125,8 +125,8 @@ Optimized for cache efficiency:
 Optimizations are enabled by default. To tune for specific workloads:
 
 ```rust
-use rust_sitter::stack_pool::{StackPool, init_thread_local_pool};
-use rust_sitter::arena_allocator::Arena;
+use adze::stack_pool::{StackPool, init_thread_local_pool};
+use adze::arena_allocator::Arena;
 
 // Initialize with custom pool size
 init_thread_local_pool(128);  // Larger pool for highly ambiguous grammars

@@ -52,8 +52,8 @@ All notable changes to this project will be documented in this file.
 
 #### CLI Functionality (MEDIUM PRIORITY)
 - [ ] Dynamic parser loading from shared libraries
-- [ ] `rust-sitter parse` command fully functional
-- [ ] `rust-sitter test` runs corpus tests
+- [ ] `adze parse` command fully functional
+- [ ] `adze test` runs corpus tests
 - [ ] Clear error messages and helpful output
 
 #### Documentation (HIGH PRIORITY)
@@ -101,7 +101,7 @@ All notable changes to this project will be documented in this file.
 - **LSP Generator**: Complete grammar loading infrastructure for automatic language server generation
   - `load_grammar()` function with streaming JSON deserialization for memory efficiency
   - Security hardening: 10MB file size limits, buffered I/O, comprehensive input validation  
-  - Production-ready LSP server generation from rust-sitter grammars
+  - Production-ready LSP server generation from adze grammars
   - Full Builder API with fluent configuration: completion, hover, diagnostics support
   - Comprehensive test coverage with 6 test scenarios covering all error conditions
   - Documentation updates with complete API reference and usage examples
@@ -253,7 +253,7 @@ This release delivers a production-ready GLR parser with comprehensive safety im
 
 ### 🎉 GLR Parser Implementation Complete
 
-This release marks a major milestone: rust-sitter now features a **true GLR (Generalized LR) parser** capable of handling inherently ambiguous grammars without manual conflict resolution.
+This release marks a major milestone: adze now features a **true GLR (Generalized LR) parser** capable of handling inherently ambiguous grammars without manual conflict resolution.
 
 ### ✨ Added
 
@@ -293,7 +293,7 @@ This release marks a major milestone: rust-sitter now features a **true GLR (Gen
 
 ## [1.0.0] - 2025-08-04
 
-This is the first stable, production-ready release of `rust-sitter`. It marks the culmination of a major architectural overhaul to deliver a pure-Rust, high-performance, and robust parsing framework with full Tree-sitter compatibility.
+This is the first stable, production-ready release of `adze`. It marks the culmination of a major architectural overhaul to deliver a pure-Rust, high-performance, and robust parsing framework with full Tree-sitter compatibility.
 
 ### ✨ Added
 
@@ -309,7 +309,7 @@ This is the first stable, production-ready release of `rust-sitter`. It marks th
 ### 🐛 Fixed
 
 - **UTF-8 Safety**: Fixed a critical bug found by the fuzzer where the lexer would panic on invalid UTF-8 input. The lexer is now fully UTF-8 safe.
-- **Binary Name Collision**: Resolved the name collision between `rust-sitter-tool` and `rust-sitter-cli`.
+- **Binary Name Collision**: Resolved the name collision between `adze-tool` and `adze-cli`.
 - **All Known Test Failures**: The entire workspace test suite, including snapshot and integration tests, is now 100% green.
 
 ### ⚠️ Breaking Changes
@@ -340,7 +340,7 @@ This release completes a major architectural refactoring that improves performan
 ### Fixed
 
 - **All Test Failures**: Complete test suite now passes (0 failures)
-- **Binary Name Collision**: Resolved between rust-sitter-tool and rust-sitter-cli
+- **Binary Name Collision**: Resolved between adze-tool and adze-cli
 - **Compilation Errors**: Fixed over 100 compilation errors across the workspace
 - **FOLLOW Set Computation**: Corrected for recursive and empty productions
 - **Error Recovery Tests**: Updated to match new API
@@ -363,7 +363,7 @@ This release completes a major architectural refactoring that improves performan
 
 ### 🚀 Major Architectural Improvements
 
-This beta release represents a significant evolution of rust-sitter with GLR parsing support, enhanced error recovery, and a stabilized codebase ready for production use.
+This beta release represents a significant evolution of adze with GLR parsing support, enhanced error recovery, and a stabilized codebase ready for production use.
 
 ### Added
 

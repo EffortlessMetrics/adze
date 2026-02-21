@@ -3,8 +3,8 @@
 #[cfg(feature = "test-helpers")]
 #[test]
 fn extras_marked_correctly_in_parse_table() {
-    use rust_sitter_glr_core::ParseTable;
-    use rust_sitter_ir::SymbolId;
+    use adze_glr_core::ParseTable;
+    use adze_ir::SymbolId;
 
     // Create a minimal parse table
     let mut table = ParseTable {
@@ -18,11 +18,11 @@ fn extras_marked_correctly_in_parse_table() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: Default::default(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(100),
         grammar: Default::default(),
-        initial_state: rust_sitter_ir::StateId(0),
+        initial_state: adze_ir::StateId(0),
         token_count: 3,
         external_token_count: 0,
         lex_modes: vec![],
@@ -70,8 +70,8 @@ fn extras_marked_correctly_in_parse_table() {
 #[cfg(feature = "test-helpers")]
 #[test]
 fn external_tokens_within_insertion_range() {
-    use rust_sitter_glr_core::ParseTable;
-    use rust_sitter_ir::SymbolId;
+    use adze_glr_core::ParseTable;
+    use adze_ir::SymbolId;
 
     // Create a parse table with external tokens
     let mut table = ParseTable {
@@ -85,11 +85,11 @@ fn external_tokens_within_insertion_range() {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: Default::default(),
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(3), // EOF must be after all terminals
         start_symbol: SymbolId(100),
         grammar: Default::default(),
-        initial_state: rust_sitter_ir::StateId(0),
+        initial_state: adze_ir::StateId(0),
         token_count: 2,          // Regular tokens: 0, 1
         external_token_count: 1, // External token: 2
         lex_modes: vec![],

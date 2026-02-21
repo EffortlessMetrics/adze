@@ -1,10 +1,10 @@
 # LSP Server Generation
 
-This guide covers how to generate Language Server Protocol (LSP) servers from your rust-sitter grammars, including the enhanced hover functionality introduced in v0.6.1.
+This guide covers how to generate Language Server Protocol (LSP) servers from your adze grammars, including the enhanced hover functionality introduced in v0.6.1.
 
 ## Overview
 
-The rust-sitter LSP generator automatically creates fully-featured language servers with:
+The adze LSP generator automatically creates fully-featured language servers with:
 
 - **Hover Information**: Contextual documentation and help
 - **Syntax Highlighting**: Token-based and semantic highlighting
@@ -17,8 +17,8 @@ The rust-sitter LSP generator automatically creates fully-featured language serv
 ### Basic LSP Generation
 
 ```rust
-use rust_sitter_lsp_generator::{LspConfig, generate_lsp};
-use rust_sitter_lsp_generator::features::{HoverProvider, CompletionProvider, DiagnosticsProvider};
+use adze_lsp_generator::{LspConfig, generate_lsp};
+use adze_lsp_generator::features::{HoverProvider, CompletionProvider, DiagnosticsProvider};
 
 // Configure LSP features
 let config = LspConfig::builder()
@@ -104,7 +104,7 @@ let hover_provider = HoverProvider::new(&grammar)
 ### HoverProvider
 
 ```rust
-use rust_sitter_lsp_generator::features::HoverProvider;
+use adze_lsp_generator::features::HoverProvider;
 
 let hover_provider = HoverProvider::new(&grammar);
 
@@ -118,7 +118,7 @@ let hover_provider = HoverProvider::new(&grammar);
 ### CompletionProvider
 
 ```rust
-use rust_sitter_lsp_generator::features::CompletionProvider;
+use adze_lsp_generator::features::CompletionProvider;
 
 let completion_provider = CompletionProvider::new(&grammar);
 
@@ -131,7 +131,7 @@ let completion_provider = CompletionProvider::new(&grammar);
 ### DiagnosticsProvider
 
 ```rust
-use rust_sitter_lsp_generator::features::DiagnosticsProvider;
+use adze_lsp_generator::features::DiagnosticsProvider;
 
 let diagnostics_provider = DiagnosticsProvider::new(&grammar);
 
@@ -269,7 +269,7 @@ echo '{"jsonrpc":"2.0","id":2,"method":"textDocument/hover","params":{"textDocum
 ### Custom Feature Development
 
 ```rust
-use rust_sitter_lsp_generator::LspFeature;
+use adze_lsp_generator::LspFeature;
 
 pub struct CustomFeature {
     // Custom implementation
@@ -328,12 +328,12 @@ let config = LspConfig::builder()
 RUST_LOG=debug my-language-lsp --stdio
 
 # Enable performance monitoring  
-RUST_SITTER_LOG_PERFORMANCE=true my-language-lsp --stdio
+ADZE_LOG_PERFORMANCE=true my-language-lsp --stdio
 ```
 
 ## Next Steps
 
 - Explore the [LSP Generator documentation](../LSP_GENERATOR.md) for complete API reference
 - Check out [API Documentation](../API_DOCUMENTATION.md) for detailed function signatures
-- Review [examples](https://github.com/rust-sitter/examples) for real-world LSP implementations
+- Review [examples](https://github.com/adze/examples) for real-world LSP implementations
 - Learn about [advanced LSP features](../advanced/lsp-advanced.md) like semantic tokens and code actions

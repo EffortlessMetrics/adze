@@ -2,13 +2,13 @@
 
 **Status**: Proposed
 **Date**: 2025-01-20
-**Authors**: rust-sitter maintainers
+**Authors**: adze maintainers
 **Supersedes**: None
 **Related**: v0.8.0 Performance Contract, Benchmarking Infrastructure
 
 ## Context
 
-Current parse tree construction in rust-sitter allocates each tree node individually using `Box<TreeNode>` or similar heap allocations. For a large parse tree with thousands of nodes, this results in:
+Current parse tree construction in adze allocates each tree node individually using `Box<TreeNode>` or similar heap allocations. For a large parse tree with thousands of nodes, this results in:
 
 - **High allocation overhead**: Each node requires a separate `malloc()` call
 - **Poor cache locality**: Nodes scattered across the heap

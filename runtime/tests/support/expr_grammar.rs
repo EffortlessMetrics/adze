@@ -1,4 +1,4 @@
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };

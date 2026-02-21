@@ -1,4 +1,4 @@
-# Rust-Sitter Performance Baseline
+# Adze Performance Baseline
 
 **Version**: v0.6.1-beta
 **Date**: 2025-11-20
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This document establishes the performance baseline for rust-sitter's GLR parser implementation based on comprehensive benchmarking completed on 2025-11-20. All benchmarks were run using `cargo bench` with release optimizations.
+This document establishes the performance baseline for adze's GLR parser implementation based on comprehensive benchmarking completed on 2025-11-20. All benchmarks were run using `cargo bench` with release optimizations.
 
 ### Key Findings
 
@@ -274,7 +274,7 @@ index out of bounds: the len is 0 but the index is 0
 
 ### Theoretical Comparison
 
-| Metric | Tree-sitter (C) | Rust-sitter (current) | Delta | Notes |
+| Metric | Tree-sitter (C) | Adze (current) | Delta | Notes |
 |--------|----------------|----------------------|-------|-------|
 | Parse speed | ~1MB/s (est.) | ~800KB/s (est.) | -20% | ✅ Good for pure Rust |
 | Memory usage | Low | Comparable | ~0% | Similar algorithms |
@@ -407,18 +407,18 @@ All benchmarks are deterministic and can be re-run with:
 
 ```bash
 # Individual benchmarks
-cargo bench -p rust-sitter-benchmarks --bench parse_bench
-cargo bench -p rust-sitter-benchmarks --bench glr_performance
-cargo bench -p rust-sitter-benchmarks --bench glr_hot
-cargo bench -p rust-sitter-benchmarks --bench optimization_bench
-cargo bench -p rust-sitter-benchmarks --bench stack_optimization
-cargo bench -p rust-sitter-benchmarks --bench incremental_bench  # Expected to fail
+cargo bench -p adze-benchmarks --bench parse_bench
+cargo bench -p adze-benchmarks --bench glr_performance
+cargo bench -p adze-benchmarks --bench glr_hot
+cargo bench -p adze-benchmarks --bench optimization_bench
+cargo bench -p adze-benchmarks --bench stack_optimization
+cargo bench -p adze-benchmarks --bench incremental_bench  # Expected to fail
 
 # All benchmarks (long running - ~10 minutes)
-cargo bench -p rust-sitter-benchmarks
+cargo bench -p adze-benchmarks
 
 # Quick smoke test
-cargo bench -p rust-sitter-benchmarks --bench glr_hot -- --quick
+cargo bench -p adze-benchmarks --bench glr_hot -- --quick
 ```
 
 ### Measurement Precision
@@ -492,7 +492,7 @@ All raw benchmark output is preserved in temporary files for reference:
 
 **Document Status**: ✅ **COMPLETE** - Baseline Established (2025-11-20)
 **Next Update**: After v0.7.0 optimizations or significant performance changes
-**Owner**: Rust-sitter maintainers
+**Owner**: Adze maintainers
 **Related Documents**:
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - v0.7.0 roadmap
 - [STATUS_NOW.md](../STATUS_NOW.md) - Current project status

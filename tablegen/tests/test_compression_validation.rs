@@ -1,7 +1,7 @@
 // Comprehensive validation tests for table compression algorithms
-use rust_sitter_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use rust_sitter_tablegen::compression::{
+use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_tablegen::compression::{
     BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
     decompress_goto,
 };

@@ -1,7 +1,7 @@
 // Integration tests for the pure-Rust Tree-sitter implementation
 // Uses safe mock approach to eliminate FFI segmentation faults
-use rust_sitter::external_scanner::ScanResult;
-use rust_sitter::unified_parser::Parser;
+use adze::external_scanner::ScanResult;
+use adze::unified_parser::Parser;
 
 #[test]
 #[cfg(feature = "pure-rust")]
@@ -80,8 +80,8 @@ fn test_error_recovery() {
             "Error recovery test produced tree with {} errors",
             tree.error_count()
         );
-        // Basic sanity check - verify we can get the root kind
-        let _root_kind = tree.root_kind();
+        // Basic sanity check - verify we can get the root symbol
+        let _root_symbol = tree.root_node().symbol();
     } else {
         eprintln!("Error recovery returned None - expected without language set");
     }
@@ -132,7 +132,7 @@ fn test_cancellation() {
 
 #[test]
 fn test_external_scanner_integration() {
-    use rust_sitter::external_scanner::{ExternalScanner, Lexer};
+    use adze::external_scanner::{ExternalScanner, Lexer};
     use std::sync::{Arc, Mutex};
 
     // Create a simple external scanner
@@ -218,7 +218,7 @@ fn test_table_compression() {
 #[test]
 #[cfg(feature = "serialization")]
 fn test_serialization_feature() {
-    use rust_sitter::serialization::*;
+    use adze::serialization::*;
 
     let source = b"test source code";
 
@@ -239,7 +239,7 @@ fn test_serialization_feature() {
 fn test_external_scanner_column_tracking() {
     // External scanner column tracking is tested in external_scanner_column_test.rs
     // This test just verifies the basic API works
-    use rust_sitter::external_scanner_ffi::RustLexerAdapter;
+    use adze::external_scanner_ffi::RustLexerAdapter;
 
     // Test initial position
     let input = b"hello world";

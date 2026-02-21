@@ -1,0 +1,11 @@
+[submodule "xtask/fixtures/tree-sitter-c"]
+	path = xtask/fixtures/tree-sitter-c
+	url = https://github.com/tree-sitter/tree-sitter-c.git
+
+[submodule "xtask/fixtures/tree-sitter-python"]
+	path = xtask/fixtures/tree-sitter-python
+	url = https://github.com/tree-sitter/tree-sitter-python.git
+
+[submodule "xtask/fixtures/tree-sitter-rust"]
+	path = xtask/fixtures/tree-sitter-rust
+	url = https://github.com/tree-sitter/tree-sitter-rust.git

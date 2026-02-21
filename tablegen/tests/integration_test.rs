@@ -1,8 +1,8 @@
 // Integration tests for the pure-Rust parser generation
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::*;
-use rust_sitter_tablegen::AbiLanguageBuilder;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::*;
+use adze_tablegen::AbiLanguageBuilder;
 
 #[test]
 fn test_parentheses_grammar_generation() {

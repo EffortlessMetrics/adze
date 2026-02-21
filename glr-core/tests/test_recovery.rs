@@ -2,8 +2,8 @@
 
 use glr_test_support::*;
 
-use rust_sitter_glr_core::{Action, Driver, ParseRule, ParseTable};
-use rust_sitter_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze_glr_core::{Action, Driver, ParseRule, ParseTable};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 type ActionCell = Vec<Action>;
 
@@ -350,12 +350,12 @@ fn test_valid_json_no_errors() {
                 return None;
             }
             match &input[pos..] {
-                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('{') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 1,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
-                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('}') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 2,
                     start: pos as u32,
                     end: (pos + 1) as u32,
@@ -396,12 +396,12 @@ fn test_valid_json_no_errors() {
                 return None;
             }
             match &input[pos..] {
-                s if s.starts_with('[') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('[') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 3,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
-                s if s.starts_with(']') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with(']') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 4,
                     start: pos as u32,
                     end: (pos + 1) as u32,
@@ -456,17 +456,17 @@ fn test_gentle_errors_bounded_recovery() {
                 return None;
             }
             match &input[pos..] {
-                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('{') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 1,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
-                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('}') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 2,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
-                s if s.starts_with(',') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with(',') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 6,
                     start: pos as u32,
                     end: (pos + 1) as u32,
@@ -490,7 +490,7 @@ fn test_gentle_errors_bounded_recovery() {
                 // let (has_error, _missing, cost) = forest.debug_error_stats();
                 // assert!(has_error, "Malformed input should have error markers");
                 // assert!(
-                //     cost <= rust_sitter_glr_core::Driver::RECOVERY_BEAM + 1,
+                //     cost <= adze_glr_core::Driver::RECOVERY_BEAM + 1,
                 //     "Recovery cost {} should be bounded by beam width",
                 //     cost
                 // );
@@ -508,25 +508,25 @@ fn test_gentle_errors_bounded_recovery() {
                 return None;
             }
             match &input[pos..] {
-                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('{') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 1,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
-                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('}') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 2,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
                 s if s.starts_with('"') => {
                     let end = s[1..].find('"').map(|i| i + 2).unwrap_or(1);
-                    Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    Some(adze_glr_core::ts_lexer::NextToken {
                         kind: 7,
                         start: pos as u32,
                         end: (pos + end) as u32,
                     })
                 }
-                s if s.starts_with(':') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with(':') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 5,
                     start: pos as u32,
                     end: (pos + 1) as u32,
@@ -559,30 +559,30 @@ fn test_gentle_errors_bounded_recovery() {
                 return None;
             }
             match &input[pos..] {
-                s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('{') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 1,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
-                s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with('}') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 2,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
                 s if s.starts_with('"') => {
                     let end = s[1..].find('"').map(|i| i + 2).unwrap_or(1);
-                    Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                    Some(adze_glr_core::ts_lexer::NextToken {
                         kind: 7,
                         start: pos as u32,
                         end: (pos + end) as u32,
                     })
                 }
-                s if s.starts_with(':') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with(':') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 5,
                     start: pos as u32,
                     end: (pos + 1) as u32,
                 }),
-                s if s.starts_with(',') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+                s if s.starts_with(',') => Some(adze_glr_core::ts_lexer::NextToken {
                     kind: 6,
                     start: pos as u32,
                     end: (pos + 1) as u32,
@@ -660,12 +660,12 @@ fn test_cell_parity_after_lbrace() {
             return None;
         }
         match &input[pos..] {
-            s if s.starts_with('{') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+            s if s.starts_with('{') => Some(adze_glr_core::ts_lexer::NextToken {
                 kind: 1,
                 start: pos as u32,
                 end: (pos + 1) as u32,
             }),
-            s if s.starts_with('}') => Some(rust_sitter_glr_core::ts_lexer::NextToken {
+            s if s.starts_with('}') => Some(adze_glr_core::ts_lexer::NextToken {
                 kind: 2,
                 start: pos as u32,
                 end: (pos + 1) as u32,
@@ -722,7 +722,7 @@ fn test_zero_width_progress_guard() {
             return None;
         } // Stop after a few positions
 
-        Some(rust_sitter_glr_core::ts_lexer::NextToken {
+        Some(adze_glr_core::ts_lexer::NextToken {
             kind: 7, // String token (insertable)
             start: pos as u32,
             end: pos as u32, // Zero-width!

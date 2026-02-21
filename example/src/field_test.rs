@@ -1,32 +1,32 @@
-#[rust_sitter::grammar("field_test")]
+#[adze::grammar("field_test")]
 pub mod grammar {
-    #[rust_sitter::language]
+    #[adze::language]
     #[derive(PartialEq, Eq, Debug)]
     pub enum Expression {
         Binary {
-            #[rust_sitter::field("left")]
+            #[adze::field("left")]
             left: Box<Expression>,
-            #[rust_sitter::field("operator")]
+            #[adze::field("operator")]
             op: BinaryOp,
-            #[rust_sitter::field("right")]
+            #[adze::field("right")]
             right: Box<Expression>,
         },
-        Number(#[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
     }
 
     #[derive(PartialEq, Eq, Debug)]
     pub enum BinaryOp {
-        #[rust_sitter::leaf(text = "+")]
+        #[adze::leaf(text = "+")]
         Add(()),
-        #[rust_sitter::leaf(text = "-")]
+        #[adze::leaf(text = "-")]
         Sub(()),
-        #[rust_sitter::leaf(text = "*")]
+        #[adze::leaf(text = "*")]
         Mul(()),
     }
 
-    #[rust_sitter::extra]
+    #[adze::extra]
     struct Whitespace {
-        #[rust_sitter::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s")]
         _whitespace: (),
     }
 }

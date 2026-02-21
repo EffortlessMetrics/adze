@@ -1,4 +1,4 @@
-// WASM support for pure-Rust Tree-sitter
+// WASM support for Adze
 #![cfg(target_arch = "wasm32")]
 
 use crate::pure_incremental::{Edit as IncrementalEdit, Tree};

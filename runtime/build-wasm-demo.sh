@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🦀 Building rust-sitter WASM demo..."
+echo "🦀 Building adze WASM demo..."
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -65,9 +65,9 @@ chmod +x wasm-demo/pkg/serve.py
 # Create package.json for npm users
 cat > wasm-demo/pkg/package.json << 'EOF'
 {
-  "name": "rust-sitter-wasm-demo",
+  "name": "adze-wasm-demo",
   "version": "1.0.0",
-  "description": "WASM demo for rust-sitter",
+  "description": "WASM demo for adze",
   "scripts": {
     "serve": "python3 serve.py"
   }

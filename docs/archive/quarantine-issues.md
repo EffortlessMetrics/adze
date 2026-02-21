@@ -3,29 +3,29 @@
 The following crates are currently in the clippy quarantine and need to be cleaned up:
 
 ## Core Crates (High Priority)
-- [x] rust-sitter - Main runtime crate ✅ (Fixed 2025-01-24)
-- [x] rust-sitter-tool - Build tool ✅ (Fixed 2025-01-24)
-- [x] rust-sitter-tablegen - Table generation ✅ (Fixed 2025-01-24)
-- [x] rust-sitter-glr-core - GLR parser core ✅ (Fixed 2025-01-24)
-- [ ] rust-sitter-runtime - Runtime implementation
+- [x] adze - Main runtime crate ✅ (Fixed 2025-01-24)
+- [x] adze-tool - Build tool ✅ (Fixed 2025-01-24)
+- [x] adze-tablegen - Table generation ✅ (Fixed 2025-01-24)
+- [x] adze-glr-core - GLR parser core ✅ (Fixed 2025-01-24)
+- [ ] adze-runtime - Runtime implementation
 
 ## Test/Example Crates (Medium Priority)
-- [ ] rust-sitter-testing - Testing utilities
+- [ ] adze-testing - Testing utilities
 - [ ] glr-test-support - GLR test support
 - [ ] test-mini - Minimal test crate
 - [ ] test-vec-wrapper - Vector wrapper tests
-- [ ] rust-sitter-python-simple - Simple Python grammar test
-- [ ] rust-sitter-python-simpletest-vec-wrapper - Python vec wrapper test
+- [ ] adze-python-simple - Simple Python grammar test
+- [ ] adze-python-simpletest-vec-wrapper - Python vec wrapper test
 
 ## Language Implementations (Lower Priority)
-- [ ] rust-sitter-go - Go grammar
-- [ ] rust-sitter-javascript - JavaScript grammar
-- [ ] rust-sitter-python - Python grammar
+- [ ] adze-go - Go grammar
+- [ ] adze-javascript - JavaScript grammar
+- [ ] adze-python - Python grammar
 
 ## Tools/Apps (Lower Priority)
-- [ ] rust-sitter-benchmarks - Benchmarking suite
-- [ ] rust-sitter-cli - Command-line interface
-- [ ] rust-sitter-playground - Playground application
+- [ ] adze-benchmarks - Benchmarking suite
+- [ ] adze-cli - Command-line interface
+- [ ] adze-playground - Playground application
 
 ## How to Fix
 

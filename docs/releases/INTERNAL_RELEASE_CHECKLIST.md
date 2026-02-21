@@ -1,4 +1,4 @@
-# Internal Release Checklist - rust-sitter v0.6.0-beta.2
+# Internal Release Checklist - adze v0.6.0-beta.2
 
 ## 🎯 Goal
 Full Tree-sitter compatibility with GLR incremental parsing support for internal testing.
@@ -15,9 +15,9 @@ Full Tree-sitter compatibility with GLR incremental parsing support for internal
 ## 🏗️ Architecture Summary
 
 ### Core GLR Components (Internal)
-- **rust-sitter-ir**: Grammar intermediate representation
-- **rust-sitter-glr-core**: GLR parser generation algorithms  
-- **rust-sitter-tablegen**: Table compression & Language struct generation
+- **adze-ir**: Grammar intermediate representation
+- **adze-glr-core**: GLR parser generation algorithms  
+- **adze-tablegen**: Table compression & Language struct generation
 
 ### Runtime Features
 - **Default**: Standard Tree-sitter C runtime
@@ -41,20 +41,20 @@ cargo build --workspace --features incremental_glr
 ### Test Matrix
 ```bash
 # Core tests
-cargo test -p rust-sitter
-cargo test -p rust-sitter --features incremental_glr
+cargo test -p adze
+cargo test -p adze --features incremental_glr
 
 # Equivalence tests (when enabled)
-cargo test -p rust-sitter --features incremental_glr -- tests::incremental_equiv
+cargo test -p adze --features incremental_glr -- tests::incremental_equiv
 
 # Integration tests
-cargo test -p rust-sitter-example
+cargo test -p adze-example
 ```
 
 ### Benchmark Validation (Optional)
 ```bash
 # Quick benchmark run
-QUICK_BENCH=1 cargo bench -p rust-sitter-benchmarks --bench incremental_bench
+QUICK_BENCH=1 cargo bench -p adze-benchmarks --bench incremental_bench
 ```
 
 ## 🔧 Known Issues

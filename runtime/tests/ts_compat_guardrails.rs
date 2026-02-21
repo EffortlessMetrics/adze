@@ -1,10 +1,10 @@
 #![cfg(all(feature = "ts-compat", feature = "pure-rust"))]
 
-use rust_sitter::ts_compat::Parser;
+use adze::ts_compat::Parser;
 
 #[test]
 fn table_guardrails() {
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
     let t = &lang.table;
 
     // Basic sanity checks
@@ -41,12 +41,12 @@ fn table_guardrails() {
         .iter()
         .find(|m| m.name == "expression")
         .expect("Expression symbol not found");
-    assert!(expr_symbol.named, "Expression should be a named symbol");
+    assert!(expr_symbol.is_named, "Expression should be a named symbol");
 }
 
 #[test]
 fn language_metadata() {
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
 
     // Check basic metadata
     assert_eq!(lang.grammar.name, "arithmetic");
@@ -58,7 +58,7 @@ fn language_metadata() {
         .table
         .symbol_metadata
         .iter()
-        .filter(|m| m.named)
+        .filter(|m| m.is_named)
         .collect();
 
     assert!(
@@ -75,7 +75,7 @@ fn language_metadata() {
 #[test]
 fn simple_tokenization() {
     let mut parser = Parser::new();
-    let lang = rust_sitter_example::ts_langs::arithmetic();
+    let lang = adze_example::ts_langs::arithmetic();
     parser
         .set_language(lang.clone())
         .expect("set_language failed");

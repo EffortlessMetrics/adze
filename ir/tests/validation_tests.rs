@@ -1,5 +1,5 @@
-use rust_sitter_ir::validation::{GrammarValidator, ValidationError};
-use rust_sitter_ir::*;
+use adze_ir::validation::{GrammarValidator, ValidationError};
+use adze_ir::*;
 
 fn create_valid_grammar() -> Grammar {
     let mut grammar = Grammar {

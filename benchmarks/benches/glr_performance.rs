@@ -54,7 +54,7 @@ fn benchmark_glr_parsing(c: &mut Criterion) {
                     //
                     // IMPACT:
                     // - README claims "100x faster than Tree-sitter" based on this
-                    // - Users adopt rust-sitter expecting this performance
+                    // - Users adopt adze expecting this performance
                     // - Documentation shows false "118M tokens/sec" throughput
                     //
                     // TODO (HIGH PRIORITY - Issue #73):

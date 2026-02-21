@@ -16,13 +16,13 @@ sed -i "s/version = \"$OLD_VERSION\"/version = \"$VERSION\"/g" glr-core/Cargo.to
 sed -i "s/version = \"$OLD_VERSION\"/version = \"$VERSION\"/g" tablegen/Cargo.toml
 
 # Update internal dependencies
-sed -i "s/rust-sitter-macro = { version = \"$OLD_VERSION\"/rust-sitter-macro = { version = \"$VERSION\"/g" runtime/Cargo.toml
-sed -i "s/rust-sitter-common = { version = \"$OLD_VERSION\"/rust-sitter-common = { version = \"$VERSION\"/g" macro/Cargo.toml
-sed -i "s/rust-sitter-common = { version = \"$OLD_VERSION\"/rust-sitter-common = { version = \"$VERSION\"/g" tool/Cargo.toml
-sed -i "s/rust-sitter-ir = { version = \"$OLD_VERSION\"/rust-sitter-ir = { version = \"$VERSION\"/g" glr-core/Cargo.toml
-sed -i "s/rust-sitter-ir = { version = \"$OLD_VERSION\"/rust-sitter-ir = { version = \"$VERSION\"/g" tablegen/Cargo.toml
-sed -i "s/rust-sitter-glr-core = { version = \"$OLD_VERSION\"/rust-sitter-glr-core = { version = \"$VERSION\"/g" tablegen/Cargo.toml
-sed -i "s/rust-sitter = { version = \"$OLD_VERSION\"/rust-sitter = { version = \"$VERSION\"/g" example/Cargo.toml
-sed -i "s/rust-sitter-tool = { version = \"$OLD_VERSION\"/rust-sitter-tool = { version = \"$VERSION\"/g" example/Cargo.toml
+sed -i "s/adze-macro = { version = \"$OLD_VERSION\"/adze-macro = { version = \"$VERSION\"/g" runtime/Cargo.toml
+sed -i "s/adze-common = { version = \"$OLD_VERSION\"/adze-common = { version = \"$VERSION\"/g" macro/Cargo.toml
+sed -i "s/adze-common = { version = \"$OLD_VERSION\"/adze-common = { version = \"$VERSION\"/g" tool/Cargo.toml
+sed -i "s/adze-ir = { version = \"$OLD_VERSION\"/adze-ir = { version = \"$VERSION\"/g" glr-core/Cargo.toml
+sed -i "s/adze-ir = { version = \"$OLD_VERSION\"/adze-ir = { version = \"$VERSION\"/g" tablegen/Cargo.toml
+sed -i "s/adze-glr-core = { version = \"$OLD_VERSION\"/adze-glr-core = { version = \"$VERSION\"/g" tablegen/Cargo.toml
+sed -i "s/adze = { version = \"$OLD_VERSION\"/adze = { version = \"$VERSION\"/g" example/Cargo.toml
+sed -i "s/adze-tool = { version = \"$OLD_VERSION\"/adze-tool = { version = \"$VERSION\"/g" example/Cargo.toml
 
 echo "Version update complete!"

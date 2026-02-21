@@ -1,5 +1,5 @@
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::Grammar;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::Grammar;
 
 #[test]
 #[ignore]
@@ -18,7 +18,7 @@ fn error_roundtrip_propagates_failure() {
     );
 
     // …and that trying to use it in tablegen lifts to TableGenError via `From`.
-    let err = (|| -> rust_sitter_tablegen::Result<()> {
+    let err = (|| -> adze_tablegen::Result<()> {
         let _pt = pt?; // GLRError -> TableGenError
         Ok(())
     })()

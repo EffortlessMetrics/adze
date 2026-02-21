@@ -5,7 +5,7 @@
 #[test]
 fn test_basic_parsing() {
     // Basic smoke test - parse a simple arithmetic expression
-    use rust_sitter_example::arithmetic::grammar;
+    use adze_example::arithmetic::grammar;
 
     let input = "1 - 2 * 3";
     let result = grammar::parse(input);
@@ -32,7 +32,7 @@ fn test_basic_parsing() {
 fn test_c_backend_language_function() {
     // Ensure the C backend's tree_sitter_* function is available and non-null
     unsafe {
-        let lang_ptr = rust_sitter_example::arithmetic::tree_sitter_arithmetic();
+        let lang_ptr = adze_example::arithmetic::tree_sitter_arithmetic();
         assert!(
             !lang_ptr.is_null(),
             "tree_sitter_arithmetic() returned null"
@@ -49,7 +49,7 @@ fn test_c_backend_language_function() {
 fn test_pure_rust_no_c_symbols() {
     // This test just needs to compile and run - it verifies we're not
     // accidentally pulling in C symbols in pure-rust mode
-    use rust_sitter_example::arithmetic::grammar;
+    use adze_example::arithmetic::grammar;
 
     let result = grammar::parse("42");
     assert!(result.is_ok());
@@ -69,13 +69,13 @@ fn test_multiple_grammars_available() {
 
     // Test arithmetic grammar
     {
-        use rust_sitter_example::arithmetic::grammar;
+        use adze_example::arithmetic::grammar;
         assert!(grammar::parse("1 - 1").is_ok());
     }
 
     // Test repetitions grammar
     {
-        use rust_sitter_example::repetitions::grammar;
+        use adze_example::repetitions::grammar;
         // This grammar expects specific input format
         let result = grammar::parse("1,2,3");
         // Just verify it doesn't panic
@@ -84,7 +84,7 @@ fn test_multiple_grammars_available() {
 
     // Test words grammar
     {
-        use rust_sitter_example::words::grammar;
+        use adze_example::words::grammar;
         let result = grammar::parse("hello world");
         // Just verify it doesn't panic
         let _ = result;
@@ -95,7 +95,7 @@ fn test_multiple_grammars_available() {
 #[test]
 fn test_error_recovery() {
     // Basic test that parsing continues even with errors
-    use rust_sitter_example::arithmetic::grammar;
+    use adze_example::arithmetic::grammar;
 
     // Invalid input with missing operand
     let result = grammar::parse("1 -");
@@ -114,13 +114,13 @@ fn test_error_recovery() {
 fn test_c_backend_multiple_grammars() {
     // Test that multiple grammar language functions are available
     unsafe {
-        let arith_lang = rust_sitter_example::arithmetic::tree_sitter_arithmetic();
+        let arith_lang = adze_example::arithmetic::tree_sitter_arithmetic();
         assert!(!arith_lang.is_null());
 
-        let words_lang = rust_sitter_example::words::tree_sitter_words();
+        let words_lang = adze_example::words::tree_sitter_words();
         assert!(!words_lang.is_null());
 
-        let reps_lang = rust_sitter_example::repetitions::tree_sitter_repetitions();
+        let reps_lang = adze_example::repetitions::tree_sitter_repetitions();
         assert!(!reps_lang.is_null());
     }
 }

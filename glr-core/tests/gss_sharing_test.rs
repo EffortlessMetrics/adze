@@ -5,8 +5,8 @@
 /*
 #[cfg(test)]
 mod tests {
-    use rust_sitter_glr_core::gss_arena::{ArenaGSS, ArenaStackNode};
-    use rust_sitter_ir::{StateId, SymbolId};
+    use adze_glr_core::gss_arena::{ArenaGSS, ArenaStackNode};
+    use adze_ir::{StateId, SymbolId};
     use typed_arena::Arena;
 
     #[test]

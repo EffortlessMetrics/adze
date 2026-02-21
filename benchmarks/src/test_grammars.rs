@@ -1,10 +1,10 @@
-use indexmap::IndexMap;
-use rust_sitter_glr_core::{Action, GotoIndexing, ParseTable, SymbolMetadata};
+use adze_glr_core::{Action, GotoIndexing, ParseTable, SymbolMetadata};
 /// Test grammars for benchmarking incremental parsing
-use rust_sitter_ir::{
+use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
     Token, TokenPattern,
 };
+use indexmap::IndexMap;
 use std::collections::BTreeMap;
 
 /// Test token structure
@@ -270,7 +270,7 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
     let mut nonterminal_to_index = BTreeMap::new();
     nonterminal_to_index.insert(expr_symbol, 0);
 
-    use rust_sitter_glr_core::LexMode;
+    use adze_glr_core::LexMode;
 
     // Build index_to_symbol from symbol_to_index
     let mut index_to_symbol = vec![SymbolId(0); symbol_count];

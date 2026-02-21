@@ -1,6 +1,6 @@
 # Golden Tests Maintenance Guide
 
-This how-to guide provides practical workflows for maintaining golden tests in rust-sitter. Golden tests ensure compatibility between rust-sitter parsers and official Tree-sitter implementations by comparing parse tree outputs.
+This how-to guide provides practical workflows for maintaining golden tests in adze. Golden tests ensure compatibility between adze parsers and official Tree-sitter implementations by comparing parse tree outputs.
 
 ## Adding New Test Cases
 
@@ -123,7 +123,7 @@ cargo test --features all-grammars
 
 ### When Parser Behavior Changes
 
-When rust-sitter parser behavior changes intentionally, update references:
+When adze parser behavior changes intentionally, update references:
 
 ```bash
 # Update all references
@@ -212,17 +212,17 @@ Error: Python grammar feature not enabled
 2. **Check grammar dependencies**: Verify `Cargo.toml` includes required grammars
    ```toml
    [dependencies]
-   rust-sitter-python = { path = "../grammars/python", optional = true }
+   adze-python = { path = "../grammars/python", optional = true }
    ```
 
 3. **Build grammar crates**: Ensure grammars are built correctly
    ```bash
-   cargo build -p rust-sitter-python
+   cargo build -p adze-python
    ```
 
 ### Parser Implementation Issues
 
-When rust-sitter parser behavior differs from Tree-sitter:
+When adze parser behavior differs from Tree-sitter:
 
 1. **Test with minimal example**: Create simple test case
    ```python
@@ -235,8 +235,8 @@ When rust-sitter parser behavior differs from Tree-sitter:
    # Tree-sitter reference
    echo "x = 1" | tree-sitter parse --quiet > tree_sitter.sexp
    
-   # rust-sitter output (debug mode)
-   RUST_SITTER_DEBUG=1 cargo test --features python-grammar -- --nocapture
+   # adze output (debug mode)
+   ADZE_DEBUG=1 cargo test --features python-grammar -- --nocapture
    ```
 
 3. **Check grammar rules**: Verify grammar definitions match
@@ -421,10 +421,10 @@ To add support for a new language:
 2. **Update `Cargo.toml`**:
    ```toml
    [dependencies]
-   rust-sitter-rust = { path = "../grammars/rust", optional = true }
+   adze-rust = { path = "../grammars/rust", optional = true }
    
    [features]
-   rust-grammar = ["rust-sitter-rust", "rust-sitter"]
+   rust-grammar = ["adze-rust", "adze"]
    all-grammars = ["python-grammar", "javascript-grammar", "rust-grammar"]
    ```
 
@@ -499,11 +499,11 @@ bash -x golden-tests/generate_references.sh
 **Problem**: Grammar dependencies not found
 ```bash
 # Check grammar crate builds
-cargo build -p rust-sitter-python
-cargo build -p rust-sitter-javascript
+cargo build -p adze-python
+cargo build -p adze-javascript
 
 # Verify feature flags
-cargo metadata --format-version 1 | jq '.packages[] | select(.name=="rust-sitter-golden-tests") | .features'
+cargo metadata --format-version 1 | jq '.packages[] | select(.name=="adze-golden-tests") | .features'
 ```
 
 ## Next Steps
@@ -513,4 +513,4 @@ cargo metadata --format-version 1 | jq '.packages[] | select(.name=="rust-sitter
 - **Review [Architecture Documentation](../development/architecture.md)** for parser internals
 - **Check [Contributing Guide](../development/contributing.md)** for contribution workflows
 
-Golden tests provide a robust foundation for ensuring rust-sitter maintains perfect compatibility with Tree-sitter reference implementations across all supported languages.
+Golden tests provide a robust foundation for ensuring adze maintains perfect compatibility with Tree-sitter reference implementations across all supported languages.

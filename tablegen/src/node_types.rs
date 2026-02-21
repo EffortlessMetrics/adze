@@ -1,5 +1,5 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
-use rust_sitter_ir::{Grammar, Symbol, TokenPattern};
+use adze_ir::{Grammar, Symbol, TokenPattern};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -89,8 +89,7 @@ impl<'a> NodeTypesGenerator<'a> {
         );
 
         // Find supertypes (rules that have other rules as alternatives)
-        let _supertypes: HashMap<rust_sitter_ir::SymbolId, Vec<rust_sitter_ir::SymbolId>> =
-            HashMap::new();
+        let _supertypes: HashMap<adze_ir::SymbolId, Vec<adze_ir::SymbolId>> = HashMap::new();
 
         // Analyze rule relationships to find choice patterns
         for (symbol_id, rules) in &self.grammar.rules {
@@ -174,7 +173,7 @@ impl<'a> NodeTypesGenerator<'a> {
             .map_err(|e| format!("Failed to serialize NODE_TYPES: {}", e))
     }
 
-    fn get_rule_name(&self, symbol_id: rust_sitter_ir::SymbolId) -> Option<String> {
+    fn get_rule_name(&self, symbol_id: adze_ir::SymbolId) -> Option<String> {
         // Check if this is a token first
         if let Some(token) = self.grammar.tokens.get(&symbol_id) {
             return Some(token.name.clone());
@@ -192,7 +191,7 @@ impl<'a> NodeTypesGenerator<'a> {
     fn symbol_to_type_ref(
         &self,
         symbol: &Symbol,
-        symbol_names: &HashMap<rust_sitter_ir::SymbolId, String>,
+        symbol_names: &HashMap<adze_ir::SymbolId, String>,
     ) -> TypeRef {
         match symbol {
             Symbol::Terminal(id) => {
@@ -266,7 +265,7 @@ impl<'a> NodeTypesGenerator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_sitter_ir::{ProductionId, Rule, SymbolId, Token};
+    use adze_ir::{ProductionId, Rule, SymbolId, Token};
 
     #[test]
     fn test_simple_node_types() {

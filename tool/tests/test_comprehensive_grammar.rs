@@ -1,4 +1,4 @@
-use rust_sitter_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
+use adze_tool::grammar_js::{GrammarJsConverter, GrammarJsParserV3};
 use std::fs;
 use tempfile::TempDir;
 
@@ -196,7 +196,7 @@ module.exports = grammar({
         std::env::set_var("CARGO_FEATURE_PURE_RUST", "1");
     }
 
-    use rust_sitter_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
+    use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
 
     let options = BuildOptions {
         out_dir: temp_dir.path().to_str().unwrap().to_string(),

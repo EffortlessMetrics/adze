@@ -3,9 +3,9 @@
 
 #[cfg(feature = "ts-compat")]
 mod ts_compat_tests {
-    use rust_sitter::ts_compat::{Language, Parser, Point};
-    use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use adze::ts_compat::{Language, Parser, Point};
+    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;
 
     fn create_test_language() -> Arc<Language> {

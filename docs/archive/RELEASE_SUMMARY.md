@@ -1,8 +1,8 @@
-# Rust-Sitter v0.5.0-beta Release Summary
+# Adze v0.5.0-beta Release Summary
 
 ## 🚀 What's New
 
-Rust-sitter v0.5.0-beta is now ready for release! This version includes:
+Adze v0.5.0-beta is now ready for release! This version includes:
 
 ### ✅ Core Features
 - **Pure Rust Implementation**: Fully functional parser generator written in Rust
@@ -13,16 +13,16 @@ Rust-sitter v0.5.0-beta is now ready for release! This version includes:
 ### 🛠️ Developer Experience
 ```bash
 # Install the CLI
-cargo install rust-sitter-cli --version 0.5.0-beta
+cargo install adze-cli --version 0.5.0-beta
 
 # Create a new grammar
-rust-sitter init my-language
+adze init my-language
 cd my-language
 cargo build
 
 # Test your grammar
-rust-sitter check src/grammar.rs
-rust-sitter parse src/grammar.rs examples/test.txt
+adze check src/grammar.rs
+adze parse src/grammar.rs examples/test.txt
 ```
 
 ### 📊 Current Status
@@ -45,11 +45,11 @@ rust-sitter parse src/grammar.rs examples/test.txt
 ### 📦 Package Structure
 
 ```
-rust-sitter/
-├── runtime/        # Core parsing runtime (rust-sitter)
-├── macro/          # Procedural macros (rust-sitter-macro)
-├── tool/           # Build tool (rust-sitter-tool)
-├── cli/            # Command-line tools (rust-sitter-cli)
+adze/
+├── runtime/        # Core parsing runtime (adze)
+├── macro/          # Procedural macros (adze-macro)
+├── tool/           # Build tool (adze-tool)
+├── cli/            # Command-line tools (adze-cli)
 ├── ir/             # Grammar IR representation
 ├── glr-core/       # GLR parser implementation
 ├── tablegen/       # Table generation
@@ -68,8 +68,8 @@ rust-sitter/
 
 ```bash
 # Clone and build
-git clone https://github.com/rust-sitter/rust-sitter
-cd rust-sitter
+git clone https://github.com/adze/adze
+cd adze
 cargo build --all
 
 # Run tests
@@ -78,7 +78,7 @@ cargo test --all
 # Try the example
 cd test-example
 cargo run
-# Output: "Test example for rust-sitter\nParsed: 42"
+# Output: "Test example for adze\nParsed: 42"
 ```
 
 ## 🙏 Acknowledgments
@@ -87,4 +87,4 @@ This release represents significant progress toward a pure-Rust Tree-sitter impl
 
 ---
 
-For questions or issues, please visit: https://github.com/rust-sitter/rust-sitter/issues
+For questions or issues, please visit: https://github.com/adze/adze/issues

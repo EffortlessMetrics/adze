@@ -76,15 +76,15 @@ pub enum ToolError {
 
     /// Error from the IR layer
     #[error(transparent)]
-    Ir(#[from] rust_sitter_ir::IrError),
+    Ir(#[from] adze_ir::IrError),
 
     /// Error from the GLR core
     #[error(transparent)]
-    Glr(#[from] rust_sitter_glr_core::GLRError),
+    Glr(#[from] adze_glr_core::GLRError),
 
     /// Error from table generation
     #[error(transparent)]
-    TableGen(#[from] rust_sitter_tablegen::TableGenError),
+    TableGen(#[from] adze_tablegen::TableGenError),
 
     /// Syn parsing error
     #[error(transparent)]

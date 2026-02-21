@@ -5,7 +5,7 @@
 // This module provides conversion and compatibility layer
 
 use crate::subtree::Subtree;
-use rust_sitter_ir::Grammar;
+use adze_ir::Grammar;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -405,7 +405,7 @@ pub fn subtree_to_tree(subtree: Arc<Subtree>, source: Vec<u8>, grammar: Grammar)
 mod tests {
     use super::*;
     use crate::subtree::SubtreeNode;
-    use rust_sitter_ir::SymbolId;
+    use adze_ir::SymbolId;
 
     #[test]
     fn test_glr_node_api() {
@@ -451,10 +451,10 @@ mod tests {
         // Add field names
         grammar
             .fields
-            .insert(rust_sitter_ir::FieldId(0), "left".to_string());
+            .insert(adze_ir::FieldId(0), "left".to_string());
         grammar
             .fields
-            .insert(rust_sitter_ir::FieldId(1), "right".to_string());
+            .insert(adze_ir::FieldId(1), "right".to_string());
 
         let tree = GLRTree::new(root, source, grammar);
         let root_node = tree.root_node();

@@ -55,12 +55,12 @@ jobs:
         run: |
           echo "::group::Running baseline benchmarks"
           # Run core benchmarks with shorter measurement time for CI
-          cargo bench -p rust-sitter-glr-core -- --save-baseline pr-base
-          cargo bench -p rust-sitter --lib -- --save-baseline pr-base
+          cargo bench -p adze-glr-core -- --save-baseline pr-base
+          cargo bench -p adze --lib -- --save-baseline pr-base
 
           # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
-          cargo bench -p rust-sitter-benchmarks --bench glr_hot -- --save-baseline pr-base
-          cargo bench -p rust-sitter-benchmarks --bench glr_performance -- --save-baseline pr-base
+          cargo bench -p adze-benchmarks --bench glr_hot -- --save-baseline pr-base
+          cargo bench -p adze-benchmarks --bench glr_performance -- --save-baseline pr-base
           echo "::endgroup::"
         env:
           BENCH_QUICK: 1  # Use quick mode for CI
@@ -83,12 +83,12 @@ jobs:
       - name: Run PR benchmarks
         run: |
           echo "::group::Running PR benchmarks"
-          cargo bench -p rust-sitter-glr-core -- --save-baseline pr-head
-          cargo bench -p rust-sitter --lib -- --save-baseline pr-head
+          cargo bench -p adze-glr-core -- --save-baseline pr-head
+          cargo bench -p adze --lib -- --save-baseline pr-head
 
           # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
-          cargo bench -p rust-sitter-benchmarks --bench glr_hot -- --save-baseline pr-head
-          cargo bench -p rust-sitter-benchmarks --bench glr_performance -- --save-baseline pr-head
+          cargo bench -p adze-benchmarks --bench glr_hot -- --save-baseline pr-head
+          cargo bench -p adze-benchmarks --bench glr_performance -- --save-baseline pr-head
           echo "::endgroup::"
         env:
           BENCH_QUICK: 1
@@ -206,6 +206,6 @@ ${report}
       - name: Quick benchmark smoke test
         run: |
           # Just ensure benchmarks compile and run
-          cargo bench -p rust-sitter-glr-core --no-run
-          cargo bench -p rust-sitter --lib --no-run
+          cargo bench -p adze-glr-core --no-run
+          cargo bench -p adze --lib --no-run
           echo "✅ Benchmark compilation successful"

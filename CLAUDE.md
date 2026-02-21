@@ -33,9 +33,9 @@ cargo build
 cargo build --release
 
 # Build a specific package
-cargo build -p rust-sitter
-cargo build -p rust-sitter-macro
-cargo build -p rust-sitter-tool
+cargo build -p adze
+cargo build -p adze-macro
+cargo build -p adze-tool
 ```
 
 ### Testing
@@ -44,9 +44,9 @@ cargo build -p rust-sitter-tool
 cargo test
 
 # Run tests for a specific package
-cargo test -p rust-sitter
-cargo test -p rust-sitter-macro
-cargo test -p rust-sitter-tool
+cargo test -p adze
+cargo test -p adze-macro
+cargo test -p adze-tool
 
 # Run a specific test
 cargo test test_name
@@ -58,7 +58,7 @@ cargo test -- --nocapture
 cargo insta review
 
 # For integration tests that need internal debug helpers, enable the test-api feature:
-cargo test -p rust-sitter-glr-core --features test-api
+cargo test -p adze-glr-core --features test-api
 
 # Concurrency-capped testing (recommended for stability)
 cargo t2                    # Run tests with 2 threads
@@ -85,28 +85,28 @@ cargo fmt -- --check
 
 ## Architecture Overview
 
-Rust Sitter is a Rust workspace consisting of multiple interconnected crates that work together to generate Tree-sitter parsers from Rust code annotations:
+Adze is a Rust workspace consisting of multiple interconnected crates that work together to generate Tree-sitter parsers from Rust code annotations:
 
 ### Core Components
 
-1. **`rust-sitter` (runtime crate)** - The main runtime library that users depend on
+1. **`adze` (runtime crate)** - The main runtime library that users depend on
    - Located in `/runtime/`
    - Provides the `Extract` trait and core parsing functionality
    - Supports two Tree-sitter backends via features:
      - `tree-sitter-c2rust` (default): Pure Rust implementation for WASM support
      - `tree-sitter-standard`: Standard C runtime
 
-2. **`rust-sitter-macro` (proc-macro crate)** - Procedural macros for grammar definition
+2. **`adze-macro` (proc-macro crate)** - Procedural macros for grammar definition
    - Located in `/macro/`
-   - Provides attributes: `#[rust_sitter::grammar]`, `#[rust_sitter::language]`, `#[rust_sitter::leaf]`, etc.
+   - Provides attributes: `#[adze::grammar]`, `#[adze::language]`, `#[adze::leaf]`, etc.
    - Only defines the macro interfaces; actual expansion logic is in common crate
 
-3. **`rust-sitter-tool` (build tool)** - Build-time code generation
+3. **`adze-tool` (build tool)** - Build-time code generation
    - Located in `/tool/`
    - Called from `build.rs` to generate Tree-sitter grammar JSON and C parser code
    - Key function: `build_parsers()` which processes annotated Rust files
 
-4. **`rust-sitter-common`** - Shared utilities
+4. **`adze-common`** - Shared utilities
    - Located in `/common/`
    - Contains grammar expansion logic used by both macro and tool crates
 
@@ -117,7 +117,7 @@ Rust Sitter is a Rust workspace consisting of multiple interconnected crates tha
 
 6. **`golden-tests`** - Integration testing with production grammars
    - Located in `/golden-tests/`
-   - Tests rust-sitter-generated parsers against Tree-sitter reference implementations
+   - Tests adze-generated parsers against Tree-sitter reference implementations
    - Supports Python and JavaScript grammar validation
    - Uses SHA256 hash verification for parse tree consistency
    - Provides UPDATE_GOLDEN mode for reference generation
@@ -134,21 +134,21 @@ This demonstrates that the pure-Rust toolchain can handle production-grade, comp
 
 ### New Pure-Rust Implementation Components
 
-7. **`rust-sitter-ir`** - Grammar Intermediate Representation
+7. **`adze-ir`** - Grammar Intermediate Representation
    - Located in `/ir/`
    - Defines the IR for representing grammars with GLR support
    - Supports precedence, associativity, field mappings, and fragile tokens
    - Includes grammar optimization (`optimizer.rs`)
    - Includes grammar validation (`validation.rs`)
 
-8. **`rust-sitter-glr-core`** - GLR Parser Generation Core
+8. **`adze-glr-core`** - GLR Parser Generation Core
    - Located in `/glr-core/`
    - Implements FIRST/FOLLOW set computation
    - LR(1) item sets and canonical collection building
    - Conflict detection and GLR fork/merge logic
    - Advanced conflict resolution strategies (`advanced_conflict.rs`)
 
-9. **`rust-sitter-tablegen`** - Table Generation and Compression
+9. **`adze-tablegen`** - Table Generation and Compression
    - Located in `/tablegen/`
    - Implements Tree-sitter's table compression algorithms
    - Generates static Language objects with FFI compatibility
@@ -172,7 +172,7 @@ The runtime2 crate (`/runtime2/`) - **Production Ready GLR Runtime** - includes:
   - Token processing pipeline with UTF-8 validation
 - **`builder.rs`** - Forest-to-tree conversion with performance monitoring
   - Efficient conversion from GLR parse forests to Tree-sitter compatible trees
-  - Performance instrumentation via `RUST_SITTER_LOG_PERFORMANCE` environment variable
+  - Performance instrumentation via `ADZE_LOG_PERFORMANCE` environment variable
   - Node count, tree depth, and conversion time metrics
 - **`tree.rs`** - Enhanced Tree implementation with incremental editing support
   - Feature-gated incremental parsing via `#[cfg(feature = "incremental")]`
@@ -195,7 +195,7 @@ The tool crate (`/tool/`) now includes:
 
 1. **Grammar Definition Flow**:
    - User defines grammar using Rust types with macro annotations
-   - `build.rs` calls `rust_sitter_tool::build_parsers()` at build time
+   - `build.rs` calls `adze_tool::build_parsers()` at build time
    - Tool extracts grammar from Rust code and generates Tree-sitter JSON grammar
    - Tree-sitter generates C parser from JSON
    - C parser is compiled and linked into the final binary
@@ -237,8 +237,8 @@ The tool crate (`/tool/`) now includes:
    - Deep cloning creates fully independent tree copies without shared references
 
 4. **Environment Variables**:
-   - `RUST_SITTER_EMIT_ARTIFACTS=true`: Outputs generated grammar files to `target/debug/build/<crate>-<hash>/out/` for debugging
-   - `RUST_SITTER_LOG_PERFORMANCE=true`: Enables performance logging for GLR forest-to-tree conversion
+   - `ADZE_EMIT_ARTIFACTS=true`: Outputs generated grammar files to `target/debug/build/<crate>-<hash>/out/` for debugging
+   - `ADZE_LOG_PERFORMANCE=true`: Enables performance logging for GLR forest-to-tree conversion
    - `RUST_TEST_THREADS=N`: Limits Rust test thread concurrency (default: 2 for stability)
    - `RAYON_NUM_THREADS=N`: Controls rayon thread pool size (default: 4)
 
@@ -258,7 +258,7 @@ When working on the pure-Rust implementation:
 2. The GLR core implements the parser generation algorithms - this is where conflict resolution happens
 3. The tablegen crate handles compression - ensure bit-for-bit compatibility with Tree-sitter
 4. Use `emit_ir!()` macro to debug grammar extraction
-5. Test table generation with `cargo test -p rust-sitter-tablegen`
+5. Test table generation with `cargo test -p adze-tablegen`
 6. Verify Language struct layout matches Tree-sitter ABI exactly
 
 ### Testing Guidelines
@@ -276,7 +276,7 @@ When working on the pure-Rust implementation:
    - **Feature Flag Tests**: Ensures graceful fallback when `incremental_glr` disabled or external scanners unavailable
    - **Conservative Reuse**: Tests temporary fallback to fresh parsing for consistency guarantees
 7. **Feature Flag Tests**: Test all feature combinations (`default`, `glr-core`, `incremental`, `incremental_glr`, `all-features`)
-8. **Golden Tests**: Validate rust-sitter parsers against Tree-sitter reference implementations with `cargo test -p rust-sitter-golden-tests`
+8. **Golden Tests**: Validate adze parsers against Tree-sitter reference implementations with `cargo test -p adze-golden-tests`
 9. **Serialization Tests**: Comprehensive roundtrip testing for JSON and S-expression formats with `runtime/tests/test_serialization_roundtrip.rs`
 
 ### Cap Concurrency Implementation
@@ -313,7 +313,7 @@ All caps are configurable via environment variables. The `preflight.sh` script a
 **Code Integration:**
 ```rust
 // In test setup or main application:
-use rust_sitter::concurrency_caps;
+use adze::concurrency_caps;
 concurrency_caps::init_concurrency_caps(); // Set up capped thread pools
 
 // For bounded parallel operations:
@@ -531,10 +531,10 @@ Successfully completed external scanner integration in the pure-Rust parser impl
 Successfully completed comprehensive documentation updates following the production-ready incremental parsing implementation, ensuring all documentation reflects the Direct Forest Splicing algorithm and its 16x performance improvements.
 
 #### **Golden Test Integration Complete** ✅ *(PR #11)*
-Successfully completed comprehensive golden test integration with rust-sitter-generated parsers, establishing robust validation infrastructure against Tree-sitter reference implementations.
+Successfully completed comprehensive golden test integration with adze-generated parsers, establishing robust validation infrastructure against Tree-sitter reference implementations.
 
 **Key Accomplishments:**
-1. **Production Grammar Integration**: Connected golden tests to rust-sitter Python and JavaScript parsers with full feature wiring
+1. **Production Grammar Integration**: Connected golden tests to adze Python and JavaScript parsers with full feature wiring
 2. **Comprehensive Serialization Framework**: Added robust roundtrip testing with 100+ test cases covering:
    - JSON and S-expression serialization identity verification
    - Unicode edge cases (emoji, RTL text, combining marks)
@@ -553,7 +553,7 @@ Successfully completed comprehensive golden test integration with rust-sitter-ge
 - Unicode tests handle international text, mathematical symbols, and script mixing
 
 #### **GLR Parser Implementation - Production Ready** ✅
-Successfully transformed rust-sitter from a simple LR parser to a true GLR (Generalized LR) parser that can handle ambiguous grammars. The implementation is now production-ready with complete runtime integration and comprehensive API stabilization.
+Successfully transformed adze from a simple LR parser to a true GLR (Generalized LR) parser that can handle ambiguous grammars. The implementation is now production-ready with complete runtime integration and comprehensive API stabilization.
 
 **Key Technical Changes:**
 1. **Action Table Architecture**: Restructured from `Vec<Vec<Action>>` to `Vec<Vec<Vec<Action>>>` (ActionCell model)
@@ -594,7 +594,7 @@ Successfully completed full GLR integration in runtime2 with PR #14 merge ("runt
 
 2. **High-Performance Forest-to-Tree Pipeline**: Optimized conversion in `runtime2/src/builder.rs`
    - Zero-overhead forest-to-tree conversion with performance instrumentation
-   - Real-time metrics: node count, tree depth, conversion time via `RUST_SITTER_LOG_PERFORMANCE`
+   - Real-time metrics: node count, tree depth, conversion time via `ADZE_LOG_PERFORMANCE`
    - Memory-efficient tree construction with arena allocation support
    - Smart caching and input comparison optimization
 
@@ -636,7 +636,7 @@ The pure-Rust implementation now features a production-ready GLR parser:
 ### New Tools (January 2025)
 
 #### ts-bridge: Tree-sitter to GLR Runtime Bridge
-The ts-bridge tool extracts parse tables from compiled Tree-sitter grammars for use with rust-sitter's GLR runtime:
+The ts-bridge tool extracts parse tables from compiled Tree-sitter grammars for use with adze's GLR runtime:
 
 **Building:**
 ```bash
@@ -749,7 +749,7 @@ Successfully completed production-ready PR #58 integration bringing incremental 
 ### Previous Achievements (August 2025)
 
 #### **Golden Test Integration Complete** ✅ *(PR #11)*
-Successfully completed comprehensive golden test integration with rust-sitter-generated parsers, establishing robust validation infrastructure against Tree-sitter reference implementations.
+Successfully completed comprehensive golden test integration with adze-generated parsers, establishing robust validation infrastructure against Tree-sitter reference implementations.
 
 ### Known Issues (Being Addressed)
 

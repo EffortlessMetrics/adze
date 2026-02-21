@@ -5,8 +5,8 @@
 #[cfg(all(feature = "test-helpers", not(feature = "strict-invariants")))]
 #[test]
 fn accept_via_insertion_at_eof_cost_is_one() {
-    use rust_sitter_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
-    use rust_sitter_ir::{RuleId, StateId, SymbolId};
+    use adze_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};
+    use adze_ir::{RuleId, StateId, SymbolId};
     use std::collections::BTreeMap;
 
     // Minimal grammar: start -> LBRACE RBRACE
@@ -73,10 +73,10 @@ fn accept_via_insertion_at_eof_cost_is_one() {
             map.insert(SymbolId(4), 0); // start symbol at index 0
             map
         },
-        goto_indexing: rust_sitter_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0), // EOF must be 0 by convention
         start_symbol: SymbolId(4),
-        grammar: rust_sitter_ir::Grammar::new("test".to_string()),
+        grammar: adze_ir::Grammar::new("test".to_string()),
         initial_state: StateId(0),
         token_count: 3, // ERROR, LBRACE, RBRACE
         external_token_count: 0,

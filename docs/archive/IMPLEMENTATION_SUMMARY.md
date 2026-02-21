@@ -6,14 +6,14 @@
 
 Created a basic parser for Tree-sitter grammar.js files that can:
 - Parse grammar name, rules, and basic constructs
-- Convert grammar.js AST to Rust-sitter IR
+- Convert grammar.js AST to Adze IR
 - Handle common patterns like seq, choice, optional, repeat
 - Support for precedence and associativity
 
 **Files created:**
 - `tool/src/grammar_js/mod.rs` - Module definitions
 - `tool/src/grammar_js/parser.rs` - Grammar.js parser (regex-based MVP)
-- `tool/src/grammar_js/converter.rs` - Converts to Rust-sitter IR
+- `tool/src/grammar_js/converter.rs` - Converts to Adze IR
 
 ### 2. Compatibility Dashboard Infrastructure ✅
 
@@ -52,7 +52,7 @@ New commands for the development workflow:
 ## Architecture Overview
 
 ```
-rust-sitter/
+adze/
 ├── tool/
 │   └── src/
 │       └── grammar_js/        # Grammar.js parsing
@@ -74,7 +74,7 @@ rust-sitter/
 ### Grammar.js Parser
 - Supports basic grammar.js syntax
 - Handles rules, tokens, precedence
-- Converts to Rust-sitter IR format
+- Converts to Adze IR format
 - Ready for incremental improvements
 
 ### Dashboard System
@@ -127,7 +127,7 @@ python3 -m http.server 8000
 ## Technical Decisions
 
 1. **Regex-based Parser**: Started with simple regex parsing for MVP, can upgrade to proper JS parser later
-2. **IR Conversion**: Direct mapping from grammar.js constructs to Rust-sitter IR
+2. **IR Conversion**: Direct mapping from grammar.js constructs to Adze IR
 3. **Dashboard**: Static site with JSON data updates for simplicity
 4. **Corpus Testing**: Focused on parse compatibility first, query support later
 

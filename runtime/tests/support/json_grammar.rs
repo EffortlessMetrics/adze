@@ -1,7 +1,7 @@
 #![cfg(feature = "pure-rust")]
 #![allow(dead_code)]
 
-use rust_sitter_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // --- Terminals (tokens) -------------------------------------------------------
 pub const LBRACE: SymbolId = SymbolId(0);

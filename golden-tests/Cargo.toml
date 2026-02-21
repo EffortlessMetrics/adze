@@ -1,5 +1,5 @@
 [package]
-name = "rust-sitter-golden-tests"
+name = "adze-golden-tests"
 version = "0.1.0"
 edition = "2024"
 publish = false
@@ -7,14 +7,14 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 sha2 = "0.10"
-rust-sitter-python = { path = "../grammars/python", optional = true }
-rust-sitter-javascript = { path = "../grammars/javascript", optional = true }
-rust-sitter = { path = "../runtime", optional = true }
+adze-python = { path = "../grammars/python", optional = true }
+adze-javascript = { path = "../grammars/javascript", optional = true }
+adze = { path = "../runtime", optional = true }
 
 [features]
 default = []
-python-grammar = ["rust-sitter-python", "rust-sitter"]
-javascript-grammar = ["rust-sitter-javascript", "rust-sitter"]
+python-grammar = ["adze-python", "adze"]
+javascript-grammar = ["adze-javascript", "adze"]
 all-grammars = ["python-grammar", "javascript-grammar"]
 
 [dev-dependencies]

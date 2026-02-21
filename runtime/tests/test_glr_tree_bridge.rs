@@ -1,9 +1,9 @@
 // Test GLR tree bridge functionality
-use rust_sitter::glr_lexer::GLRLexer;
-use rust_sitter::glr_parser::GLRParser;
-use rust_sitter::glr_tree_bridge::subtree_to_tree;
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze::glr_lexer::GLRLexer;
+use adze::glr_parser::GLRParser;
+use adze::glr_tree_bridge::subtree_to_tree;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
 fn create_json_grammar() -> Grammar {

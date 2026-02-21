@@ -1,4 +1,4 @@
-# Concrete Next Steps for Rust-Sitter Beta Launch
+# Concrete Next Steps for Adze Beta Launch
 
 ## Week 1: Beta Release Preparation
 
@@ -124,12 +124,12 @@ fn bench_typical_edit(b: &mut Bencher) {
 Template for automated PRs:
 
 ```markdown
-# Add Rust-Sitter support to tree-sitter-{language}
+# Add Adze support to tree-sitter-{language}
 
 This PR adds support for the pure-Rust Tree-sitter implementation alongside the existing C implementation.
 
 ## Changes
-- Added `rust-sitter` feature flag to Cargo.toml
+- Added `adze` feature flag to Cargo.toml
 - Created `src/rust_grammar.rs` with grammar definition
 - Updated CI to test both implementations
 - Added migration guide in README
@@ -141,12 +141,12 @@ This PR adds support for the pure-Rust Tree-sitter implementation alongside the 
 
 ## How to test
 ```bash
-cargo test --features rust-sitter
+cargo test --features adze
 cargo bench --features bench-compare
 ```
 
 Fixes #xxx (if applicable)
-Part of rust-sitter/rust-sitter#1 (grammar compatibility tracking)
+Part of adze/adze#1 (grammar compatibility tracking)
 ```
 
 ### Editor Plugin PoC (Neovim)
@@ -155,15 +155,15 @@ Part of rust-sitter/rust-sitter#1 (grammar compatibility tracking)
 local M = {}
 
 function M.setup()
-  -- Check if rust-sitter binary exists
-  local rust_sitter = vim.fn.exepath('rust-sitter-cli')
-  if rust_sitter == '' then
-    vim.notify('rust-sitter-cli not found', vim.log.levels.WARN)
+  -- Check if adze binary exists
+  local adze = vim.fn.exepath('adze-cli')
+  if adze == '' then
+    vim.notify('adze-cli not found', vim.log.levels.WARN)
     return
   end
   
   -- Override parser installation
-  require'nvim-treesitter.install'.compilers = { rust_sitter }
+  require'nvim-treesitter.install'.compilers = { adze }
 end
 
 return M

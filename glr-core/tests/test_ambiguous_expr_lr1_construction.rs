@@ -3,8 +3,8 @@
 //! This test creates a minimal ambiguous grammar and traces through
 //! the LR(1) construction to understand why conflicts aren't being detected.
 
-use rust_sitter_glr_core::{FirstFollowSets, build_lr1_automaton};
-use rust_sitter_ir::builder::GrammarBuilder;
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::builder::GrammarBuilder;
 
 #[test]
 fn test_ambiguous_expr_lr1_construction() {
@@ -45,17 +45,17 @@ fn test_ambiguous_expr_lr1_construction() {
             .rhs
             .iter()
             .map(|sym| match sym {
-                rust_sitter_ir::Symbol::Terminal(id) => grammar
+                adze_ir::Symbol::Terminal(id) => grammar
                     .tokens
                     .get(id)
                     .map(|t| t.name.clone())
                     .unwrap_or_else(|| format!("{:?}", id)),
-                rust_sitter_ir::Symbol::NonTerminal(id) => grammar
+                adze_ir::Symbol::NonTerminal(id) => grammar
                     .rule_names
                     .get(id)
                     .cloned()
                     .unwrap_or_else(|| format!("{:?}", id)),
-                rust_sitter_ir::Symbol::Epsilon => "ε".to_string(),
+                adze_ir::Symbol::Epsilon => "ε".to_string(),
                 other => format!("{:?}", other),
             })
             .collect();

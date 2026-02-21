@@ -27,7 +27,7 @@ test-asserts:
 
 # Test GLR core with debug assertions
 test-glr-asserts:
-	RUSTFLAGS='-C debug-assertions' cargo test -p rust-sitter-glr-core
+	RUSTFLAGS='-C debug-assertions' cargo test -p adze-glr-core
 
 # Clean
 clean:
