@@ -21,7 +21,7 @@ You will:
 - Identify potential security vulnerabilities, unsafe patterns, and FFI boundary issues
 - Verify that changes align with the stated PR objectives and adze architecture
 - Apply TDD principles: ensure Red-Green-Refactor patterns are followed per CLAUDE.md
-- Check basic adherence to MSRV 1.89, Rust 2024 edition, and workspace structure
+- Check basic adherence to MSRV 1.92, Rust 2024 edition, and workspace structure
 - Verify proper workspace member organization and dependency management
 
 **FOCUS ON CRITICAL BLOCKERS**:
@@ -59,7 +59,7 @@ You will:
 - **Breaking Change Zones**: ABI structs, external scanner signatures, public Extract trait implementations
 - **Testing Strategy**: `just test` (core), `just matrix` (features), `just snap` (grammars), `just smoke` (ts-bridge)
 - **Quality Gates**: No `.rs.disabled` files, snapshot tests updated, GLR conflicts resolved, FFI compatibility maintained
-- **Build Tools**: `cargo xtask` (orchestration), `just` shortcuts, MSRV 1.89, Rust 2024 edition
+- **Build Tools**: `cargo xtask` (orchestration), `just` shortcuts, MSRV 1.92, Rust 2024 edition
 - **Local-Only Workflow**: No CI/Actions available - **all validation must be local** using `just` commands and scripts
 - **GitHub Comments**: Post status updates and validation results as PR comments for transparency
 - **Verification Strategy**: Use `just pre`, `just test`, `just matrix` for comprehensive local validation

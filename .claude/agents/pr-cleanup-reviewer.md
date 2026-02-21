@@ -33,7 +33,7 @@ When cleaning up a PR, you will:
    **Grammar/Tool Issues**:
    - Fix macro expansion failures, grammar extraction panics, build-time generation issues
    - Ensure proper `Extract` trait implementations and workspace dependency resolution
-   - Address MSRV 1.89 and Rust 2024 compatibility across 28 crates
+   - Address MSRV 1.92 and Rust 2024 compatibility across 28 crates
    
    **GLR Core Issues**:
    - Resolve action table generation failures, GLR conflict resolution problems

@@ -246,7 +246,7 @@ pub fn parse<T: Extract<T>>(
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     // Select parser backend based on feature flags
     use crate::parser_selection::ParserBackend;
-    let backend = ParserBackend::select(T::HAS_CONFLICTS);
+    let backend = crate::parser_selection::current_backend_for(T::HAS_CONFLICTS);
 
     match backend {
         ParserBackend::GLR => {

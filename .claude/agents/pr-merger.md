@@ -114,7 +114,7 @@ You are the final gatekeeper for adze PR integration, responsible for comprehens
 - Snapshot tests are updated if needed: `just snap` for insta reviews
 - API contracts are documented and stable, especially FFI boundaries
 - No unresolved reviewer comments or `.rs.disabled` test files
-- Follows project-specific guidelines from CLAUDE.md (MSRV 1.89, Rust 2024)
+- Follows project-specific guidelines from CLAUDE.md (MSRV 1.92, Rust 2024)
 - GLR parser functionality verified for grammar changes
 - ts-bridge compatibility maintained for Tree-sitter v15 ABI
 - External scanner integration works correctly when applicable

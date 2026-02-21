@@ -15,6 +15,8 @@ categories = ["parsing", "compilers"]
 thiserror = "1.0"
 smallvec = "1.13"
 rustc-hash = "2.1"
+adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
+adze-runtime2-governance = { version = "0.1.0", path = "../crates/runtime2-governance" }
 
 # GLR core (optional, enabled by default)
 adze-glr-core = { path = "../glr-core", optional = true }
@@ -33,7 +35,10 @@ typed-arena = { version = "2.0", optional = true }
 [dev-dependencies]
 criterion = "0.5"
 pretty_assertions = "1.4"
+serde_json = "1.0.142"
+adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
 adze-tablegen = { path = "../tablegen", features = ["serialization"] }
+adze-parser-contract = { path = "../crates/parser-contract" }
 
 [features]
 default = ["glr-core", "serialization"]
@@ -70,4 +75,3 @@ required-features = ["pure-rust-glr", "test-utils"]
 [[example]]
 name = "precedence_debug"
 required-features = ["pure-rust-glr"]
-

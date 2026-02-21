@@ -8,84 +8,28 @@ All notable changes to this project will be documented in this file.
 
 **Focus**: Feature completion - Incremental parsing, query system, and performance baseline
 
-**📋 Implementation Plan**: See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for week-by-week schedule
-**📊 Task Breakdown**: See [GAPS.md](./GAPS.md) for all 43 tasks with implementation guidance
-
 ### Planned Features
 
-#### Incremental Parsing (HIGH PRIORITY)
-- [ ] Implement `parse_with_old_tree()` functionality for efficient incremental parsing
-- [ ] Subtree reuse algorithm optimized for GLR grammars
-- [ ] Edit validation with overflow protection
-- [ ] 7 incremental parsing tests enabled
-- [ ] Performance target: 10x+ speedup on small edits
-- [ ] Full documentation in `docs/INCREMENTAL_PARSING.md`
-
-#### Query System Completion (HIGH PRIORITY)
-- [ ] Implement all query predicates:
-  - `#eq?` - Equality checking
-  - `#match?` - Regex matching
-  - `#any-of?` - Set membership
-  - `#is?` - Node type checking
-  - `#is-not?` - Negated type checking
-- [ ] Predicate evaluation engine with short-circuit optimization
-- [ ] 5 query tests enabled
-- [ ] Query cookbook with 10+ practical examples in `docs/QUERY_COOKBOOK.md`
-
-#### Performance Baseline (CRITICAL)
-- [ ] Establish performance baseline vs tree-sitter-c
-- [ ] Document current parse speed (tokens/second)
-- [ ] Memory usage profiling and optimization opportunities
-- [ ] Performance regression tests in CI
-- [ ] Performance tuning guide in `docs/PERFORMANCE_TUNING.md`
-
-#### Test Maintenance (HIGH PRIORITY)
-- [ ] Re-enable all 20 ignored tests:
-  - 7 error recovery tests
-  - 3 parser v3 tests
-  - 4 helper function tests
-  - 1 external scanner test
-  - 1 pure Rust E2E test
-  - 2 benchmarks (kept as manual run)
-- [ ] Achieve >95% test pass rate
-- [ ] All tests documented with clear purpose
-
-#### CLI Functionality (MEDIUM PRIORITY)
-- [ ] Dynamic parser loading from shared libraries
-- [ ] `adze parse` command fully functional
-- [ ] `adze test` runs corpus tests
-- [ ] Clear error messages and helpful output
-
-#### Documentation (HIGH PRIORITY)
-- [ ] 5 video tutorials (Getting Started, Grammar Writing, Precedence, Queries, Debugging)
-- [ ] Grammar author's cookbook with 10+ recipes
-- [ ] Performance tuning guide with profiling techniques
-- [ ] Troubleshooting guide for common issues
-- [ ] v0.6→v0.7 migration guide
-
-#### API Stabilization
-- [ ] Public API reviewed and frozen for v1.0
-- [ ] Deprecation policy documented
-- [ ] Breaking changes clearly marked
-- [ ] API stability guarantees published
-
-### Success Metrics (v0.7.0)
-- ✅ Incremental parsing operational (10x+ speedup on small edits)
-- ✅ Query system complete with all predicates
-- ✅ Performance baseline established and documented
-- ✅ 0 ignored tests (except intentional benchmarks)
-- ✅ CLI fully functional for parsing and testing
-- ✅ 5+ video tutorials published
-- ✅ Comprehensive documentation coverage
+- **Incremental Parsing**: Implement `parse_with_old_tree()` for efficient incremental parsing with subtree reuse optimized for GLR grammars
+- **Query System Completion**: Implement all query predicates (`#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?`) with predicate evaluation engine
+- **Performance Baseline**: Establish performance baseline vs tree-sitter-c with documented parse speed, memory profiling, and regression tests in CI
+- **Test Maintenance**: Re-enable all ignored tests and achieve comprehensive test coverage
+- **CLI Functionality**: Dynamic parser loading, `adze parse` and `adze test` commands fully functional
+- **Documentation**: Tutorials, grammar cookbook, performance tuning guide, troubleshooting guide, migration guide
+- **API Stabilization**: Public API review, deprecation policy, and stability guarantees
 
 ---
 
-## [0.6.1-beta] - Current Release
+## [0.6.1-beta] - 2025-01-22
+
+### GLR Correctness Fixes
+
+This beta release delivers critical correctness fixes for the GLR parser, achieving 100% pass rates on core test suites.
 
 ### Added
 
 - **Macro-Based Grammar Generation - 100% Working**: Complete parser runtime fixes enable full macro-based grammar support
-  - Fixed Accept action encoding (0x7FFF → 0xFFFF) to match decoder expectations
+  - Fixed Accept action encoding (0x7FFF to 0xFFFF) to match decoder expectations
   - Corrected decoder check order to test Accept (0xFFFF) before Reduce bit (0x8000)
   - Fixed token_count calculation to include EOF symbol (+1)
   - Added missing GOTO table entries to compressed parse tables
@@ -96,11 +40,11 @@ All notable changes to this project will be documented in this file.
   - Text extraction from leaf nodes with `text = true` attribute working
   - Vec<> repetition with `#[repeat]` attribute fully functional
   - Complete parser pipeline: tokenization, shift, reduce, GOTO lookup, accept all working
-  - Real-world validation: arithmetic expressions parse correctly (1-2*3 → 1-(2*3))
+  - Real-world validation: arithmetic expressions parse correctly (1-2*3 produces 1-(2*3))
 
 - **LSP Generator**: Complete grammar loading infrastructure for automatic language server generation
   - `load_grammar()` function with streaming JSON deserialization for memory efficiency
-  - Security hardening: 10MB file size limits, buffered I/O, comprehensive input validation  
+  - Security hardening: 10MB file size limits, buffered I/O, comprehensive input validation
   - Production-ready LSP server generation from adze grammars
   - Full Builder API with fluent configuration: completion, hover, diagnostics support
   - Comprehensive test coverage with 6 test scenarios covering all error conditions
@@ -113,7 +57,7 @@ All notable changes to this project will be documented in this file.
   - Enhanced test coverage for edge cases including zero, max u32, and negative values
   - Integration tests verify precedence errors don't break other grammar processing
 
-### ⚠️ Breaking Changes
+### Breaking Changes
 
 - **API**: Renamed `GlrStack::last()` to `GlrStack::peek()` to avoid trait method shadowing with `Vec::last()`
   - This prevents confusing behavior where the trait method shadowed the slice method
@@ -121,6 +65,11 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **GLR Phase-2 Re-closure**: Reductions now re-saturate with same lookahead, revealing cascaded reduces/accepts
+- **Accept Aggregation**: Per-token collection prevents early returns and ensures all valid parses are found
+- **EOF Recovery Loop**: Implements close-check-(insert|pop) pattern with no deletion at EOF
+- **Epsilon Loop Prevention**: Position-aware RedStamp using `(state, rule, end)` tuple
+- **Nonterminal Goto**: Fixed critical bug that was using action table for nonterminal lookups
 - **Memory Safety**: Fixed memory leak in telemetry by removing `Box::leak`, replaced with safe `Option<&'t Telemetry>` pattern
 - **Stack Implementation**: Corrected push/pop behavior to properly handle state/symbol pairs
   - Now uses sentinel value (`u16::MAX`) to distinguish "no symbol" in pairs
@@ -129,6 +78,10 @@ All notable changes to this project will be documented in this file.
 
 ### Improved
 
+- **Query Correctness**: Squash unary wrapper nodes with identical spans; dedup captures by `(symbol, start, end)`
+- **Fork/Merge Stability**: Safe stack deduplication removes only exact pointer duplicates, preserving ambiguities
+- **Test Infrastructure**: Replaced hand-crafted parse tables with proper LR(1) automaton builder
+- **Fork Depth Understanding**: Tests now respect that ambiguity surfaces at length >= 3 in LR(1) constructions
 - **Stack Performance**: Added `#[inline]` hints to hot path methods (`top()`, `peek()`, `is_empty()`)
 - **Code Robustness**: Added debug assertions to verify stack invariants (even-length head vectors)
 - **Stack Efficiency**: Rewrote `top()`, `depth()`, and `to_vec()` to use iterative algorithms instead of recursion
@@ -137,38 +90,14 @@ All notable changes to this project will be documented in this file.
 
 ### Testing
 
+- **Test Results**: Fork/Merge (100%), Integration (100%), Error Recovery (100%), GLR Parsing (100%)
+- **Adjusted Expectations**: Fork assertions use forest ambiguity and distinct root counts
+- **Lexer Integration**: All tests now use GLRLexer for consistent tokenization
 - **Stack Tests**: Added comprehensive invariant tests to ensure stack correctness
   - Depth equals states length invariant
   - Top equals last state in to_vec invariant
   - Push/pop round-trip correctness
   - Fork preservation of invariants
-
-## [0.6.1-beta] - 2025-01-22
-
-### 🎯 GLR Correctness Fixes
-
-This beta release delivers critical correctness fixes for the GLR parser, achieving 100% pass rates on core test suites.
-
-### Fixed
-
-- **GLR Phase-2 Re-closure**: Reductions now re-saturate with same lookahead, revealing cascaded reduces/accepts
-- **Accept Aggregation**: Per-token collection prevents early returns and ensures all valid parses are found
-- **EOF Recovery Loop**: Implements close→check→(insert|pop) pattern with no deletion at EOF
-- **Epsilon Loop Prevention**: Position-aware RedStamp using `(state, rule, end)` tuple
-- **Nonterminal Goto**: Fixed critical bug that was using action table for nonterminal lookups
-
-### Improved
-
-- **Query Correctness**: Squash unary wrapper nodes with identical spans; dedup captures by `(symbol, start, end)`
-- **Fork/Merge Stability**: Safe stack deduplication removes only exact pointer duplicates, preserving ambiguities
-- **Test Infrastructure**: Replaced hand-crafted parse tables with proper LR(1) automaton builder
-- **Fork Depth Understanding**: Tests now respect that ambiguity surfaces at length ≥3 in LR(1) constructions
-
-### Testing
-
-- **Test Results**: Fork/Merge (100%), Integration (100%), Error Recovery (100%), GLR Parsing (100%)
-- **Adjusted Expectations**: Fork assertions use forest ambiguity and distinct root counts
-- **Lexer Integration**: All tests now use GLRLexer for consistent tokenization
 
 ### Known Limitations
 
@@ -179,11 +108,25 @@ This beta release delivers critical correctness fixes for the GLR parser, achiev
 
 ## [0.6.0] - 2025-01-09
 
-### 🚀 Major Release: Production-Ready GLR with Safety Hardening
+### Major Release: Production-Ready GLR with Safety Hardening
 
-This release delivers a production-ready GLR parser with comprehensive safety improvements, honest CLI feedback, and the **Direct Forest Splicing** algorithm for 16x faster incremental parsing.
+This release delivers a production-ready GLR parser with comprehensive safety improvements, honest CLI feedback, and the **Direct Forest Splicing** algorithm for faster incremental parsing.
 
-### ✨ Added
+### Added
+
+- **GLR Parser Implementation Complete**: adze now features a **true GLR (Generalized LR) parser** capable of handling inherently ambiguous grammars without manual conflict resolution.
+
+- **Multi-Action Cells**: Action table restructured to support multiple actions per state/symbol pair
+  - Changed from `Vec<Vec<Action>>` to `Vec<Vec<Vec<Action>>>` architecture
+  - Each cell can now hold both shift and reduce actions simultaneously
+  - Enables runtime forking for conflict resolution
+
+- **Python Grammar Full Support**: Fixed critical "State 0" bug
+  - Python files can now start with any statement (`def`, `class`, `import`, etc.)
+  - Empty files parse correctly (reduce to empty module)
+  - Files with content parse correctly (shift initial token)
+  - All 273 symbols with 57 fields fully operational
+  - External scanner (indentation) working
 
 - **FFI Safety Hardening**
   - Compile-time ABI validation with `const` assertions
@@ -192,13 +135,12 @@ This release delivers a production-ready GLR parser with comprehensive safety im
   - `destroy_lexer()` function for proper resource cleanup
 
 - **Direct Forest Splicing Algorithm**
-  - Revolutionary approach replacing GSS snapshot/restore
-  - **16.34x performance improvement** on incremental edits
-  - O(edit size) complexity achieved
-  - 99.9% subtree reuse on large documents
-  - 100% ambiguity preservation for ambiguous grammars
+  - Approach replacing GSS snapshot/restore
+  - Significant performance improvement on incremental edits
+  - Subtree reuse on large documents
+  - Ambiguity preservation for ambiguous grammars
 
-- **Enhanced GLR Parser Architecture**  
+- **Enhanced GLR Parser Architecture**
   - Multi-action cells: `Vec<Vec<Vec<Action>>>`
   - Runtime fork/merge for shift/reduce and reduce/reduce conflicts
   - Full Python grammar support (273 symbols, 57 fields)
@@ -216,7 +158,14 @@ This release delivers a production-ready GLR parser with comprehensive safety im
   - External scanner black-box tests
   - Line/column tracking edge case tests
 
-### 🔧 Changed
+### Changed
+
+- **Core Parser Architecture**: Updated 20+ files across the codebase
+  - `glr-core/lib.rs`: Core conflict handling logic
+  - `tablegen/compress.rs`: Table compression for multi-action cells
+  - `runtime/decoder.rs`: Parse table decoding for GLR
+  - All parser implementations updated (`parser_v2.rs`, `parser_v3.rs`, `parser_v4.rs`, `glr_parser.rs`)
+  - Incremental parsers and error recovery updated for GLR
 
 - **API Updates (Breaking)**
   - `process_eof()` now requires `total_bytes: usize` parameter
@@ -230,89 +179,58 @@ This release delivers a production-ready GLR parser with comprehensive safety im
   - Fork-aware edit application with `ForkTracker`
   - Optimized token range calculations
 
-### 🐛 Fixed
+### Fixed
 
+- **State 0 Bug**: Resolved issue where parsers couldn't handle initial shift/reduce conflicts
+- **Empty File Parsing**: Fixed reduce-only state 0 preventing empty file parsing
+- **Conflict Preservation**: Actions are now preserved rather than eliminated during table generation
 - **Safety Issues**
   - Fixed misleading lifetimes in external scanner adapter
   - Replaced adapter() with as_adapter() to avoid name shadowing
   - Fixed get_goto_state stub to panic with clear message
   - Unified CRLF handling across line/column tracking
-
 - **Workspace Stabilization**: Fixed compilation errors in 8 test files
 - **Integration Tests**: Complete refactor to modern parser API
 - **GLR Table Debug**: Updated for multi-action cell format
 - **Test Coverage**: All workspace tests now compile and pass
 
-### 📈 Performance
-
-- **Incremental Gains**: Up to 90% faster reparsing for localized edits
-- **Memory Efficiency**: Shared GSS reduces memory by 40% for ambiguous grammars
-- **SIMD Optimizations**: Continued improvements to lexer performance
-
-## [Unreleased] - 2025-01-06
-
-### 🎉 GLR Parser Implementation Complete
-
-This release marks a major milestone: adze now features a **true GLR (Generalized LR) parser** capable of handling inherently ambiguous grammars without manual conflict resolution.
-
-### ✨ Added
-
-- **Multi-Action Cells**: Action table restructured to support multiple actions per state/symbol pair
-  - Changed from `Vec<Vec<Action>>` to `Vec<Vec<Vec<Action>>>` architecture
-  - Each cell can now hold both shift and reduce actions simultaneously
-  - Enables runtime forking for conflict resolution
-
-- **Python Grammar Full Support**: Fixed critical "State 0" bug
-  - Python files can now start with any statement (`def`, `class`, `import`, etc.)
-  - Empty files parse correctly (reduce to empty module)
-  - Files with content parse correctly (shift initial token)
-  - All 273 symbols with 57 fields fully operational
-  - External scanner (indentation) working perfectly
-
-### 🔧 Changed
-
-- **Core Parser Architecture**: Updated 20+ files across the codebase
-  - `glr-core/lib.rs`: Core conflict handling logic
-  - `tablegen/compress.rs`: Table compression for multi-action cells
-  - `runtime/decoder.rs`: Parse table decoding for GLR
-  - All parser implementations updated (`parser_v2.rs`, `parser_v3.rs`, `parser_v4.rs`, `glr_parser.rs`)
-  - Incremental parsers and error recovery updated for GLR
-
-### 🐛 Fixed
-
-- **State 0 Bug**: Resolved issue where parsers couldn't handle initial shift/reduce conflicts
-- **Empty File Parsing**: Fixed reduce-only state 0 preventing empty file parsing
-- **Conflict Preservation**: Actions are now preserved rather than eliminated during table generation
-
-### 📚 Documentation
+### Documentation
 
 - Updated CLAUDE.md with GLR implementation details
 - Updated README.md highlighting GLR completion
 - Updated ROADMAP.md marking GLR as complete
 - Added comprehensive technical documentation of changes
 
-## [1.0.0] - 2025-08-04
+### Performance
 
-This is the first stable, production-ready release of `adze`. It marks the culmination of a major architectural overhaul to deliver a pure-Rust, high-performance, and robust parsing framework with full Tree-sitter compatibility.
+- Incremental gains: Up to 90% faster reparsing for localized edits
+- Memory efficiency: Shared GSS reduces memory by 40% for ambiguous grammars
+- SIMD optimizations: Continued improvements to lexer performance
 
-### ✨ Added
+## [0.6.0-dev] - 2025-08-04
 
-- **GLR Parser Engine**: A powerful Generalized LR parser that can handle ambiguous grammars, eliminating the need for many of the workarounds required by standard LR(1) parsers.
-- **Incremental Parsing**: Production-ready incremental parsing that provides massive performance gains in interactive environments like IDEs. Achieves >95% parse reuse for typical single-line edits.
-- **Query Predicate Evaluation**: Full support for Tree-sitter query predicates (`#eq?`, `#match?`, etc.), enabling complex, real-world language queries for tools like linters and static analyzers.
-- **Grammar Optimizer**: An optional, feature-flagged grammar optimizer (`--features optimize`) that applies passes like unit-rule elimination and symbol inlining to improve parser performance.
-- **Comprehensive Fuzzing Suite**: A `cargo-fuzz` based testing suite that continuously tests the lexer, parser, and incremental parsing logic for robustness against any possible input.
-- **CI-Based Benchmarking**: A full benchmark suite using `criterion` that runs automatically in CI to prevent performance regressions.
-- **Golden-Master Tests**: A test harness that ensures byte-for-byte S-expression parity with the official C Tree-sitter parsers for major languages.
-- **Official Documentation Site**: A complete `mdBook` for guides, reference material, and examples.
+> **Note:** This version was originally labeled 1.0.0 in error. It was a development milestone, not a stable release.
 
-### 🐛 Fixed
+This release represents a significant development milestone for `adze`, delivering major architectural improvements and new infrastructure.
 
-- **UTF-8 Safety**: Fixed a critical bug found by the fuzzer where the lexer would panic on invalid UTF-8 input. The lexer is now fully UTF-8 safe.
+### Added
+
+- **GLR Parser Engine**: A Generalized LR parser that can handle ambiguous grammars, reducing the need for many workarounds required by standard LR(1) parsers.
+- **Incremental Parsing**: Infrastructure implemented (not yet production-ready). Initial benchmarks show promising parse reuse for single-line edits, but the feature is currently disabled and falls back to fresh parsing for consistency. See Known Issues.
+- **Query Predicate Evaluation**: Initial support for Tree-sitter query predicates (`#eq?`, `#match?`, etc.). Not all predicates are fully implemented; see the 0.7.0 roadmap for completion plans.
+- **Grammar Optimizer**: An optional, feature-flagged grammar optimizer (`--features optimize`) that applies passes like unit-rule elimination and symbol inlining.
+- **Fuzzing Suite**: A `cargo-fuzz` based testing suite for the lexer, parser, and incremental parsing logic.
+- **CI-Based Benchmarking**: A benchmark suite using `criterion` that runs in CI to detect performance regressions.
+- **Golden-Master Tests**: A test harness that ensures S-expression parity with the official C Tree-sitter parsers for major languages.
+- **Documentation Site**: An `mdBook` for guides, reference material, and examples.
+
+### Fixed
+
+- **UTF-8 Safety**: Fixed a bug found by the fuzzer where the lexer would panic on invalid UTF-8 input. The lexer is now fully UTF-8 safe.
 - **Binary Name Collision**: Resolved the name collision between `adze-tool` and `adze-cli`.
-- **All Known Test Failures**: The entire workspace test suite, including snapshot and integration tests, is now 100% green.
+- **Test Failures**: Resolved known test failures across the workspace test suite.
 
-### ⚠️ Breaking Changes
+### Breaking Changes
 
 - **Internal Grammar Representation**: The internal storage of grammar rules was changed from a `HashMap` to a `BTreeMap<SymbolId, Vec<Rule>>` to support the GLR engine. A migration guide is available for users of internal APIs.
 
@@ -320,7 +238,7 @@ This is the first stable, production-ready release of `adze`. It marks the culmi
 
 ## [0.5.0-beta.2] - 2025-08-04
 
-### 🔧 Major Internal Refactoring
+### Major Internal Refactoring
 
 This release completes a major architectural refactoring that improves performance and maintainability while maintaining full backward compatibility.
 
@@ -361,7 +279,7 @@ This release completes a major architectural refactoring that improves performan
 
 ## [0.5.0-beta] - 2025-08-02
 
-### 🚀 Major Architectural Improvements
+### Major Architectural Improvements
 
 This beta release represents a significant evolution of adze with GLR parsing support, enhanced error recovery, and a stabilized codebase ready for production use.
 
@@ -387,7 +305,7 @@ This beta release represents a significant evolution of adze with GLR parsing su
 - **Better Memory Management**: Reduced allocations and improved cache locality
 - **WASM Optimizations**: Specific optimizations for WebAssembly targets
 
-#### Testing & Debugging Tools
+#### Testing and Debugging Tools
 - **GLR Visualization**: Fork/merge visualization for debugging ambiguous grammars
 - **Parse Forest Explorer**: Tools for exploring multiple parse interpretations
 - **Benchmark Suite**: Comprehensive benchmarks for GLR parsing performance
@@ -447,7 +365,7 @@ For users upgrading from 0.4.x:
    ```rust
    // Old
    let tree = parser.parse(input, None).unwrap();
-   
+
    // New (GLR)
    let parse_table = build_lr1_automaton(&grammar, &first_follow)?;
    let mut parser = GLRParser::new(parse_table, grammar);

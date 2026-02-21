@@ -429,7 +429,7 @@ Adze requires specific toolchain configuration:
 
 ```toml
 [toolchain]
-channel = "1.89"
+channel = "1.92"
 edition = "2024"
 components = ["rustfmt", "clippy"]
 ```

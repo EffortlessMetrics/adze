@@ -7,7 +7,11 @@
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
 use adze_ir::RuleId;
-use adze_runtime::Parser;
+use adze_parsetable_metadata::{
+    FORMAT_VERSION, FeatureFlags, GenerationInfo, GovernanceMetadata, GrammarInfo, MAGIC_NUMBER,
+    METADATA_SCHEMA_VERSION, ParserFeatureProfileSnapshot, ParsetableMetadata, TableStatistics,
+};
+use adze_runtime::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID, Parser};
 
 /// Helper: Create a minimal .parsetable file for testing
 fn create_minimal_parsetable() -> Vec<u8> {
@@ -60,23 +64,55 @@ fn create_minimal_parsetable() -> Vec<u8> {
     let mut file_bytes = Vec::new();
 
     // Magic number: "RSPT"
-    file_bytes.extend_from_slice(b"RSPT");
+    file_bytes.extend_from_slice(&MAGIC_NUMBER);
 
-    // Format version: 1 (little-endian u32)
-    file_bytes.extend_from_slice(&1u32.to_le_bytes());
+    // Format version: little-endian u32
+    file_bytes.extend_from_slice(&FORMAT_VERSION.to_le_bytes());
 
     // Grammar hash: 32 bytes of zeros (placeholder)
     file_bytes.extend_from_slice(&[0u8; 32]);
 
-    // Metadata: minimal JSON
-    let metadata_json = r#"{"schema_version":"1.0","grammar":{"name":"test","version":"1.0.0","language":"test"},"generation":{"timestamp":"2025-01-01T00:00:00Z","tool_version":"0.1.0","rust_version":"1.89.0","host_triple":"x86_64-unknown-linux-gnu"},"statistics":{"state_count":2,"symbol_count":2,"rule_count":0,"conflict_count":0,"multi_action_cells":0},"features":{"glr_enabled":false,"external_scanner":false,"incremental":false}}"#;
-    let metadata_bytes = metadata_json.as_bytes();
+    let feature_profile = ParserFeatureProfileSnapshot::new(false, false, true, false);
+    let metadata = ParsetableMetadata {
+        schema_version: METADATA_SCHEMA_VERSION.to_string(),
+        grammar: GrammarInfo {
+            name: "test".to_string(),
+            version: "1.0.0".to_string(),
+            language: "test".to_string(),
+        },
+        generation: GenerationInfo {
+            timestamp: "2025-01-01T00:00:00Z".to_string(),
+            tool_version: "0.1.0".to_string(),
+            rust_version: "1.89.0".to_string(),
+            host_triple: "x86_64-unknown-linux-gnu".to_string(),
+        },
+        statistics: TableStatistics {
+            state_count: 2,
+            symbol_count: 2,
+            rule_count: 0,
+            conflict_count: 0,
+            multi_action_cells: 0,
+        },
+        features: FeatureFlags {
+            glr_enabled: false,
+            external_scanner: false,
+            incremental: false,
+        },
+        feature_profile: Some(feature_profile),
+        governance: Some(GovernanceMetadata::for_grid(
+            BddPhase::Runtime,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            feature_profile.as_profile(),
+        )),
+    };
+    let metadata_bytes =
+        serde_json::to_vec(&metadata).expect("minimal metadata serialization should succeed");
 
     // Metadata length (little-endian u32)
     file_bytes.extend_from_slice(&(metadata_bytes.len() as u32).to_le_bytes());
 
     // Metadata JSON
-    file_bytes.extend_from_slice(metadata_bytes);
+    file_bytes.extend_from_slice(&metadata_bytes);
 
     // Table data length (little-endian u32)
     file_bytes.extend_from_slice(&(table_bytes.len() as u32).to_le_bytes());
@@ -101,6 +137,29 @@ fn test_load_valid_parsetable() {
         parser.is_glr_mode(),
         "Parser should be in GLR mode after loading"
     );
+
+    let metadata = parser
+        .parsetable_metadata()
+        .expect("metadata should be parsed");
+    assert_eq!(metadata.schema_version, METADATA_SCHEMA_VERSION);
+    assert_eq!(metadata.grammar.name, "test");
+    assert_eq!(metadata.grammar.version, "1.0.0");
+    assert_eq!(metadata.grammar.language, "test");
+
+    let feature_profile = metadata
+        .feature_profile
+        .as_ref()
+        .expect("feature profile should be present");
+    let governance = metadata
+        .governance
+        .as_ref()
+        .expect("governance should be present");
+    let expected_governance = GovernanceMetadata::for_grid(
+        BddPhase::Runtime,
+        GLR_CONFLICT_PRESERVATION_GRID,
+        feature_profile.as_profile(),
+    );
+    assert_eq!(governance, &expected_governance);
 }
 
 /// Test 2: Loading with invalid magic number fails
@@ -214,46 +273,6 @@ fn test_load_truncated_table_data() {
 /// Test 7: Round-trip through serialization and loading
 #[test]
 fn test_roundtrip_serialization() {
-    // Create a parse table
-    let original_table = ParseTable {
-        action_table: vec![
-            vec![vec![Action::Shift(StateId(1))], vec![Action::Error]],
-            vec![vec![Action::Reduce(RuleId(0))], vec![Action::Accept]],
-        ],
-        goto_table: vec![vec![StateId(0)], vec![StateId(1)]],
-        symbol_metadata: vec![],
-        state_count: 2,
-        symbol_count: 2,
-        symbol_to_index: Default::default(),
-        index_to_symbol: vec![SymbolId(0), SymbolId(1)],
-        external_scanner_states: vec![vec![], vec![]],
-        rules: vec![],
-        nonterminal_to_index: Default::default(),
-        goto_indexing: GotoIndexing::NonterminalMap,
-        eof_symbol: SymbolId(0),
-        start_symbol: SymbolId(1),
-        grammar: Default::default(),
-        initial_state: StateId(0),
-        token_count: 1,
-        external_token_count: 0,
-        lex_modes: vec![
-            LexMode {
-                lex_state: 0,
-                external_lex_state: 0,
-            },
-            LexMode {
-                lex_state: 0,
-                external_lex_state: 0,
-            },
-        ],
-        extras: vec![],
-        dynamic_prec_by_rule: vec![],
-        rule_assoc_by_rule: vec![],
-        field_names: vec![],
-        field_map: Default::default(),
-        alias_sequences: vec![],
-    };
-
     // Generate .parsetable bytes
     let parsetable_bytes = create_minimal_parsetable();
 
@@ -304,9 +323,9 @@ fn test_file_size() {
     );
 
     // File should have correct magic
-    assert_eq!(&bytes[0..4], b"RSPT");
+    assert_eq!(&bytes[0..4], MAGIC_NUMBER.as_slice());
 
     // File should have version 1
     let version = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
-    assert_eq!(version, 1);
+    assert_eq!(version, FORMAT_VERSION);
 }

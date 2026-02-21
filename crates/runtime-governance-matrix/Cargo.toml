@@ -1,0 +1,21 @@
+[package]
+name = "adze-runtime-governance-matrix"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Runtime-capability governance matrix with feature-flag profiles and BDD reporting."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+pure-rust = ["adze-governance-runtime-core/pure-rust"]
+tree-sitter-c2rust = ["adze-governance-runtime-core/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-governance-runtime-core/tree-sitter-standard"]
+glr = ["pure-rust", "adze-governance-runtime-core/glr"]
+strict_api = ["adze-governance-runtime-core/strict_api"]
+strict_docs = ["adze-governance-runtime-core/strict_docs"]
+
+[dependencies]
+adze-governance-runtime-core = { version = "0.1.0", path = "../governance-runtime-core" }

@@ -16,8 +16,9 @@ use adze_ir::{
     Associativity, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
+use adze_parsetable_metadata::{GovernanceMetadata, MAGIC_NUMBER, METADATA_SCHEMA_VERSION};
 use adze_runtime::{
-    Parser,
+    BddPhase, GLR_CONFLICT_PRESERVATION_GRID, Parser,
     language::SymbolMetadata,
     tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
 };
@@ -162,11 +163,7 @@ fn test_full_pipeline_arithmetic() {
     );
 
     // Verify magic number
-    assert_eq!(
-        &parsetable_bytes[0..4],
-        b"RSPT",
-        "Magic number should be RSPT"
-    );
+    assert_eq!(&parsetable_bytes[0..4], MAGIC_NUMBER.as_slice());
 
     // Step 3: Load .parsetable in runtime2 (AC-3)
     let mut parser = Parser::new();
@@ -176,11 +173,31 @@ fn test_full_pipeline_arithmetic() {
         .expect("Loading .parsetable should succeed");
 
     assert!(parser.is_glr_mode(), "Parser should be in GLR mode");
+    let table_metadata = parser
+        .parsetable_metadata()
+        .expect("metadata should be parsed from generated .parsetable");
+    assert_eq!(table_metadata.schema_version, METADATA_SCHEMA_VERSION);
+    assert_eq!(table_metadata.grammar.name, "arithmetic");
+
+    let feature_profile = table_metadata
+        .feature_profile
+        .as_ref()
+        .expect("feature profile should be present");
+    let governance = table_metadata
+        .governance
+        .as_ref()
+        .expect("governance should be present");
+    let expected_governance = GovernanceMetadata::for_grid(
+        BddPhase::Runtime,
+        GLR_CONFLICT_PRESERVATION_GRID,
+        feature_profile.as_profile(),
+    );
+    assert_eq!(governance, &expected_governance);
 
     // Set symbol metadata
-    let metadata = create_symbol_metadata();
+    let symbol_metadata = create_symbol_metadata();
     parser
-        .set_symbol_metadata(metadata)
+        .set_symbol_metadata(symbol_metadata)
         .expect("Setting symbol metadata should succeed");
 
     // Set token patterns

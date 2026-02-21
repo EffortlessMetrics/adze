@@ -1,0 +1,21 @@
+[package]
+name = "adze-governance-contract"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Shared governance contracts for parser backend selection and BDD progress tracking."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+pure-rust = ["adze-parser-governance-contract/pure-rust"]
+tree-sitter-c2rust = ["adze-parser-governance-contract/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-parser-governance-contract/tree-sitter-standard"]
+glr = ["pure-rust", "adze-parser-governance-contract/glr"]
+strict_api = ["adze-parser-governance-contract/strict_api"]
+strict_docs = ["adze-parser-governance-contract/strict_docs"]
+
+[dependencies]
+adze-parser-governance-contract = { version = "0.1.0", path = "../parser-governance-contract" }

@@ -1,0 +1,21 @@
+[package]
+name = "adze-feature-policy-contract"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Shared parser backend selection and feature-flag profile contracts."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+pure-rust = []
+tree-sitter-c2rust = []
+tree-sitter-standard = []
+glr = ["pure-rust"]
+strict_docs = []
+strict_api = []
+
+[dependencies]
+adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }

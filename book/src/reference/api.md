@@ -451,7 +451,7 @@ adze = { version = "0.6", features = [
 
 ### Rust Versions
 
-- **MSRV**: Rust 1.89.0
+- **MSRV**: Rust 1.92.0
 - **Edition**: 2024 (required)
 - **Components**: rustfmt, clippy
 

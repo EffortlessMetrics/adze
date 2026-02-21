@@ -3,7 +3,7 @@
 **Version**: v0.6.1-beta
 **Date**: 2025-11-20
 **Purpose**: Establish performance baseline for v0.7.0 optimization targets
-**Platform**: Linux 4.4.0 (Rust 1.89.0, edition 2024)
+**Platform**: Linux 4.4.0 (Rust 1.92.0, edition 2024)
 **Benchmark Tool**: Criterion.rs v0.5.1
 
 ---
@@ -388,7 +388,7 @@ Fail PR if these regress by >5%:
 ### Environment
 
 - **Platform**: Linux 4.4.0
-- **Rust**: 1.89.0 (edition 2024)
+- **Rust**: 1.92.0 (edition 2024)
 - **CPU**: Container environment (specs not specified)
 - **Memory**: Container environment (specs not specified)
 - **Optimization**: Release profile (`--release`)
@@ -433,7 +433,7 @@ Criterion.rs provides:
 
 ## 11. Next Steps
 
-Per [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) Week 1:
+Immediate next steps:
 
 - [x] **Monday-Tuesday**: Run all benchmarks ✅ **COMPLETE**
 - [x] **Monday-Tuesday**: Document baseline ✅ **COMPLETE** (This document)
@@ -442,7 +442,7 @@ Per [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) Week 1:
 
 ### Week 2+ Optimization Roadmap
 
-**Week 2** (per IMPLEMENTATION_PLAN.md):
+**Week 2**:
 1. Helper function implementations (comma_sep, etc.)
 2. Re-enable error recovery tests
 3. External scanner position tracking fixes
@@ -494,6 +494,5 @@ All raw benchmark output is preserved in temporary files for reference:
 **Next Update**: After v0.7.0 optimizations or significant performance changes
 **Owner**: Adze maintainers
 **Related Documents**:
-- [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - v0.7.0 roadmap
-- [STATUS_NOW.md](../STATUS_NOW.md) - Current project status
-- [GAPS.md](../GAPS.md) - Known issues and tasks
+- [ROADMAP.md](../ROADMAP.md) - Project roadmap
+- [CHANGELOG.md](../CHANGELOG.md) - Version history

@@ -57,6 +57,8 @@ insta = "1.0"
 criterion = "0.5"
 dhat = "0.3"
 serde_json = "1.0"
+adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
+adze-parser-contract = { path = "../crates/parser-contract" }
 glr-test-support = { path = "../glr-test-support" }
 trybuild = "1"
 

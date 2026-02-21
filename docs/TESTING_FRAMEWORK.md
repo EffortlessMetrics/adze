@@ -351,8 +351,8 @@ jobs:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/adze/hooks
-    rev: v1.0.0
+  # See https://github.com/EffortlessMetrics/adze for hook examples
+  - repo: local
     hooks:
       - id: adze-test
       - id: adze-lint
@@ -429,7 +429,5 @@ assert_parse!(grammar, "fn f() {}" => {
 
 ## Resources
 
-- [Testing Tutorial](https://docs.adze.dev/testing)
-- [Example Test Suites](https://github.com/adze/examples)
-- [Best Practices Guide](https://docs.adze.dev/testing/best-practices)
-- [Video Tutorials](https://youtube.com/@effortlessmetrics)
+- [Example Test Suites](../example/)
+- [Developer Guide](./DEVELOPER_GUIDE.md)

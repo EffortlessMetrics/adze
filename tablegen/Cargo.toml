@@ -24,6 +24,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 features = ["strict_docs"]
 
 [dependencies]
+adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core", features = ["serialization"] }
 proc-macro2 = "1.0"
@@ -38,6 +39,7 @@ rustc-hash = "2.1"
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["std", "clock"], default-features = false }
 rustc_version_runtime = "0.3"
+adze-bdd-grid-core = { version = "0.1.0", path = "../crates/bdd-grid-core" }
 
 # Tree-sitter backends
 tree-sitter = { version = "0.25.2", optional = true }
@@ -60,5 +62,6 @@ tree-sitter-c2rust = ["dep:tree-sitter-c2rust"]
 compression = [] # Feature for compression/decompression utilities
 small-table = [] # Feature for compressed table generation
 serialization = [] # Feature for .parsetable file generation
+incremental_glr = [] # Feature flag for incremental GLR parsing support
 strict_docs = []  # Feature flag for strict documentation enforcement
 strict_api = []  # Feature flag for strict API surface checking

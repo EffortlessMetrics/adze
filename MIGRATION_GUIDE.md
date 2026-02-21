@@ -549,14 +549,10 @@ fn test_parsing() {
 
 ## Getting Help
 
-1. **Interactive Playground**: Test your grammar at [play.adze.dev](https://play.adze.dev)
-2. **Examples**: Browse 150+ grammars at [grammars.adze.dev](https://grammars.adze.dev)
-3. **Debugging**: Use `adze debug` command for step-through parsing
-4. **Testing**: Built-in test framework with `adze test`
-5. **Community**: 
-   - Discord: [discord.gg/adze](https://discord.gg/adze)
-   - Forum: [discuss.adze.dev](https://discuss.adze.dev)
-   - Stack Overflow: [#adze](https://stackoverflow.com/questions/tagged/adze)
+1. **Examples**: Browse the [example grammars](./example/)
+2. **Testing**: See the [Testing Framework](./docs/TESTING_FRAMEWORK.md)
+3. **Issues**: Report bugs or request features on [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
+4. **Stack Overflow**: [#adze](https://stackoverflow.com/questions/tagged/adze)
 
 ## Migration Tools
 
@@ -687,10 +683,9 @@ let matcher = QueryMatcher::new(&query, source, &metadata);
 
 ## Next Steps
 
-1. **Try the Playground**: [play.adze.dev](https://play.adze.dev)
-2. **Read the Tutorial**: [Tutorial](./TUTORIAL.md)
-3. **Browse Examples**: [GitHub Examples](https://github.com/adze/examples)
-4. **Generate LSP**: [LSP Generator Guide](./LSP_GENERATOR.md)
-5. **Join Community**: [Discord](https://discord.gg/adze)
+1. **Quick Start**: [Getting Started](./QUICK_START.md)
+2. **Browse Examples**: [Example Grammars](./example/)
+3. **Generate LSP**: [LSP Generator Guide](./docs/LSP_GENERATOR.md)
+4. **Report Issues**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 
-The adze implementation is production-ready and actively maintained with regular updates and improvements.
+Adze is usable today for macro-authored grammars; the GLR conflict generation and table roundtrip pipelines are still evolving.

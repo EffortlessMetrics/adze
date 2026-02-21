@@ -1,277 +1,138 @@
 # Adze Roadmap
 
-**Last Updated**: November 15, 2025
-**Current Version**: v0.6.1-beta
-**Status**: ✅ **Macro-Based Grammar Generation Production-Ready**
+**Published: 0.6.x (beta) · Dev head: 0.8.0-dev (unreleased) · MSRV: 1.92**
+**Status**: GLR Parser Usable, Stabilization In Progress
 
 ---
 
-## 📋 Quick Status
+## Quick Status
 
-| Component | Status | Evidence |
-|-----------|--------|----------|
-| Core GLR Parser | ✅ Complete | 100% test pass rate |
-| Macro-Based Grammars | ✅ Complete | 13/13 tests passing |
-| Precedence/Associativity | ✅ Validated | Real integration tests |
-| Build Infrastructure | ✅ Mature | 13 CI/CD workflows |
-| Documentation | ✅ Excellent | 398-line getting started guide |
-| Incremental Parsing | ⚠️ Partial | Feature-gated, needs completion |
-| Query System | ⚠️ Partial | Predicates incomplete |
-| Performance | ⚠️ Unknown | No benchmarks run |
-
-**Detailed Assessment**: See [CURRENT_STATUS_2025-11.md](./CURRENT_STATUS_2025-11.md)
+| Component | Status |
+|-----------|--------|
+| Macro-Based Grammars | Usable — `example/` has working demos |
+| Core GLR Parser | Algorithmic tests pass |
+| GLR Runtime (`runtime2/`) | Passes own test suite, not yet default |
+| Tree-sitter Interop | Validated via golden tests for selected grammars |
+| Grammar Crates | Python, JavaScript, Go compile; not published |
+| CLI Tool | Exists (`cli/`), early stage |
+| LSP Generator | Prototype (`lsp-generator/`) |
+| Golden Tests | Working — validates against Tree-sitter reference |
+| Documentation | mdBook + guides in `book/` |
+| Incremental Parsing | Infrastructure exists, conservative fallback |
+| Query System | Partial — predicates incomplete |
+| Performance | Benchmark infra exists, baselines not published |
+| BDD/Governance Contracts | In development (`crates/`) |
 
 ---
 
-## ✅ v0.6.1-beta (Current - November 2025)
+## v0.6.x — Foundation (Completed)
 
-### What Actually Works Today
+### What Works
 
-**Macro-Based Grammar Generation** (100% Complete)
+**Macro-Based Grammar Generation**
 - Define grammars with `#[adze::grammar]` annotations
 - Generate working parsers at compile time
-- Correct operator precedence (`1-2*3` → `1-(2*3)`) ✓
-- Left associativity (`20-10-5` → `(20-10)-5`) ✓
-- Text extraction with `text = true` ✓
-- Vec<> repetition with `#[repeat]` ✓
-- Whitespace handling with `#[extra]` ✓
+- Correct operator precedence (`1-2*3` -> `1-(2*3)`)
+- Left associativity (`20-10-5` -> `(20-10)-5`)
+- Text extraction with `text = true`
+- Vec<> repetition with `#[repeat]`
+- Whitespace handling with `#[extra]`
 
-**Core Parser** (Algorithmically Correct)
+**Core Parser**
 - GLR parsing with multi-action cells
-- Fork/merge on conflicts (30/30 tests passing)
+- Fork/merge on conflicts
 - Error recovery (basic rejection of invalid input)
 - Phase-2 re-closure for cascaded reductions
-- Accept aggregation (no missed derivations)
-- EOF recovery without data loss
-- Epsilon loop prevention
 
-**Infrastructure** (Production-Grade)
-- 13 CI/CD workflows covering lint, test, fuzz, benchmarks
+**Infrastructure**
+- CI/CD workflows covering lint, test, fuzz, benchmarks
 - Pure-Rust implementation (no C dependencies)
 - WASM compilation support
-- Comprehensive test suite (all non-ignored tests passing)
-- 0 clippy warnings across workspace
+- Zero clippy warnings across workspace
 
-**Documentation** (Excellent)
-- 398-line Getting Started guide with 3 complete examples
-- Up-to-date README, CHANGELOG, PROJECT_STATUS
-- API documentation
-- Migration guides
-
-### Test Results (v0.6.1-beta - November 2025)
-
-| Suite | Pass Rate | Details |
-|-------|-----------|---------|
-| Macro Grammars | 13/13 (100%) | test-mini 6/6, test-vec-wrapper 7/7 |
-| Integration Tests | 6/6 (100%) | Real arithmetic parsing with precedence |
-| Fork/Merge | 30/30 (100%) | GLR correctness validated |
-| Tablegen | All passing | Accept encoding fixed |
-| Error Recovery | 4/5 (80%) | Basic error handling works |
-
-### What This Enables
-
-**You can build right now:**
-1. Parser for custom DSLs using Rust macros
-2. Arithmetic expression evaluators with correct precedence
-3. Config file parsers with nested structures
-4. Simple programming language parsers
-5. WASM-based browser parsers with zero runtime deps
-
-**See**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for complete working examples
+**See**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for working examples
 
 ---
 
-## 🚀 v0.7.0 - Feature Completion (Q1 2026)
+## v0.7.0 — Absorbed Into 0.8.0-dev
 
-**Target**: January-March 2026
-**Focus**: Complete incremental parsing and query system
+v0.7.0 was never formally released. Planned scope was absorbed into the current 0.8.0-dev branch.
 
-**📋 [See GAPS.md for detailed implementation tasks](./GAPS.md)**
-**📅 [See IMPLEMENTATION_PLAN.md for week-by-week schedule](./IMPLEMENTATION_PLAN.md)**
+**Done** (now in dev head):
+- GLR runtime (`runtime2/`) with Tree-sitter compatible API
+- Grammar crates for Python, JavaScript, Go
+- Golden test framework validating against Tree-sitter reference
+- mdBook documentation, CLI prototype, playground prototype
+- External scanner integration (pure-Rust `ExternalScanner` trait)
+- ts-bridge tool for extracting Tree-sitter parse tables
 
-### Scope
+**Carried forward to 0.8.0**:
+- Incremental parsing enablement
+- Query system predicate completion
+- Performance baseline publication
 
-**1. Incremental Parsing Completion** (Priority: High)
-- [ ] Implement `parse_with_old_tree` functionality ([GAPS.md#incremental-parsing](./GAPS.md#incremental-parsing))
-- [ ] Enable 7 ignored incremental tests
-- [ ] Benchmark incremental vs full parse performance
-- [ ] Document subtree reuse strategies
-- **Estimated**: 2-3 weeks
-- **Implementation Guide**: See GAPS.md section "Incremental Parsing" for step-by-step tasks
+---
 
-**2. Query System Completion** (Priority: High)
-- [ ] Finish predicate implementation: `#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?` ([GAPS.md#query-system](./GAPS.md#query-system))
-- [ ] Enable 5 ignored query tests
+## v0.8.0 — Stabilize & Publish (Current Target)
+
+**Focus**: Get what exists into publishable shape.
+
+**1. Publish Pipeline**
+- [ ] Resolve `publish = false` on workspace crates
+- [ ] Dry-run publish with `cargo publish --dry-run`
+- [ ] Ensure version consistency across workspace
+
+**2. Documentation Polish**
+- [ ] Update version references throughout docs
+- [ ] Ensure mdBook builds clean
+- [ ] Review and update API documentation
+
+**3. Performance Baseline**
+- [ ] Run existing benchmarks, document results
+- [ ] Add performance regression checks to CI
+
+**4. Incremental Parsing**
+- [ ] Decide: enable conservative path or defer to 0.9.0
+- [ ] If enabled, validate against golden tests
+
+**5. Query System**
+- [ ] Finish predicate implementation (`#eq?`, `#match?`, etc.)
 - [ ] Document query API with examples
-- [ ] Add query cookbook with common patterns
-- **Estimated**: 1-2 weeks
-- **Implementation Guide**: See GAPS.md section "Query System" for predicate implementation templates
-
-**3. Performance Baseline** (Priority: Critical)
-- [ ] Run existing benchmarks vs tree-sitter-c ([GAPS.md#performance-benchmarking](./GAPS.md#performance-benchmarking))
-- [ ] Document current performance characteristics
-- [ ] Identify optimization opportunities (flamegraphs, profiling)
-- [ ] Add performance regression tests to CI
-- **Estimated**: 1-2 weeks
-- **Implementation Guide**: See GAPS.md section "Performance Benchmarking" for benchmark setup
-
-**4. Test Maintenance** (Priority: High)
-- [ ] Re-enable 20 ignored tests ([GAPS.md#ignored-tests-20-total](./GAPS.md#ignored-tests-20-total))
-  - 7 error recovery tests (1-2 weeks)
-  - 3 parser v3 tests (3-4 days)
-  - 4 helper function tests (1 day)
-  - 1 external scanner test (4-6 hours)
-  - 1 pure Rust E2E test (1 day)
-- [ ] Achieve >95% test pass rate (excluding intentional benchmarks)
-- **Estimated**: 2-3 weeks
-- **Implementation Guide**: See GAPS.md section "Ignored Tests" for per-test breakdown and fix guidance
-
-**5. API Stabilization** (Priority: High)
-- [ ] Freeze public API surface for v1.0
-- [ ] Document breaking vs non-breaking changes
-- [ ] Create API stability guarantees document
-- [ ] Migration guide for 0.6→0.7
-- **Estimated**: Ongoing throughout v0.7 development
-
-### Success Criteria
-
-- ✅ Incremental parsing fully operational
-- ✅ Query system complete with predicates
-- ✅ Performance baseline documented
-- ✅ <10 ignored tests (all documented)
-- ✅ API stability guarantees published
-
-### Dependencies
-
-- **None** - All work can proceed in parallel
 
 ---
 
-## 🎯 v0.8.0 - Performance & Polish (Q2 2026)
+## v0.9.0 — Harden for Broader Use
 
-**Target**: April-June 2026
-**Focus**: Performance optimization, developer experience
+Prototypes exist for several ecosystem tools. Focus is hardening what's already built.
 
-### Scope
-
-**1. Performance Optimization** (Priority: Critical)
-- [ ] Target: Within 3x of tree-sitter-c for typical grammars
-- [ ] Implement shared parse-stack pool
-- [ ] Arena allocation tuning for parse trees
-- [ ] Memory profiling with heaptrack
-- [ ] SIMD lexing experiments (if beneficial)
-- **Estimated**: 4 weeks
-
-**2. Developer Experience** (Priority: High)
-- [ ] Enhanced grammar debugger with fork visualization
-- [ ] Improved error messages with suggestions
-- [ ] CLI enhancements (format, validate, profile commands)
-- [ ] VS Code extension prototype
-- **Estimated**: 3 weeks
-
-**3. Grammar Ecosystem** (Priority: Medium)
-- [ ] Grammar contribution guide
-- [ ] Example grammar repository
-- [ ] Testing framework for contributed grammars
-- [ ] Community grammar showcase page
-- **Estimated**: 2 weeks
-
-**4. Documentation** (Priority: Medium)
-- [ ] Video tutorial series (5-10 short videos)
-- [ ] Grammar author's cookbook
-- [ ] Performance tuning guide
-- [ ] Troubleshooting guide
-- **Estimated**: 1 week
-
-### Success Criteria
-
-- ✅ Parse performance within 3x of tree-sitter-c
-- ✅ 5+ community-contributed grammars
-- ✅ CLI provides debugging tools
-- ✅ Complete video tutorial series
+- LSP generator: move from prototype to usable for selected grammars
+- Playground: improve interactive experience, WASM size optimization
+- Grammar crates: publish Python, JavaScript, Go if quality bar is met
+- CLI: add grammar validation and debugging commands
+- Community infrastructure: contribution guide, grammar testing framework
 
 ---
 
-## 🌟 v0.9.0 - Community Ready (Q3 2026)
+## v1.0.0 — Stable Release (2027)
 
-**Target**: July-September 2026
-**Focus**: Ecosystem maturity, community infrastructure
-
-### Scope
-
-**1. Language Server Protocol**
-- [ ] LSP implementation using existing generator
-- [ ] Syntax highlighting generation
-- [ ] Code folding support
-- [ ] Outline provider
-- **Estimated**: 4 weeks
-
-**2. Web Platform**
-- [ ] Interactive playground enhancements
-- [ ] Grammar editor with live preview
-- [ ] Share/embed functionality
-- [ ] WASM size optimization (<500KB)
-- **Estimated**: 3 weeks
-
-**3. Advanced Grammar Support**
-- [ ] Python: Full parity with tree-sitter-python
-- [ ] JavaScript/TypeScript: JSX support
-- [ ] Rust: Macro and lifetime support
-- [ ] At least 10 production-quality grammars
-- **Estimated**: 6 weeks
-
-**4. Community Infrastructure**
-- [ ] Grammar registry/catalog
-- [ ] Automated grammar testing
-- [ ] Contribution workflow
-- [ ] Governance model
-- **Estimated**: 2 weeks
-
-### Success Criteria
-
-- ✅ LSP servers for 3+ languages working
-- ✅ Web playground production-ready
-- ✅ 10+ community grammars in registry
-- ✅ Documented governance and contribution process
-
----
-
-## 🎓 v1.0.0 - Stable Release (Q4 2026)
-
-**Target**: October-December 2026
-**Focus**: API stability, production hardening, long-term support
+**Focus**: API stability, production hardening, long-term support.
 
 ### API Guarantees
-
-**Stability Promises**:
 - Semantic versioning strictly enforced
 - No breaking changes to public API
 - Grammar macro syntax frozen (only additions allowed)
-- Clear deprecation policy (min 3 months notice)
+- Clear deprecation policy
 
 ### Production Checklist
-
 - [ ] API frozen and fully documented
 - [ ] Performance benchmarks in CI (regression tests)
 - [ ] Security audit complete
-- [ ] 3+ production deployment case studies
 - [ ] Comprehensive error messages with suggestions
 - [ ] Migration guides for all 0.x versions
-- [ ] Long-term support plan (LTS)
-
-### Success Criteria
-
-- ✅ 100+ production deployments
-- ✅ 50+ community grammars
-- ✅ Full tree-sitter feature parity
-- ✅ Security audit passed
-- ✅ Performance competitive (<3x tree-sitter-c)
 
 ---
 
-## 📊 What We're NOT Building
-
-**Clear Non-Goals**:
+## What We're NOT Building
 
 1. **Tree-Sitter Replacement Everywhere**: We target Rust-native use cases, especially WASM. Tree-sitter-c remains the best choice for many scenarios.
 
@@ -285,11 +146,11 @@
 
 ---
 
-## 🔄 Development Philosophy
+## Development Philosophy
 
 ### Principles
 
-1. **Ship Working Code**: v0.6.1 proves macro generation works completely
+1. **Ship Working Code**: v0.6.x proves macro generation works; dev head adds GLR runtime and grammar crates
 2. **Measure Then Optimize**: No performance work without benchmarks
 3. **Community Driven**: Let real use cases guide priorities
 4. **Document Everything**: Every feature needs examples and tests
@@ -304,7 +165,7 @@
 
 ---
 
-## 📈 Success Metrics
+## Success Metrics
 
 ### Adoption
 
@@ -329,74 +190,21 @@
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-### 📋 Want to Help? Check [GAPS.md](./GAPS.md)!
-
-**[GAPS.md](./GAPS.md)** provides a comprehensive, structured view of what needs to be done:
-- 43 total open tasks across all categories
-- Organized by skill level (beginner/intermediate/advanced)
-- Organized by time available (hours/days/weeks)
-- Each task includes:
-  - Clear implementation guidance
-  - Estimated time to complete
-  - Acceptance criteria
-  - Code templates and examples
-
-### Current Priorities (Help Wanted!)
-
-1. **Re-enable Ignored Tests**: 20 tests ready to fix ([GAPS.md#ignored-tests](./GAPS.md#ignored-tests-20-total))
-   - Good first issues: 7 error recovery tests
-   - 1-4 hours each, clear test cases provided
-
-2. **Query Predicates**: Finish implementation ([GAPS.md#query-system](./GAPS.md#query-system))
-   - 1-2 week effort, code templates provided
-   - Implement `#eq?`, `#match?`, `#any-of?`, `#is?`, `#is-not?`
-
-3. **Incremental Parsing**: Complete `parse_with_old_tree` ([GAPS.md#incremental-parsing](./GAPS.md#incremental-parsing))
-   - 2-3 weeks, step-by-step implementation guide
-   - High impact: enables LSP and editor integration
-
-4. **Performance Benchmarks**: Run and analyze ([GAPS.md#performance-benchmarking](./GAPS.md#performance-benchmarking))
-   - 1-2 weeks, critical for v0.7.0 release
-   - Establish baseline for future optimizations
-
-5. **Documentation**: Video tutorials, cookbooks ([GAPS.md#documentation-gaps](./GAPS.md#documentation-gaps))
-   - Ongoing, various time commitments
-   - Grammar cookbook, troubleshooting guides, videos
-
-### How to Contribute
-
-1. **Browse [GAPS.md](./GAPS.md)** to find a task that matches your skill level and available time
-2. Check [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup
-3. Look for "good first issue" labels on GitHub
-4. Discuss major changes in issues first
-5. Follow TDD (tests first!)
-6. Update docs with changes
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and contribution guidelines. Browse [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues) for open tasks, and look for "good first issue" labels to get started.
 
 ---
 
-## 📚 Documentation
-
-- **Status Report**: [CURRENT_STATUS_2025-11.md](./CURRENT_STATUS_2025-11.md) - Comprehensive assessment
-- **Project Status**: [PROJECT_STATUS.md](./PROJECT_STATUS.md) - Feature matrix
-- **Getting Started**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) - 398-line guide with examples
-- **API Reference**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) - Complete API docs
-- **Changelog**: [CHANGELOG.md](./CHANGELOG.md) - All changes
-
----
-
-## ❓ Questions & Support
+## Questions & Support
 
 - **GitHub Issues**: Bug reports and feature requests
 - **GitHub Discussions**: Questions and community chat
-- **Discord**: (coming with v1.0)
 
 ---
 
 **Maintained by**: adze core team
-**Last Review**: November 15, 2025
-**Next Review**: January 2026 (post-v0.7.0 planning)
+**Last Review**: February 2026
 
 ---
 

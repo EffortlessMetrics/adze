@@ -5,7 +5,7 @@ Thank you for your interest in contributing! This guide covers everything you ne
 ## Quick Start
 
 1. **Fork and clone** the repository
-2. **Install prerequisites**: Rust 1.89+ (via `rustup`), `jq`, optionally `rg` (ripgrep)
+2. **Install prerequisites**: Rust 1.92+ (via `rustup`), `jq`, optionally `rg` (ripgrep)
 3. **Build**: `cargo build`
 4. **Test**: `cargo test`
 5. **Find work**: Check [open issues](https://github.com/EffortlessMetrics/adze/issues) labeled `good first issue`
@@ -14,7 +14,7 @@ Thank you for your interest in contributing! This guide covers everything you ne
 
 ### Prerequisites
 
-- **Rust 1.89.0+** with `rustfmt` and `clippy` (configured via `rust-toolchain.toml`)
+- **Rust 1.92.0+** with `rustfmt` and `clippy` (configured via `rust-toolchain.toml`)
 - **jq** for crate-aware checks
 - **rg** (ripgrep) - optional but recommended
 - **libtree-sitter-dev** - only needed for ts-bridge tool

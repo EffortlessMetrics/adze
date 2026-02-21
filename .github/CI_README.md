@@ -12,7 +12,7 @@ The CI pipeline ensures code quality, API stability, and security through multip
 2. **Lint** - Enforces code formatting and clippy warnings
 3. **Test** - Runs all tests using cargo-nextest for speed
 4. **Feature Matrix** - Tests all feature combinations
-5. **MSRV** - Ensures compatibility with Rust 1.89.0
+5. **MSRV** - Ensures compatibility with Rust 1.92.0
 6. **API Stability** - Detects breaking changes in public APIs
 7. **Security** - Scans for vulnerabilities and license issues
 8. **Documentation** - Builds docs with warnings as errors
