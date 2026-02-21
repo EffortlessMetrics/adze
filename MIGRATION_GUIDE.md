@@ -688,4 +688,4 @@ let matcher = QueryMatcher::new(&query, source, &metadata);
 3. **Generate LSP**: [LSP Generator Guide](./docs/LSP_GENERATOR.md)
 4. **Report Issues**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 
-The adze implementation is production-ready and actively maintained with regular updates and improvements.
+Adze is usable today for macro-authored grammars; the GLR conflict generation and table roundtrip pipelines are still evolving.

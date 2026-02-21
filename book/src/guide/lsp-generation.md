@@ -335,5 +335,5 @@ ADZE_LOG_PERFORMANCE=true my-language-lsp --stdio
 
 - Explore the [LSP Generator documentation](../LSP_GENERATOR.md) for complete API reference
 - Check out [API Documentation](../API_DOCUMENTATION.md) for detailed function signatures
-- Review [examples](../../../example/) for real-world grammar implementations
+- Review [examples](https://github.com/EffortlessMetrics/adze/tree/main/example) for real-world grammar implementations
 - Learn about [advanced LSP features](../advanced/lsp-advanced.md) like semantic tokens and code actions
