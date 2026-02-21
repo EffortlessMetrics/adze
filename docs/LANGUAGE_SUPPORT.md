@@ -183,7 +183,7 @@ adze generate-lsp python
 adze test python
 ```
 
-[Full Python Guide →](https://docs.adze.dev/languages/python)
+_Expanded Python guide: planned._
 
 ### JavaScript/TypeScript
 ```bash
@@ -194,7 +194,7 @@ adze install javascript --features jsx,typescript
 adze config javascript --target node
 ```
 
-[Full JavaScript Guide →](https://docs.adze.dev/languages/javascript)
+_Expanded JavaScript guide: planned._
 
 ### Rust
 ```bash
@@ -205,7 +205,7 @@ adze install rust --features macros,async
 adze config rust --proc-macros
 ```
 
-[Full Rust Guide →](https://docs.adze.dev/languages/rust)
+_Expanded Rust guide: planned._
 
 ## Adding New Languages
 
@@ -255,10 +255,7 @@ Popular community-maintained grammars:
 
 ## Grammar Repository
 
-Browse and download grammars:
-- Web: [grammars.adze.dev](https://grammars.adze.dev)
-- CLI: `adze search <language>`
-- API: `https://api.adze.dev/grammars`
+Browse the included [example grammars](../example/) or the full source at [GitHub](https://github.com/EffortlessMetrics/adze).
 
 ## Testing Language Support
 
@@ -293,9 +290,9 @@ adze coverage <language> --html
 5. LSP configuration (optional)
 
 ### Submission Process
-1. Fork [adze/grammars](https://github.com/adze/grammars)
-2. Add grammar to `languages/`
-3. Add tests to `tests/`
+1. Fork [EffortlessMetrics/adze](https://github.com/EffortlessMetrics/adze)
+2. Add grammar to `example/`
+3. Add tests
 4. Submit PR with benchmarks
 
 ### Quality Standards
@@ -307,8 +304,6 @@ adze coverage <language> --html
 
 ## Resources
 
-- [Language Implementation Guide](https://docs.adze.dev/languages/guide)
-- [Grammar Examples](https://github.com/adze/grammars)
+- [Example Grammars](../example/)
 - [Testing Framework](./TESTING_FRAMEWORK.md)
 - [Performance Guide](./PERFORMANCE_GUIDE.md)
-- [Community Discord](https://discord.gg/adze)

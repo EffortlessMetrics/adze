@@ -3,9 +3,9 @@
 [![CI](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
 
-**Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable (not affiliated).**
+**AST-first grammar toolchain for Rust.**
 
-Define grammars as Rust types, compile to parse tables, parse ambiguous inputs with GLR, extract typed Rust values.
+Define language structure using Rust types, compile to parse tables at build time, parse with GLR at runtime, extract typed Rust values. Tree-sitter interoperable, not affiliated.
 
 ```rust
 #[adze::grammar("calc")]
@@ -26,24 +26,23 @@ fn main() {
 
 ---
 
-## Why adze?
+## Why Adze?
 
 | Feature | adze | tree-sitter | nom | pest |
-|---------|-------------|-------------|-----|------|
+|---------|------|-------------|-----|------|
 | **Grammar in** | Rust types | JavaScript | Rust code | PEG file |
 | **Output** | Typed AST | Generic tree | Combinator | Generic tree |
-| **GLR** | ✅ Built-in | ❌ LR only | ❌ | ❌ |
-| **WASM** | ✅ First-class | ⚠️ Requires work | ✅ | ✅ |
-| **Build-time** | ✅ Pure Rust | ⚠️ Needs Node.js | ✅ | ✅ |
-| **Type safety** | ✅ Compile-time | ❌ Runtime | ⚠️ Manual | ❌ Runtime |
+| **GLR** | Built-in | LR only | No | No |
+| **Build-time** | Pure Rust | Needs Node.js | Pure Rust | Pure Rust |
+| **Type safety** | Compile-time | Runtime | Manual | Runtime |
 
-**Perfect for**: CLI tools, WASM apps, typed parsing, ambiguous grammars
+**Good for**: CLI tools, typed parsing, ambiguous grammars, pure-Rust pipelines.
 
 ---
 
 ## Quick Start
 
-**Get parsing in 5 minutes** → **[QUICK_START.md](./QUICK_START.md)**
+Get parsing in 5 minutes: **[QUICK_START.md](./QUICK_START.md)**
 
 Or install now:
 
@@ -52,113 +51,80 @@ cargo add adze
 cargo add --build adze-tool
 ```
 
-Then see [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for the full tutorial.
+---
+
+## Status (v0.6.x -- February 2026)
+
+**Stable -- Macro path**:
+- Macro-based grammar definition and code generation: working
+- Type-safe AST extraction: working
+- Precedence, associativity, repetition, optionals: working
+- Pure Rust with zero C dependencies
+
+**Stable -- GLR core**:
+- GLR table generation: algorithmically correct, tested in isolation
+- ActionCell architecture supporting shift/reduce and reduce/reduce conflicts
+- Production grammars (Python with 273 symbols, external scanners) compile successfully
+
+**Experimental -- GLR runtime wiring**:
+- GLR tables are generated correctly, but the default runtime for macro grammars uses simple LR
+- Full GLR runtime (`parser_v4`) exists and passes its own test suite, but is not yet the default
+- Incremental parsing infrastructure exists but is disabled (falls back to fresh parsing)
+
+For production use today: the macro path with the default backend is stable. The pure-Rust GLR runtime path is experimental.
 
 ---
 
-## Status (v0.6.1-beta - November 2025)
+## How It Works
 
-**✅ Strong Beta - Macro Path Feature Complete**:
-- Macro-based grammar generation: **100% working** (13/13 tests)
-- GLR table generation: **Algorithmically correct** (tested in isolation)
-- Pure-Rust: **Zero C dependencies**, works in WASM
-- Type-safe ASTs: **Compile-time validation**
+```
+  Build-time                          Run-time
+  =========                           ========
 
-**⚠️ Runtime Wiring** (see [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md)):
-- GLR tables generated correctly, but default runtime uses simple LR parser
-- Full GLR runtime exists (`parser_v4.rs`) but not yet wired as default for macro grammars
-- For production use: macro path is stable; pure-Rust GLR path is experimental
-
-**🚧 Coming in v0.7.0 (March 2026)**:
-- Complete GLR runtime integration as default
-- Incremental parsing (10x faster edits)
-- Complete query system
-- CLI tools
-- Performance optimization
-
-See [ROADMAP.md](./ROADMAP.md) for the full plan.
-
----
-
-## Parser Modes
-
-adze supports multiple parser backends. Choose based on your needs:
-
-| Mode | Parser Used | GLR Support | Status | Best For |
-|------|-------------|-------------|---------|----------|
-| **tree-sitter** (default) | Tree-sitter C runtime | ✅ LR(1) | Stable | Production LSPs, mature tooling |
-| **pure-rust** | `pure_parser.rs` | ⚠️ LR only | Stable | WASM, simple grammars, no conflicts |
-| **pure-rust+GLR** | `parser_v4.rs` | ✅ Full GLR | Experimental | Testing, ambiguous grammars |
-
-**Configuration**:
-```toml
-# Default: tree-sitter C backend
-[dependencies]
-adze = "0.6"
-
-# Pure Rust (WASM-compatible)
-[dependencies]
-adze = { version = "0.6", features = ["pure-rust"] }
-
-# Pure Rust with GLR (experimental)
-[dependencies]
-adze = { version = "0.6", features = ["pure-rust", "glr"] }
+  Rust types                          Source text
+  + #[adze::...] attributes           "2 + 3"
+       |                                  |
+       v                                  v
+  Macro expansion                     GLR parser
+  (validate + mark types)             (parse tables + token stream)
+       |                                  |
+       v                                  v
+  build.rs                            Parse tree / forest
+  (types -> IR -> grammar JSON        (concrete syntax tree)
+   -> parse tables)                       |
+       |                                  v
+       v                              Typed extraction
+  Compiled parser                     Expr::Add(Expr::Number(2),
+  (static tables linked                       (), Expr::Number(3))
+   into your binary)
 ```
 
-**Note**: The GLR runtime (`parser_v4`) is implemented and tested but not yet wired as the default for macro-generated grammars. See [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md) for details.
+Two-stage processing keeps macros lightweight (validation only) while `build.rs` does the heavy lifting of parser generation. At runtime, the compiled tables drive GLR parsing and typed AST extraction in a single pass.
 
----
-
-## Documentation
-
-**📍 Lost?** Check **[NAVIGATION.md](./NAVIGATION.md)** - Find any document fast!
-
-### 🚀 Get Started
-- **[5-Minute Quickstart](./QUICK_START.md)** - Get parsing NOW
-- **[Full Tutorial](./docs/GETTING_STARTED.md)** - Complete guide
-- **[Examples](./example/src/)** - Working grammars
-- **[FAQ](./FAQ.md)** - Common questions
-- **[Architecture](./ARCHITECTURE.md)** - How it all fits together
-
-### 📚 Reference
-- **[API Documentation](./API_DOCUMENTATION.md)** - Complete API
-- **[Grammar Guide](./GAPS.md)** - Pattern library
-- **[Roadmap](./ROADMAP.md)** - Future plans
-- **[Status Report](./CURRENT_STATUS_2025-11.md)** - Detailed v0.6.1 assessment
-
-### 🔧 Development
-- **[Contributing](./CONTRIBUTING.md)** - How to help
-- **[Task List](./GAPS.md)** - 43 tasks ready to pick up
-- **[Implementation Plan](./IMPLEMENTATION_PLAN.md)** - v0.7.0 schedule
-- **[Developer Workflow](./docs/dev-workflow.md)** - Commands and tools
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for full details.
 
 ---
 
 ## Features
 
-### Core Features (v0.6.1 ✅)
-
-**Grammar Definition**:
+**Grammar definition with Rust types**:
 ```rust
 #[adze::grammar("mylang")]
 mod grammar {
     #[adze::language]
     pub enum Expr {
-        // Numbers
         Number(
             #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
             i32
         ),
 
-        // Operators with precedence
         #[adze::prec_left(1)]
         Add(Box<Expr>, #[leaf(text = "+")] (), Box<Expr>),
 
-        #[adze::prec_left(2)]  // Higher precedence
+        #[adze::prec_left(2)]
         Mul(Box<Expr>, #[leaf(text = "*")] (), Box<Expr>),
     }
 
-    // Skip whitespace
     #[adze::extra]
     struct Whitespace {
         #[leaf(pattern = r"\s")] _ws: (),
@@ -166,17 +132,14 @@ mod grammar {
 }
 ```
 
-**What You Get**:
-- ✅ **Typed AST**: `Expr` values, not generic trees
-- ✅ **Precedence**: `2+3*4` → `2+(3*4)` automatically
-- ✅ **Error Recovery**: Handles malformed input gracefully
-- ✅ **GLR**: Supports ambiguous grammars
-- ✅ **WASM**: Works in browsers
-- ✅ **Fast**: Compile-time generation, zero runtime overhead
+**What you get**:
+- Typed AST values, not generic trees
+- Precedence handling: `2+3*4` parses as `2+(3*4)` automatically
+- Error recovery for malformed input
+- GLR support for ambiguous grammars
+- Compile-time grammar validation
 
-### Advanced Features
-
-**Repetition (Lists)**:
+**Repetition (lists)**:
 ```rust
 pub struct ArgList {
     #[adze::repeat]
@@ -185,15 +148,15 @@ pub struct ArgList {
 }
 ```
 
-**Optional Elements**:
+**Optional elements**:
 ```rust
 pub struct Function {
     name: String,
-    params: Option<ParamList>,  // Optional params
+    params: Option<ParamList>,
 }
 ```
 
-**External Scanners** (for context-sensitive lexing like Python indentation):
+**External scanners** (for context-sensitive lexing like Python indentation):
 ```rust
 impl adze::ExternalScanner for IndentScanner {
     fn scan(&mut self, lexer: &mut Lexer, valid: &[bool]) -> ScanResult {
@@ -204,43 +167,16 @@ impl adze::ExternalScanner for IndentScanner {
 
 ---
 
-## Examples
+## Documentation
 
-### Simple Expression Grammar
-
-```rust
-#[adze::grammar("expr")]
-mod expr {
-    #[adze::language]
-    #[derive(Debug, PartialEq)]
-    pub enum Expr {
-        Num(#[leaf(pattern = r"\d+")] i32),
-
-        #[prec_left(1)]
-        Add(Box<Expr>, #[leaf(text = "+")] (), Box<Expr>),
-    }
-}
-
-#[test]
-fn test_parse() {
-    use expr::grammar::*;
-
-    assert_eq!(
-        parse("1 + 2"),
-        Ok(Expr::Add(
-            Box::new(Expr::Num(1)),
-            (),
-            Box::new(Expr::Num(2))
-        ))
-    );
-}
-```
-
-**More examples**: [example/src/](./example/src/)
-- Arithmetic expressions
-- JSON parser
-- Repetition patterns
-- Optional fields
+- **[Quick Start](./QUICK_START.md)** -- Get parsing in 5 minutes
+- **[Full Tutorial](./docs/GETTING_STARTED.md)** -- Complete guide
+- **[API Reference](./API_DOCUMENTATION.md)** -- Complete API
+- **[Architecture](./ARCHITECTURE.md)** -- How it all fits together
+- **[FAQ](./FAQ.md)** -- Common questions
+- **[Roadmap](./ROADMAP.md)** -- Future plans
+- **[Changelog](./CHANGELOG.md)** -- Release history
+- **[Contributing](./CONTRIBUTING.md)** -- How to help
 
 ---
 
@@ -262,182 +198,64 @@ fn main() {
 ```
 
 **Backends**:
-- `pure-rust` (default, recommended) - No C dependencies, WASM-ready
-- `tree-sitter-c2rust` - Legacy C backend compatibility
+- `tree-sitter-c2rust` (default) -- Pure Rust, no C dependencies
+- `tree-sitter-standard` -- Standard C Tree-sitter runtime
 
 ---
 
-## How It Works
+## Examples
 
-```
-┌─────────────────────┐
-│ Your Rust Code      │
-│ #[adze::...] │  1. Annotate types
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Macro Expansion     │  2. Compile-time validation
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ build.rs Execution  │  3. Generate parser
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Compiled Binary     │  4. Type-safe parsing!
-│ grammar::parse(src) │
-└─────────────────────┘
-```
+Working grammars are in [example/src/](./example/src/):
+- Arithmetic expressions with precedence
+- Repetition and delimiter patterns
+- Optional fields
+- Word boundaries
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for details.
-
----
-
-## Performance
-
-**Current Status** (v0.6.1):
-- Algorithmically correct GLR implementation
-- Performance baseline being established (v0.7.0 Week 1)
-
-**Expected** (based on design):
-- Parse speed: Comparable to tree-sitter-c
-- Memory: Compressed tables ~10:1 ratio
-- Build time: <1s for typical grammars
-
-**Future** (v0.7.0+):
-- Incremental parsing: 10x+ speedup on edits
-- Performance CI preventing regressions
-- Profiling and optimization guide
-
-See [docs/PERFORMANCE_BASELINE.md](./docs/PERFORMANCE_BASELINE.md) for ongoing work.
-
----
-
-## Testing
-
+Run the example tests:
 ```bash
-# Run all tests
-cargo test
-
-# Run specific examples
 cargo test -p adze-example
-
-# Update snapshot tests
-cargo insta review
 ```
-
-**Test Coverage**:
-- 13/13 macro-based grammar tests ✅
-- 6/6 integration tests ✅
-- 30/30 GLR fork/merge tests ✅
-- Error recovery tests ✅
-- Production Python grammar (273 symbols) ✅
-
-**CI/CD**: 13 workflows covering lint, test, fuzz, benchmarks, performance
 
 ---
 
 ## Contributing
 
-We welcome contributions!
+Contributions are welcome. See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for development setup, coding standards, and PR guidelines.
 
-### 🚀 Ready to Contribute?
+Before submitting a PR:
+1. Run tests: `cargo test`
+2. Run linter: `cargo clippy --all -- -D warnings`
+3. Run formatter: `cargo fmt -- --check`
 
-**[→ Check GAPS.md for available tasks](./GAPS.md)** - 43 structured tasks ready to pick up:
-- 20 ignored tests to re-enable (good first issues!)
-- Incremental parsing implementation
-- Query system completion
-- Performance benchmarking
-- Documentation improvements
-
-Each task includes estimated time, difficulty level, and step-by-step guidance.
-
-### Before Submitting a PR:
-
-1. **Browse [GAPS.md](./GAPS.md)** - Find a task that matches your skills and time
-2. **Read [CONTRIBUTING.md](./CONTRIBUTING.md)** - Development setup
-3. **Check [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - See the roadmap
-4. Run tests: `cargo test`
-5. Run linter: `cargo clippy --all -- -D warnings`
-
-**Questions?** Check [FAQ.md](./FAQ.md) or ask in [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
+Questions? Open a [GitHub Issue](https://github.com/EffortlessMetrics/adze/issues).
 
 ---
 
-## Roadmap
-
-**v0.6.1-beta** (Current - November 2025):
-- ✅ Macro-based grammar generation: 100% working
-- ✅ GLR parsing: Fully operational
-- ✅ Type-safe ASTs: Complete
-- ✅ WASM support: Ready
-
-**v0.7.0** (Target: March 2026):
-- Incremental parsing (10x faster edits)
-- Complete query system with predicates
-- CLI tools (parse, test)
-- Performance baseline and optimization
-- Comprehensive documentation
-
-**v1.0** (Target: Q4 2026):
-- API stability guarantees
-- Editor plugin support
-- 50+ language grammars
-- Production-grade everything
-
-See [ROADMAP.md](./ROADMAP.md) for the complete vision.
-
----
-
-## Comparison
-
-### vs tree-sitter
+## Comparison with Tree-sitter
 
 **Similarities**:
-- GLR parsing (adze) / LR parsing (tree-sitter)
+- LR-family parsing (GLR in adze, LR(1) in tree-sitter)
 - Error recovery
-- External scanners
+- External scanner support
+- Incremental parsing (tree-sitter mature; adze experimental)
 
 **Differences**:
-- **Grammar**: Rust types (adze) vs JavaScript DSL (tree-sitter)
-- **Output**: Typed AST (adze) vs generic tree (tree-sitter)
-- **Dependencies**: Pure Rust (adze) vs C + Node.js (tree-sitter)
-- **WASM**: First-class (adze) vs requires bindings (tree-sitter)
+- **Grammar source**: Rust types (adze) vs JavaScript DSL (tree-sitter)
+- **Parse output**: Typed Rust AST (adze) vs generic syntax tree (tree-sitter)
+- **Build dependencies**: Pure Rust (adze) vs C compiler + Node.js (tree-sitter)
+- **Ambiguity**: GLR with multiple parse paths (adze) vs single-parse LR (tree-sitter)
 
-**When to use adze**:
+**Choose adze when you**:
 - Want type-safe parsing in pure Rust
-- Need WASM support
-- Prefer Rust-native workflow
-- Need GLR (ambiguous grammars)
+- Prefer defining grammars as Rust types
+- Need GLR support for ambiguous grammars
 
-**When to use tree-sitter**:
-- Need mature editor integration now
+**Choose tree-sitter when you**:
+- Need mature editor integration today
 - Want battle-tested incremental parsing
-- Have existing tree-sitter grammars
+- Have existing tree-sitter grammars to reuse
 
-See [FAQ.md](./FAQ.md) for more comparisons (nom, pest, lalrpop).
-
----
-
-## Community
-
-**Get Help**:
-- **Questions**: [FAQ.md](./FAQ.md)
-- **Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
-
-**Stay Updated**:
-- **Changelog**: [CHANGELOG.md](./CHANGELOG.md)
-- **Status**: [CURRENT_STATUS_2025-11.md](./CURRENT_STATUS_2025-11.md)
-- **Progress**: [docs/progress/](./docs/progress/) - Weekly updates
-
-**Contribute**:
-- **Tasks**: [GAPS.md](./GAPS.md) - Pick a task
-- **Guide**: [CONTRIBUTING.md](./CONTRIBUTING.md) - How to help
-- **Plan**: [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) - What's next
+See [FAQ.md](./FAQ.md) for comparisons with nom, pest, and lalrpop.
 
 ---
 
@@ -453,13 +271,10 @@ at your option.
 
 ## Acknowledgments
 
-adze builds on ideas from:
-- [Tree-sitter](https://tree-sitter.github.io/) - Inspiration and table format
-- [LALR](https://en.wikipedia.org/wiki/LALR_parser) - Parser algorithm foundations
-- [GLR parsing](https://en.wikipedia.org/wiki/GLR_parser) - Ambiguity handling
+Adze builds on ideas from:
+- [Tree-sitter](https://tree-sitter.github.io/) -- Inspiration for table format and incremental parsing design
+- [GLR parsing](https://en.wikipedia.org/wiki/GLR_parser) -- Ambiguity handling via parallel parse stacks
+- [LALR](https://en.wikipedia.org/wiki/LALR_parser) -- Parser algorithm foundations
+- [Rust Sitter](https://github.com/hydro-project/rust-sitter)
 
-Thanks to all contributors! See [GAPS.md#recognition](./GAPS.md#recognition) for contribution credits.
-
----
-
-**Ready to build your parser?** Start with **[QUICK_START.md](./QUICK_START.md)** 🚀
+Thanks to all contributors.

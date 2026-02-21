@@ -41,7 +41,7 @@ Your responsibilities after PR merge:
    - Test and update quickstart examples if core workflows changed
    - Refresh `book/src/getting-started/` with new installation steps or requirements
    - Update example crates (`example/`, `grammars/*/`) to demonstrate new features
-   - Ensure MSRV 1.89 and Rust 2024 requirements are documented
+   - Ensure MSRV 1.92 and Rust 2024 requirements are documented
    
    **How-To Guides (Problem-Oriented)**:
    - Update development workflow docs if build commands or testing changed

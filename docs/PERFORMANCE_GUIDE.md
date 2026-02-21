@@ -418,7 +418,6 @@ jobs:
 
 ## Resources
 
-- [Performance Tuning Tutorial](https://docs.adze.dev/performance)
-- [Benchmark Suite](https://github.com/adze/benchmarks)
-- [Optimization Examples](https://github.com/adze/examples/performance)
-- [Performance FAQ](https://docs.adze.dev/faq/performance)
+- [Benchmark Suite](../benchmarks/)
+- [Example Grammars](../example/)
+- [Performance FAQ](../FAQ.md)

@@ -1409,7 +1409,7 @@ cargo test -p ts-bridge --features with-grammars
 ## Version Compatibility
 
 - Tree-sitter ABI: v15 (production requirement)
-- Minimum Rust: 1.89.0 (Rust 2024 Edition)
+- Minimum Rust: 1.92.0 (Rust 2024 Edition)
 - WASM targets: wasm32-unknown-unknown, wasm32-wasi
 - Supported platforms: Linux, macOS, Windows, WebAssembly
 

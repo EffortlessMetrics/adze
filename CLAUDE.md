@@ -7,7 +7,7 @@ Use TDD. Red-Green-Refactor, spec driven design. User-story driven design.
 ## Requirements
 
 ### Minimum Rust Version (MSRV)
-- **Rust 1.89.0** or later
+- **Rust 1.92.0** or later
 - **Rust 2024 Edition** - all workspace crates use the latest edition
 - Components: `rustfmt`, `clippy` (automatically configured via `rust-toolchain.toml`)
 
@@ -84,6 +84,8 @@ cargo fmt -- --check
 ```
 
 ## Architecture Overview
+
+Adze is an AST-first grammar toolchain for Rust. Define the shape of your syntax in Rust, then parse into that shape. Build-time: types -> macros -> IR -> tables. Run-time: text -> GLR -> trees -> typed values.
 
 Adze is a Rust workspace consisting of multiple interconnected crates that work together to generate Tree-sitter parsers from Rust code annotations:
 
@@ -396,219 +398,31 @@ To check test connectivity locally, run:
 ./scripts/check-test-connectivity.sh
 ```
 
-### Recent Achievements (September 2025)
+### Completed Milestones
 
-#### **GLR Incremental Parsing Implementation Complete** ✅ *(PR Finalization - September 2025)*
-Successfully completed GLR incremental parsing implementation with comprehensive architectural improvements and stability enhancements, bringing advanced parsing capabilities to the pure-Rust implementation.
+#### GLR Incremental Parsing *(September 2025)*
+GLR-aware incremental parsing in `runtime/src/glr_incremental.rs` with fork-aware subtree reuse, ambiguity preservation, and direct forest splicing. External scanner integration (`runtime/src/external_scanner/`) provides pure-Rust `ExternalScanner` trait with C FFI compatibility. Tree bridge (`runtime/src/tree_bridge.rs`) handles grammar-compliant forest-to-tree conversion. Currently uses conservative fallback to fresh parsing for consistency. 130+ tests validated across feature combinations.
 
-**Key Accomplishments:**
-1. **GLR-Aware Incremental Parser** (`runtime/src/glr_incremental.rs`): Complete implementation of incremental parsing for GLR parsers
-   - **Fork-Aware Subtree Reuse**: Tracks which parse forks are affected by edits for selective revalidation
-   - **Ambiguity Preservation**: Maintains multiple parse trees during incremental updates
-   - **Direct Forest Splicing**: Efficient token-level differencing with surgical forest reconstruction
-   - **Conservative Fallback Strategy**: Temporarily disables aggressive reuse to ensure consistency with fresh parsing
+#### Symbol Normalization *(September 2025)*
+`Grammar::normalize()` in `ir/src/lib.rs` recursively processes complex symbols (`Optional`, `Repeat`, `Choice`, `Sequence`) into auxiliary rules. `FirstFollowSets::compute()` in `glr-core` auto-normalizes. Resolved `ComplexSymbolsNotNormalized` errors, unblocking the full Grammar -> FIRST/FOLLOW -> LR(1) -> Parse Tables pipeline. Symbol IDs allocated at `max_existing_id + 1000`.
 
-2. **External Scanner Integration** (`runtime/src/external_scanner/`): Production-ready scanner support
-   - **Pure Rust Scanner Interface**: Native `ExternalScanner` trait with `scan()`, `serialize()`, `deserialize()` methods
-   - **C FFI Compatibility**: Seamless integration with existing Tree-sitter external scanners
-   - **Multi-Range Token Processing**: Proper handling of scanner state across token boundaries
-   - **Range Validation**: Enhanced boundary checking and UTF-8 validation
+#### Test Stabilization *(PR #64, September 2025)*
+Fixed GLR tree bridge test failures: corrected expectations so GLR parsers produce trees rooted at grammar start symbols (`value`), not immediate content nodes. Added `#![cfg(not(feature = "incremental_glr"))]` guards. Established correct GLR testing patterns.
 
-3. **Tree Bridge Corrections** (`runtime/src/tree_bridge.rs`): Grammar-compliant tree generation
-   - **Root Symbol Determination**: Correct handling of grammar start symbols vs content nodes
-   - **Forest-to-Tree Conversion**: Reliable conversion from GLR parse forests to Tree-sitter compatible trees
-   - **Multi-Level Navigation**: Proper parent-child relationships in complex grammar structures
-   - **Feature-Gated Compatibility**: Graceful handling of incremental features across configurations
+#### External Scanner Integration *(PR #59)*
+Pure-Rust `ExternalScanner` trait with `scan()`, `serialize()`, `deserialize()` methods. C FFI compatibility maintained. Verified with Python indentation tracking and JavaScript template literals.
 
-4. **Comprehensive Testing Validation**: Full test suite stability across 130+ test cases
-   - **Property-Based Tests**: Validated incremental behavior with randomized inputs
-   - **Feature Combination Testing**: Verified compatibility across `external_scanners`, `incremental_glr`, `serialization`
-   - **Regression Prevention**: Updated test expectations to match correct GLR parser behavior
-   - **Code Quality**: Comprehensive rustfmt formatting and clippy compliance across workspace
+#### Incremental Parsing & Node Metadata API *(PR #58)*
+Tree-sitter compatible Node API (`kind()`, `start_byte()`, `end_byte()`, `is_error()`, etc.). Direct Forest Splicing algorithm achieves 16x speedup with 999/1000 subtree reuse for single-token edits. Conservative fallback for ambiguous scenarios.
 
-**Technical Implementation:**
-- **Incremental Architecture**: `GLRIncrementalParser` with fork tracking and selective reparse capabilities
-- **Token Stream Management**: Efficient splicing and reconstruction of token sequences during edits
-- **Memory Safety**: Checked arithmetic operations and comprehensive error handling throughout parsing pipeline
-- **Performance Monitoring**: Built-in instrumentation for tracking reuse effectiveness and conversion metrics
+#### GLR Parser Implementation *(PR #56, August 2025)*
+ActionCell architecture: `Vec<Vec<Vec<Action>>>` enabling multi-action cells with runtime forking. Fixed critical "State 0" bug for Python grammar (273 symbols, 57 fields). SymbolMetadata API standardized. Concurrency caps system implemented.
 
-**Architectural Decisions:**
-- **Conservative Approach**: Temporary fallback to fresh parsing ensures behavioral consistency during development
-- **GLR-First Design**: Architecture prioritizes GLR correctness over immediate performance optimization
-- **Feature Compatibility**: Implementation maintains backward compatibility with existing Tree-sitter workflows
-- **Future-Ready**: Foundation prepared for advanced GLR optimizations and full incremental capabilities
+#### GLR Runtime Integration *(PR #14, September 2025)*
+Production-ready GLR runtime in `runtime2/src/parser.rs` with Tree-sitter compatible API. Forest-to-tree pipeline in `builder.rs` with optional performance instrumentation via `ADZE_LOG_PERFORMANCE`. Incremental parsing integrated through standard Parser API.
 
-#### **Symbol Normalization System Complete** ✅ *(PR Cleanup - September 2025)*
-Successfully resolved critical `ComplexSymbolsNotNormalized` errors and implemented comprehensive symbol normalization infrastructure for GLR parser compatibility.
-
-**Key Accomplishments:**
-1. **Symbol Normalization Engine** (`ir/src/lib.rs`): Complete `Grammar::normalize()` implementation
-   - **Recursive Complex Symbol Processing**: Handles `Optional`, `Repeat`, `RepeatOne`, `Choice`, `Sequence` symbols
-   - **Auxiliary Rule Generation**: Creates `_aux{id}` rules with proper left-recursion for `Repeat` patterns
-   - **Symbol ID Management**: Conflict-free auxiliary symbol allocation starting at `max_id + 1000`
-   - **Idempotent Operation**: Multiple normalization calls have no effect, safe for repeated use
-
-2. **Automatic GLR Integration** (`glr-core/src/lib.rs`): Seamless normalization in FIRST/FOLLOW computation
-   - **Backward-Compatible API**: `FirstFollowSets::compute()` automatically normalizes without breaking existing code  
-   - **Grammar Cloning Strategy**: Immutable input grammar preserved, normalized clone used internally
-   - **Error Propagation**: `GrammarError::ComplexSymbolsNotNormalized` converted to `GLRError::GrammarError`
-
-3. **Comprehensive Testing Framework** (`ir/tests/test_normalization.rs`): Exhaustive validation coverage
-   - ✅ **6/6 normalization tests pass**: Optional, Repeat, Sequence, Choice, Nested, Idempotent
-   - ✅ **57/57 tablegen tests pass**: Including `test_json_language_generation` that was originally failing
-   - ✅ **49/49 GLR core tests pass**: Full FIRST/FOLLOW computation with normalized grammars
-   - ✅ **Zero regressions**: All existing functionality preserved
-
-4. **Production Grammar Verification**: Real-world grammar compatibility demonstrated
-   - **JSON Grammar Success**: Complex symbols like `Repeat(Sequence([Terminal(comma), NonTerminal(pair)]))` normalized correctly
-   - **Auxiliary Symbol Creation**: High symbol IDs (1018, 1023) confirm successful auxiliary rule generation  
-   - **GLR State Generation**: LR(1) item sets built successfully with normalized auxiliary symbols
-
-**Technical Implementation Details:**
-- **Symbol ID Range**: `max_existing_id + 1000` to `60000` (within u16 bounds)
-- **Production ID Management**: Sequential allocation avoiding conflicts
-- **Left-Recursive Optimization**: `Repeat` symbols use `aux -> aux inner` for parser efficiency
-- **Memory Efficiency**: 1-3 auxiliary rules per complex symbol, minimal compilation overhead
-
-**Error Resolution Impact:**
-- ✅ **ComplexSymbolsNotNormalized Error Eliminated**: Primary blocking issue resolved
-- ✅ **GLR Pipeline Unblocked**: Grammar → FIRST/FOLLOW → LR(1) → Parse Tables flow working
-- ✅ **Production Readiness**: Complex grammars now compatible with GLR parser generation
-- ✅ **Developer Experience**: Automatic normalization transparent to users
-
-#### **Project Readiness Analysis and Critical Test Stabilization** ✅ *(PR #64)*
-Successfully completed comprehensive project readiness analysis and resolved critical test failures in the GLR parser implementation, establishing stable testing foundation and correcting grammar-compliant parser behavior expectations.
-
-**Key Accomplishments:**
-1. **Critical Test Failures Resolved**: Fixed 3 failing tests in GLR tree bridge functionality
-   - **GLR Tree Structure Corrections**: Updated test expectations to match correct grammar-compliant behavior
-   - **Parser Root Behavior**: Corrected understanding that GLR parsers produce trees rooted at grammar start symbols (`value`), not immediate content nodes
-   - **Tree Navigation Patterns**: Fixed cursor navigation expectations for multi-level tree structures with proper parent-child relationships
-   
-2. **Test Expectation Corrections**: Established correct patterns for GLR parser testing
-   - **Grammar Start Symbol Root**: Tests now correctly expect `value` as root node containing specific content (`number`, `object`, `array`) as children
-   - **Multi-Level Tree Structures**: Updated navigation tests to handle proper grammar reduction hierarchy
-   - **Feature-Gated Testing**: Added `#![cfg(not(feature = "incremental_glr"))]` guards until tree bridge supports incremental features
-   
-3. **Code Quality Stabilization**: Applied comprehensive formatting and quality improvements
-   - **Rustfmt Integration**: Multiple formatting passes ensuring consistent code style
-   - **Clippy Compliance**: Resolved remaining clippy warnings across GLR implementation
-   - **Project Baseline**: Established stable foundation for future GLR enhancements
-
-**Technical Implementation:**
-- **Test Pattern Documentation**: Established correct testing patterns for GLR parsers vs traditional Tree-sitter expectations
-- **Grammar Compliance**: Tests now verify parser produces trees that correctly reflect grammar structure rather than content-centric views
-- **Incremental Feature Compatibility**: Proper feature gating ensures tests work across different feature combinations
-
-#### **External Scanner Integration Complete** ✅ *(PR #59)*
-Successfully completed external scanner integration in the pure-Rust parser implementation, enabling complex tokenization patterns that cannot be expressed with regular expressions.
-
-**Key Accomplishments:**
-1. **Pure-Rust External Scanner Support**: Added comprehensive external scanner interface with `ExternalScanner` trait
-   - Native Rust scanner implementations with `scan()`, `serialize()`, and `deserialize()` methods
-   - Lexer interface for scanners with `advance()`, `skip()`, and token manipulation methods
-   - Full integration with GLR parsing pipeline and state management
-2. **C FFI Scanner Compatibility**: Maintained compatibility with existing Tree-sitter C external scanners
-   - ABI-compatible scanner invocation through FFI bridges
-   - State serialization/deserialization for scanner persistence
-   - Symbol validation and error handling alignment
-3. **Production Grammar Support**: Verified external scanner functionality with complex grammars
-   - Python grammar indentation tracking through external scanner integration  
-   - JavaScript template literals and context-sensitive parsing
-   - Comprehensive test coverage for scanner integration patterns
-4. **Documentation and Integration Guide**: Added comprehensive external scanner integration guide
-   - Step-by-step implementation examples for both Rust and C FFI scanners
-   - Common patterns for indentation-sensitive parsing and delimited strings
-   - Testing and debugging strategies for scanner development
-
-**Technical Implementation:**
-- External scanner hooks integrated into pure parser tokenization pipeline
-- State management and serialization for scanner persistence across parse operations
-- Valid symbols array management with Tree-sitter compatibility
-- GLR-compatible scanner invocation with proper conflict handling
-
-#### **Incremental Parsing Documentation Finalized** ✅ *(Post PR #62 Merge)*
-Successfully completed comprehensive documentation updates following the production-ready incremental parsing implementation, ensuring all documentation reflects the Direct Forest Splicing algorithm and its 16x performance improvements.
-
-#### **Golden Test Integration Complete** ✅ *(PR #11)*
-Successfully completed comprehensive golden test integration with adze-generated parsers, establishing robust validation infrastructure against Tree-sitter reference implementations.
-
-**Key Accomplishments:**
-1. **Production Grammar Integration**: Connected golden tests to adze Python and JavaScript parsers with full feature wiring
-2. **Comprehensive Serialization Framework**: Added robust roundtrip testing with 100+ test cases covering:
-   - JSON and S-expression serialization identity verification
-   - Unicode edge cases (emoji, RTL text, combining marks)
-   - Performance testing for large trees (10K+ nodes, 1000+ depth)
-   - Property-based testing with random structure generation
-3. **CI Infrastructure Hardening**: Enhanced test connectivity monitoring and process management
-   - Eliminated `EAGAIN` errors through process group management
-   - Added global locking to prevent duplicate agent invocations
-   - Implemented exponential backoff retry mechanisms
-4. **Code Quality Improvements**: Resolved clippy warnings and import ordering across the codebase
-
-**Testing Infrastructure:**
-- Golden tests validate parse tree consistency using SHA256 hash verification
-- Serialization tests ensure roundtrip identity for complex nested structures
-- Performance tests guarantee sub-second serialization for production-scale trees
-- Unicode tests handle international text, mathematical symbols, and script mixing
-
-#### **GLR Parser Implementation - Production Ready** ✅
-Successfully transformed adze from a simple LR parser to a true GLR (Generalized LR) parser that can handle ambiguous grammars. The implementation is now production-ready with complete runtime integration and comprehensive API stabilization.
-
-**Key Technical Changes:**
-1. **Action Table Architecture**: Restructured from `Vec<Vec<Action>>` to `Vec<Vec<Vec<Action>>>` (ActionCell model)
-   - Each cell can now hold multiple conflicting actions
-   - Enables runtime forking when shift/reduce or reduce/reduce conflicts occur
-   - Maintains all valid parse paths simultaneously
-
-2. **Python Grammar Success**: Fixed critical "State 0" bug
-   - **Problem**: Python files starting with `def` couldn't be parsed due to single-action limitation
-   - **Root Cause**: Empty module rule `REPEAT(_statement)` creates shift/reduce conflict in state 0
-   - **Solution**: GLR parser now maintains both shift and reduce actions, handling:
-     - Empty Python files (reduce to empty module)
-     - Files starting with statements (shift the token)
-     - All 273 symbols with 57 fields compile correctly
-     - Full external scanner support for indentation
-
-3. **Comprehensive Implementation**: Updated 20+ files across the codebase
-   - Core parser logic in `glr-core/lib.rs`
-   - Table compression in `tablegen/compress.rs`
-   - Runtime decoders in `runtime/decoder.rs` and all parser implementations
-   - Error recovery, incremental parsing, and visitor patterns all updated
-
-4. **Infrastructure Stabilization (August 2025)**:
-   - **SymbolMetadata API Standardization**: Field names unified (`is_visible` → `visible`, `is_terminal` → `terminal`) with new GLR-specific fields for enhanced metadata support
-   - **Concurrency Caps System**: Implemented bounded thread pools and resource management to eliminate fork/PID storms and ensure stable testing across machines
-   - **Test Runner Infrastructure**: Added `scripts/preflight.sh`, `scripts/test-capped.sh`, and `scripts/test-local.sh` for reliable test execution
-   - **Grammar Loading Pipeline**: Completed parse table generation infrastructure for production use
-
-#### **GLR Runtime Integration - Production Complete** ✅ *(September 2025)*
-Successfully completed full GLR integration in runtime2 with PR #14 merge ("runtime2: wire parser to GLR engine"), delivering a production-ready parsing solution with Tree-sitter API compatibility and seamless incremental parsing.
-
-**Production Deployment Achievements:**
-1. **Complete GLR Runtime API**: Production-ready parser integration in `runtime2/src/parser.rs`
-   - Tree-sitter compatible API: `Parser::new()`, `set_language()`, `parse()`, `parse_utf8()`
-   - Automatic GLR engine routing with feature-gated compilation
-   - Language validation ensures parse table and tokenizer are present in GLR mode
-   - Graceful fallback behavior when GLR features are disabled
-
-2. **High-Performance Forest-to-Tree Pipeline**: Optimized conversion in `runtime2/src/builder.rs`
-   - Zero-overhead forest-to-tree conversion with performance instrumentation
-   - Real-time metrics: node count, tree depth, conversion time via `ADZE_LOG_PERFORMANCE`
-   - Memory-efficient tree construction with arena allocation support
-   - Smart caching and input comparison optimization
-
-3. **Integrated Incremental Parsing**: Seamless incremental support through standard Parser API
-   - Automatic route selection between incremental and full parsing
-   - Conservative subtree reuse maintaining GLR correctness
-   - Enhanced `Tree::edit()` with comprehensive `EditError` handling
-   - Feature compatibility: works with or without incremental features enabled
-
-4. **Production Readiness Features**:
-   - Memory safety: checked arithmetic operations throughout parsing pipeline
-   - Error resilience: comprehensive error handling and validation
-   - Performance monitoring: built-in instrumentation with zero runtime cost when disabled
-   - Thread safety: concurrent parsing support with bounded resource usage
+#### Golden Test Integration *(PR #11)*
+Golden tests validate adze parsers against Tree-sitter reference implementations using SHA256 hash verification. Serialization roundtrip testing with 100+ cases covering JSON, S-expressions, and Unicode edge cases.
 
 ### Previous Fixes (August 2025)
 
@@ -668,88 +482,6 @@ cargo run -p ts-bridge -- path/to/libtree-sitter-json.so output.json tree_sitter
 - Dynamic buffer allocation (no truncation for large action cells)
 - Production-ready with real Tree-sitter runtime (libtree-sitter-dev required)
 - Comprehensive parity testing against Tree-sitter
-
-### Recent Achievements (September 2025)
-
-#### **Basic GLR Parser Implementation - Production Ready** ✅ *(PR #56)*
-Successfully completed basic GLR parser implementation with ActionCell architecture, enabling parsing of ambiguous grammars and establishing foundation for advanced GLR features.
-
-**Key Accomplishments:**
-1. **ActionCell Architecture**: Multi-action parsing infrastructure
-   - **Action Table Restructure**: From `Vec<Vec<Action>>` to `Vec<Vec<Vec<Action>>>` supporting multiple conflicting actions per state/symbol
-   - **Runtime Forking**: Parser dynamically forks on conflicts, exploring all valid parse paths simultaneously
-   - **Conflict Handling**: Shift/reduce and reduce/reduce conflicts handled through parallel stack exploration
-   - **Parse Forest Generation**: GLR parser produces parse forests containing all valid interpretations
-
-2. **Production Grammar Success**: Complex grammar compatibility demonstrated
-   - **Python Grammar**: Successfully parses Python files with 273 symbols and 57 fields
-   - **State 0 Bug Resolution**: Fixed critical issue where Python files starting with `def` couldn't be parsed
-   - **Empty Module Support**: Proper handling of empty files and files starting with statements
-   - **External Scanner Integration**: Full support for indentation tracking and context-sensitive parsing
-
-3. **Comprehensive Implementation**: Updated 20+ files across the entire codebase
-   - **Core Parser Logic**: Complete GLR implementation in `glr-core/lib.rs`
-   - **Table Compression**: Updated compression algorithms in `tablegen/compress.rs`
-   - **Runtime Integration**: GLR decoders in `runtime/decoder.rs` and all parser implementations
-   - **Error Recovery**: GLR-compatible error handling, incremental parsing, and visitor patterns
-
-4. **Complete Documentation**: Comprehensive GLR parsing guide with practical examples
-   - **Advanced GLR Guide**: Complete documentation in `book/src/advanced/glr-parsing.md`
-   - **API Integration**: GLR methods documented in API_DOCUMENTATION.md
-   - **Grammar Examples**: Ambiguous grammar patterns in GRAMMAR_EXAMPLES.md
-   - **Quickstart Updates**: GLR integration examples in quickstart guides
-
-**Technical Implementation:**
-- **Multi-Action Cells**: Each state/symbol pair can hold multiple valid actions enabling runtime conflict resolution
-- **Dynamic Stack Management**: Parser maintains multiple parse stacks with efficient fork/merge operations
-- **Ambiguity Preservation**: Precedence/associativity order actions but don't eliminate them, preserving all valid interpretations
-- **Memory Efficiency**: Shared subtrees in parse forests reduce duplication while maintaining complete parse information
-
-**What This Enables:**
-- **Complex Language Support**: Can now parse languages like C++, Rust, and other inherently ambiguous grammars
-- **Better Error Recovery**: Multiple parse paths significantly improve error recovery strategies
-- **Research Applications**: Solid foundation for grammar inference and advanced language analysis tools
-- **WASM Compatibility**: Pure-Rust implementation enables efficient browser-based parsing capabilities
-
-#### **Incremental Parsing & Node Metadata API - Production Ready** ✅ *(PR #58)*
-Successfully completed production-ready PR #58 integration bringing incremental parsing with Direct Forest Splicing algorithm and Tree-sitter compatible Node metadata API.
-
-**Key Accomplishments**:
-1. **Tree-sitter Compatible Node Metadata API**: Complete Node interface implementation
-   - **Node Methods**: `kind()`, `start_byte()`, `end_byte()`, `start_position()`, `end_position()`
-   - **Text Extraction**: `utf8_text()`, `text()`, `byte_range()` with proper UTF-8 validation
-   - **Error Detection**: `is_error()`, `is_missing()` for parse error identification
-   - **Tree Navigation**: `child_count()`, `child()` with parser_v4 limitations documented
-   - **Performance**: Lazy computation and caching for efficient metadata access
-   
-2. **Direct Forest Splicing Incremental Parsing**: Revolutionary 16x performance improvement
-   - **Algorithm**: Token-level diff → middle-only parsing → forest extraction → surgical splicing
-   - **Performance**: 999/1000 subtree reuse for single-token edits with 16x speedup demonstrated
-   - **GLR Compatible**: Conservative reuse strategy maintains full ambiguity support
-   - **Tree-sitter API**: Seamless integration via `Parser::parse(source, Some(&old_tree))`
-   
-3. **Comprehensive Documentation**: Complete integration across all documentation
-   - **API Documentation**: Enhanced with Node API and incremental parsing sections
-   - **Quickstart Guide**: Updated with Node metadata and incremental parsing examples
-   - **Developer Guide**: Added PR #58 validation testing commands and procedures
-   - **Working Examples**: `pr58_features_demo.rs` demonstrates all features comprehensively
-   
-4. **Production-Ready Integration**: Seamless merge with conflict resolution and testing
-   - **Merge Success**: All 7 merge conflicts resolved prioritizing PR #58 implementations
-   - **Code Quality**: Fixed clippy warnings and maintained formatting standards
-   - **Test Verification**: All features verified working through comprehensive example execution
-   - **Feature Compatibility**: Graceful fallback when incremental_glr features disabled
-
-**Technical Implementation**:
-- **Direct Forest Splicing**: Bypasses traditional GSS state restoration (eliminates 3-4x overhead)
-- **GLR-Aware Reuse**: Preserves parse ambiguities during incremental updates  
-- **Conservative Approach**: Falls back to full parse for potentially ambiguous scenarios
-- **Memory Safety**: Comprehensive error handling and checked arithmetic operations
-
-### Previous Achievements (August 2025)
-
-#### **Golden Test Integration Complete** ✅ *(PR #11)*
-Successfully completed comprehensive golden test integration with adze-generated parsers, establishing robust validation infrastructure against Tree-sitter reference implementations.
 
 ### Known Issues (Being Addressed)
 

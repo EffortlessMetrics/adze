@@ -37,7 +37,7 @@ adze-tablegen = { version = "0.8.0-dev", features = ["serialization"] }
 
 ### System Requirements
 
-- **Rust**: 1.89.0 or later (Rust 2024 Edition)
+- **Rust**: 1.92.0 or later (Rust 2024 Edition)
 - **Disk Space**: ~100-500 KB per grammar (depends on grammar size)
 - **Memory**: Minimal overhead (~1-2 MB for typical grammars)
 
@@ -251,7 +251,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   "generation": {
     "timestamp": "2025-11-20T15:30:00Z",
     "tool_version": "0.8.0-dev",
-    "rust_version": "1.89.0",
+    "rust_version": "1.92.0",
     "host_triple": "x86_64-unknown-linux-gnu"
   },
   "statistics": {

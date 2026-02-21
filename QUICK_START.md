@@ -190,7 +190,7 @@ Paren(
 - **Full Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
 - **More Examples**: [example/src/](./example/src/)
 - **API Docs**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
-- **Grammar Guide**: [GAPS.md](./GAPS.md) - Section on grammar patterns
+- **Architecture**: [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ---
 

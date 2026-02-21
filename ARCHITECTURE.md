@@ -275,7 +275,6 @@ adze supports multiple parser runtime implementations:
 
 **Resolution Plan**:
 - v0.7.0: Wire `parser_v4.rs` as default runtime for macro grammars
-- See [ARCHITECTURE_ISSUE_GLR_PARSER.md](./ARCHITECTURE_ISSUE_GLR_PARSER.md) for full details
 
 ---
 

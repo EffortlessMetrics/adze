@@ -3,7 +3,7 @@
 ## Prerequisites
 
 ### System Requirements
-- **Rust 1.89.0+** with 2024 edition support
+- **Rust 1.92.0+** with 2024 edition support
 - **libtree-sitter-dev**: Required for ts-bridge tool functionality
 - **libclang-dev**: Required for some feature bindings
 - **Git**: For version control and automated workflows

@@ -708,14 +708,10 @@ output = "stdout"
 
 ## Examples
 
-### Complete LSP Examples
-- [JSON LSP](https://github.com/adze/examples/json-lsp)
-- [TOML LSP](https://github.com/adze/examples/toml-lsp)
-- [SQL LSP](https://github.com/adze/examples/sql-lsp)
-- [Python LSP](https://github.com/adze/examples/python-lsp)
+### Examples
+
+See the [example grammars](../example/) for grammar definitions that can be used as a basis for LSP implementations. Per-language LSP examples are planned.
 
 ### Resources
 - [LSP Specification](https://microsoft.github.io/language-server-protocol/)
 - [VS Code Extension Guide](https://code.visualstudio.com/api)
-- [LSP Tutorial](https://docs.adze.dev/lsp/tutorial)
-- [Video: Building an LSP](https://youtube.com/@effortlessmetrics)

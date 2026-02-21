@@ -476,11 +476,11 @@ jobs:
         run: cargo test -p adze --examples --features experimental_examples -- --test-threads=$RUST_TEST_THREADS
 
   msrv:
-    name: MSRV (1.89.0)
+    name: MSRV (1.92.0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: dtolnay/rust-toolchain@1.92.0
       - uses: Swatinem/rust-cache@v2
       
       - name: Build on MSRV

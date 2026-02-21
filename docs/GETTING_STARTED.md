@@ -359,7 +359,7 @@ pub value: String,
 - Read the [API Documentation](../API_DOCUMENTATION.md) for advanced features
 - Check out [Grammar Examples](./GRAMMAR_EXAMPLES.md) for more patterns
 - Explore the [Performance Guide](./PERFORMANCE_GUIDE.md) for optimization tips
-- Review the [Project Status](../PROJECT_STATUS.md) for latest features
+- Review the [Roadmap](../ROADMAP.md) for planned features
 
 ## Support
 

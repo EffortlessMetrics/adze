@@ -32,7 +32,7 @@ adze is a parser generator for Rust that lets you define grammars using Rust typ
 
 ### Is adze production-ready?
 
-**v0.6.1-beta**: ✅ **Macro-based grammar generation is production-ready**
+**v0.6.x**: Macro-based grammar generation is production-ready.
 - Core parsing: 100% functional
 - GLR parsing: Fully operational
 - Type-safe ASTs: Working
@@ -363,7 +363,7 @@ files.par_iter().map(|file| {
 
 ### How can I contribute?
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) and [GAPS.md](./GAPS.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and browse [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues).
 
 **Quick picks**:
 - Re-enable ignored tests (1-4 hours each)
@@ -436,9 +436,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ### When will v0.7.0 be released?
 
-**Target**: March 2026 (Q1)
-
-See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for week-by-week schedule.
+**Target**: Q1 2026 (at risk -- see [ROADMAP.md](./ROADMAP.md) for current status).
 
 ### What's coming in v0.7.0?
 
