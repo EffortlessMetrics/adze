@@ -1,5 +1,9 @@
 # Getting Started with Adze
 
+> **Doc status:** being refreshed to match dev head (0.8.0-dev).
+> If something here disagrees with the repo, treat the repo as truth
+> and log it in [`docs/status/FRICTION_LOG.md`](../docs/status/FRICTION_LOG.md).
+
 A comprehensive guide to building parsers with Adze's macro-based grammar generation.
 
 ## Table of Contents
@@ -19,10 +23,10 @@ Add adze to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.6.1"
+adze = "0.6"
 
 [build-dependencies]
-adze-tool = "0.6.1"
+adze-tool = "0.6"
 ```
 
 ### Create a Simple Grammar
@@ -317,9 +321,9 @@ This error occurs when the Extract trait cannot determine which variant to use. 
 
 #### Parse errors at position 0
 
-Usually means a token_count issue. This was fixed in v0.6.1.
+Usually means a token_count issue.
 
-**Solution**: Upgrade to adze 0.6.1 or later.
+**Solution**: Upgrade to the latest adze release.
 
 #### Empty string extraction
 
@@ -364,24 +368,4 @@ pub value: String,
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
-- **Documentation**: [Comprehensive Docs](https://hydro-project.github.io/adze/)
 - **Examples**: See `/example/` and `/grammars/` directories
-
-## Success Stories
-
-### What's Working (v0.6.1)
-
-✅ **Macro-Based Grammar Generation**: 100% working (9/9 tests passing)
-✅ **Text Extraction**: Leaf nodes properly extract source text
-✅ **Repetition**: Vec<> fields fully functional
-✅ **Precedence**: Operator precedence working correctly
-✅ **Whitespace**: Extra symbols properly ignored
-✅ **Parse Pipeline**: Token → Shift → Reduce → GOTO → Accept all working
-
-### Test Results
-
-- **test-mini**: 6/6 passing
-- **test-vec-wrapper**: 3/3 passing
-- **Total workspace**: 381/381 tests passing
-
-Happy parsing! 🎉

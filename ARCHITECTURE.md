@@ -1,5 +1,9 @@
 # adze Architecture Overview
 
+> **Doc status:** being refreshed to match dev head (0.8.0-dev).
+> If something here disagrees with the repo, treat the repo as truth
+> and log it in [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md).
+
 A visual guide to how adze components fit together.
 
 ---
@@ -262,7 +266,7 @@ adze supports multiple parser runtime implementations:
 | **pure-rust** | `runtime/src/pure_parser.rs` | ⚠️ LR only | Stable | Simple LR parser, first-action-only |
 | **pure-rust+GLR** | `runtime/src/parser_v4.rs` | ✅ Full GLR | Experimental | True GLR with fork/merge, not default yet |
 
-**Key Architectural Issue** (v0.6.1):
+**Key Architectural Issue**:
 - GLR table generation (`glr-core`, `tablegen`) is **correct** ✅
 - Macro-generated grammars call `__private::parse()` which uses `pure_parser.rs` ⚠️
 - `pure_parser.rs` only takes the **first action** per state/symbol, ignoring GLR capabilities
@@ -272,9 +276,6 @@ adze supports multiple parser runtime implementations:
 - ❌ Operator associativity may not work correctly in pure-Rust mode
 - ❌ Ambiguous grammars requiring GLR fail with pure-Rust
 - ✅ Tree-sitter C backend works correctly (recommended for production)
-
-**Resolution Plan**:
-- v0.7.0: Wire `parser_v4.rs` as default runtime for macro grammars
 
 ---
 
@@ -534,7 +535,7 @@ impl adze::ExternalScanner for MyScanner {
 }
 ```
 
-### Tree Visitors (coming v0.7.0)
+### Tree Visitors (experimental)
 
 ```rust
 impl adze::Visitor for MyVisitor {
@@ -544,7 +545,7 @@ impl adze::Visitor for MyVisitor {
 }
 ```
 
-### Query Predicates (coming v0.7.0)
+### Query Predicates (experimental)
 
 ```rust
 let query = compile_query(r#"

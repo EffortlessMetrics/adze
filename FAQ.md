@@ -1,5 +1,9 @@
 # Frequently Asked Questions
 
+> **Doc status:** being refreshed to match dev head (0.8.0-dev).
+> If something here disagrees with the repo, treat the repo as truth
+> and log it in [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md).
+
 Common questions about adze, answered concisely.
 
 **Can't find your question?** Check [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions).
@@ -23,7 +27,7 @@ adze is a parser generator for Rust that lets you define grammars using Rust typ
 | **Type Safety** | Compile-time typed AST | Runtime navigation |
 | **WASM Support** | ✅ First-class | ⚠️ Requires binding work |
 | **GLR Parsing** | ✅ Built-in | ❌ LR only |
-| **Incremental Parsing** | 🚧 In progress (v0.7.0) | ✅ Mature |
+| **Incremental Parsing** | 🚧 Experimental | ✅ Mature |
 | **Editor Integration** | 🚧 Coming | ✅ Extensive |
 
 **Use adze if**: You want type-safe parsing in pure Rust, need WASM support, or want to handle ambiguous grammars.
@@ -39,11 +43,11 @@ adze is a parser generator for Rust that lets you define grammars using Rust typ
 - WASM support: Ready
 
 **Not yet ready**:
-- Incremental parsing (coming v0.7.0)
-- Full query system (coming v0.7.0)
+- Incremental parsing (experimental)
+- Full query system (in progress)
 - Editor plugins (future)
 
-**Recommendation**: Great for new projects, CLI tools, and WASM apps. Wait for v0.7.0 for editor integration.
+**Recommendation**: Great for new projects, CLI tools, and WASM apps. See [ROADMAP.md](./ROADMAP.md) for current status.
 
 ### What does GLR mean? Do I need it?
 
@@ -248,7 +252,7 @@ Enable logging:
 RUST_LOG=debug cargo run
 ```
 
-Or use the parse tree visitor (coming in v0.7.0).
+Or use the parse tree visitor.
 
 ---
 
@@ -300,20 +304,11 @@ See [docs/](./docs/) for examples (Python grammar uses this).
 
 ### What about incremental parsing?
 
-🚧 **Coming in v0.7.0** (March 2026)
-
-Will support:
-- `parse_with_old_tree()` for efficient re-parsing
-- 10x+ speedup on small edits
-- Full LSP integration
-
-See [ROADMAP.md](./ROADMAP.md) for timeline.
+Incremental parsing infrastructure exists but is experimental. See [ROADMAP.md](./ROADMAP.md).
 
 ### Can I query the parse tree?
 
-🚧 **Partial support in v0.6.1, complete in v0.7.0**
-
-Basic tree navigation works now. Full query system (predicates, captures) coming in v0.7.0.
+Basic tree navigation works now. Full query system (predicates, captures) is in progress.
 
 ---
 
@@ -321,7 +316,7 @@ Basic tree navigation works now. Full query system (predicates, captures) coming
 
 ### How fast is adze?
 
-**Status**: Baseline being established in v0.7.0 Week 1
+**Status**: Baseline being established.
 
 Expected performance:
 - Comparable to tree-sitter-c for most grammars
@@ -341,7 +336,7 @@ See [docs/PERFORMANCE_BASELINE.md](./docs/PERFORMANCE_BASELINE.md) for upcoming 
 - Use `--release` for production
 - Profile with `cargo flamegraph`
 
-**Future** (v0.7.0+):
+**Future**:
 - Incremental parsing for editors
 - Table compression for memory
 
@@ -434,23 +429,13 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ## Roadmap and Future
 
-### When will v0.7.0 be released?
+### What's on the roadmap?
 
-**Target**: Q1 2026 (at risk -- see [ROADMAP.md](./ROADMAP.md) for current status).
-
-### What's coming in v0.7.0?
-
-- ✅ Incremental parsing (`parse_with_old_tree`)
-- ✅ Complete query system with predicates
-- ✅ Performance baseline and optimization
-- ✅ CLI functionality (dynamic loading, corpus testing)
-- ✅ Comprehensive documentation and video tutorials
+See [ROADMAP.md](./ROADMAP.md) for current status.
 
 ### What about v1.0?
 
-**Target**: Q4 2026
-
-See [ROADMAP.md](./ROADMAP.md) for full vision.
+See [ROADMAP.md](./ROADMAP.md) for current status.
 
 **v1.0 goals**:
 - API stability guarantees
@@ -480,7 +465,7 @@ See [tools/ts-bridge/](./tools/ts-bridge/) for the bridge tool.
 
 ## Still Have Questions?
 
-- **Check**: [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) (coming v0.7.0)
+- **Check**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 - **Ask**: [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
 - **Report Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 - **Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)

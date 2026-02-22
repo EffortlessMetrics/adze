@@ -28,7 +28,7 @@ Adze is a compiler pipeline:
 mod grammar {
     #[adze::language]
     pub enum Expr {
-        Number(#[adze::leaf(pattern = r"\d+")] i32),
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
 
         #[adze::prec_left(1)]
         Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
@@ -44,7 +44,8 @@ fn main() {
 Working end-to-end examples live in:
 
 * `example/`
-* `docs/GETTING_STARTED.md`
+
+> Some docs outside `docs/status/` are being refreshed. When in doubt, treat the code as truth.
 
 ---
 
