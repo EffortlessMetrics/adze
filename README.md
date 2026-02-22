@@ -81,9 +81,9 @@ fn main() {
 
 ## Documentation
 
-* [**Getting Started**](./docs/GETTING_STARTED.md) - Build your first parser in 5 minutes.
-* [**Architecture**](./ARCHITECTURE.md) - How the macro, tool, and runtime fit together.
-* [**Grammar Examples**](./docs/GRAMMAR_EXAMPLES.md) - Patterns for common language constructs.
+* [**Getting Started**](./docs/tutorials/getting-started.md) - Build your first parser in 5 minutes.
+* [**Architecture**](./docs/explanations/architecture.md) - How the macro, tool, and runtime fit together.
+* [**Grammar Examples**](./docs/reference/grammar-examples.md) - Patterns for common language constructs.
 * [**Developer Guide**](./docs/DEVELOPER_GUIDE.md) - For contributors to the Adze project.
 
 ---

@@ -128,6 +128,6 @@ If you suspect a grammar conflict is being handled incorrectly, check the genera
 
 ## Next Steps
 
-- **Quick Start**: See [QUICK_START.md](./QUICK_START.md)
-- **Examples**: Explore the [example/](./example/) directory
-- **Friction Log**: Report issues in [docs/status/FRICTION_LOG.md](./docs/status/FRICTION_LOG.md)
+- **Quick Start**: See [QUICK_START.md](../../QUICK_START.md)
+- **Examples**: Explore the [example/](../../example/) directory
+- **Friction Log**: Report issues in [docs/status/FRICTION_LOG.md](../status/FRICTION_LOG.md)

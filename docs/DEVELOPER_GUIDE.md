@@ -80,7 +80,7 @@ cargo build -p adze-example
 ## Release Process
 
 1. **Verify State**: Ensure `just ci-supported` passes.
-2. **Update Docs**: Check `docs/status/FRICTION_LOG.md` and `CHANGELOG.md`.
+2. **Update Docs**: Check [`docs/status/FRICTION_LOG.md`](./status/FRICTION_LOG.md) and [`CHANGELOG.md`](../CHANGELOG.md).
 3. **Bump Version**: Update `version` in `Cargo.toml` files (workspace members).
 4. **Tag**: `git tag v0.8.0`
 5. **Publish**: `cargo publish` (scripted in CI).

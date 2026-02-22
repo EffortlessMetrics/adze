@@ -53,7 +53,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** Some crates are excluded from the default workspace build (via `exclude` in Cargo.toml) but the reason isn't documented.
 **Expected:** Contributors know which crates require special toolchains (Node.js, C compilers).
 **Actual:** Confusion when `cargo build --workspace` skips important crates.
-**Fix:** Add `DEVELOPER_GUIDE.md` explaining support lanes.
+**Fix:** Add [`DEVELOPER_GUIDE.md`](../DEVELOPER_GUIDE.md) explaining support lanes.
 **Status:** Open
 
 ### FR-005 - Transform Closure Capture Bug

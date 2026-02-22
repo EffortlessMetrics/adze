@@ -82,7 +82,7 @@ pub struct Tokens {
 
 ### Transformation (Manual)
 
-*Note: Built-in `transform` closures are currently disabled (see Friction Log).*
+*Note: Built-in `transform` closures are currently disabled (see [Friction Log](../status/FRICTION_LOG.md)).*
 To transform values (e.g. string to integer), use the `String` type in your grammar and parse it in your application logic:
 
 ```rust

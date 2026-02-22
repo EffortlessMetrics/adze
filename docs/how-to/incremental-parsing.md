@@ -623,6 +623,6 @@ adze includes incremental parsing infrastructure designed for text editing scena
 - ✅ Test performance in release builds
 
 For more detailed technical information, see:
-- [Incremental Parsing Technical Guide](../incremental-parsing.md)
-- [GLR Incremental Design](../implementation/GLR_INCREMENTAL_DESIGN.md)
-- [API Documentation](../../API_DOCUMENTATION.md)
+- [Incremental Theory](../explanations/incremental-parsing-theory.md)
+- [GLR Incremental Design (Archived)](../archive/implementation/GLR_INCREMENTAL_DESIGN.md)
+- [API Reference](../reference/api.md)

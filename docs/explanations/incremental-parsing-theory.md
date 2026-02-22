@@ -4,7 +4,7 @@
 
 adze includes incremental parsing infrastructure (implemented in PR #62) designed to improve performance when handling text edits. The incremental parser identifies and reuses unchanged subtrees, making parse time proportional to the edit size rather than document size.
 
-**Status**: ⚠️ **Experimental / Currently Disabled** - The incremental parsing path is currently disabled and falls back to fresh parsing for consistency. The infrastructure exists but has architectural issues causing behavioral differences between incremental and fresh parsing. See `glr_incremental.rs` for details.
+**Status**: ⚠️ **Experimental / Currently Disabled** - The incremental parsing path is currently disabled and falls back to fresh parsing for consistency. The infrastructure exists but has architectural issues causing behavioral differences between incremental and fresh parsing. See `runtime/src/glr_incremental.rs` for details.
 
 ## Design Goals (Historical Benchmarks from PR #62)
 

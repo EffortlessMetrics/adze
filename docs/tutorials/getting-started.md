@@ -2,7 +2,7 @@
 
 > **Doc status:** Up to date for Adze 0.8.0-dev.
 > If something here disagrees with the repo, treat the repo as truth
-> and log it in [`docs/status/FRICTION_LOG.md`](./status/FRICTION_LOG.md).
+> and log it in [`docs/status/FRICTION_LOG.md`](../status/FRICTION_LOG.md).
 
 A comprehensive guide to building parsers with Adze's macro-based grammar generation.
 
@@ -355,10 +355,10 @@ If you are using `transform` to parse the string, ensure the closure is actually
 
 ## Next Steps
 
-- Read the [API Documentation](../API_DOCUMENTATION.md) for advanced features
-- Check out [Grammar Examples](./GRAMMAR_EXAMPLES.md) for more patterns
-- Explore the [Performance Guide](./PERFORMANCE_GUIDE.md) for optimization tips
-- Review the [Roadmap](../ROADMAP.md) for planned features
+- Read the [API Reference](../reference/api.md) for advanced features
+- Check out [Grammar Examples](../reference/grammar-examples.md) for more patterns
+- Explore the [Performance Guide](../how-to/optimize-performance.md) for optimization tips
+- Review the [Roadmap](../../ROADMAP.md) for planned features
 
 ## Support
 

@@ -654,4 +654,4 @@ impl ExternalScanner for BoundedScanner {
 
 External scanners provide powerful capabilities for handling complex tokenization requirements that exceed the capabilities of regular expressions. The pure-Rust implementation offers both C FFI compatibility for reusing existing scanners and native Rust traits for type-safe, performant implementations.
 
-For questions or issues with external scanner integration, check the [test suite](../runtime/tests/external_scanner_test.rs) for working examples or consult the [API documentation](../API_DOCUMENTATION.md#external-scanners).
+For questions or issues with external scanner integration, check the [test suite](../../runtime/tests/external_scanner_test.rs) for working examples or consult the [API Reference](../reference/api.md#external-scanners).

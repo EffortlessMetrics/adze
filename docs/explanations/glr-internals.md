@@ -278,4 +278,4 @@ Now both interpretations are explored, the correct one survives!
 
 - [Tomita's Algorithm (1985)](https://en.wikipedia.org/wiki/GLR_parser) - Original GLR paper
 - [Tree-sitter's Conflict Resolution](https://tree-sitter.github.io/tree-sitter/creating-parsers#conflicts) 
-- [adze's Multi-Path Architecture](/runtime/src/glr_forest.rs)
+- [adze's Multi-Path Architecture](../../runtime/src/glr_forest.rs)

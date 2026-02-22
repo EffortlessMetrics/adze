@@ -45,7 +45,7 @@ impl Tree {
 
 ## Macro API
 
-See [GETTING_STARTED.md](docs/GETTING_STARTED.md) for macro usage.
+See [Getting Started](../tutorials/getting-started.md) for macro usage.
 
 - `#[adze::grammar]`
 - `#[adze::language]`

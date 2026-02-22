@@ -38,4 +38,4 @@ cargo run -p ts-bridge -- /path/to/tree-sitter-rust
 
 ## Contributing New Languages
 
-We welcome contributions of new grammars! Please see the [Developer Guide](./DEVELOPER_GUIDE.md) for how to set up a new grammar crate in the `grammars/` directory.
+We welcome contributions of new grammars! Please see the [Developer Guide](../DEVELOPER_GUIDE.md) for how to set up a new grammar crate in the `grammars/` directory.
