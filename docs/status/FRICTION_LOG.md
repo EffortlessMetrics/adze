@@ -15,10 +15,30 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-003 | Dev loop | Supported gate is still heavy on constrained machines | Local iteration cost | Mitigated | (issue) |
 | FR-004 | Status | Supported-lane exclusions aren't obvious | Confusing contributor loop | Open | (issue) |
 | FR-005 | Macro | Leaf `transform` closures are captured but never executed | Type conversions (e.g. string to i32) fail silently | Open | [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74) |
+| FR-006 | Macro | `Extract` trait signature mismatch in `pure-rust` mode | Compilation errors (E0053, E0308) in user code | Resolved | - |
+| FR-007 | Runtime | Lexer state pointer layout mismatch in `pure-rust` mode | Runtime `UnexpectedToken("end")` errors | Resolved | - |
 
 ---
 
 ## Detailed Entries
+
+### FR-006 - Extract Trait Signature Mismatch
+
+**Area:** macro
+**Symptom:** Users enabling the `pure-rust` feature encounter compilation errors like `method extract has an incompatible type for trait`.
+**Expected:** The macro automatically generates the correct signature based on enabled features.
+**Actual:** The macro was emitting `Option<Node>` instead of `Option<&ParsedNode>` because it wasn't correctly detecting the target crate's features.
+**Fix:** Updated `macro/src/expansion.rs` to use `cfg!(feature = "pure-rust")` at macro-expansion time to choose the correct tokens.
+**Status:** Resolved
+
+### FR-007 - Lexer State Pointer Mismatch
+
+**Area:** runtime
+**Symptom:** Parsers built with `ADZE_USE_PURE_RUST=1` fail at runtime with `UnexpectedToken("end")` even for valid input.
+**Expected:** The generated lexer correctly tokenizes the input.
+**Actual:** The `adze-tool` was generating a lexer that cast the state pointer to a custom `LexerState` struct that didn't match the `TsLexer` struct passed by the runtime.
+**Fix:** Updated `tablegen/src/lexer_gen.rs` to generate a lexer that uses the standard `TsLexer` ABI (function pointers for lookahead/advance).
+**Status:** Resolved
 
 ### FR-001 - Documentation Drift
 

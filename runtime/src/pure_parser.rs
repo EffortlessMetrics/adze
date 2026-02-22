@@ -13,10 +13,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 // Import ABI types from tablegen
-type TSSymbol = u16;
-type TSStateId = u16;
+pub type TSSymbol = u16;
+pub type TSStateId = u16;
 #[allow(dead_code)]
-type TSFieldId = u16;
+pub type TSFieldId = u16;
 
 /// Lex state for external scanners
 #[repr(C)]
@@ -827,6 +827,7 @@ impl Parser {
                     input: &'a [u8],
                     pos: usize,
                     mark: usize,
+                    tok_len: usize,
                 }
 
                 unsafe extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
@@ -878,9 +879,10 @@ impl Parser {
                 }
 
                 let mut backing = Backing {
-                    input: &lexer.input[position..],
-                    pos: 0,
-                    mark: 0,
+                    input: &lexer.input,
+                    pos: position,
+                    mark: position,
+                    tok_len: 0,
                 };
 
                 let mut ts = TsLexer {
@@ -894,7 +896,7 @@ impl Parser {
                 if lex_fn(&mut ts as *mut _ as *mut c_void, lex_mode)
                     && ts.result_symbol != u16::MAX
                 {
-                    let end = if backing.mark > 0 {
+                    let end = if backing.mark > position {
                         backing.mark
                     } else {
                         backing.pos
@@ -902,7 +904,7 @@ impl Parser {
                     let symbol = ts.result_symbol;
                     return Token {
                         symbol,
-                        length: end,
+                        length: end - position,
                         is_extra: self.is_extra_symbol(language, symbol),
                     };
                 } else {

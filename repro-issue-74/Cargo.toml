@@ -1,0 +1,12 @@
+[package]
+name = "repro-issue-74"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+adze = { path = "../runtime", features = ["pure-rust"] }
+
+[build-dependencies]
+adze-tool = { path = "../tool" }
+
+[workspace]

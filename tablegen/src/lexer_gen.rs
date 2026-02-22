@@ -25,13 +25,9 @@ pub fn generate_lexer(
     // Sort tokens by name to process primary tokens (with meaningful names) first
     let mut sorted_tokens: Vec<_> = grammar.tokens.iter().collect();
     sorted_tokens.sort_by_key(|(_, token)| {
-        // Prioritize tokens with meaningful names (starting with _ followed by letters)
-        // over those with numeric names (like _10, _17, etc.)
         if token.name.starts_with('_') && token.name[1..].chars().all(|c| c.is_ascii_digit()) {
-            // Numeric tokens get lower priority
             (1, token.name.clone())
         } else {
-            // Named tokens get higher priority
             (0, token.name.clone())
         }
     });
@@ -41,13 +37,11 @@ pub fn generate_lexer(
             let symbol_index = idx as u16;
             match &token.pattern {
                 TokenPattern::String(s) => {
-                    // Skip if we've already seen this exact string pattern
                     if seen_string_patterns.contains(s) {
                         continue;
                     }
                     seen_string_patterns.insert(s.clone());
 
-                    // Check if it's a keyword (all alphabetic characters)
                     if s.chars().all(|c| c.is_ascii_alphabetic() || c == '_') && s.len() > 1 {
                         keywords.push((symbol_index, s.clone()));
                     } else {
@@ -55,7 +49,6 @@ pub fn generate_lexer(
                     }
                 }
                 TokenPattern::Regex(pattern) => {
-                    // Skip if we've already seen this regex pattern
                     if seen_regex_patterns.contains(pattern) {
                         continue;
                     }
@@ -71,210 +64,159 @@ pub fn generate_lexer(
         }
     }
 
-    // Sort keywords by length (longest first) to match longer keywords before shorter ones
+    // Sort keywords by length (longest first)
     keywords.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
 
     let mut token_matches = Vec::new();
 
-    // First: Add keyword matching (before identifier pattern)
+    // First: Add keyword matching
     for (symbol_index, keyword) in keywords {
         let bytes = keyword.as_bytes();
-        let len = bytes.len();
-        let byte_values = bytes.to_vec();
+        let mut checks = Vec::new();
+        for byte in bytes {
+            let b = *byte as u32;
+            checks.push(quote! {
+                if ((*lexer).lookahead)(lexer) == #b {
+                    ((*lexer).advance)(lexer, false);
+                } else {
+                    return false;
+                }
+            });
+        }
+
         token_matches.push(quote! {
-            if position + #len <= input.len() &&
-               input[position..position + #len] == [#(#byte_values),*] &&
-               (position + #len >= input.len() ||
-                (!input[position + #len].is_ascii_alphanumeric() && input[position + #len] != b'_')) {
-                state.result_symbol = #symbol_index;
-                state.result_length = #len;
+            if (|| unsafe {
+                #(#checks)*
+                let next = ((*lexer).lookahead)(lexer);
+                if next != 0 && ((next as u8).is_ascii_alphanumeric() || next == b'_' as u32) {
+                    return false;
+                }
+                true
+            })() {
+                unsafe {
+                    (*lexer).result_symbol = #symbol_index;
+                    ((*lexer).mark_end)(lexer);
+                }
                 return true;
             }
         });
     }
 
-    // Second: Add other string patterns (operators, punctuation)
+    // Second: Add other string patterns
     for (symbol_index, s) in other_strings {
         if s.len() == 1 {
-            let ch = s.chars().next().unwrap();
-            let byte_literal = format!("b'{}'", ch);
-            let byte_token: proc_macro2::TokenStream = byte_literal.parse().unwrap();
+            let ch = s.chars().next().unwrap() as u32;
             token_matches.push(quote! {
-                if input[position] == #byte_token {
-                    state.result_symbol = #symbol_index;
-                    state.result_length = 1;
+                if unsafe { ((*lexer).lookahead)(lexer) == #ch } {
+                    unsafe {
+                        ((*lexer).advance)(lexer, false);
+                        (*lexer).result_symbol = #symbol_index;
+                        ((*lexer).mark_end)(lexer);
+                    }
                     return true;
                 }
             });
         } else {
             let bytes = s.as_bytes();
-            let len = bytes.len();
-            let byte_values = bytes.to_vec();
+            let mut checks = Vec::new();
+            for byte in bytes {
+                let b = *byte as u32;
+                checks.push(quote! {
+                    if ((*lexer).lookahead)(lexer) == #b {
+                        ((*lexer).advance)(lexer, false);
+                    } else {
+                        return false;
+                    }
+                });
+            }
             token_matches.push(quote! {
-                if position + #len <= input.len() && input[position..position + #len] == [#(#byte_values),*] {
-                    state.result_symbol = #symbol_index;
-                    state.result_length = #len;
+                if (|| unsafe {
+                    #(#checks)*
+                    true
+                })() {
+                    unsafe {
+                        (*lexer).result_symbol = #symbol_index;
+                        ((*lexer).mark_end)(lexer);
+                    }
                     return true;
                 }
             });
         }
     }
 
-    // Sort regex patterns by complexity/specificity (more specific patterns first)
-    regex_patterns.sort_by(|a, b| {
-        // Prioritize patterns with more complexity
-        let a_complexity = a.1.len()
-            + a.1
-                .matches(|c: char| "?+*()[]{}^$.|\\-".contains(c))
-                .count()
-                * 10;
-        let b_complexity = b.1.len()
-            + b.1
-                .matches(|c: char| "?+*()[]{}^$.|\\-".contains(c))
-                .count()
-                * 10;
-        b_complexity.cmp(&a_complexity) // Reverse order - more complex first
-    });
-
-    // Third: Add regex patterns (except identifier)
+    // Third: Add regex patterns
     for (symbol_index, pattern) in regex_patterns {
         if pattern == r"\d+" {
             token_matches.push(quote! {
-                if input[position].is_ascii_digit() {
-                    let mut len = 1;
-                    while position + len < input.len() && input[position + len].is_ascii_digit() {
-                        len += 1;
+                let first = unsafe { ((*lexer).lookahead)(lexer) };
+                if first != 0 && (first as u8).is_ascii_digit() {
+                    unsafe {
+                        ((*lexer).advance)(lexer, false);
+                        while {
+                            let next = ((*lexer).lookahead)(lexer);
+                            next != 0 && (next as u8).is_ascii_digit()
+                        } {
+                            ((*lexer).advance)(lexer, false);
+                        }
+                        (*lexer).result_symbol = #symbol_index;
+                        ((*lexer).mark_end)(lexer);
                     }
-                    state.result_symbol = #symbol_index;
-                    state.result_length = len;
                     return true;
                 }
             });
         } else if pattern == r"\s" || pattern == r"\s+" || pattern == r"\s*" {
-            // Whitespace is typically an extra token
             token_matches.push(quote! {
-                if input[position].is_ascii_whitespace() {
-                    let mut len = 1;
-                    while position + len < input.len() && input[position + len].is_ascii_whitespace() {
-                        len += 1;
-                    }
-                    state.result_symbol = #symbol_index;
-                    state.result_length = len;
-                    return true;
-                }
-            });
-        } else if pattern == r"-?\d+(\.\d+)?" {
-            // Number with optional negative sign and optional decimal
-            token_matches.push(quote! {
-                let mut offset = 0;
-                // Check for optional negative sign
-                if position + offset < input.len() && input[position + offset] == b'-' {
-                    offset += 1;
-                }
-                // Must have at least one digit after optional minus
-                if position + offset < input.len() && input[position + offset].is_ascii_digit() {
-                    offset += 1;
-                    // Match remaining digits
-                    while position + offset < input.len() && input[position + offset].is_ascii_digit() {
-                        offset += 1;
-                    }
-                    // Check for optional decimal part
-                    if position + offset + 1 < input.len() && input[position + offset] == b'.' && input[position + offset + 1].is_ascii_digit() {
-                        offset += 2; // Skip '.' and first decimal digit
-                        while position + offset < input.len() && input[position + offset].is_ascii_digit() {
-                            offset += 1;
+                let first = unsafe { ((*lexer).lookahead)(lexer) };
+                if first != 0 && (first as u8).is_ascii_whitespace() {
+                    unsafe {
+                        ((*lexer).advance)(lexer, false);
+                        while {
+                            let next = ((*lexer).lookahead)(lexer);
+                            next != 0 && (next as u8).is_ascii_whitespace()
+                        } {
+                            ((*lexer).advance)(lexer, false);
                         }
+                        (*lexer).result_symbol = #symbol_index;
+                        ((*lexer).mark_end)(lexer);
                     }
-                    state.result_symbol = #symbol_index;
-                    state.result_length = offset;
                     return true;
-                }
-            });
-        } else if pattern == r"\d+(\.\d+)?" {
-            // Number with optional decimal (no negative)
-            token_matches.push(quote! {
-                if input[position].is_ascii_digit() {
-                    let mut len = 1;
-                    // Match initial digits
-                    while position + len < input.len() && input[position + len].is_ascii_digit() {
-                        len += 1;
-                    }
-                    // Check for optional decimal part
-                    if position + len + 1 < input.len() && input[position + len] == b'.' && input[position + len + 1].is_ascii_digit() {
-                        len += 2; // Skip '.' and first decimal digit
-                        while position + len < input.len() && input[position + len].is_ascii_digit() {
-                            len += 1;
-                        }
-                    }
-                    state.result_symbol = #symbol_index;
-                    state.result_length = len;
-                    return true;
-                }
-            });
-        } else if pattern == r#""[^"]*"|'[^']*'"# {
-            // String literal pattern (double or single quotes)
-            token_matches.push(quote! {
-                if input[position] == b'"' || input[position] == b'\'' {
-                    let quote_char = input[position];
-                    let mut len = 1;
-                    while position + len < input.len() && input[position + len] != quote_char {
-                        len += 1;
-                    }
-                    if position + len < input.len() && input[position + len] == quote_char {
-                        len += 1; // Include closing quote
-                        state.result_symbol = #symbol_index;
-                        state.result_length = len;
-                        return true;
-                    }
                 }
             });
         }
-        // TODO: Add more pattern support
     }
 
-    // Fourth: Add identifier pattern last (after all keywords have been checked)
+    // Fourth: Add identifier pattern last
     if let Some(symbol_index) = identifier_pattern {
         token_matches.push(quote! {
-            if input[position].is_ascii_alphabetic() || input[position] == b'_' {
-                let mut len = 1;
-                while position + len < input.len() &&
-                      (input[position + len].is_ascii_alphanumeric() || input[position + len] == b'_') {
-                    len += 1;
+            let first = unsafe { ((*lexer).lookahead)(lexer) };
+            if first != 0 && ((first as u8).is_ascii_alphabetic() || first == b'_' as u32) {
+                unsafe {
+                    ((*lexer).advance)(lexer, false);
+                    while {
+                        let next = ((*lexer).lookahead)(lexer);
+                        next != 0 && ((next as u8).is_ascii_alphanumeric() || next == b'_' as u32)
+                    } {
+                        ((*lexer).advance)(lexer, false);
+                    }
+                    (*lexer).result_symbol = #symbol_index;
+                    ((*lexer).mark_end)(lexer);
                 }
-                state.result_symbol = #symbol_index;
-                state.result_length = len;
                 return true;
             }
         });
     }
 
     quote! {
-        extern "C" fn lexer_fn(state_ptr: *mut ::std::ffi::c_void, _lex_mode: TSLexState) -> bool {
-            // SAFETY: state_ptr is guaranteed to be a valid pointer to LexerState by the Tree-sitter runtime
-            let state = unsafe { &mut *(state_ptr as *mut LexerState) };
-            // SAFETY: input pointer and length are provided by Tree-sitter runtime and guaranteed to be valid
-            let input = unsafe { std::slice::from_raw_parts(state.input, state.input_len) };
-            let position = state.position;
-
-            if position >= input.len() {
+        unsafe extern "C" fn lexer_fn(state_ptr: *mut ::std::ffi::c_void, _lex_mode: adze::pure_parser::TSLexState) -> bool {
+            if state_ptr.is_null() {
                 return false;
             }
 
+            let lexer = state_ptr as *mut adze::lex::TsLexer;
+
             #(#token_matches)*
 
-            // No match found
             false
-        }
-
-        #[repr(C)]
-        struct LexerState {
-            input: *const u8,
-            input_len: usize,
-            position: usize,
-            point_row: u32,
-            point_column: u32,
-            result_symbol: u16,
-            result_length: usize,
         }
     }
 }

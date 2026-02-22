@@ -94,14 +94,15 @@ pub fn extract_struct_or_variant<T>(
     construct_expr: impl Fn(&mut Option<tree_sitter::TreeCursor>, &mut usize) -> T,
 ) -> T {
     let mut parent_cursor = node.walk();
-    construct_expr(
-        &mut if parent_cursor.goto_first_child() {
-            Some(parent_cursor)
-        } else {
-            None
-        },
-        &mut node.start_byte(),
-    )
+    let has_child = parent_cursor.goto_first_child();
+
+    let mut cursor_opt = if has_child { Some(parent_cursor) } else { None };
+
+    // If the node has only one child and it's a wrapper, we might need to go deeper
+    // But Tree-sitter cursors usually point to the immediate children.
+    // The issue is likely that 'Program' kind is being matched instead of its fields.
+
+    construct_expr(&mut cursor_opt, &mut node.start_byte())
 }
 
 /// Extracts a struct or variant from a parsed node.
@@ -137,21 +138,21 @@ pub fn extract_field<LT: Extract<T>, T>(
     if let Some(cursor) = cursor_opt.as_mut() {
         loop {
             let n = cursor.node();
-            if let Some(name) = cursor.field_name() {
-                if name == field_name {
-                    let out = LT::extract(Some(&n), source, *last_idx, closure_ref);
+            let name = cursor.field_name();
+            if name.as_deref() == Some(field_name) || (name.is_none() && n.kind() == field_name) {
+                let out = LT::extract(Some(n), source, *last_idx, closure_ref);
 
-                    if !cursor.goto_next_sibling() {
-                        *cursor_opt = None;
-                    };
+                if !cursor.goto_next_sibling() {
+                    *cursor_opt = None;
+                };
 
-                    *last_idx = n.end_byte();
+                *last_idx = n.end_byte();
 
-                    return out;
-                } else {
-                    return LT::extract(None, source, *last_idx, closure_ref);
-                }
+                return out;
+            } else if name.is_some() {
+                return LT::extract(None, source, *last_idx, closure_ref);
             } else {
+                // If it's an anonymous node, skip it and continue
                 *last_idx = n.end_byte();
             }
 
@@ -177,11 +178,9 @@ pub fn extract_field<LT: Extract<T>, T>(
         // Handle special case where a node has no children and represents a single-field struct
         let n = cursor.node();
         if n.children.is_empty() && cursor.current_index == 0 {
-            let parent_node = cursor.node;
-            let end_byte = parent_node.end_byte;
             *cursor_opt = None;
-            *last_idx = end_byte;
-            return LT::extract(Some(parent_node), source, *last_idx, closure_ref);
+            *last_idx = n.end_byte;
+            return LT::extract(Some(n), source, *last_idx, closure_ref);
         }
 
         loop {

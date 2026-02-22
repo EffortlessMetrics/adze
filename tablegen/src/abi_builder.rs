@@ -197,7 +197,8 @@ impl<'a> AbiLanguageBuilder<'a> {
         };
 
         quote! {
-            use adze::pure_parser::*;
+            use adze::pure_parser::{TSLanguage, TSSymbol, TSStateId, TSParseAction, TSRule, SyncPtr, TREE_SITTER_LANGUAGE_VERSION, ExternalScanner, TSLexState};
+            use adze::lex::TsLexer;
             #ts_symbol_import
 
             // Lexer implementation
