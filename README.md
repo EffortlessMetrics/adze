@@ -96,6 +96,12 @@ fn main() {
 * `grammars/` — grammar crates (Python/JS/Go, etc.)
 * `cli/`, `lsp-generator/`, `playground/`, `wasm-demo/` — tools/prototypes
 
+### What's stable vs experimental
+
+- **Stable:** macro grammars, build-time table generation, typed extraction.
+- **Experimental:** GLR runtime (`features = ["glr"]`), incremental parsing.
+- **Prototypes:** CLI, LSP generator, playground, wasm-demo (useful, not merge-gated).
+
 ---
 
 ## Status and planning

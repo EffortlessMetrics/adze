@@ -260,22 +260,13 @@ C Backend (legacy, tree-sitter compatible):
 
 adze supports multiple parser runtime implementations:
 
-| Mode | Runtime File | GLR Support | Status | Implementation |
-|------|-------------|-------------|---------|----------------|
-| **tree-sitter** | Tree-sitter C runtime | ✅ LR(1) | Stable | Default, uses Tree-sitter's proven C parser |
-| **pure-rust** | `runtime/src/pure_parser.rs` | ⚠️ LR only | Stable | Simple LR parser, first-action-only |
-| **pure-rust+GLR** | `runtime/src/parser_v4.rs` | ✅ Full GLR | Experimental | True GLR with fork/merge, not default yet |
+| Mode | Feature | Runtime Path | GLR | Status |
+|------|---------|-------------|-----|--------|
+| **Pure-Rust LR** | `pure-rust` (default) | `pure_parser.rs` | First-action only | Stable |
+| **Pure-Rust GLR** | `glr` | `parser_v4.rs` | Full fork/merge | Experimental |
+| **Tree-sitter C** | `tree-sitter-standard` | Tree-sitter C runtime | LR(1) | Legacy, requires C toolchain |
 
-**Key Architectural Issue**:
-- GLR table generation (`glr-core`, `tablegen`) is **correct** ✅
-- Macro-generated grammars call `__private::parse()` which uses `pure_parser.rs` ⚠️
-- `pure_parser.rs` only takes the **first action** per state/symbol, ignoring GLR capabilities
-- `parser_v4.rs` is a **complete GLR implementation** but not wired as default
-
-**Impact**:
-- ❌ Operator associativity may not work correctly in pure-Rust mode
-- ❌ Ambiguous grammars requiring GLR fail with pure-Rust
-- ✅ Tree-sitter C backend works correctly (recommended for production)
+> **Note:** The default feature is `pure-rust`. The tree-sitter C backend is available for compatibility but is not the recommended path.
 
 ---
 

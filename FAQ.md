@@ -6,7 +6,7 @@
 
 Common questions about adze, answered concisely.
 
-**Can't find your question?** Check [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions).
+**Can't find your question?** Ask in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions) or [open an issue](https://github.com/EffortlessMetrics/adze/issues).
 
 ---
 
@@ -37,8 +37,8 @@ adze is a parser generator for Rust that lets you define grammars using Rust typ
 ### Is adze production-ready?
 
 **v0.6.x**: Macro-based grammar generation is production-ready.
-- Core parsing: 100% functional
-- GLR parsing: Fully operational
+- Core parsing (LR): stable, enabled by default
+- GLR parsing: available via `features = ["glr"]`
 - Type-safe ASTs: Working
 - WASM support: Ready
 
@@ -62,7 +62,7 @@ adze is a parser generator for Rust that lets you define grammars using Rust typ
 - Your grammar is unambiguous (most programming languages)
 - Standard LR parsing works fine
 
-adze handles both automatically - you don't need to choose.
+adze supports both — LR is the default; enable GLR with `features = ["glr"]` in your `Cargo.toml`.
 
 ---
 

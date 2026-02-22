@@ -2,7 +2,7 @@
 
 > **Doc status:** being refreshed to match dev head (0.8.0-dev).
 > If something here disagrees with the repo, treat the repo as truth
-> and log it in [`docs/status/FRICTION_LOG.md`](../docs/status/FRICTION_LOG.md).
+> and log it in [`docs/status/FRICTION_LOG.md`](./status/FRICTION_LOG.md).
 
 A comprehensive guide to building parsers with Adze's macro-based grammar generation.
 
