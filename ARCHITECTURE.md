@@ -1,632 +1,133 @@
-# adze Architecture Overview
+# Adze Architecture Overview
 
-> **Doc status:** being refreshed to match dev head (0.8.0-dev).
-> If something here disagrees with the repo, treat the repo as truth
-> and log it in [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md).
-
-A visual guide to how adze components fit together.
+Adze (formerly `rust-sitter`) is a modern, high-performance GLR parser generator for Rust. It enables defining grammars using Rust types and generates robust, typed parsers that can handle ambiguous languages with ease.
 
 ---
 
-## System Overview
+## System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Your Rust Project                         │
-│                                                              │
-│  src/main.rs                                                 │
-│  ┌────────────────────────────────────────┐                 │
-│  │ #[adze::grammar("mylang")]      │                 │
-│  │ mod grammar {                           │                 │
-│  │     #[adze::language]           │                 │
-│  │     pub enum Expr { ... }              │                 │
-│  │ }                                       │                 │
-│  │                                         │                 │
-│  │ fn main() {                             │                 │
-│  │     let ast = grammar::parse("...");   │                 │
-│  │ }                                       │                 │
-│  └────────────────────────────────────────┘                 │
-│           │                                                  │
-│           │ compile time                                    │
-│           ▼                                                  │
-│  ┌────────────────────────────────────────┐                 │
-│  │        build.rs (build script)         │                 │
-│  │  adze_tool::build_parsers()    │                 │
-│  └────────────────────────────────────────┘                 │
-└───────────────│──────────────────────────────────────────────┘
-                │
-                │ calls
-                ▼
-┌─────────────────────────────────────────────────────────────┐
-│              adze Workspace                           │
-│                                                              │
-│  ┌──────────────────┐        ┌──────────────────┐           │
-│  │ adze-macro│───────▶│ adze-common│           │
-│  │  (proc macros)   │        │  (shared utils)   │           │
-│  └──────────────────┘        └──────────────────┘           │
-│           │                           │                      │
-│           │                           │                      │
-│           ▼                           ▼                      │
-│  ┌──────────────────┐        ┌──────────────────┐           │
-│  │ adze-tool │───────▶│  adze-ir  │           │
-│  │ (build-time gen) │        │ (IR representation)│          │
-│  └──────────────────┘        └──────────────────┘           │
-│           │                           │                      │
-│           │                           ▼                      │
-│           │                  ┌──────────────────┐            │
-│           │                  │adze-glr   │            │
-│           │                  │      -core       │            │
-│           │                  │ (GLR algorithm)  │            │
-│           │                  └──────────────────┘            │
-│           │                           │                      │
-│           │                           ▼                      │
-│           │                  ┌──────────────────┐            │
-│           │                  │adze-      │            │
-│           │                  │   tablegen       │            │
-│           │                  │(table compression)│           │
-│           │                  └──────────────────┘            │
-│           │                           │                      │
-│           └───────────────────────────┘                      │
-│                           │                                  │
-│                           ▼                                  │
-│                  ┌──────────────────┐                        │
-│                  │  adze     │                        │
-│                  │   (runtime)      │                        │
-│                  │ - Parser API     │                        │
-│                  │ - Tree API       │                        │
-│                  │ - Query API      │                        │
-│                  └──────────────────┘                        │
-│                           │                                  │
-└───────────────────────────│──────────────────────────────────┘
-                            │
-                            │ generates
-                            ▼
-                    ┌──────────────────┐
-                    │  Compiled Parser │
-                    │  + Typed AST     │
-                    │  in Your App     │
-                    └──────────────────┘
+Adze is structured as a "Governance-as-Code" system, where policies and contracts drive the parser generation pipeline.
+
+```mermaid
+graph TD
+    subgraph "Your Project"
+        UserTypes["Rust Types (#[adze::grammar])"]
+        BuildScript["build.rs"]
+        RuntimeUsage["parser.parse()"]
+    end
+
+    subgraph "Adze Governance Layer"
+        PolicyCore["feature-policy-core<br/>(Backend Selection)"]
+        BddGrid["bdd-grid-core<br/>(Contract Tracking)"]
+    end
+
+    subgraph "Parser Generation Pipeline"
+        Macro["adze-macro<br/>(Expansion)"]
+        Tool["adze-tool<br/>(Build-time Gen)"]
+        IR["adze-ir<br/>(Grammar IR)"]
+        GLR["adze-glr-core<br/>(Automaton)"]
+        Tablegen["adze-tablegen<br/>(Compression)"]
+    end
+
+    subgraph "Runtime"
+        Runtime["adze<br/>(Runtime API)"]
+    end
+
+    UserTypes --> Macro
+    BuildScript --> Tool
+    Tool --> PolicyCore
+    PolicyCore --> BddGrid
+    Tool --> IR
+    IR --> GLR
+    GLR --> Tablegen
+    Tablegen --> Runtime
+    RuntimeUsage --> Runtime
+    Runtime --> UserTypes
 ```
 
 ---
 
-## Grammar Processing Pipeline
+## Core Components
 
-```
-1. Source Code (Rust with attributes)
-   ↓
-   #[adze::grammar("name")]
-   mod grammar { ... }
+### 1. The Governance Layer (`crates/governance-*`)
+Unlike traditional parser generators, Adze uses a governance layer to enforce architectural integrity:
+- **Feature Policies**: Automatically selects between Pure-Rust LR, GLR, or Tree-sitter backends based on grammar complexity (e.g., detecting conflicts).
+- **BDD Grid**: Tracks implementation status against a ledger of behavioral requirements (Behavior Driven Development).
+- **Contract Enforcement**: Ensures that generated parsers meet performance and safety invariants before they are compiled.
 
-2. Macro Expansion (compile time)
-   ↓
-   adze-macro processes attributes
-   → Generates marker traits
-   → Validation happens here
+### 2. The Macro Phase (`adze-macro`)
+Processes Rust `enum` and `struct` definitions decorated with `#[adze::grammar]`.
+- **Extraction**: Generates marker traits that allow the build-tool to "see" the grammar structure.
+- **Typed AST**: Generates the `Extract` trait implementation used to convert raw parse trees back into your typed Rust values.
 
-3. Build Script Execution (build time)
-   ↓
-   build.rs calls adze_tool::build_parsers()
-   → Extracts grammar from annotated types
-   → Converts to Intermediate Representation (IR)
+### 3. The Build-Time Pipeline (`adze-tool`)
+The heavy lifting happens in `build.rs` via `adze_tool::build_parsers()`:
+1. **Desugaring**: Pattern wrappers (e.g., regex literals) are converted into unit productions to ensure LR(1) lookahead stability.
+2. **IR Conversion**: The grammar is lowered into a hardware-friendly Intermediate Representation.
+3. **Automaton Construction**: `adze-glr-core` builds a full LR(1) automaton, identifying shift/reduce and reduce/reduce conflicts.
+4. **Table Compression**: `adze-tablegen` uses the Tree-sitter table format to compress action/goto tables (often >10:1 ratio).
+5. **Codegen**: Produces a optimized `.rs` file in `OUT_DIR` which is pulled into your project via `include!`.
 
-4. IR Processing
-   ↓
-   adze-ir
-   → Grammar optimization
-   → Validation
-   → Symbol resolution
+### 4. The Runtime (`adze`)
+A lightweight, zero-dependency (in `pure-rust` mode) runtime that executes the GLR algorithm:
+- **Fork/Merge**: Handles ambiguities by forking the stack and merging identical states (SPPF).
+- **Typed Recovery**: Provides structured error reporting and partial tree extraction.
 
-5. Parser Generation
-   ↓
-   adze-glr-core
-   → Build LR(1) automaton
-   → Detect and handle conflicts
-   → Generate action/goto tables
+---
 
-6. Table Compression
-   ↓
-   adze-tablegen
-   → Compress parse tables (tree-sitter format)
-   → Generate static Language struct
-   → FFI compatibility layer
+## Data Flow: From Source to AST
 
-7. Runtime Linking
-   ↓
-   adze (runtime)
-   → Links compressed tables
-   → Provides Parser API
-   → Returns typed AST
+```mermaid
+sequenceDiagram
+    participant U as User Code
+    participant M as adze-macro
+    participant T as adze-tool
+    participant R as adze-runtime
 
-8. Usage in Your Code
-   ↓
-   let ast = grammar::parse(source);
-   → Typed Rust value returned
+    U->>M: Define types with attributes
+    M-->>U: Generate marker traits
+    U->>T: build.rs calls build_parsers()
+    T->>T: Desugar & Optimize
+    T->>T: Build LR(1) Table
+    T->>T: Generate parser_*.rs
+    U->>R: parser.parse(input)
+    R->>R: GLR fork/merge
+    R-->>U: Raw Tree
+    U->>M: Extract(tree)
+    M-->>U: Typed Rust AST
 ```
 
 ---
 
-## Crate Dependency Graph
+## Crate Organization
 
-```
-                        ┌─────────────────┐
-                        │   Your Project  │
-                        └────────┬────────┘
-                                 │
-                     ┌───────────┴───────────┐
-                     │                       │
-          (compile time)              (build time)
-                     │                       │
-             ┌───────▼───────┐      ┌───────▼──────┐
-             │ adze-  │      │ adze- │
-             │    macro      │      │     tool     │
-             └───────┬───────┘      └───────┬──────┘
-                     │                      │
-                     └──────┬───────────────┘
-                            │
-                    ┌───────▼──────┐
-                    │ adze- │
-                    │   common     │
-                    └───────┬──────┘
-                            │
-                    ┌───────▼──────┐
-                    │ adze- │
-                    │      ir      │
-                    └───────┬──────┘
-                            │
-                    ┌───────▼──────┐
-                    │ adze- │
-                    │   glr-core   │
-                    └───────┬──────┘
-                            │
-                    ┌───────▼──────┐
-                    │ adze- │
-                    │   tablegen   │
-                    └───────┬──────┘
-                            │
-                    ┌───────▼──────┐
-                    │ adze  │◀───── (runtime dependency)
-                    │  (runtime)   │
-                    └──────────────┘
-```
+| Crate | Purpose |
+|-------|---------|
+| `adze-macro` | Procedural macros for grammar definition |
+| `adze-runtime` | Core parsing engine and tree APIs |
+| `adze-tool` | Build-time orchestrator for parser generation |
+| `adze-ir` | Intermediate representation of grammars |
+| `adze-glr-core` | Automaton construction and conflict analysis |
+| `adze-tablegen` | Table compression and Rust code generation |
+| `crates/feature-policy-core` | Logic for backend selection and policy enforcement |
+| `crates/bdd-grid-core` | Ledger of BDD scenarios and progress tracking |
 
 ---
 
-## Core Concepts
+## Debugging and Artifacts
 
-### Two-Phase Processing
+To inspect what Adze is doing under the hood, use the following environment variables:
 
-**Phase 1: Compile Time (Macros)**
-- `#[adze::grammar]` → Marks grammar module
-- `#[adze::language]` → Marks root type
-- `#[adze::leaf]` → Defines token patterns
-- Macros generate marker traits, no parser code yet
+- `ADZE_EMIT_ARTIFACTS=true`: Writes `grammar.ir.json` and `NODE_TYPES.json` to the output directory.
+- `RUST_LOG=adze=debug`: Enables detailed logging during the build and runtime phases.
 
-**Phase 2: Build Time (build.rs)**
-- `build_parsers()` extracts grammar from markers
-- Generates actual parser tables
-- Compiles into binary
-
-### Pure-Rust vs C Backend
-
-```
-Pure-Rust Backend (default, recommended):
-┌─────────────┐
-│ Your Grammar│
-└──────┬──────┘
-       │
-       ▼
-┌──────────────┐     ┌──────────────┐
-│ adze- │────▶│ adze- │
-│   glr-core   │     │   tablegen   │
-└──────────────┘     └──────┬───────┘
-                            │
-                            ▼
-                    ┌──────────────┐
-                    │ Compressed   │
-                    │ Parse Tables │
-                    │ (Pure Rust)  │
-                    └──────────────┘
-                    → WASM compatible
-                    → No C dependencies
-
-C Backend (legacy, tree-sitter compatible):
-┌─────────────┐
-│ Your Grammar│
-└──────┬──────┘
-       │
-       ▼
-┌──────────────┐     ┌──────────────┐
-│ adze- │────▶│ grammar.json │
-│     tool     │     │(tree-sitter) │
-└──────────────┘     └──────┬───────┘
-                            │
-                            ▼
-                    ┌──────────────┐
-                    │ tree-sitter  │
-                    │     CLI      │
-                    └──────┬───────┘
-                            │
-                            ▼
-                    ┌──────────────┐
-                    │  parser.c    │
-                    │  (compiled)  │
-                    └──────────────┘
-                    → Requires Node.js
-                    → C compiler needed
-```
-
-### Parser Runtime Modes
-
-adze supports multiple parser runtime implementations:
-
-| Mode | Feature | Runtime Path | GLR | Status |
-|------|---------|-------------|-----|--------|
-| **Pure-Rust LR** | `pure-rust` (default) | `pure_parser.rs` | First-action only | Stable |
-| **Pure-Rust GLR** | `glr` | `parser_v4.rs` | Full fork/merge | Experimental |
-| **Tree-sitter C** | `tree-sitter-standard` | Tree-sitter C runtime | LR(1) | Legacy, requires C toolchain |
-
-> **Note:** The default feature is `pure-rust`. The tree-sitter C backend is available for compatibility but is not the recommended path.
-
----
-
-## GLR Parser Architecture
-
-```
-Input Tokens
-     │
-     ▼
-┌────────────────────┐
-│  GLR Driver        │
-│  - State stacks    │
-│  - Fork on conflict│
-│  - Merge on join   │
-└────────┬───────────┘
-         │
-         ▼
-┌────────────────────┐
-│  Action Table      │
-│  [state][symbol]   │
-│  → Vec<Action>     │  ← Multiple actions per cell (GLR!)
-└────────┬───────────┘
-         │
-    ┌────┴─────┐
-    │          │
-    ▼          ▼
-┌────────┐ ┌────────┐
-│ Shift  │ │ Reduce │
-└────┬───┘ └───┬────┘
-     │         │
-     └────┬────┘
-          │
-          ▼
-    ┌──────────┐
-    │  GOTO    │
-    │  Table   │
-    └────┬─────┘
-         │
-         ▼
-    ┌────────────────┐
-    │  Parse Forest  │  ← All valid parse trees
-    │  - Shared nodes│
-    │  - Packed SPPFs│
-    └────────────────┘
-```
-
----
-
-## Data Flow Example
-
-Let's trace `grammar::parse("2 + 3")`:
-
-```
-1. Build Time (happens once):
-   ┌──────────────┐
-   │ #[grammar]   │
-   │ enum Expr {  │
-   │   Number(..) │
-   │   Add(..)    │
-   │ }            │
-   └──────┬───────┘
-          │
-          ▼
-   ┌──────────────┐
-   │ build.rs     │
-   │ extracts     │
-   │ grammar      │
-   └──────┬───────┘
-          │
-          ▼
-   ┌──────────────┐
-   │ IR Grammar   │
-   │ - 2 rules    │
-   │ - 3 symbols  │
-   └──────┬───────┘
-          │
-          ▼
-   ┌──────────────┐
-   │ LR(1) States │
-   │ Action Table │
-   │ GOTO Table   │
-   └──────┬───────┘
-          │
-          ▼
-   ┌──────────────┐
-   │ Compressed   │
-   │ Static Data  │
-   │ in Binary    │
-   └──────────────┘
-
-2. Runtime (parse call):
-   Input: "2 + 3"
-          │
-          ▼
-   ┌──────────────┐
-   │ Tokenize     │
-   │ → [2, +, 3]  │
-   └──────┬───────┘
-          │
-          ▼
-   ┌──────────────┐
-   │ GLR Driver   │
-   │ State: [0]   │
-   └──────┬───────┘
-          │
-          ▼
-   Token: 2 (Number)
-   Action: Shift
-          │
-          ▼
-   ┌──────────────┐
-   │ State: [0,3] │
-   └──────┬───────┘
-          │
-          ▼
-   Reduce: Number(2)
-          │
-          ▼
-   Token: + (Plus)
-   Action: Shift
-          │
-          ▼
-   ┌──────────────┐
-   │ State: [0,5] │
-   └──────┬───────┘
-          │
-          ▼
-   Token: 3 (Number)
-   Action: Shift & Reduce
-          │
-          ▼
-   ┌──────────────┐
-   │ AST Built    │
-   │ Add(         │
-   │   Number(2), │
-   │   Number(3)  │
-   │ )            │
-   └──────────────┘
-```
-
----
-
-## File Organization
-
-```
-adze/
-├── runtime/              # Runtime library (what you depend on)
-│   ├── src/
-│   │   ├── lib.rs       # Main API
-│   │   ├── parser.rs    # Parser implementation
-│   │   ├── tree.rs      # Parse tree API
-│   │   └── query.rs     # Query system
-│   └── tests/           # Runtime tests
-│
-├── macro/               # Procedural macros
-│   └── src/
-│       └── lib.rs       # #[grammar], #[language], etc.
-│
-├── tool/                # Build-time code generation
-│   ├── src/
-│   │   ├── lib.rs       # build_parsers() entry point
-│   │   └── extract.rs   # Grammar extraction
-│   └── tests/           # Tool tests
-│
-├── common/              # Shared utilities
-│   └── src/
-│       └── lib.rs       # Common types
-│
-├── ir/                  # Intermediate Representation
-│   └── src/
-│       ├── grammar.rs   # Grammar IR
-│       └── optimizer.rs # Grammar optimization
-│
-├── glr-core/            # GLR parser generation
-│   ├── src/
-│   │   ├── lib.rs       # LR(1) automaton
-│   │   └── conflicts.rs # Conflict resolution
-│   └── tests/           # GLR tests
-│
-├── tablegen/            # Table compression
-│   ├── src/
-│   │   └── compress.rs  # Tree-sitter table format
-│   └── tests/           # Compression tests
-│
-├── example/             # Example grammars
-│   ├── src/
-│   │   ├── arithmetic.rs
-│   │   ├── json.rs
-│   │   └── ...
-│   └── tests/           # Integration tests
-│
-├── tools/
-│   └── ts-bridge/       # Tree-sitter grammar importer
-│
-└── docs/                # Documentation
-    ├── GETTING_STARTED.md
-    └── ...
-```
-
----
-
-## Key Interfaces
-
-### User-Facing API
-
-```rust
-// In your code:
-use adze::Parser;
-
-// Parse text
-let ast = grammar::parse("source code")?;
-
-// Or use Parser directly:
-let mut parser = Parser::new();
-parser.set_language(grammar::language());
-let tree = parser.parse("source", None)?;
-```
-
-### Build-Time API
-
-```rust
-// In build.rs:
-use adze_tool::build_parsers;
-use std::path::PathBuf;
-
-fn main() {
-    build_parsers(&PathBuf::from("src/main.rs"));
-}
-```
-
-### Grammar Definition API
-
-```rust
-#[adze::grammar("name")]
-mod grammar {
-    #[adze::language]
-    pub enum MyType {
-        Variant1(
-            #[adze::leaf(pattern = r"...")]
-            FieldType
-        ),
-    }
-}
-```
-
----
-
-## Extension Points
-
-### Custom External Scanners
-
-```rust
-impl adze::ExternalScanner for MyScanner {
-    fn scan(&mut self, lexer: &mut Lexer, valid: &[bool]) -> ScanResult {
-        // Custom lexing logic
-    }
-}
-```
-
-### Tree Visitors (experimental)
-
-```rust
-impl adze::Visitor for MyVisitor {
-    fn visit_node(&mut self, node: &Node) {
-        // Custom tree traversal
-    }
-}
-```
-
-### Query Predicates (experimental)
-
-```rust
-let query = compile_query(r#"
-    (function_definition
-      name: (identifier) @name
-      (#eq? @name "main"))
-"#)?;
-```
-
----
-
-## Performance Characteristics
-
-### Time Complexity
-
-**Parse Time**: O(n³) worst case (GLR), O(n) typical case (LR)
-- Unambiguous grammars: Linear in input size
-- Ambiguous grammars: Polynomial (but rare in practice)
-
-**Build Time**: O(states²) for automaton construction
-- Happens once at build time
-- Cached for subsequent builds
-
-### Space Complexity
-
-**Parse Tables**: O(states × symbols)
-- Compressed using tree-sitter algorithm
-- Typical compression: 10:1 ratio
-
-**Parse Trees**: O(n) for AST nodes
-- Shared subtrees in GLR forest
-- Compact representation
-
----
-
-## Comparison to tree-sitter Architecture
-
-| Component | tree-sitter | adze |
-|-----------|-------------|-------------|
-| Grammar Language | JavaScript DSL | Rust types |
-| Parser Generator | Node.js CLI | Rust build.rs |
-| Parser Runtime | C library | Pure Rust |
-| Parse Table Format | Custom binary | Compatible + Rust |
-| GLR Support | No (LR only) | Yes (full GLR) |
-| Incremental Parsing | Mature | In progress |
-| Language Bindings | Many languages | Rust-first |
-
-**Compatibility**: adze can import tree-sitter grammars and generate compatible parsers via ts-bridge.
-
----
-
-## Debug Tips
-
-### View Generated Grammar
-
-```bash
-ADZE_EMIT_ARTIFACTS=true cargo build
-cat target/debug/build/*/out/grammar.json
-```
-
-### Enable Logging
-
-```bash
-RUST_LOG=adze=debug cargo run
-```
-
-### Profile Performance
-
-```bash
-cargo install flamegraph
-cargo flamegraph --bin your-app
-# Open flamegraph.svg in browser
-```
-
-### Inspect Parse Tables
-
-```bash
-# With emit_ir! macro in your grammar:
-cargo build 2>&1 | grep "IR:"
-```
+### Inspecting Tables
+If you suspect a grammar conflict is being handled incorrectly, check the generated `adze_debug_{grammar}.log` in your system's temp directory. It contains the full LR(1) state transitions and action tables.
 
 ---
 
 ## Next Steps
 
-- **Learn the basics**: [QUICK_START.md](./QUICK_START.md)
-- **Deep dive**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
-- **See examples**: [example/src/](./example/src/)
-- **Contribute**: [CONTRIBUTING.md](./CONTRIBUTING.md)
-
----
-
-**Questions?** See [FAQ.md](./FAQ.md) or ask in [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
+- **Quick Start**: See [QUICK_START.md](./QUICK_START.md)
+- **Examples**: Explore the [example/](./example/) directory
+- **Friction Log**: Report issues in [docs/status/FRICTION_LOG.md](./docs/status/FRICTION_LOG.md)

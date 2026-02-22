@@ -1,6 +1,6 @@
 # Getting Started with Adze
 
-> **Doc status:** being refreshed to match dev head (0.8.0-dev).
+> **Doc status:** Up to date for Adze 0.8.0-dev.
 > If something here disagrees with the repo, treat the repo as truth
 > and log it in [`docs/status/FRICTION_LOG.md`](./status/FRICTION_LOG.md).
 
@@ -23,10 +23,10 @@ Add adze to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.6"
+adze = "0.8.0-dev"
 
 [build-dependencies]
-adze-tool = "0.6"
+adze-tool = "0.8.0-dev"
 ```
 
 ### Create a Simple Grammar
@@ -38,7 +38,8 @@ Create `src/lib.rs`:
 pub mod grammar {
     #[adze::language]
     pub struct Program {
-        #[adze::leaf(pattern = r"\d+", text = true)]
+        // The type String automatically extracts the matched text
+        #[adze::leaf(pattern = r"\d+")]
         pub number: String,
     }
 }
@@ -70,20 +71,21 @@ That's it! You now have a working parser for numbers.
 
 ### Grammar Attributes
 
-- **`#[adze::grammar("name")]`**: Marks a module as a grammar definition
-- **`#[adze::language]`**: Marks a type as part of the grammar
-- **`#[adze::leaf]`**: Defines a terminal symbol (token)
-- **`#[adze::extra]`**: Defines symbols to ignore (like whitespace)
-- **`#[adze::repeat]`**: Allows repetition of elements
-- **`#[adze::prec]`**: Sets precedence levels for disambiguation
+- **`#[adze::grammar("name")]`**: Marks a module as a grammar definition.
+- **`#[adze::language]`**: Marks a type (struct or enum) as part of the grammar.
+- **`#[adze::leaf]`**: Defines a terminal symbol (token) using regex.
+- **`#[adze::extra]`**: Defines symbols to ignore (like whitespace).
+- **`#[adze::repeat]`**: Allows repetition of elements.
+- **`#[adze::prec]`**: Sets precedence levels for disambiguation.
 
 ### Grammar Types
 
-1. **Structs**: Sequences of required fields
-2. **Enums**: Alternatives (choice between variants)
-3. **Vec<T>**: Repetition of elements
-4. **Option<T>**: Optional elements
-5. **Box<T>**: Recursive structures
+1. **Structs**: Sequences of required fields.
+2. **Enums**: Alternatives (choice between variants).
+3. **Vec<T>**: Repetition of elements.
+4. **Option<T>**: Optional elements.
+5. **Box<T>**: Recursive structures.
+6. **String**: Extracts the text content of a token.
 
 ## Creating Your First Grammar
 
@@ -108,7 +110,7 @@ pub mod grammar {
 
     #[adze::language]
     pub struct NumberLiteral {
-        #[adze::leaf(pattern = r"\d+", text = true)]
+        #[adze::leaf(pattern = r"\d+")]
         pub value: String,
     }
 
@@ -134,7 +136,7 @@ pub mod grammar {
 
     #[adze::language]
     pub struct Item {
-        #[adze::leaf(pattern = r"\w+", text = true)]
+        #[adze::leaf(pattern = r"\w+")]
         pub name: String,
     }
 
@@ -190,13 +192,13 @@ pub mod grammar {
 
     #[adze::language]
     pub struct NumberLiteral {
-        #[adze::leaf(pattern = r"-?\d+", text = true)]
+        #[adze::leaf(pattern = r"-?\d+")]
         pub value: String,
     }
 
     #[adze::language]
     pub struct StringLiteral {
-        #[adze::leaf(pattern = r#""[^"]*""#, text = true)]
+        #[adze::leaf(pattern = r#""[^"]*""#)]
         pub value: String,
     }
 
@@ -251,14 +253,14 @@ Full expression parser with precedence.
 
 ### Text Extraction
 
-To extract the actual text from a token, use `text = true`:
+To extract the actual text from a token, simply use the `String` type for your field:
 
 ```rust
-#[adze::leaf(pattern = r"\d+", text = true)]
+#[adze::leaf(pattern = r"\d+")]
 pub value: String,
 ```
 
-Without `text = true`, you get unit type `()`.
+Adze automatically extracts the text corresponding to the token.
 
 ### Ignoring Whitespace
 
@@ -321,20 +323,13 @@ This error occurs when the Extract trait cannot determine which variant to use. 
 
 #### Parse errors at position 0
 
-Usually means a token_count issue.
+Usually means a token_count issue or mismatched versions.
 
-**Solution**: Upgrade to the latest adze release.
+**Solution**: Upgrade to the latest Adze release and ensure `adze` and `adze-tool` versions match.
 
 #### Empty string extraction
 
-Forgot `text = true` on leaf pattern.
-
-**Solution**: Add `text = true` to the `#[adze::leaf]` attribute:
-
-```rust
-#[adze::leaf(pattern = r"\d+", text = true)]
-pub value: String,
-```
+If you are using `transform` to parse the string, ensure the closure is actually being executed (see Known Issues). For simple text extraction, stick to `String` type.
 
 ### Debug Tips
 

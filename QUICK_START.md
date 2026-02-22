@@ -21,10 +21,10 @@ cd my-parser
 cat >> Cargo.toml <<'EOF'
 
 [dependencies]
-adze = "0.6"
+adze = "0.8.0-dev"
 
 [build-dependencies]
-adze-tool = "0.6"
+adze-tool = "0.8.0-dev"
 EOF
 ```
 

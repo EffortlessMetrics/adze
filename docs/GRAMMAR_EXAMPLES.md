@@ -1,6 +1,6 @@
 # Adze Grammar Examples
 
-This document provides comprehensive examples of how to define grammars using adze v0.5.0-beta.
+This document provides comprehensive examples of how to define grammars using Adze 0.8.0-dev.
 
 ## Table of Contents
 
@@ -12,7 +12,7 @@ This document provides comprehensive examples of how to define grammars using ad
 
 ## Basic Grammar Structure
 
-Every adze grammar starts with the `#[adze::grammar]` attribute:
+Every Adze grammar starts with the `#[adze::grammar]` attribute:
 
 ```rust
 #[adze::grammar("my_language")]
@@ -31,6 +31,7 @@ pub mod grammar {
     
     #[adze::language]
     pub struct Expression {
+        // Automatically extracts text into the String
         #[adze::leaf(pattern = r"\d+")]
         pub number: String,
     }
@@ -79,18 +80,23 @@ pub struct Tokens {
 }
 ```
 
-### Transformation
+### Transformation (Manual)
+
+*Note: Built-in `transform` closures are currently disabled (see Friction Log).*
+To transform values (e.g. string to integer), use the `String` type in your grammar and parse it in your application logic:
 
 ```rust
 #[adze::language]
 pub struct Numbers {
     // Parse integer values
-    #[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
-    pub int_value: i32,
-    
-    // Parse float values
-    #[adze::leaf(pattern = r"\d+\.\d*", transform = |s| s.parse().unwrap())]
-    pub float_value: f64,
+    #[adze::leaf(pattern = r"\d+")]
+    pub int_text: String,
+}
+
+impl Numbers {
+    pub fn value(&self) -> i32 {
+        self.int_text.parse().unwrap()
+    }
 }
 ```
 
@@ -152,18 +158,18 @@ Enums represent choice points in your grammar:
 ```rust
 #[adze::language]
 pub enum Expression {
-    Binary(BinaryExpr),
-    Unary(UnaryExpr),
+    Binary(Box<BinaryExpr>), // Box recursive types!
+    Unary(Box<UnaryExpr>),
     Literal(Literal),
     Identifier(Identifier),
-    Call(CallExpr),
+    Call(Box<CallExpr>),
 }
 
 #[adze::language]
 pub struct BinaryExpr {
-    pub left: Box<Expression>,
+    pub left: Expression,
     pub op: BinaryOp,
-    pub right: Box<Expression>,
+    pub right: Expression,
 }
 
 #[adze::language]
@@ -282,123 +288,6 @@ pub mod json_grammar {
 }
 ```
 
-### Expression Grammar with Operators
-
-```rust
-#[adze::grammar("calc")]
-pub mod calc_grammar {
-    #[adze::language]
-    pub struct Program {
-        pub expression: Expression,
-    }
-    
-    #[adze::language]
-    pub enum Expression {
-        Binary(Box<BinaryExpression>),
-        Unary(Box<UnaryExpression>),
-        Primary(PrimaryExpression),
-    }
-    
-    #[adze::language]
-    pub struct BinaryExpression {
-        pub left: Expression,
-        pub operator: BinaryOperator,
-        pub right: Expression,
-    }
-    
-    #[adze::language]
-    pub enum BinaryOperator {
-        Add(AddOp),
-        Subtract(SubOp),
-        Multiply(MulOp),
-        Divide(DivOp),
-        Power(PowerOp),
-    }
-    
-    #[adze::language]
-    pub struct AddOp {
-        #[adze::leaf(text = "+")]
-        _op: (),
-    }
-    
-    #[adze::language]
-    pub struct SubOp {
-        #[adze::leaf(text = "-")]
-        _op: (),
-    }
-    
-    #[adze::language]
-    pub struct MulOp {
-        #[adze::leaf(text = "*")]
-        _op: (),
-    }
-    
-    #[adze::language]
-    pub struct DivOp {
-        #[adze::leaf(text = "/")]
-        _op: (),
-    }
-    
-    #[adze::language]
-    pub struct PowerOp {
-        #[adze::leaf(text = "^")]
-        _op: (),
-    }
-    
-    #[adze::language]
-    pub struct UnaryExpression {
-        pub operator: UnaryOperator,
-        pub operand: Expression,
-    }
-    
-    #[adze::language]
-    pub enum UnaryOperator {
-        Plus(UnaryPlusOp),
-        Minus(UnaryMinusOp),
-    }
-    
-    #[adze::language]
-    pub struct UnaryPlusOp {
-        #[adze::leaf(text = "+")]
-        _op: (),
-    }
-    
-    #[adze::language]
-    pub struct UnaryMinusOp {
-        #[adze::leaf(text = "-")]
-        _op: (),
-    }
-    
-    #[adze::language]
-    pub enum PrimaryExpression {
-        Number(Number),
-        Identifier(Identifier),
-        Parenthesized(Box<ParenthesizedExpression>),
-    }
-    
-    #[adze::language]
-    pub struct Number {
-        #[adze::leaf(pattern = r"\d+(?:\.\d+)?", transform = |s| s.parse::<f64>().unwrap())]
-        pub value: f64,
-    }
-    
-    #[adze::language]
-    pub struct Identifier {
-        #[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
-        pub name: String,
-    }
-    
-    #[adze::language]
-    pub struct ParenthesizedExpression {
-        #[adze::leaf(text = "(")]
-        _open: (),
-        pub expression: Expression,
-        #[adze::leaf(text = ")")]
-        _close: (),
-    }
-}
-```
-
 ## Best Practices
 
 1. **Use underscores for syntax-only fields**: Fields that represent punctuation or keywords should start with `_` to indicate they're not semantically important.
@@ -410,18 +299,6 @@ pub mod calc_grammar {
 4. **Use Option for optional syntax**: When a language feature is optional, use `Option<T>`.
 
 5. **Use Vec for repetitions**: The `#[adze::repeat]` attribute works with `Vec<T>`.
-
-## Current Limitations
-
-The v0.5.0-beta release has some limitations:
-
-- No support for precedence annotations (`#[adze::prec]`)
-- No support for associativity (`#[adze::prec_left]`, `#[adze::prec_right]`)
-- No support for external scanners (`#[adze::external]`)
-- No support for word tokens (`#[adze::word]`)
-- No support for delimited lists (`#[adze::delimited]`)
-
-These features are planned for future releases.
 
 ## Using Your Grammar
 
@@ -444,5 +321,6 @@ use my_language::grammar::*;
 
 fn main() {
     // Your parsing code here
+    let ast = parse("some input").unwrap();
 }
 ```
