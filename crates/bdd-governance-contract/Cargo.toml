@@ -10,12 +10,12 @@ publish = ["crates.io"]
 
 [features]
 default = []
-pure-rust = ["adze-governance-matrix-contract/pure-rust"]
-tree-sitter-standard = ["adze-governance-matrix-contract/tree-sitter-standard"]
-tree-sitter-c2rust = ["adze-governance-matrix-contract/tree-sitter-c2rust"]
-glr = ["pure-rust", "adze-governance-matrix-contract/glr"]
-strict_api = ["adze-governance-matrix-contract/strict_api"]
-strict_docs = ["adze-governance-matrix-contract/strict_docs"]
+pure-rust = ["adze-bdd-governance-core/pure-rust"]
+tree-sitter-standard = ["adze-bdd-governance-core/tree-sitter-standard"]
+tree-sitter-c2rust = ["adze-bdd-governance-core/tree-sitter-c2rust"]
+glr = ["pure-rust", "adze-bdd-governance-core/glr"]
+strict_api = ["adze-bdd-governance-core/strict_api"]
+strict_docs = ["adze-bdd-governance-core/strict_docs"]
 
 [dependencies]
-adze-governance-matrix-contract = { version = "0.1.0", path = "../governance-matrix-contract" }
+adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }

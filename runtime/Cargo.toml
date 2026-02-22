@@ -1,13 +1,13 @@
 [package]
 name = "adze"
-description = "Adze: Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable (not affiliated)."
+description = "Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable."
 readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
+authors.workspace = true
 edition = "2024"
 license = "MIT OR Apache-2.0"
-keywords = ["parsing", "codegen"]
+keywords = ["parsing", "glr", "grammar", "tree-sitter", "codegen"]
 categories = ["development-tools"]
 build = "build.rs"
 

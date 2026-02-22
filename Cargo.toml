@@ -21,6 +21,7 @@ members = [
   "crates/governance-runtime-reporting",
   "crates/feature-policy-contract",
   "crates/governance-metadata",
+  "crates/bdd-governance-core",
   "crates/bdd-governance-contract",
   "crates/bdd-contract",
   "crates/governance-contract",
