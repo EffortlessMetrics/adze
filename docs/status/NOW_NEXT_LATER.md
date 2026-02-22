@@ -1,48 +1,45 @@
 # Now / Next / Later
 
-**Last updated:** 2026-02-21
+**Last updated:** 2026-02-22
 
-This is the rolling plan. Keep it short. If something is real, it should have:
-- a finish line
-- a link (issue/PR)
-- a reason it matters
-
-For paper cuts and recurring pain: `docs/status/FRICTION_LOG.md`.
+Adze status and rolling execution plan. For paper cuts and pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md).
 
 ---
 
 ## Now
 
-### Docs that match reality
-- [ ] README is the canonical entry point (short, correct, linked)
-- [ ] Roadmap is outcomes (durable)
-- [ ] Status docs live in `docs/status/` and are referenced everywhere
+### 🚀 Documentation Sync
+- [x] Rework `ARCHITECTURE.md` with Mermaid and Governance details.
+- [x] Update `GETTING_STARTED.md` and `GRAMMAR_EXAMPLES.md` for 0.8.0.
+- [x] Sync `DEVELOPER_GUIDE.md` with `just` and `xtask` workflows.
+- [x] Update `ROADMAP.md` and `KNOWN_LIMITATIONS.md`.
 
-### Default dev loop stays cheap
-- [ ] `just ci-supported` remains the supported gate and stays bounded
-- [ ] Non-required CI workflows are clearly optional (nightly/manual/canary), not PR-blocking by accident
-
-### Friction loop is real
-- [ ] Every recurring "how do I..." becomes a Friction Log entry + issue link
-- [ ] When fixed: mark resolved + link PR + add guardrail (docs/script/error message)
+### 🟢 Maintain Supported Lane
+- [ ] Ensure `just ci-supported` stays under 5 minutes on standard hardware.
+- [ ] Keep `crates/` micro-crate boundaries clean as governance evolves.
 
 ---
 
 ## Next
 
-### Publishable baseline
-- [ ] Decide publish set (what is publishable vs internal)
-- [ ] Clean `cargo package` for publishable crates
-- [ ] Tighten feature-flag story: stable vs experimental
+### 📦 Publishable Baseline
+- [ ] Finalize the "Support Lane" vs "Experimental Lane" crate split.
+- [ ] Perform a clean `cargo package` dry-run for all core crates.
+- [ ] Standardize feature-flag names across the workspace (`glr`, `simd`, etc).
 
-### Tooling that reduces ambiguity
-- [ ] CLI: validation + inspection commands (high-signal subset)
-- [ ] Golden tests: expand coverage with explicit maintenance rules
+### 🛠️ CLI Refinement
+- [ ] Implement `adze check` for static grammar validation.
+- [ ] Implement `adze stats` for parse table metrics (states, symbols, conflicts).
 
 ---
 
 ## Later
 
-- Incremental parsing maturity (beyond conservative fallback)
-- Query predicate completion + cookbook
-- Playground and LSP generator become genuinely useful for daily work
+### 🌳 Incremental Parsing
+- Move from conservative fallback to active forest-splicing for massive performance gains in editors.
+
+### 🔍 Query Completion
+- Implement remaining Tree-sitter query predicates (`#any-of?`, etc) and provide a cookbook.
+
+### 🌐 Playground & LSP
+- Stabilize the LSP generator so it can be used to generate production-grade language servers.

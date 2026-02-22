@@ -1,143 +1,47 @@
-# Known Limitations and Upcoming Features
+# Known Limitations
 
-This document outlines the current limitations of adze v0.5.0-beta and the planned features for future releases.
+> **Doc status:** Up to date for Adze 0.8.0-dev.
+
+Adze is a high-performance GLR parser generator. While it achieves high compatibility with the Tree-sitter ecosystem, there are some known limitations and experimental areas.
 
 ## ✅ Supported Features
 
-adze v0.5.0-beta provides a pure-Rust implementation of Tree-sitter with the following capabilities:
+- **Core Grammar**: Sequences, choices, repeats, optionals, and recursive types.
+- **Pure-Rust LR(1)**: Fast, zero-dependency parsing for deterministic grammars.
+- **GLR (Generalized LR)**: Handles ambiguous grammars by forking and merging stacks.
+- **Precedence & Associativity**: Full support for `#[adze::prec_left]`, `#[adze::prec_right]`, etc.
+- **Extra Tokens**: Support for whitespace and comments via `#[adze::extra]`.
+- **WASM Support**: Native compatibility via the pure-Rust runtime.
 
-- **Core Grammar Features**
-  - Sequences, choices, repeats, and optionals
-  - String and regex patterns
-  - Field names and aliases
-  - Tokens and immediate tokens
-  - Basic rules and symbols
-  - **NEW**: Precedence and associativity (`prec`, `prec.left`, `prec.right`, `prec.dynamic`) ✨
-  - **NEW**: Word token declarations ✨
-  - **NEW**: External scanner declarations (parsing only) ✨
-  - **NEW**: Supertypes declarations ✨
-  - **NEW**: Inline rules ✨
-  - **NEW**: Conflicts declarations ✨
+## ⚠️ Experimental / Limited Features
 
-- **Parser Generation**
-  - LR(1) automaton construction
-  - Table compression matching Tree-sitter format
-  - NODE_TYPES.json generation
-  - FFI-compatible Language struct
-  - **NEW**: Non-sequential symbol ID handling ✨
+### 1. External Scanners
+Support for custom Rust-based external scanners is available but the API is still stabilizing. This is required for indentation-sensitive languages like Python.
+- **Status**: Implemented for Python in `grammars/python`.
 
-- **Runtime Features**
-  - Parse tree construction
-  - Error recovery strategies
-  - Visitor API for tree traversal
-  - Serialization in multiple formats
+### 2. Query Language
+Tree-sitter compatible query support (`.scm` files) is under active development.
+- **Status**: Basic pattern matching works; advanced predicates are in progress.
 
-## ⚠️ Known Limitations
+### 3. Incremental Parsing
+Reparsing only changed parts of a file is supported in the core engine but may fall back to full parses in complex GLR scenarios.
+- **Status**: Conservative fallback enabled; forest-splicing is experimental.
 
-The following Tree-sitter features are not yet supported in v0.5.0-beta:
+### 4. `transform` Closures
+There is a known bug (FR-005) where `transform` closures on leaf nodes are captured but not executed.
+- **Workaround**: Use `String` fields and parse the text in your application logic.
 
-### Grammar Features
+## 📊 Language Compatibility
 
-1. **External Scanner Runtime** ❌
-   - External scanner declarations are parsed but not executed
-   - External C/C++ scanner integration not implemented
-   - **Impact**: Cannot parse context-sensitive tokens (Python indentation, C++ raw strings)
-   - **Workaround**: None - grammars requiring external scanners will fail at runtime
+| Language | Status | Notes |
+|----------|--------|-------|
+| JSON | ✅ Stable | Standard reference grammar. |
+| Arithmetic | ✅ Stable | Demonstrates precedence handling. |
+| Go | ✅ Stable | High-speed deterministic parsing. |
+| JavaScript | 🟡 Stabilizing | Large grammar, uses GLR for conflicts. |
+| Python | 🟡 Stabilizing | Requires external indentation scanner. |
+| Rust | 🚧 Planned | Complex grammar with many edge cases. |
 
-2. **Named Precedence Levels** ❌
-   - `prec('operator', rule)` style precedences
-   - **Impact**: Some grammars use named precedence for clarity
-   - **Workaround**: Convert to numeric precedence levels
+## 🤝 Roadmap
 
-3. **JavaScript-style Function Blocks in grammar.js** ❌
-   - `{ const table = [...]; return choice(...); }` patterns
-   - **Impact**: Cannot parse some complex grammar patterns
-   - **Workaround**: Rewrite as direct expressions
-
-4. **Complex Extras Patterns** ⚠️
-   - Extras with complex regex or choices
-   - **Impact**: Some whitespace handling may not work correctly
-   - **Workaround**: Simplify extras patterns
-
-### CLI Features
-
-- No `tree-sitter` CLI compatibility yet
-- No `tree-sitter generate` equivalent
-- No `tree-sitter parse` equivalent
-- No `tree-sitter test` equivalent
-
-### Advanced Features
-
-- No query language support yet
-- No syntax highlighting queries
-- No incremental parsing
-- No cancellation support
-- Limited WASM support (builds but not optimized)
-
-## 📊 Grammar Compatibility Status
-
-| Grammar | Status | Blocking Feature |
-|---------|--------|------------------|
-| JSON | ✅ Working | - |
-| TOML | ✅ Working | - |
-| INI | ✅ Working | - |
-| Arithmetic | ✅ Working | - |
-| C | 🟡 Likely Working | Needs testing |
-| Go | 🟡 Likely Working | Needs testing |
-| Java | 🟡 Likely Working | Needs testing |
-| JavaScript | 🟡 Partial | External scanner runtime, JS function blocks |
-| TypeScript | 🟡 Partial | External scanner runtime, extends JavaScript |
-| Python | ❌ Blocked | External scanner runtime (indentation) |
-| Rust | ❌ Blocked | External scanner runtime (raw strings) |
-| C++ | ❌ Blocked | External scanner runtime (raw strings) |
-| Ruby | ❌ Blocked | External scanner runtime (heredocs) |
-| C# | ❌ Blocked | External scanner runtime |
-
-## 🚀 Roadmap
-
-### v0.6.0 (Target: Q1 2025)
-- ✅ Precedence and associativity support (DONE)
-- ✅ Word token support (DONE)
-- ✅ External/supertypes/conflicts parsing (DONE)
-- ✨ External scanner runtime implementation
-- ✨ Basic CLI tool (`adze generate`, `adze parse`)
-- 📈 Support for ~70% of popular grammars
-
-### v0.7.0 (Target: Q3 2025)
-- ✨ External scanner support
-- ✨ Conflicts and supertypes
-- ✨ Query language basics
-- 📈 Support for ~90% of popular grammars
-
-### v0.8.0 (Target: Q4 2025)
-- ✨ Full query language support
-- ✨ Incremental parsing
-- ✨ Performance optimizations
-- ✨ WASM optimizations
-- 📈 Support for 100% of popular grammars
-
-### v1.0.0 (Target: Q1 2026)
-- 🎯 Full Tree-sitter compatibility
-- 🎯 Performance parity or better than C implementation
-- 🎯 Production-ready stability
-- 🎯 Comprehensive documentation
-
-## 🤝 Contributing
-
-We welcome contributions! If you're interested in implementing any of these features:
-
-1. Check the [GitHub issues](https://github.com/yourusername/adze/issues) for existing work
-2. Open an issue to discuss your approach
-3. Submit a PR with tests
-
-Priority areas for contribution:
-- Precedence/associativity implementation in the IR
-- Grammar.js parser improvements
-- CLI tool development
-- Grammar compatibility testing
-
-## 📞 Contact
-
-For questions or feedback:
-- GitHub Issues: [adze/issues](https://github.com/yourusername/adze/issues)
-- Discussions: [adze/discussions](https://github.com/yourusername/adze/discussions)
+For upcoming features and milestones, see [ROADMAP.md](../../ROADMAP.md).

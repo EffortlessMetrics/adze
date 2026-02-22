@@ -10,25 +10,26 @@ Tree-sitter interoperable.
 
 ---
 
-## Mental model
+## Mental Model
 
-Adze is a compiler pipeline:
+Adze (formerly `rust-sitter`) is a compiler pipeline:
 
-- **Define**: Rust enums/structs + attributes describe structure, tokens, precedence.
-- **Compile**: build tooling turns that into IR + parse tables in `build.rs`.
-- **Parse**: runtime uses tables (LR/GLR paths) to build a tree/forest.
-- **Extract**: you receive typed Rust values (your enums/structs), not a generic node API.
+- **Define**: Describe your language using Rust enums/structs + attributes.
+- **Compile**: Build tooling turns your types into an optimized LR(1) or GLR parse table in `build.rs`.
+- **Parse**: The zero-dependency runtime uses these tables to build a parse forest.
+- **Extract**: You receive **typed Rust values** (your own structs), not a generic "node" API.
 
 ---
 
-## Minimal example
+## Minimal Example
 
 ```rust
 #[adze::grammar("calc")]
 mod grammar {
     #[adze::language]
     pub enum Expr {
-        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        // Field type String automatically extracts the token text
+        Number(#[adze::leaf(pattern = r"\d+")] String),
 
         #[adze::prec_left(1)]
         Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
@@ -36,22 +37,17 @@ mod grammar {
 }
 
 fn main() {
+    // Returns Result<Expr, Vec<ParseError>>
     let ast = grammar::parse("2+3").unwrap();
     println!("{ast:?}");
 }
 ```
 
-Working end-to-end examples live in:
-
-* `example/`
-
-> Some docs outside `docs/status/` are being refreshed. When in doubt, treat the code as truth.
-
 ---
 
-## Install
+## Installation
 
-### Published (stable)
+### Add to `Cargo.toml`
 
 ```toml
 [dependencies]
@@ -61,67 +57,42 @@ adze = "0.8.0-dev"
 adze-tool = "0.8.0-dev"
 ```
 
-### Dev head (unreleased)
-
-```toml
-[dependencies]
-adze = { git = "https://github.com/EffortlessMetrics/adze" }
-
-[build-dependencies]
-adze-tool = { git = "https://github.com/EffortlessMetrics/adze" }
-```
-
-### `build.rs`
+### Create `build.rs`
 
 ```rust
+use std::path::PathBuf;
+
 fn main() {
-    adze_tool::build_parsers(&std::path::PathBuf::from("src/main.rs"));
+    // This generates the parser source code at build time
+    adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
 }
 ```
 
 ---
 
-## Repo map
+## Why Adze?
 
-**Core pipeline**
-
-* `runtime/` — public crate (`adze`)
-* `macro/` — proc-macros (`adze-macro`)
-* `tool/` — build-time compiler (`adze-tool`)
-* `common/`, `ir/`, `tablegen/`, `glr-core/` — IR + table generation + GLR machinery
-
-**Validation & tooling**
-
-* `golden-tests/` — parity validation (selected grammars)
-* `grammars/` — grammar crates (Python/JS/Go, etc.)
-* `cli/`, `lsp-generator/`, `playground/`, `wasm-demo/` — tools/prototypes
-
-### What's stable vs experimental
-
-- **Stable:** macro grammars, build-time table generation, typed extraction.
-- **Experimental:** GLR runtime (`features = ["glr"]`), incremental parsing.
-- **Prototypes:** CLI, LSP generator, playground, wasm-demo (useful, not merge-gated).
+1. **Type Safety**: Your grammar *is* your AST. No more manual mapping from generic trees to domain objects.
+2. **Pure Rust**: The default runtime is 100% Rust. No C toolchain required for WASM or cross-compilation.
+3. **GLR Power**: Can handle inherently ambiguous grammars (like C++ or JavaScript) that standard LR(1) parsers struggle with.
+4. **Interoperable**: Can import existing Tree-sitter grammars and export Tree-sitter compatible tables.
 
 ---
 
-## Status and planning
+## Documentation
 
-These files are the maintained "current truth":
-
-* **Roadmap (durable outcomes):** [`ROADMAP.md`](./ROADMAP.md)
-* **Now / Next / Later (rolling plan):** [`docs/status/NOW_NEXT_LATER.md`](./docs/status/NOW_NEXT_LATER.md)
-* **Friction log (paper cuts we burn down):** [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md)
-* **Known red (what's excluded from the supported lane):** [`docs/status/KNOWN_RED.md`](./docs/status/KNOWN_RED.md)
+* [**Getting Started**](./docs/GETTING_STARTED.md) - Build your first parser in 5 minutes.
+* [**Architecture**](./ARCHITECTURE.md) - How the macro, tool, and runtime fit together.
+* [**Grammar Examples**](./docs/GRAMMAR_EXAMPLES.md) - Patterns for common language constructs.
+* [**Developer Guide**](./docs/DEVELOPER_GUIDE.md) - For contributors to the Adze project.
 
 ---
 
-## Contributing (short version)
+## Status and Planning
 
-* Run the supported gate: `just ci-supported`
-* Use the hooks: `just pre` (or `.githooks/pre-commit`)
-* If something is painful twice, add it to the **Friction Log** with a link to an issue.
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+* **Roadmap:** [`ROADMAP.md`](./ROADMAP.md)
+* **Execution Plan:** [`docs/status/NOW_NEXT_LATER.md`](./docs/status/NOW_NEXT_LATER.md)
+* **Friction Log:** [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md)
 
 ---
 

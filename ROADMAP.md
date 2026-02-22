@@ -1,71 +1,41 @@
-# Roadmap
+# Adze Roadmap
 
-**Published:** 0.6.x (beta)
-**Dev head:** 0.8.0-dev (workspace)
+**Current Version:** 0.8.0-dev
 **MSRV:** 1.92 (Rust 2024 edition)
 
-This file is the durable plan: outcomes and boundaries.
-
-For rolling execution, see:
-- `docs/status/NOW_NEXT_LATER.md`
-- `docs/status/FRICTION_LOG.md`
+Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust type definitions into high-performance GLR parse machinery.
 
 ---
 
-## What Adze is (one paragraph)
+## ✅ Milestone 0.6.0: Core Stability (Completed)
+- **Pure-Rust Runtime**: Initial zero-dependency parsing engine.
+- **Precedence & Associativity**: Basic support for operator binding.
+- **Tree-sitter Parity**: Core grammar features parity.
 
-Adze is a Rust-native grammar toolchain that turns Rust type definitions into parse machinery (IR + tables) and returns typed Rust values at runtime. The goal is a compilation pipeline that makes parsing a build artifact, with interoperability where it helps.
+## ✅ Milestone 0.7.0: GLR & Ambiguity (Completed)
+- **GLR Engine**: Generalized LR parsing for inherently ambiguous grammars (C++, JS).
+- **Conflict Handling**: Automatic stack forking and merging (SPPF).
+- **External Scanners**: Support for custom lexing (e.g. Python indentation).
 
----
+## 🚀 Milestone 0.8.0: The Publishable Baseline (Current)
+- **Documentation Overhaul**: All docs updated to reflect Adze naming and 0.8.0 reality.
+- **Governance-as-Code**: Integrated policy enforcement for backend selection.
+- **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
+- **CI Hardening**: Stable "Supported Lane" ensuring core reliability.
 
-## Near-term milestone: publishable baseline (0.8.x)
+## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
+- **CLI Utility**: `adze` command for grammar validation, inspection, and debugging.
+- **Incremental Parsing**: Stabilize forest-splicing for real-time editor performance.
+- **Query Predicates**: Full compatibility with Tree-sitter `.scm` query files.
+- **LSP Refinement**: Move LSP generator from prototype to "useful for production".
 
-**User-facing outcomes**
-- One recommended "happy path" for:
-  - defining grammars
-  - generating tables in `build.rs`
-  - parsing + typed extraction at runtime
-- Docs that match dev head (features, flags, examples)
-- A clear "supported vs experimental" contract
-
-**Engineering outcomes**
-- A single merge-blocking CI contract (computed, stable)
-- Benchmarks are reproducible and published as a baseline
-- Supported-lane exclusions are explicit (`docs/status/KNOWN_RED.md`)
-
-**Shipping outcomes**
-- Decide which crates publish and which remain internal
-- `cargo package` clean for publishable crates
-- Version/feature consistency across publishable set
-
----
-
-## Next milestone: ecosystem hardening (0.9.x)
-
-Focus: reduce integration cost and make contributions cheap.
-
-- CLI becomes useful for real workflows (validate, inspect, debug)
-- Golden tests become a maintained contract (not just a demo)
-- Grammar crates can be consumed downstream with minimal ceremony
-- LSP generator and playground move from "prototype" to "useful for one or two grammars"
+## 🎯 Milestone 1.0.0: The Stability Contract
+- **API Freeze**: Stable public API surface for `adze` and `adze-macro`.
+- **Performance Baseline**: Documented benchmarks and complexity envelopes.
+- **Multi-platform Stability**: Tier 1 support for Linux, macOS, Windows, and WASM.
 
 ---
 
-## Stability milestone: 1.0
-
-Focus: a stability contract you can keep.
-
-- Public API stability guarantees + deprecation policy
-- Clear boundaries:
-  - stable surface
-  - experimental surface (feature-gated)
-  - internal crates/contracts
-- Documented performance envelopes and failure modes
-
----
-
-## Non-goals (to avoid thrash)
-
-- "Replace tree-sitter everywhere" — not the objective
-- "Be faster than the C runtime" — the objective is competitive and predictable
-- "Support every grammar" — the objective is a repeatable pipeline and validation story
+## Non-Goals
+- **Replacing Tree-sitter**: Adze aims for interoperability, not total replacement of the ecosystem.
+- **Universal Grammar Support**: Focus is on a repeatable, safe pipeline for Rust developers.
