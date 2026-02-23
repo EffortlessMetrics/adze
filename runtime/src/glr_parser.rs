@@ -183,6 +183,11 @@ impl ParseStack {
 
     /// Pop n states and nodes for a reduction
     fn pop(&mut self, n: usize) -> Vec<Arc<Subtree>> {
+        if n >= self.states.len() {
+            // Should not happen in valid LR parsing, but protect against overflow
+            self.states.truncate(1); // Keep initial state
+            return self.nodes.split_off(0);
+        }
         self.states.truncate(self.states.len() - n);
         self.nodes.split_off(self.nodes.len() - n)
     }
@@ -915,7 +920,7 @@ impl GLRParser {
                         }
 
                         _ => {
-                            // Unknown action type - treat as error
+                            // Unknown action type // Expected: V for Recover
                             let mut error_stack = stack.clone();
                             error_stack.version.enter_error();
                             new_stacks.push(error_stack);

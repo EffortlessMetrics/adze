@@ -81,7 +81,9 @@ fn test_json_simple_object() {
                             // Recover action (Tree-sitter error recovery)
                             action_table[state][symbol].push(Action::Recover);
                         }
-                        _ => panic!("Unknown action type: {}", action_type),
+                        _ => {
+                            panic!("Unknown action type: {}", action_type) // Expected: V for Recover
+                        }
                     }
                 }
             }
@@ -123,9 +125,9 @@ fn test_json_simple_object() {
         for sym in symbols {
             symbol_metadata.push(SymbolMetadata {
                 name: sym["name"].as_str().unwrap_or("").to_string(),
-                visible: sym["visible"].as_bool().unwrap_or(false),
-                named: sym["named"].as_bool().unwrap_or(false),
-                supertype: false,
+                is_visible: sym["visible"].as_bool().unwrap_or(false),
+                is_named: sym["named"].as_bool().unwrap_or(false),
+                is_supertype: false,
                 is_terminal: sym["type"].as_str().unwrap_or("") == "REGULAR",
                 is_extra: false,
                 is_fragile: false,

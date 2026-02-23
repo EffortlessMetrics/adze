@@ -1,6 +1,7 @@
 [package]
 name = "adze-example"
 version = "0.8.0-dev"
+license = "MIT OR Apache-2.0"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
 rust-version = "1.89"

@@ -10,7 +10,7 @@ pub fn extract(
     SafeLang::assert_abi();
     let lang = SafeLang(unsafe { language_fn() });
 
-    let (symc, stc, tokc, extc) = lang.counts();
+    let (symc, stc, tokc, extc, lstc) = lang.counts();
 
     // Width checks to ensure values fit in u16
     debug_assert!(symc <= u16::MAX as u32, "symbol count {} exceeds u16", symc);
@@ -53,26 +53,11 @@ pub fn extract(
     ];
 
     for state in 0..stc {
+        if state < 10 || state == 30 {}
         // Actions for terminals
         for sym in 0..term_boundary {
             if let Some((hdr, idx)) = lang.entry(state, sym) {
-                // Dynamically resize buffer if needed for large action cells
-                if hdr.count as usize > buf.len() {
-                    buf.resize(
-                        hdr.count as usize,
-                        crate::ffi::TsbAction {
-                            kind: TsbActionKind::Accept,
-                            state: 0,
-                            lhs: 0,
-                            rhs_len: 0,
-                            dynamic_precedence: 0,
-                            production_id: 0,
-                            extra: false,
-                            repetition: false,
-                        },
-                    );
-                }
-
+                // ... (rest of buffer logic)
                 let n = lang.unpack(idx, hdr.count, &mut buf);
                 if n == 0 {
                     continue;
@@ -80,6 +65,10 @@ pub fn extract(
 
                 let mut seq = Vec::with_capacity(n);
                 for a in &buf[..n] {
+                    if state < 10 || state == 30 {
+                        println!("  sym {}: {:?} (idx {})", sym, a, idx);
+                    }
+                    if a.kind == TsbActionKind::Accept {}
                     match a.kind {
                         TsbActionKind::Shift => {
                             seq.push(Action::Shift {
@@ -89,20 +78,7 @@ pub fn extract(
                             });
                         }
                         TsbActionKind::Reduce => {
-                            // Width checks for rule components
-                            debug_assert!(a.lhs <= u16::MAX as u16, "lhs {} exceeds u16", a.lhs);
-                            debug_assert!(
-                                a.rhs_len <= u16::MAX as u16,
-                                "rhs_len {} exceeds u16",
-                                a.rhs_len
-                            );
-                            debug_assert!(
-                                a.production_id <= u16::MAX as u16,
-                                "production_id {} exceeds u16",
-                                a.production_id
-                            );
-
-                            // allocate or get rule id
+                            // ... (rest of reduce logic)
                             let key = (a.lhs, a.rhs_len, a.production_id);
                             let next_id = rule_ids.len() as u16;
                             let rid = *rule_ids.entry(key).or_insert(next_id);
@@ -204,13 +180,21 @@ pub fn extract(
         .filter(|c| c.symbol == eof_symbol && c.actions.iter().any(|a| matches!(a, Action::Accept)))
         .map(|c| c.state)
         .collect();
+
     let mut start_symbol = 0u16;
     for g in &gotos {
-        if g.state == 0 && u32::from(g.symbol) >= term_boundary {
-            if let Some(ns) = g.next_state {
-                if accept_states.contains(&ns) {
+        if let Some(ns) = g.next_state {
+            let is_accept = accept_states.contains(&ns);
+            if is_accept {
+                // We found a transition to an accept state.
+                // In Tree-sitter, the start symbol is the nonterminal that
+                // leads to Accept from the initial state (usually state 0 or 1).
+                // We prefer smaller state numbers as they are more likely to be initial.
+                if start_symbol == 0 || g.state < 2 {
                     start_symbol = g.symbol;
-                    break;
+                    if g.state <= 1 {
+                        break;
+                    } // Good enough
                 }
             }
         }

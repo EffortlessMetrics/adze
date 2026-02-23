@@ -68,6 +68,7 @@ unsafe extern "C" {
         stc: *mut u32,
         tokc: *mut u32,
         extc: *mut u32,
+        lstc: *mut u32,
     );
 
     pub fn tsb_symbol_name(lang: *const TSLanguage, sym: u32) -> *const c_char;
@@ -113,15 +114,16 @@ impl SafeLang {
         }
     }
 
-    pub fn counts(&self) -> (u32, u32, u32, u32) {
+    pub fn counts(&self) -> (u32, u32, u32, u32, u32) {
         let mut a = 0;
         let mut b = 0;
         let mut c = 0;
         let mut d = 0;
+        let mut e = 0;
         unsafe {
-            tsb_counts(self.0, &mut a, &mut b, &mut c, &mut d);
+            tsb_counts(self.0, &mut a, &mut b, &mut c, &mut d, &mut e);
         }
-        (a, b, c, d)
+        (a, b, c, d, e)
     }
 
     pub fn symbol_name(&self, sym: u32) -> String {

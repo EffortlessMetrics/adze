@@ -1114,7 +1114,7 @@ impl Parser {
                 }
 
                 _ => {
-                    // Unknown action type - treat as error
+                    // Unknown action type // Expected: V for Recover
                     error_count += 1;
 
                     // Return a partial tree or error node

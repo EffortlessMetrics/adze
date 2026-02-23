@@ -381,8 +381,10 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                                     let unwrapped_node = unwrap_hidden_rules(node);
 
-                                    if unwrapped_node.kind() == stringify!(#enum_name) && unwrapped_node.children.len() == 1 {
-                                        let child_node = &unwrapped_node.children[0];
+                                    // Check if this is an enum wrapper node, ignoring extras
+                                    let non_extra_children: Vec<_> = unwrapped_node.children.iter().filter(|c| !c.is_extra).collect();
+                                    if unwrapped_node.kind() == stringify!(#enum_name) && non_extra_children.len() == 1 {
+                                        let child_node = non_extra_children[0];
                                         return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
                                     }
 
@@ -419,8 +421,11 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                                     let unwrapped_node = unwrap_hidden_rules(node);
 
-                                    if unwrapped_node.kind() == stringify!(#enum_name) && unwrapped_node.child_count() == 1 {
-                                        let child = unwrapped_node.child(0);
+                                    // Check if this is an enum wrapper node, ignoring extras
+                                    let mut cursor = unwrapped_node.walk();
+                                    let non_extra_children: Vec<_> = unwrapped_node.children(&mut cursor).filter(|c| !c.is_extra()).collect();
+                                    if unwrapped_node.kind() == stringify!(#enum_name) && non_extra_children.len() == 1 {
+                                        let child = non_extra_children[0];
                                         return Self::extract(Some(child), source, _last_idx, _leaf_fn);
                                     }
 

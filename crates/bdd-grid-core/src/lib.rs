@@ -28,7 +28,10 @@ pub enum BddScenarioStatus {
     /// Completed in a given phase.
     Implemented,
     /// Deferred with reason text.
-    Deferred { reason: &'static str },
+    Deferred {
+        /// Explanation for why the scenario is deferred.
+        reason: &'static str,
+    },
 }
 
 impl BddScenarioStatus {

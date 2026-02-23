@@ -22,6 +22,7 @@ all-features = true
 
 [dependencies]
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
+adze-glr-versioning = { version = "0.8.0-dev", path = "../crates/glr-versioning" }
 indexmap = { version = "2.0", features = ["serde"] }
 fixedbitset = { version = "0.5", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
@@ -34,12 +35,12 @@ rustc-hash = "2.1.1"
 smallvec = "1.13"
 
 # Optional serialization support for GLR mode
-bincode = { version = "1.3", optional = true }
+postcard = { version = "1", features = ["use-std"], optional = true }
 
 [features]
 default = []
 parallel = ["rayon"]
-serialization = ["bincode"]  # Enable ParseTable serialization for GLR mode
+serialization = ["dep:postcard"]  # Enable ParseTable serialization for GLR mode
 strict_docs = []
 strict_api = []
 glr-trace = []

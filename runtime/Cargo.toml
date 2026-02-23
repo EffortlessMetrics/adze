@@ -55,6 +55,7 @@ adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
+adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.142", optional = true }

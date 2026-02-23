@@ -312,6 +312,7 @@ pub trait Extract<Output>: sealed::Sealed {
 
 /// Helper for providing a default implementation of extract for types that don't need it.
 pub trait ExtractDefault<Output>: Extract<Output> {
+    /// Extracts a default value when no other extraction is possible.
     fn extract_default(last_idx: usize) -> Output;
 }
 

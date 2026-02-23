@@ -1,0 +1,4 @@
+build_parsers called for: src/main.rs
+CARGO_FEATURE_PURE_RUST=Err(NotPresent)
+ADZE_USE_PURE_RUST=Err(NotPresent)
+use_pure_rust=false

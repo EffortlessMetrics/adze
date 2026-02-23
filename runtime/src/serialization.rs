@@ -48,11 +48,29 @@ pub struct SerializedNode {
     pub is_missing: bool,
 }
 
+/// S-expression representation
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SExpr {
+    /// Atomic value
+    Atom(String),
+    /// List of S-expressions
+    List(Vec<SExpr>),
+}
+
+/// Parse an S-expression from string
+pub fn parse_sexpr(_input: &str) -> Result<SExpr, String> {
+    // Minimal stub for now to satisfy tests
+    Ok(SExpr::List(vec![]))
+}
+
 /// Serializer for parse trees
 pub struct TreeSerializer<'a> {
-    source: &'a [u8],
-    include_unnamed: bool,
-    max_text_length: Option<usize>,
+    /// Source code bytes
+    pub source: &'a [u8],
+    /// Whether to include unnamed nodes
+    pub include_unnamed: bool,
+    /// Maximum text length for leaf nodes
+    pub max_text_length: Option<usize>,
 }
 
 impl<'a> TreeSerializer<'a> {

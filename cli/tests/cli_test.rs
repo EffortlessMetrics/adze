@@ -1,23 +1,23 @@
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
 
 #[test]
 fn test_cli_help() {
-    let mut cmd = Command::cargo_bin("adze").unwrap();
+    let mut cmd = cargo_bin_cmd!("adze");
     cmd.arg("--help")
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "CLI tools for adze grammar development",
+            "Adze CLI - Tools for grammar development",
         ));
 }
 
 #[test]
 fn test_init_command() {
     let temp_dir = TempDir::new().unwrap();
-    let mut cmd = Command::cargo_bin("adze").unwrap();
+    let mut cmd = cargo_bin_cmd!("adze");
 
     cmd.arg("init")
         .arg("test-grammar")
@@ -55,7 +55,7 @@ fn test_check_command() {
 
     fs::write(&grammar_file, grammar).unwrap();
 
-    let mut cmd = Command::cargo_bin("adze").unwrap();
+    let mut cmd = cargo_bin_cmd!("adze");
     cmd.arg("check")
         .arg(&grammar_file)
         .assert()
@@ -89,7 +89,7 @@ fn test_stats_command() {
 
     fs::write(&grammar_file, grammar).unwrap();
 
-    let mut cmd = Command::cargo_bin("adze").unwrap();
+    let mut cmd = cargo_bin_cmd!("adze");
     cmd.arg("stats")
         .arg(&grammar_file)
         .assert()
@@ -120,7 +120,7 @@ fn test_doc_command() {
 
     fs::write(&grammar_file, grammar).unwrap();
 
-    let mut cmd = Command::cargo_bin("adze").unwrap();
+    let mut cmd = cargo_bin_cmd!("adze");
     cmd.arg("doc")
         .arg(&grammar_file)
         .assert()
@@ -184,7 +184,7 @@ mod dynamic_tests {
 
         let nonexistent_lib = temp_dir.path().join("nonexistent.so");
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("parse")
             .arg("--dynamic")
             .arg(&nonexistent_lib)
@@ -211,7 +211,7 @@ mod dynamic_tests {
         let input_file = temp_dir.path().join("input.txt");
         fs::write(&input_file, r#"{"key": "value"}"#).unwrap();
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("parse")
             .arg("--dynamic")
             .arg(&lib_path)
@@ -236,7 +236,7 @@ mod dynamic_tests {
         let input_file = temp_dir.path().join("input.json");
         fs::write(&input_file, r#"{"test": true}"#).unwrap();
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("parse")
             .arg("--dynamic")
             .arg(&lib_path)
@@ -264,7 +264,7 @@ mod dynamic_tests {
         let input_file = temp_dir.path().join("empty.txt");
         fs::write(&input_file, "").unwrap();
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("parse")
             .arg("--dynamic")
             .arg(&lib_path)
@@ -300,7 +300,7 @@ mod dynamic_tests {
 
         fs::write(&input_file, &large_json).unwrap();
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("parse")
             .arg("--dynamic")
             .arg(&lib_path)
@@ -327,7 +327,7 @@ mod dynamic_tests {
         let input_file = temp_dir.path().join("malformed.json");
         fs::write(&input_file, r#"{"incomplete": json,,,}"#).unwrap();
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("parse")
             .arg("--dynamic")
             .arg(&lib_path)
@@ -357,7 +357,7 @@ mod dynamic_tests {
         )
         .unwrap();
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("parse")
             .arg("--dynamic")
             .arg(&lib_path)
@@ -383,7 +383,7 @@ mod dynamic_tests {
         let input_file = temp_dir.path().join("test.json");
         fs::write(&input_file, r#"{"simple": "test"}"#).unwrap();
 
-        let mut cmd = Command::cargo_bin("adze").unwrap();
+        let mut cmd = cargo_bin_cmd!("adze");
         cmd.arg("--verbose")
             .arg("parse")
             .arg("--dynamic")
@@ -404,7 +404,7 @@ fn test_parse_static_missing_input() {
     let nonexistent_grammar = temp_dir.path().join("nonexistent_grammar.rs");
     let nonexistent_input = temp_dir.path().join("nonexistent_input.txt");
 
-    let mut cmd = Command::cargo_bin("adze").unwrap();
+    let mut cmd = cargo_bin_cmd!("adze");
     cmd.arg("parse")
         .arg(&nonexistent_grammar)
         .arg(&nonexistent_input)
@@ -423,7 +423,7 @@ fn test_parse_missing_grammar_arg() {
     let input_file = temp_dir.path().join("input.txt");
     fs::write(&input_file, "test content").unwrap();
 
-    let mut cmd = Command::cargo_bin("adze").unwrap();
+    let mut cmd = cargo_bin_cmd!("adze");
     cmd.arg("parse")
         .arg(&input_file)
         .assert()

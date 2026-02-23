@@ -1,6 +1,6 @@
 //! ParseTable serialization for GLR mode
 //!
-//! This module provides serialization/deserialization for ParseTable using bincode,
+//! This module provides serialization/deserialization for ParseTable using postcard,
 //! enabling pure-Rust GLR runtime to bypass TSLanguage ABI limitations.
 //!
 //! # Specification
@@ -51,14 +51,15 @@ use thiserror::Error;
 /// Increment this when making breaking changes to the serialization format.
 /// Version history:
 /// - v1: Initial implementation with bincode
-pub const PARSE_TABLE_FORMAT_VERSION: u32 = 1;
+/// - v2: Migrated serialization to postcard
+pub const PARSE_TABLE_FORMAT_VERSION: u32 = 2;
 
 /// Errors during ParseTable serialization
 #[derive(Debug, Error)]
 pub enum SerializationError {
-    /// Bincode encoding failed
-    #[error("Bincode encoding failed: {0}")]
-    EncodingFailed(#[from] bincode::Error),
+    /// Postcard encoding failed
+    #[error("Postcard encoding failed: {0}")]
+    EncodingFailed(#[from] postcard::Error),
 
     /// ParseTable validation failed
     #[error("ParseTable validation failed: {0}")]
@@ -68,9 +69,9 @@ pub enum SerializationError {
 /// Errors during ParseTable deserialization
 #[derive(Debug, Error)]
 pub enum DeserializationError {
-    /// Bincode decoding failed
-    #[error("Bincode decoding failed: {0}")]
-    DecodingFailed(#[from] bincode::Error),
+    /// Postcard decoding failed
+    #[error("Postcard decoding failed: {0}")]
+    DecodingFailed(#[from] postcard::Error),
 
     /// Incompatible format version
     #[error("Incompatible format version: expected {expected}, got {actual}")]
@@ -95,7 +96,7 @@ struct VersionedParseTable {
 }
 
 impl ParseTable {
-    /// Serialize ParseTable to bytes using bincode
+    /// Serialize ParseTable to bytes using postcard
     ///
     /// # Contract
     /// - Must serialize all fields without data loss
@@ -118,7 +119,7 @@ impl ParseTable {
     /// ```
     pub fn to_bytes(&self) -> Result<Vec<u8>, SerializationError> {
         // Serialize the ParseTable itself first
-        let table_bytes = bincode::serialize(self)?;
+        let table_bytes = postcard::to_stdvec(self)?;
 
         // Wrap with version information
         let versioned = VersionedParseTable {
@@ -127,7 +128,7 @@ impl ParseTable {
         };
 
         // Serialize the versioned wrapper
-        let bytes = bincode::serialize(&versioned)?;
+        let bytes = postcard::to_stdvec(&versioned)?;
 
         Ok(bytes)
     }
@@ -156,7 +157,7 @@ impl ParseTable {
     /// ```
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         // Deserialize the versioned wrapper first
-        let versioned: VersionedParseTable = bincode::deserialize(bytes)?;
+        let versioned: VersionedParseTable = postcard::from_bytes(bytes)?;
 
         // Validate version compatibility
         if versioned.version != PARSE_TABLE_FORMAT_VERSION {
@@ -167,7 +168,7 @@ impl ParseTable {
         }
 
         // Deserialize the actual ParseTable
-        let table: ParseTable = bincode::deserialize(&versioned.data)?;
+        let table: ParseTable = postcard::from_bytes(&versioned.data)?;
 
         Ok(table)
     }
@@ -179,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_version_constant() {
-        assert_eq!(PARSE_TABLE_FORMAT_VERSION, 1);
+        assert_eq!(PARSE_TABLE_FORMAT_VERSION, 2);
     }
 
     #[test]
@@ -191,10 +192,10 @@ mod tests {
     #[test]
     fn test_deserialization_error_display() {
         let err = DeserializationError::IncompatibleVersion {
-            expected: 1,
-            actual: 2,
+            expected: 2,
+            actual: 1,
         };
-        assert!(err.to_string().contains("expected 1"));
-        assert!(err.to_string().contains("got 2"));
+        assert!(err.to_string().contains("expected 2"));
+        assert!(err.to_string().contains("got 1"));
     }
 }

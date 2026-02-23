@@ -8,38 +8,15 @@ mod grammar {
     }
     impl ::adze::Extract<Number> for Number {
         type LeafFn = ();
-        #[cfg(feature = "pure-rust")]
-        const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+        const GRAMMAR_NAME: &'static str = "test";
         #[allow(non_snake_case)]
-        #[cfg(not(feature = "pure-rust"))]
-        fn extract(
-            node: Option<::adze::tree_sitter::Node>,
-            source: &[u8],
-            last_idx: usize,
-            _leaf_fn: Option<&Self::LeafFn>,
-        ) -> Self {
-            let node = node.unwrap();
-            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| Number {
-                value: {
-                    ::adze::__private::extract_field::<adze::WithLeaf<u32>, _>(
-                        cursor,
-                        source,
-                        last_idx,
-                        "value",
-                        Some(&|v| v.parse().unwrap()),
-                    )
-                },
-            })
-        }
-        #[allow(non_snake_case)]
-        #[cfg(feature = "pure-rust")]
         fn extract(
             node: Option<&::adze::pure_parser::ParsedNode>,
             source: &[u8],
             last_idx: usize,
             _leaf_fn: Option<&Self::LeafFn>,
         ) -> Self {
-            let node = node.unwrap();
+            let node = node.expect("Extract called with None node for struct");
             ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| Number {
                 value: {
                     ::adze::__private::extract_field::<adze::WithLeaf<u32>, _>(
@@ -58,56 +35,15 @@ mod grammar {
     }
     impl ::adze::Extract<Expr> for Expr {
         type LeafFn = ();
-        #[cfg(feature = "pure-rust")]
-        const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+        const GRAMMAR_NAME: &'static str = "test";
         #[allow(non_snake_case)]
-        #[cfg(not(feature = "pure-rust"))]
-        fn extract(
-            node: Option<::adze::tree_sitter::Node>,
-            source: &[u8],
-            _last_idx: usize,
-            _leaf_fn: Option<&Self::LeafFn>,
-        ) -> Self {
-            let node = node.unwrap();
-            fn unwrap_hidden_rules(node: ::adze::tree_sitter::Node) -> ::adze::tree_sitter::Node {
-                if (node.kind().starts_with('_') || node.child_count() == 1)
-                    && node.child_count() > 0
-                {
-                    if let Some(child) = node.child(0) {
-                        return unwrap_hidden_rules(child);
-                    }
-                }
-                node
-            }
-            let unwrapped_node = unwrap_hidden_rules(node);
-            if unwrapped_node.kind() == stringify!(Expr) && unwrapped_node.child_count() == 1 {
-                let child = unwrapped_node.child(0);
-                return Self::extract(child, source, _last_idx, _leaf_fn);
-            }
-            let child_node = unwrapped_node;
-            if child_node.kind() == "Expr_Numbers" {
-                return ::adze::__private::extract_struct_or_variant(
-                    node,
-                    move |cursor, last_idx| {
-                        Expr::Numbers({
-                            ::adze::__private::extract_field::<Vec<Number>, _>(
-                                cursor, source, last_idx, "0", None,
-                            )
-                        })
-                    },
-                );
-            }
-            panic ! ("Could not determine enum variant from tree structure: node kind='{}', child_count={}" , unwrapped_node . kind () , unwrapped_node . child_count ())
-        }
-        #[allow(non_snake_case)]
-        #[cfg(feature = "pure-rust")]
         fn extract(
             node: Option<&::adze::pure_parser::ParsedNode>,
             source: &[u8],
             _last_idx: usize,
             _leaf_fn: Option<&Self::LeafFn>,
         ) -> Self {
-            let node = node.unwrap();
+            let node = node.expect("Extract called with None node for enum");
             fn unwrap_hidden_rules<'a>(
                 node: &'a ::adze::pure_parser::ParsedNode,
             ) -> &'a ::adze::pure_parser::ParsedNode {
@@ -119,8 +55,13 @@ mod grammar {
                 node
             }
             let unwrapped_node = unwrap_hidden_rules(node);
-            if unwrapped_node.kind() == stringify!(Expr) && unwrapped_node.children.len() == 1 {
-                let child_node = &unwrapped_node.children[0];
+            let non_extra_children: Vec<_> = unwrapped_node
+                .children
+                .iter()
+                .filter(|c| !c.is_extra)
+                .collect();
+            if unwrapped_node.kind() == stringify!(Expr) && non_extra_children.len() == 1 {
+                let child_node = non_extra_children[0];
                 return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
             }
             let node = unwrapped_node;
@@ -142,15 +83,6 @@ mod grammar {
             panic ! ("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}" , unwrapped_node . kind () , unwrapped_node . symbol , unwrapped_node . children . len ())
         }
     }
-    #[cfg(not(feature = "pure-rust"))]
-    unsafe extern "C" {
-        fn tree_sitter_test() -> ::adze::tree_sitter::Language;
-    }
-    #[cfg(not(feature = "pure-rust"))]
-    pub fn language() -> ::adze::tree_sitter::Language {
-        unsafe { tree_sitter_test() }
-    }
-    #[cfg(feature = "pure-rust")]
     include!(concat!(
         env!("OUT_DIR"),
         "/grammar_",
@@ -159,22 +91,14 @@ mod grammar {
         "test",
         ".rs"
     ));
-    #[cfg(feature = "pure-rust")]
     pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
-        unsafe { &LANGUAGE }
+        &LANGUAGE
     }
+    pub const LANGUAGE_REF: &'static ::adze::pure_parser::TSLanguage = &LANGUAGE;
     #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
     #[doc = "[`Expr`]"]
     #[doc = r" instance containing the parsed structured data."]
-    #[cfg(not(feature = "pure-rust"))]
     pub fn parse(input: &str) -> core::result::Result<Expr, Vec<::adze::errors::ParseError>> {
-        ::adze::__private::parse::<Expr>(input, language)
-    }
-    #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
-    #[doc = "[`Expr`]"]
-    #[doc = r" instance containing the parsed structured data."]
-    #[cfg(feature = "pure-rust")]
-    pub fn parse(input: &str) -> core::result::Result<Expr, Vec<::adze::errors::ParseError>> {
-        ::adze::__private::parse::<Expr>(input, language)
+        ::adze::__private::parse::<Expr>(input, || language())
     }
 }

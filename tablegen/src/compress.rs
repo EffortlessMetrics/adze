@@ -164,7 +164,7 @@ impl TableCompressor {
                 Ok(0xFFFE)
             }
             _ => {
-                // Unknown action type - treat as error
+                // Unknown action type // Expected: V for Recover
                 crate::util::unexpected_action(action, "encode_action_as_u16");
                 Ok(0xFFFE)
             }

@@ -173,7 +173,7 @@ fn generate_parse_table_data(compressed: Option<&CompressedTables>) -> (Vec<u16>
                 adze_glr_core::Action::Error => table_data.push(0xFFFE),
                 adze_glr_core::Action::Recover => table_data.push(0xFFFD),
                 adze_glr_core::Action::Fork(_) => table_data.push(0xFFFE),
-                _ => table_data.push(0xFFFE), // Unknown action type - treat as error
+                _ => table_data.push(0xFFFE), // Unknown action type // Expected: V for Recover
             }
         }
 

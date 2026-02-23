@@ -31,7 +31,7 @@ typedef struct {
 // --- Counts & symbol names ---
 void tsb_counts(const TSLanguage* lang,
                 uint32_t* symc, uint32_t* stc,
-                uint32_t* tokc, uint32_t* extc);
+                uint32_t* tokc, uint32_t* extc, uint32_t* lstc);
 
 const char* tsb_symbol_name(const TSLanguage* lang, uint32_t sym);
 

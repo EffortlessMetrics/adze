@@ -8,9 +8,12 @@ rust-version = "1.89"
 [package.metadata]
 cargo-fuzz = true
 
+[workspace]
+
 [dependencies]
 libfuzzer-sys = "0.4"
 adze = { path = "../runtime" }
+adze-linecol-core = { path = "../crates/linecol-core" }
 
 [[bin]]
 name = "fuzz_lexer"
@@ -27,5 +30,11 @@ doc = false
 [[bin]]
 name = "fuzz_external_scanner"
 path = "fuzz_targets/fuzz_external_scanner.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_linecol_core"
+path = "fuzz_targets/fuzz_linecol_core.rs"
 test = false
 doc = false

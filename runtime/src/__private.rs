@@ -273,81 +273,73 @@ fn parse_with_pure_parser<T: Extract<T>>(
     let lang = language();
     parser.set_language(lang).unwrap();
     let parse_result = parser.parse_string(input);
-    let root_node = match parse_result.root {
-        Some(root) => root,
-        None => {
-            // Convert pure_parser::ParseError to errors::ParseError
-            let lang = language();
-            let errors = parse_result
-                .errors
-                .into_iter()
-                .map(|e| {
-                    // Get symbol name from language if available
-                    // The public_symbol_map maps internal symbol to public symbol
-                    let symbol_name = if (e.found as usize) < lang.symbol_count as usize {
-                        unsafe {
-                            // Use public_symbol_map to get the public symbol ID
-                            let public_symbol = if !lang.public_symbol_map.is_null() {
-                                *lang.public_symbol_map.add(e.found as usize)
-                            } else {
-                                e.found
-                            };
 
-                            // Now use public symbol to index into symbol_names
-                            if (public_symbol as usize) < lang.symbol_count as usize {
-                                let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
-                                if !symbol_ptr.is_null() {
-                                    std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
-                                        .to_string_lossy()
-                                        .to_string()
-                                } else {
-                                    format!("symbol {} (public {})", e.found, public_symbol)
-                                }
+    if !parse_result.errors.is_empty() {
+        let errors = parse_result
+            .errors
+            .into_iter()
+            .map(|e| {
+                // Get symbol name from language if available
+                let symbol_name = if (e.found as usize) < lang.symbol_count as usize {
+                    unsafe {
+                        let public_symbol = if !lang.public_symbol_map.is_null() {
+                            *lang.public_symbol_map.add(e.found as usize)
+                        } else {
+                            e.found
+                        };
+
+                        if (public_symbol as usize) < lang.symbol_count as usize {
+                            let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
+                            if !symbol_ptr.is_null() {
+                                std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
+                                    .to_string_lossy()
+                                    .to_string()
                             } else {
-                                format!(
-                                    "symbol {} (public {} out of bounds)",
-                                    e.found, public_symbol
-                                )
+                                format!("symbol {} (public {})", e.found, public_symbol)
                             }
+                        } else {
+                            format!(
+                                "symbol {} (public {} out of bounds)",
+                                e.found, public_symbol
+                            )
                         }
-                    } else {
-                        format!("symbol {} (out of bounds)", e.found)
-                    };
-                    crate::errors::ParseError {
-                        reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
-                        start: e.position,
-                        end: e.position,
                     }
-                })
-                .collect();
-            return Err(errors);
-        }
+                } else {
+                    format!("symbol {} (out of bounds)", e.found)
+                };
+                crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
+                    start: e.position,
+                    end: e.position,
+                }
+            })
+            .collect();
+        return Err(errors);
+    }
+
+    let root_node = parse_result
+        .root
+        .expect("Root node should be present if no errors");
+
+    // Check if the root node is source_file wrapper
+    // In the augmented grammar, we have S' -> source_file -> actual_language_root
+    // source_file is typically a wrapper node with a single non-extra child
+    let non_extra_root_children: Vec<_> =
+        root_node.children.iter().filter(|c| !c.is_extra).collect();
+    let extract_node = if root_node.kind() == "source_file" && non_extra_root_children.len() == 1 {
+        // This is source_file, extract from its first non-extra child
+        non_extra_root_children[0]
+    } else {
+        // Extract from root directly
+        &root_node
     };
 
-    if root_node.has_error() {
-        let mut errors = vec![];
-        crate::errors::collect_parsing_errors(&root_node, input.as_bytes(), &mut errors);
-
-        Err(errors)
-    } else {
-        // Check if the root node is source_file wrapper
-        // In the augmented grammar, we have S' -> source_file -> actual_language_root
-        // source_file is typically a wrapper node with a single child
-        let extract_node = if root_node.kind() == "source_file" && root_node.children.len() == 1 {
-            // This is source_file, extract from its first child
-            &root_node.children[0]
-        } else {
-            // Extract from root directly
-            &root_node
-        };
-
-        Ok(<T as crate::Extract<_>>::extract(
-            Some(extract_node),
-            input.as_bytes(),
-            0,
-            None,
-        ))
-    }
+    Ok(<T as crate::Extract<_>>::extract(
+        Some(extract_node),
+        input.as_bytes(),
+        0,
+        None,
+    ))
 }
 
 /// Parse using the GLR parser (parser_v4)

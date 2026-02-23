@@ -164,6 +164,36 @@ pub fn generate_lexer(
                     return true;
                 }
             });
+        } else if pattern == r"\w+" {
+            token_matches.push(quote! {
+                let first = unsafe { ((*lexer).lookahead)(lexer) };
+                if first != 0 && ((first as u8).is_ascii_alphanumeric() || first == b'_' as u32) {
+                    unsafe {
+                        ((*lexer).advance)(lexer, false);
+                        while {
+                            let next = ((*lexer).lookahead)(lexer);
+                            next != 0 && ((next as u8).is_ascii_alphanumeric() || next == b'_' as u32)
+                        } {
+                            ((*lexer).advance)(lexer, false);
+                        }
+                        (*lexer).result_symbol = #symbol_index;
+                        ((*lexer).mark_end)(lexer);
+                    }
+                    return true;
+                }
+            });
+        } else if pattern == r"[-+*/]" {
+            token_matches.push(quote! {
+                let first = unsafe { ((*lexer).lookahead)(lexer) };
+                if first == b'-' as u32 || first == b'+' as u32 || first == b'*' as u32 || first == b'/' as u32 {
+                    unsafe {
+                        ((*lexer).advance)(lexer, false);
+                        (*lexer).result_symbol = #symbol_index;
+                        ((*lexer).mark_end)(lexer);
+                    }
+                    return true;
+                }
+            });
         } else if pattern == r"\s" || pattern == r"\s+" || pattern == r"\s*" {
             token_matches.push(quote! {
                 let first = unsafe { ((*lexer).lookahead)(lexer) };

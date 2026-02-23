@@ -113,7 +113,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             let scanner_struct = quote! {
                 ExternalScanner {
                     states: EXTERNAL_SCANNER_STATES.as_ptr() as *const u8,
-                    symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr() as *const TSSymbol,
+                    symbol_map: EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr(),
                     create: None,
                     destroy: None,
                     scan: None,
@@ -185,21 +185,15 @@ impl<'a> AbiLanguageBuilder<'a> {
         }
         eprintln!("DEBUG: token_count = {}", self.parse_table.token_count);
 
+        eprintln!("DEBUG: token_count = {}", counts.token_count);
+        eprintln!("DEBUG: symbol_count = {}", counts.symbol_count);
+
         // Generate lexer function with symbol mapping
         let lexer_code =
             crate::lexer_gen::generate_lexer(self.grammar, &self.parse_table.symbol_to_index);
 
-        // Only import TSSymbol if we have external scanners
-        let ts_symbol_import = if !self.grammar.externals.is_empty() {
-            quote! { use adze::TSSymbol; }
-        } else {
-            quote! {}
-        };
-
         quote! {
-            use adze::pure_parser::{TSLanguage, TSSymbol, TSStateId, TSParseAction, TSRule, SyncPtr, TREE_SITTER_LANGUAGE_VERSION, ExternalScanner, TSLexState};
-            use adze::lex::TsLexer;
-            #ts_symbol_import
+            use adze::pure_parser::{TSLanguage, TSParseAction, TSRule, SyncPtr, TREE_SITTER_LANGUAGE_VERSION, ExternalScanner, TSLexState};
 
             // Lexer implementation
             #lexer_code
@@ -602,26 +596,17 @@ impl<'a> AbiLanguageBuilder<'a> {
 
             for state_idx in 0..self.parse_table.state_count {
                 // Record the starting offset for this state
-                eprintln!(
-                    "DEBUG: State {} starts at offset {} (u16 index)",
-                    state_idx, current_offset
-                );
                 map_data.push(quote! { #current_offset });
 
-                eprintln!("DEBUG: Processing state {}", state_idx);
+                // We need to know the count before we start pushing
+                let mut entries = Vec::new();
 
                 // Check if this state has a default reduce action
-                // (all non-error actions are the same reduce action)
                 let mut default_reduce = None;
                 let mut has_non_reduce = false;
                 let mut non_error_actions = Vec::new();
 
-                eprintln!(
-                    "DEBUG: State {} iterating through {} symbols",
-                    state_idx, self.parse_table.symbol_count
-                );
                 for symbol_idx in 0..self.parse_table.symbol_count {
-                    // Get the symbol ID for this index
                     let symbol_id = self
                         .parse_table
                         .symbol_to_index
@@ -630,287 +615,101 @@ impl<'a> AbiLanguageBuilder<'a> {
                         .map(|(id, _)| *id);
 
                     if symbol_id.is_none() {
-                        eprintln!("DEBUG: No symbol ID found for index {}", symbol_idx);
                         continue;
                     }
-
                     let symbol_id = symbol_id.unwrap();
 
-                    // Debug: Print symbol mapping
-                    eprintln!(
-                        "DEBUG: State {} checking symbol_idx={} -> symbol_id={}",
-                        state_idx, symbol_idx, symbol_id.0
-                    );
-
-                    // Check if this symbol is a terminal or non-terminal
-                    // Terminals include tokens, externals, and EOF
                     let is_terminal = self.grammar.tokens.contains_key(&symbol_id)
                         || self
                             .grammar
                             .externals
                             .iter()
                             .any(|e| e.symbol_id == symbol_id)
-                        || symbol_id == self.parse_table.eof_symbol; // EOF is also a terminal
+                        || symbol_id == self.parse_table.eof_symbol;
 
-                    // Create owned action to avoid borrowing issues
-                    let action_owned = if is_terminal {
-                        // Terminal symbol - use action table
+                    let action = if is_terminal {
                         if state_idx < self.parse_table.action_table.len()
                             && symbol_idx < self.parse_table.action_table[state_idx].len()
                         {
                             let actions = &self.parse_table.action_table[state_idx][symbol_idx];
-                            eprintln!(
-                                "DEBUG: State {} symbol_idx {} (terminal) has {} actions",
-                                state_idx,
-                                symbol_idx,
-                                actions.len()
-                            );
                             if actions.is_empty() {
                                 Action::Error
-                            } else if actions.len() == 1 {
-                                actions[0].clone()
                             } else {
-                                // Multiple actions - for now use Fork, though Tree-sitter
-                                // typically resolves these during table generation
-                                Action::Fork(actions.clone())
+                                actions[0].clone()
                             }
+                        } else {
+                            Action::Error
+                        }
+                    } else if state_idx < self.parse_table.goto_table.len()
+                        && symbol_idx < self.parse_table.goto_table[state_idx].len()
+                    {
+                        let goto_state = self.parse_table.goto_table[state_idx][symbol_idx];
+                        if goto_state.0 > 0 {
+                            Action::Shift(goto_state)
                         } else {
                             Action::Error
                         }
                     } else {
-                        // Non-terminal symbol - use goto table indexed by symbol_idx
-                        if state_idx < self.parse_table.goto_table.len()
-                            && symbol_idx < self.parse_table.goto_table[state_idx].len()
-                        {
-                            let goto_state = self.parse_table.goto_table[state_idx][symbol_idx];
-                            eprintln!(
-                                "DEBUG: Non-terminal {} -> goto_table[{}][{}] = state {}",
-                                symbol_id.0, state_idx, symbol_idx, goto_state.0
-                            );
-                            if goto_state.0 > 0 {
-                                // Convert goto to a shift action for Tree-sitter compatibility
-                                Action::Shift(goto_state)
-                            } else {
-                                Action::Error
-                            }
-                        } else {
-                            eprintln!(
-                                "DEBUG: Non-terminal {} -> goto_table bounds check failed: state_idx={}, symbol_idx={}, goto_table.len={}, goto_table[{}].len={}",
-                                symbol_id.0,
-                                state_idx,
-                                symbol_idx,
-                                self.parse_table.goto_table.len(),
-                                state_idx,
-                                if state_idx < self.parse_table.goto_table.len() {
-                                    self.parse_table.goto_table[state_idx].len()
-                                } else {
-                                    0
-                                }
-                            );
-                            Action::Error
-                        }
+                        Action::Error
                     };
-                    let action = &action_owned;
-                    eprintln!(
-                        "DEBUG: State {} symbol_idx={} is_terminal={} action={:?}",
-                        state_idx, symbol_idx, is_terminal, action
-                    );
 
                     match action {
                         Action::Error => continue,
                         Action::Reduce(prod_id) => {
-                            non_error_actions.push((symbol_idx, action_owned.clone()));
+                            non_error_actions.push((symbol_idx, action.clone()));
                             if let Some(default_prod) = &default_reduce {
-                                if default_prod != prod_id {
-                                    // Different reduce actions, no default
-                                    eprintln!(
-                                        "DEBUG: State {} has different reduce actions: {:?} vs {:?}",
-                                        state_idx, default_prod, prod_id
-                                    );
+                                if default_prod != &prod_id {
                                     has_non_reduce = true;
                                 }
                             } else {
-                                eprintln!(
-                                    "DEBUG: State {} setting default_reduce to {:?}",
-                                    state_idx, prod_id
-                                );
-                                default_reduce = Some(*prod_id);
+                                default_reduce = Some(prod_id);
                             }
                         }
                         _ => {
-                            // Shift, Accept, or Fork - no default reduce
-                            eprintln!(
-                                "DEBUG: State {} has non-reduce action: {:?}",
-                                state_idx, action
-                            );
                             has_non_reduce = true;
-                            non_error_actions.push((symbol_idx, action_owned.clone()));
+                            non_error_actions.push((symbol_idx, action.clone()));
                         }
                     }
                 }
 
-                // If all actions are the same reduce, emit a default reduce entry
                 if let Some(prod_id) = default_reduce
                     && !has_non_reduce
                     && !non_error_actions.is_empty()
                 {
-                    eprintln!(
-                        "DEBUG: State {} has default reduce to production {}",
-                        state_idx, prod_id.0
-                    );
-                    // Emit default reduce entry with high bit set in symbol
-                    // The symbol field is 0x8000 to indicate default reduce
-                    // The action value contains the 1-based production ID with high bit set
-                    table_data.push(quote! { 0x8000u16 });
                     let reduce_action = 0x8000u16 | (prod_id.0 + 1);
-                    table_data.push(quote! { #reduce_action });
-                    current_offset += 2;
-                    continue; // Skip to next state
-                }
-
-                // Check if all non-error actions are the same reduce
-                // This is a more comprehensive check for default reduce
-                let mut all_same_reduce = true;
-                let mut common_reduce = None;
-                for (_, action) in &non_error_actions {
-                    match action {
-                        Action::Reduce(prod_id) => {
-                            if let Some(common) = &common_reduce {
-                                if common != prod_id {
-                                    all_same_reduce = false;
-                                    break;
-                                }
-                            } else {
-                                common_reduce = Some(*prod_id);
-                            }
-                        }
-                        _ => {
-                            all_same_reduce = false;
-                            break;
-                        }
-                    }
-                }
-
-                // If all non-error actions are the same reduce, emit a default reduce
-                if all_same_reduce {
-                    if let Some(prod_id) = common_reduce {
-                        eprintln!(
-                            "DEBUG: State {} has default reduce to production {} (fallback check)",
-                            state_idx, prod_id.0
-                        );
-                        // Emit default reduce entry with high bit set in symbol
-                        // The symbol field is 0x8000 to indicate default reduce
-                        // The action value contains the 1-based production ID with high bit set
-                        table_data.push(quote! { 0x8000u16 });
-                        let reduce_action = 0x8000u16 | (prod_id.0 + 1);
-                        table_data.push(quote! { #reduce_action });
-                        current_offset += 2;
-                    }
+                    entries.push((0x8000u16, reduce_action));
                 } else {
-                    eprintln!(
-                        "DEBUG: State {} NOT using default reduce, all_same_reduce={}",
-                        state_idx, all_same_reduce
-                    );
-                    // Add entries for this state (only non-error actions)
-                    eprintln!(
-                        "DEBUG: State {} has {} non-error actions",
-                        state_idx,
-                        non_error_actions.len()
-                    );
-
-                    // The LR construction in glr-core now handles EOF reduce actions properly
-
-                    // Push token actions (keyed by column index)
                     for (symbol_idx, action) in non_error_actions {
-                        // Key is the table column index, not symbol ID
-                        let col_idx = symbol_idx as u16;
-
-                        // Debug guard: verify col_idx is a valid column index
-                        debug_assert!(
-                            col_idx < self.parse_table.symbol_count as u16,
-                            "col_idx {} must be less than symbol_count {}",
-                            col_idx,
-                            self.parse_table.symbol_count
-                        );
-
-                        table_data.push(quote! { #col_idx });
-
                         if let Ok(encoded) = self.encode_action(&action) {
-                            eprintln!(
-                                "DEBUG: State {} token entry: col_idx={}, action={:?}, encoded={}",
-                                state_idx, col_idx, action, encoded
-                            );
-                            table_data.push(quote! { #encoded });
-                        } else {
-                            table_data.push(quote! { 0u16 });
+                            entries.push((symbol_idx as u16, encoded));
                         }
-                        current_offset += 2;
                     }
                 }
 
-                // Now append nonterminal gotos for this state (regardless of default reduce)
+                // Add nonterminal gotos
                 let token_cols = self.parse_table.token_count;
                 let symbol_cols = self.parse_table.symbol_count;
-                eprintln!(
-                    "DEBUG: State {} checking gotos from col {} to {}",
-                    state_idx, token_cols, symbol_cols
-                );
-
                 for col in token_cols..symbol_cols {
-                    // Check bounds for goto_table
-                    if state_idx >= self.parse_table.goto_table.len() {
-                        eprintln!(
-                            "DEBUG: State {} out of bounds for goto_table (len={})",
-                            state_idx,
-                            self.parse_table.goto_table.len()
-                        );
-                        break;
-                    }
-                    if col >= self.parse_table.goto_table[state_idx].len() {
-                        eprintln!(
-                            "DEBUG: Col {} out of bounds for goto_table[{}] (len={})",
-                            col,
-                            state_idx,
-                            self.parse_table.goto_table[state_idx].len()
-                        );
-                        break;
-                    }
-                    let to = self.parse_table.goto_table[state_idx][col].0;
-                    if to != 0 {
-                        eprintln!(
-                            "DEBUG: State {} col {} goto_table value = {} (NT goto found!)",
-                            state_idx, col, to
-                        );
-                        let col_idx = col as u16;
-
-                        // Debug guard: verify this is a nonterminal column
-                        debug_assert!(
-                            col_idx >= self.parse_table.token_count as u16,
-                            "goto entry col_idx {} must be >= token_count {} (nonterminal)",
-                            col_idx,
-                            self.parse_table.token_count
-                        );
-                        debug_assert!(
-                            col_idx < self.parse_table.symbol_count as u16,
-                            "goto entry col_idx {} must be < symbol_count {}",
-                            col_idx,
-                            self.parse_table.symbol_count
-                        );
-
-                        table_data.push(quote! { #col_idx });
-                        table_data.push(quote! { #to });
-                        eprintln!(
-                            "DEBUG: State {} goto entry: col_idx={}, goto_state={}",
-                            state_idx, col_idx, to
-                        );
-                        current_offset += 2;
+                    if state_idx < self.parse_table.goto_table.len()
+                        && col < self.parse_table.goto_table[state_idx].len()
+                    {
+                        let to = self.parse_table.goto_table[state_idx][col].0;
+                        if to != 0 {
+                            entries.push((col as u16, to));
+                        }
                     }
                 }
 
-                eprintln!(
-                    "DEBUG: State {} ends at offset {}",
-                    state_idx, current_offset
-                );
+                // Push field_count then entries
+                let field_count = entries.len() as u16;
+                table_data.push(quote! { #field_count });
+                current_offset += 1;
+
+                for (sym, val) in entries {
+                    table_data.push(quote! { #sym });
+                    table_data.push(quote! { #val });
+                    current_offset += 2;
+                }
             }
 
             // Add final offset for end of table
@@ -957,7 +756,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 Ok(0)
             }
             _ => {
-                // Unknown action type - treat as error
+                // Unknown action type // Expected: V for Recover
                 crate::util::unexpected_action(action, "encode_action");
                 Ok(0)
             }
@@ -969,65 +768,52 @@ impl<'a> AbiLanguageBuilder<'a> {
         // Generate production information for reduce actions
         // The array must be indexed by production ID, not sequential
 
-        // First, find the maximum production ID to size the array
-        let max_production_id = self
-            .grammar
-            .all_rules()
-            .map(|rule| rule.production_id.0)
-            .max()
-            .unwrap_or(0);
+        // We need to size the array based on production_id_count
+        let counts = self.calculate_counts();
+        let production_id_count = counts.production_id_count as usize;
 
-        // Create array with dummy entries
+        // Create array with dummy entries (Shift to state 0, which is normally Error in state 0)
         let mut actions = vec![
             quote! {
                 TSParseAction {
-                    action_type: 0,
+                    action_type: 3, // Error
                     extra: 0,
                     child_count: 0,
                     dynamic_precedence: 0,
                     symbol: 0,
                 }
             };
-            (max_production_id + 1) as usize
+            production_id_count
         ];
 
         // Fill in the actual productions at their correct indices
-        eprintln!(
-            "DEBUG: Building PARSE_ACTIONS for {} productions",
-            self.grammar.all_rules().count()
-        );
-        eprintln!(
-            "DEBUG: symbol_to_index mapping: {:?}",
-            self.parse_table.symbol_to_index
-        );
+        // We MUST use the same rule ordering as generate_ts_rules
+        let mut rules: Vec<_> = self
+            .grammar
+            .rules
+            .iter()
+            .flat_map(|(_, rules)| rules.iter())
+            .collect();
+        rules.sort_by_key(|rule| rule.production_id.0);
 
-        for rule in self.grammar.all_rules() {
+        for (rule_id, rule) in rules.iter().enumerate() {
             let index = rule.production_id.0 as usize;
             let child_count = rule.rhs.len() as u8;
-            // Convert symbol ID to symbol index for the parse table
-            let symbol_id = rule.lhs;
-            let symbol = self
-                .parse_table
-                .symbol_to_index
-                .get(&symbol_id)
-                .copied()
-                .unwrap_or_else(|| {
-                    eprintln!(
-                        "WARNING: No symbol index found for symbol ID {} in production {}",
-                        symbol_id.0, rule.production_id.0
-                    );
-                    symbol_id.0 as usize // Fallback to symbol ID
-                }) as u16;
 
-            actions[index] = quote! {
-                TSParseAction {
-                    action_type: 1, // Reduce
-                    extra: 0,
-                    child_count: #child_count,
-                    dynamic_precedence: 0,
-                    symbol: #symbol,
-                }
-            };
+            // Store the sequential rule ID directly in the symbol field
+            let symbol = rule_id as u16;
+
+            if index < actions.len() {
+                actions[index] = quote! {
+                    TSParseAction {
+                        action_type: 1, // Reduce
+                        extra: 0,
+                        child_count: #child_count,
+                        dynamic_precedence: 0,
+                        symbol: #symbol,
+                    }
+                };
+            }
         }
 
         actions
@@ -1148,19 +934,22 @@ impl<'a> AbiLanguageBuilder<'a> {
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
             index_to_symbol.push((index, *symbol_id));
         }
+        for (symbol_id, &index) in &self.parse_table.nonterminal_to_index {
+            index_to_symbol.push((index, *symbol_id));
+        }
         index_to_symbol.sort_by_key(|(idx, _)| *idx);
 
         // Generate entries for the mapping
-        for (index, symbol_id) in index_to_symbol {
+        for (index, symbol_id) in &index_to_symbol {
             let symbol_id_val = symbol_id.0 as u32;
-            let index_val = index as u16;
+            let index_val = *index as u16;
 
             // Also include the symbol name for debugging
-            let _symbol_name = if symbol_id == self.parse_table.eof_symbol {
+            let _symbol_name = if *symbol_id == self.parse_table.eof_symbol {
                 "EOF".to_string()
-            } else if let Some(token) = self.grammar.tokens.get(&symbol_id) {
+            } else if let Some(token) = self.grammar.tokens.get(symbol_id) {
                 token.name.clone()
-            } else if let Some(rule_name) = self.grammar.rule_names.get(&symbol_id) {
+            } else if let Some(rule_name) = self.grammar.rule_names.get(symbol_id) {
                 rule_name.clone()
             } else {
                 format!("symbol_{}", symbol_id.0)
@@ -1173,12 +962,14 @@ impl<'a> AbiLanguageBuilder<'a> {
         }
 
         // Generate the inverse mapping array (index to symbol ID)
-        let symbol_count = self.parse_table.symbol_to_index.len();
-        let mut index_to_id_entries = vec![quote! { 0 }; symbol_count];
+        let total_symbol_count = self.parse_table.symbol_count;
+        let mut index_to_id_entries = vec![quote! { 0 }; total_symbol_count];
 
-        for (symbol_id, &index) in &self.parse_table.symbol_to_index {
-            let symbol_id_val = symbol_id.0;
-            index_to_id_entries[index] = quote! { #symbol_id_val };
+        for (index, symbol_id) in index_to_symbol {
+            if index < total_symbol_count {
+                let symbol_id_val = symbol_id.0;
+                index_to_id_entries[index] = quote! { #symbol_id_val };
+            }
         }
 
         quote! {
@@ -1214,9 +1005,7 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn generate_production_id_map(&self) -> Vec<TokenStream> {
         // Tree-sitter uses 1-based production IDs in the parse table
         // This map converts from 1-based IDs to 0-based indices into PARSE_ACTIONS
-        let mut production_map = Vec::new();
-
-        // Get all rules sorted by production ID
+        // We MUST use the same rule ordering as generate_ts_rules and generate_parse_actions
         let mut rules: Vec<_> = self
             .grammar
             .rules
@@ -1225,21 +1014,26 @@ impl<'a> AbiLanguageBuilder<'a> {
             .collect();
         rules.sort_by_key(|rule| rule.production_id.0);
 
-        // Create a mapping from production_id to index
-        let mut id_to_index = std::collections::HashMap::new();
+        // Find the maximum production ID to size the map
+        // Production IDs in the table are 1-based, so max ID 771 means we need map[770]
+        let max_production_id = rules.iter().map(|r| r.production_id.0).max().unwrap_or(0);
+        let map_size = max_production_id as usize;
+
+        // Initialize map with a sentinel value (u16::MAX)
+        let mut id_to_index = vec![u16::MAX; map_size];
+
+        // Fill the map: id_to_index[production_id - 1] = sequential_rule_index
         for (index, rule) in rules.iter().enumerate() {
-            id_to_index.insert(rule.production_id.0, index);
+            let pid = rule.production_id.0 as usize;
+            if pid > 0 && pid <= map_size {
+                id_to_index[pid - 1] = index as u16;
+            }
         }
 
-        // The production_id_map maps from 1-based parse table IDs to 0-based production indices
-        // Since we have N productions (0..N-1), the parse table will use IDs 1..N
-        let num_productions = rules.len();
-
-        // Build the map: production_id_map[parse_table_id - 1] = production_index
-        // For each production index 0..N-1, the parse table uses ID index+1
-        for i in 0..num_productions {
-            let index_u16 = i as u16;
-            production_map.push(quote! { #index_u16 });
+        // Convert to TokenStreams
+        let mut production_map = Vec::new();
+        for val in id_to_index {
+            production_map.push(quote! { #val });
         }
 
         production_map
@@ -1302,7 +1096,20 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // For each production, create a TSRule
         for rule in &rules {
-            let lhs = rule.lhs.0;
+            let symbol_id = rule.lhs;
+            let lhs = self
+                .parse_table
+                .nonterminal_to_index
+                .get(&symbol_id)
+                .or_else(|| self.parse_table.symbol_to_index.get(&symbol_id))
+                .copied()
+                .unwrap_or_else(|| {
+                    eprintln!(
+                        "WARNING: No symbol index found for LHS symbol ID {} in rule",
+                        symbol_id.0
+                    );
+                    symbol_id.0 as usize
+                }) as u16;
             let rhs_len = rule.rhs.len() as u8;
             ts_rules.push(quote! {
                 TSRule {
@@ -1321,9 +1128,9 @@ impl<'a> AbiLanguageBuilder<'a> {
         LanguageCounts {
             symbol_count: self.calculate_symbol_count() as u32,
             alias_count: 0, // TODO: Implement aliases
-            // token_count includes EOF (symbol 0) plus all user-defined tokens
-            token_count: (self.grammar.tokens.len() + 1) as u32,
-            external_token_count: self.grammar.externals.len() as u32,
+            // token_count comes from the parse table which knows about all terminals (including EOF)
+            token_count: self.parse_table.token_count as u32,
+            external_token_count: self.parse_table.external_token_count as u32,
             state_count: self.parse_table.state_count as u32,
             large_state_count: 0, // TODO: Calculate large states
             production_id_count: self.calculate_production_count() as u32,
@@ -1338,11 +1145,14 @@ impl<'a> AbiLanguageBuilder<'a> {
     }
 
     fn calculate_production_count(&self) -> usize {
-        self.grammar
+        let max_id = self
+            .grammar
             .rules
             .values()
-            .flat_map(|rules| rules.iter())
-            .count()
+            .flat_map(|rules| rules.iter().map(|r| r.production_id.0))
+            .max()
+            .unwrap_or(0);
+        (max_id as usize) + 1
     }
 
     /// Find all terminal tokens that should be marked as extras

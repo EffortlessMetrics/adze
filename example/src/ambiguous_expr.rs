@@ -51,7 +51,13 @@ pub mod grammar {
         ),
 
         /// Number terminal
-        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| {
+            println!("DEBUG: parsing number: {:?}", v);
+            v.parse().unwrap()
+        })]
+            i32,
+        ),
     }
 
     /// Whitespace handling
