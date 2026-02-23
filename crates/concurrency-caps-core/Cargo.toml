@@ -1,0 +1,20 @@
+[package]
+name = "adze-concurrency-caps-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Concurrency cap primitives for bounded parallel execution."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+rayon = "1.10"
+
+[dev-dependencies]
+proptest = "1.4"

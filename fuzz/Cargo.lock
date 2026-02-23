@@ -6,6 +6,7 @@ version = 4
 name = "adze"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-concurrency-caps-core",
  "adze-glr-core",
  "adze-ir",
  "adze-linecol-core",
@@ -44,6 +45,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-concurrency-caps-core"
+version = "0.1.0"
+dependencies = [
+ "rayon",
+]
+
+[[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
 
@@ -52,6 +60,7 @@ name = "adze-fuzz"
 version = "0.0.0"
 dependencies = [
  "adze",
+ "adze-concurrency-caps-core",
  "adze-linecol-core",
  "libfuzzer-sys",
 ]

@@ -14,6 +14,7 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 adze = { path = "../runtime" }
 adze-linecol-core = { path = "../crates/linecol-core" }
+adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
 
 [[bin]]
 name = "fuzz_lexer"
@@ -36,5 +37,11 @@ doc = false
 [[bin]]
 name = "fuzz_linecol_core"
 path = "fuzz_targets/fuzz_linecol_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_caps_core"
+path = "fuzz_targets/fuzz_concurrency_caps_core.rs"
 test = false
 doc = false
