@@ -10,6 +10,8 @@
 use std::env;
 use std::sync::OnceLock;
 
+pub use adze_concurrency_plan_core::{ParallelPartitionPlan, normalized_concurrency};
+
 const RAYON_NUM_THREADS_ENV: &str = "RAYON_NUM_THREADS";
 const TOKIO_WORKER_THREADS_ENV: &str = "TOKIO_WORKER_THREADS";
 
@@ -57,14 +59,6 @@ pub fn current_caps() -> ConcurrencyCaps {
     ConcurrencyCaps::from_env()
 }
 
-/// Normalize a requested concurrency value.
-///
-/// A value of `0` is treated as `1` to avoid divide-by-zero and invalid thread counts.
-#[must_use]
-pub const fn normalized_concurrency(concurrency: usize) -> usize {
-    if concurrency == 0 { 1 } else { concurrency }
-}
-
 /// Initialize Rayon global thread-pool caps once for the process.
 ///
 /// Calling this function multiple times is safe and idempotent.
@@ -93,20 +87,19 @@ where
 {
     use rayon::prelude::*;
 
-    let concurrency = normalized_concurrency(concurrency);
+    let plan = ParallelPartitionPlan::for_item_count(items.len(), concurrency);
 
     if items.is_empty() {
         return Vec::new();
     }
 
-    if items.len() <= concurrency.saturating_mul(2) {
+    if plan.use_direct_parallel_iter {
         return items.into_par_iter().map(f).collect();
     }
 
-    let chunk_size = items.len().div_ceil(concurrency);
     items
         .into_par_iter()
-        .chunks(chunk_size)
+        .chunks(plan.chunk_size)
         .flat_map(|chunk| chunk.into_iter().map(&f).collect::<Vec<_>>())
         .collect()
 }

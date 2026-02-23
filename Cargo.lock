@@ -22,6 +22,7 @@ name = "adze"
 version = "0.8.0-dev"
 dependencies = [
  "adze-concurrency-caps-core",
+ "adze-concurrency-plan-core",
  "adze-example",
  "adze-glr-core",
  "adze-ir",
@@ -166,8 +167,16 @@ dependencies = [
 name = "adze-concurrency-caps-core"
 version = "0.1.0"
 dependencies = [
+ "adze-concurrency-plan-core",
  "proptest",
  "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-plan-core"
+version = "0.1.0"
+dependencies = [
+ "proptest",
 ]
 
 [[package]]

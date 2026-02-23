@@ -48,8 +48,13 @@ dependencies = [
 name = "adze-concurrency-caps-core"
 version = "0.1.0"
 dependencies = [
+ "adze-concurrency-plan-core",
  "rayon",
 ]
+
+[[package]]
+name = "adze-concurrency-plan-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-feature-policy-core"
@@ -61,6 +66,7 @@ version = "0.0.0"
 dependencies = [
  "adze",
  "adze-concurrency-caps-core",
+ "adze-concurrency-plan-core",
  "adze-linecol-core",
  "libfuzzer-sys",
 ]

@@ -1,10 +1,10 @@
 [package]
-name = "adze-concurrency-caps-core"
+name = "adze-concurrency-plan-core"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Concurrency cap primitives for bounded parallel execution."
+description = "Pure policy helpers for normalized concurrency and bounded parallel partitioning."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 
@@ -12,10 +12,6 @@ publish = ["crates.io"]
 default = []
 strict_api = []
 strict_docs = []
-
-[dependencies]
-adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
-rayon = "1.10"
 
 [dev-dependencies]
 proptest = "1.4"
