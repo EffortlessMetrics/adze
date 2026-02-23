@@ -14,8 +14,15 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
-rayon = "1.10"
+adze-concurrency-map-core = { version = "0.1.0", path = "../concurrency-map-core" }
+adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
+adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
 
 [dev-dependencies]
 proptest = "1.4"
+adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
+adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
+adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
+adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../concurrency-init-classifier-core" }
+adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
+adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }

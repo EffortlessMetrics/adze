@@ -7,24 +7,11 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-/// Minimum valid concurrency value.
-pub const MIN_CONCURRENCY: usize = 1;
+pub use adze_concurrency_normalize_core::{MIN_CONCURRENCY, normalized_concurrency};
 
 /// Workloads at or below `concurrency * DIRECT_PARALLEL_THRESHOLD_MULTIPLIER`
 /// prefer direct parallel iteration over chunk partitioning.
 pub const DIRECT_PARALLEL_THRESHOLD_MULTIPLIER: usize = 2;
-
-/// Normalize a requested concurrency value.
-///
-/// A value of `0` is treated as `1` to avoid invalid worker counts.
-#[must_use]
-pub const fn normalized_concurrency(concurrency: usize) -> usize {
-    if concurrency == 0 {
-        MIN_CONCURRENCY
-    } else {
-        concurrency
-    }
-}
 
 /// Planning metadata for bounded parallel partitioning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -48,13 +48,60 @@ dependencies = [
 name = "adze-concurrency-caps-core"
 version = "0.1.0"
 dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-env-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-parse-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-classifier-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-init-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-rayon-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-rayon-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-init-classifier-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-map-core"
+version = "0.1.0"
+dependencies = [
  "adze-concurrency-plan-core",
  "rayon",
 ]
 
 [[package]]
+name = "adze-concurrency-normalize-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-parse-core"
+version = "0.1.0"
+
+[[package]]
 name = "adze-concurrency-plan-core"
 version = "0.1.0"
+dependencies = [
+ "adze-concurrency-normalize-core",
+]
 
 [[package]]
 name = "adze-feature-policy-core"
@@ -66,6 +113,13 @@ version = "0.0.0"
 dependencies = [
  "adze",
  "adze-concurrency-caps-core",
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-classifier-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-init-rayon-core",
+ "adze-concurrency-map-core",
+ "adze-concurrency-normalize-core",
+ "adze-concurrency-parse-core",
  "adze-concurrency-plan-core",
  "adze-linecol-core",
  "libfuzzer-sys",

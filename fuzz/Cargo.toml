@@ -15,7 +15,14 @@ libfuzzer-sys = "0.4"
 adze = { path = "../runtime" }
 adze-linecol-core = { path = "../crates/linecol-core" }
 adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
+adze-concurrency-map-core = { path = "../crates/concurrency-map-core" }
+adze-concurrency-env-core = { path = "../crates/concurrency-env-core" }
+adze-concurrency-init-core = { path = "../crates/concurrency-init-core" }
+adze-concurrency-init-rayon-core = { path = "../crates/concurrency-init-rayon-core" }
+adze-concurrency-init-classifier-core = { path = "../crates/concurrency-init-classifier-core" }
 adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
+adze-concurrency-parse-core = { path = "../crates/concurrency-parse-core" }
+adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core" }
 
 [[bin]]
 name = "fuzz_lexer"
@@ -48,7 +55,49 @@ test = false
 doc = false
 
 [[bin]]
+name = "fuzz_concurrency_env_core"
+path = "fuzz_targets/fuzz_concurrency_env_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_parse_core"
+path = "fuzz_targets/fuzz_concurrency_parse_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_map_core"
+path = "fuzz_targets/fuzz_concurrency_map_core.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "fuzz_concurrency_plan_core"
 path = "fuzz_targets/fuzz_concurrency_plan_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_normalize_core"
+path = "fuzz_targets/fuzz_concurrency_normalize_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_init_core"
+path = "fuzz_targets/fuzz_concurrency_init_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_init_rayon_core"
+path = "fuzz_targets/fuzz_concurrency_init_rayon_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_init_classifier_core"
+path = "fuzz_targets/fuzz_concurrency_init_classifier_core.rs"
 test = false
 doc = false
