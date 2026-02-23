@@ -1,4 +1,6 @@
+use adze::concurrency_caps::ConcurrencyCaps as RuntimeConcurrencyCaps;
 use adze::concurrency_caps::{bounded_parallel_map, init_concurrency_caps, normalized_concurrency};
+use adze_concurrency_caps_core::ConcurrencyCaps as CoreConcurrencyCaps;
 
 #[test]
 fn runtime_reexports_bounded_parallel_map_with_expected_behavior() {
@@ -20,4 +22,23 @@ fn runtime_reexport_normalizes_zero_concurrency() {
 fn runtime_reexport_init_is_idempotent() {
     init_concurrency_caps();
     init_concurrency_caps();
+}
+
+#[test]
+fn runtime_reexport_stays_type_compatible() {
+    fn accepts_core_type(value: CoreConcurrencyCaps) -> CoreConcurrencyCaps {
+        value
+    }
+
+    let runtime_value = RuntimeConcurrencyCaps::default();
+    let returned = accepts_core_type(runtime_value);
+
+    assert_eq!(
+        returned.rayon_threads,
+        RuntimeConcurrencyCaps::default().rayon_threads
+    );
+    assert_eq!(
+        returned.tokio_worker_threads,
+        RuntimeConcurrencyCaps::default().tokio_worker_threads
+    );
 }
