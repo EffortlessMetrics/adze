@@ -29,7 +29,7 @@ jobs:
       run: cargo +nightly install cargo-fuzz
     
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry/index/
@@ -38,7 +38,7 @@ jobs:
         key: ${{ runner.os }}-cargo-fuzz-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-fuzz-
-    
+
     - name: Run fuzzer
       run: |
         cd runtime
@@ -48,7 +48,7 @@ jobs:
     
     - name: Upload crash artifacts
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: fuzz-crash-${{ matrix.fuzz-target }}
         path: runtime/fuzz/artifacts/
@@ -73,7 +73,7 @@ jobs:
       run: cargo +nightly install cargo-fuzz
     
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry/index/
@@ -82,7 +82,7 @@ jobs:
         key: ${{ runner.os }}-cargo-fuzz-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-fuzz-
-    
+
     - name: Run extended fuzzing
       run: |
         cd runtime
@@ -93,7 +93,7 @@ jobs:
     
     - name: Upload crash artifacts
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: fuzz-crash-nightly-${{ matrix.fuzz-target }}
         path: runtime/fuzz/artifacts/

@@ -27,11 +27,19 @@ fn parity_actions_and_gotos_json() {
     let data = extract(lang_fn).expect("extract() failed");
     let lang = SafeLang(get_json_language());
 
-    let (symc, stc, tokc, extc) = lang.counts();
+    let (symc, stc, tokc, extc, _lstc) = lang.counts();
+
+    // Debug: print symbol names
+    for i in 0..symc {
+        println!("  {}: {}", i, lang.symbol_name(i));
+    }
+    println!("  term_boundary={}", tokc + extc);
+
     let term_boundary = tokc + extc;
 
     // Sanity: counts agree with extractor
-    assert_eq!(data.symbol_count as u32, symc, "symbol_count mismatch");
+    // Note: data.symbol_count includes 1 extra for our synthetic EOF sentinel
+    assert_eq!(data.symbol_count as u32, symc + 1, "symbol_count mismatch");
     assert_eq!(data.state_count as u32, stc, "state_count mismatch");
 
     // 2) Index extracted tables for O(1) lookup

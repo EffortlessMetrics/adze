@@ -48,40 +48,6 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
             .map(|p| p.expr.clone())
     });
 
-    // ❌ CRITICAL BUG: Transform functions are captured but never executed! (Issue #74)
-    //
-    // PROBLEM: This code generates the macro expansion for transform functions like:
-    //   #[adze::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
-    // But the generated code only captures the closure, it doesn't actually CALL it!
-    //
-    // CURRENT FLOW:
-    // 1. User writes: transform = |s| s.parse::<i32>().unwrap()
-    // 2. This code captures it as: Some(&#closure)
-    // 3. Generated parser code gets closure but never executes it
-    // 4. Result: Raw text is used instead of transformed value
-    //
-    // IMPACT:
-    // - Numbers remain as strings instead of i32
-    // - Custom transforms for dates, enums, etc. don't work
-    // - Grammar definitions look like they support transforms but silently fail
-    // - Combined with lexer issue #74, creates completely broken parsing
-    //
-    // TODO (HIGH PRIORITY - Issue #74):
-    // Generate code that actually EXECUTES the transform:
-    // ```rust
-    // let raw_text = extract_raw_text(cursor, source);
-    // match transform_fn(raw_text) {
-    //     Ok(transformed) => transformed,
-    //     Err(e) => return Err(ParseError::TransformFailed(e))
-    // }
-    // ```
-    //
-    // REQUIRED CHANGES:
-    // 1. Generate transform execution code instead of just capturing closure
-    // 2. Add proper error handling for transform failures
-    // 3. Ensure type safety between pattern match and transform result
-    // 4. Test with actual transform functions to verify execution
-    //
     let (leaf_type, closure_expr): (Type, Expr) = match transform_param {
         Some(closure) => {
             let mut non_leaf = HashSet::new();
@@ -90,7 +56,6 @@ fn gen_field(ident_str: String, leaf: Field) -> Expr {
             non_leaf.insert("Option");
             non_leaf.insert("Vec");
             let wrapped_leaf_type = wrap_leaf_type(&leaf_type, &non_leaf);
-            // ❌ BUG: This just captures the closure, doesn't execute it!
             (wrapped_leaf_type, syn::parse_quote!(Some(&#closure)))
         }
         None => (leaf_type, syn::parse_quote!(None)),
@@ -153,6 +118,10 @@ fn gen_struct_or_variant(
                 #containing_type::#variant_name
             };
 
+            // In both modes, 'node' should be passed appropriately.
+            // For tree-sitter, it's Node by value. For pure-rust, it's &ParsedNode.
+            // We use 'Some(node)' because gen_struct_or_variant is called inside extract()
+            // where 'node' is already un-Optioned.
             return Ok(syn::parse_quote!({
                 let value = <#leaf_type as ::adze::Extract<_>>::extract(Some(node), source, 0, #closure_expr);
                 #construct_name(value)
@@ -252,7 +221,7 @@ fn gen_struct_or_variant(
 }
 
 pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
-    let grammar_name = input
+    let grammar_name_str = input
         .attrs
         .iter()
         .find_map(|a| {
@@ -312,8 +281,6 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         .cloned()
         .map(|c| match c {
             Item::Enum(mut e) => {
-                    // For Tree-sitter compatibility, we need to detect enum variants by their structure
-                    // rather than by node kind, since all variants have the same kind
                     let variant_detection_logic = e.variants.iter().map(|v| {
                         let extract_expr = gen_struct_or_variant(
                             v.fields.clone(),
@@ -322,10 +289,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             v.attrs.clone(),
                         )?;
 
-                        // Generate detection logic using symbol names
-                        let enum_name = e.ident.to_string();
+                        let enum_name_str = e.ident.to_string();
                         let variant_name = v.ident.to_string();
-                        let expected_symbol = format!("{}_{}", enum_name, variant_name);
+                        let expected_symbol = format!("{}_{}", enum_name_str, variant_name);
 
                         let detection_expr = quote! {
                             if node.kind() == #expected_symbol {
@@ -336,9 +302,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         Ok(detection_expr)
                     }).collect::<Result<Vec<_>>>()?;
 
-                    // Generate separate detection logic for leaf variants on terminal nodes
                     let leaf_variant_detection = e.variants.iter().filter_map(|v| {
-                        // Check if this is a leaf variant
                         let is_leaf_variant = if let Fields::Unnamed(ref unnamed) = v.fields {
                             unnamed.unnamed.len() == 1 && unnamed.unnamed[0]
                                 .attrs
@@ -356,10 +320,8 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                 v.attrs.clone(),
                             ).ok()?;
 
-                            // For Number variant specifically, handle numeric terminals
                             if v.ident == "Number" {
                                 Some(quote! {
-                                    // Number terminals often have generated names like _1, _2, etc
                                     return #extract_expr;
                                 })
                             } else {
@@ -378,7 +340,6 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         });
                     });
 
-                    // Generate separate detection logic for standard and pure-rust modes
                     let variant_detection_logic_std = e.variants.iter().map(|v| {
                         let extract_expr = gen_struct_or_variant(
                             v.fields.clone(),
@@ -387,10 +348,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                             v.attrs.clone(),
                         )?;
 
-                        // Generate detection logic using symbol names
-                        let enum_name = e.ident.to_string();
+                        let enum_name_str = e.ident.to_string();
                         let variant_name = v.ident.to_string();
-                        let expected_symbol = format!("{}_{}", enum_name, variant_name);
+                        let expected_symbol = format!("{}_{}", enum_name_str, variant_name);
 
                         let detection_expr = quote! {
                             if child_node.kind() == #expected_symbol {
@@ -402,82 +362,79 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                     }).collect::<Result<Vec<_>>>()?;
 
                     let enum_name = &e.ident;
-                    let extract_impl: Item = syn::parse_quote! {
-                        impl ::adze::Extract<#enum_name> for #enum_name {
-                            type LeafFn = ();
+                    let extract_impl: Item = if cfg!(feature = "pure-rust") {
+                        syn::parse_quote! {
+                            impl ::adze::Extract<#enum_name> for #enum_name {
+                                type LeafFn = ();
+                                const GRAMMAR_NAME: &'static str = #grammar_name_str;
 
-                            #[cfg(feature = "pure-rust")]
-                            const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
+                                #[allow(non_snake_case)]
+                                fn extract(node: Option<&::adze::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                                    let node = node.expect("Extract called with None node for enum");
 
-                            #[allow(non_snake_case)]
-                            #[cfg(not(feature = "pure-rust"))]
-                            fn extract(node: Option<::adze::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
-                                let node = node.unwrap();
-
-                                // Recursively unwrap hidden rules and wrapper nodes
-                                fn unwrap_hidden_rules(node: ::adze::tree_sitter::Node) -> ::adze::tree_sitter::Node {
-                                    // If this is a hidden rule (starts with '_') or has a single child, unwrap it
-                                    if (node.kind().starts_with('_') || node.child_count() == 1) && node.child_count() > 0 {
-                                        if let Some(child) = node.child(0) {
-                                            return unwrap_hidden_rules(child);
+                                    fn unwrap_hidden_rules<'a>(node: &'a ::adze::pure_parser::ParsedNode) -> &'a ::adze::pure_parser::ParsedNode {
+                                        if (node.kind().starts_with('_') || node.children.len() == 1) && node.children.len() > 0 {
+                                            return unwrap_hidden_rules(&node.children[0]);
                                         }
+                                        node
                                     }
-                                    node
-                                }
 
-                                let unwrapped_node = unwrap_hidden_rules(node);
+                                    let unwrapped_node = unwrap_hidden_rules(node);
 
-                                // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
-                                if unwrapped_node.kind() == stringify!(#enum_name) && unwrapped_node.child_count() == 1 {
-                                    // This is a wrapper node, extract from its child
-                                    let child = unwrapped_node.child(0);
-                                    return Self::extract(child, source, _last_idx, _leaf_fn);
-                                }
-
-                                // Check the unwrapped node structure to determine variant
-                                let child_node = unwrapped_node;
-                                #(#variant_detection_logic_std)*
-
-                                panic!("Could not determine enum variant from tree structure: node kind='{}', child_count={}",
-                                    unwrapped_node.kind(), unwrapped_node.child_count())
-                            }
-
-                            #[allow(non_snake_case)]
-                            #[cfg(feature = "pure-rust")]
-                            fn extract(node: Option<&::adze::pure_parser::ParsedNode>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
-                                let node = node.unwrap();
-
-                                // Recursively unwrap hidden rules and wrapper nodes
-                                fn unwrap_hidden_rules<'a>(node: &'a ::adze::pure_parser::ParsedNode) -> &'a ::adze::pure_parser::ParsedNode {
-                                    // If this is a hidden rule (starts with '_') or has a single child, unwrap it
-                                    if (node.kind().starts_with('_') || node.children.len() == 1) && node.children.len() > 0 {
-                                        return unwrap_hidden_rules(&node.children[0]);
+                                    // Check if this is an enum wrapper node, ignoring extras
+                                    let non_extra_children: Vec<_> = unwrapped_node.children.iter().filter(|c| !c.is_extra).collect();
+                                    if unwrapped_node.kind() == stringify!(#enum_name) && non_extra_children.len() == 1 {
+                                        let child_node = non_extra_children[0];
+                                        return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
                                     }
-                                    node
-                                }
 
-                                let unwrapped_node = unwrap_hidden_rules(node);
-
-                                // Check if this is an enum wrapper node (e.g., "Expression" wrapping "Expression_Number")
-                                if unwrapped_node.kind() == stringify!(#enum_name) && unwrapped_node.children.len() == 1 {
-                                    // This is a wrapper node, extract from its child
-                                    let child_node = &unwrapped_node.children[0];
-                                    return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
-                                }
-
-                                // Check if this node directly matches one of our variants
-                                let node = unwrapped_node;
-                                #(#variant_detection_logic)*
-
-                                // Special handling for terminal nodes that represent leaf variants
-                                if unwrapped_node.children.is_empty() {
-                                    // This is a terminal node, it might be a leaf variant
                                     let node = unwrapped_node;
-                                    #(#leaf_variant_detection)*
-                                }
+                                    #(#variant_detection_logic)*
 
-                                panic!("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}",
-                                    unwrapped_node.kind(), unwrapped_node.symbol, unwrapped_node.children.len())
+                                    if unwrapped_node.children.is_empty() {
+                                        let node = unwrapped_node;
+                                        #(#leaf_variant_detection)*
+                                    }
+
+                                    panic!("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}",
+                                        unwrapped_node.kind(), unwrapped_node.symbol, unwrapped_node.children.len())
+                                }
+                            }
+                        }
+                    } else {
+                        syn::parse_quote! {
+                            impl ::adze::Extract<#enum_name> for #enum_name {
+                                type LeafFn = ();
+
+                                #[allow(non_snake_case)]
+                                fn extract(node: Option<::adze::tree_sitter::Node>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                                    let node = node.expect("Extract called with None node for enum");
+
+                                    fn unwrap_hidden_rules(node: ::adze::tree_sitter::Node) -> ::adze::tree_sitter::Node {
+                                        if (node.kind().starts_with('_') || node.child_count() == 1) && node.child_count() > 0 {
+                                            if let Some(child) = node.child(0) {
+                                                return unwrap_hidden_rules(child);
+                                            }
+                                        }
+                                        node
+                                    }
+
+                                    let unwrapped_node = unwrap_hidden_rules(node);
+
+                                    // Check if this is an enum wrapper node, ignoring extras
+                                    let mut cursor = unwrapped_node.walk();
+                                    let non_extra_children: Vec<_> = unwrapped_node.children(&mut cursor).filter(|c| !c.is_extra()).collect();
+                                    if unwrapped_node.kind() == stringify!(#enum_name) && non_extra_children.len() == 1 {
+                                        let child = non_extra_children[0];
+                                        return Self::extract(Some(child), source, _last_idx, _leaf_fn);
+                                    }
+
+                                    let child_node = unwrapped_node;
+                                    #(#variant_detection_logic_std)*
+
+                                    panic!("Could not determine enum variant from tree structure: node kind='{}', child_count={}",
+                                        unwrapped_node.kind(), unwrapped_node.child_count())
+                                }
                             }
                         }
                     };
@@ -498,31 +455,29 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         f.attrs.retain(|a| !is_sitter_attr(a));
                     });
 
+                    let extract_impl: Item = if cfg!(feature = "pure-rust") {
+                        syn::parse_quote! {
+                            impl ::adze::Extract<#struct_name> for #struct_name {
+                                type LeafFn = ();
+                                const GRAMMAR_NAME: &'static str = #grammar_name_str;
 
-                    // Generate different extract expressions for pure-rust vs non-pure-rust
-                    // because pure-rust uses &ParsedNode while non-pure-rust uses Node by value
-                    let extract_expr_std = extract_expr.clone();
-
-                    // Always generate both versions - the cfg will be evaluated when the generated code is compiled
-                    let extract_impl: Item = syn::parse_quote! {
-                        impl ::adze::Extract<#struct_name> for #struct_name {
-                            type LeafFn = ();
-
-                            #[cfg(feature = "pure-rust")]
-                            const GRAMMAR_NAME: &'static str = GRAMMAR_NAME;
-
-                            #[allow(non_snake_case)]
-                            #[cfg(not(feature = "pure-rust"))]
-                            fn extract(node: Option<::adze::tree_sitter::Node>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
-                                let node = node.unwrap();
-                                #extract_expr_std
+                                #[allow(non_snake_case)]
+                                fn extract(node: Option<&::adze::pure_parser::ParsedNode>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                                    let node = node.expect("Extract called with None node for struct");
+                                    #extract_expr
+                                }
                             }
+                        }
+                    } else {
+                        syn::parse_quote! {
+                            impl ::adze::Extract<#struct_name> for #struct_name {
+                                type LeafFn = ();
 
-                            #[allow(non_snake_case)]
-                            #[cfg(feature = "pure-rust")]
-                            fn extract(node: Option<&::adze::pure_parser::ParsedNode>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
-                                let node = node.unwrap();
-                                #extract_expr
+                                #[allow(non_snake_case)]
+                                fn extract(node: Option<::adze::tree_sitter::Node>, source: &[u8], last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                                    let node = node.expect("Extract called with None node for struct");
+                                    #extract_expr
+                                }
                             }
                         }
                     };
@@ -534,60 +489,58 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         })
         .sift::<Vec<_>>()?.into_iter().flatten().collect();
 
-    // Generate both backend implementations with cfg attributes in the output
-    let tree_sitter_ident = Ident::new(&format!("tree_sitter_{grammar_name}"), Span::call_site());
+    let tree_sitter_ident = Ident::new(
+        &format!("tree_sitter_{grammar_name_str}"),
+        Span::call_site(),
+    );
 
-    // For C backend compatibility
-    transformed.push(syn::parse_quote! {
-        #[cfg(not(feature = "pure-rust"))]
-        unsafe extern "C" {
-            fn #tree_sitter_ident() -> ::adze::tree_sitter::Language;
-        }
-    });
+    if cfg!(feature = "pure-rust") {
+        transformed.push(syn::parse_quote! {
+            include!(concat!(env!("OUT_DIR"), "/grammar_", #grammar_name_str, "/parser_", #grammar_name_str, ".rs"));
+        });
 
-    transformed.push(syn::parse_quote! {
-        #[cfg(not(feature = "pure-rust"))]
-        pub fn language() -> ::adze::tree_sitter::Language {
-            unsafe { #tree_sitter_ident() }
-        }
-    });
+        transformed.push(syn::parse_quote! {
+            pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
+                &LANGUAGE
+            }
+        });
 
-    // For pure-rust backend
-    transformed.push(syn::parse_quote! {
-        #[cfg(feature = "pure-rust")]
-        include!(concat!(env!("OUT_DIR"), "/grammar_", #grammar_name, "/parser_", #grammar_name, ".rs"));
-    });
+        transformed.push(syn::parse_quote! {
+            pub const LANGUAGE_REF: &'static ::adze::pure_parser::TSLanguage = &LANGUAGE;
+        });
 
-    transformed.push(syn::parse_quote! {
-        #[cfg(feature = "pure-rust")]
-        pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
-            unsafe { &LANGUAGE }
-        }
-    });
+        let root_type_docstr = format!("[`{root_type}`]");
+        transformed.push(syn::parse_quote! {
+            /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
+            #[doc = #root_type_docstr]
+            /// instance containing the parsed structured data.
+            pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::adze::errors::ParseError>> {
+                ::adze::__private::parse::<#root_type>(input, || language())
+            }
+        });
+    } else {
+        transformed.push(syn::parse_quote! {
+            unsafe extern "C" {
+                fn #tree_sitter_ident() -> ::adze::tree_sitter::Language;
+            }
+        });
 
-    let root_type_docstr = format!("[`{root_type}`]");
+        transformed.push(syn::parse_quote! {
+            pub fn language() -> ::adze::tree_sitter::Language {
+                unsafe { #tree_sitter_ident() }
+            }
+        });
 
-    // Generate parse function for non-pure-rust
-    transformed.push(syn::parse_quote! {
-        /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
-        #[doc = #root_type_docstr]
-        /// instance containing the parsed structured data.
-        #[cfg(not(feature = "pure-rust"))]
-        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::adze::errors::ParseError>> {
-            ::adze::__private::parse::<#root_type>(input, language)
-        }
-    });
-
-    // Generate parse function for pure-rust
-    transformed.push(syn::parse_quote! {
-        /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
-        #[doc = #root_type_docstr]
-        /// instance containing the parsed structured data.
-        #[cfg(feature = "pure-rust")]
-        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::adze::errors::ParseError>> {
-            ::adze::__private::parse::<#root_type>(input, language)
-        }
-    });
+        let root_type_docstr = format!("[`{root_type}`]");
+        transformed.push(syn::parse_quote! {
+            /// Parse an input string according to the grammar. Returns either any parsing errors that happened, or a
+            #[doc = #root_type_docstr]
+            /// instance containing the parsed structured data.
+            pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::adze::errors::ParseError>> {
+                ::adze::__private::parse::<#root_type>(input, language)
+            }
+        });
+    }
 
     let mut filtered_attrs = input.attrs;
     filtered_attrs.retain(|a| !is_sitter_attr(a));

@@ -2,8 +2,35 @@
 source: src/arithmetic.rs
 expression: "grammar::parse(\"1 + 2\")"
 ---
-Ok(
-    Number(
-        1,
-    ),
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 2,
+            end: 2,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 2,
+            end: 2,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 5,
+            end: 5,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 5,
+            end: 5,
+        },
+    ],
 )

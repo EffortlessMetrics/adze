@@ -42,10 +42,10 @@ impl<'a> LanguageGenerator<'a> {
         // Count various elements
         let symbol_count = self.count_symbols();
         // token_count includes EOF (symbol 0) plus all user-defined tokens
-        let token_count = (self.grammar.tokens.len() + 1) as u32;
+        let token_count = self.parse_table.token_count as u32;
         let field_count = self.grammar.fields.len() as u32;
         let state_count = self.parse_table.state_count as u32;
-        let external_token_count = self.grammar.externals.len() as u32;
+        let external_token_count = self.parse_table.external_token_count as u32;
         let large_state_count = self.determine_large_state_count() as u32;
         let production_id_count = self.count_production_ids() as u32;
 
@@ -147,22 +147,34 @@ impl<'a> LanguageGenerator<'a> {
     }
 
     fn generate_symbol_names(&self) -> Vec<String> {
-        let mut names = vec!["end".to_string()]; // EOF symbol
+        let mut names = Vec::with_capacity(self.parse_table.symbol_count);
 
-        // Add tokens
-        for (_id, token) in &self.grammar.tokens {
-            names.push(token.name.clone());
-        }
+        for (i, symbol_id) in self.parse_table.index_to_symbol.iter().enumerate() {
+            if i == 0 {
+                names.push("end".to_string());
+                continue;
+            }
 
-        // Add rules (non-terminals)
-        for (id, _rules) in &self.grammar.rules {
-            // Use rule_names if available, otherwise generate
-            let name = self
+            let name = if let Some(token) = self.grammar.tokens.get(symbol_id) {
+                token.name.clone()
+            } else if let Some(external) = self
                 .grammar
-                .rule_names
-                .get(id)
-                .cloned()
-                .unwrap_or_else(|| format!("rule_{}", id.0));
+                .externals
+                .iter()
+                .find(|e| e.symbol_id == *symbol_id)
+            {
+                external.name.clone()
+            } else {
+                self.grammar
+                    .rule_names
+                    .get(symbol_id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("rule_{}", symbol_id.0))
+            };
+            eprintln!(
+                "DEBUG: Symbol index {} -> ID {} (name {})",
+                i, symbol_id.0, name
+            );
             names.push(name);
         }
 
@@ -231,7 +243,7 @@ impl<'a> LanguageGenerator<'a> {
         let mut compressed_table = Vec::new();
         let mut small_table_map = Vec::new();
 
-        // For large states, generate the full 2D table
+        // For large states, generate the full 2D table (if any)
         for state in 0..large_state_count {
             for symbol in 0..self.parse_table.symbol_count {
                 let action = self.get_action(state, symbol);
@@ -254,8 +266,8 @@ impl<'a> LanguageGenerator<'a> {
                 }
             }
 
-            // Direct pairs format (no count prefix)
-            // small_table_data.push(non_error_actions.len() as u16);
+            // Field count prefix (number of symbol/action pairs)
+            small_table_data.push(non_error_actions.len() as u16);
 
             // Pairs of (symbol, encoded_action)
             for (symbol, action) in non_error_actions {
@@ -276,11 +288,9 @@ impl<'a> LanguageGenerator<'a> {
     }
 
     fn determine_large_state_count(&self) -> usize {
-        // Tree-sitter typically uses states with the most transitions as large states
-        // For now, use a simple heuristic: first 30% of states are large
-        let large_ratio = 0.3;
-        let large_count = (self.parse_table.state_count as f64 * large_ratio) as usize;
-        large_count.max(1).min(self.parse_table.state_count)
+        // For now, use 0 large states to ensure all states use the packed action format
+        // which is correctly handled by our pure-Rust decoder for small tables.
+        0
     }
 
     fn get_action(&self, state: usize, symbol: usize) -> u16 {
@@ -297,12 +307,12 @@ impl<'a> LanguageGenerator<'a> {
                 let action = &action_cell[0];
                 match action {
                     adze_glr_core::Action::Shift(s) => s.0,
-                    adze_glr_core::Action::Reduce(r) => 0x8000 | (r.0 << 1),
+                    adze_glr_core::Action::Reduce(r) => 0x8000 | (r.0 + 1),
                     adze_glr_core::Action::Accept => 0xFFFF,
                     adze_glr_core::Action::Error => 0xFFFE,
                     adze_glr_core::Action::Recover => 0xFFFD, // Use distinct value for Recover
                     adze_glr_core::Action::Fork(_) => 0xFFFE, // TODO: Handle GLR forks
-                    _ => 0xFFFE, // Unknown action type - treat as error
+                    _ => 0xFFFE, // Unknown action type // Expected: V for Recover
                 }
             }
         } else {

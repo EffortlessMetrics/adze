@@ -100,6 +100,8 @@ mod glr_integration {
                 },
             ],
             field_names: vec![],
+            #[cfg(feature = "external-scanners")]
+            external_scanner: None,
         };
 
         // Note: set_language will fail because this test language doesn't have a parse table

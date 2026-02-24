@@ -3,6 +3,231 @@
 version = 4
 
 [[package]]
+name = "adze"
+version = "0.8.0-dev"
+dependencies = [
+ "adze-glr-core",
+ "adze-ir",
+ "adze-macro",
+ "adze-runtime-governance-api",
+ "adze-tablegen",
+ "ahash",
+ "anyhow",
+ "indexmap",
+ "log",
+ "once_cell",
+ "rayon",
+ "regex",
+ "smallvec",
+ "thiserror",
+ "tree-sitter",
+ "tree-sitter-c2rust",
+]
+
+[[package]]
+name = "adze-bdd-governance-core"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+]
+
+[[package]]
+name = "adze-bdd-grid-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-common"
+version = "0.8.0-dev"
+dependencies = [
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "adze-example"
+version = "0.8.0-dev"
+dependencies = [
+ "adze",
+ "adze-glr-core",
+ "adze-tool",
+ "codemap",
+ "codemap-diagnostic",
+ "insta",
+ "toml",
+ "tree-sitter-c2rust",
+ "wasm-bindgen-test",
+]
+
+[[package]]
+name = "adze-feature-policy-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-glr-core"
+version = "0.8.0-dev"
+dependencies = [
+ "adze-glr-versioning",
+ "adze-ir",
+ "fixedbitset",
+ "indexmap",
+ "postcard",
+ "rustc-hash",
+ "serde",
+ "smallvec",
+ "thiserror",
+ "typed-arena",
+]
+
+[[package]]
+name = "adze-glr-versioning"
+version = "0.8.0-dev"
+
+[[package]]
+name = "adze-governance-matrix-contract"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-core",
+]
+
+[[package]]
+name = "adze-governance-matrix-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-core-impl",
+]
+
+[[package]]
+name = "adze-governance-matrix-core-impl"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-governance-core",
+]
+
+[[package]]
+name = "adze-governance-metadata"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+ "serde",
+]
+
+[[package]]
+name = "adze-governance-runtime-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-runtime-reporting",
+]
+
+[[package]]
+name = "adze-governance-runtime-reporting"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-contract",
+]
+
+[[package]]
+name = "adze-ir"
+version = "0.8.0-dev"
+dependencies = [
+ "anyhow",
+ "indexmap",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "adze-macro"
+version = "0.8.0-dev"
+dependencies = [
+ "adze-common",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "adze-parsetable-metadata"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-metadata",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "adze-runtime-governance"
+version = "0.1.0"
+dependencies = [
+ "adze-runtime-governance-matrix",
+]
+
+[[package]]
+name = "adze-runtime-governance-api"
+version = "0.1.0"
+dependencies = [
+ "adze-runtime-governance",
+]
+
+[[package]]
+name = "adze-runtime-governance-matrix"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-runtime-core",
+]
+
+[[package]]
+name = "adze-tablegen"
+version = "0.8.0-dev"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-glr-core",
+ "adze-ir",
+ "adze-parsetable-metadata",
+ "chrono",
+ "indexmap",
+ "proc-macro2",
+ "quote",
+ "rustc-hash",
+ "rustc_version_runtime",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "tree-sitter-c2rust",
+]
+
+[[package]]
+name = "adze-tool"
+version = "0.8.0-dev"
+dependencies = [
+ "adze-common",
+ "adze-glr-core",
+ "adze-ir",
+ "adze-tablegen",
+ "anyhow",
+ "cc",
+ "clap",
+ "glob",
+ "indexmap",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "serde",
+ "serde_json",
+ "syn 2.0.106",
+ "syn-inline-mod",
+ "tempfile",
+ "thiserror",
+ "tree-sitter",
+ "tree-sitter-generate",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -90,19 +315,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
 
 [[package]]
+name = "atomic-polyfill"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cf2bce30dfe09ef0bfaef228b9d414faaf7e563035494d7fe092dba54b300f4"
+dependencies = [
+ "critical-section",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
-
-[[package]]
-name = "bincode"
-version = "1.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "bitflags"
@@ -124,6 +349,12 @@ name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
+
+[[package]]
+name = "byteorder"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "c2rust-bitfields"
@@ -212,6 +443,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 
 [[package]]
+name = "cobs"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fa961b519f0b462e3a3b4a34b64d119eeaca1d59af726fe450bbba07a9fc0a1"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
 name = "codemap"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -259,6 +499,12 @@ checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "critical-section"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
 
 [[package]]
 name = "crossbeam-deque"
@@ -321,6 +567,18 @@ name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+
+[[package]]
+name = "embedded-io"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef1a6892d9eef45c8fa6b9e0086428a2cca8491aca8f787c534a3d6d0bcb3ced"
+
+[[package]]
+name = "embedded-io"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
 name = "encode_unicode"
@@ -394,10 +652,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
+name = "hash32"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+
+[[package]]
+name = "heapless"
+version = "0.7.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdc6457c0eb62c71aac4bc17216026d8410337c4126773b9c5daba343f17964f"
+dependencies = [
+ "atomic-polyfill",
+ "hash32",
+ "rustc_version",
+ "serde",
+ "spin",
+ "stable_deref_trait",
+]
 
 [[package]]
 name = "heck"
@@ -605,6 +886,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
+name = "lock_api"
+version = "0.4.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
+dependencies = [
+ "scopeguard",
+]
+
+[[package]]
 name = "log"
 version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -652,6 +942,19 @@ name = "percent-encoding"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
+
+[[package]]
+name = "postcard"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6764c3b5dd454e283a30e6dfe78e9b31096d9e32036b5d1eaac7a6119ccb9a24"
+dependencies = [
+ "cobs",
+ "embedded-io 0.4.0",
+ "embedded-io 0.6.1",
+ "heapless",
+ "serde",
+]
 
 [[package]]
 name = "potential_utf"
@@ -746,131 +1049,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
-name = "adze"
-version = "0.8.0-dev"
-dependencies = [
- "ahash",
- "anyhow",
- "indexmap",
- "log",
- "once_cell",
- "rayon",
- "regex",
- "adze-glr-core",
- "adze-ir",
- "adze-macro",
- "adze-tablegen",
- "smallvec",
- "thiserror",
- "tree-sitter",
- "tree-sitter-c2rust",
-]
-
-[[package]]
-name = "adze-common"
-version = "0.8.0-dev"
-dependencies = [
- "quote",
- "syn 2.0.106",
-]
-
-[[package]]
-name = "adze-example"
-version = "0.8.0-dev"
-dependencies = [
- "codemap",
- "codemap-diagnostic",
- "insta",
- "adze",
- "adze-glr-core",
- "adze-tool",
- "toml",
- "tree-sitter-c2rust",
- "wasm-bindgen-test",
-]
-
-[[package]]
-name = "adze-glr-core"
-version = "0.8.0-dev"
-dependencies = [
- "bincode",
- "fixedbitset",
- "indexmap",
- "adze-ir",
- "rustc-hash",
- "serde",
- "thiserror",
- "typed-arena",
-]
-
-[[package]]
-name = "adze-ir"
-version = "0.8.0-dev"
-dependencies = [
- "anyhow",
- "indexmap",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "adze-macro"
-version = "0.8.0-dev"
-dependencies = [
- "proc-macro2",
- "quote",
- "adze-common",
- "syn 2.0.106",
-]
-
-[[package]]
-name = "adze-tablegen"
-version = "0.8.0-dev"
-dependencies = [
- "chrono",
- "indexmap",
- "proc-macro2",
- "quote",
- "adze-glr-core",
- "adze-ir",
- "rustc-hash",
- "rustc_version_runtime",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "tree-sitter-c2rust",
-]
-
-[[package]]
-name = "adze-tool"
-version = "0.8.0-dev"
-dependencies = [
- "anyhow",
- "cc",
- "clap",
- "glob",
- "indexmap",
- "prettyplease",
- "proc-macro2",
- "quote",
- "regex",
- "adze-common",
- "adze-glr-core",
- "adze-ir",
- "adze-tablegen",
- "serde",
- "serde_json",
- "syn 2.0.106",
- "syn-inline-mod",
- "tempfile",
- "thiserror",
- "tree-sitter",
- "tree-sitter-generate",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -928,6 +1106,12 @@ checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
 ]
+
+[[package]]
+name = "scopeguard"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "semver"
@@ -1014,6 +1198,15 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+
+[[package]]
+name = "spin"
+version = "0.9.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+dependencies = [
+ "lock_api",
+]
 
 [[package]]
 name = "stable_deref_trait"

@@ -3,9 +3,9 @@
 
 repository:
   name: adze
-  description: "Adze: Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable (not affiliated)."
-  homepage: https://github.com/EffortlessMetrics/adze
-  topics: adze, parsing, rust, glr-parsing, parser-generator, grammar, codegen, incremental-parsing, tree-sitter, compiler
+  description: "Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable."
+  homepage: https://effortlesssteven.com
+  topics: adze, rust, parsing, glr-parsing, parser-generator, grammar, codegen, incremental-parsing, tree-sitter, proc-macro
   has_issues: true
   has_projects: false
   has_wiki: false

@@ -310,6 +310,12 @@ pub trait Extract<Output>: sealed::Sealed {
     ) -> Output;
 }
 
+/// Helper for providing a default implementation of extract for types that don't need it.
+pub trait ExtractDefault<Output>: Extract<Output> {
+    /// Extracts a default value when no other extraction is possible.
+    fn extract_default(last_idx: usize) -> Output;
+}
+
 /// Helper struct for specifying leaf extraction logic.
 pub struct WithLeaf<L> {
     _phantom: std::marker::PhantomData<L>,
@@ -327,9 +333,16 @@ impl<L> Extract<L> for WithLeaf<L> {
         _last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
     ) -> L {
-        node.and_then(|n| n.utf8_text(source).ok())
-            .map(|s| leaf_fn.unwrap()(s))
-            .unwrap()
+        let text = node
+            .and_then(|n| n.utf8_text(source).ok())
+            .unwrap_or_default();
+        if let Some(f) = leaf_fn {
+            f(text)
+        } else {
+            panic!(
+                "Leaf extraction failed: no transform function provided for type that requires one."
+            )
+        }
     }
 
     #[cfg(feature = "pure-rust")]
@@ -339,13 +352,21 @@ impl<L> Extract<L> for WithLeaf<L> {
         _last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
     ) -> L {
-        node.and_then(|n| {
-            // Extract text from node's byte range
-            let text = &source[n.start_byte..n.end_byte];
-            std::str::from_utf8(text).ok()
-        })
-        .map(|s| leaf_fn.unwrap()(s))
-        .unwrap()
+        let text = node
+            .and_then(|n| {
+                // Extract text from node's byte range
+                let text = &source[n.start_byte..n.end_byte];
+                std::str::from_utf8(text).ok()
+            })
+            .unwrap_or_default();
+
+        if let Some(f) = leaf_fn {
+            f(text)
+        } else {
+            panic!(
+                "Leaf extraction failed: no transform function provided for type that requires one."
+            )
+        }
     }
 }
 
@@ -625,7 +646,7 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
             if cursor.goto_first_child() {
                 loop {
                     let n = cursor.node();
-                    if cursor.field_name().is_some() {
+                    if cursor.field_name().is_some() || n.is_named() {
                         out.push(T::extract(Some(n), source, last_idx, leaf_fn));
                     }
 
@@ -915,12 +936,68 @@ impl Extract<String> for String {
         node.and_then(|n| {
             // Extract text from node's byte range
             let text = &source[n.start_byte..n.end_byte];
-            std::str::from_utf8(text).ok()
+            let res = std::str::from_utf8(text).ok();
+            println!(
+                "DEBUG String extract: symbol={}, range={}..{}, text={:?}",
+                n.symbol, n.start_byte, n.end_byte, res
+            );
+            res
         })
         .unwrap_or_default()
         .to_string()
     }
 }
+
+macro_rules! impl_extract_for_primitive {
+    ($t:ty) => {
+        impl Extract<$t> for $t {
+            type LeafFn = ();
+
+            #[cfg(not(feature = "pure-rust"))]
+            fn extract(
+                node: Option<tree_sitter::Node>,
+                source: &[u8],
+                _last_idx: usize,
+                _leaf_fn: Option<&Self::LeafFn>,
+            ) -> $t {
+                node.and_then(|n| n.utf8_text(source).ok())
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or_default()
+            }
+
+            #[cfg(feature = "pure-rust")]
+            fn extract(
+                node: Option<&crate::pure_parser::ParsedNode>,
+                source: &[u8],
+                _last_idx: usize,
+                _leaf_fn: Option<&Self::LeafFn>,
+            ) -> $t {
+                node.and_then(|n| {
+                    let text = &source[n.start_byte..n.end_byte];
+                    std::str::from_utf8(text).ok()
+                })
+                .and_then(|s| s.parse().ok())
+                .unwrap_or_default()
+            }
+        }
+    };
+}
+
+impl_extract_for_primitive!(i8);
+impl_extract_for_primitive!(i16);
+impl_extract_for_primitive!(i32);
+impl_extract_for_primitive!(i64);
+impl_extract_for_primitive!(i128);
+impl_extract_for_primitive!(isize);
+impl_extract_for_primitive!(u8);
+impl_extract_for_primitive!(u16);
+impl_extract_for_primitive!(u32);
+impl_extract_for_primitive!(u64);
+impl_extract_for_primitive!(u128);
+impl_extract_for_primitive!(usize);
+impl_extract_for_primitive!(f32);
+impl_extract_for_primitive!(f64);
+impl_extract_for_primitive!(bool);
 
 /// Error types for parsing operations.
 pub mod errors {

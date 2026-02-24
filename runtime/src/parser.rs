@@ -2,6 +2,7 @@
 // This implements the core parsing algorithm with GLR support
 
 use crate::external_scanner_ffi::TSLexer;
+use crate::linecol::LineCol;
 use crate::{InputEdit, Node, Point, Range, Tree, TreeCursor};
 use std::os::raw::c_void;
 
@@ -699,23 +700,8 @@ impl<'a> ExternalLexer<'a> {
     }
 
     fn calculate_line_info(input: &[u8], position: usize) -> (u32, usize) {
-        let mut line = 0u32;
-        let mut line_start = 0usize;
-
-        for i in 0..position.min(input.len()) {
-            if input[i] == b'\n' {
-                line += 1;
-                line_start = i + 1;
-            } else if input[i] == b'\r' {
-                if i + 1 < input.len() && input[i + 1] == b'\n' {
-                    continue; // CRLF
-                }
-                line += 1;
-                line_start = i + 1;
-            }
-        }
-
-        (line, line_start)
+        let tracker = LineCol::at_position(input, position);
+        (tracker.line as u32, tracker.line_start)
     }
 
     fn get_column(&self) -> u32 {

@@ -856,15 +856,21 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
                 // Decode the action
                 if action_index != 0 && symbol < lang.symbol_count as usize {
-                    let action = unsafe {
-                        let action_entry = &*lang.parse_actions.add(action_index);
-                        if action_entry.extra != 0
-                            && action_entry.action_type == TSActionTag::Shift as u8
-                        {
-                            extras_set.insert(SymbolId(symbol as u16));
+                    let action = if action_index == 0xFFFF {
+                        Action::Accept
+                    } else if action_index & 0x8000 != 0 {
+                        // Reduce action - for pure-rust backend, bits 14-0 contain sequential rule ID (1-based)
+                        let rule_id = (action_index & 0x7FFF) - 1;
+                        if rule_id < rules.len() {
+                            Action::Reduce(RuleId(rule_id as u16))
+                        } else {
+                            Action::Error
                         }
-                        decode_action(action_entry, &rules, &rid_by_pair)
+                    } else {
+                        // Shift action - bits 14-0 contain state ID
+                        Action::Shift(StateId(action_index as u16))
                     };
+
                     if !matches!(action, Action::Error) {
                         state_actions[symbol].push(action);
                     }
@@ -1226,13 +1232,16 @@ fn decode_action(
             // Accept action: parsing complete
             Action::Accept
         }
-        x if x == TSActionTag::Error as u8 => {
+        x if x == TSActionTag::Recover as u8 => {
             // Recover action: error recovery
-            // For now, treat as error
+            Action::Recover
+        }
+        x if x == TSActionTag::Error as u8 => {
+            // Error action
             Action::Error
         }
         _ => {
-            // Unknown action type
+            // Unknown action type // Expected: V for Recover
             Action::Error
         }
     }

@@ -241,7 +241,7 @@ impl Parser {
                 }
                 _ => {
                     // Action is #[non_exhaustive] - required wildcard
-                    bail!("Unknown action type");
+                    bail!("Unknown action type"); // Expected: V for Recover
                 }
             }
         }

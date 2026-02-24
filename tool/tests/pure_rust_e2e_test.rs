@@ -5,7 +5,7 @@ use std::fs;
 use tempfile::TempDir;
 
 #[test]
-#[ignore]
+#[ignore = "depends on full end-to-end grammar generation toolchain in CI"]
 fn test_json_grammar_generation() {
     let grammar_js = r#"
 module.exports = grammar({

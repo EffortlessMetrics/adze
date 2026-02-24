@@ -8,20 +8,6 @@ Err(
             reason: UnexpectedToken(
                 "end",
             ),
-            start: 0,
-            end: 0,
-        },
-        ParseError {
-            reason: UnexpectedToken(
-                "symbol 0",
-            ),
-            start: 1,
-            end: 1,
-        },
-        ParseError {
-            reason: UnexpectedToken(
-                "symbol 0",
-            ),
             start: 2,
             end: 2,
         },

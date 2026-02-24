@@ -1,0 +1,22 @@
+[package]
+name = "adze-glr-versioning"
+version = "0.8.0-dev"
+edition.workspace = true
+rust-version.workspace = true
+description = "Tree-sitter-compatible GLR parse-version comparison logic."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-glr-versioning"
+publish = false
+include = [
+    "Cargo.toml",
+    "LICENSE*",
+    "README*",
+    "src/**"
+]
+
+[features]
+default = []
+strict_docs = []
+strict_api = []

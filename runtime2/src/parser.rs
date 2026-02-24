@@ -399,7 +399,7 @@ impl Parser {
     /// - **Format version**: u32 version number (currently 1)
     /// - **Grammar hash**: SHA-256 hash for verification
     /// - **Metadata**: JSON metadata with grammar info, statistics, and feature flags
-    /// - **ParseTable**: Bincode-serialized parse table with GLR multi-action cells
+    /// - **ParseTable**: Postcard-serialized parse table with GLR multi-action cells
     ///
     /// # File Format Layout
     ///
@@ -417,7 +417,7 @@ impl Parser {
     /// ├────────────────────────────────┤
     /// │ Table Length (u32 LE)         │
     /// ├────────────────────────────────┤
-    /// │ ParseTable (bincode)          │ Serialized parse table
+    /// │ ParseTable (postcard)         │ Serialized parse table
     /// └────────────────────────────────┘
     /// ```
     ///
@@ -477,13 +477,13 @@ impl Parser {
     /// - Format version is unsupported (not 1)
     /// - Metadata section is truncated
     /// - Table data section is truncated
-    /// - ParseTable deserialization fails (corrupted bincode)
+    /// - ParseTable deserialization fails (corrupted postcard payload)
     ///
     /// # Performance
     ///
     /// - **Load time**: < 20ms for typical grammars (200-300 states)
     /// - **Memory overhead**: Parse table is leaked for 'static lifetime (~100-500 KB)
-    /// - **Zero-copy**: Uses bincode for efficient deserialization
+    /// - **Compact binary**: Uses postcard for efficient deserialization
     ///
     /// # Specification
     ///

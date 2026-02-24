@@ -2333,15 +2333,31 @@ pub fn build_lr1_automaton(
         rule_count += 1;
     }
 
-    // Calculate EOF symbol ID to avoid conflicts with existing symbols
-    // IMPORTANT: Include grammar.rules.keys() to account for non-terminals that
-    // may not have entries in rule_names (fixes EOF/non-terminal symbol ID collision)
+    // Build stable symbol partitions for table columns:
+    // EOF, internal terminals, external terminals, then nonterminals.
+    // Internal terminals are not limited to grammar.tokens; they may also come
+    // from literal/punctuation terminals that only appear in rule RHS.
+    let nonterminal_symbols: BTreeSet<SymbolId> = grammar.rules.keys().copied().collect();
+    let external_symbols: BTreeSet<SymbolId> =
+        grammar.externals.iter().map(|e| e.symbol_id).collect();
+    let mut rhs_terminals: BTreeSet<SymbolId> = BTreeSet::new();
+    for rule in grammar.all_rules() {
+        for sym in &rule.rhs {
+            if let Symbol::Terminal(id) = sym {
+                rhs_terminals.insert(*id);
+            }
+        }
+    }
+
+    // Calculate EOF symbol ID to avoid collisions with all known symbols,
+    // including RHS-only terminals.
     let max_symbol = grammar
         .tokens
         .keys()
         .chain(grammar.rule_names.keys())
-        .chain(grammar.rules.keys()) // Include all non-terminal LHS symbols
-        .chain(grammar.externals.iter().map(|e| &e.symbol_id))
+        .chain(nonterminal_symbols.iter())
+        .chain(external_symbols.iter())
+        .chain(rhs_terminals.iter())
         .map(|s| s.0)
         .max()
         .unwrap_or(0);
@@ -2371,6 +2387,16 @@ pub fn build_lr1_automaton(
     })?;
     let augmented_start = SymbolId(augmented_start_id);
 
+    // Find the max production ID in the original grammar
+    let max_production_id = grammar
+        .all_rules()
+        .map(|r| r.production_id.0)
+        .max()
+        .unwrap_or(0);
+    let augmented_production_id = max_production_id
+        .checked_add(1)
+        .ok_or_else(|| GLRError::StateMachine("Production ID overflow".into()))?;
+
     // Add S' -> S rule (we'll handle $ implicitly in the LR construction)
     let augmented_rule = Rule {
         lhs: augmented_start,
@@ -2378,7 +2404,7 @@ pub fn build_lr1_automaton(
         precedence: None,
         associativity: None,
         fields: vec![],
-        production_id: ProductionId(augmented_start_id), // Use same ID to avoid conflicts
+        production_id: ProductionId(augmented_production_id),
     };
     augmented_grammar
         .rules
@@ -2398,80 +2424,70 @@ pub fn build_lr1_automaton(
 
     // Create mapping from symbol IDs to table indices
     let mut symbol_to_index = BTreeMap::new();
-    let mut max_symbol_id = 0u16;
 
     // IMPORTANT: EOF symbol must always have index 0 in Tree-sitter
     symbol_to_index.insert(eof_symbol, 0);
 
-    // Collect and sort symbols with proper ordering:
-    // 1. Tokens first (terminals)
-    // 2. Then non-terminals
-    // 3. Then externals
-    // Within each category, sort by symbol ID for determinism
+    // Group symbols in Tree-sitter order:
+    // 1. EOF first (index 0)
+    // 2. Regular tokens (terminals)
+    // 3. External tokens (terminals)
+    // 4. Non-terminals last (gotos)
 
-    let mut token_symbols = Vec::new();
-    let mut non_terminal_symbols = Vec::new();
-    let mut external_symbols = Vec::new();
-
-    // Collect token IDs
-    for &symbol_id in grammar.tokens.keys() {
-        token_symbols.push(symbol_id);
-        max_symbol_id = max_symbol_id.max(symbol_id.0);
+    // Internal terminals are:
+    // (declared tokens ∪ RHS terminals) − nonterminals − externals − EOF.
+    let mut internal_terminals: BTreeSet<SymbolId> = grammar.tokens.keys().copied().collect();
+    internal_terminals.extend(rhs_terminals.iter().copied());
+    internal_terminals.remove(&eof_symbol);
+    for id in &external_symbols {
+        internal_terminals.remove(id);
+    }
+    for id in &nonterminal_symbols {
+        internal_terminals.remove(id);
     }
 
-    // Also collect terminals from rule RHS that might not be in grammar.tokens
-    for rule in augmented_grammar.all_rules() {
-        for symbol in &rule.rhs {
-            if let Symbol::Terminal(id) = symbol
-                && !token_symbols.contains(id)
-            {
-                token_symbols.push(*id);
-                max_symbol_id = max_symbol_id.max(id.0);
-            }
-        }
-    }
-
-    token_symbols.sort_by_key(|s| s.0);
-
-    // Collect non-terminal symbols (LHS of rules)
-    let mut non_terminals_set = BTreeSet::new();
-    for rule in grammar.all_rules() {
-        non_terminals_set.insert(rule.lhs);
-    }
-    for &symbol_id in &non_terminals_set {
-        // Skip if already in tokens (shouldn't happen but be safe)
-        if !grammar.tokens.contains_key(&symbol_id) {
-            non_terminal_symbols.push(symbol_id);
-            max_symbol_id = max_symbol_id.max(symbol_id.0);
-        }
-    }
-    non_terminal_symbols.sort_by_key(|s| s.0);
-
-    // Collect external IDs
-    for external in &grammar.externals {
-        external_symbols.push(external.symbol_id);
-        max_symbol_id = max_symbol_id.max(external.symbol_id.0);
-    }
-    external_symbols.sort_by_key(|s| s.0);
-
-    // Now assign indices: tokens first, then non-terminals, then externals
-    for symbol_id in &token_symbols {
-        if !symbol_to_index.contains_key(symbol_id) {
+    let mut internal_tokens: Vec<SymbolId> = internal_terminals.into_iter().collect();
+    internal_tokens.sort_by_key(|s| s.0);
+    for &id in &internal_tokens {
+        if !symbol_to_index.contains_key(&id) {
             let idx = symbol_to_index.len();
-            symbol_to_index.insert(*symbol_id, idx);
+            symbol_to_index.insert(id, idx);
         }
     }
 
-    for symbol_id in &non_terminal_symbols {
-        if !symbol_to_index.contains_key(symbol_id) {
-            symbol_to_index.insert(*symbol_id, symbol_to_index.len());
+    // Collect and sort external tokens
+    let mut ext_tokens: Vec<SymbolId> = external_symbols.iter().copied().collect();
+    ext_tokens.sort_by_key(|s| s.0);
+    for &id in &ext_tokens {
+        if !symbol_to_index.contains_key(&id) {
+            let idx = symbol_to_index.len();
+            symbol_to_index.insert(id, idx);
         }
     }
 
-    for symbol_id in &external_symbols {
-        if !symbol_to_index.contains_key(symbol_id) {
-            symbol_to_index.insert(*symbol_id, symbol_to_index.len());
+    // Collect and sort non-terminals
+    let mut non_terminals: Vec<SymbolId> = nonterminal_symbols.iter().copied().collect();
+    non_terminals.sort_by_key(|s| s.0);
+    for id in non_terminals {
+        if !symbol_to_index.contains_key(&id) {
+            let idx = symbol_to_index.len();
+            symbol_to_index.insert(id, idx);
         }
+    }
+
+    // Any remaining symbols indicate partition drift and should be investigated.
+    let mut other_symbols: Vec<SymbolId> = grammar
+        .rule_names
+        .keys()
+        .cloned()
+        .filter(|id| !symbol_to_index.contains_key(id))
+        .collect();
+    other_symbols.sort_by_key(|s| s.0);
+    if !other_symbols.is_empty() {
+        return Err(GLRError::StateMachine(format!(
+            "Unexpected symbols outside terminal/nonterminal partitions: {:?}",
+            other_symbols
+        )));
     }
 
     // Calculate the final symbol count after adding all symbols including EOF
@@ -2486,6 +2502,36 @@ pub fn build_lr1_automaton(
 
     // Track conflicts as we build the table
     let mut conflicts_by_state: BTreeMap<(usize, usize), Vec<Action>> = BTreeMap::new();
+
+    // Build rules for reduction and collect precedence info
+    let mut rules = Vec::new();
+    let mut dynamic_prec_by_rule = Vec::new();
+    let mut rule_assoc_by_rule = Vec::new();
+    let mut production_to_rule_id = BTreeMap::new();
+
+    for (rule_id, rule) in grammar.all_rules().enumerate() {
+        production_to_rule_id.insert(rule.production_id.0, rule_id as u16);
+        rules.push(ParseRule {
+            lhs: rule.lhs,
+            rhs_len: rule.rhs.len() as u16,
+        });
+
+        // Extract precedence value for this rule
+        let prec = match rule.precedence {
+            Some(adze_ir::PrecedenceKind::Static(p)) => p,
+            Some(adze_ir::PrecedenceKind::Dynamic(p)) => p,
+            None => 0,
+        };
+        dynamic_prec_by_rule.push(prec);
+
+        // Extract associativity for this rule
+        let assoc = match rule.associativity {
+            Some(adze_ir::Associativity::Left) => 1,
+            Some(adze_ir::Associativity::Right) => -1,
+            _ => 0,
+        };
+        rule_assoc_by_rule.push(assoc);
+    }
 
     // Debug: Print goto table entries
     eprintln!(
@@ -2632,8 +2678,9 @@ pub fn build_lr1_automaton(
                 if let Some(rule) = augmented_grammar
                     .all_rules()
                     .find(|r| r.production_id.0 == item.rule_id.0)
+                    && rule.lhs == augmented_start
                 {
-                    if rule.lhs == augmented_start && item.lookahead == eof_symbol {
+                    if item.lookahead == eof_symbol {
                         // This is S' -> S • with lookahead $, add accept action
                         if let Some(&eof_idx) = symbol_to_index.get(&eof_symbol) {
                             add_action_with_conflict(
@@ -2644,49 +2691,45 @@ pub fn build_lr1_automaton(
                                 Action::Accept,
                             );
                         }
-                    } else {
-                        // Regular reduce action - but check precedence first
+                    }
+                    // NEVER add a regular reduce action for the augmented start rule
+                    continue;
+                }
 
-                        // Check if this is an empty production
-                        let rule = augmented_grammar
-                            .all_rules()
-                            .find(|r| r.production_id.0 == item.rule_id.0)
-                            .expect("Rule not found");
-                        let is_empty_production = rule.rhs.is_empty();
+                // Regular reduce action
+                if let Some(&rule_id) = production_to_rule_id.get(&item.rule_id.0) {
+                    let rule = &rules[rule_id as usize];
+                    let is_empty_production = rule.rhs_len == 0;
 
-                        // For empty productions, we need to add reduce actions for all symbols in FOLLOW set
-                        let lookaheads_to_check: Vec<SymbolId> = if is_empty_production {
-                            // Get FOLLOW set for the LHS of this rule
-                            if let Some(follow_set) = first_follow.follow(rule.lhs) {
-                                // Map FOLLOW set symbols to actual parse table symbols.
-                                // This replaces EOF_SENTINEL (SymbolId(0)) with the actual eof_symbol.
-                                follow_set
-                                    .ones()
-                                    .map(|idx| map_follow_symbol(SymbolId(idx as u16), eof_symbol))
-                                    .collect()
-                            } else {
-                                vec![item.lookahead]
-                            }
+                    // For empty productions, we need to add reduce actions for all symbols in FOLLOW set
+                    let lookaheads_to_check: Vec<SymbolId> = if is_empty_production {
+                        // Get FOLLOW set for the LHS of this rule
+                        if let Some(follow_set) = first_follow.follow(rule.lhs) {
+                            // Map FOLLOW set symbols to actual parse table symbols.
+                            // This replaces EOF_SENTINEL (SymbolId(0)) with the actual eof_symbol.
+                            follow_set
+                                .ones()
+                                .map(|idx| map_follow_symbol(SymbolId(idx as u16), eof_symbol))
+                                .collect()
                         } else {
                             vec![item.lookahead]
-                        };
+                        }
+                    } else {
+                        vec![item.lookahead]
+                    };
 
-                        for lookahead in lookaheads_to_check {
-                            if let Some(&lookahead_idx) = symbol_to_index.get(&lookahead) {
-                                let new_action = Action::Reduce(item.rule_id);
+                    for lookahead in lookaheads_to_check {
+                        if let Some(&lookahead_idx) = symbol_to_index.get(&lookahead) {
+                            let new_action = Action::Reduce(RuleId(rule_id));
 
-                                // Always add reduce actions - let conflict resolution handle precedence
-                                add_action_with_conflict(
-                                    &mut action_table,
-                                    &mut conflicts_by_state,
-                                    state_idx,
-                                    lookahead_idx,
-                                    new_action,
-                                );
-
-                                // Debug: Log reduce actions being added
-                                // "DEBUG: State {} - Adding reduce action for lookahead {} (symbol {}) -> reduce by rule {}"
-                            }
+                            // Always add reduce actions - let conflict resolution handle precedence
+                            add_action_with_conflict(
+                                &mut action_table,
+                                &mut conflicts_by_state,
+                                state_idx,
+                                lookahead_idx,
+                                new_action,
+                            );
                         }
                     }
                 }
@@ -2699,8 +2742,8 @@ pub fn build_lr1_automaton(
 
     // Build precedence tables once
     let production_count = augmented_grammar.all_rules().count() as u32;
-    // Ensure token_count includes at least EOF (symbol 0) for empty grammars
-    let token_count = std::cmp::max(1, token_symbols.len()) as u32;
+    // token_count includes EOF (symbol 0 in table) plus all regular tokens.
+    let token_count = (internal_tokens.len() + 1) as u32;
     let prec_tables = build_prec_tables(
         &augmented_grammar,
         &symbol_to_index,
@@ -2709,9 +2752,9 @@ pub fn build_lr1_automaton(
     );
 
     // Calculate the first non-terminal index
-    // Terminals are: EOF (index 0) + token_symbols (indices 1..=token_symbols.len())
-    // So first non-terminal is at index token_symbols.len() + 1
-    let first_nonterminal_idx = token_symbols.len() + 1;
+    // Terminals are: EOF + internal tokens + external tokens.
+    // So first non-terminal is at the terminal boundary.
+    let first_nonterminal_idx = internal_tokens.len() + ext_tokens.len() + 1;
 
     // Resolve conflicts using precedence
     for ((state_idx, symbol_idx), _actions) in conflicts_by_state {
@@ -2722,8 +2765,8 @@ pub fn build_lr1_automaton(
             "symbol_idx out of bounds"
         );
 
-        // Only resolve on TOKEN columns (never on gotos)
-        // Terminals occupy indices 0 (EOF) through token_symbols.len()
+        // Only resolve on terminal columns (never on gotos).
+        // Terminals occupy indices [0, first_nonterminal_idx).
         if symbol_idx >= first_nonterminal_idx {
             continue; // Skip non-terminal columns
         }
@@ -2921,43 +2964,10 @@ pub fn build_lr1_automaton(
         }
     }
 
-    // Build rules for reduction and collect precedence info
-    let mut rules = Vec::new();
-    let mut dynamic_prec_by_rule = Vec::new();
-    let mut rule_assoc_by_rule = Vec::new();
-
-    for rule in grammar.all_rules() {
-        rules.push(ParseRule {
-            lhs: rule.lhs,
-            rhs_len: rule.rhs.len() as u16,
-        });
-
-        // Extract precedence value for this rule
-        let prec = match rule.precedence {
-            Some(adze_ir::PrecedenceKind::Static(p)) => p,
-            Some(adze_ir::PrecedenceKind::Dynamic(p)) => p,
-            None => 0,
-        };
-        dynamic_prec_by_rule.push(prec);
-
-        // Extract associativity for this rule
-        let assoc = match rule.associativity {
-            Some(adze_ir::Associativity::Left) => 1,
-            Some(adze_ir::Associativity::Right) => -1,
-            _ => 0,
-        };
-        rule_assoc_by_rule.push(assoc);
-    }
-
     // Build nonterminal_to_index mapping
     let mut nonterminal_to_index = BTreeMap::new();
     for (&symbol_id, &idx) in &symbol_to_index {
-        // Check if this is a nonterminal
-        if !grammar.tokens.contains_key(&symbol_id)
-            && !grammar.externals.iter().any(|e| e.symbol_id == symbol_id)
-            && symbol_id != eof_symbol
-        {
-            // Not EOF
+        if nonterminal_symbols.contains(&symbol_id) {
             nonterminal_to_index.insert(symbol_id, idx);
         }
     }
@@ -2965,8 +2975,9 @@ pub fn build_lr1_automaton(
     let _rule_count = rules.len();
 
     // Calculate proper counts for EOF symbol
-    let token_count = grammar.tokens.len();
-    let external_token_count = grammar.externals.len();
+    // token_count includes EOF (Symbol 0 in table) + all internal tokens
+    let token_count = internal_tokens.len() + 1;
+    let external_token_count = ext_tokens.len();
 
     // Normalize action table for deterministic output
     normalize_action_table(&mut action_table);

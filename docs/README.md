@@ -1,72 +1,67 @@
 # Adze Documentation
 
-This directory contains documentation for Adze.
+> **Status:** Documentation structured according to the [Diataxis framework](https://diataxis.fr/) for Adze 0.8.0-dev.
 
-## Getting Started
+Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain for building high-performance parsers.
 
-- [Getting Started Guide](./GETTING_STARTED.md) - Comprehensive guide to building parsers with macro-based grammars
-- [Installation and Quick Start](../README.md#installation) - Get up and running quickly
-- [Developer Workflow](./dev-workflow.md) - Linting, testing, and development commands
-- [Migration to v0.5](./migration-to-v0.5.md) - Upgrading from earlier versions
+---
 
-## Core Guides
+## 🎓 Tutorials
+*Learning-oriented: guided lessons to help you get started.*
 
-### Grammar Development
-- [Grammar Examples](./GRAMMAR_EXAMPLES.md) - Example grammars and patterns
-- [Usage Examples](./USAGE_EXAMPLES.md) - Practical usage examples
-- [Empty Production Rules](./empty-production-rules.md) - Handling empty rules
-- [Empty Rules Quick Reference](./empty-rules-quick-reference.md) - Quick reference for empty rules
-- [Optimizer Usage](./optimizer-usage.md) - Grammar optimization guide
-- [Precedence Troubleshooting](./precedence-troubleshooting.md) - Debugging precedence issues
+- [**Your First Parser**](./tutorials/getting-started.md) - Build a working calculator parser in 5 minutes.
+- [**GLR Quickstart**](./tutorials/glr-quickstart.md) - Understanding and building your first ambiguous grammar.
 
-### Testing
-- [Testing Framework](./TESTING_FRAMEWORK.md) - Comprehensive testing guide
-- [Test Strategy](./TEST_STRATEGY.md) - Testing strategies and best practices
+---
 
-### Performance
-- [Performance Guide](./PERFORMANCE_GUIDE.md) - Optimization and benchmarking
-- [Performance Improvements](./PERFORMANCE_IMPROVEMENTS.md) - Performance enhancement techniques
-- [Performance](./PERFORMANCE.md) - General performance information
+## 🛠️ How-to Guides
+*Task-oriented: step-by-step guides to solve specific problems.*
 
-### Language and Tools
-- [Language Support](./LANGUAGE_SUPPORT.md) - Supported language grammars
-- [LSP Generator](./LSP_GENERATOR.md) - Generate language servers
-- [Playground](./PLAYGROUND.md) - Interactive grammar development (planned)
-- [Custom Hover](./how-to-custom-hover.md) - Customizing LSP hover support
+- [**Handling Precedence**](./how-to/handle-precedence.md) - How to resolve operator ambiguity and associativity.
+- [**External Scanners**](./how-to/external-scanners.md) - Integrating custom Rust/C logic for indentation and complex tokens.
+- [**Testing Grammars**](./how-to/test-grammars.md) - Using unit tests, snapshots, and golden tests.
+- [**Incremental Parsing**](./how-to/incremental-parsing.md) - Reparsing partial text changes for IDE performance.
+- [**Optimizing Performance**](./how-to/optimize-performance.md) - SIMD, GLR tuning, and profiling your parser.
+- [**LSP Generation**](./how-to/generate-lsp.md) - Generating a Language Server for your grammar.
+- [**Using the Playground**](./how-to/use-playground.md) - Developing grammars interactively in the browser.
+- [**Visualizing GLR**](./how-to/visualize-glr.md) - Debugging forks and stacks with visual tools.
+- [**Querying with Metadata**](./how-to/query-with-metadata.md) - Using symbol metadata in Tree-sitter queries.
+- [**C++ Templates Cookbook**](./how-to/cookbook-cpp-templates.md) - Best practices for parsing complex C++ constructs.
 
-## Advanced Topics
+---
 
-### GLR Parsing
-- [GLR Internals](./glr_internals.md) - GLR parser implementation details
-- [GLR Visualization Guide](./glr-visualization-guide.md) - Visualizing GLR parse trees
-- [Goto Indexing Invariants](./goto-indexing-invariants.md) - GLR goto table invariants
+## 📚 Reference
+*Information-oriented: technical descriptions and specifications.*
 
-### Incremental Parsing
-- [Incremental Parsing](./incremental-parsing.md) - Incremental parsing guide
+- [**API Reference**](./reference/api.md) - Detailed docs for the `adze` crate and macro attributes.
+- [**Grammar Examples**](./reference/grammar-examples.md) - Patterns for common constructs (Choices, Repeats, Optionals).
+- [**Usage Examples**](./reference/usage-examples.md) - Practical code snippets for common tasks.
+- [**Language Support**](./reference/language-support.md) - Status of built-in grammars (Python, JS, Go).
+- [**Known Limitations**](./reference/known-limitations.md) - Current status of experimental features.
+- [**Tree-sitter Compatibility**](./reference/tree-sitter-compatibility.md) - Adze's implementation of the Tree-sitter table format.
+- [**Empty Rules Reference**](./reference/empty-rules-reference.md) - Quick reference for handling ε-productions.
 
-### Query System
-- [Predicate Evaluation](./predicate-evaluation.md) - Query predicate evaluation
+---
 
-## Technical Specifications
+## 💡 Explanations
+*Understanding-oriented: conceptual background and architectural theory.*
 
-- [Tree-sitter Table Format Spec](./ts_spec.md) - Tree-sitter compatibility layer
-- [Known Limitations](./KNOWN_LIMITATIONS.md) - Current limitations and workarounds
+- [**Architecture Overview**](./explanations/architecture.md) - How the Macro, Tool, and Runtime fit together.
+- [**GLR Internals**](./explanations/glr-internals.md) - Deep dive into the Generalized LR engine.
+- [**Incremental Theory**](./explanations/incremental-parsing-theory.md) - The Direct Forest Splicing algorithm.
+- [**Test Strategy**](./explanations/test-strategy.md) - Why and how we test Adze.
+- [**Arena Allocation**](./explanations/arena-allocator.md) - Efficient memory management for parse trees.
+- [**Symbol Normalization**](./explanations/symbol-normalization.md) - How Adze simplifies complex grammar rules.
+- [**Query Predicates**](./explanations/query-predicates.md) - How #eq?, #match?, etc. are evaluated.
+- [**Empty Rules Theory**](./explanations/empty-rules.md) - The challenges of nullable productions in LR(1).
+- [**GOTO Indexing**](./explanations/goto-indexing.md) - Mathematical invariants of our table compression.
 
-## Development Resources
+---
 
-- [Developer Guide](./DEVELOPER_GUIDE.md) - Developer documentation
-- [PR Template](./PR_TEMPLATE.md) - Pull request template
+## Project Status
 
-### Cookbooks
-- [C++ Templates Cookbook](./cookbook_cpp_templates.md) - Parsing C++ templates
-
-## Historical Documentation
-
-See [archive/](./archive/) for historical documentation, status reports, and planning documents archived in February 2026.
-
-## External Resources
-
-- [Main README](../README.md) - Project overview
-- [Contributing Guide](../CONTRIBUTING.md) - How to contribute
-- [Roadmap](../ROADMAP.md) - Project roadmap and future plans
-- [API Documentation](../API_DOCUMENTATION.md) - API reference
+- [**Roadmap**](../ROADMAP.md) - Milestones for 0.8.0, 0.9.0, and 1.0.
+- [**Friction Log**](./status/FRICTION_LOG.md) - Current developer pain points we are burning down.
+- [**Now / Next / Later**](./status/NOW_NEXT_LATER.md) - Rolling execution plan.
+- [**Known Red**](./status/KNOWN_RED.md) - Exclusions from the supported CI lane.
+- [**PR Template**](./PR_TEMPLATE.md) - Checklist for contributors.

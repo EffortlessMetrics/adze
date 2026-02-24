@@ -14,7 +14,7 @@ fn debug_extraction_state_0() {
     println!("=== Debugging state 0 actions ===");
 
     // Get symbol counts
-    let (symc, stc, tokc, extc) = lang.counts();
+    let (symc, stc, tokc, extc, _lstc) = lang.counts();
     println!(
         "Counts: symbols={}, states={}, tokens={}, external={}",
         symc, stc, tokc, extc

@@ -20,8 +20,9 @@ fn counts_and_names_match_runtime() {
     let data = extract(lang_fn).expect("extract failed");
     let lang = SafeLang(get_json_language());
 
-    let (symc, stc, tokc, extc) = lang.counts();
-    assert_eq!(data.symbol_count as u32, symc);
+    let (symc, stc, tokc, extc, _lstc) = lang.counts();
+    // Note: data.symbol_count includes 1 extra for our synthetic EOF sentinel
+    assert_eq!(data.symbol_count as u32, symc + 1);
     assert_eq!(data.state_count as u32, stc);
     assert!(tokc > 0);
     assert!(extc >= 0);

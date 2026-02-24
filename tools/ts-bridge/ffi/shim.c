@@ -1,6 +1,7 @@
 #include "shim.h"
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 // Use real Tree-sitter headers
 #include <tree_sitter/api.h>
@@ -20,7 +21,7 @@ uint32_t tsb_min_compatible_version(void) {
 
 void tsb_counts(const TSLanguage* lang,
                 uint32_t* symc, uint32_t* stc,
-                uint32_t* tokc, uint32_t* extc) {
+                uint32_t* tokc, uint32_t* extc, uint32_t* lstc) {
   *symc = ts_language_symbol_count(lang);
   *stc  = ts_language_state_count(lang);
 
@@ -28,6 +29,15 @@ void tsb_counts(const TSLanguage* lang,
   const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
   *tokc = lang_internal->token_count;
   *extc = lang_internal->external_token_count;
+  *lstc = lang_internal->large_state_count;
+
+  // Debug: print entry 92
+  const TSParseActionEntry *entry92 = &lang_internal->parse_actions[92];
+
+  // Debug: print small_parse_table_map
+  uint32_t small_state_count = lang_internal->state_count - lang_internal->large_state_count;
+  for (uint32_t i = 0; i < small_state_count; i++) {
+  }
 }
 
 const char* tsb_symbol_name(const TSLanguage* lang, uint32_t sym) {
@@ -48,37 +58,42 @@ TsbSymbolMetadata tsb_symbol_metadata(const TSLanguage* lang, uint32_t sym) {
 // These are internal Tree-sitter functions not exposed in the public API
 extern uint32_t ts_language_lookup(const TSLanguage *, TSStateId, TSSymbol);
 extern TSStateId ts_language_next_state(const TSLanguage *, TSStateId, TSSymbol);
+extern const TSParseAction *ts_language_actions(const TSLanguage *, TSStateId, TSSymbol, uint32_t *);
+
+// Iterator functions (defined in language.c but might not be in api.h)
+TSLookaheadIterator *ts_lookahead_iterator_new(const TSLanguage *self, TSStateId state);
+void ts_lookahead_iterator_delete(TSLookaheadIterator *self);
+bool ts_lookahead_iterator_next(TSLookaheadIterator *self);
 
 uint32_t tsb_table_entry(const TSLanguage* lang,
                          uint32_t state, uint32_t symbol,
                          TsbEntryHeader* out_hdr) {
-  // Use internal knowledge of how Tree-sitter stores actions
-  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
-  
-  // Special handling for error symbols
-  if (symbol == (uint32_t)-1 || symbol == (uint32_t)-2) {
-    out_hdr->count = 0;
-    out_hdr->reusable = false;
-    out_hdr->action_index = 0;
+  TSLookaheadIterator *it = ts_lookahead_iterator_new(lang, (TSStateId)state);
+  if (!it) {
     return 0;
   }
-  
-  // Get the action index from the lookup table
-  uint32_t action_index = ts_language_lookup(lang, (TSStateId)state, (TSSymbol)symbol);
-  if (action_index == 0) {
-    out_hdr->count = 0;
-    out_hdr->reusable = false;
-    out_hdr->action_index = 0;
-    return 0;
-  }
-  
-  // Get the entry from parse_actions
-  const TSParseActionEntry *entry = &lang_internal->parse_actions[action_index];
-  out_hdr->count = entry->entry.count;
-  out_hdr->reusable = entry->entry.reusable;
-  out_hdr->action_index = action_index;
 
-  return action_index;
+  uint32_t result_idx = 0;
+  bool found = false;
+
+  // The iterator is already at the first symbol after new()
+  // because new() calls reset() which calls next().
+  do {
+    if (it->symbol == (TSSymbol)symbol) {
+      const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+      const TSParseAction *actions_base = (const TSParseAction *)lang_internal->parse_actions;
+      result_idx = (uint32_t)(it->actions - actions_base) - 1;
+
+      out_hdr->count = (uint8_t)it->action_count;
+      out_hdr->reusable = true;
+      out_hdr->action_index = result_idx;
+      found = true;
+      break;
+    }
+  } while (ts_lookahead_iterator_next(it));
+
+  ts_lookahead_iterator_delete(it);
+  return found ? result_idx : 0;
 }
 
 static inline TsbAction from_ts_action(TSParseAction act) {
@@ -128,7 +143,31 @@ uint32_t tsb_next_state(const TSLanguage* lang, uint32_t state, uint32_t nonterm
 }
 
 uint32_t tsb_detect_start_symbol(const TSLanguage* lang) {
-  // Simplified - many grammars have start at symbol 1
+  uint32_t symc = ts_language_symbol_count(lang);
+  uint32_t stc = ts_language_state_count(lang);
+  const TSLanguage_Internal* lang_internal = (const TSLanguage_Internal*)lang;
+  uint32_t tokc = lang_internal->token_count;
+  uint32_t extc = lang_internal->external_token_count;
+  uint32_t term_boundary = tokc + extc;
+
+  // Search through states (prioritize 0 and 1 as they are common initial states)
+  for (uint32_t state = 0; state < stc; state++) {
+    for (uint32_t sym = term_boundary; sym < symc; sym++) {
+      TSStateId next_state = ts_language_next_state(lang, (TSStateId)state, (TSSymbol)sym);
+      if (next_state != 0) {
+        uint32_t count = 0;
+        const TSParseAction *actions = ts_language_actions(lang, next_state, 0, &count);
+        for (uint32_t i = 0; i < count; i++) {
+          if (actions[i].type == TSParseActionTypeAccept) {
+            return sym;
+          }
+        }
+      }
+    }
+    if (state > 10) break; // Don't search too far
+  }
+
+  // Fallback to symbol 1 if not found
   return 1;
 }
 

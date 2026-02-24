@@ -2,7 +2,7 @@ use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::Grammar;
 
 #[test]
-#[ignore]
+#[ignore = "negative-path contract test kept for local debugging only"]
 fn error_roundtrip_propagates_failure() {
     // Create an invalid grammar that will fail during automaton construction
     // Empty grammar will fail when trying to build automaton

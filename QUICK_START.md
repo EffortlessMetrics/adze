@@ -1,5 +1,9 @@
 # Quick Start - Get Parsing in 5 Minutes
 
+> **Doc status:** being refreshed to match dev head (0.8.0-dev).
+> If something here disagrees with the repo, treat the repo as truth
+> and log it in [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md).
+
 **Goal**: Get a working parser running in 5 minutes or less.
 
 No deep knowledge required. Copy, paste, run, parse! 🚀
@@ -17,10 +21,10 @@ cd my-parser
 cat >> Cargo.toml <<'EOF'
 
 [dependencies]
-adze = "0.6"
+adze = "0.8.0-dev"
 
 [build-dependencies]
-adze-tool = "0.6"
+adze-tool = "0.8.0-dev"
 EOF
 ```
 
@@ -197,7 +201,7 @@ Paren(
 ## Get Help
 
 - **Questions?** Check [FAQ.md](./FAQ.md)
-- **Stuck?** See [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) (coming in v0.7.0)
+- **Stuck?** [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 - **Want to contribute?** See [CONTRIBUTING.md](./CONTRIBUTING.md)
 - **Report bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 

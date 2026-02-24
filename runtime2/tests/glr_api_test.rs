@@ -74,6 +74,8 @@ mod glr_api_tests {
                 },
             ],
             field_names: vec![],
+            #[cfg(feature = "external-scanners")]
+            external_scanner: None,
         };
 
         // This should work even though the language doesn't have a parse_table

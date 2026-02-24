@@ -1,12 +1,19 @@
 ---
-source: example/src/optionals.rs
+source: src/optionals.rs
 expression: "grammar::parse(\"_\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "symbol 0",
+                "end",
+            ),
+            start: 1,
+            end: 1,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
             ),
             start: 1,
             end: 1,

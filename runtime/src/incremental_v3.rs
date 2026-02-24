@@ -299,7 +299,7 @@ impl<'a> IncrementalParseSession<'a> {
                 }
                 _ => {
                     // Action is #[non_exhaustive] - required wildcard
-                    anyhow::bail!("Unknown action type");
+                    anyhow::bail!("Unknown action type"); // Expected: V for Recover
                 }
             }
         }

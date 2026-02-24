@@ -10,6 +10,8 @@ pub enum TSActionTag {
     Error = 0,
     /// Shift action tag.
     Shift = 1,
+    /// Recover action tag.
+    Recover = 2,
     /// Reduce action tag (Tree-sitter uses 3 for Reduce, not 2).
     Reduce = 3, // Tree-sitter uses 3 for Reduce (not 2)
     /// Accept action tag (Tree-sitter uses 4 for Accept, not 3).

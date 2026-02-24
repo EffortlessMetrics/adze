@@ -194,6 +194,66 @@ fn create_json_grammar() -> Grammar {
         production_id: ProductionId(7),
     });
 
+    // members → member | member , members
+    grammar.rules.entry(members_id).or_default().push(Rule {
+        lhs: members_id,
+        rhs: vec![Symbol::NonTerminal(member_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(8),
+    });
+
+    grammar.rules.entry(members_id).or_default().push(Rule {
+        lhs: members_id,
+        rhs: vec![
+            Symbol::NonTerminal(member_id),
+            Symbol::Terminal(comma_id),
+            Symbol::NonTerminal(members_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(9),
+    });
+
+    // member → string : value
+    grammar.rules.entry(member_id).or_default().push(Rule {
+        lhs: member_id,
+        rhs: vec![
+            Symbol::Terminal(string_id),
+            Symbol::Terminal(colon_id),
+            Symbol::NonTerminal(value_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(10),
+    });
+
+    // elements → value | value , elements
+    grammar.rules.entry(elements_id).or_default().push(Rule {
+        lhs: elements_id,
+        rhs: vec![Symbol::NonTerminal(value_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(11),
+    });
+
+    grammar.rules.entry(elements_id).or_default().push(Rule {
+        lhs: elements_id,
+        rhs: vec![
+            Symbol::NonTerminal(value_id),
+            Symbol::Terminal(comma_id),
+            Symbol::NonTerminal(elements_id),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(12),
+    });
+
     grammar
 }
 

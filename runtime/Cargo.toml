@@ -1,13 +1,13 @@
 [package]
 name = "adze"
-description = "Adze: Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable (not affiliated)."
+description = "Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable."
 readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
+authors.workspace = true
 edition = "2024"
 license = "MIT OR Apache-2.0"
-keywords = ["parsing", "codegen"]
+keywords = ["parsing", "glr", "grammar", "tree-sitter", "codegen"]
 categories = ["development-tools"]
 build = "build.rs"
 
@@ -55,6 +55,8 @@ adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
+adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
+adze-concurrency-caps-core = { version = "0.1.0", path = "../crates/concurrency-caps-core" }
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.142", optional = true }
@@ -77,6 +79,14 @@ serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
 glr-test-support = { path = "../glr-test-support" }
+adze-concurrency-plan-core = { version = "0.1.0", path = "../crates/concurrency-plan-core" }
+adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-map-core" }
+adze-concurrency-env-core = { version = "0.1.0", path = "../crates/concurrency-env-core" }
+adze-concurrency-init-core = { version = "0.1.0", path = "../crates/concurrency-init-core" }
+adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concurrency-init-rayon-core" }
+adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../crates/concurrency-init-classifier-core" }
+adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }
+adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
 adze-example = { path = "../example", features = ["ts-compat"] }
 adze-python-simple = { path = "../grammars/python-simple" }
 adze-python = { path = "../grammars/python" }

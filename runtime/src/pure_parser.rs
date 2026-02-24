@@ -13,10 +13,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 // Import ABI types from tablegen
-type TSSymbol = u16;
-type TSStateId = u16;
+pub type TSSymbol = u16;
+pub type TSStateId = u16;
 #[allow(dead_code)]
-type TSFieldId = u16;
+pub type TSFieldId = u16;
 
 /// Lex state for external scanners
 #[repr(C)]
@@ -577,58 +577,6 @@ impl Parser {
                         // Simple recovery: skip token and continue
                         position += token.length;
                         point = advance_point(point, &source[position - token.length..position]);
-                    } else {
-                        // Check if the reduction resulted in accepting the parse
-                        // This happens when we reduce to the root symbol in state 0
-                        if self.stack.len() >= 2 {
-                            let top = &self.stack[self.stack.len() - 1];
-                            let below = &self.stack[self.stack.len() - 2];
-
-                            // Check if we have the root symbol (source_file = 8) on top of state 0
-                            if below.state == 0
-                                && top.subtree.is_some()
-                                && let Some(ref subtree) = top.subtree
-                                && subtree.symbol == 8
-                                && token.symbol == 0
-                            {
-                                // EOF
-                                // Parse successful!
-                                // eprintln!("DEBUG: Parse accepted! Root subtree:");
-                                // fn print_subtree(subtree: &Subtree, indent: usize) {
-                                //     eprintln!("{}symbol={}, children={}, bytes={}..{}",
-                                //         "  ".repeat(indent), subtree.symbol, subtree.children.len(),
-                                //         subtree.start_byte, subtree.end_byte
-                                //     );
-                                //     for child in &subtree.children {
-                                //         print_subtree(child, indent + 1);
-                                //     }
-                                // }
-                                // print_subtree(subtree, 1);
-
-                                let mut root = subtree.clone();
-                                if !extra_nodes.is_empty() {
-                                    // Track the maximum end position of all extra tokens
-                                    let mut max_end_byte = root.end_byte;
-                                    let mut max_end_point = root.end_point;
-
-                                    for extra in extra_nodes.drain(..) {
-                                        if extra.end_byte > max_end_byte {
-                                            max_end_byte = extra.end_byte;
-                                            max_end_point = extra.end_point;
-                                        }
-                                        root.children.push(extra);
-                                    }
-
-                                    // Update root to span all tokens including extras
-                                    root.end_byte = max_end_byte;
-                                    root.end_point = max_end_point;
-                                }
-                                return ParseResult {
-                                    root: Some(subtree_to_node(root, Some(language as *const _))),
-                                    errors,
-                                };
-                            }
-                        }
                     }
                     // Important: Don't advance position after reduce!
                     // The same token needs to be processed again with the new state
@@ -827,6 +775,7 @@ impl Parser {
                     input: &'a [u8],
                     pos: usize,
                     mark: usize,
+                    tok_len: usize,
                 }
 
                 unsafe extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
@@ -878,9 +827,10 @@ impl Parser {
                 }
 
                 let mut backing = Backing {
-                    input: &lexer.input[position..],
-                    pos: 0,
-                    mark: 0,
+                    input: &lexer.input,
+                    pos: position,
+                    mark: position,
+                    tok_len: 0,
                 };
 
                 let mut ts = TsLexer {
@@ -894,7 +844,7 @@ impl Parser {
                 if lex_fn(&mut ts as *mut _ as *mut c_void, lex_mode)
                     && ts.result_symbol != u16::MAX
                 {
-                    let end = if backing.mark > 0 {
+                    let end = if backing.mark > position {
                         backing.mark
                     } else {
                         backing.pos
@@ -902,7 +852,7 @@ impl Parser {
                     let symbol = ts.result_symbol;
                     return Token {
                         symbol,
-                        length: end,
+                        length: end - position,
                         is_extra: self.is_extra_symbol(language, symbol),
                     };
                 } else {

@@ -95,3 +95,12 @@ body:
     attributes:
       label: Additional Context
       description: Anything else that might help (logs, screenshots, related issues).
+
+  - type: input
+    id: friction-log
+    attributes:
+      label: Friction Log
+      description: "If this is recurring contributor pain, reference or add an entry in docs/status/FRICTION_LOG.md (e.g., FR-005)."
+      placeholder: "FR-###"
+    validations:
+      required: false

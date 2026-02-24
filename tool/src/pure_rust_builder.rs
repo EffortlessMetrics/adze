@@ -423,6 +423,11 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     )?;
     writeln!(
         debug_file,
+        "Debug: token_count={}, external_token_count={}",
+        parse_table.token_count, parse_table.external_token_count
+    )?;
+    writeln!(
+        debug_file,
         "Debug: Action table has {} entries",
         parse_table.action_table.len()
     )?;

@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 crate="${1:-ts-bridge}"
 echo "Building $crate in release mode..."
-export CARGO_TARGET_DIR=target
-cargo build -p "$crate" --release --locked 2>&1 | tail -5
+target_dir="${CARGO_TARGET_DIR:-target}"
+export CARGO_TARGET_DIR="$target_dir"
+
+if [ -f "tools/$crate/Cargo.toml" ]; then
+  cargo build --manifest-path "tools/$crate/Cargo.toml" --release --locked
+else
+  cargo build -p "$crate" --release --locked
+fi
 
 # Detect OS and set appropriate extension and symbol lister
 case "$(uname -s)" in
@@ -41,11 +47,41 @@ esac
 
 # Find the library file (convert - to _ for library name)
 lib_name=$(echo "$crate" | tr '-' '_')
-so=$(find target/release -maxdepth 1 -name "lib${lib_name}.${ext}" -o -name "${lib_name}.${ext}" 2>/dev/null | head -n1)
+search_dirs=()
+for dir in "$target_dir/release" "$target_dir/release/deps"; do
+  if [ -d "$dir" ]; then
+    search_dirs+=("$dir")
+  fi
+done
+
+if [ ${#search_dirs[@]} -eq 0 ]; then
+  echo "ERROR: No release output directories found under $target_dir"
+  exit 1
+fi
+
+so=$(
+  find "${search_dirs[@]}" -maxdepth 1 -type f \
+    \( \
+      -name "lib${lib_name}.${ext}" -o \
+      -name "${lib_name}.${ext}" -o \
+      -name "lib${lib_name}-*.${ext}" -o \
+      -name "${lib_name}-*.${ext}" \
+    \) \
+    2>/dev/null | sort | head -n1
+)
 
 # Also check for import library on Windows
 if [[ "$ext" == "dll" ]]; then
-    imp=$(find target/release -maxdepth 1 -name "${lib_name}.dll.lib" -o -name "lib${lib_name}.dll.a" 2>/dev/null | head -n1 || true)
+    imp=$(
+      find "${search_dirs[@]}" -maxdepth 1 -type f \
+        \( \
+          -name "${lib_name}.dll.lib" -o \
+          -name "lib${lib_name}.dll.a" -o \
+          -name "${lib_name}-*.dll.lib" -o \
+          -name "lib${lib_name}-*.dll.a" \
+        \) \
+        2>/dev/null | sort | head -n1 || true
+    )
     [ -n "$imp" ] && echo "→ Found import lib: $imp"
 fi
 

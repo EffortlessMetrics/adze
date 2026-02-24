@@ -512,7 +512,7 @@ impl StaticLanguageGenerator {
                                 }
                             }
                             _ => {
-                                // Unknown action type - treat as error
+                                // Unknown action type // Expected: V for Recover
                                 quote! {
                                     adze::ffi::TSParseActionEntry {
                                         type_: adze::ffi::TSParseActionType::Error,

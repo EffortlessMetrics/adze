@@ -83,7 +83,7 @@ pub fn build_parsers(root_file: &Path) {
     // Debug to file to bypass any stderr capture issues
     {
         use std::io::Write;
-        if let Ok(mut f) = std::fs::File::create("/tmp/adze_debug.txt") {
+        if let Ok(mut f) = std::fs::File::create("adze_debug.txt") {
             writeln!(f, "build_parsers called for: {}", root_file.display()).ok();
             writeln!(
                 f,

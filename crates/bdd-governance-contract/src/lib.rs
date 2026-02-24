@@ -1,6 +1,6 @@
 //! Compatibility façade for parser governance reporting and feature profiles.
 //!
-//! The concrete implementation now lives in `adze-governance-matrix-contract`.
+//! The concrete implementation now lives in `adze-bdd-governance-core`.
 //! This crate intentionally keeps existing public API paths stable for downstream users.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
@@ -10,7 +10,7 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-pub use adze_governance_matrix_contract::{
+pub use adze_bdd_governance_core::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
     bdd_governance_snapshot, bdd_progress, bdd_progress_report, bdd_progress_report_with_profile,

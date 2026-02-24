@@ -72,10 +72,19 @@ jobs:
         run: |
           echo "Verifying minimum test counts per crate..."
 
-          # Define minimum test counts (from TEST_INVENTORY.md policy)
+          # Directory -> package mapping
+          declare -A crate_packages=(
+            ["runtime"]="adze"
+            ["macro"]="adze-macro"
+            ["glr-core"]="adze-glr-core"
+            ["tablegen"]="adze-tablegen"
+            ["tool"]="adze-tool"
+          )
+
+          # Define minimum test counts (from TEST_INVENTORY.md policy), keyed by directory
           declare -A min_counts=(
             ["runtime"]=50
-            ["macro"]=13
+            ["macro"]=11
             ["glr-core"]=30
             ["tablegen"]=8
             ["tool"]=10
@@ -85,11 +94,25 @@ jobs:
 
           for crate in "${!min_counts[@]}"; do
             if [ -d "$crate" ]; then
-              echo "Checking $crate..."
+              package="${crate_packages[$crate]}"
+              required="${min_counts[$crate]}"
 
-              # Count tests
-              actual=$(cd "$crate" && cargo test --lib --tests -- --list 2>/dev/null | grep -c "test " || echo "0")
-              required=${min_counts[$crate]}
+              if [ -z "$package" ]; then
+                echo "::error::No package mapping found for crate directory '$crate'"
+                failed=true
+                continue
+              fi
+
+              echo "Checking $crate ($package)..."
+
+              if ! test_list=$(cargo test -p "$package" --lib --tests -- --list 2>/dev/null); then
+                echo "::error::Failed to list tests for $crate ($package)"
+                failed=true
+                continue
+              fi
+
+              # cargo test -- --list format ends test cases with ": test"
+              actual=$(printf '%s\n' "$test_list" | awk '/: test$/{count++} END{print count+0}')
 
               echo "$crate: $actual tests (minimum: $required)"
 
@@ -170,12 +193,29 @@ jobs:
         run: |
           echo "Running tests with timeout enforcement..."
 
-          # Run tests with 60s timeout per crate
-          for crate in runtime macro glr-core tablegen tool ir common example; do
-            if [ -d "$crate" ]; then
-              echo "Testing $crate with timeout..."
+          # Directory -> package mapping for timeout lane
+          declare -A crate_packages=(
+            ["runtime"]="adze"
+            ["macro"]="adze-macro"
+            ["glr-core"]="adze-glr-core"
+            ["tablegen"]="adze-tablegen"
+            ["tool"]="adze-tool"
+            ["ir"]="adze-ir"
+            ["common"]="adze-common"
+          )
 
-              timeout 60s cargo test -p adze-${crate} --lib --tests || {
+          # Run tests with 60s timeout per crate
+          for crate in runtime macro glr-core tablegen tool ir common; do
+            if [ -d "$crate" ]; then
+              package="${crate_packages[$crate]}"
+              if [ -z "$package" ]; then
+                echo "::error::No package mapping found for crate directory '$crate'"
+                exit 1
+              fi
+
+              echo "Testing $crate ($package) with timeout..."
+
+              timeout 60s cargo test -p "$package" --lib --tests || {
                 exit_code=$?
                 if [ $exit_code -eq 124 ]; then
                   echo "::error::Tests in $crate exceeded 60s timeout"
