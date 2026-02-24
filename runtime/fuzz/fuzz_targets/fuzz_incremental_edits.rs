@@ -1,16 +1,15 @@
 #![no_main]
 
 use adze::{
-    glr_incremental::{Edit, IncrementalGLRParser, Position},
+    glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser},
     glr_lexer::GLRLexer,
-    glr_parser::GLRParser,
 };
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use libfuzzer_sys::fuzz_target;
 use std::sync::Arc;
 
-// Reuse the test grammar from the other fuzz target
+// Reuse a small arithmetic grammar to keep fuzz iterations fast.
 fn create_test_grammar() -> Arc<Grammar> {
     let mut grammar = Grammar::new("fuzz_test".to_string());
 
@@ -38,7 +37,7 @@ fn create_test_grammar() -> Arc<Grammar> {
         },
     );
 
-    // Simple grammar: E -> E + E | number
+    // E -> E + E | number
     grammar.add_rule(Rule {
         lhs: expr_id,
         rhs: vec![
@@ -73,7 +72,6 @@ lazy_static::lazy_static! {
     };
 }
 
-// Fuzzer input structure
 #[derive(Debug)]
 struct FuzzInput {
     initial_text: String,
@@ -89,19 +87,17 @@ struct FuzzEdit {
 
 impl<'a> arbitrary::Arbitrary<'a> for FuzzInput {
     fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
-        // Generate initial text (simple arithmetic expression)
         let nums: Vec<u8> = u.arbitrary()?;
         let initial_text = if nums.is_empty() {
             "1".to_string()
         } else {
             nums.iter()
-                .take(10) // Limit size
+                .take(10)
                 .map(|n| (n % 10).to_string())
                 .collect::<Vec<_>>()
                 .join(" + ")
         };
 
-        // Generate 0-5 edits
         let num_edits: usize = u.int_in_range(0..=5)?;
         let mut edits = Vec::new();
 
@@ -114,12 +110,11 @@ impl<'a> arbitrary::Arbitrary<'a> for FuzzInput {
             let start = u.int_in_range(0..=text_len)?;
             let old_end = u.int_in_range(start..=text_len)?;
 
-            // Generate new text for the edit
             let edit_type: u8 = u.int_in_range(0..=3)?;
             let new_text = match edit_type {
-                0 => "".to_string(),                      // Deletion
-                1 => u.int_in_range(0..=99)?.to_string(), // Insert number
-                2 => " + ".to_string(),                   // Insert operator
+                0 => "".to_string(),
+                1 => u.int_in_range(0..=99)?.to_string(),
+                2 => " + ".to_string(),
                 _ => format!("{} + {}", u.int_in_range(0..=9)?, u.int_in_range(0..=9)?),
             };
 
@@ -137,91 +132,78 @@ impl<'a> arbitrary::Arbitrary<'a> for FuzzInput {
     }
 }
 
+fn tokenize_to_glr(grammar: &Grammar, text: &str) -> Option<Vec<GLRToken>> {
+    let mut lexer = GLRLexer::new(grammar, text.to_string()).ok()?;
+    let tokens = lexer.tokenize_all();
+
+    Some(
+        tokens
+            .into_iter()
+            .map(|token| GLRToken {
+                symbol: token.symbol_id,
+                text: token.text.into_bytes(),
+                start_byte: token.byte_offset,
+                end_byte: token.byte_offset + token.byte_length,
+            })
+            .collect(),
+    )
+}
+
 fuzz_target!(|input: FuzzInput| {
-    // Skip empty input
     if input.initial_text.trim().is_empty() {
         return;
     }
 
-    // Parse initial text
-    let lexer_result = GLRLexer::new(&TEST_GRAMMAR, input.initial_text.clone());
-
-    let initial_tokens = match lexer_result {
-        Ok(mut lexer) => lexer.tokenize_all(),
-        Err(_) => return, // Invalid initial input, skip
-    };
-
-    // Create incremental parser
-    let glr_parser = GLRParser::new(PARSE_TABLE.clone(), (**TEST_GRAMMAR).clone());
-    let mut incremental = IncrementalGLRParser::new(glr_parser, TEST_GRAMMAR.clone());
-
-    // Parse initial text
-    let tree_result = incremental.parse_incremental(&initial_tokens, &[], None);
-
-    let mut current_tree = match tree_result {
-        Ok(tree) => tree,
-        Err(_) => return, // Initial parse failed, skip
-    };
-
     let mut current_text = input.initial_text.clone();
+    let mut current_tokens = match tokenize_to_glr(&TEST_GRAMMAR, &current_text) {
+        Some(tokens) if !tokens.is_empty() => tokens,
+        _ => return,
+    };
 
-    // Apply edits incrementally
+    let mut incremental = IncrementalGLRParser::new((**TEST_GRAMMAR).clone(), PARSE_TABLE.clone());
+
+    let mut current_forest = match incremental.parse_incremental(&current_tokens, &[]) {
+        Ok(forest) => forest,
+        Err(_) => return,
+    };
+
     for fuzz_edit in input.edits {
-        // Skip invalid edits
         if fuzz_edit.start_byte > current_text.len()
             || fuzz_edit.old_end_byte > current_text.len()
             || fuzz_edit.start_byte > fuzz_edit.old_end_byte
+            || !current_text.is_char_boundary(fuzz_edit.start_byte)
+            || !current_text.is_char_boundary(fuzz_edit.old_end_byte)
         {
             continue;
         }
 
-        // Apply edit to text
-        let new_text = format!(
-            "{}{}{}",
-            &current_text[..fuzz_edit.start_byte],
-            &fuzz_edit.new_text,
-            &current_text[fuzz_edit.old_end_byte..]
+        let mut new_text = String::with_capacity(
+            current_text.len() + fuzz_edit.new_text.len()
+                - (fuzz_edit.old_end_byte - fuzz_edit.start_byte),
         );
+        new_text.push_str(&current_text[..fuzz_edit.start_byte]);
+        new_text.push_str(&fuzz_edit.new_text);
+        new_text.push_str(&current_text[fuzz_edit.old_end_byte..]);
 
-        // Create Edit struct
-        let edit = Edit {
-            start_byte: fuzz_edit.start_byte,
-            old_end_byte: fuzz_edit.old_end_byte,
-            new_end_byte: fuzz_edit.start_byte + fuzz_edit.new_text.len(),
-            start_position: Position {
-                line: 0,
-                column: fuzz_edit.start_byte,
-            },
-            old_end_position: Position {
-                line: 0,
-                column: fuzz_edit.old_end_byte,
-            },
-            new_end_position: Position {
-                line: 0,
-                column: fuzz_edit.start_byte + fuzz_edit.new_text.len(),
-            },
+        let new_tokens = match tokenize_to_glr(&TEST_GRAMMAR, &new_text) {
+            Some(tokens) if !tokens.is_empty() => tokens,
+            _ => continue,
         };
 
-        // Tokenize new text
-        let new_lexer_result = GLRLexer::new(&TEST_GRAMMAR, new_text.clone());
-
-        let new_tokens = match new_lexer_result {
-            Ok(mut lexer) => lexer.tokenize_all(),
-            Err(_) => continue, // Invalid edit result, skip
+        // Conservative edit descriptor for fuzzing robustness: replace the old token stream.
+        let glr_edit = GLREdit {
+            old_range: fuzz_edit.start_byte..fuzz_edit.old_end_byte,
+            new_text: fuzz_edit.new_text.as_bytes().to_vec(),
+            old_token_range: 0..current_tokens.len(),
+            new_tokens: new_tokens.clone(),
+            old_tokens: current_tokens.clone(),
+            old_forest: Some(current_forest.clone()),
         };
 
-        // Parse incrementally - should not panic
-        let new_tree_result =
-            incremental.parse_incremental(&new_tokens, &[edit], Some(current_tree.clone()));
-
-        match new_tree_result {
-            Ok(new_tree) => {
-                current_tree = new_tree;
-                current_text = new_text;
-            }
-            Err(_) => {
-                // Parse error is fine, we're testing robustness
-            }
+        if let Ok(new_forest) = incremental.parse_incremental(&new_tokens, &[glr_edit]) {
+            current_text = new_text;
+            current_tokens = new_tokens;
+            current_forest = new_forest;
         }
     }
 });

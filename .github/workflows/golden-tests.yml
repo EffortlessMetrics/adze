@@ -23,28 +23,43 @@ jobs:
         toolchain: stable
         override: true
     
+    - name: Check whether references already exist
+      id: refs
+      run: |
+        ref_dir="golden-tests/${{ matrix.language }}/expected"
+        if [ -d "$ref_dir" ] && [ -n "$(ls -A "$ref_dir" 2>/dev/null)" ]; then
+          echo "missing=false" >> "$GITHUB_OUTPUT"
+          echo "References already present for ${{ matrix.language }}"
+        else
+          echo "missing=true" >> "$GITHUB_OUTPUT"
+          echo "References missing for ${{ matrix.language }}"
+        fi
+
     - name: Install Node.js
+      if: steps.refs.outputs.missing == 'true'
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-    
+
     - name: Install Tree-sitter CLI
+      if: steps.refs.outputs.missing == 'true'
       run: npm install -g tree-sitter-cli
-    
-    - name: Clone and build Tree-sitter grammar
+
+    - name: Clone and prepare Tree-sitter grammar
+      if: steps.refs.outputs.missing == 'true'
       run: |
         cd /tmp
         if [ "${{ matrix.language }}" = "python" ]; then
-          git clone https://github.com/tree-sitter/tree-sitter-python
+          git clone --depth 1 https://github.com/tree-sitter/tree-sitter-python
           cd tree-sitter-python
         else
-          git clone https://github.com/tree-sitter/tree-sitter-javascript
+          git clone --depth 1 https://github.com/tree-sitter/tree-sitter-javascript
           cd tree-sitter-javascript
         fi
         tree-sitter generate
-        tree-sitter build-wasm
     
     - name: Generate reference files if missing
+      if: steps.refs.outputs.missing == 'true'
       run: |
         cd golden-tests
         if [ ! -d "${{ matrix.language }}/expected" ] || [ -z "$(ls -A ${{ matrix.language }}/expected)" ]; then

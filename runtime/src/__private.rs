@@ -139,7 +139,7 @@ pub fn extract_field<LT: Extract<T>, T>(
         loop {
             let n = cursor.node();
             let name = cursor.field_name();
-            if name.as_deref() == Some(field_name) || (name.is_none() && n.kind() == field_name) {
+            if name == Some(field_name) || (name.is_none() && n.kind() == field_name) {
                 let out = LT::extract(Some(n), source, *last_idx, closure_ref);
 
                 if !cursor.goto_next_sibling() {

@@ -9,22 +9,6 @@ use adze_ir::Grammar;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-// Re-export the tree-sitter types based on feature
-#[cfg(all(feature = "tree-sitter-standard", not(feature = "tree-sitter-c2rust")))]
-use tree_sitter;
-
-#[cfg(all(feature = "tree-sitter-c2rust", not(feature = "tree-sitter-standard")))]
-use tree_sitter_c2rust as tree_sitter;
-
-// Provide a default for when no features are enabled
-#[cfg(not(any(feature = "tree-sitter-standard", feature = "tree-sitter-c2rust")))]
-mod tree_sitter {
-    #[allow(dead_code)]
-    pub(super) struct Node;
-    #[allow(dead_code)]
-    pub(super) struct Tree;
-}
-
 /// A Tree-sitter compatible tree structure built from GLR Subtree
 pub struct GLRTree {
     /// Root subtree from GLR parser

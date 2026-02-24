@@ -40,8 +40,12 @@ jobs:
     - name: Check formatting
       run: cargo fmt --all -- --check
     
-    - name: Clippy
-      run: cargo clippy --all-targets --all-features -- -D warnings
+    - name: Clippy (default features)
+      run: cargo clippy --workspace --all-targets -- -D warnings
+
+    - name: Clippy (tree-sitter-c2rust)
+      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+      run: cargo clippy -p adze --lib --no-default-features --features tree-sitter-c2rust -- -D warnings
     
     - name: Build
       run: cargo build --verbose
@@ -118,13 +122,9 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
     
-    - name: Test with real grammars
+    - name: Test with c2rust backend
       run: |
-        # Test with tree-sitter-json
-        cargo test --features tree-sitter-c2rust test_json_parsing
-        
-        # Test with tree-sitter-rust
-        cargo test --features tree-sitter-c2rust test_rust_parsing
+        cargo test -p adze --no-default-features --features tree-sitter-c2rust --lib
   
   performance:
     name: Performance Regression Tests
@@ -166,15 +166,16 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     
     - name: Install cargo-llvm-cov
-      run: cargo install cargo-llvm-cov
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-llvm-cov
     
     - name: Generate coverage
       run: |
-        cd runtime
-        cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
     
     - name: Upload to codecov
       uses: codecov/codecov-action@v3
       with:
-        files: runtime/lcov.info
+        files: lcov.info
         fail_ci_if_error: false
