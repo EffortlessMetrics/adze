@@ -23,6 +23,7 @@ adze-concurrency-init-classifier-core = { path = "../crates/concurrency-init-cla
 adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
 adze-concurrency-parse-core = { path = "../crates/concurrency-parse-core" }
 adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core" }
+adze-concurrency-env-contract-core = { path = "../crates/concurrency-env-contract-core" }
 
 [[bin]]
 name = "fuzz_lexer"
@@ -99,5 +100,11 @@ doc = false
 [[bin]]
 name = "fuzz_concurrency_init_classifier_core"
 path = "fuzz_targets/fuzz_concurrency_init_classifier_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_env_contract_core"
+path = "fuzz_targets/fuzz_concurrency_env_contract_core.rs"
 test = false
 doc = false

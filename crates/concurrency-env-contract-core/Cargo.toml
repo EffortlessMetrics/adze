@@ -1,10 +1,10 @@
 [package]
-name = "adze-concurrency-env-core"
+name = "adze-concurrency-env-contract-core"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Environment-backed concurrency cap policy and parsing utilities."
+description = "Shared contract for concurrency environment variables and defaults."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 
@@ -14,7 +14,7 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-concurrency-env-contract-core = { version = "0.1.0", path = "../concurrency-env-contract-core" }
+adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
 
 [dev-dependencies]
 proptest = "1.4"
