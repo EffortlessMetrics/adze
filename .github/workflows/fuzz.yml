@@ -48,7 +48,7 @@ jobs:
     
     - name: Upload crash artifacts
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: fuzz-crash-${{ matrix.fuzz-target }}
         path: runtime/fuzz/artifacts/
@@ -93,7 +93,7 @@ jobs:
     
     - name: Upload crash artifacts
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: fuzz-crash-nightly-${{ matrix.fuzz-target }}
         path: runtime/fuzz/artifacts/

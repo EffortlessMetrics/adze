@@ -103,7 +103,7 @@ jobs:
     
     - name: Upload golden test results
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: golden-test-failures
         path: runtime/tests/golden/*.diff
@@ -142,7 +142,7 @@ jobs:
         cargo bench --features benchmarks | tee bench_results.txt
     
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: benchmark-results
         path: runtime/bench_results.txt
