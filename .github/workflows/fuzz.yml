@@ -29,7 +29,7 @@ jobs:
       run: cargo +nightly install cargo-fuzz
     
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry/index/
@@ -38,7 +38,7 @@ jobs:
         key: ${{ runner.os }}-cargo-fuzz-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-fuzz-
-    
+
     - name: Run fuzzer
       run: |
         cd runtime
@@ -73,7 +73,7 @@ jobs:
       run: cargo +nightly install cargo-fuzz
     
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry/index/
@@ -82,7 +82,7 @@ jobs:
         key: ${{ runner.os }}-cargo-fuzz-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-fuzz-
-    
+
     - name: Run extended fuzzing
       run: |
         cd runtime
