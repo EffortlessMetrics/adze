@@ -13,17 +13,29 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 adze = { path = "../runtime" }
+adze-bdd-grammar-analysis-core = { path = "../crates/bdd-grammar-analysis-core" }
+adze-glr-core = { path = "../glr-core" }
 adze-linecol-core = { path = "../crates/linecol-core" }
 adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
 adze-concurrency-map-core = { path = "../crates/concurrency-map-core" }
 adze-concurrency-env-core = { path = "../crates/concurrency-env-core" }
 adze-concurrency-init-core = { path = "../crates/concurrency-init-core" }
+adze-concurrency-init-bootstrap-core = { path = "../crates/concurrency-init-bootstrap-core" }
 adze-concurrency-init-rayon-core = { path = "../crates/concurrency-init-rayon-core" }
 adze-concurrency-init-classifier-core = { path = "../crates/concurrency-init-classifier-core" }
 adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
+adze-stack-pool-core = { path = "../crates/stack-pool-core" }
 adze-concurrency-parse-core = { path = "../crates/concurrency-parse-core" }
 adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core" }
 adze-concurrency-env-contract-core = { path = "../crates/concurrency-env-contract-core" }
+adze-ts-format-core = { path = "../crates/ts-format-core" }
+adze-common-syntax-core = { path = "../crates/common-syntax-core" }
+adze-concurrency-bounded-map-core = { path = "../crates/concurrency-bounded-map-core" }
+adze-concurrency-caps-contract-core = { path = "../crates/concurrency-caps-contract-core" }
+adze-concurrency-init-bootstrap-policy-core = { path = "../crates/concurrency-init-bootstrap-policy-core" }
+adze-parser-backend-core = { path = "../crates/parser-backend-core" }
+quote = "1"
+syn = { version = "2", features = [ "full", "extra-traits" ] }
 
 [[bin]]
 name = "fuzz_lexer"
@@ -86,8 +98,20 @@ test = false
 doc = false
 
 [[bin]]
+name = "fuzz_ts_format_core"
+path = "fuzz_targets/fuzz_ts_format_core.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "fuzz_concurrency_init_core"
 path = "fuzz_targets/fuzz_concurrency_init_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_init_bootstrap_core"
+path = "fuzz_targets/fuzz_concurrency_init_bootstrap_core.rs"
 test = false
 doc = false
 
@@ -106,5 +130,41 @@ doc = false
 [[bin]]
 name = "fuzz_concurrency_env_contract_core"
 path = "fuzz_targets/fuzz_concurrency_env_contract_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_common_syntax_core"
+path = "fuzz_targets/fuzz_common_syntax_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_stack_pool_core"
+path = "fuzz_targets/fuzz_stack_pool_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_bdd_grammar_analysis_core"
+path = "fuzz_targets/fuzz_bdd_grammar_analysis_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_bounded_map_core"
+path = "fuzz_targets/fuzz_concurrency_bounded_map_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_init_bootstrap_policy_core"
+path = "fuzz_targets/fuzz_concurrency_init_bootstrap_policy_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_parser_backend_core"
+path = "fuzz_targets/fuzz_parser_backend_core.rs"
 test = false
 doc = false

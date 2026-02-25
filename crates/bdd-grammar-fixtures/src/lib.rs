@@ -11,27 +11,14 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-use adze_glr_core::build_lr1_automaton;
-use adze_glr_core::{
-    Action, Conflict, ConflictResolver, ConflictType, FirstFollowSets, ParseTable, StateId,
+pub use adze_bdd_grammar_analysis_core::{
+    ConflictAnalysis, analyze_conflicts, count_multi_action_cells, resolve_shift_reduce_actions,
 };
+use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::{
-    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token,
+    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
-
-/// Summary of conflict information from a parse table.
-#[derive(Debug, Clone)]
-pub struct ConflictAnalysis {
-    /// Number of table cells with more than one parser action.
-    pub total_conflicts: usize,
-    /// Number of shift/reduce conflicts.
-    pub shift_reduce_conflicts: usize,
-    /// Number of reduce/reduce conflicts.
-    pub reduce_reduce_conflicts: usize,
-    /// Per-cell conflict detail for targeted assertions and debug logs.
-    pub conflict_details: Vec<(usize, usize, Vec<Action>)>,
-}
 
 /// Token pattern selector for reusable runtime token fixtures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -427,74 +414,6 @@ pub fn no_precedence_grammar() -> Grammar {
 
     let _ = grammar.get_or_build_registry();
     grammar
-}
-
-/// Analyze conflict cells in a parse table.
-pub fn analyze_conflicts(parse_table: &ParseTable) -> ConflictAnalysis {
-    let mut analysis = ConflictAnalysis {
-        total_conflicts: 0,
-        shift_reduce_conflicts: 0,
-        reduce_reduce_conflicts: 0,
-        conflict_details: vec![],
-    };
-
-    for state in 0..parse_table.state_count {
-        for sym in 0..parse_table.symbol_count {
-            let actions = &parse_table.action_table[state][sym];
-            if actions.len() > 1 {
-                analysis.total_conflicts += 1;
-
-                let has_shift = actions.iter().any(|a| matches!(a, Action::Shift(_)));
-                let has_reduce = actions.iter().any(|a| matches!(a, Action::Reduce(_)));
-
-                if has_shift && has_reduce {
-                    analysis.shift_reduce_conflicts += 1;
-                } else if !has_shift && has_reduce {
-                    analysis.reduce_reduce_conflicts += 1;
-                }
-
-                analysis
-                    .conflict_details
-                    .push((state, sym, actions.clone()));
-            }
-        }
-    }
-
-    analysis
-}
-
-/// Count parse table cells with more than one action.
-pub fn count_multi_action_cells(parse_table: &ParseTable) -> usize {
-    parse_table
-        .action_table
-        .iter()
-        .flat_map(|row| row.iter())
-        .filter(|cell| cell.len() > 1)
-        .count()
-}
-
-/// Resolve a synthetic shift/reduce conflict against a given grammar and symbol.
-pub fn resolve_shift_reduce_actions(
-    grammar: &Grammar,
-    symbol: SymbolId,
-    reduce_rule: RuleId,
-) -> Vec<Action> {
-    let mut resolver = ConflictResolver {
-        conflicts: vec![Conflict {
-            state: StateId(42),
-            symbol,
-            actions: vec![Action::Shift(StateId(7)), Action::Reduce(reduce_rule)],
-            conflict_type: ConflictType::ShiftReduce,
-        }],
-    };
-
-    resolver.resolve_conflicts(grammar);
-    resolver
-        .conflicts
-        .first()
-        .expect("expected one conflict")
-        .actions
-        .clone()
 }
 
 /// Build an LR(1) parse table from the fixture grammar.

@@ -1,0 +1,22 @@
+[package]
+name = "adze-concurrency-bounded-map-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Bounded parallel map implementation details."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
+rayon = "1.10"
+
+[dev-dependencies]
+proptest = "1.4"
+adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }

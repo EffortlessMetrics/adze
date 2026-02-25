@@ -1,0 +1,211 @@
+//! Small stack pool used by the parser to amortize allocations.
+#![forbid(unsafe_op_in_unsafe_fn)]
+#![deny(missing_docs)]
+#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
+#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::rc::Rc;
+
+/// A pool of reusable stacks to reduce allocation overhead.
+pub struct StackPool<T: Clone> {
+    /// Pool of available stacks ready for reuse.
+    available: RefCell<VecDeque<Vec<T>>>,
+    /// Maximum number of stacks to keep in the pool.
+    max_pool_size: usize,
+    /// Statistics for monitoring pool performance.
+    stats: RefCell<PoolStats>,
+}
+
+/// Statistics for stack pool usage.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct PoolStats {
+    /// Total number of stacks allocated.
+    pub total_allocations: usize,
+    /// Number of times a pooled stack was reused.
+    pub reuse_count: usize,
+    /// Number of direct pool hits.
+    pub pool_hits: usize,
+    /// Number of misses requiring new allocation.
+    pub pool_misses: usize,
+    /// Maximum observed pool depth.
+    pub max_pool_depth: usize,
+}
+
+impl<T: Clone> StackPool<T> {
+    /// Create a new stack pool with the specified maximum size.
+    pub fn new(max_pool_size: usize) -> Self {
+        StackPool {
+            available: RefCell::new(VecDeque::with_capacity(max_pool_size)),
+            max_pool_size,
+            stats: RefCell::new(PoolStats::default()),
+        }
+    }
+
+    /// Acquire a stack from the pool, or allocate a new one if pool is empty.
+    pub fn acquire(&self) -> Vec<T> {
+        let mut pool = self.available.borrow_mut();
+        let mut stats = self.stats.borrow_mut();
+
+        if let Some(mut stack) = pool.pop_front() {
+            stack.clear();
+            stats.pool_hits += 1;
+            stats.reuse_count += 1;
+            stack
+        } else {
+            stats.pool_misses += 1;
+            stats.total_allocations += 1;
+            Vec::with_capacity(256)
+        }
+    }
+
+    /// Acquire a stack with at least the requested capacity.
+    pub fn acquire_with_capacity(&self, capacity: usize) -> Vec<T> {
+        let mut pool = self.available.borrow_mut();
+        let mut stats = self.stats.borrow_mut();
+
+        if let Some(pos) = pool.iter().position(|s| s.capacity() >= capacity) {
+            let mut stack = pool.remove(pos).unwrap();
+            stack.clear();
+            stats.pool_hits += 1;
+            stats.reuse_count += 1;
+            stack
+        } else {
+            stats.pool_misses += 1;
+            stats.total_allocations += 1;
+            Vec::with_capacity(capacity)
+        }
+    }
+
+    /// Return a stack to the pool for reuse.
+    pub fn release(&self, mut stack: Vec<T>) {
+        let mut pool = self.available.borrow_mut();
+
+        if stack.capacity() <= 4096 && pool.len() < self.max_pool_size {
+            stack.clear();
+            pool.push_back(stack);
+
+            let mut stats = self.stats.borrow_mut();
+            stats.max_pool_depth = stats.max_pool_depth.max(pool.len());
+        }
+    }
+
+    /// Clone a stack, potentially using a pooled stack for the destination.
+    pub fn clone_stack(&self, source: &[T]) -> Vec<T> {
+        let mut dest = self.acquire_with_capacity(source.len());
+        dest.extend_from_slice(source);
+        dest
+    }
+
+    /// Get current pool statistics.
+    pub fn stats(&self) -> PoolStats {
+        self.stats.borrow().clone()
+    }
+
+    /// Reset statistics.
+    pub fn reset_stats(&self) {
+        *self.stats.borrow_mut() = PoolStats::default();
+    }
+
+    /// Clear the pool, releasing all cached stacks.
+    pub fn clear(&self) {
+        self.available.borrow_mut().clear();
+    }
+}
+
+thread_local! {
+    /// Thread-local stack pool for single-threaded parsing.
+    static STACK_POOL: RefCell<Option<Rc<StackPool<u32>>>> = const { RefCell::new(None) };
+}
+
+/// Initialize the thread-local stack pool.
+pub fn init_thread_local_pool(max_size: usize) {
+    STACK_POOL.with(|pool| {
+        *pool.borrow_mut() = Some(Rc::new(StackPool::new(max_size)));
+    });
+}
+
+/// Get the thread-local stack pool, initializing if necessary.
+pub fn get_thread_local_pool() -> Rc<StackPool<u32>> {
+    STACK_POOL.with(|pool| {
+        let mut pool_ref = pool.borrow_mut();
+        if pool_ref.is_none() {
+            *pool_ref = Some(Rc::new(StackPool::new(64)));
+        }
+
+        pool_ref.as_ref().unwrap().clone()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pool_tracks_reuse_via_release_and_reacquire() {
+        let pool: StackPool<u32> = StackPool::new(2);
+
+        let mut stack = pool.acquire();
+        stack.push(1);
+        pool.release(stack);
+
+        let reused = pool.acquire();
+        assert!(reused.is_empty());
+        assert_eq!(pool.stats().pool_hits, 1);
+        assert_eq!(pool.stats().reuse_count, 1);
+    }
+
+    #[test]
+    fn acquires_with_capacity_can_reuse_matching_or_larger_stack() {
+        let pool: StackPool<u32> = StackPool::new(2);
+
+        let stack_small = Vec::with_capacity(16);
+        let stack_medium = Vec::with_capacity(128);
+
+        pool.release(stack_small);
+        pool.release(stack_medium);
+
+        let acquired = pool.acquire_with_capacity(64);
+        assert!(acquired.capacity() >= 128);
+
+        let stats = pool.stats();
+        assert_eq!(stats.pool_hits, 1);
+    }
+
+    #[test]
+    fn pool_ignores_oversized_stacks() {
+        let pool: StackPool<u32> = StackPool::new(1);
+
+        let oversized = vec![0u32; 4097];
+        pool.release(oversized);
+
+        assert_eq!(pool.stats().max_pool_depth, 0);
+    }
+
+    #[test]
+    fn thread_local_pool_defaults_and_reuses() {
+        init_thread_local_pool(3);
+
+        let pool = get_thread_local_pool();
+        let stack = pool.acquire();
+        assert_eq!(stack.capacity(), 256);
+
+        pool.release(stack);
+
+        let stats = pool.stats();
+        assert_eq!(stats.total_allocations, 1);
+    }
+
+    #[test]
+    fn clone_stack_copies_contents() {
+        let pool: StackPool<u32> = StackPool::new(4);
+
+        let original = vec![1, 2, 3, 4];
+        let cloned = pool.clone_stack(&original);
+
+        assert_eq!(cloned, original);
+    }
+}

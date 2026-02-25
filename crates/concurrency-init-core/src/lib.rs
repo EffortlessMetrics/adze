@@ -11,23 +11,8 @@ pub use adze_concurrency_env_core::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };
+pub use adze_concurrency_init_bootstrap_core::init_concurrency_caps;
 pub use adze_concurrency_init_rayon_core::{init_rayon_global_once, is_already_initialized_error};
-
-/// Initialize Rayon global thread-pool caps once for the process.
-///
-/// Calling this function multiple times is safe and idempotent.
-pub fn init_concurrency_caps() {
-    let caps = current_caps();
-
-    if let Err(message) = init_rayon_global_once(caps.rayon_threads) {
-        panic!("failed to initialize rayon global thread pool: {message}");
-    }
-
-    eprintln!(
-        "Concurrency caps initialized: {RAYON_NUM_THREADS_ENV}={}, {TOKIO_WORKER_THREADS_ENV}={}",
-        caps.rayon_threads, caps.tokio_worker_threads
-    );
-}
 
 #[cfg(test)]
 mod tests {

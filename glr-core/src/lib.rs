@@ -66,7 +66,7 @@ pub use GLRError as GlrError;
 pub mod conflict_inspection;
 
 // Re-export key types from adze-ir for API consumers
-pub use adze_ir::{Grammar, StateId, SymbolId};
+pub use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 /// Stable imports for downstream users during 0.8.0-dev.
 pub mod prelude {

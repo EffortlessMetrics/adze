@@ -1,0 +1,21 @@
+[package]
+name = "adze-concurrency-init-bootstrap-policy-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Pure policy for normalizing concurrency bootstrap caps."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
+adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
+
+[dev-dependencies]
+proptest = "1.4"

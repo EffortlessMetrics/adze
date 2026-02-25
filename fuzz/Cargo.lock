@@ -12,7 +12,9 @@ dependencies = [
  "adze-linecol-core",
  "adze-macro",
  "adze-runtime-governance-api",
+ "adze-stack-pool-core",
  "adze-tablegen",
+ "adze-ts-format-core",
  "ahash",
  "anyhow",
  "indexmap",
@@ -33,6 +35,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-bdd-grammar-analysis-core"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
+]
+
+[[package]]
 name = "adze-bdd-grid-core"
 version = "0.1.0"
 
@@ -40,17 +49,39 @@ version = "0.1.0"
 name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-common-syntax-core",
+]
+
+[[package]]
+name = "adze-common-syntax-core"
+version = "0.1.0"
+dependencies = [
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "adze-concurrency-bounded-map-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-plan-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-caps-contract-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-map-core",
 ]
 
 [[package]]
 name = "adze-concurrency-caps-core"
 version = "0.1.0"
 dependencies = [
- "adze-concurrency-env-core",
- "adze-concurrency-init-core",
- "adze-concurrency-map-core",
+ "adze-concurrency-caps-contract-core",
 ]
 
 [[package]]
@@ -68,6 +99,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-concurrency-init-bootstrap-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-policy-core",
+ "adze-concurrency-init-rayon-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-policy-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-normalize-core",
+]
+
+[[package]]
 name = "adze-concurrency-init-classifier-core"
 version = "0.1.0"
 
@@ -76,6 +124,7 @@ name = "adze-concurrency-init-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-core",
  "adze-concurrency-init-rayon-core",
 ]
 
@@ -91,8 +140,7 @@ dependencies = [
 name = "adze-concurrency-map-core"
 version = "0.1.0"
 dependencies = [
- "adze-concurrency-plan-core",
- "rayon",
+ "adze-concurrency-bounded-map-core",
 ]
 
 [[package]]
@@ -113,15 +161,24 @@ dependencies = [
 [[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
+dependencies = [
+ "adze-parser-backend-core",
+]
 
 [[package]]
 name = "adze-fuzz"
 version = "0.0.0"
 dependencies = [
  "adze",
+ "adze-bdd-grammar-analysis-core",
+ "adze-common-syntax-core",
+ "adze-concurrency-bounded-map-core",
+ "adze-concurrency-caps-contract-core",
  "adze-concurrency-caps-core",
  "adze-concurrency-env-contract-core",
  "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-core",
+ "adze-concurrency-init-bootstrap-policy-core",
  "adze-concurrency-init-classifier-core",
  "adze-concurrency-init-core",
  "adze-concurrency-init-rayon-core",
@@ -129,8 +186,14 @@ dependencies = [
  "adze-concurrency-normalize-core",
  "adze-concurrency-parse-core",
  "adze-concurrency-plan-core",
+ "adze-glr-core",
  "adze-linecol-core",
+ "adze-parser-backend-core",
+ "adze-stack-pool-core",
+ "adze-ts-format-core",
  "libfuzzer-sys",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -223,6 +286,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-parser-backend-core"
+version = "0.1.0"
+
+[[package]]
 name = "adze-parsetable-metadata"
 version = "0.1.0"
 dependencies = [
@@ -254,6 +321,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-stack-pool-core"
+version = "0.1.0"
+
+[[package]]
 name = "adze-tablegen"
 version = "0.8.0-dev"
 dependencies = [
@@ -272,6 +343,13 @@ dependencies = [
  "sha2",
  "thiserror",
  "tree-sitter-c2rust",
+]
+
+[[package]]
+name = "adze-ts-format-core"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
 ]
 
 [[package]]

@@ -15,6 +15,7 @@ strict_docs = []
 
 [dependencies]
 adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
+adze-concurrency-init-bootstrap-core = { version = "0.1.0", path = "../concurrency-init-bootstrap-core" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
 
 [dev-dependencies]
