@@ -1004,8 +1004,9 @@ impl<'a> AbiLanguageBuilder<'a> {
     /// Generate production ID map
     fn generate_production_id_map(&self) -> Vec<TokenStream> {
         // Tree-sitter uses 1-based production IDs in the parse table
-        // This map converts from 1-based IDs to 0-based indices into PARSE_ACTIONS
-        // We MUST use the same rule ordering as generate_ts_rules and generate_parse_actions
+        // After decoding to zero-based, runtime indexes this map by RULE ID from parse actions.
+        // Therefore this map must be: rule_id -> production_id.
+        // PARSE_ACTIONS / TS_RULES are indexed by production_id.
         let mut rules: Vec<_> = self
             .grammar
             .rules
@@ -1014,25 +1015,24 @@ impl<'a> AbiLanguageBuilder<'a> {
             .collect();
         rules.sort_by_key(|rule| rule.production_id.0);
 
-        // Find the maximum production ID to size the map
-        // Production IDs in the table are 1-based, so max ID 771 means we need map[770]
+        // Find the maximum production ID to size the map.
+        // Production IDs are encoded directly and can start at 0.
         let max_production_id = rules.iter().map(|r| r.production_id.0).max().unwrap_or(0);
-        let map_size = max_production_id as usize;
+        let map_size = max_production_id as usize + 1;
 
         // Initialize map with a sentinel value (u16::MAX)
-        let mut id_to_index = vec![u16::MAX; map_size];
+        let mut rule_to_production = vec![u16::MAX; map_size];
 
-        // Fill the map: id_to_index[production_id - 1] = sequential_rule_index
-        for (index, rule) in rules.iter().enumerate() {
-            let pid = rule.production_id.0 as usize;
-            if pid > 0 && pid <= map_size {
-                id_to_index[pid - 1] = index as u16;
+        // Fill the map: rule_id (sequential, zero-based) -> production_id
+        for (rule_id, rule) in rules.iter().enumerate() {
+            if rule_id < map_size {
+                rule_to_production[rule_id] = rule.production_id.0;
             }
         }
 
         // Convert to TokenStreams
         let mut production_map = Vec::new();
-        for val in id_to_index {
+        for val in rule_to_production {
             production_map.push(quote! { #val });
         }
 
@@ -1307,5 +1307,56 @@ mod tests {
         let token1_pos = code.find("49u8").unwrap();
         let token5_pos = code.find("53u8").unwrap();
         assert!(token1_pos < token5_pos);
+    }
+
+    #[test]
+    fn test_generate_production_id_map_includes_first_slot() {
+        let mut grammar = Grammar::new("test".to_string());
+
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(2),
+        });
+
+        let parse_table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
+        let production_map = builder.generate_production_id_map();
+
+        assert_eq!(production_map.len(), 3);
+        assert_eq!(production_map[0].to_string(), "0u16");
+        assert_eq!(production_map[1].to_string(), "1u16");
+        assert_eq!(production_map[2].to_string(), "2u16");
     }
 }
