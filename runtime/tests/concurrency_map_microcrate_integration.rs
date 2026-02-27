@@ -20,13 +20,14 @@ fn runtime_reexport_matches_microcrate_behavior() {
 
 #[test]
 fn runtime_reexport_stays_type_compatible() {
-    fn accepts_core_fn(
-        f: fn(Vec<i32>, usize, fn(i32) -> i32) -> Vec<i32>,
-    ) -> fn(Vec<i32>, usize, fn(i32) -> i32) -> Vec<i32> {
+    type TransformFn = fn(i32) -> i32;
+    type BoundedMapFn = fn(Vec<i32>, usize, TransformFn) -> Vec<i32>;
+
+    fn accepts_core_fn(f: BoundedMapFn) -> BoundedMapFn {
         f
     }
 
-    let returned = accepts_core_fn(runtime_bounded_parallel_map::<i32, i32, fn(i32) -> i32>);
+    let returned = accepts_core_fn(runtime_bounded_parallel_map::<i32, i32, TransformFn>);
     let mut output = returned((0..64).collect(), 4, model_transform);
     output.sort_unstable();
 
