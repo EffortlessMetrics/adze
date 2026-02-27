@@ -1,0 +1,421 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Golden Tests - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/development/golden-tests.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="golden-tests-ensuring-parser-compatibility"><a class="header" href="#golden-tests-ensuring-parser-compatibility">Golden Tests: Ensuring Parser Compatibility</a></h1>
+<p>Golden tests in adze provide byte-for-byte compatibility verification between our pure-Rust parsers and the official Tree-sitter parsers. This ensures that adze produces identical parse trees for the same source code.</p>
+<h2 id="what-are-golden-tests"><a class="header" href="#what-are-golden-tests">What Are Golden Tests?</a></h2>
+<p>Golden tests (also called reference tests or regression tests) compare the output of adze parsers against "golden" reference files generated by the official Tree-sitter parsers. They validate:</p>
+<ul>
+<li><strong>Parse tree structure</strong>: Identical node hierarchy and relationships</li>
+<li><strong>Node types</strong>: Same named and anonymous node classifications</li>
+<li><strong>Source mapping</strong>: Correct byte ranges and text extraction</li>
+<li><strong>Field assignments</strong>: Proper field name mappings</li>
+<li><strong>Error handling</strong>: Consistent error recovery behavior</li>
+</ul>
+<h2 id="tutorial-running-your-first-golden-test"><a class="header" href="#tutorial-running-your-first-golden-test">Tutorial: Running Your First Golden Test</a></h2>
+<h3 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h3>
+<p>Before running golden tests, ensure you have:</p>
+<pre><code class="language-bash"># 1. Install Tree-sitter CLI (for reference generation)
+npm install -g tree-sitter-cli
+
+# 2. Install language grammars (example: Python)
+git clone https://github.com/tree-sitter/tree-sitter-python
+cd tree-sitter-python
+tree-sitter generate
+cd ..
+</code></pre>
+<h3 id="step-1-generate-reference-files"><a class="header" href="#step-1-generate-reference-files">Step 1: Generate Reference Files</a></h3>
+<p>Golden tests require reference files generated by the official Tree-sitter parsers:</p>
+<pre><code class="language-bash"># Navigate to golden-tests directory
+cd golden-tests
+
+# Generate references for all languages
+./generate_references.sh
+</code></pre>
+<p>This creates reference files in the expected format:</p>
+<pre><code>golden-tests/
+├── python/
+│   ├── fixtures/simple_program.py     # Test source file
+│   └── expected/
+│       ├── simple_program.sexp        # Expected S-expression
+│       └── simple_program.sha256      # Hash for fast comparison
+└── javascript/
+    ├── fixtures/simple_program.js
+    └── expected/
+        ├── simple_program.sexp
+        └── simple_program.sha256
+</code></pre>
+<h3 id="step-2-run-golden-tests"><a class="header" href="#step-2-run-golden-tests">Step 2: Run Golden Tests</a></h3>
+<p>Test adze parsers against the references:</p>
+<pre><code class="language-bash"># Test all supported languages
+cargo test --features all-grammars
+
+# Test only Python grammar
+cargo test --features python-grammar
+
+# Test only JavaScript grammar  
+cargo test --features javascript-grammar
+</code></pre>
+<h3 id="step-3-understanding-test-results"><a class="header" href="#step-3-understanding-test-results">Step 3: Understanding Test Results</a></h3>
+<p><strong>Passing Test:</strong></p>
+<pre><code>test python_simple_golden ... ok
+</code></pre>
+<p><strong>Failing Test:</strong></p>
+<pre><code>test python_simple_golden ... FAILED
+
+Parse tree mismatch for simple_program.py:
+Expected hash: 4a2b8c9d...
+Actual hash:   7f3e1a5b...
+
+Expected S-expression saved to: python/expected/simple_program.sexp
+Actual S-expression saved to: python/expected/simple_program.actual.sexp
+
+To update golden files, run with UPDATE_GOLDEN=1
+</code></pre>
+<h3 id="step-4-debugging-differences"><a class="header" href="#step-4-debugging-differences">Step 4: Debugging Differences</a></h3>
+<p>When tests fail, examine the differences:</p>
+<pre><code class="language-bash"># View the expected output
+cat golden-tests/python/expected/simple_program.sexp
+
+# View the actual adze output  
+cat golden-tests/python/expected/simple_program.actual.sexp
+
+# Use diff tools for detailed comparison
+diff -u golden-tests/python/expected/simple_program.sexp \
+        golden-tests/python/expected/simple_program.actual.sexp
+</code></pre>
+<h2 id="s-expression-format"><a class="header" href="#s-expression-format">S-Expression Format</a></h2>
+<p>Golden tests use S-expression format for parse trees, matching Tree-sitter's output:</p>
+<pre><code class="language-lisp">(module
+  (expression_statement
+    (call
+      (identifier) "print"
+      (argument_list
+        (string "\"Hello, world!\"")))))
+</code></pre>
+<p><strong>Format Details:</strong></p>
+<ul>
+<li><strong>Named nodes</strong>: <code>(node_type ...)</code></li>
+<li><strong>Anonymous nodes</strong>: <code>"literal_text"</code></li>
+<li><strong>Nested structure</strong>: Reflects parent-child relationships</li>
+<li><strong>Field mapping</strong>: Not shown in basic S-expressions</li>
+<li><strong>Source text</strong>: Leaf nodes include quoted source text</li>
+</ul>
+<h2 id="working-with-test-fixtures"><a class="header" href="#working-with-test-fixtures">Working with Test Fixtures</a></h2>
+<h3 id="adding-new-test-cases"><a class="header" href="#adding-new-test-cases">Adding New Test Cases</a></h3>
+<ol>
+<li><strong>Create fixture file</strong>: Add source code to <code>{language}/fixtures/</code></li>
+<li><strong>Generate reference</strong>: Run <code>./generate_references.sh</code></li>
+<li><strong>Add test function</strong>: Update <code>golden-tests/src/lib.rs</code></li>
+</ol>
+<p>Example test addition:</p>
+<pre><code class="language-rust">#[test]
+#[cfg(feature = "python-grammar")]
+fn python_class_definition() -&gt; Result&lt;()&gt; {
+    run_golden_test(GoldenTest {
+        language: "python",
+        fixture_name: "class_example.py",
+    })
+}</code></pre>
+<h3 id="updating-references"><a class="header" href="#updating-references">Updating References</a></h3>
+<p>When parser behavior changes intentionally:</p>
+<pre><code class="language-bash"># Update all golden references
+UPDATE_GOLDEN=1 cargo test --features all-grammars
+
+# Or regenerate with the script
+./generate_references.sh
+</code></pre>
+<h2 id="integration-with-continuous-integration"><a class="header" href="#integration-with-continuous-integration">Integration with Continuous Integration</a></h2>
+<p>Golden tests run automatically in CI to catch regressions:</p>
+<pre><code class="language-yaml"># .github/workflows/golden-tests.yml
+- name: Run Golden Tests
+  run: |
+    cd golden-tests
+    ./generate_references.sh
+    cargo test --features all-grammars
+</code></pre>
+<p><strong>Benefits for CI:</strong></p>
+<ul>
+<li><strong>Fast feedback</strong>: SHA256 hashes enable quick comparison</li>
+<li><strong>Comprehensive coverage</strong>: Tests real-world code patterns</li>
+<li><strong>Regression prevention</strong>: Catches parser changes that affect output</li>
+<li><strong>Cross-platform validation</strong>: Ensures consistent behavior</li>
+</ul>
+<h2 id="feature-flags-and-language-support"><a class="header" href="#feature-flags-and-language-support">Feature Flags and Language Support</a></h2>
+<p>Golden tests use feature flags for conditional compilation:</p>
+<pre><code class="language-toml"># Cargo.toml features
+[features]
+default = []
+python-grammar = ["adze-python", "adze"]
+javascript-grammar = ["adze-javascript", "adze"] 
+all-grammars = ["python-grammar", "javascript-grammar"]
+</code></pre>
+<p><strong>Supported Languages:</strong></p>
+<ul>
+<li><strong>Python</strong>: Full grammar support with external scanner</li>
+<li><strong>JavaScript</strong>: Complete ECMAScript parsing</li>
+<li><strong>Future languages</strong>: Extensible framework for additional grammars</li>
+</ul>
+<h2 id="troubleshooting-common-issues"><a class="header" href="#troubleshooting-common-issues">Troubleshooting Common Issues</a></h2>
+<h3 id="grammar-feature-not-enabled"><a class="header" href="#grammar-feature-not-enabled">"Grammar feature not enabled"</a></h3>
+<pre><code class="language-bash"># Error: Python grammar feature not enabled
+# Solution: Enable the appropriate feature flag
+cargo test --features python-grammar
+</code></pre>
+<h3 id="no-golden-reference-found"><a class="header" href="#no-golden-reference-found">"No golden reference found"</a></h3>
+<pre><code class="language-bash"># Error: No golden reference found for simple_program.py
+# Solution: Generate references first
+cd golden-tests &amp;&amp; ./generate_references.sh
+</code></pre>
+<h3 id="tree-sitter-cli-not-found"><a class="header" href="#tree-sitter-cli-not-found">"Tree-sitter CLI not found"</a></h3>
+<pre><code class="language-bash"># Error: tree-sitter CLI not found
+# Solution: Install Tree-sitter globally
+npm install -g tree-sitter-cli
+</code></pre>
+<h3 id="failed-to-parse-with-tree-sitter"><a class="header" href="#failed-to-parse-with-tree-sitter">"Failed to parse with tree-sitter"</a></h3>
+<pre><code class="language-bash"># Error: Failed to parse input_file.py with tree-sitter
+# Solution: Ensure grammar is installed and accessible
+cd /path/to/tree-sitter-python
+tree-sitter generate
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><strong>Read the <a href="testing.html">Testing Guide</a></strong> for comprehensive testing strategies</li>
+<li><strong>Explore <a href="../reference/s-expression-format.html">S-Expression Reference</a></strong> for format details</li>
+<li><strong>See <a href="architecture.html">Architecture Documentation</a></strong> for parser internals</li>
+<li><strong>Review <a href="contributing.html">Contributing Guide</a></strong> for adding new language support</li>
+</ul>
+<p>Golden tests provide the foundation for reliable parser development and ensure adze maintains perfect compatibility with Tree-sitter's reference implementations.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../development/testing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../development/release.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../development/testing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../development/release.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

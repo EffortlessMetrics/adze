@@ -1,0 +1,375 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>FAQ - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/appendix/faq.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="frequently-asked-questions"><a class="header" href="#frequently-asked-questions">Frequently Asked Questions</a></h1>
+<h2 id="general-questions"><a class="header" href="#general-questions">General Questions</a></h2>
+<h3 id="what-is-adze"><a class="header" href="#what-is-adze">What is Adze?</a></h3>
+<p>Adze is a Rust framework that makes it easy to create efficient parsers by leveraging the Tree-sitter parser generator. It allows you to define grammars using Rust's type system with procedural macros.</p>
+<h3 id="how-does-it-differ-from-tree-sitter"><a class="header" href="#how-does-it-differ-from-tree-sitter">How does it differ from Tree-sitter?</a></h3>
+<p>While Tree-sitter requires writing grammars in JavaScript, Adze lets you define grammars directly in Rust with type safety and IDE support. It generates Tree-sitter-compatible parsers while providing a more ergonomic Rust API.</p>
+<h3 id="what-languages-are-supported"><a class="header" href="#what-languages-are-supported">What languages are supported?</a></h3>
+<p>Adze can parse any language you define a grammar for. Example grammars are provided for JavaScript, Python, Go, and more. See the <a href="../reference/language-support.html">Language Support</a> page for details.</p>
+<h2 id="technical-questions"><a class="header" href="#technical-questions">Technical Questions</a></h2>
+<h3 id="what-is-glr-parsing"><a class="header" href="#what-is-glr-parsing">What is GLR parsing?</a></h3>
+<p>GLR (Generalized LR) parsing is an extension of LR parsing that can handle ambiguous grammars by maintaining multiple parse stacks. When the parser encounters ambiguity, it forks and explores all possibilities, merging when paths converge.</p>
+<h3 id="should-i-use-the-pure-rust-or-c-backend"><a class="header" href="#should-i-use-the-pure-rust-or-c-backend">Should I use the pure-Rust or C backend?</a></h3>
+<p><strong>Use pure-Rust if you need:</strong></p>
+<ul>
+<li>WASM support</li>
+<li>No C dependencies</li>
+<li>Better cross-compilation</li>
+<li>Static parser generation</li>
+</ul>
+<p><strong>Use the C backend if you need:</strong></p>
+<ul>
+<li>Maximum compatibility with existing Tree-sitter tools</li>
+<li>Specific Tree-sitter features not yet in pure-Rust</li>
+</ul>
+<h3 id="how-do-i-handle-whitespace"><a class="header" href="#how-do-i-handle-whitespace">How do I handle whitespace?</a></h3>
+<p>Define whitespace as an "extra" token that's automatically skipped:</p>
+<pre><code class="language-rust">#[adze::extra]
+struct Whitespace {
+    #[adze::leaf(pattern = r"\s+")]
+    _ws: (),
+}</code></pre>
+<h3 id="can-i-use-external-scanners"><a class="header" href="#can-i-use-external-scanners">Can I use external scanners?</a></h3>
+<p>Yes, but with limitations in the current beta. Basic external scanner support exists, but the full Tree-sitter external scanner API is still being implemented.</p>
+<h2 id="performance-questions"><a class="header" href="#performance-questions">Performance Questions</a></h2>
+<h3 id="how-fast-is-adze"><a class="header" href="#how-fast-is-adze">How fast is Adze?</a></h3>
+<p>Adze parsers are comparable in speed to hand-written parsers:</p>
+<ul>
+<li><strong>Parsing</strong>: 50-200 MB/s typical</li>
+<li><strong>Incremental</strong>: Sub-millisecond for typical edits</li>
+<li><strong>Memory</strong>: Low overhead with object pooling</li>
+</ul>
+<h3 id="does-it-support-incremental-parsing"><a class="header" href="#does-it-support-incremental-parsing">Does it support incremental parsing?</a></h3>
+<p>Yes! Incremental parsing is fully supported, allowing efficient reparsing after edits. This is essential for editor integrations.</p>
+<h3 id="what-optimizations-are-available"><a class="header" href="#what-optimizations-are-available">What optimizations are available?</a></h3>
+<p>Enable optimizations via features:</p>
+<ul>
+<li><code>optimize</code>: Grammar optimizer</li>
+<li><code>parallel</code>: Multi-threaded parsing</li>
+<li><code>simd</code>: SIMD-accelerated lexing</li>
+</ul>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="multiple-applicable-items-in-scope-error"><a class="header" href="#multiple-applicable-items-in-scope-error">"Multiple applicable items in scope" error</a></h3>
+<p>You likely have conflicting backend features enabled. Choose only one:</p>
+<ul>
+<li><code>pure-rust</code></li>
+<li><code>tree-sitter-c2rust</code></li>
+<li><code>tree-sitter-standard</code></li>
+</ul>
+<h3 id="build-fails-with-macro-errors"><a class="header" href="#build-fails-with-macro-errors">Build fails with macro errors</a></h3>
+<p>Ensure both dependencies are present:</p>
+<pre><code class="language-toml">[dependencies]
+adze = "0.5.0-beta"
+
+[build-dependencies]
+adze-tool = "0.5.0-beta"
+</code></pre>
+<h3 id="grammar-has-conflicts"><a class="header" href="#grammar-has-conflicts">Grammar has conflicts</a></h3>
+<p>This is normal for ambiguous grammars. Options:</p>
+<ol>
+<li>Add precedence annotations</li>
+<li>Refactor to remove ambiguity</li>
+<li>Use GLR parsing (automatic in v0.5)</li>
+</ol>
+<h3 id="how-do-i-fix-precedence-errors"><a class="header" href="#how-do-i-fix-precedence-errors">How do I fix precedence errors?</a></h3>
+<p>Common precedence errors and solutions:</p>
+<p><strong>Multiple precedence attributes:</strong></p>
+<pre><code class="language-rust">// ❌ Error
+#[adze::prec(1)]
+#[adze::prec_left(2)]
+struct Bad { }
+
+// ✅ Fix: Use only one
+#[adze::prec_left(2)]
+struct Good { }</code></pre>
+<p><strong>Invalid precedence value:</strong></p>
+<pre><code class="language-rust">// ❌ Error: String instead of integer
+#[adze::prec("high")]
+
+// ✅ Fix: Use integer literal
+#[adze::prec(10)]</code></pre>
+<p><strong>Variable instead of literal:</strong></p>
+<pre><code class="language-rust">// ❌ Error: Cannot use variables
+const HIGH: u32 = 10;
+#[adze::prec(HIGH)]
+
+// ✅ Fix: Use literal value directly
+#[adze::prec(10)]</code></pre>
+<h3 id="what-precedence-values-should-i-use"><a class="header" href="#what-precedence-values-should-i-use">What precedence values should I use?</a></h3>
+<p><strong>Guidelines:</strong></p>
+<ul>
+<li>Range: <code>0</code> to <code>4294967295</code> (u32)</li>
+<li>Zero is valid (lowest precedence)</li>
+<li>Use meaningful gaps (10, 20, 30) for future expansion</li>
+<li>Higher numbers bind tighter</li>
+</ul>
+<p><strong>Common patterns:</strong></p>
+<pre><code class="language-rust">#[adze::prec_left(10)]  // Addition, subtraction
+#[adze::prec_left(20)]  // Multiplication, division
+#[adze::prec_right(30)] // Exponentiation
+#[adze::prec(40)]       // Comparison operators</code></pre>
+<h3 id="wasm-build-fails"><a class="header" href="#wasm-build-fails">WASM build fails</a></h3>
+<p>Make sure you're using the <code>pure-rust</code> feature:</p>
+<pre><code class="language-toml">adze = { version = "0.5.0-beta", features = ["pure-rust"] }
+</code></pre>
+<h2 id="migration-questions"><a class="header" href="#migration-questions">Migration Questions</a></h2>
+<h3 id="how-do-i-migrate-from-tree-sitter"><a class="header" href="#how-do-i-migrate-from-tree-sitter">How do I migrate from Tree-sitter?</a></h3>
+<p>See the comprehensive <a href="../getting-started/migration.html">Migration Guide</a>.</p>
+<h3 id="what-changed-in-v05"><a class="header" href="#what-changed-in-v05">What changed in v0.5?</a></h3>
+<p>Major changes include:</p>
+<ul>
+<li>GLR parsing support</li>
+<li>Enhanced error recovery</li>
+<li>Pure-Rust backend option</li>
+<li>Improved incremental parsing</li>
+</ul>
+<p>See the <a href="changelog.html">Changelog</a> for details.</p>
+<h3 id="is-v05-stable"><a class="header" href="#is-v05-stable">Is v0.5 stable?</a></h3>
+<p>v0.5.0-beta is feature-complete and well-tested. The "beta" label indicates we're gathering feedback before the final release. The API is stable and ready for production use.</p>
+<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<h3 id="how-can-i-contribute"><a class="header" href="#how-can-i-contribute">How can I contribute?</a></h3>
+<p>We welcome contributions! See our <a href="../development/contributing.html">Contributing Guide</a> for:</p>
+<ul>
+<li>Code style guidelines</li>
+<li>Testing requirements</li>
+<li>PR process</li>
+</ul>
+<h3 id="where-do-i-report-bugs"><a class="header" href="#where-do-i-report-bugs">Where do I report bugs?</a></h3>
+<p>Please report issues on our <a href="https://github.com/EffortlessMetrics/adze/issues">GitHub repository</a>.</p>
+<h3 id="how-do-i-add-a-new-language-grammar"><a class="header" href="#how-do-i-add-a-new-language-grammar">How do I add a new language grammar?</a></h3>
+<ol>
+<li>Create a new module with your grammar</li>
+<li>Add tests for the grammar</li>
+<li>Submit a PR with examples</li>
+<li>See <a href="../reference/grammar-examples.html">Grammar Examples</a> for patterns</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../appendix/changelog.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../appendix/changelog.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

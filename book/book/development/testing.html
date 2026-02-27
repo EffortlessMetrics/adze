@@ -1,0 +1,697 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Testing - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/development/testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="testing-guide"><a class="header" href="#testing-guide">Testing Guide</a></h1>
+<p>adze uses a comprehensive testing strategy combining multiple test types to ensure parser correctness, performance, and compatibility. This guide covers all testing approaches used in the project.</p>
+<h2 id="test-architecture-overview"><a class="header" href="#test-architecture-overview">Test Architecture Overview</a></h2>
+<pre><code>adze testing ecosystem:
+├── Unit Tests           # Individual component testing
+├── Integration Tests    # Cross-component workflow testing  
+├── Golden Tests        # Tree-sitter compatibility verification
+├── Property Tests      # Grammar-agnostic behavior validation
+├── Snapshot Tests      # Visual regression testing with insta
+├── Benchmark Tests     # Performance measurement and regression detection
+└── Fuzzing Tests      # Automated input generation for edge cases
+</code></pre>
+<h2 id="golden-tests-compatibility-verification"><a class="header" href="#golden-tests-compatibility-verification">Golden Tests: Compatibility Verification</a></h2>
+<p>Golden tests ensure byte-for-byte compatibility with official Tree-sitter parsers.</p>
+<h3 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h3>
+<pre><code class="language-bash"># Generate reference files (one-time setup)
+cd golden-tests
+./generate_references.sh
+
+# Run all golden tests
+cargo test --features all-grammars
+
+# Run language-specific tests
+cargo test --features python-grammar
+cargo test --features javascript-grammar
+</code></pre>
+<h3 id="workflow-integration"><a class="header" href="#workflow-integration">Workflow Integration</a></h3>
+<p>Golden tests integrate into your development workflow:</p>
+<pre><code class="language-bash"># 1. Make parser changes
+vim runtime/src/parser.rs
+
+# 2. Run golden tests to check compatibility
+cargo test --features python-grammar
+
+# 3. If expected changes, update references
+UPDATE_GOLDEN=1 cargo test --features python-grammar
+
+# 4. Review and commit updated golden files
+git add golden-tests/
+git commit -m "Update golden tests for parser changes"
+</code></pre>
+<p><strong>When to Use Golden Tests:</strong></p>
+<ul>
+<li>Verifying parser output matches Tree-sitter exactly</li>
+<li>Testing real-world code samples</li>
+<li>Regression testing after parser modifications</li>
+<li>Cross-platform compatibility validation</li>
+<li>CI/CD compatibility gates</li>
+</ul>
+<h2 id="unit-tests-component-testing"><a class="header" href="#unit-tests-component-testing">Unit Tests: Component Testing</a></h2>
+<p>Unit tests focus on individual functions and modules:</p>
+<pre><code class="language-bash"># Run all unit tests
+cargo test
+
+# Run tests for specific components
+cargo test -p adze-glr-core
+cargo test -p adze-tablegen
+cargo test -p adze
+
+# Run tests with specific features
+cargo test -p adze --features glr-core
+cargo test -p adze --features incremental
+</code></pre>
+<h3 id="test-categories"><a class="header" href="#test-categories">Test Categories</a></h3>
+<p><strong>Parser Core Tests:</strong></p>
+<pre><code class="language-bash"># GLR parsing engine
+cargo test -p adze-glr-core
+
+# Table generation and compression
+cargo test -p adze-tablegen
+
+# Runtime parsing functionality
+cargo test -p adze test_parse
+</code></pre>
+<p><strong>Grammar Processing Tests:</strong></p>
+<pre><code class="language-bash"># Grammar extraction from Rust code
+cargo test -p adze-tool
+
+# Macro expansion and attribute processing
+cargo test -p adze-macro
+
+# Common utilities and shared logic
+cargo test -p adze-common
+</code></pre>
+<h2 id="integration-tests-workflow-validation"><a class="header" href="#integration-tests-workflow-validation">Integration Tests: Workflow Validation</a></h2>
+<p>Integration tests verify complete workflows across multiple components:</p>
+<pre><code class="language-bash"># Run integration tests
+cargo test --test integration
+
+# Test specific workflows
+cargo test --test integration test_grammar_to_parser
+cargo test --test integration test_incremental_parsing
+cargo test --test integration test_error_recovery
+</code></pre>
+<h3 id="key-integration-test-areas"><a class="header" href="#key-integration-test-areas">Key Integration Test Areas</a></h3>
+<p><strong>Grammar-to-Parser Pipeline:</strong></p>
+<pre><code class="language-rust">#[test]
+fn test_complete_grammar_pipeline() {
+    // 1. Define grammar with macros
+    // 2. Extract with tool
+    // 3. Generate parser tables  
+    // 4. Parse sample input
+    // 5. Verify parse tree structure
+}</code></pre>
+<p><strong>GLR Parsing Integration:</strong></p>
+<pre><code class="language-rust">#[test]  
+fn test_glr_ambiguity_handling() {
+    // Test GLR parser with ambiguous grammar
+    // Verify all valid parse paths are explored
+    // Check conflict resolution and precedence
+}</code></pre>
+<p><strong>Incremental Parsing Workflow:</strong></p>
+<pre><code class="language-rust">#[test]
+fn test_incremental_editing() {
+    // Parse initial source
+    // Apply text edits
+    // Verify efficient incremental reparsing
+    // Check subtree reuse optimization
+}</code></pre>
+<h2 id="property-tests-grammar-agnostic-validation"><a class="header" href="#property-tests-grammar-agnostic-validation">Property Tests: Grammar-Agnostic Validation</a></h2>
+<p>Property tests validate parser behavior across different grammars and inputs:</p>
+<pre><code class="language-bash"># Run property tests
+cargo test property_test
+
+# Test specific properties
+cargo test property_incremental_test
+cargo test property_roundtrip_test
+cargo test property_tree_invariants
+</code></pre>
+<h3 id="property-test-examples"><a class="header" href="#property-test-examples">Property Test Examples</a></h3>
+<p><strong>Roundtrip Property:</strong></p>
+<pre><code class="language-rust">#[test]
+fn property_roundtrip_test() {
+    // For any valid input:
+    // parse(input) -&gt; tree
+    // tree.text() == input
+    // Ensures parse trees preserve original source
+}</code></pre>
+<p><strong>Incremental Consistency:</strong></p>
+<pre><code class="language-rust">#[test] 
+fn property_incremental_consistency() {
+    // For any input and edit:
+    // full_parse(edited_input) == incremental_parse(input, edit)
+    // Ensures incremental parsing produces identical results
+}</code></pre>
+<p><strong>Tree Invariants:</strong></p>
+<pre><code class="language-rust">#[test]
+fn property_tree_invariants() {
+    // For any parse tree:
+    // - Parent/child relationships are consistent
+    // - Byte ranges are non-overlapping and ordered
+    // - Source text extraction is correct
+}</code></pre>
+<h2 id="external-lexer-testing-new-in-pr-67"><a class="header" href="#external-lexer-testing-new-in-pr-67">External Lexer Testing (New in PR #67)</a></h2>
+<p>External lexer utilities include comprehensive test coverage for FFI compatibility and Tree-sitter integration:</p>
+<h3 id="test-categories-1"><a class="header" href="#test-categories-1">Test Categories</a></h3>
+<p><strong>Column Tracking Tests:</strong></p>
+<pre><code class="language-rust">#[test]
+fn test_external_lexer_column_tracking() {
+    let input = b"hello\nworld";
+    let mut ext = ExternalLexer::new(input, 0, 0);
+    let mut ts = create_ts_lexer(&amp;mut ext);
+
+    // Initial column at start
+    assert_eq!(unsafe { ExternalLexer::get_column(&amp;mut ts) }, 0);
+
+    // Advance over "hello"
+    for _ in 0..5 {
+        unsafe { ExternalLexer::advance(&amp;mut ts, false) };
+    }
+    assert_eq!(unsafe { ExternalLexer::get_column(&amp;mut ts) }, 5);
+
+    // Advance over newline resets column
+    unsafe { ExternalLexer::advance(&amp;mut ts, false) };
+    assert_eq!(unsafe { ExternalLexer::get_column(&amp;mut ts) }, 0);
+}</code></pre>
+<p><strong>EOF Detection Tests:</strong></p>
+<pre><code class="language-rust">#[test]
+fn test_external_lexer_eof() {
+    let input = b"a";
+    let mut ext = ExternalLexer::new(input, 0, 0);
+    let mut ts = create_ts_lexer(&amp;mut ext);
+
+    assert!(!unsafe { ExternalLexer::eof(&amp;mut ts) });
+    unsafe { ExternalLexer::advance(&amp;mut ts, true) };
+    assert!(unsafe { ExternalLexer::eof(&amp;mut ts) });
+}</code></pre>
+<p><strong>Range Boundary Tests:</strong></p>
+<pre><code class="language-rust">#[test]
+fn test_external_lexer_included_range_start() {
+    let input = b"abc";
+    let mut ext = ExternalLexer::new(input, 0, 0);
+    let mut ts = create_ts_lexer(&amp;mut ext);
+
+    assert!(unsafe { ExternalLexer::is_at_included_range_start(&amp;mut ts) });
+    unsafe { ExternalLexer::advance(&amp;mut ts, true) };
+    assert!(!unsafe { ExternalLexer::is_at_included_range_start(&amp;mut ts) });
+}</code></pre>
+<h3 id="running-external-lexer-tests"><a class="header" href="#running-external-lexer-tests">Running External Lexer Tests</a></h3>
+<pre><code class="language-bash"># Run all external lexer tests
+cargo test test_external_lexer
+
+# Run specific external lexer functionality tests
+cargo test test_external_lexer_column_tracking
+cargo test test_external_lexer_eof
+cargo test test_external_lexer_included_range_start
+
+# Run runtime tests with external lexer integration
+cargo test -p adze --features all-features
+</code></pre>
+<h3 id="integration-testing"><a class="header" href="#integration-testing">Integration Testing</a></h3>
+<p>External lexer utilities are tested for integration with:</p>
+<ul>
+<li><strong>Tree-sitter FFI Interface</strong>: Ensuring full compatibility with <code>TSLexer</code> API</li>
+<li><strong>Memory Safety</strong>: Pointer handling and null checks</li>
+<li><strong>Position Tracking</strong>: Accurate byte and column position management</li>
+<li><strong>Error Handling</strong>: Graceful handling of boundary conditions</li>
+</ul>
+<p><strong>Test Results Summary (PR #67)</strong>:</p>
+<ul>
+<li>✅ All external lexer tests (column tracking, EOF, range detection) pass</li>
+<li>✅ Full runtime test suite passes (128/128 tests)</li>
+<li>✅ Clippy passes without warnings</li>
+<li>✅ Tree-sitter FFI compatibility verified</li>
+</ul>
+<h2 id="snapshot-tests-visual-regression-testing"><a class="header" href="#snapshot-tests-visual-regression-testing">Snapshot Tests: Visual Regression Testing</a></h2>
+<p>Snapshot tests use the <code>insta</code> crate for visual regression testing:</p>
+<pre><code class="language-bash"># Run snapshot tests
+cargo test -p example
+
+# Review and accept snapshot changes
+cargo insta review
+
+# Generate new snapshots
+cargo test -p example
+cargo insta accept
+</code></pre>
+<h3 id="snapshot-test-workflow"><a class="header" href="#snapshot-test-workflow">Snapshot Test Workflow</a></h3>
+<pre><code class="language-rust">#[test]
+fn test_arithmetic_parsing() {
+    let source = "1 + 2 * 3";
+    let tree = parse_arithmetic(source);
+    
+    // Compare against stored snapshot
+    insta::assert_yaml_snapshot!(tree_to_yaml(&amp;tree));
+}</code></pre>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Visual diff of parse tree changes</li>
+<li>Easy approval workflow for expected changes</li>
+<li>Comprehensive coverage of grammar examples</li>
+<li>Human-readable test output</li>
+</ul>
+<h2 id="benchmark-tests-performance-measurement"><a class="header" href="#benchmark-tests-performance-measurement">Benchmark Tests: Performance Measurement</a></h2>
+<p>Benchmark tests measure and track parser performance:</p>
+<pre><code class="language-bash"># Run benchmarks
+cargo bench
+
+# Run specific benchmark suites
+cargo bench --bench parsing_benchmarks
+cargo bench --bench glr_performance
+cargo bench --bench incremental_benchmarks
+
+# Generate performance reports
+cargo bench -- --output-format html
+</code></pre>
+<h3 id="benchmark-categories"><a class="header" href="#benchmark-categories">Benchmark Categories</a></h3>
+<p><strong>Parsing Performance:</strong></p>
+<pre><code class="language-rust">#[bench]
+fn bench_python_large_file(b: &amp;mut Bencher) {
+    let source = load_large_python_file();
+    b.iter(|| {
+        adze_python::parse(&amp;source)
+    });
+}</code></pre>
+<p><strong>GLR Performance:</strong></p>
+<pre><code class="language-rust">#[bench]
+fn bench_glr_ambiguous_grammar(b: &amp;mut Bencher) {
+    let source = generate_ambiguous_input();
+    b.iter(|| {
+        glr_parser.parse(&amp;source)
+    });
+}</code></pre>
+<p><strong>Memory Usage:</strong></p>
+<pre><code class="language-rust">#[bench]
+fn bench_memory_usage(b: &amp;mut Bencher) {
+    b.iter_custom(|iters| {
+        let start_memory = get_memory_usage();
+        // Run parser operations
+        let end_memory = get_memory_usage();
+        Duration::from_nanos(end_memory - start_memory)
+    });
+}</code></pre>
+<h2 id="fuzzing-tests-edge-case-discovery"><a class="header" href="#fuzzing-tests-edge-case-discovery">Fuzzing Tests: Edge Case Discovery</a></h2>
+<p>Fuzzing tests use automated input generation to find edge cases:</p>
+<pre><code class="language-bash"># Install cargo-fuzz
+cargo install cargo-fuzz
+
+# Initialize fuzzing
+cd runtime/fuzz
+cargo fuzz init
+
+# Run fuzzing targets
+cargo fuzz run fuzz_parser
+cargo fuzz run fuzz_incremental
+cargo fuzz run fuzz_glr_conflicts
+</code></pre>
+<h3 id="fuzzing-targets"><a class="header" href="#fuzzing-targets">Fuzzing Targets</a></h3>
+<p><strong>Parser Input Fuzzing:</strong></p>
+<pre><code class="language-rust">fuzz_target!(|data: &amp;[u8]| {
+    if let Ok(source) = std::str::from_utf8(data) {
+        let _ = adze_python::parse(source);
+        // Should never crash, even on invalid input
+    }
+});</code></pre>
+<p><strong>Edit Sequence Fuzzing:</strong></p>
+<pre><code class="language-rust">fuzz_target!(|edits: Vec&lt;Edit&gt;| {
+    let mut tree = initial_parse();
+    for edit in edits {
+        tree.edit(&amp;edit);
+        let _ = reparse(&amp;tree);
+        // Incremental parsing should remain consistent
+    }
+});</code></pre>
+<h2 id="concurrency-safe-testing"><a class="header" href="#concurrency-safe-testing">Concurrency-Safe Testing</a></h2>
+<p>adze implements concurrency caps to ensure stable testing:</p>
+<pre><code class="language-bash"># Use concurrency-capped test commands
+cargo t2                    # Run with 2 threads
+cargo test-safe            # Run with safe defaults  
+cargo test-ultra-safe      # Run with 1 thread
+
+# Use preflight script for system pressure monitoring
+./scripts/preflight.sh
+./scripts/test-capped.sh
+</code></pre>
+<h3 id="concurrency-configuration"><a class="header" href="#concurrency-configuration">Concurrency Configuration</a></h3>
+<p><strong>Environment Variables:</strong></p>
+<pre><code class="language-bash">export RUST_TEST_THREADS=2        # Rust test thread limit
+export RAYON_NUM_THREADS=4        # Parallel processing limit  
+export TOKIO_WORKER_THREADS=2     # Async runtime threads
+export CARGO_BUILD_JOBS=4         # Build parallelism
+</code></pre>
+<p><strong>Automatic Detection:</strong></p>
+<pre><code class="language-bash"># Preflight script automatically sets conservative limits
+# if system is under high PID pressure (&gt;85% of pid_max)
+./scripts/preflight.sh
+</code></pre>
+<h2 id="cicd-testing-strategy"><a class="header" href="#cicd-testing-strategy">CI/CD Testing Strategy</a></h2>
+<h3 id="github-actions-workflow"><a class="header" href="#github-actions-workflow">GitHub Actions Workflow</a></h3>
+<pre><code class="language-yaml">name: Test Suite
+on: [push, pull_request]
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --all
+        
+  golden-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          cd golden-tests
+          ./generate_references.sh
+          cargo test --features all-grammars
+          
+  property-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - run: cargo test property_test
+      
+  benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - run: cargo bench --no-run  # Compile but don't run in CI
+</code></pre>
+<h3 id="test-connectivity-safeguards"><a class="header" href="#test-connectivity-safeguards">Test Connectivity Safeguards</a></h3>
+<p>adze includes multiple layers of protection against test disconnection:</p>
+<p><strong>CI Test Connectivity Job:</strong></p>
+<ul>
+<li>Blocks commits containing <code>.rs.disabled</code> files</li>
+<li>Enforces non-zero test counts for all crates</li>
+<li>Reports per-crate test counts in PR summaries</li>
+<li>Detects orphaned test files</li>
+</ul>
+<p><strong>Pre-commit Hook:</strong></p>
+<pre><code class="language-bash"># Prevents accidentally disabling tests
+.git/hooks/pre-commit
+</code></pre>
+<p><strong>Local Verification:</strong></p>
+<pre><code class="language-bash"># Check test connectivity
+./scripts/check-test-connectivity.sh
+</code></pre>
+<h2 id="testing-best-practices"><a class="header" href="#testing-best-practices">Testing Best Practices</a></h2>
+<h3 id="writing-effective-tests"><a class="header" href="#writing-effective-tests">Writing Effective Tests</a></h3>
+<p><strong>Test Naming:</strong></p>
+<pre><code class="language-rust">// Good: Descriptive and specific
+#[test]
+fn test_glr_handles_shift_reduce_conflict_with_precedence()
+
+// Bad: Generic and unclear  
+#[test]
+fn test_parser()</code></pre>
+<p><strong>Test Structure:</strong></p>
+<pre><code class="language-rust">#[test]
+fn test_specific_behavior() {
+    // Arrange: Set up test data
+    let source = "def foo(): pass";
+    let mut parser = Parser::new();
+    
+    // Act: Perform the operation
+    let result = parser.parse(source);
+    
+    // Assert: Verify expected behavior
+    assert!(result.is_ok());
+    assert_eq!(result.tree.root_node().kind(), "module");
+}</code></pre>
+<p><strong>Error Testing:</strong></p>
+<pre><code class="language-rust">#[test]
+fn test_error_conditions() {
+    // Test both success and failure cases
+    assert!(parser.parse("valid input").is_ok());
+    assert!(parser.parse("invalid input").is_err());
+    
+    // Verify specific error types
+    match parser.parse("malformed") {
+        Err(ParseError::UnexpectedToken { position, .. }) =&gt; {
+            assert_eq!(position, 42);
+        }
+        _ =&gt; panic!("Expected UnexpectedToken error"),
+    }
+}</code></pre>
+<h3 id="test-maintenance"><a class="header" href="#test-maintenance">Test Maintenance</a></h3>
+<p><strong>Keep Tests Fast:</strong></p>
+<pre><code class="language-rust">// Use small, focused examples
+let source = "x = 1";  // Good
+let source = load_entire_django_codebase();  // Bad for unit tests</code></pre>
+<p><strong>Avoid Test Dependencies:</strong></p>
+<pre><code class="language-rust">// Each test should be independent
+#[test]
+fn test_independent_parsing() {
+    let parser = Parser::new();  // Fresh parser for each test
+    // ...
+}</code></pre>
+<p><strong>Use Appropriate Test Types:</strong></p>
+<ul>
+<li><strong>Unit tests</strong>: Single function behavior</li>
+<li><strong>Integration tests</strong>: Multi-component workflows</li>
+<li><strong>Golden tests</strong>: Compatibility verification</li>
+<li><strong>Property tests</strong>: Universal invariants</li>
+<li><strong>Benchmarks</strong>: Performance characteristics</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><strong>Explore <a href="golden-tests.html">Golden Tests Guide</a></strong> for compatibility testing</li>
+<li><strong>Review <a href="architecture.html">Architecture Documentation</a></strong> for system understanding</li>
+<li><strong>Read <a href="contributing.html">Contributing Guide</a></strong> for development workflows</li>
+<li><strong>See <a href="../guide/performance.html">Performance Guide</a></strong> for optimization strategies</li>
+</ul>
+<p>A robust testing strategy ensures adze remains reliable, performant, and compatible with Tree-sitter's reference implementations across all supported use cases.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../development/architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../development/golden-tests.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../development/architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../development/golden-tests.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
