@@ -34,7 +34,10 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
         }],
     );
     let ff = FirstFollowSets::compute(&grammar).unwrap();
-    let table = build_lr1_automaton(&grammar, &ff).expect("table");
+    let table = build_lr1_automaton(&grammar, &ff)
+        .expect("table")
+        .normalize_eof_to_zero()
+        .with_detected_goto_indexing();
     let table: &'static _ = Box::leak(Box::new(table));
 
     let t_counter = counter.clone();

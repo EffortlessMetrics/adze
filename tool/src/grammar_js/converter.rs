@@ -353,7 +353,33 @@ impl GrammarJsConverter {
                     // Handle each member, preserving precedence if present
                     match member {
                         JsRule::Prec { value, content } => {
-                            if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                            let mut added = false;
+                            if let JsRule::Seq {
+                                members: seq_members,
+                            } = content.as_ref()
+                            {
+                                let mut rhs = Vec::new();
+                                for seq_member in seq_members {
+                                    if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
+                                        rhs.push(symbol);
+                                    }
+                                }
+                                if !rhs.is_empty() {
+                                    eprintln!(
+                                        "Debug: Adding rule {} -> {:?} with precedence {}",
+                                        lhs.0, rhs, value
+                                    );
+                                    self.add_rule(
+                                        grammar,
+                                        lhs,
+                                        rhs,
+                                        Some(PrecedenceKind::Static(*value as i16)),
+                                        None,
+                                    );
+                                    added = true;
+                                }
+                            }
+                            if !added && let Some(symbol) = self.rule_to_symbol(grammar, content) {
                                 eprintln!(
                                     "Debug: Adding rule {} -> {:?} with precedence {}",
                                     lhs.0, symbol, value
@@ -368,7 +394,33 @@ impl GrammarJsConverter {
                             }
                         }
                         JsRule::PrecLeft { value, content } => {
-                            if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                            let mut added = false;
+                            if let JsRule::Seq {
+                                members: seq_members,
+                            } = content.as_ref()
+                            {
+                                let mut rhs = Vec::new();
+                                for seq_member in seq_members {
+                                    if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
+                                        rhs.push(symbol);
+                                    }
+                                }
+                                if !rhs.is_empty() {
+                                    eprintln!(
+                                        "Debug: Adding rule {} -> {:?} with left precedence {}",
+                                        lhs.0, rhs, value
+                                    );
+                                    self.add_rule(
+                                        grammar,
+                                        lhs,
+                                        rhs,
+                                        Some(PrecedenceKind::Static(*value as i16)),
+                                        Some(Associativity::Left),
+                                    );
+                                    added = true;
+                                }
+                            }
+                            if !added && let Some(symbol) = self.rule_to_symbol(grammar, content) {
                                 eprintln!(
                                     "Debug: Adding rule {} -> {:?} with left precedence {}",
                                     lhs.0, symbol, value
@@ -383,7 +435,33 @@ impl GrammarJsConverter {
                             }
                         }
                         JsRule::PrecRight { value, content } => {
-                            if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                            let mut added = false;
+                            if let JsRule::Seq {
+                                members: seq_members,
+                            } = content.as_ref()
+                            {
+                                let mut rhs = Vec::new();
+                                for seq_member in seq_members {
+                                    if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
+                                        rhs.push(symbol);
+                                    }
+                                }
+                                if !rhs.is_empty() {
+                                    eprintln!(
+                                        "Debug: Adding rule {} -> {:?} with right precedence {}",
+                                        lhs.0, rhs, value
+                                    );
+                                    self.add_rule(
+                                        grammar,
+                                        lhs,
+                                        rhs,
+                                        Some(PrecedenceKind::Static(*value as i16)),
+                                        Some(Associativity::Right),
+                                    );
+                                    added = true;
+                                }
+                            }
+                            if !added && let Some(symbol) = self.rule_to_symbol(grammar, content) {
                                 eprintln!(
                                     "Debug: Adding rule {} -> {:?} with right precedence {}",
                                     lhs.0, symbol, value

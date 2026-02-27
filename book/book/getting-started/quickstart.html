@@ -1,0 +1,538 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Quick Start - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/getting-started/quickstart.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
+<p>This guide will walk you through creating your first Adze grammar and parser.</p>
+<h2 id="creating-a-simple-arithmetic-parser"><a class="header" href="#creating-a-simple-arithmetic-parser">Creating a Simple Arithmetic Parser</a></h2>
+<p>Let's build a parser for basic arithmetic expressions like <code>1 + 2 * 3</code>.</p>
+<h3 id="step-1-define-the-grammar"><a class="header" href="#step-1-define-the-grammar">Step 1: Define the Grammar</a></h3>
+<p>Create a new Rust project and add this to your <code>src/main.rs</code>:</p>
+<pre><code class="language-rust">#[adze::grammar("arithmetic")]
+mod grammar {
+    #[adze::language]
+    pub enum Expr {
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            u32,
+        ),
+        
+        #[adze::prec_left(1)]
+        Add(
+            Box&lt;Expr&gt;,
+            #[adze::leaf(text = "+")] (),
+            Box&lt;Expr&gt;,
+        ),
+        
+        #[adze::prec_left(2)]
+        Multiply(
+            Box&lt;Expr&gt;,
+            #[adze::leaf(text = "*")] (),
+            Box&lt;Expr&gt;,
+        ),
+        
+        Parenthesized(
+            #[adze::leaf(text = "(")] (),
+            Box&lt;Expr&gt;,
+            #[adze::leaf(text = ")")] (),
+        ),
+    }
+    
+    // Define whitespace as extra (automatically skipped)
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
+}
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create parser with GLR runtime (production ready)
+    use adze_runtime::Parser;
+    
+    let mut parser = Parser::new();
+    parser.set_language(grammar::language())?; // Generated GLR language
+    
+    // Parse some expressions
+    let expressions = vec![
+        "42",
+        "1 + 2",
+        "1 + 2 * 3",
+        "(1 + 2) * 3",
+    ];
+    
+    for expr in expressions {
+        println!("Parsing: {}", expr);
+        match parser.parse_utf8(expr, None) {
+            Ok(tree) =&gt; {
+                let ast = grammar::extract_ast(&amp;tree)?;
+                println!("  Result: {:?}\n", ast);
+            },
+            Err(e) =&gt; println!("  Error: {}\n", e),
+        }
+    }
+    
+    // Demonstrate incremental parsing
+    let initial = "1 + 2";
+    let tree1 = parser.parse_utf8(initial, None)?;
+    println!("Initial parse: {}", initial);
+    
+    let updated = "10 + 20";
+    let tree2 = parser.parse_utf8(updated, Some(&amp;tree1))?;  // Incremental!
+    println!("Incremental parse: {} (reused compatible subtrees)", updated);
+    
+    Ok(())
+}</code></pre>
+<h3 id="step-2-add-dependencies"><a class="header" href="#step-2-add-dependencies">Step 2: Add Dependencies</a></h3>
+<p>Add to your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+adze = { version = "0.6", features = ["glr-core", "incremental"] }
+adze-runtime = "0.1"  # GLR runtime
+
+[build-dependencies]
+adze-tool = "0.6"
+</code></pre>
+<p>Create <code>build.rs</code>:</p>
+<pre><code class="language-rust">fn main() {
+    adze_tool::build_parsers().unwrap();
+}</code></pre>
+<h3 id="step-3-run-your-parser"><a class="header" href="#step-3-run-your-parser">Step 3: Run Your Parser</a></h3>
+<pre><code class="language-bash">cargo run
+</code></pre>
+<p>You should see output like:</p>
+<pre><code>Parsing: 42
+  Result: Number(42)
+
+Parsing: 1 + 2
+  Result: Add(Number(1), (), Number(2))
+
+Parsing: 1 + 2 * 3
+  Result: Add(Number(1), (), Multiply(Number(2), (), Number(3)))
+
+Parsing: (1 + 2) * 3
+  Result: Multiply(Parenthesized((), Add(Number(1), (), Number(2)), ()), (), Number(3))
+</code></pre>
+<h2 id="understanding-the-grammar"><a class="header" href="#understanding-the-grammar">Understanding the Grammar</a></h2>
+<p>Let's break down what each part does:</p>
+<h3 id="the-grammar-module"><a class="header" href="#the-grammar-module">The Grammar Module</a></h3>
+<pre><code class="language-rust">#[adze::grammar("arithmetic")]
+mod grammar { ... }</code></pre>
+<p>This creates a grammar named "arithmetic" and generates:</p>
+<ul>
+<li>A <code>language()</code> function returning a GLR-compatible <code>Language</code></li>
+<li>An <code>extract_ast()</code> function to convert parse trees to your AST types</li>
+<li>Parser integration with runtime2's <code>Parser</code> API</li>
+</ul>
+<h3 id="the-language-root"><a class="header" href="#the-language-root">The Language Root</a></h3>
+<pre><code class="language-rust">#[adze::language]
+pub enum Expr { ... }</code></pre>
+<p>This marks <code>Expr</code> as the root type that the parser will return.</p>
+<h3 id="leaf-nodes"><a class="header" href="#leaf-nodes">Leaf Nodes</a></h3>
+<pre><code class="language-rust">#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+u32,</code></pre>
+<ul>
+<li><code>pattern</code>: Regular expression to match</li>
+<li><code>transform</code>: Function to convert matched text to the field type</li>
+<li><code>text</code>: Exact string to match (alternative to <code>pattern</code>)</li>
+</ul>
+<h3 id="precedence"><a class="header" href="#precedence">Precedence</a></h3>
+<pre><code class="language-rust">#[adze::prec_left(1)]  // Lower precedence
+#[adze::prec_left(2)]  // Higher precedence</code></pre>
+<p>Higher numbers bind more tightly. Multiplication (2) binds tighter than addition (1).</p>
+<h3 id="extra-tokens"><a class="header" href="#extra-tokens">Extra Tokens</a></h3>
+<pre><code class="language-rust">#[adze::extra]
+struct Whitespace { ... }</code></pre>
+<p>Tokens marked as <code>extra</code> are automatically skipped between other tokens.</p>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="optional-fields"><a class="header" href="#optional-fields">Optional Fields</a></h3>
+<pre><code class="language-rust">pub struct Function {
+    pub name: Identifier,
+    pub params: Option&lt;Parameters&gt;,
+}</code></pre>
+<h3 id="repeated-elements"><a class="header" href="#repeated-elements">Repeated Elements</a></h3>
+<pre><code class="language-rust">pub struct Block {
+    #[adze::repeat]
+    pub statements: Vec&lt;Statement&gt;,
+}</code></pre>
+<h3 id="delimited-lists"><a class="header" href="#delimited-lists">Delimited Lists</a></h3>
+<pre><code class="language-rust">pub struct ArgList {
+    #[adze::repeat(separator = ",")]
+    pub args: Vec&lt;Expression&gt;,
+}</code></pre>
+<h3 id="string-literals"><a class="header" href="#string-literals">String Literals</a></h3>
+<pre><code class="language-rust">pub struct StringLiteral {
+    #[adze::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = |s| s[1..s.len()-1].to_string())]
+    pub value: String,
+}</code></pre>
+<h2 id="glr-parser-integration-pr-56-"><a class="header" href="#glr-parser-integration-pr-56-">GLR Parser Integration (PR #56) ✨</a></h2>
+<p>The new GLR parser brings advanced capabilities for handling ambiguous grammars:</p>
+<h3 id="actioncell-support"><a class="header" href="#actioncell-support">ActionCell Support</a></h3>
+<p>The GLR parser uses <strong>ActionCells</strong> - each parser state can hold multiple conflicting actions:</p>
+<pre><code class="language-rust">use adze::glr_parser_no_error_recovery::GLRParser;
+use adze_glr_core::{build_lr1_automaton, FirstFollowSets};
+
+// Build GLR parser with ActionCell support
+let grammar = create_grammar();
+let first_follow = FirstFollowSets::compute(&amp;grammar)?;
+let parse_table = build_lr1_automaton(&amp;grammar, &amp;first_follow)?;
+let mut glr_parser = GLRParser::new(parse_table);
+
+// GLR parser returns parse forests for ambiguous grammars
+let forest = glr_parser.parse(&amp;tokens)?;
+println!("Parse alternatives: {}", forest.roots.len());
+
+// Traditional single-tree extraction
+let tree = runtime_parser.parse_utf8("1 + 2", None)?;</code></pre>
+<h3 id="parse-forest-analysis"><a class="header" href="#parse-forest-analysis">Parse Forest Analysis</a></h3>
+<p>When dealing with ambiguous grammars, analyze all interpretations:</p>
+<pre><code class="language-rust">// Example: Ambiguous expression "1+2*3"  
+// Can be parsed as ((1+2)*3) or (1+(2*3))
+let forest = glr_parser.parse(&amp;ambiguous_tokens)?;
+
+for (i, root) in forest.roots.iter().enumerate() {
+    println!("Interpretation {}: Symbol {} at {:?}", 
+             i, root.symbol.0, root.span);
+    println!("  Child alternatives: {}", root.alternatives.len());
+}
+
+// Use forest analyzer for complex ambiguity analysis
+let ambiguous_nodes = forest.nodes.values()
+    .filter(|node| node.alternatives.len() &gt; 1)
+    .count();
+println!("Ambiguous decision points: {}", ambiguous_nodes);</code></pre>
+<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
+<p>The GLR runtime provides comprehensive error information:</p>
+<pre><code class="language-rust">match parser.parse_utf8("1 + + 2", None) {
+    Ok(tree) =&gt; {
+        match grammar::extract_ast(&amp;tree) {
+            Ok(ast) =&gt; println!("Parsed: {:?}", ast),
+            Err(e) =&gt; println!("AST extraction error: {}", e),
+        }
+    },
+    Err(e) =&gt; {
+        println!("Parse error: {}", e);
+        // GLR parsing can handle some syntax errors gracefully
+        if let Some(partial_tree) = e.partial_tree() {
+            println!("Partial parse available for error recovery");
+        }
+    }
+}</code></pre>
+<h2 id="performance-monitoring"><a class="header" href="#performance-monitoring">Performance Monitoring</a></h2>
+<p>Enable GLR performance metrics:</p>
+<pre><code class="language-bash">ADZE_LOG_PERFORMANCE=true cargo run
+</code></pre>
+<p>Outputs forest-to-tree conversion statistics:</p>
+<pre><code>🚀 Forest-&gt;Tree conversion: 247 nodes, depth 12, took 0.8ms
+</code></pre>
+<h2 id="glr-tree-structure-understanding"><a class="header" href="#glr-tree-structure-understanding">GLR Tree Structure Understanding</a></h2>
+<p>GLR parsers produce trees with different structure than traditional parsers. Following PR #64 analysis, here's how to work with GLR trees:</p>
+<h3 id="grammar-rooted-trees"><a class="header" href="#grammar-rooted-trees">Grammar-Rooted Trees</a></h3>
+<p>GLR parsers always root trees at the grammar's start symbol, not the content:</p>
+<pre><code class="language-rust">let tree = parser.parse_utf8("42", None)?;
+let root = tree.root_node();
+
+// ✅ Correct: Grammar start symbol as root
+assert_eq!(root.kind(), "expr");           // Grammar start rule
+assert_eq!(root.child_count(), 1);         // Contains content as child
+
+// Navigate to actual content  
+let content = root.child(0).unwrap();       // Get actual number
+assert_eq!(content.kind(), "number");      // Content type
+
+// ❌ Incorrect: Expecting content directly
+// assert_eq!(root.kind(), "number");      // Wrong - content-centric thinking</code></pre>
+<h3 id="tree-navigation-pattern"><a class="header" href="#tree-navigation-pattern">Tree Navigation Pattern</a></h3>
+<p>When traversing GLR trees, always navigate through the grammar hierarchy:</p>
+<pre><code class="language-rust">let mut cursor = tree.root_node().walk();
+
+// Start at grammar root
+assert_eq!(cursor.node().kind(), "expr");      // Grammar symbol
+assert!(cursor.goto_first_child());            // Navigate to content
+assert_eq!(cursor.node().kind(), "number");    // Actual content
+
+// For complex expressions:
+// expr (root)
+// └── add_expr  
+//     ├── number ("1")
+//     ├── "+"
+//     └── number ("2")</code></pre>
+<h3 id="testing-glr-trees"><a class="header" href="#testing-glr-trees">Testing GLR Trees</a></h3>
+<p>When writing tests for GLR functionality:</p>
+<pre><code class="language-rust">#[test]
+fn test_glr_arithmetic() {
+    let tree = parser.parse_utf8("1 + 2", None).unwrap();
+    let root = tree.root_node();
+    
+    // Root is grammar start symbol
+    assert_eq!(root.kind(), "expr");
+    
+    // Content is child of grammar symbol
+    let add_expr = root.child(0).unwrap();
+    assert_eq!(add_expr.kind(), "add");
+    
+    // Navigate through production structure
+    let left_operand = add_expr.child(0).unwrap();
+    assert_eq!(left_operand.kind(), "number");
+    assert_eq!(left_operand.text(source), "1");
+}</code></pre>
+<p>This structure reflects the actual grammar productions rather than a content-centric view, which enables GLR's ambiguity handling capabilities.</p>
+<h2 id="glr-features-available"><a class="header" href="#glr-features-available">GLR Features Available</a></h2>
+<p>With runtime2, you get:</p>
+<ul>
+<li><strong>Ambiguous Grammar Support</strong>: Handle conflicts that traditional parsers reject</li>
+<li><strong>Incremental Parsing</strong>: Automatic subtree reuse for editor-like performance</li>
+<li><strong>Error Recovery</strong>: Partial parse trees available even with syntax errors</li>
+<li><strong>Tree-sitter Compatibility</strong>: Drop-in replacement for existing Tree-sitter usage</li>
+<li><strong>Performance Monitoring</strong>: Built-in metrics for optimization</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you've created your first GLR grammar:</p>
+<ol>
+<li>Read about <a href="../guide/parser-generation.html">Parser Generation</a> to understand GLR vs Pure-Rust backends</li>
+<li>Learn about <a href="../guide/incremental-parsing.html">Incremental Parsing</a> for real-time editor integration</li>
+<li>Explore <a href="../guide/glr-ambiguity.html">GLR Ambiguity Handling</a> for complex grammar conflicts</li>
+<li>Check out <a href="../guide/performance.html">Performance Optimization</a> for production deployment</li>
+</ol>
+<h2 id="tips-for-success"><a class="header" href="#tips-for-success">Tips for Success</a></h2>
+<ol>
+<li><strong>Start Simple</strong>: Begin with a minimal grammar and add features incrementally</li>
+<li><strong>Test as You Go</strong>: Write tests for each grammar rule</li>
+<li><strong>Use the Playground</strong>: The interactive playground helps visualize parse trees</li>
+<li><strong>Check Examples</strong>: The repository includes many example grammars</li>
+<li><strong>Enable Debug Output</strong>: Set <code>RUST_LOG=debug</code> to see GLR parser decisions</li>
+<li><strong>Use Performance Monitoring</strong>: Enable <code>ADZE_LOG_PERFORMANCE</code> for conversion metrics</li>
+<li><strong>Start with GLR Runtime</strong>: runtime2 provides the most features and Tree-sitter compatibility</li>
+<li><strong>Test Incrementally</strong>: Use incremental parsing for responsive applications</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../getting-started/installation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../getting-started/migration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../getting-started/installation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../getting-started/migration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

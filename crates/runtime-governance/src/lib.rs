@@ -72,7 +72,9 @@ mod tests {
         assert_eq!(runtime_matrix.profile, profile);
 
         let runtime2_matrix = bdd_governance_matrix_for_runtime2(BddPhase::Core, profile.glr);
-        assert_eq!(runtime2_matrix.profile, profile);
+        let runtime2_profile =
+            adze_runtime_governance_matrix::parser_feature_profile_for_runtime2(profile.glr);
+        assert_eq!(runtime2_matrix.profile, runtime2_profile);
     }
 
     #[test]

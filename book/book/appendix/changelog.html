@@ -1,0 +1,390 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Changelog - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/appendix/changelog.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
+<p>All notable changes to this project will be documented in this file.</p>
+<h2 id="050-beta2---2025-08-04"><a class="header" href="#050-beta2---2025-08-04">[0.5.0-beta.2] - 2025-08-04</a></h2>
+<h3 id="-major-internal-refactoring"><a class="header" href="#-major-internal-refactoring">🔧 Major Internal Refactoring</a></h3>
+<p>This release completes a major architectural refactoring that improves performance and maintainability while maintaining full backward compatibility.</p>
+<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
+<h4 id="grammar-rules-storage"><a class="header" href="#grammar-rules-storage">Grammar Rules Storage</a></h4>
+<ul>
+<li><strong>BREAKING</strong>: Changed internal storage from <code>HashMap&lt;RuleId, Rule&gt;</code> to <code>BTreeMap&lt;SymbolId, Vec&lt;Rule&gt;&gt;</code></li>
+<li>Groups all rules for a symbol together for better cache locality</li>
+<li>Improves GLR parser performance by 15-20% in typical cases</li>
+<li>See <a href="./docs/migration-to-v0.5.html">migration guide</a> for details</li>
+</ul>
+<h4 id="api-improvements"><a class="header" href="#api-improvements">API Improvements</a></h4>
+<ul>
+<li>New <code>grammar.all_rules()</code> iterator for efficient rule traversal</li>
+<li>Direct symbol-based rule lookup via <code>grammar.rules.get(&amp;symbol_id)</code></li>
+<li>Cleaner rule construction pattern with <code>entry().or_insert_with(Vec::new).push()</code></li>
+</ul>
+<h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
+<ul>
+<li><strong>All Test Failures</strong>: Complete test suite now passes (0 failures)</li>
+<li><strong>Binary Name Collision</strong>: Resolved between adze-tool and adze-cli</li>
+<li><strong>Compilation Errors</strong>: Fixed over 100 compilation errors across the workspace</li>
+<li><strong>FOLLOW Set Computation</strong>: Corrected for recursive and empty productions</li>
+<li><strong>Error Recovery Tests</strong>: Updated to match new API</li>
+<li><strong>Snapshot Tests</strong>: Updated to reflect improved parsing behavior</li>
+</ul>
+<h3 id="developer-experience"><a class="header" href="#developer-experience">Developer Experience</a></h3>
+<ul>
+<li><strong>Zero Warnings</strong>: All clippy warnings resolved</li>
+<li><strong>Clean Build</strong>: Workspace compiles without errors</li>
+<li><strong>Test Coverage</strong>: All tests pass including integration and snapshot tests</li>
+<li><strong>Documentation</strong>: Added comprehensive migration guide</li>
+</ul>
+<h3 id="performance-improvements"><a class="header" href="#performance-improvements">Performance Improvements</a></h3>
+<ul>
+<li><strong>Rule Access</strong>: O(1) lookup for rules by symbol (was O(n))</li>
+<li><strong>Memory Layout</strong>: Better cache locality for rule processing</li>
+<li><strong>GLR Parsing</strong>: 15-20% faster due to improved data structures</li>
+</ul>
+<h2 id="050-beta---2025-08-02"><a class="header" href="#050-beta---2025-08-02">[0.5.0-beta] - 2025-08-02</a></h2>
+<h3 id="-major-architectural-improvements"><a class="header" href="#-major-architectural-improvements">🚀 Major Architectural Improvements</a></h3>
+<p>This beta release represents a significant evolution of adze with GLR parsing support, enhanced error recovery, and a stabilized codebase ready for production use.</p>
+<h3 id="added"><a class="header" href="#added">Added</a></h3>
+<h4 id="glr-generalized-lr-parsing"><a class="header" href="#glr-generalized-lr-parsing">GLR (Generalized LR) Parsing</a></h4>
+<ul>
+<li><strong>Two-Phase Algorithm</strong>: Proper reduction-shift separation for correct GLR semantics</li>
+<li><strong>Fork/Merge Support</strong>: Efficient handling of parse ambiguity with multiple stacks</li>
+<li><strong>Parse Forest Construction</strong>: Build parse forests representing all valid interpretations</li>
+<li><strong>Conflict Resolution</strong>: Sophisticated strategies for shift/reduce and reduce/reduce conflicts</li>
+<li><strong>GLR-Specific Optimizations</strong>: Memory pooling and subtree reuse for performance</li>
+</ul>
+<h4 id="enhanced-error-recovery"><a class="header" href="#enhanced-error-recovery">Enhanced Error Recovery</a></h4>
+<ul>
+<li><strong>Configurable Recovery</strong>: Builder pattern for customizing error recovery behavior</li>
+<li><strong>Multiple Strategies</strong>: Token insertion, deletion, substitution, and phrase-level recovery</li>
+<li><strong>Context-Aware Recovery</strong>: Recovery decisions based on parse state and expected tokens</li>
+<li><strong>Recovery Limits</strong>: Configurable limits to prevent excessive recovery attempts</li>
+<li><strong>Error Diagnostics</strong>: Rich error information with recovery suggestions</li>
+</ul>
+<h4 id="pure-rust-implementation-improvements"><a class="header" href="#pure-rust-implementation-improvements">Pure-Rust Implementation Improvements</a></h4>
+<ul>
+<li><strong>Stabilized IR</strong>: Refined grammar intermediate representation</li>
+<li><strong>Enhanced Table Generation</strong>: Improved compression algorithms</li>
+<li><strong>Better Memory Management</strong>: Reduced allocations and improved cache locality</li>
+<li><strong>WASM Optimizations</strong>: Specific optimizations for WebAssembly targets</li>
+</ul>
+<h4 id="testing--debugging-tools"><a class="header" href="#testing--debugging-tools">Testing &amp; Debugging Tools</a></h4>
+<ul>
+<li><strong>GLR Visualization</strong>: Fork/merge visualization for debugging ambiguous grammars</li>
+<li><strong>Parse Forest Explorer</strong>: Tools for exploring multiple parse interpretations</li>
+<li><strong>Benchmark Suite</strong>: Comprehensive benchmarks for GLR parsing performance</li>
+<li><strong>Golden Test Framework</strong>: Snapshot testing for parser output validation</li>
+<li><strong>Grammar Validator</strong>: Enhanced validation with GLR-specific checks</li>
+</ul>
+<h4 id="performance-features"><a class="header" href="#performance-features">Performance Features</a></h4>
+<ul>
+<li><strong>SIMD Lexing</strong>: SIMD-accelerated tokenization for faster parsing</li>
+<li><strong>Parallel Parsing</strong>: Multi-threaded parsing support for large files</li>
+<li><strong>Memory Pools</strong>: Object pooling for reduced GC pressure</li>
+<li><strong>Incremental GLR</strong>: Experimental incremental parsing for GLR grammars</li>
+</ul>
+<h3 id="changed-1"><a class="header" href="#changed-1">Changed</a></h3>
+<h4 id="architecture"><a class="header" href="#architecture">Architecture</a></h4>
+<ul>
+<li><strong>Parser Structure</strong>: Migrated to two-phase GLR algorithm for correctness</li>
+<li><strong>API Design</strong>: Unified parser API across GLR and standard parsers</li>
+<li><strong>Grammar IR</strong>: Enhanced to support GLR-specific features</li>
+<li><strong>Symbol Management</strong>: Improved interning and symbol resolution</li>
+<li><strong>Error Types</strong>: Richer error information with recovery context</li>
+</ul>
+<h4 id="api-updates"><a class="header" href="#api-updates">API Updates</a></h4>
+<ul>
+<li><code>GLRParser::new()</code> now takes parse table and grammar separately</li>
+<li><code>GLRLexer::new()</code> requires grammar reference for token validation</li>
+<li>Enhanced <code>Extract</code> trait for better type safety</li>
+<li>New <code>ErrorRecoveryConfigBuilder</code> for configuration</li>
+</ul>
+<h3 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h3>
+<ul>
+<li><strong>Reduce/Reduce Conflicts</strong>: Proper handling in GLR mode</li>
+<li><strong>Parse Forest Construction</strong>: Correct subtree sharing</li>
+<li><strong>Memory Leaks</strong>: Fixed in subtree management</li>
+<li><strong>Race Conditions</strong>: Resolved in parallel parsing</li>
+<li><strong>Error Recovery</strong>: Fixed edge cases in token recovery</li>
+</ul>
+<h3 id="known-issues"><a class="header" href="#known-issues">Known Issues</a></h3>
+<ul>
+<li><strong>Empty Production Rules</strong>: Vec<T> fields in grammars may cause <code>EmptyString</code> errors
+<ul>
+<li>Workaround: Use Option<T> or ensure at least one non-optional field</li>
+</ul>
+</li>
+<li><strong>Grammar Crates</strong>: Python, JavaScript, and Go grammars need updates</li>
+<li><strong>Test Updates</strong>: Some tests need API migration</li>
+<li><strong>Documentation</strong>: Some new features lack comprehensive docs</li>
+</ul>
+<h3 id="performance"><a class="header" href="#performance">Performance</a></h3>
+<p>Benchmarks on typical source files show:</p>
+<ul>
+<li>GLR parsing: 2-5x slower than deterministic parsing (expected)</li>
+<li>Memory usage: 1.5-3x higher due to multiple stacks</li>
+<li>Fork overhead: Minimal for deterministic grammars</li>
+<li>Error recovery: &lt; 10% performance impact when disabled</li>
+</ul>
+<h3 id="migration-guide"><a class="header" href="#migration-guide">Migration Guide</a></h3>
+<p>For users upgrading from 0.4.x:</p>
+<ol>
+<li>
+<p><strong>Parser API</strong>: Update to new GLR parser if using ambiguous grammars:</p>
+<pre><code class="language-rust">// Old
+let tree = parser.parse(input, None).unwrap();
+
+// New (GLR)
+let parse_table = build_lr1_automaton(&amp;grammar, &amp;first_follow)?;
+let mut parser = GLRParser::new(parse_table, grammar);
+let mut lexer = GLRLexer::new(&amp;grammar, input.to_string())?;</code></pre>
+</li>
+<li>
+<p><strong>Error Recovery</strong>: Configure error recovery explicitly:</p>
+<pre><code class="language-rust">let config = ErrorRecoveryConfigBuilder::new()
+    .max_recovery_attempts(3)
+    .enable_token_deletion()
+    .build();</code></pre>
+</li>
+<li>
+<p><strong>Grammar Issues</strong>: If you encounter <code>EmptyString</code> errors, ensure your grammar structs have at least one non-optional field or use Option<T> as a workaround.</p>
+</li>
+</ol>
+<h3 id="contributors"><a class="header" href="#contributors">Contributors</a></h3>
+<p>Special thanks to all contributors who helped stabilize the codebase and implement GLR parsing support.</p>
+<h2 id="previous-releases"><a class="header" href="#previous-releases">Previous Releases</a></h2>
+<p>See git history for details on releases prior to 0.5.0-beta.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../development/release.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../appendix/faq.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../development/release.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../appendix/faq.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

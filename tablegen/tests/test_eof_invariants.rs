@@ -130,9 +130,9 @@ fn test_symbol_layout_invariants() {
         .get(&parse_table.eof_symbol)
         .expect("EOF must be in symbol_to_index");
 
-    // Invariant 3: All terminals are in terminal region
-    // Terminal boundary is token_count + 1 (includes EOF)
-    let terminal_boundary = parse_table.token_count + 1;
+    // Invariant 3: All terminals are in terminal region.
+    // Terminal region spans internal + external token columns; EOF is included in token_count.
+    let terminal_boundary = parse_table.token_count + parse_table.external_token_count;
     for (symbol_id, &idx) in &parse_table.symbol_to_index {
         let is_terminal =
             grammar.tokens.contains_key(symbol_id) || *symbol_id == parse_table.eof_symbol;

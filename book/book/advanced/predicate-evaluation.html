@@ -1,0 +1,335 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Predicate Evaluation - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/advanced/predicate-evaluation.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="query-predicate-evaluation-in-adze"><a class="header" href="#query-predicate-evaluation-in-adze">Query Predicate Evaluation in adze</a></h1>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>adze now supports Tree-sitter's query predicate system, allowing you to filter pattern matches based on conditions. This is essential for many language-specific queries where syntax alone isn't sufficient.</p>
+<h2 id="supported-predicates"><a class="header" href="#supported-predicates">Supported Predicates</a></h2>
+<h3 id="1-eq---equality-predicate"><a class="header" href="#1-eq---equality-predicate">1. <code>#eq?</code> - Equality Predicate</a></h3>
+<p>Tests if a captured node's text equals a value or another capture.</p>
+<pre><code class="language-scm">; Match only 'if' keywords
+(keyword) @kw (#eq? @kw "if")
+
+; Match identifiers that are equal
+(identifier) @first . (identifier) @second (#eq? @first @second)
+</code></pre>
+<h3 id="2-not-eq---inequality-predicate"><a class="header" href="#2-not-eq---inequality-predicate">2. <code>#not-eq?</code> - Inequality Predicate</a></h3>
+<p>Tests if a captured node's text is NOT equal to a value or another capture.</p>
+<pre><code class="language-scm">; Match keywords that are not 'if'
+(keyword) @kw (#not-eq? @kw "if")
+</code></pre>
+<h3 id="3-match---regular-expression-predicate"><a class="header" href="#3-match---regular-expression-predicate">3. <code>#match?</code> - Regular Expression Predicate</a></h3>
+<p>Tests if a captured node's text matches a regular expression.</p>
+<pre><code class="language-scm">; Match identifiers starting with underscore
+(identifier) @private (#match? @private "^_")
+
+; Match camelCase identifiers
+(identifier) @camel (#match? @camel "^[a-z][a-zA-Z0-9]*$")
+</code></pre>
+<h3 id="4-not-match---negative-regular-expression"><a class="header" href="#4-not-match---negative-regular-expression">4. <code>#not-match?</code> - Negative Regular Expression</a></h3>
+<p>Tests if a captured node's text does NOT match a regular expression.</p>
+<pre><code class="language-scm">; Match identifiers that don't start with underscore
+(identifier) @public (#not-match? @public "^_")
+</code></pre>
+<h3 id="5-any-of---set-membership-predicate"><a class="header" href="#5-any-of---set-membership-predicate">5. <code>#any-of?</code> - Set Membership Predicate</a></h3>
+<p>Tests if a captured node's text is in a set of values.</p>
+<pre><code class="language-scm">; Match control flow keywords
+(keyword) @control (#any-of? @control "if" "while" "for" "switch")
+
+; Match visibility modifiers
+(modifier) @vis (#any-of? @vis "public" "private" "protected")
+</code></pre>
+<h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
+<h3 id="architecture"><a class="header" href="#architecture">Architecture</a></h3>
+<p>The predicate evaluation system consists of:</p>
+<ol>
+<li><strong>PredicateContext</strong> (<code>query/predicate_eval.rs</code>): Handles predicate evaluation with source text</li>
+<li><strong>Enhanced Matcher</strong> (<code>query/matcher_v2.rs</code>): Integrates predicate checking into pattern matching</li>
+<li><strong>Regex Caching</strong>: Compiled regexes are cached for performance</li>
+</ol>
+<h3 id="usage-example"><a class="header" href="#usage-example">Usage Example</a></h3>
+<pre><code class="language-rust">use adze::{
+    parser::ParseNode,
+    query::{Query, matcher_v2::QueryMatcher},
+};
+
+// Parse tree and source code
+let tree = parse_code(source);
+let source = "if (condition) { return true; }";
+
+// Query with predicates
+let query = compile_query(r#"
+    (keyword) @kw
+    (#eq? @kw "if")
+"#);
+
+// Match with predicate evaluation
+let matcher = QueryMatcher::new(&amp;query, source);
+let matches = matcher.matches(&amp;tree);
+
+// Only 'if' keywords are matched, not 'return'</code></pre>
+<h3 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h3>
+<ol>
+<li><strong>Text Extraction</strong>: Node text is extracted on-demand using byte offsets</li>
+<li><strong>Regex Caching</strong>: Regular expressions are compiled once and cached</li>
+<li><strong>Early Termination</strong>: Predicates are evaluated after structural matching</li>
+</ol>
+<h2 id="integration-with-tree-sitter"><a class="header" href="#integration-with-tree-sitter">Integration with Tree-sitter</a></h2>
+<p>The predicate system is designed to be compatible with Tree-sitter's query language:</p>
+<ul>
+<li>All standard predicates are supported</li>
+<li>Custom predicates can be added via the <code>Custom</code> variant</li>
+<li>Property predicates (<code>#set!</code>, <code>#is?</code>) are parsed but need external handling</li>
+</ul>
+<h2 id="future-work"><a class="header" href="#future-work">Future Work</a></h2>
+<ol>
+<li><strong>Query Parser Integration</strong>: Full S-expression query parser</li>
+<li><strong>Property Predicates</strong>: Support for <code>#set!</code> and <code>#is?</code> predicates</li>
+<li><strong>Custom Predicates</strong>: API for registering custom predicate handlers</li>
+<li><strong>Streaming Evaluation</strong>: Evaluate predicates during matching for better performance</li>
+</ol>
+<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
+<p>The predicate system includes comprehensive tests:</p>
+<ul>
+<li>Unit tests for each predicate type (<code>predicate_eval.rs</code>)</li>
+<li>Integration tests with mock parse trees (<code>test_query_predicates.rs</code>)</li>
+<li>Example demonstrating all predicates (<code>examples/predicate_demo.rs</code>)</li>
+</ul>
+<p>Run the example:</p>
+<pre><code class="language-bash">cargo run -p adze --example predicate_demo
+</code></pre>
+<h2 id="compatibility-note"><a class="header" href="#compatibility-note">Compatibility Note</a></h2>
+<p>This implementation aims for full compatibility with Tree-sitter's predicate system. Any differences in behavior should be reported as bugs.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/external-scanners.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../advanced/visualization.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/external-scanners.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../advanced/visualization.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

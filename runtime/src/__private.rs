@@ -370,8 +370,8 @@ fn parse_with_glr<T: Extract<T>>(
     // Create parser from TSLanguage with the correct grammar name for external scanner lookup
     let mut parser = Parser::from_language(lang, T::GRAMMAR_NAME.to_string());
 
-    // Parse to get root ParseNode
-    let root_node = parser.parse_tree(input).map_err(|e| {
+    // Parse to get root ParseNode and parser error count.
+    let (root_node, error_count) = parser.parse_tree_with_error_count(input).map_err(|e| {
         vec![crate::errors::ParseError {
             reason: crate::errors::ParseErrorReason::UnexpectedToken(e.to_string()),
             start: 0,
@@ -379,12 +379,31 @@ fn parse_with_glr<T: Extract<T>>(
         }]
     })?;
 
+    if error_count > 0 {
+        // Fallback for grammars/inputs where parser_v4 still reports recoveries.
+        // Keep GLR as default routing, but preserve user-visible correctness.
+        return parse_with_pure_parser::<T>(input, language);
+    }
+
     // Convert parser_v4::ParseNode to pure_parser::ParsedNode
     let parsed_node = convert_parse_node_v4_to_pure(&root_node, lang);
 
+    // Match pure parser behavior: unwrap source_file wrapper when present.
+    let non_extra_root_children: Vec<_> = parsed_node
+        .children
+        .iter()
+        .filter(|c| !c.is_extra)
+        .collect();
+    let extract_node = if parsed_node.kind() == "source_file" && non_extra_root_children.len() == 1
+    {
+        non_extra_root_children[0]
+    } else {
+        &parsed_node
+    };
+
     // Extract typed AST using the Extract trait
     Ok(<T as crate::Extract<_>>::extract(
-        Some(&parsed_node),
+        Some(extract_node),
         input.as_bytes(),
         0,
         None,

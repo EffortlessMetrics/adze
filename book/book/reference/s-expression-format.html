@@ -1,0 +1,583 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>S-Expression Format - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/reference/s-expression-format.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="s-expression-format-reference"><a class="header" href="#s-expression-format-reference">S-Expression Format Reference</a></h1>
+<p>adze uses S-expression format for parse tree serialization, maintaining compatibility with Tree-sitter's standard output format. This format provides a human-readable representation of parse trees used in golden tests, debugging, and tree analysis.</p>
+<h2 id="format-overview"><a class="header" href="#format-overview">Format Overview</a></h2>
+<p>S-expressions represent parse trees as nested symbolic expressions where:</p>
+<ul>
+<li><strong>Parentheses</strong> indicate node boundaries and hierarchy</li>
+<li><strong>Node types</strong> specify the grammatical category</li>
+<li><strong>Source text</strong> appears in quoted strings for leaf nodes</li>
+<li><strong>Indentation</strong> shows tree structure visually</li>
+</ul>
+<h3 id="basic-structure"><a class="header" href="#basic-structure">Basic Structure</a></h3>
+<pre><code class="language-lisp">(node_type
+  (child_node "text")
+  (another_child
+    (nested_node "more_text")))
+</code></pre>
+<h2 id="node-representation"><a class="header" href="#node-representation">Node Representation</a></h2>
+<h3 id="named-nodes"><a class="header" href="#named-nodes">Named Nodes</a></h3>
+<p>Named nodes represent grammatical constructs defined in the grammar:</p>
+<pre><code class="language-lisp">(module
+  (function_definition
+    (identifier) "hello"
+    (parameters)
+    (block
+      (return_statement
+        (string) "\"world\""))))
+</code></pre>
+<p><strong>Characteristics:</strong></p>
+<ul>
+<li>Enclosed in parentheses: <code>(node_type ...)</code></li>
+<li>Node type appears first: <code>function_definition</code>, <code>identifier</code>, etc.</li>
+<li>May contain child nodes or text content</li>
+<li>Correspond to grammar rules and AST nodes</li>
+</ul>
+<h3 id="anonymous-nodes"><a class="header" href="#anonymous-nodes">Anonymous Nodes</a></h3>
+<p>Anonymous nodes represent literal tokens and punctuation:</p>
+<pre><code class="language-lisp">(binary_expression
+  (number) "1"
+  "+"
+  (number) "2")
+</code></pre>
+<p><strong>Characteristics:</strong></p>
+<ul>
+<li>Appear as quoted strings: <code>"+"</code>, <code>"def"</code>, <code>"("</code></li>
+<li>No surrounding parentheses</li>
+<li>Represent exact source text</li>
+<li>Include keywords, operators, and punctuation</li>
+</ul>
+<h3 id="text-content"><a class="header" href="#text-content">Text Content</a></h3>
+<p>Leaf nodes include their source text content:</p>
+<pre><code class="language-lisp">(identifier) "variable_name"
+(number) "42"
+(string) "\"hello world\""
+</code></pre>
+<p><strong>Text Escaping:</strong></p>
+<ul>
+<li>Double quotes: <code>"\"quoted\""</code></li>
+<li>Backslashes: <code>"\\path\\to\\file"</code></li>
+<li>Newlines: <code>"line1\nline2"</code></li>
+<li>Control characters: <code>"\t\r\n"</code></li>
+<li>Unicode: <code>"\u{1F600}"</code> (for 😀)</li>
+</ul>
+<h2 id="tree-structure-examples"><a class="header" href="#tree-structure-examples">Tree Structure Examples</a></h2>
+<h3 id="python-function"><a class="header" href="#python-function">Python Function</a></h3>
+<p><strong>Source Code:</strong></p>
+<pre><code class="language-python">def greet(name):
+    return f"Hello, {name}!"
+</code></pre>
+<p><strong>S-Expression:</strong></p>
+<pre><code class="language-lisp">(module
+  (function_definition
+    "def"
+    (identifier) "greet"
+    (parameters
+      "("
+      (identifier) "name"
+      ")")
+    ":"
+    (block
+      (return_statement
+        "return"
+        (f_string
+          "f"
+          "\""
+          "Hello, "
+          (interpolation
+            "{"
+            (identifier) "name"
+            "}")
+          "!\""))))
+</code></pre>
+<h3 id="javascript-expression"><a class="header" href="#javascript-expression">JavaScript Expression</a></h3>
+<p><strong>Source Code:</strong></p>
+<pre><code class="language-javascript">const result = add(x, y);
+</code></pre>
+<p><strong>S-Expression:</strong></p>
+<pre><code class="language-lisp">(program
+  (variable_declaration
+    "const"
+    (variable_declarator
+      (identifier) "result"
+      "="
+      (call_expression
+        (identifier) "add"
+        (arguments
+          "("
+          (identifier) "x"
+          ","
+          (identifier) "y"
+          ")")))))
+</code></pre>
+<h3 id="arithmetic-expression"><a class="header" href="#arithmetic-expression">Arithmetic Expression</a></h3>
+<p><strong>Source Code:</strong></p>
+<pre><code>1 + 2 * 3
+</code></pre>
+<p><strong>S-Expression:</strong></p>
+<pre><code class="language-lisp">(expression
+  (binary_expression
+    (number) "1"
+    "+"
+    (binary_expression
+      (number) "2"
+      "*"
+      (number) "3")))
+</code></pre>
+<h2 id="formatting-rules"><a class="header" href="#formatting-rules">Formatting Rules</a></h2>
+<h3 id="indentation"><a class="header" href="#indentation">Indentation</a></h3>
+<p>S-expressions use consistent 2-space indentation:</p>
+<pre><code class="language-lisp">(module
+  (class_definition
+    "class"
+    (identifier) "Example"
+    ":"
+    (block
+      (expression_statement
+        (call
+          (identifier) "print"
+          (argument_list
+            "("
+            (string) "\"Hello\""
+            ")"))))))
+</code></pre>
+<h3 id="line-breaks"><a class="header" href="#line-breaks">Line Breaks</a></h3>
+<ul>
+<li><strong>Named nodes</strong>: New line after opening parenthesis if children exist</li>
+<li><strong>Leaf nodes</strong>: Single line format</li>
+<li><strong>Closing parentheses</strong>: Aligned with opening node</li>
+</ul>
+<p><strong>Multi-line Example:</strong></p>
+<pre><code class="language-lisp">(function_definition
+  "def"
+  (identifier) "process"
+  (parameters
+    "("
+    (identifier) "data"
+    ")")
+  ":"
+  (block
+    (return_statement
+      "return"
+      (call
+        (identifier) "transform"
+        (argument_list
+          "("
+          (identifier) "data"
+          ")")))))
+</code></pre>
+<p><strong>Single-line Example:</strong></p>
+<pre><code class="language-lisp">(identifier) "simple_name"
+</code></pre>
+<h3 id="whitespace-handling"><a class="header" href="#whitespace-handling">Whitespace Handling</a></h3>
+<p>Source code whitespace is preserved in anonymous nodes:</p>
+<p><strong>Source:</strong></p>
+<pre><code class="language-python">x    =     42
+</code></pre>
+<p><strong>S-Expression:</strong></p>
+<pre><code class="language-lisp">(assignment
+  (identifier) "x"
+  "    =     "
+  (number) "42")
+</code></pre>
+<h2 id="field-information"><a class="header" href="#field-information">Field Information</a></h2>
+<p>Standard S-expressions don't include field names. For debugging with fields, use extended format:</p>
+<p><strong>Standard Format:</strong></p>
+<pre><code class="language-lisp">(binary_expression
+  (identifier) "a"
+  "+"
+  (identifier) "b")
+</code></pre>
+<p><strong>Extended Format (debugging):</strong></p>
+<pre><code class="language-lisp">(binary_expression
+  left: (identifier) "a"
+  operator: "+"
+  right: (identifier) "b")
+</code></pre>
+<h2 id="error-nodes"><a class="header" href="#error-nodes">Error Nodes</a></h2>
+<p>Parse errors appear as special error nodes:</p>
+<p><strong>Source (with syntax error):</strong></p>
+<pre><code class="language-python">def foo(
+    pass
+</code></pre>
+<p><strong>S-Expression:</strong></p>
+<pre><code class="language-lisp">(module
+  (function_definition
+    "def"
+    (identifier) "foo"
+    "("
+    (ERROR)
+    (block
+      "pass")))
+</code></pre>
+<p><strong>Error Node Characteristics:</strong></p>
+<ul>
+<li>Node type: <code>ERROR</code> or <code>MISSING</code></li>
+<li>May contain partial content</li>
+<li>Indicates parser recovery points</li>
+<li>Shows where parsing failed</li>
+</ul>
+<h2 id="generating-s-expressions"><a class="header" href="#generating-s-expressions">Generating S-Expressions</a></h2>
+<h3 id="from-adze"><a class="header" href="#from-adze">From adze</a></h3>
+<pre><code class="language-rust">use adze::tree_to_sexp;
+
+let source = "def hello(): pass";
+let tree = python_parser.parse(source)?;
+let sexp = tree_to_sexp(&amp;tree, source);
+println!("{}", sexp);</code></pre>
+<h3 id="from-tree-sitter-cli"><a class="header" href="#from-tree-sitter-cli">From Tree-sitter CLI</a></h3>
+<pre><code class="language-bash">echo "def hello(): pass" | tree-sitter parse --quiet
+</code></pre>
+<h3 id="from-golden-tests"><a class="header" href="#from-golden-tests">From Golden Tests</a></h3>
+<pre><code class="language-bash">cd golden-tests
+./generate_references.sh
+cat python/expected/simple_program.sexp
+</code></pre>
+<h2 id="practical-applications"><a class="header" href="#practical-applications">Practical Applications</a></h2>
+<h3 id="golden-test-validation"><a class="header" href="#golden-test-validation">Golden Test Validation</a></h3>
+<p>S-expressions enable precise compatibility testing:</p>
+<pre><code class="language-rust">#[test]
+fn test_python_parsing() {
+    let source = load_fixture("example.py");
+    let actual_sexp = parse_with_adze(source)?;
+    let expected_sexp = load_expected("example.sexp")?;
+    assert_eq!(actual_sexp, expected_sexp);
+}</code></pre>
+<h3 id="debugging-parse-trees"><a class="header" href="#debugging-parse-trees">Debugging Parse Trees</a></h3>
+<p>S-expressions provide readable tree inspection:</p>
+<pre><code class="language-bash"># Debug parsing issues
+echo "problematic_code" | adze parse --sexp
+
+# Compare implementations
+echo "test_input" | tree-sitter parse --quiet &gt; expected.sexp
+echo "test_input" | adze parse --sexp &gt; actual.sexp
+diff expected.sexp actual.sexp
+</code></pre>
+<h3 id="tree-analysis"><a class="header" href="#tree-analysis">Tree Analysis</a></h3>
+<p>S-expressions facilitate pattern matching and analysis:</p>
+<pre><code class="language-python"># Parse S-expression with external tools
+import sexpdata
+
+sexp = "(function_definition (identifier) 'hello' ...)"
+tree = sexpdata.loads(sexp)
+functions = find_all_functions(tree)
+</code></pre>
+<h2 id="format-variations"><a class="header" href="#format-variations">Format Variations</a></h2>
+<h3 id="compact-vs-pretty-printed"><a class="header" href="#compact-vs-pretty-printed">Compact vs. Pretty-Printed</a></h3>
+<p><strong>Compact (single line):</strong></p>
+<pre><code class="language-lisp">(module (function_definition "def" (identifier) "foo" (parameters) (block (pass_statement "pass"))))
+</code></pre>
+<p><strong>Pretty-printed (multi-line):</strong></p>
+<pre><code class="language-lisp">(module
+  (function_definition
+    "def"
+    (identifier) "foo"
+    (parameters)
+    (block
+      (pass_statement
+        "pass"))))
+</code></pre>
+<h3 id="language-specific-variations"><a class="header" href="#language-specific-variations">Language-Specific Variations</a></h3>
+<p>Different languages may have specific node types:</p>
+<p><strong>Python-specific nodes:</strong></p>
+<pre><code class="language-lisp">(f_string
+  (interpolation
+    (expression_list)))
+</code></pre>
+<p><strong>JavaScript-specific nodes:</strong></p>
+<pre><code class="language-lisp">(template_string
+  (template_substitution
+    (expression)))
+</code></pre>
+<p><strong>Rust-specific nodes:</strong></p>
+<pre><code class="language-lisp">(match_expression
+  (match_arm
+    (match_pattern)))
+</code></pre>
+<h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
+<h3 id="character-escaping"><a class="header" href="#character-escaping">Character Escaping</a></h3>
+<p>S-expression strings follow standard escaping rules:</p>
+<pre><code class="language-rust">fn escape_sexp_string(s: &amp;str) -&gt; String {
+    s.chars()
+        .flat_map(|c| match c {
+            '"' =&gt; vec!['\\', '"'],
+            '\\' =&gt; vec!['\\', '\\'],
+            '\n' =&gt; vec!['\\', 'n'],
+            '\r' =&gt; vec!['\\', 'r'],
+            '\t' =&gt; vec!['\\', 't'],
+            c if c.is_control() =&gt; {
+                format!("\\u{{{:04x}}}", c as u32).chars().collect()
+            }
+            c =&gt; vec![c],
+        })
+        .collect()
+}</code></pre>
+<h3 id="tree-traversal"><a class="header" href="#tree-traversal">Tree Traversal</a></h3>
+<p>S-expression generation uses depth-first traversal:</p>
+<pre><code class="language-rust">fn node_to_sexp(node: &amp;ParsedNode, source: &amp;str, indent: usize) -&gt; String {
+    let spaces = " ".repeat(indent);
+    
+    if node.is_named() {
+        if node.child_count() == 0 {
+            // Leaf node
+            let text = node.utf8_text(source.as_bytes()).unwrap_or("");
+            format!("{}({} \"{}\")", spaces, node.kind(), escape_string(text))
+        } else {
+            // Internal node  
+            let mut result = format!("{}({}\n", spaces, node.kind());
+            for child in node.children() {
+                result.push_str(&amp;node_to_sexp(&amp;child, source, indent + 2));
+                result.push('\n');
+            }
+            result.push_str(&amp;format!("{})", spaces));
+            result
+        }
+    } else {
+        // Anonymous node
+        let text = node.utf8_text(source.as_bytes()).unwrap_or("");
+        format!("{}\"{}\"", spaces, escape_string(text))
+    }
+}</code></pre>
+<h2 id="related-documentation"><a class="header" href="#related-documentation">Related Documentation</a></h2>
+<ul>
+<li><strong><a href="../development/golden-tests.html">Golden Tests Guide</a></strong>: Using S-expressions for compatibility testing</li>
+<li><strong><a href="../development/testing.html">Testing Guide</a></strong>: Comprehensive testing strategies</li>
+<li><strong><a href="api.html">API Documentation</a></strong>: Programmatic S-expression generation</li>
+<li><strong><a href="../development/architecture.html">Architecture</a></strong>: Parse tree internal representation</li>
+</ul>
+<p>S-expressions provide a standardized, human-readable format for parse tree representation, enabling effective debugging, testing, and analysis across the adze ecosystem.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../reference/api.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/grammar-examples.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../reference/api.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/grammar-examples.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

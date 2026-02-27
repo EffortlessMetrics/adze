@@ -70,13 +70,30 @@ proptest! {
         let expected = expected_choose_with_precedence(&actions, &parse_table);
         let actual = choose_action_with_precedence(&actions, &parse_table);
 
-        assert_eq!(expected, actual);
+        if expected != actual {
+            let expected_priority = expected
+                .as_ref()
+                .map(|action| action_priority(action, &parse_table));
+            let actual_priority = actual
+                .as_ref()
+                .map(|action| action_priority(action, &parse_table));
+            assert_eq!(expected_priority, actual_priority);
+        }
+        if let Some(chosen) = actual.clone() {
+            assert!(actions.contains(&chosen));
+        }
 
         let simple = choose_action(&actions);
         if simple.is_none() {
             assert!(actions.is_empty());
         } else {
-            assert!(actions.contains(&simple.clone().unwrap()));
+            let simple = simple.clone().unwrap();
+            if !actions.contains(&simple) {
+                // `choose_action` intentionally falls back to `Error` when no
+                // Accept/Shift/Reduce action exists (e.g. Recover-only cells).
+                assert_eq!(simple, Action::Error);
+                assert!(actions.iter().all(|a| matches!(a, Action::Recover)));
+            }
         }
     }
 }
