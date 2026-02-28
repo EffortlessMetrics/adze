@@ -4,7 +4,7 @@ This chapter covers how to install and set up Adze in your project.
 
 ## Prerequisites
 
-- Rust 1.70.0 or later
+- Rust 1.92.0 or later (2024 edition)
 - Cargo (comes with Rust)
 
 ## Adding Dependencies
