@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Crate READMEs**: Added README.md files for `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-macro`, `adze-common`, `adze-tool`, and `adze-cli`.
+- **Enhanced Rustdoc**: Improved crate-level documentation for `adze`, `adze-ir`, `adze-glr-core`, and `adze-tablegen` with quick-start guides, architecture overviews, and feature flag tables.
+
+### Fixed
+- **Manifest Warnings**: Removed invalid `license` fields from dependency tables in `lsp-generator` and `wasm-demo` Cargo.toml files.
+- **Duplicate Dependencies**: Resolved duplicate `clap` dependency in `lsp-generator/Cargo.toml`.
+- **Crate Metadata**: Fixed missing workspace fields (edition, rust-version, authors) and added homepage, keywords, and categories for `adze-cli`, `adze-macro`, `adze-tool`, and `adze-common`.
+
 ## [0.8.0] - 2026-02-22
 
 **Focus**: Publishable baseline, documentation sync, and governance-as-code.
