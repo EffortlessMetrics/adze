@@ -55,25 +55,19 @@ bench-perf:
 snap:
     cargo insta review
 
-# Supported CI lane - must always be green
-# See docs/status/KNOWN_RED.md for what is excluded and why.
+supported_crates := "-p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen"
+
+# Required PR gate: this is the single supported CI lane for branch protection
+# See docs/status/KNOWN_RED.md; update it whenever ci-supported command targets change.
 ci-supported:
     #!/usr/bin/env bash
     set -euo pipefail
     export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
     export RUST_TEST_THREADS="${RUST_TEST_THREADS:-2}"
     cargo fmt --all -- --check
-    cargo clippy -p adze --all-targets -- -D warnings
-    cargo clippy -p adze-macro -p adze-tool \
-        -p adze-common -p adze-ir -p adze-glr-core \
-        -p adze-tablegen \
-        --all-targets -- -D warnings
-    cargo test -p adze --lib --tests
-    cargo test -p adze-macro -p adze-tool \
-        -p adze-common -p adze-ir -p adze-glr-core \
-        -p adze-tablegen \
-        --lib --tests --bins
-    cargo test -p adze-glr-core --features serialization --doc
+    cargo clippy {{supported_crates}} --all-targets -- -D warnings
+    cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
+    cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"
 
 # Clean build artifacts
 clean:

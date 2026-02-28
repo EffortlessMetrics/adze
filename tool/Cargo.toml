@@ -6,6 +6,7 @@ repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 license = "MIT OR Apache-2.0"
+publish = true
 edition = "2024"
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]

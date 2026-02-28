@@ -3,6 +3,9 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use xshell::{Shell, cmd};
 
+const PERF_BENCH_NAME: &str = "glr_performance_real";
+const PERF_BENCH_FILTER_PREFIX: &str = "arithmetic_parsing/parse";
+
 /// Profile type selection
 #[derive(Clone, Copy, Debug)]
 pub enum ProfileType {
@@ -92,22 +95,21 @@ fn profile_cpu(
             .context("Failed to install flamegraph")?;
     }
 
-    // Construct benchmark name
-    let bench_name = format!("parse_{}_{}_{}", grammar.name(), size.name(), "bench");
-
-    // Output file path
+    let bench_name = parser_benchmark_filter(size);
     let output_file = target_dir.join(format!("flamegraph_{}_{}.svg", grammar.name(), size.name()));
 
     println!("Generating flamegraph...");
     println!("Output: {}", output_file.display());
 
-    // Run flamegraph on the benchmark
-    // Note: This is a simplified version. In practice, you'd want to:
-    // 1. Build a custom profiling binary that runs just the parse operation
-    // 2. Use `flamegraph` or `perf` directly on that binary
+    let command = format!(
+        "cargo flamegraph -p adze-benchmarks --bench {} --output {} -- --bench {}",
+        PERF_BENCH_NAME,
+        output_file.display(),
+        bench_name
+    );
     cmd!(
         sh,
-        "cargo flamegraph --bench glr_performance --output {output_file} -- --bench {bench_name}"
+        "cargo flamegraph -p adze-benchmarks --bench {PERF_BENCH_NAME} --output {output_file} -- --bench {bench_name}"
     )
     .run()
     .context("Failed to generate flamegraph")?;
@@ -115,25 +117,15 @@ fn profile_cpu(
     println!("✅ Flamegraph generated: {}", output_file.display());
 
     if json_output {
-        // Extract metrics from profiling run
-        // This is a placeholder - real implementation would parse perf data
-        let metrics = ProfilingMetrics {
-            grammar: grammar.name().to_string(),
-            fixture_size: size.name().to_string(),
-            total_time_us: 0.0, // Would be extracted from perf data
-            samples_count: 0,
-            top_functions: vec![],
-        };
-
-        let json_path = target_dir.join(format!(
-            "profile_metrics_{}_{}.json",
-            grammar.name(),
-            size.name()
-        ));
-        let json = serde_json::to_string_pretty(&metrics)?;
-        std::fs::write(&json_path, json).context("Failed to write JSON metrics")?;
-
-        println!("📊 JSON metrics: {}", json_path.display());
+        write_profile_metadata(
+            &target_dir,
+            "cpu",
+            grammar,
+            size,
+            &bench_name,
+            &command,
+            &output_file,
+        )?;
     }
 
     Ok(())
@@ -150,6 +142,15 @@ fn profile_memory(
     let target_dir = PathBuf::from("target/profile");
     std::fs::create_dir_all(&target_dir).context("Failed to create target/profile directory")?;
 
+    let bench_filter = parser_benchmark_filter(size);
+    println!("Building benchmark binary...");
+    cmd!(
+        sh,
+        "cargo build -p adze-benchmarks --release --bench {PERF_BENCH_NAME}"
+    )
+    .run()?;
+    let bench_binary = resolve_bench_binary(PERF_BENCH_NAME)?;
+
     // Check if heaptrack is available
     let heaptrack_available = cmd!(sh, "heaptrack --version")
         .ignore_stdout()
@@ -159,68 +160,46 @@ fn profile_memory(
 
     if !heaptrack_available {
         println!("⚠️  heaptrack not found. Falling back to valgrind massif.");
-        return profile_memory_valgrind(sh, grammar, size, json_output, &target_dir);
+        return profile_memory_valgrind(
+            sh,
+            &bench_binary,
+            grammar,
+            size,
+            bench_filter,
+            &target_dir,
+            json_output,
+        );
     }
 
     println!("Using heaptrack for memory profiling...");
 
-    // Build the benchmark in release mode first
-    println!("Building benchmarks...");
-    cmd!(sh, "cargo build --release --benches").run()?;
-
-    // Construct benchmark binary path
-    let bench_binary = PathBuf::from("target/release/deps")
-        .join("glr_performance")
-        .with_extension(std::env::consts::EXE_EXTENSION);
-
-    if !bench_binary.exists() {
-        // Try to find it with glob
-        let pattern = format!(
-            "target/release/deps/glr_performance-*{}",
-            if cfg!(windows) { ".exe" } else { "" }
-        );
-        let entries: Vec<_> = glob::glob(&pattern)?.collect();
-        if entries.is_empty() {
-            anyhow::bail!("Benchmark binary not found at {}", bench_binary.display());
-        }
-    }
-
-    // Output file path
-    let _output_file = target_dir.join(format!("heaptrack_{}_{}.txt", grammar.name(), size.name()));
-
+    let output_file = target_dir.join(format!("heaptrack_{}_{}.txt", grammar.name(), size.name()));
+    let command = format!(
+        "heaptrack --output {} {} -- --bench {}",
+        output_file.display(),
+        bench_binary.display(),
+        bench_filter
+    );
     println!("Running heaptrack...");
+    cmd!(
+        sh,
+        "heaptrack --output {output_file} {bench_binary} -- --bench {bench_filter}"
+    )
+    .run()
+    .context("Failed to run heaptrack profile")?;
 
-    // Note: This is simplified. Real implementation would:
-    // 1. Run heaptrack on the benchmark binary
-    // 2. Parse heaptrack output
-    // 3. Generate report
-    cmd!(sh, "echo 'Heaptrack profiling placeholder'")
-        .run()
-        .context("Heaptrack profiling not yet fully implemented")?;
-
-    println!("⚠️  Full heaptrack integration coming soon!");
-    println!("📝 For now, run manually:");
-    println!("   heaptrack target/release/deps/glr_performance-*");
+    println!("⚠️  Heaptrack output written to {}", output_file.display());
 
     if json_output {
-        // Placeholder for JSON metrics
-        let metrics = MemoryMetrics {
-            grammar: grammar.name().to_string(),
-            fixture_size: size.name().to_string(),
-            peak_memory_bytes: 0,
-            total_allocations: 0,
-            top_allocation_sites: vec![],
-        };
-
-        let json_path = target_dir.join(format!(
-            "memory_metrics_{}_{}.json",
-            grammar.name(),
-            size.name()
-        ));
-        let json = serde_json::to_string_pretty(&metrics)?;
-        std::fs::write(&json_path, json).context("Failed to write JSON metrics")?;
-
-        println!("📊 JSON metrics (placeholder): {}", json_path.display());
+        write_profile_metadata(
+            &target_dir,
+            "memory-heaptrack",
+            grammar,
+            size,
+            &bench_filter,
+            &command,
+            &output_file,
+        )?;
     }
 
     Ok(())
@@ -229,10 +208,12 @@ fn profile_memory(
 /// Fallback memory profiling with valgrind massif
 fn profile_memory_valgrind(
     sh: &Shell,
-    _grammar: ProfileGrammar,
-    _size: FixtureSize,
-    _json_output: bool,
-    _target_dir: &Path,
+    bench_binary: &Path,
+    grammar: ProfileGrammar,
+    size: FixtureSize,
+    bench_filter: String,
+    target_dir: &Path,
+    json_output: bool,
 ) -> Result<()> {
     // Check if valgrind is available
     let valgrind_available = cmd!(sh, "valgrind --version")
@@ -246,45 +227,99 @@ fn profile_memory_valgrind(
     }
 
     println!("Using valgrind massif for memory profiling...");
-    println!("⚠️  Valgrind integration coming soon!");
-    println!("📝 For now, run manually:");
-    println!("   valgrind --tool=massif --massif-out-file=massif.out \\");
-    println!("     target/release/deps/glr_performance-*");
+    let output_file = target_dir.join(format!("massif_{}_{}.out", grammar.name(), size.name()));
+    let command = format!(
+        "valgrind --tool=massif --massif-out-file {} {} -- --bench {}",
+        output_file.display(),
+        bench_binary.display(),
+        bench_filter
+    );
+    cmd!(
+        sh,
+        "valgrind --tool=massif --massif-out-file={output_file} {bench_binary} -- --bench {bench_filter}"
+    )
+    .run()
+    .context("Valgrind massif failed")?;
 
+    if json_output {
+        write_profile_metadata(
+            target_dir,
+            "memory-valgrind",
+            grammar,
+            size,
+            &bench_filter,
+            &command,
+            &output_file,
+        )?;
+    }
+
+    println!("💾 Massif output written to {}", output_file.display());
     Ok(())
 }
 
-/// Profiling metrics for JSON export
+fn parser_benchmark_filter(size: FixtureSize) -> String {
+    format!("{}/{}", PERF_BENCH_FILTER_PREFIX, size.name())
+}
+
+fn resolve_bench_binary(bench_name: &str) -> Result<PathBuf> {
+    let direct_binary = PathBuf::from("target/release/deps")
+        .join(bench_name)
+        .with_extension(std::env::consts::EXE_EXTENSION);
+
+    if direct_binary.exists() {
+        return Ok(direct_binary);
+    }
+
+    let pattern = format!(
+        "target/release/deps/{}-*{}",
+        bench_name,
+        if cfg!(windows) { ".exe" } else { "" }
+    );
+    let mut iter = glob::glob(&pattern)?;
+    iter.next()
+        .and_then(|entry| entry.ok())
+        .context("Benchmark binary not found. Run `cargo build -p adze-benchmarks --release --bench glr_performance_real` first.")
+}
+
 #[derive(serde::Serialize)]
-struct ProfilingMetrics {
+struct ProfileMetadata {
+    profile_type: String,
     grammar: String,
     fixture_size: String,
-    total_time_us: f64,
-    samples_count: usize,
-    top_functions: Vec<FunctionMetrics>,
+    benchmark: String,
+    benchmark_filter: String,
+    command: String,
+    output: String,
 }
 
-#[derive(serde::Serialize)]
-struct FunctionMetrics {
-    name: String,
-    time_percent: f64,
-    time_microseconds: f64,
-    call_count: u64,
-}
+fn write_profile_metadata(
+    target_dir: &Path,
+    profile_type: &str,
+    grammar: ProfileGrammar,
+    size: FixtureSize,
+    filter: &str,
+    command: &str,
+    output_file: &Path,
+) -> Result<()> {
+    let metadata = ProfileMetadata {
+        profile_type: profile_type.to_string(),
+        grammar: grammar.name().to_string(),
+        fixture_size: size.name().to_string(),
+        benchmark: PERF_BENCH_NAME.to_string(),
+        benchmark_filter: filter.to_string(),
+        command: command.to_string(),
+        output: output_file.display().to_string(),
+    };
 
-/// Memory profiling metrics
-#[derive(serde::Serialize)]
-struct MemoryMetrics {
-    grammar: String,
-    fixture_size: String,
-    peak_memory_bytes: u64,
-    total_allocations: u64,
-    top_allocation_sites: Vec<AllocationSite>,
-}
+    let json_path = target_dir.join(format!(
+        "{}_{}_{}.json",
+        profile_type,
+        grammar.name(),
+        size.name()
+    ));
+    let json = serde_json::to_string_pretty(&metadata)?;
+    std::fs::write(&json_path, json).context("Failed to write profile metadata")?;
 
-#[derive(serde::Serialize)]
-struct AllocationSite {
-    function: String,
-    bytes: u64,
-    count: u64,
+    println!("📊 Profile metadata: {}", json_path.display());
+    Ok(())
 }

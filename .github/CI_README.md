@@ -16,8 +16,17 @@ The CI pipeline ensures code quality, API stability, and security through multip
 6. **API Stability** - Detects breaking changes in public APIs
 7. **Security** - Scans for vulnerabilities and license issues
 8. **Documentation** - Builds docs with warnings as errors
-9. **Coverage** - Tracks test coverage (main branch only)
+9. **Coverage** - Generates coverage on non-PR CI runs and uploads report on main branch pushes
 10. **Unsafe Audit** - Reports unsafe code usage
+
+## Manual CI triggers
+
+The `CI` workflow supports manual dispatch with two toggles:
+
+- `run_full_ci` (workflow_dispatch only): Run the full non-PR lane in addition to PR-required lanes.
+- `run_ci_supported_examples` (workflow_dispatch only): Enable experimental examples in `feature-matrix`.
+  If `run_full_ci` is false, this is the only non-PR lane that runs on manual dispatch.
+  Outside manual dispatch, experimental examples in `feature-matrix` only run when commit message includes `[test-examples]`.
 
 ## Required GitHub Settings
 
@@ -25,10 +34,9 @@ To make the CI effective, configure these branch protection rules:
 
 ### Required Status Checks
 
-Required status checks are currently disabled pending stabilization of the full
-test suite. The `ci-supported` workflow (`just ci-supported`) is the intended
-stable gate for PRs. See `docs/status/KNOWN_RED.md` for details on what is
-excluded and why.
+Required status checks are intentionally single-gated.
+Set branch protection to require only: `CI / ci-supported`.
+Everything else is optional signal (nightly/manual/canary).
 
 ### Recommended Settings
 - Require branches to be up to date before merging

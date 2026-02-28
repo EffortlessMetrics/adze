@@ -179,9 +179,10 @@ impl ParserCompat {
             self.inner.parse_string(source)
         };
 
-        result.root.map(|root| {
-            // Create tree with source
-            PureTree::new(root, self.inner.language().unwrap(), source.as_bytes())
+        result.root.and_then(|root| {
+            self.inner
+                .language()
+                .map(|language| PureTree::new(root, language, source.as_bytes()))
         })
     }
 

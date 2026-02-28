@@ -7,6 +7,24 @@ use std::collections::HashMap;
 use super::helpers::HelperFunctions;
 use super::{ExternalToken, GrammarJs, Rule};
 
+#[cfg(not(debug_assertions))]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            std::eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Check if a string is a symbol reference like $.identifier
 fn is_symbol_ref(s: &str) -> bool {
     let trimmed = s.trim();

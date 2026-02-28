@@ -1015,6 +1015,10 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                 SymbolId((tcols + 1) as u16)
             } else {
                 // Try to find a meaningful start symbol (not a repeat helper)
+                let fallback = nt_symbols
+                    .first()
+                    .copied()
+                    .unwrap_or(SymbolId((tcols + 1) as u16));
                 let meaningful = nt_symbols
                     .iter()
                     .filter(|s| {
@@ -1038,7 +1042,11 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
                 meaningful.unwrap_or_else(|| {
                     // Fallback: pick the highest ID among nonterminals
-                    *nt_symbols.iter().max_by_key(|s| s.0).unwrap()
+                    nt_symbols
+                        .iter()
+                        .max_by_key(|s| s.0)
+                        .copied()
+                        .unwrap_or(fallback)
                 })
             };
 

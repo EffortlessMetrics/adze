@@ -936,12 +936,7 @@ impl Extract<String> for String {
         node.and_then(|n| {
             // Extract text from node's byte range
             let text = &source[n.start_byte..n.end_byte];
-            let res = std::str::from_utf8(text).ok();
-            println!(
-                "DEBUG String extract: symbol={}, range={}..{}, text={:?}",
-                n.symbol, n.start_byte, n.end_byte, res
-            );
-            res
+            std::str::from_utf8(text).ok()
         })
         .unwrap_or_default()
         .to_string()
@@ -1056,19 +1051,17 @@ pub mod errors {
                     end: node.end_byte(),
                 })
             } else {
-                let contents = node.utf8_text(source).unwrap();
-                if !contents.is_empty() {
-                    errors.push(ParseError {
+                match node.utf8_text(source) {
+                    Ok(contents) if !contents.is_empty() => errors.push(ParseError {
                         reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
                         start: node.start_byte(),
                         end: node.end_byte(),
-                    })
-                } else {
-                    errors.push(ParseError {
+                    }),
+                    Ok(_) | Err(_) => errors.push(ParseError {
                         reason: ParseErrorReason::FailedNode(vec![]),
                         start: node.start_byte(),
                         end: node.end_byte(),
-                    })
+                    }),
                 }
             }
         } else if node.is_missing() {

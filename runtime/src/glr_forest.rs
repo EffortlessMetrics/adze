@@ -239,14 +239,17 @@ pub fn forest_to_parse_tree(forest: &ForestNode) -> ParseNode {
             end,
             alternatives,
         } => {
-            // For now, just pick the first alternative
-            // TODO: Provide API to explore all alternatives
-            let first_alt = &alternatives[0];
-            let children = first_alt
-                .children
-                .iter()
-                .map(|child| forest_to_parse_tree(child))
-                .collect();
+            // For now, just pick the first alternative if present
+            let children = alternatives
+                .first()
+                .map(|first_alt| {
+                    first_alt
+                        .children
+                        .iter()
+                        .map(|child| forest_to_parse_tree(child))
+                        .collect()
+                })
+                .unwrap_or_else(Vec::new);
 
             ParseNode {
                 symbol: *symbol,
@@ -257,5 +260,78 @@ pub fn forest_to_parse_tree(forest: &ForestNode) -> ParseNode {
                 field_name: None,
             }
         }
+    }
+}
+
+/// Convert a forest node to parse trees for all alternatives.
+pub fn forest_to_parse_trees(forest: &ForestNode) -> Vec<ParseNode> {
+    match forest {
+        ForestNode::Terminal {
+            symbol, start, end, ..
+        } => vec![ParseNode {
+            symbol: *symbol,
+            symbol_id: *symbol,
+            start_byte: *start,
+            end_byte: *end,
+            children: Vec::new(),
+            field_name: None,
+        }],
+        ForestNode::NonTerminal {
+            symbol,
+            start,
+            end,
+            alternatives,
+        } => {
+            if alternatives.is_empty() {
+                vec![ParseNode {
+                    symbol: *symbol,
+                    symbol_id: *symbol,
+                    start_byte: *start,
+                    end_byte: *end,
+                    children: Vec::new(),
+                    field_name: None,
+                }]
+            } else {
+                alternatives
+                    .iter()
+                    .map(|alt| ParseNode {
+                        symbol: *symbol,
+                        symbol_id: *symbol,
+                        start_byte: *start,
+                        end_byte: *end,
+                        children: alt
+                            .children
+                            .iter()
+                            .map(|child| forest_to_parse_tree(child))
+                            .collect(),
+                        field_name: None,
+                    })
+                    .collect()
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn forest_to_parse_tree_with_no_alternatives_is_stable() {
+        let forest = ForestNode::NonTerminal {
+            symbol: SymbolId(7),
+            start: 0,
+            end: 2,
+            alternatives: vec![],
+        };
+
+        let node = forest_to_parse_tree(&forest);
+        let alternatives = forest_to_parse_trees(&forest);
+
+        assert_eq!(node.symbol, SymbolId(7));
+        assert!(node.children.is_empty());
+        assert_eq!(alternatives.len(), 1);
+        assert_eq!(alternatives[0].symbol, SymbolId(7));
+        assert!(alternatives[0].children.is_empty());
     }
 }

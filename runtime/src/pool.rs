@@ -57,7 +57,7 @@ impl<T> NodePool<T> {
             .gets
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        let mut queue = self.queue.lock().unwrap();
+        let mut queue = self.queue.lock().unwrap_or_else(|err| err.into_inner());
         if let Some(node) = queue.pop_front() {
             node
         } else {
@@ -84,7 +84,7 @@ impl<T> NodePool<T> {
                 .puts
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-            let mut queue = self.queue.lock().unwrap();
+            let mut queue = self.queue.lock().unwrap_or_else(|err| err.into_inner());
             if queue.len() < self.capacity {
                 queue.push_back(node);
             } else {
@@ -98,13 +98,13 @@ impl<T> NodePool<T> {
 
     /// Clear all nodes from the pool
     pub fn clear(&self) {
-        let mut queue = self.queue.lock().unwrap();
+        let mut queue = self.queue.lock().unwrap_or_else(|err| err.into_inner());
         queue.clear();
     }
 
     /// Get current pool size
     pub fn size(&self) -> usize {
-        let queue = self.queue.lock().unwrap();
+        let queue = self.queue.lock().unwrap_or_else(|err| err.into_inner());
         queue.len()
     }
 

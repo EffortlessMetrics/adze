@@ -4,10 +4,10 @@
 use crate::builder::forest_to_tree;
 #[cfg(feature = "glr-core")]
 use crate::engine::parse_full as engine_parse_full;
-#[cfg(all(feature = "glr-core", feature = "incremental"))]
+#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
 use crate::engine::parse_incremental as engine_parse_incremental;
 use crate::{error::ParseError, language::Language, tree::Tree};
-#[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+#[cfg(all(feature = "pure-rust", feature = "serialization"))]
 use adze_parsetable_metadata::{FORMAT_VERSION, MAGIC_NUMBER, ParsetableMetadata};
 use std::time::Duration;
 
@@ -19,15 +19,15 @@ pub struct Parser {
     #[cfg(feature = "arenas")]
     arena: Option<bumpalo::Bump>,
     /// GLR mode state (Phase 3.1)
-    #[cfg(feature = "pure-rust-glr")]
+    #[cfg(feature = "pure-rust")]
     glr_state: Option<GLRState>,
     /// Parsed metadata from `.parsetable` load.
-    #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+    #[cfg(all(feature = "pure-rust", feature = "serialization"))]
     parsetable_metadata: Option<ParsetableMetadata>,
 }
 
 /// GLR parsing state (pure-Rust mode, bypasses TSLanguage)
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 #[derive(Debug)]
 struct GLRState {
     /// Direct reference to ParseTable from glr-core
@@ -46,9 +46,9 @@ impl Parser {
             timeout: None,
             #[cfg(feature = "arenas")]
             arena: None,
-            #[cfg(feature = "pure-rust-glr")]
+            #[cfg(feature = "pure-rust")]
             glr_state: None,
-            #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+            #[cfg(all(feature = "pure-rust", feature = "serialization"))]
             parsetable_metadata: None,
         }
     }
@@ -106,7 +106,7 @@ impl Parser {
         let input = input.as_ref();
 
         // Route to GLR engine if in pure-Rust GLR mode
-        #[cfg(feature = "pure-rust-glr")]
+        #[cfg(feature = "pure-rust")]
         if self.glr_state.is_some() {
             return self.parse_glr(input, old_tree);
         }
@@ -148,14 +148,14 @@ impl Parser {
         }
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     fn parse_incremental(
         &mut self,
         language: &Language,
         input: &[u8],
         old_tree: &Tree,
     ) -> Result<Tree, ParseError> {
-        #[cfg(all(feature = "glr-core", feature = "incremental"))]
+        #[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
         {
             // Optimization: return early if input hasn't changed
             if let Some(old_src) = old_tree.source_bytes()
@@ -174,7 +174,7 @@ impl Parser {
         }
     }
 
-    #[cfg(not(feature = "incremental"))]
+    #[cfg(not(feature = "incremental_glr"))]
     fn parse_incremental(
         &mut self,
         language: &Language,
@@ -195,7 +195,7 @@ impl Parser {
     /// - Uses GLREngine to build ParseForest
     /// - Uses ForestConverter to convert forest to Tree
     ///
-    #[cfg(feature = "pure-rust-glr")]
+    #[cfg(feature = "pure-rust")]
     fn parse_glr(&mut self, input: &[u8], _old_tree: Option<&Tree>) -> Result<Tree, ParseError> {
         use crate::forest_converter::{DisambiguationStrategy, ForestConverter};
         use crate::glr_engine::{GLRConfig, GLREngine};
@@ -255,7 +255,7 @@ impl Parser {
     /// - Non-terminals: Use `grammar.rule_names[symbol_id]`
     /// - Unknown symbols: Use "unknown"
     ///
-    #[cfg(feature = "pure-rust-glr")]
+    #[cfg(feature = "pure-rust")]
     fn build_language_from_parse_table(
         parse_table: &'static adze_glr_core::ParseTable,
     ) -> Language {
@@ -309,7 +309,7 @@ impl Parser {
             symbol_names,
             symbol_metadata: Vec::new(),
             field_names: Vec::new(),
-            #[cfg(feature = "external-scanners")]
+            #[cfg(feature = "external_scanners")]
             external_scanner: None,
         }
     }
@@ -354,8 +354,8 @@ impl Parser {
     ///
     /// - `ParseError::InvalidTable`: If table violates invariants
     ///
-    #[cfg(feature = "pure-rust-glr")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust-glr")))]
+    #[cfg(feature = "pure-rust")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust")))]
     pub fn set_glr_table(
         &mut self,
         table: &'static adze_glr_core::ParseTable,
@@ -380,7 +380,7 @@ impl Parser {
             token_patterns: None,        // Will be set by set_token_patterns()
         });
 
-        #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+        #[cfg(all(feature = "pure-rust", feature = "serialization"))]
         {
             self.parsetable_metadata = None;
         }
@@ -491,10 +491,10 @@ impl Parser {
     ///
     /// See [`docs/GLR_PARSETABLE_QUICKSTART.md`](https://github.com/EffortlessMetrics/adze/blob/main/docs/GLR_PARSETABLE_QUICKSTART.md) for usage guide.
     ///
-    #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+    #[cfg(all(feature = "pure-rust", feature = "serialization"))]
     #[cfg_attr(
         docsrs,
-        doc(cfg(all(feature = "pure-rust-glr", feature = "serialization")))
+        doc(cfg(all(feature = "pure-rust", feature = "serialization")))
     )]
     pub fn load_glr_table_from_bytes(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
         // Parse .parsetable file format
@@ -590,7 +590,7 @@ impl Parser {
 
         // Set the GLR table
         self.set_glr_table(table_static)?;
-        #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+        #[cfg(all(feature = "pure-rust", feature = "serialization"))]
         {
             self.parsetable_metadata = metadata;
         }
@@ -611,8 +611,8 @@ impl Parser {
     ///
     /// - `ParseError::NoGLRState`: If `set_glr_table()` was not called first
     ///
-    #[cfg(feature = "pure-rust-glr")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust-glr")))]
+    #[cfg(feature = "pure-rust")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust")))]
     pub fn set_symbol_metadata(
         &mut self,
         metadata: Vec<crate::language::SymbolMetadata>,
@@ -639,8 +639,8 @@ impl Parser {
     ///
     /// - `ParseError::NoGLRState`: If `set_glr_table()` was not called first
     ///
-    #[cfg(feature = "pure-rust-glr")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust-glr")))]
+    #[cfg(feature = "pure-rust")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust")))]
     pub fn set_token_patterns(
         &mut self,
         patterns: Vec<crate::tokenizer::TokenPattern>,
@@ -657,8 +657,8 @@ impl Parser {
     /// Check if parser is in GLR mode
     ///
     /// Returns `true` if `set_glr_table()` was called and GLR mode is active.
-    #[cfg(feature = "pure-rust-glr")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust-glr")))]
+    #[cfg(feature = "pure-rust")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "pure-rust")))]
     pub fn is_glr_mode(&self) -> bool {
         self.glr_state.is_some()
     }
@@ -667,7 +667,7 @@ impl Parser {
     ///
     /// Returns `None` when no `.parsetable` has been loaded in this parser
     /// instance or when the method is called without the required features.
-    #[cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+    #[cfg(all(feature = "pure-rust", feature = "serialization"))]
     pub fn parsetable_metadata(&self) -> Option<&ParsetableMetadata> {
         self.parsetable_metadata.as_ref()
     }

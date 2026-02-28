@@ -36,15 +36,15 @@ mod builder;
 #[cfg(feature = "glr-core")]
 mod engine;
 /// Forest-to-tree conversion for GLR parsing (Phase 3.2)
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 pub mod forest_converter;
 /// GLR parsing engine (Phase 3.1)
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 pub mod glr_engine;
 /// Token types and lexing helpers.
 pub mod token;
 /// Lexical scanner (tokenizer) for GLR parsing (Phase 3.2)
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 pub mod tokenizer;
 
 /// Test helper utilities for creating stub languages and parse tables.
@@ -68,17 +68,17 @@ pub use tree::Tree;
 // Governance + feature-flag reporting compatibility surface for runtime2 consumers.
 pub use adze_runtime2_governance::*;
 
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 pub use tree::EditError;
 
 /// Return the active runtime2 parser feature profile.
 pub const fn parser_feature_profile_for_current_runtime2() -> ParserFeatureProfile {
-    parser_feature_profile_for_runtime2(cfg!(feature = "pure-rust-glr"))
+    parser_feature_profile_for_runtime2(cfg!(feature = "pure-rust"))
 }
 
 /// Resolve the backend for the active runtime2 feature profile.
 pub const fn current_backend_for_runtime2(has_conflicts: bool) -> ParserBackend {
-    resolve_runtime2_backend(cfg!(feature = "pure-rust-glr"), has_conflicts)
+    resolve_runtime2_backend(cfg!(feature = "pure-rust"), has_conflicts)
 }
 
 /// Resolve the backend for the active runtime2 feature profile.
@@ -128,8 +128,8 @@ pub struct InputEdit {
 }
 
 /// Query system types (stub for now)
-#[cfg(feature = "queries")]
-#[cfg_attr(docsrs, doc(cfg(feature = "queries")))]
+#[cfg(feature = "query")]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 pub mod query {
     /// A compiled query
     pub struct Query;

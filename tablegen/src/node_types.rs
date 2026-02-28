@@ -3,6 +3,24 @@ use adze_ir::{Grammar, Symbol, TokenPattern};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Tree-sitter NODE_TYPES.json generator
 pub struct NodeTypesGenerator<'a> {
     grammar: &'a Grammar,
@@ -59,7 +77,7 @@ impl<'a> NodeTypesGenerator<'a> {
         let mut node_types = Vec::new();
         let mut symbol_names: HashMap<_, _> = HashMap::new();
 
-        eprintln!(
+        debug_trace!(
             "Debug: NodeTypesGenerator - grammar has {} rules",
             self.grammar.rules.len()
         );
@@ -67,9 +85,10 @@ impl<'a> NodeTypesGenerator<'a> {
         // First, collect all symbol names
         for (symbol_id, _rule) in &self.grammar.rules {
             if let Some(rule_name) = self.get_rule_name(*symbol_id) {
-                eprintln!(
+                debug_trace!(
                     "Debug: Adding rule name '{}' for symbol {}",
-                    rule_name, symbol_id.0
+                    rule_name,
+                    symbol_id.0
                 );
                 symbol_names.insert(*symbol_id, rule_name);
             }
@@ -83,7 +102,7 @@ impl<'a> NodeTypesGenerator<'a> {
         // Process rules to create node types
         let mut processed = HashSet::new();
 
-        eprintln!(
+        debug_trace!(
             "Debug: Processing {} rules for node types",
             self.grammar.rules.len()
         );
@@ -97,7 +116,7 @@ impl<'a> NodeTypesGenerator<'a> {
                 continue;
             }
 
-            eprintln!(
+            debug_trace!(
                 "Debug: Processing symbol {} with {} rules",
                 symbol_id.0,
                 rules.len()

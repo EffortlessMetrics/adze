@@ -1,8 +1,35 @@
-#!/bin/bash
-# Script to update all crate versions
+#!/usr/bin/env bash
+set -euo pipefail
 
-OLD_VERSION="0.5.0-beta"
-VERSION="1.0.0"
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  echo "Usage: $0 <new-version> [old-version]" >&2
+  exit 1
+fi
+
+VERSION="$1"
+OLD_VERSION="${2:-}"
+
+VERSION="${VERSION#v}"
+if [[ -z "$VERSION" ]]; then
+  echo "New version cannot be empty." >&2
+  exit 1
+fi
+
+if [[ $# -eq 2 && -z "$OLD_VERSION" ]]; then
+  echo "Old version cannot be empty." >&2
+  exit 1
+fi
+
+if [[ -z "$OLD_VERSION" ]]; then
+  OLD_VERSION="$(cargo metadata --no-deps --format-version 1 2>/dev/null | jq -r '.packages[] | select(.name == "adze") | .version' | head -n 1)"
+else
+  OLD_VERSION="${OLD_VERSION#v}"
+fi
+
+if [[ -z "$OLD_VERSION" ]]; then
+  echo "Could not determine current version. Pass old version as second argument." >&2
+  exit 1
+fi
 
 echo "Updating all crate versions from $OLD_VERSION to $VERSION"
 
@@ -26,3 +53,4 @@ sed -i "s/adze = { version = \"$OLD_VERSION\"/adze = { version = \"$VERSION\"/g"
 sed -i "s/adze-tool = { version = \"$OLD_VERSION\"/adze-tool = { version = \"$VERSION\"/g" example/Cargo.toml
 
 echo "Version update complete!"
+echo

@@ -46,7 +46,7 @@ fn test_glr_basic_parsing() {
 
 /// Test incremental parsing with identical input
 #[test]
-#[cfg(all(feature = "glr-core", feature = "incremental"))]
+#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
 fn test_incremental_identical_input() {
     let language = create_test_language();
     let mut parser = Parser::new();
@@ -64,7 +64,7 @@ fn test_incremental_identical_input() {
 
 /// Test incremental parsing with changed input
 #[test]
-#[cfg(all(feature = "glr-core", feature = "incremental"))]
+#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
 fn test_incremental_changed_input() {
     let language = create_test_language();
     let mut parser = Parser::new();

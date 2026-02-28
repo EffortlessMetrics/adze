@@ -117,10 +117,12 @@ impl SimdLexer {
                         });
                     } else {
                         // Fallback to regex engine
-                        compiled_patterns.push(CompiledPattern {
-                            symbol_id,
-                            pattern_type: PatternType::Regex(regex::Regex::new(r).unwrap()),
-                        });
+                        if let Ok(pattern) = regex::Regex::new(r) {
+                            compiled_patterns.push(CompiledPattern {
+                                symbol_id,
+                                pattern_type: PatternType::Regex(pattern),
+                            });
+                        }
                     }
                 }
             }

@@ -100,14 +100,9 @@ pub enum Forest {
 pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseError> {
     #[cfg(feature = "glr-core")]
     {
-        // Check if language has parse table
-        if language.parse_table.is_none() {
-            return Err(ParseError::with_msg(
-                "Language missing parse table - GLR integration pending",
-            ));
-        }
-
-        let parse_table = language.parse_table.as_ref().unwrap();
+        let parse_table = language.parse_table.ok_or_else(|| {
+            ParseError::with_msg("Language missing parse table - GLR integration pending")
+        })?;
         let mut drv = Driver::new(parse_table);
 
         let tok_fn = language.tokenize.as_ref().ok_or_else(|| {
@@ -191,4 +186,79 @@ pub fn parse_incremental(
 ) -> Result<Forest, ParseError> {
     // Call the same path now; replace with proper reuse later.
     parse_full(language, input)
+}
+
+#[cfg(all(feature = "glr-core", test))]
+mod tests {
+    use super::*;
+    use crate::{Token, language::SymbolMetadata, tree::Tree};
+    use adze_glr_core::{Action, ParseTable, StateId};
+
+    fn shift_accept_table() -> &'static ParseTable {
+        let mut table = ParseTable::default();
+        table.state_count = 2;
+        table.symbol_count = 2;
+        table.action_table = vec![
+            vec![vec![], vec![Action::Shift(StateId(1))]],
+            vec![vec![Action::Accept], vec![]],
+        ];
+        table.goto_table = vec![vec![], vec![]];
+        Box::leak(Box::new(table))
+    }
+
+    fn tiny_language() -> Language {
+        Language::builder()
+            .parse_table(shift_accept_table())
+            .symbol_names(vec!["eof".into(), "token".into()])
+            .symbol_metadata(vec![
+                SymbolMetadata {
+                    is_terminal: true,
+                    is_visible: true,
+                    is_supertype: false,
+                },
+                SymbolMetadata {
+                    is_terminal: true,
+                    is_visible: true,
+                    is_supertype: false,
+                },
+            ])
+            .tokenizer(|_| {
+                Box::new(
+                    vec![
+                        Token {
+                            kind: 1,
+                            start: 0,
+                            end: 1,
+                        },
+                        Token {
+                            kind: 0,
+                            start: 1,
+                            end: 1,
+                        },
+                    ]
+                    .into_iter(),
+                )
+            })
+            .build()
+            .unwrap()
+    }
+
+    #[test]
+    fn given_parse_full_and_parse_incremental_when_inputs_match_then_forest_shape_is_identical() {
+        let language = tiny_language();
+        let input = b"abc";
+
+        let full = parse_full(&language, input).expect("full parse should succeed");
+        let incremental = parse_incremental(&language, input, &Tree::new_stub())
+            .expect("incremental parse should match full parse path");
+
+        match (full, incremental) {
+            (Forest::Glr(full_forest), Forest::Glr(incremental_forest)) => {
+                assert_eq!(full_forest.node_count(), incremental_forest.node_count());
+                assert_eq!(full_forest.root_count(), incremental_forest.root_count());
+                assert_eq!(full_forest.nodes.len(), incremental_forest.nodes.len());
+            }
+            _ => panic!("expected glr forest variants when glr-core is enabled"),
+        }
+    }
 }

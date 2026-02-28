@@ -8,6 +8,24 @@ use adze_ir::Grammar;
 use proc_macro2::TokenStream;
 use quote::quote;
 
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Language generator that creates proper TSLanguage structures
 pub struct LanguageGenerator<'a> {
     grammar: &'a Grammar,
@@ -171,9 +189,11 @@ impl<'a> LanguageGenerator<'a> {
                     .cloned()
                     .unwrap_or_else(|| format!("rule_{}", symbol_id.0))
             };
-            eprintln!(
+            debug_trace!(
                 "DEBUG: Symbol index {} -> ID {} (name {})",
-                i, symbol_id.0, name
+                i,
+                symbol_id.0,
+                name
             );
             names.push(name);
         }

@@ -3,7 +3,7 @@
 //! Updated to work with current struct-based ForestNode design.
 //! Contract: docs/specs/FOREST_CONVERTER_CONTRACT.md
 
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 mod forest_converter_unit_tests {
     use adze_glr_core::SymbolId;
     use adze_runtime::Tree;
@@ -251,7 +251,7 @@ mod forest_converter_unit_tests {
     }
 }
 
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 mod forest_converter_integration_tests {
     use adze_glr_core::SymbolId;
     use adze_runtime::forest_converter::{DisambiguationStrategy, ForestConverter};
@@ -392,7 +392,7 @@ mod forest_converter_integration_tests {
     }
 }
 
-#[cfg(not(feature = "pure-rust-glr"))]
+#[cfg(not(feature = "pure-rust"))]
 #[test]
 fn test_forest_converter_feature_not_enabled() {
     // Placeholder test when feature is disabled

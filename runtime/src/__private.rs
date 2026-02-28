@@ -218,8 +218,26 @@ pub fn parse<T: Extract<T>>(
     language: impl Fn() -> tree_sitter::Language,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     let mut parser = crate::tree_sitter::Parser::new();
-    parser.set_language(&language()).unwrap();
-    let tree = parser.parse(input, None).unwrap();
+    parser.set_language(&language()).map_err(|_| {
+        vec![crate::errors::ParseError {
+            reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                "Failed to initialize TreeSitter language".to_string(),
+            ),
+            start: 0,
+            end: 0,
+        }]
+    })?;
+
+    let tree = parser.parse(input, None).ok_or_else(|| {
+        vec![crate::errors::ParseError {
+            reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                "TreeSitter parser returned no tree".to_string(),
+            ),
+            start: 0,
+            end: 0,
+        }]
+    })?;
+
     let root_node = tree.root_node();
 
     if root_node.has_error() {
@@ -257,8 +275,14 @@ pub fn parse<T: Extract<T>>(
             parse_with_pure_parser::<T>(input, language)
         }
         ParserBackend::TreeSitter => {
-            // This shouldn't happen with pure-rust feature, but handle gracefully
-            unreachable!("TreeSitter backend selected with pure-rust feature enabled")
+            let errors = vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                    "TreeSitter backend is not supported in pure-rust mode".to_string(),
+                ),
+                start: 0,
+                end: 0,
+            }];
+            Err(errors)
         }
     }
 }
@@ -271,7 +295,14 @@ fn parse_with_pure_parser<T: Extract<T>>(
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     let mut parser = crate::pure_parser::Parser::new();
     let lang = language();
-    parser.set_language(lang).unwrap();
+    parser.set_language(lang).map_err(|e| {
+        vec![crate::errors::ParseError {
+            reason: crate::errors::ParseErrorReason::UnexpectedToken(e),
+            start: 0,
+            end: 0,
+        }]
+    })?;
+
     let parse_result = parser.parse_string(input);
 
     if !parse_result.errors.is_empty() {
@@ -317,9 +348,18 @@ fn parse_with_pure_parser<T: Extract<T>>(
         return Err(errors);
     }
 
-    let root_node = parse_result
-        .root
-        .expect("Root node should be present if no errors");
+    let root_node = match parse_result.root {
+        Some(root_node) => root_node,
+        None => {
+            return Err(vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                    "Parsed result missing root node".to_string(),
+                ),
+                start: 0,
+                end: 0,
+            }]);
+        }
+    };
 
     // Check if the root node is source_file wrapper
     // In the augmented grammar, we have S' -> source_file -> actual_language_root
@@ -353,15 +393,12 @@ fn parse_with_glr<T: Extract<T>>(
     // Current Status:
     // ✅ parser_v4 module exists with GLR fork/merge logic
     // ✅ parser_v4::from_language() can load from TSLanguage structs
-    // ✅ parser_v4::parse() executes GLR parsing algorithm
-    // ❌ parser_v4::parse() returns minimal Tree struct, not parse nodes
-    // ❌ No conversion from parser_v4::ParseNode to pure_parser::ParsedNode
+    // ✅ parser_v4::parse() now returns an arena-backed Tree
+    // ✅ parser_v4::parse_tree() returns ParseNode for conversion
     //
-    // Blocking Issue:
-    // parser_v4::parse() returns Tree { root_kind, error_count, source }
-    // but we need the actual ParseNode tree for T::extract().
-    //
-    // ✅ IMPLEMENTED: Option B - Added parser_v4::parse_tree() method
+    // Design Note:
+    // parser_v4::parse() now returns Tree for callers that need tree-shaped APIs,
+    // while parse_tree() is used by typed extraction.
     use crate::parser_v4::Parser;
 
     // Get the language
@@ -371,6 +408,7 @@ fn parse_with_glr<T: Extract<T>>(
     let mut parser = Parser::from_language(lang, T::GRAMMAR_NAME.to_string());
 
     // Parse to get root ParseNode and parser error count.
+    let source_bytes = input.as_bytes();
     let (root_node, error_count) = parser.parse_tree_with_error_count(input).map_err(|e| {
         vec![crate::errors::ParseError {
             reason: crate::errors::ParseErrorReason::UnexpectedToken(e.to_string()),
@@ -386,7 +424,7 @@ fn parse_with_glr<T: Extract<T>>(
     }
 
     // Convert parser_v4::ParseNode to pure_parser::ParsedNode
-    let parsed_node = convert_parse_node_v4_to_pure(&root_node, lang);
+    let parsed_node = convert_parse_node_v4_to_pure(&root_node, lang, source_bytes);
 
     // Match pure parser behavior: unwrap source_file wrapper when present.
     let non_extra_root_children: Vec<_> = parsed_node
@@ -415,12 +453,29 @@ fn parse_with_glr<T: Extract<T>>(
 fn convert_parse_node_v4_to_pure(
     node: &crate::parser_v4::ParseNode,
     lang: &crate::pure_parser::TSLanguage,
+    source: &[u8],
 ) -> crate::pure_parser::ParsedNode {
+    let is_error_symbol = |symbol: u16| {
+        if symbol as u32 >= lang.symbol_count || lang.symbol_names.is_null() {
+            return false;
+        }
+
+        let symbol_names =
+            unsafe { std::slice::from_raw_parts(lang.symbol_names, lang.symbol_count as usize) };
+        let name_ptr = symbol_names[symbol as usize];
+        if name_ptr.is_null() {
+            return false;
+        }
+
+        let name = unsafe { std::ffi::CStr::from_ptr(name_ptr as *const i8).to_str() }.ok();
+        matches!(name, Some("ERROR"))
+    };
+
     // Recursively convert children
     let children = node
         .children
         .iter()
-        .map(|child| convert_parse_node_v4_to_pure(child, lang))
+        .map(|child| convert_parse_node_v4_to_pure(child, lang, source))
         .collect();
 
     // Read symbol metadata from TSLanguage
@@ -441,24 +496,40 @@ fn convert_parse_node_v4_to_pure(
             (true, false)
         }
     };
+    let is_empty_error_node =
+        node.symbol.0 == 0 && node.children.is_empty() && node.start_byte == node.end_byte;
 
     crate::pure_parser::ParsedNode {
         symbol: node.symbol.0, // SymbolId.0 -> TSSymbol
         children,
         start_byte: node.start_byte,
         end_byte: node.end_byte,
-        // NOTE: Points are currently stubbed for the GLR path.
-        // They are not used by any public API on GLR-generated trees.
-        // See docs/plans/GLR_RUNTIME_WIRING_PLAN.md for tracking.
-        start_point: crate::pure_parser::Point { row: 0, column: 0 },
-        end_point: crate::pure_parser::Point { row: 0, column: 0 },
+        start_point: byte_to_point(source, node.start_byte),
+        end_point: byte_to_point(source, node.end_byte),
         is_extra,
-        is_error: node.symbol.0 == 0, // Symbol 0 typically indicates error
+        is_error: is_error_symbol(node.symbol.0) || is_empty_error_node,
         is_missing: false,
         is_named,
         field_id: None, // TODO: Convert field_name to field_id using language field_names
         language: Some(lang as *const _),
     }
+}
+
+fn byte_to_point(source: &[u8], byte_pos: usize) -> crate::pure_parser::Point {
+    let mut row = 0u32;
+    let mut column = 0u32;
+    let end = byte_pos.min(source.len());
+
+    for &b in &source[..end] {
+        if b == b'\n' {
+            row = row.saturating_add(1);
+            column = 0;
+        } else {
+            column = column.saturating_add(1);
+        }
+    }
+
+    crate::pure_parser::Point { row, column }
 }
 
 /// Parse using the GLR parser (stub for when feature is not enabled)
@@ -467,7 +538,13 @@ fn parse_with_glr<T: Extract<T>>(
     _input: &str,
     _language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
-    unreachable!("GLR parser should not be called when glr feature is disabled")
+    Err(vec![crate::errors::ParseError {
+        reason: crate::errors::ParseErrorReason::UnexpectedToken(
+            "GLR parser backend is unavailable because the `glr` feature is disabled".to_string(),
+        ),
+        start: 0,
+        end: 0,
+    }])
 }
 
 #[cfg(all(test, feature = "pure-rust"))]
@@ -477,6 +554,52 @@ mod tests {
         ExternalScanner, ParsedNode, Point, TSLanguage, TSLexState, TSParseAction, TSRule,
     };
     use core::ptr;
+
+    #[test]
+    fn given_error_symbol_named_error_when_converting_parse_node_then_marked_as_error() {
+        let symbol_error = b"ERROR\0";
+        let symbol_root = b"root\0";
+        let symbol_names = [symbol_error.as_ptr(), symbol_root.as_ptr()];
+        let language = TSLanguage {
+            symbol_count: 2,
+            symbol_names: symbol_names.as_ptr(),
+            symbol_metadata: ptr::null(),
+            ..FIELD_LANGUAGE
+        };
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(0),
+            symbol_id: adze_ir::SymbolId(0),
+            start_byte: 0,
+            end_byte: 0,
+            field_name: None,
+            children: vec![],
+        };
+
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &language, b"");
+        assert!(converted.is_error);
+    }
+
+    #[test]
+    fn given_empty_symbol_zero_node_when_name_lookup_absent_then_marked_error_by_shape() {
+        let names = [b"root\0".as_ptr()];
+        let language = TSLanguage {
+            symbol_count: 1,
+            symbol_names: names.as_ptr(),
+            symbol_metadata: ptr::null(),
+            ..FIELD_LANGUAGE
+        };
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(0),
+            symbol_id: adze_ir::SymbolId(0),
+            start_byte: 0,
+            end_byte: 0,
+            field_name: None,
+            children: vec![],
+        };
+
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &language, b"");
+        assert!(converted.is_error);
+    }
 
     static FIELD_NAME_VALUE: &[u8] = b"value\0";
     static FIELD_NAME_NAME: &[u8] = b"name\0";
@@ -703,5 +826,17 @@ mod tests {
         // Then
         assert_eq!(extracted, "");
         assert_eq!(last_idx, 4);
+    }
+
+    #[test]
+    fn byte_to_point_tracks_newlines_and_columns() {
+        let source = b"ab\ncde\nf";
+        assert_eq!(byte_to_point(source, 0), Point { row: 0, column: 0 });
+        assert_eq!(byte_to_point(source, 1), Point { row: 0, column: 1 });
+        assert_eq!(byte_to_point(source, 2), Point { row: 0, column: 2 });
+        assert_eq!(byte_to_point(source, 3), Point { row: 1, column: 0 });
+        assert_eq!(byte_to_point(source, 4), Point { row: 1, column: 1 });
+        assert_eq!(byte_to_point(source, 7), Point { row: 2, column: 1 });
+        assert_eq!(byte_to_point(source, 99), Point { row: 2, column: 1 });
     }
 }

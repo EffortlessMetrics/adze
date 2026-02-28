@@ -357,7 +357,11 @@ impl Parser {
             Action::Accept => self.node_stack.pop().ok_or(ParseError::InvalidState),
 
             Action::Error => Err(ParseError::UnexpectedToken {
-                expected: self.get_expected_symbols(self.state_stack.last().unwrap().state),
+                expected: self
+                    .state_stack
+                    .last()
+                    .map(|state| self.get_expected_symbols(state.state))
+                    .unwrap_or_default(),
                 found: token.symbol,
                 position: self.position,
             }),
@@ -455,32 +459,31 @@ enum Pattern {
 
 impl SimpleLexer {
     pub fn new() -> Self {
-        Self {
-            patterns: vec![
-                // Numbers
-                (
-                    SymbolId(1),
-                    Pattern::Regex(regex::Regex::new(r"^\d+").unwrap()),
-                ),
-                // Plus
-                (SymbolId(2), Pattern::String("+".to_string())),
-                // Minus
-                (SymbolId(3), Pattern::String("-".to_string())),
-                // Multiply
-                (SymbolId(4), Pattern::String("*".to_string())),
-                // Divide
-                (SymbolId(5), Pattern::String("/".to_string())),
-                // Left paren
-                (SymbolId(6), Pattern::String("(".to_string())),
-                // Right paren
-                (SymbolId(7), Pattern::String(")".to_string())),
-                // Whitespace (ignored)
-                (
-                    SymbolId(8),
-                    Pattern::Regex(regex::Regex::new(r"^\s+").unwrap()),
-                ),
-            ],
+        let mut patterns = vec![
+            // Plus
+            (SymbolId(2), Pattern::String("+".to_string())),
+            // Minus
+            (SymbolId(3), Pattern::String("-".to_string())),
+            // Multiply
+            (SymbolId(4), Pattern::String("*".to_string())),
+            // Divide
+            (SymbolId(5), Pattern::String("/".to_string())),
+            // Left paren
+            (SymbolId(6), Pattern::String("(".to_string())),
+            // Right paren
+            (SymbolId(7), Pattern::String(")".to_string())),
+        ];
+
+        if let Ok(pattern) = regex::Regex::new(r"^\d+") {
+            patterns.push((SymbolId(1), Pattern::Regex(pattern)));
         }
+
+        if let Ok(pattern) = regex::Regex::new(r"^\s+") {
+            // Whitespace (ignored)
+            patterns.push((SymbolId(8), Pattern::Regex(pattern)));
+        }
+
+        Self { patterns }
     }
 }
 

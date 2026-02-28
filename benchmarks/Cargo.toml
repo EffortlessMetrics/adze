@@ -16,6 +16,7 @@ harness = false
 name = "glr_hot"
 harness = false
 
+# Legacy auxiliary benchmark. Use glr_performance_real for release/perf gating.
 [[bench]]
 name = "optimization_bench"
 harness = false

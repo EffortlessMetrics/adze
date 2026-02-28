@@ -1,6 +1,24 @@
 use adze_glr_core::{Action, ParseTable};
 use adze_ir::Grammar;
 
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Collect all token column indices from a parse table
 ///
 /// Returns a sorted, deduplicated list of column indices for all tokens.
@@ -35,7 +53,7 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
     if let Some(&eof_idx) = parse_table.symbol_to_index.get(&parse_table.eof_symbol) {
         token_indices.push(eof_idx);
     } else {
-        eprintln!(
+        debug_trace!(
             "Warning: EOF (symbol {}) not found in symbol_to_index map",
             parse_table.eof_symbol.0
         );
@@ -46,7 +64,7 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
         if let Some(&idx) = parse_table.symbol_to_index.get(token_id) {
             token_indices.push(idx);
         } else {
-            eprintln!(
+            debug_trace!(
                 "Warning: Token {:?} not found in symbol_to_index map",
                 token_id
             );

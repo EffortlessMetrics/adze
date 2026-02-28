@@ -191,10 +191,10 @@ Paren(
 
 ## Learn More
 
-- **Full Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
+- **Full Tutorial**: [docs/tutorials/getting-started.md](./docs/tutorials/getting-started.md)
 - **More Examples**: [example/src/](./example/src/)
-- **API Docs**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
-- **Architecture**: [ARCHITECTURE.md](./ARCHITECTURE.md)
+- **API Docs**: [docs/reference/api.md](./docs/reference/api.md)
+- **Architecture**: [docs/explanations/architecture.md](./docs/explanations/architecture.md)
 
 ---
 
@@ -207,4 +207,4 @@ Paren(
 
 ---
 
-**Ready to build something bigger?** Check out the [full tutorial](./docs/GETTING_STARTED.md)!
+**Ready to build something bigger?** Check out the [full tutorial](./docs/tutorials/getting-started.md)!

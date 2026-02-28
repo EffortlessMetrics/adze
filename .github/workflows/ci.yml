@@ -8,6 +8,18 @@ on:
   schedule:
     # Run nightly at 2 AM UTC for scheduled jobs (fuzzing, etc)
     - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      run_full_ci:
+        description: "Run the non-supported CI jobs in addition to ci-supported"
+        required: false
+        default: false
+        type: boolean
+      run_ci_supported_examples:
+        description: "On workflow_dispatch, run experimental examples in feature-matrix job (without full feature-matrix job)"
+        required: false
+        default: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
@@ -26,6 +38,7 @@ env:
 
 jobs:
   lint:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Lint
     runs-on: ubuntu-latest
     steps:
@@ -81,6 +94,7 @@ jobs:
           path: clippy-report
 
   test:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Test (${{ matrix.os }} / ${{ matrix.features }} / ${{ matrix.toolchain }})
     strategy:
       fail-fast: false
@@ -157,6 +171,7 @@ jobs:
 
   # Matrix smoke test to prevent feature drift
   matrix-smoke:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Matrix Smoke Test
     runs-on: ubuntu-latest
     steps:
@@ -177,6 +192,7 @@ jobs:
 
   # Test with debug assertions enabled to catch invariant violations
   test-debug-assertions:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Test with Debug Assertions
     runs-on: ubuntu-latest
     steps:
@@ -202,6 +218,7 @@ jobs:
         run: cargo test -p adze-tablegen --lib -- --test-threads=$RUST_TEST_THREADS
 
   test-release:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Test Release Mode (${{ matrix.features }})
     runs-on: ubuntu-latest
     strategy:
@@ -228,6 +245,7 @@ jobs:
           cargo test -p adze-glr-core --release --test test_accept_via_insertion --features strict-invariants -- --test-threads=$RUST_TEST_THREADS
 
   benchmarks:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Benchmark Compilation
     runs-on: ubuntu-latest
     steps:
@@ -245,6 +263,7 @@ jobs:
         run: cargo bench -p adze-benchmarks --bench incremental_bench --no-run
 
   backend-matrix:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Backend Build Matrix (${{ matrix.backend }})
     runs-on: ubuntu-latest
     strategy:
@@ -285,6 +304,7 @@ jobs:
         run: cargo test -p adze ${{ matrix.backend.flags }} -- --test-threads=$RUST_TEST_THREADS
 
   miri:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Miri (UB Detection)
     runs-on: ubuntu-latest
     steps:
@@ -312,6 +332,7 @@ jobs:
           cargo miri test -p adze --features external_scanners external_scanner_ || true
 
   ts-compat:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Tree-sitter Compatibility API
     runs-on: ubuntu-latest
     steps:
@@ -334,6 +355,7 @@ jobs:
         run: cargo test -p adze --features "ts-compat pure-rust incremental_glr" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
 
   sanitizers:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Sanitizers (ASAN/UBSAN)
     runs-on: ubuntu-latest
     steps:
@@ -358,6 +380,7 @@ jobs:
             -p adze --lib --tests
 
   minimal-versions:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Minimal Versions
     runs-on: ubuntu-latest
     steps:
@@ -427,6 +450,7 @@ jobs:
             api-diff.txt
 
   deterministic-codegen:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Deterministic Codegen
     runs-on: ubuntu-latest
     steps:
@@ -449,6 +473,7 @@ jobs:
           fi
 
   feature-matrix:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci || inputs.run_ci_supported_examples)
     name: Feature Matrix
     runs-on: ubuntu-latest
     steps:
@@ -462,6 +487,7 @@ jobs:
           tool: cargo-hack
       
       - name: Test feature powerset (adze)
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_ci }}
         run: |
           cargo hack test -p adze --feature-powerset \
             --exclude-features default \
@@ -469,13 +495,15 @@ jobs:
             --lib --tests
       
       - name: Test incremental_glr feature
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_ci }}
         run: cargo test --workspace --features incremental_glr -- --test-threads=$RUST_TEST_THREADS
       
       - name: Test experimental examples (opt-in)
-        if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[test-examples]') }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_ci_supported_examples) || (github.event_name != 'workflow_dispatch' && contains(github.event.head_commit.message || '', '[test-examples]')) }}
         run: cargo test -p adze --examples --features experimental_examples -- --test-threads=$RUST_TEST_THREADS
 
   msrv:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: MSRV (1.92.0)
     runs-on: ubuntu-latest
     steps:
@@ -517,6 +545,7 @@ jobs:
           cargo semver-checks check-release -p adze-glr-core || true
 
   security:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Security & Supply Chain
     runs-on: ubuntu-latest
     steps:
@@ -533,6 +562,7 @@ jobs:
         run: cargo deny check
 
   docs:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Documentation
     runs-on: ubuntu-latest
     steps:
@@ -552,6 +582,7 @@ jobs:
 
   # Dedicated adze-python job to prevent timeouts
   adze-python:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: adze-python (Optimized Build)
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -578,10 +609,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-            name: cargo-timings-python
-            path: target/cargo-timings
+          name: cargo-timings-python
+          path: target/cargo-timings
 
   cross-compile:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Cross Compilation (${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
@@ -622,6 +654,7 @@ jobs:
           cargo test --target ${{ matrix.target }} --package adze --lib -- --test-threads=$RUST_TEST_THREADS --nocapture child_edge_size || true
 
   coverage:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Code Coverage
     runs-on: ubuntu-latest
     steps:
@@ -675,6 +708,7 @@ jobs:
             });
 
   unsafe-audit:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Unsafe Code Audit
     runs-on: ubuntu-latest
     steps:
@@ -695,7 +729,7 @@ jobs:
   fuzz:
     name: Fuzz Testing
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_full_ci)
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
@@ -727,6 +761,7 @@ jobs:
           path: fuzz/artifacts/
 
   test-connectivity:
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Test Connectivity (Tripwires)
     runs-on: ubuntu-latest
     strategy:
@@ -839,18 +874,17 @@ jobs:
 
       - name: Validate package manifests
         run: |
-          cargo package -p adze-ir --no-verify
-          cargo package -p adze-glr-core --no-verify
-          cargo package -p adze-tablegen --no-verify
-          cargo package -p adze-common --no-verify
-          cargo package -p adze-macro --no-verify
-          cargo package -p adze --no-verify
-          cargo package -p adze-tool --no-verify
+          RELEASE_SURFACE_MODE=fixed ./scripts/validate-release-surface.sh
+
+          mapfile -t CRATES_TO_PUBLISH < <(./scripts/release-surface.sh)
+          for crate in "${CRATES_TO_PUBLISH[@]}"; do
+            cargo package -p "$crate" --no-verify
+          done
 
   benches-unstable:
     name: Benches (unstable, opt-in)
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.run_full_ci
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -858,6 +892,7 @@ jobs:
       - name: Build benches (no run)
         run: cargo bench -p adze --features unstable-benches --no-run
 
+  # Required PR gate only; other workflow jobs skip PR event
   ci-supported:
     name: ci-supported
     runs-on: ubuntu-latest

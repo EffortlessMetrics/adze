@@ -102,7 +102,7 @@ fn glr_parse_simple() {
     assert_eq!(counter.load(Ordering::SeqCst), 1);
 }
 
-#[cfg(all(feature = "glr-core", feature = "incremental"))]
+#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
 #[test]
 fn glr_incremental_reuse() {
     let counter = Arc::new(AtomicUsize::new(0));

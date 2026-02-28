@@ -10,6 +10,24 @@ use indexmap::IndexMap;
 use indexmap::IndexMap as OrderedMap;
 use std::collections::HashMap;
 
+#[cfg(not(debug_assertions))]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            std::eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Converts a Grammar.js structure to Adze IR
 pub struct GrammarJsConverter {
     grammar_js: GrammarJs,

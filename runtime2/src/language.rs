@@ -47,7 +47,7 @@ type TokenizerBoxed = Box<TokenizerFn>;
 /// # Feature Gates
 ///
 /// - `glr-core`: Enables GLR parse tables and tokenizer support
-/// - `external-scanners`: Enables external scanner integration for context-sensitive parsing
+/// - `external_scanners`: Enables external scanner integration for context-sensitive parsing
 pub struct Language {
     /// Language version for compatibility checking.
     ///
@@ -106,7 +106,7 @@ pub struct Language {
     /// Used for languages that require stateful lexing (e.g., Python indentation,
     /// heredocs, template strings). The scanner is invoked during parsing when
     /// external tokens are expected.
-    #[cfg(feature = "external-scanners")]
+    #[cfg(feature = "external_scanners")]
     pub external_scanner: Option<Box<dyn crate::external_scanner::ExternalScanner>>,
 }
 
@@ -228,7 +228,7 @@ impl std::fmt::Debug for Language {
         #[cfg(feature = "glr-core")]
         ds.field("tokenize", &self.tokenize.is_some());
 
-        #[cfg(feature = "external-scanners")]
+        #[cfg(feature = "external_scanners")]
         ds.field("external_scanner", &self.external_scanner.is_some());
 
         ds.finish()
@@ -251,7 +251,7 @@ impl Clone for Language {
             symbol_names: self.symbol_names.clone(),
             symbol_metadata: self.symbol_metadata.clone(),
             field_names: self.field_names.clone(),
-            #[cfg(feature = "external-scanners")]
+            #[cfg(feature = "external_scanners")]
             external_scanner: None,
         }
     }
@@ -330,7 +330,7 @@ pub struct LanguageBuilder {
     symbol_names: Option<Vec<String>>,
     symbol_metadata: Option<Vec<SymbolMetadata>>,
     field_names: Option<Vec<String>>,
-    #[cfg(feature = "external-scanners")]
+    #[cfg(feature = "external_scanners")]
     external_scanner: Option<Box<dyn crate::external_scanner::ExternalScanner>>,
 }
 
@@ -576,7 +576,7 @@ impl LanguageBuilder {
             symbol_names,
             symbol_metadata,
             field_names,
-            #[cfg(feature = "external-scanners")]
+            #[cfg(feature = "external_scanners")]
             external_scanner: self.external_scanner,
         })
     }

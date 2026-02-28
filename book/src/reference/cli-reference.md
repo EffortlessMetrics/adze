@@ -234,7 +234,7 @@ Extracts documentation from `///` comments in grammar files.
 
 ### `check`
 
-Validate grammar syntax without full compilation.
+Validate grammar syntax via parser construction.
 
 **Usage:**
 ```bash
@@ -251,14 +251,14 @@ adze check src/grammar.rs
 
 **Output:**
 ```
-✅ Grammar syntax is valid
+✅ Grammar syntax is valid (1 grammar definition(s))!
 ```
 
 Fast validation for CI/CD pipelines and editors.
 
 ### `stats`
 
-Show statistics about grammar files.
+Show parser-construction statistics from the pure-Rust pipeline.
 
 **Usage:**
 ```bash
@@ -276,10 +276,10 @@ adze stats src/grammar.rs
 **Output:**
 ```
 📊 Grammar statistics:
-  Lines: 245
-  Rules: 28
-  Leaf rules: 15
-  Repeat rules: 8
+  Grammar: simple
+    States: 124
+    Symbols: 67
+    Conflicts: 3
 ```
 
 Useful for tracking grammar complexity and growth.

@@ -131,7 +131,13 @@ pub type GLRResult<T> = Result<T, GLRError>;
 #[cfg(feature = "debug_glr")]
 macro_rules! debug_glr {
     ($($arg:tt)*) => {
-        println!($($arg)*);
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            println!($($arg)*);
+        }
     };
 }
 
@@ -169,7 +175,7 @@ impl ParseStack {
 
     /// Get the current state
     fn current_state(&self) -> StateId {
-        *self.states.last().expect("Empty state stack")
+        self.states.last().copied().unwrap_or(StateId(0))
     }
 
     /// Push a new state and node
@@ -455,9 +461,9 @@ impl GLRParser {
         let initial_stack = ParseStack::new(StateId(0), 0);
 
         // Compute FIRST/FOLLOW sets for the resolver
-        let first_follow =
-            FirstFollowSets::compute(&grammar).expect("Failed to compute FIRST/FOLLOW sets");
-        let vec_wrapper_resolver = Some(VecWrapperResolver::new(&grammar, &first_follow));
+        let vec_wrapper_resolver = FirstFollowSets::compute(&grammar)
+            .ok()
+            .map(|first_follow| VecWrapperResolver::new(&grammar, &first_follow));
 
         Self {
             table,
@@ -959,12 +965,10 @@ impl GLRParser {
             use std::ptr;
             new_stacks.dedup_by(|a, b| {
                 a.current_state() == b.current_state()
-                    && a.nodes.last().is_some()
-                    && b.nodes.last().is_some()
-                    && ptr::eq(
-                        a.nodes.last().unwrap().as_ref(),
-                        b.nodes.last().unwrap().as_ref(),
-                    )
+                    && match (a.nodes.last(), b.nodes.last()) {
+                        (Some(a_last), Some(b_last)) => ptr::eq(a_last.as_ref(), b_last.as_ref()),
+                        _ => false,
+                    }
             });
         }
 
@@ -978,9 +982,11 @@ impl GLRParser {
                 // First, prefer stacks with Accept action
                 let (accepted, rest): (Vec<_>, Vec<_>) = new_stacks.into_iter().partition(|st| {
                     let state_idx = st.current_state().0 as usize;
-                    self.table.action_table[state_idx][eof_idx]
-                        .iter()
-                        .any(|a| matches!(a, Action::Accept))
+                    self.table
+                        .action_table
+                        .get(state_idx)
+                        .and_then(|row| row.get(eof_idx))
+                        .is_some_and(|actions| actions.iter().any(|a| matches!(a, Action::Accept)))
                 });
 
                 new_stacks = if !accepted.is_empty() {
@@ -1589,14 +1595,13 @@ impl GLRParser {
         }
 
         // 1) Try synthesizing an insertion if it unlocks progress
-        let max_insertions = self.error_recovery.as_ref().unwrap().max_token_insertions;
+        let recovery = match self.error_recovery.as_ref() {
+            Some(recovery) => recovery,
+            None => return None,
+        };
+        let max_insertions = recovery.max_token_insertions;
         if self.inserted_in_row < max_insertions {
-            let candidates = self
-                .error_recovery
-                .as_ref()
-                .unwrap()
-                .insert_candidates
-                .clone();
+            let candidates = recovery.insert_candidates.clone();
             debug_glr!(
                 "recovery: checking {} insert candidates with {} stacks (eof={})",
                 candidates.len(),
@@ -1644,7 +1649,7 @@ impl GLRParser {
         }
 
         // 3) Token deletion: skip current token
-        let max_deletions = self.error_recovery.as_ref().unwrap().max_token_deletions;
+        let max_deletions = recovery.max_token_deletions;
         if !_eof && self.deleted_in_row < max_deletions {
             debug_glr!("recovery: DELETE {:?}", lookahead);
             self.deleted_in_row += 1;
@@ -1697,12 +1702,13 @@ impl GLRParser {
 
             // Create new subtree for the reduction
             // For epsilon reductions (empty RHS), use lookahead_end as the position
-            let byte_range = if children.is_empty() {
+            let byte_range = if let (Some(first), Some(last)) = (children.first(), children.last())
+            {
+                // Normal: span from first child start to last child end
+                first.node.byte_range.start..last.node.byte_range.end
+            } else {
                 // Epsilon: zero-width span at the current lookahead end
                 lookahead_end..lookahead_end
-            } else {
-                // Normal: span from first child start to last child end
-                children[0].node.byte_range.start..children.last().unwrap().node.byte_range.end
             };
 
             let node = SubtreeNode {
@@ -2284,11 +2290,12 @@ impl GLRParser {
                                         }
 
                                         // Create new subtree for the reduction
-                                        let byte_range = if children.is_empty() {
-                                            0..0 // Empty production
+                                        let byte_range = if let (Some(first), Some(last)) =
+                                            (children.first(), children.last())
+                                        {
+                                            first.node.byte_range.start..last.node.byte_range.end
                                         } else {
-                                            children[0].node.byte_range.start
-                                                ..children.last().unwrap().node.byte_range.end
+                                            0..0 // Empty production
                                         };
 
                                         let node = SubtreeNode {
@@ -2475,7 +2482,13 @@ impl GLRParser {
         // This dramatically reduces the work needed to process remaining tokens
         // If the middle chunk is ambiguous, the GLR mechanism will naturally
         // re-create forks as needed
-        let best_stack = stacks.into_iter().max_by_key(|s| s.states.len()).unwrap();
+        let best_stack = if let Some(best_stack) = stacks.into_iter().max_by_key(|s| s.states.len())
+        {
+            best_stack
+        } else {
+            self.pending_stacks.clear();
+            return;
+        };
 
         self.stacks = vec![best_stack];
         self.pending_stacks.clear();

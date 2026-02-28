@@ -33,7 +33,7 @@ pub trait ExternalScanner: Send + Sync {
 }
 
 /// FFI-compatible external scanner interface
-#[cfg(feature = "external-scanners")]
+#[cfg(feature = "external_scanners")]
 #[repr(C)]
 pub struct TSExternalScanner {
     /// Private data pointer
@@ -42,7 +42,7 @@ pub struct TSExternalScanner {
     pub vtable: TSExternalScannerVTable,
 }
 
-#[cfg(feature = "external-scanners")]
+#[cfg(feature = "external_scanners")]
 #[repr(C)]
 /// Function pointers bridging a Rust scanner to the C ABI expected by Tree-sitter.
 pub struct TSExternalScannerVTable {

@@ -5,7 +5,7 @@
 //!
 //! Reference: docs/plans/BDD_GLR_CONFLICT_PRESERVATION.md
 
-#![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+#![cfg(all(feature = "pure-rust", feature = "serialization"))]
 
 use adze_bdd_scenario_fixtures::{
     BddPhase, DANGLING_ELSE_SYMBOL_METADATA, DANGLING_ELSE_TOKEN_PATTERNS,

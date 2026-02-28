@@ -327,12 +327,14 @@ impl<'arena> TreeNodeRef<'arena> {
         self.get_ref()
     }
 
-    /// Get node value (for leaf nodes)
+    /// Get node symbol value
     pub fn value(&self) -> i32 {
-        match self.node.kind {
-            TreeNodeKind::Leaf { value } => value,
-            TreeNodeKind::Branch { .. } => panic!("Branch node has no value"),
-        }
+        self.node.symbol()
+    }
+
+    /// Get node symbol
+    pub fn symbol(&self) -> i32 {
+        self.node.symbol()
     }
 
     /// Check if this is a branch node
@@ -343,6 +345,11 @@ impl<'arena> TreeNodeRef<'arena> {
     /// Check if this is a leaf node
     pub fn is_leaf(&self) -> bool {
         matches!(self.node.kind, TreeNodeKind::Leaf { .. })
+    }
+
+    /// Get child handles for this node
+    pub fn children(&self) -> &[NodeHandle] {
+        self.node.children()
     }
 }
 
@@ -362,10 +369,8 @@ pub struct TreeNodeRefMut<'arena> {
 impl<'arena> TreeNodeRefMut<'arena> {
     /// Set the value of a leaf node
     pub fn set_value(&mut self, value: i32) {
-        if let TreeNodeKind::Leaf { value: ref mut v } = self.node.kind {
+        if let TreeNodeKind::Leaf { symbol: ref mut v } = self.node.kind {
             *v = value;
-        } else {
-            panic!("Cannot set value on branch node");
         }
     }
 }
@@ -395,30 +400,49 @@ pub struct TreeNode {
 
 #[derive(Clone, Debug, PartialEq)]
 enum TreeNodeKind {
-    Leaf { value: i32 },
-    Branch { children: Vec<NodeHandle> },
+    Leaf {
+        symbol: i32,
+    },
+    Branch {
+        symbol: i32,
+        children: Vec<NodeHandle>,
+    },
 }
 
 impl TreeNode {
     /// Create a leaf node with a value
     pub fn leaf(value: i32) -> Self {
         TreeNode {
-            kind: TreeNodeKind::Leaf { value },
+            kind: TreeNodeKind::Leaf { symbol: value },
         }
     }
 
     /// Create a branch node with children
     pub fn branch(children: Vec<NodeHandle>) -> Self {
         TreeNode {
-            kind: TreeNodeKind::Branch { children },
+            kind: TreeNodeKind::Branch {
+                symbol: 0,
+                children,
+            },
         }
     }
 
-    /// Get value (panics if not a leaf)
+    /// Create a branch node with symbol and children
+    pub fn branch_with_symbol(symbol: i32, children: Vec<NodeHandle>) -> Self {
+        TreeNode {
+            kind: TreeNodeKind::Branch { symbol, children },
+        }
+    }
+
+    /// Get symbol value
     pub fn value(&self) -> i32 {
+        self.symbol()
+    }
+
+    /// Get symbol id
+    pub fn symbol(&self) -> i32 {
         match self.kind {
-            TreeNodeKind::Leaf { value } => value,
-            TreeNodeKind::Branch { .. } => panic!("Branch node has no value"),
+            TreeNodeKind::Leaf { symbol } | TreeNodeKind::Branch { symbol, .. } => symbol,
         }
     }
 
@@ -430,6 +454,14 @@ impl TreeNode {
     /// Check if this is a branch
     pub fn is_branch(&self) -> bool {
         matches!(self.kind, TreeNodeKind::Branch { .. })
+    }
+
+    /// Get child handles for this node
+    pub fn children(&self) -> &[NodeHandle] {
+        match &self.kind {
+            TreeNodeKind::Leaf { .. } => &[],
+            TreeNodeKind::Branch { children, .. } => children,
+        }
     }
 }
 

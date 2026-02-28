@@ -304,6 +304,24 @@ impl TreeNodeData {
 mod tests {
     use super::*;
 
+    #[cfg(not(debug_assertions))]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {};
+    }
+
+    #[cfg(debug_assertions)]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {
+            if std::env::var("RUST_LOG")
+                .ok()
+                .unwrap_or_default()
+                .contains("debug")
+            {
+                println!($($arg)*);
+            }
+        };
+    }
+
     #[test]
     fn test_size_constraint() {
         use std::mem;
@@ -315,9 +333,9 @@ mod tests {
             size
         );
 
-        println!("TreeNodeData size: {} bytes", size);
-        println!("NodeHandle size: {} bytes", mem::size_of::<NodeHandle>());
-        println!(
+        debug_trace!("TreeNodeData size: {} bytes", size);
+        debug_trace!("NodeHandle size: {} bytes", mem::size_of::<NodeHandle>());
+        debug_trace!(
             "SmallVec size: {} bytes",
             mem::size_of::<SmallVec<[NodeHandle; 3]>>()
         );

@@ -485,7 +485,9 @@ impl Parser {
             }
             1 => {
                 // Single successful parse - use it
-                let parse = successful_parses.into_iter().next().unwrap();
+                let Some(parse) = successful_parses.into_iter().next() else {
+                    return Err(anyhow::anyhow!("Internal parser state inconsistency"));
+                };
                 self.state_stack = parse.0;
                 self.node_stack = parse.1;
                 self.position = parse.2;
@@ -495,7 +497,7 @@ impl Parser {
                 // Multiple successful parses - create ambiguity node
                 let ambiguity_nodes: Vec<ParseNode> = successful_parses
                     .into_iter()
-                    .map(|(_, nodes, _)| nodes.last().cloned().unwrap())
+                    .filter_map(|(_, nodes, _)| nodes.last().cloned())
                     .collect();
 
                 // Use the first parse's state but with ambiguity node

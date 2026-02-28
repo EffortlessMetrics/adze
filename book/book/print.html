@@ -433,11 +433,11 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <h3 id="step-2-add-dependencies"><a class="header" href="#step-2-add-dependencies">Step 2: Add Dependencies</a></h3>
 <p>Add to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { version = "0.6", features = ["glr-core", "incremental"] }
+adze = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
 adze-runtime = "0.1"  # GLR runtime
 
 [build-dependencies]
-adze-tool = "0.6"
+adze-tool = "0.8.0-dev"
 </code></pre>
 <p>Create <code>build.rs</code>:</p>
 <pre><code class="language-rust">fn main() {
@@ -637,7 +637,7 @@ fn test_glr_arithmetic() {
 <ol>
 <li>Read about <a href="getting-started/../guide/parser-generation.html">Parser Generation</a> to understand GLR vs Pure-Rust backends</li>
 <li>Learn about <a href="getting-started/../guide/incremental-parsing.html">Incremental Parsing</a> for real-time editor integration</li>
-<li>Explore <a href="getting-started/../guide/glr-ambiguity.html">GLR Ambiguity Handling</a> for complex grammar conflicts</li>
+<li>Explore <a href="getting-started/../guide/glr-precedence-resolution.html">GLR precedence behavior</a> for complex grammar conflicts</li>
 <li>Check out <a href="getting-started/../guide/performance.html">Performance Optimization</a> for production deployment</li>
 </ol>
 <h2 id="tips-for-success"><a class="header" href="#tips-for-success">Tips for Success</a></h2>
@@ -5463,166 +5463,67 @@ tree-sitter generate
 </ul>
 <p>Golden tests provide the foundation for reliable parser development and ensure adze maintains perfect compatibility with Tree-sitter's reference implementations.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="release-process"><a class="header" href="#release-process">Release Process</a></h1>
-<p>This chapter is under construction.</p>
-<p>For now, see:</p>
+<p>Release orchestration is now handled by <a href="development/../../../.github/workflows/release.yml"><code>.github/workflows/release.yml</code></a>.</p>
+<p>Use workflow dispatch with a <code>version</code> input (and <code>dry_run</code> when needed) to perform the full, canonical path:</p>
 <ul>
-<li><a href="development/../../../scripts/release.sh"><code>scripts/release.sh</code></a></li>
-<li><a href="development/../../../release.toml"><code>release.toml</code></a></li>
+<li>validation</li>
+<li>full test suite</li>
+<li>artifact builds</li>
+<li>version/tags updates</li>
+<li>publish</li>
+<li>GitHub release creation</li>
 </ul>
+<p>Legacy local helpers are kept for ad-hoc use only:</p>
+<ul>
+<li><a href="development/../../../scripts/update-versions.sh"><code>scripts/update-versions.sh</code></a></li>
+<li><a href="development/../../../scripts/release.sh"><code>scripts/release.sh</code></a></li>
+<li><a href="development/../../../scripts/dry-run-publish.sh"><code>scripts/dry-run-publish.sh</code></a></li>
+</ul>
+<p><code>release.toml</code> is still used for changelog/version replacement metadata.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>All notable changes to this project will be documented in this file.</p>
-<h2 id="050-beta2---2025-08-04"><a class="header" href="#050-beta2---2025-08-04">[0.5.0-beta.2] - 2025-08-04</a></h2>
-<h3 id="-major-internal-refactoring"><a class="header" href="#-major-internal-refactoring">🔧 Major Internal Refactoring</a></h3>
-<p>This release completes a major architectural refactoring that improves performance and maintainability while maintaining full backward compatibility.</p>
-<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
-<h4 id="grammar-rules-storage"><a class="header" href="#grammar-rules-storage">Grammar Rules Storage</a></h4>
+<p>This appendix mirrors the root <code>CHANGELOG.md</code>; keep it in sync when cutting releases.</p>
+<h2 id="unreleased"><a class="header" href="#unreleased">[Unreleased]</a></h2>
+<h2 id="080---2026-02-22"><a class="header" href="#080---2026-02-22">[0.8.0] - 2026-02-22</a></h2>
+<p><strong>Focus</strong>: Publishable baseline, documentation sync, and governance-as-code.</p>
+<h3 id="added"><a class="header" href="#added">Added</a></h3>
 <ul>
-<li><strong>BREAKING</strong>: Changed internal storage from <code>HashMap&lt;RuleId, Rule&gt;</code> to <code>BTreeMap&lt;SymbolId, Vec&lt;Rule&gt;&gt;</code></li>
-<li>Groups all rules for a symbol together for better cache locality</li>
-<li>Improves GLR parser performance by 15-20% in typical cases</li>
-<li>See <a href="appendix/./docs/migration-to-v0.5.html">migration guide</a> for details</li>
+<li><strong>Governance-as-Code</strong>: Integrated policy enforcement for backend selection (Pure-Rust vs GLR) and progress tracking via 25+ micro-crates in <code>crates/</code>.</li>
+<li><strong>Table Compression</strong>: Optimized parse tables using Tree-sitter's format, achieving &gt;10x reduction in binary size for large grammars.</li>
+<li><strong>Improved Macro Extraction</strong>: Enhanced <code>Extract</code> trait for more robust typed AST construction from both LR(1) and GLR trees.</li>
+<li><strong>Standardized CI Lane</strong>: Defined the <code>Supported Lane</code> (<code>just ci-supported</code>) ensuring core reliability across platforms.</li>
+<li><strong>Comprehensive Documentation</strong>: Complete overhaul of all guides and READMEs to reflect the transition from <code>rust-sitter</code> to Adze.</li>
 </ul>
-<h4 id="api-improvements"><a class="header" href="#api-improvements">API Improvements</a></h4>
+<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
 <ul>
-<li>New <code>grammar.all_rules()</code> iterator for efficient rule traversal</li>
-<li>Direct symbol-based rule lookup via <code>grammar.rules.get(&amp;symbol_id)</code></li>
-<li>Cleaner rule construction pattern with <code>entry().or_insert_with(Vec::new).push()</code></li>
+<li><strong>Project Rename</strong>: Formally transitioned from <code>rust-sitter</code> to <strong>Adze</strong>.</li>
+<li><strong>MSRV</strong>: Updated Minimum Supported Rust Version to <strong>1.92</strong> (Rust 2024 edition).</li>
+<li><strong>Default Backend</strong>: Pure-Rust LR(1) is now the default and primary recommended path.</li>
 </ul>
 <h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
 <ul>
-<li><strong>All Test Failures</strong>: Complete test suite now passes (0 failures)</li>
-<li><strong>Binary Name Collision</strong>: Resolved between adze-tool and adze-cli</li>
-<li><strong>Compilation Errors</strong>: Fixed over 100 compilation errors across the workspace</li>
-<li><strong>FOLLOW Set Computation</strong>: Corrected for recursive and empty productions</li>
-<li><strong>Error Recovery Tests</strong>: Updated to match new API</li>
-<li><strong>Snapshot Tests</strong>: Updated to reflect improved parsing behavior</li>
+<li><strong>Precedence Disambiguation</strong>: Corrected operator precedence conflicts in the GLR runtime.</li>
+<li><strong>EOF Handling</strong>: Fixed proper end-of-input processing in the pure-Rust parser.</li>
+<li><strong>FFI Hardening</strong>: Eliminated potential segmentation faults in the legacy C bridge.</li>
 </ul>
-<h3 id="developer-experience"><a class="header" href="#developer-experience">Developer Experience</a></h3>
+<hr />
+<h2 id="070---2025-12-20"><a class="header" href="#070---2025-12-20">[0.7.0] - 2025-12-20</a></h2>
+<p><strong>Focus</strong>: GLR Engine Completion and Ambiguity Handling.</p>
+<h3 id="added-1"><a class="header" href="#added-1">Added</a></h3>
 <ul>
-<li><strong>Zero Warnings</strong>: All clippy warnings resolved</li>
-<li><strong>Clean Build</strong>: Workspace compiles without errors</li>
-<li><strong>Test Coverage</strong>: All tests pass including integration and snapshot tests</li>
-<li><strong>Documentation</strong>: Added comprehensive migration guide</li>
+<li><strong>GLR Fork/Merge</strong>: Implementation of stack forking and merging (SPPF) for ambiguous grammars.</li>
+<li><strong>External Scanners</strong>: Support for custom lexing logic in Rust (implemented for Python indentation).</li>
+<li><strong>Initial Query Support</strong>: Basic Tree-sitter query pattern matching (<code>.scm</code> files).</li>
 </ul>
-<h3 id="performance-improvements"><a class="header" href="#performance-improvements">Performance Improvements</a></h3>
-<ul>
-<li><strong>Rule Access</strong>: O(1) lookup for rules by symbol (was O(n))</li>
-<li><strong>Memory Layout</strong>: Better cache locality for rule processing</li>
-<li><strong>GLR Parsing</strong>: 15-20% faster due to improved data structures</li>
-</ul>
-<h2 id="050-beta---2025-08-02"><a class="header" href="#050-beta---2025-08-02">[0.5.0-beta] - 2025-08-02</a></h2>
-<h3 id="-major-architectural-improvements"><a class="header" href="#-major-architectural-improvements">🚀 Major Architectural Improvements</a></h3>
-<p>This beta release represents a significant evolution of adze with GLR parsing support, enhanced error recovery, and a stabilized codebase ready for production use.</p>
-<h3 id="added"><a class="header" href="#added">Added</a></h3>
-<h4 id="glr-generalized-lr-parsing-1"><a class="header" href="#glr-generalized-lr-parsing-1">GLR (Generalized LR) Parsing</a></h4>
-<ul>
-<li><strong>Two-Phase Algorithm</strong>: Proper reduction-shift separation for correct GLR semantics</li>
-<li><strong>Fork/Merge Support</strong>: Efficient handling of parse ambiguity with multiple stacks</li>
-<li><strong>Parse Forest Construction</strong>: Build parse forests representing all valid interpretations</li>
-<li><strong>Conflict Resolution</strong>: Sophisticated strategies for shift/reduce and reduce/reduce conflicts</li>
-<li><strong>GLR-Specific Optimizations</strong>: Memory pooling and subtree reuse for performance</li>
-</ul>
-<h4 id="enhanced-error-recovery"><a class="header" href="#enhanced-error-recovery">Enhanced Error Recovery</a></h4>
-<ul>
-<li><strong>Configurable Recovery</strong>: Builder pattern for customizing error recovery behavior</li>
-<li><strong>Multiple Strategies</strong>: Token insertion, deletion, substitution, and phrase-level recovery</li>
-<li><strong>Context-Aware Recovery</strong>: Recovery decisions based on parse state and expected tokens</li>
-<li><strong>Recovery Limits</strong>: Configurable limits to prevent excessive recovery attempts</li>
-<li><strong>Error Diagnostics</strong>: Rich error information with recovery suggestions</li>
-</ul>
-<h4 id="pure-rust-implementation-improvements"><a class="header" href="#pure-rust-implementation-improvements">Pure-Rust Implementation Improvements</a></h4>
-<ul>
-<li><strong>Stabilized IR</strong>: Refined grammar intermediate representation</li>
-<li><strong>Enhanced Table Generation</strong>: Improved compression algorithms</li>
-<li><strong>Better Memory Management</strong>: Reduced allocations and improved cache locality</li>
-<li><strong>WASM Optimizations</strong>: Specific optimizations for WebAssembly targets</li>
-</ul>
-<h4 id="testing--debugging-tools"><a class="header" href="#testing--debugging-tools">Testing &amp; Debugging Tools</a></h4>
-<ul>
-<li><strong>GLR Visualization</strong>: Fork/merge visualization for debugging ambiguous grammars</li>
-<li><strong>Parse Forest Explorer</strong>: Tools for exploring multiple parse interpretations</li>
-<li><strong>Benchmark Suite</strong>: Comprehensive benchmarks for GLR parsing performance</li>
-<li><strong>Golden Test Framework</strong>: Snapshot testing for parser output validation</li>
-<li><strong>Grammar Validator</strong>: Enhanced validation with GLR-specific checks</li>
-</ul>
-<h4 id="performance-features-1"><a class="header" href="#performance-features-1">Performance Features</a></h4>
-<ul>
-<li><strong>SIMD Lexing</strong>: SIMD-accelerated tokenization for faster parsing</li>
-<li><strong>Parallel Parsing</strong>: Multi-threaded parsing support for large files</li>
-<li><strong>Memory Pools</strong>: Object pooling for reduced GC pressure</li>
-<li><strong>Incremental GLR</strong>: Experimental incremental parsing for GLR grammars</li>
-</ul>
-<h3 id="changed-1"><a class="header" href="#changed-1">Changed</a></h3>
-<h4 id="architecture-1"><a class="header" href="#architecture-1">Architecture</a></h4>
-<ul>
-<li><strong>Parser Structure</strong>: Migrated to two-phase GLR algorithm for correctness</li>
-<li><strong>API Design</strong>: Unified parser API across GLR and standard parsers</li>
-<li><strong>Grammar IR</strong>: Enhanced to support GLR-specific features</li>
-<li><strong>Symbol Management</strong>: Improved interning and symbol resolution</li>
-<li><strong>Error Types</strong>: Richer error information with recovery context</li>
-</ul>
-<h4 id="api-updates"><a class="header" href="#api-updates">API Updates</a></h4>
-<ul>
-<li><code>GLRParser::new()</code> now takes parse table and grammar separately</li>
-<li><code>GLRLexer::new()</code> requires grammar reference for token validation</li>
-<li>Enhanced <code>Extract</code> trait for better type safety</li>
-<li>New <code>ErrorRecoveryConfigBuilder</code> for configuration</li>
-</ul>
+<hr />
+<h2 id="061-beta---2025-01-22"><a class="header" href="#061-beta---2025-01-22">[0.6.1-beta] - 2025-01-22</a></h2>
 <h3 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h3>
 <ul>
-<li><strong>Reduce/Reduce Conflicts</strong>: Proper handling in GLR mode</li>
-<li><strong>Parse Forest Construction</strong>: Correct subtree sharing</li>
-<li><strong>Memory Leaks</strong>: Fixed in subtree management</li>
-<li><strong>Race Conditions</strong>: Resolved in parallel parsing</li>
-<li><strong>Error Recovery</strong>: Fixed edge cases in token recovery</li>
+<li>Fixed Accept action encoding (0x7FFF to 0xFFFF).</li>
+<li>Corrected decoder check order.</li>
+<li>Fixed token_count calculation to include EOF symbol.</li>
+<li>Added missing GOTO table entries to compressed parse tables.</li>
 </ul>
-<h3 id="known-issues"><a class="header" href="#known-issues">Known Issues</a></h3>
-<ul>
-<li><strong>Empty Production Rules</strong>: Vec<T> fields in grammars may cause <code>EmptyString</code> errors
-<ul>
-<li>Workaround: Use Option<T> or ensure at least one non-optional field</li>
-</ul>
-</li>
-<li><strong>Grammar Crates</strong>: Python, JavaScript, and Go grammars need updates</li>
-<li><strong>Test Updates</strong>: Some tests need API migration</li>
-<li><strong>Documentation</strong>: Some new features lack comprehensive docs</li>
-</ul>
-<h3 id="performance"><a class="header" href="#performance">Performance</a></h3>
-<p>Benchmarks on typical source files show:</p>
-<ul>
-<li>GLR parsing: 2-5x slower than deterministic parsing (expected)</li>
-<li>Memory usage: 1.5-3x higher due to multiple stacks</li>
-<li>Fork overhead: Minimal for deterministic grammars</li>
-<li>Error recovery: &lt; 10% performance impact when disabled</li>
-</ul>
-<h3 id="migration-guide-1"><a class="header" href="#migration-guide-1">Migration Guide</a></h3>
-<p>For users upgrading from 0.4.x:</p>
-<ol>
-<li>
-<p><strong>Parser API</strong>: Update to new GLR parser if using ambiguous grammars:</p>
-<pre><code class="language-rust">// Old
-let tree = parser.parse(input, None).unwrap();
-
-// New (GLR)
-let parse_table = build_lr1_automaton(&amp;grammar, &amp;first_follow)?;
-let mut parser = GLRParser::new(parse_table, grammar);
-let mut lexer = GLRLexer::new(&amp;grammar, input.to_string())?;</code></pre>
-</li>
-<li>
-<p><strong>Error Recovery</strong>: Configure error recovery explicitly:</p>
-<pre><code class="language-rust">let config = ErrorRecoveryConfigBuilder::new()
-    .max_recovery_attempts(3)
-    .enable_token_deletion()
-    .build();</code></pre>
-</li>
-<li>
-<p><strong>Grammar Issues</strong>: If you encounter <code>EmptyString</code> errors, ensure your grammar structs have at least one non-optional field or use Option<T> as a workaround.</p>
-</li>
-</ol>
-<h3 id="contributors"><a class="header" href="#contributors">Contributors</a></h3>
-<p>Special thanks to all contributors who helped stabilize the codebase and implement GLR parsing support.</p>
-<h2 id="previous-releases"><a class="header" href="#previous-releases">Previous Releases</a></h2>
-<p>See git history for details on releases prior to 0.5.0-beta.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="frequently-asked-questions"><a class="header" href="#frequently-asked-questions">Frequently Asked Questions</a></h1>
 <h2 id="general-questions"><a class="header" href="#general-questions">General Questions</a></h2>
 <h3 id="what-is-adze"><a class="header" href="#what-is-adze">What is Adze?</a></h3>
@@ -5684,17 +5585,17 @@ struct Whitespace {
 <h3 id="build-fails-with-macro-errors"><a class="header" href="#build-fails-with-macro-errors">Build fails with macro errors</a></h3>
 <p>Ensure both dependencies are present:</p>
 <pre><code class="language-toml">[dependencies]
-adze = "0.5.0-beta"
+adze = "0.8.0-dev"
 
 [build-dependencies]
-adze-tool = "0.5.0-beta"
+adze-tool = "0.8.0-dev"
 </code></pre>
 <h3 id="grammar-has-conflicts"><a class="header" href="#grammar-has-conflicts">Grammar has conflicts</a></h3>
 <p>This is normal for ambiguous grammars. Options:</p>
 <ol>
 <li>Add precedence annotations</li>
 <li>Refactor to remove ambiguity</li>
-<li>Use GLR parsing (automatic in v0.5)</li>
+<li>Use GLR parsing (automatic in 0.8+)</li>
 </ol>
 <h3 id="how-do-i-fix-precedence-errors"><a class="header" href="#how-do-i-fix-precedence-errors">How do I fix precedence errors?</a></h3>
 <p>Common precedence errors and solutions:</p>
@@ -5735,12 +5636,12 @@ const HIGH: u32 = 10;
 #[adze::prec(40)]       // Comparison operators</code></pre>
 <h3 id="wasm-build-fails"><a class="header" href="#wasm-build-fails">WASM build fails</a></h3>
 <p>Make sure you're using the <code>pure-rust</code> feature:</p>
-<pre><code class="language-toml">adze = { version = "0.5.0-beta", features = ["pure-rust"] }
+<pre><code class="language-toml">adze = { version = "0.8.0-dev", features = ["pure-rust"] }
 </code></pre>
 <h2 id="migration-questions"><a class="header" href="#migration-questions">Migration Questions</a></h2>
 <h3 id="how-do-i-migrate-from-tree-sitter"><a class="header" href="#how-do-i-migrate-from-tree-sitter">How do I migrate from Tree-sitter?</a></h3>
 <p>See the comprehensive <a href="appendix/../getting-started/migration.html">Migration Guide</a>.</p>
-<h3 id="what-changed-in-v05"><a class="header" href="#what-changed-in-v05">What changed in v0.5?</a></h3>
+<h3 id="what-changed-in-v08"><a class="header" href="#what-changed-in-v08">What changed in v0.8?</a></h3>
 <p>Major changes include:</p>
 <ul>
 <li>GLR parsing support</li>
@@ -5749,11 +5650,11 @@ const HIGH: u32 = 10;
 <li>Improved incremental parsing</li>
 </ul>
 <p>See the <a href="appendix/changelog.html">Changelog</a> for details.</p>
-<h3 id="is-v05-stable"><a class="header" href="#is-v05-stable">Is v0.5 stable?</a></h3>
-<p>v0.5.0-beta is feature-complete and well-tested. The "beta" label indicates we're gathering feedback before the final release. The API is stable and ready for production use.</p>
+<h3 id="is-08-stable"><a class="header" href="#is-08-stable">Is 0.8 stable?</a></h3>
+<p>0.8.0-dev is feature-complete and under RC hardening.</p>
 <h2 id="contributing-1"><a class="header" href="#contributing-1">Contributing</a></h2>
 <h3 id="how-can-i-contribute"><a class="header" href="#how-can-i-contribute">How can I contribute?</a></h3>
-<p>We welcome contributions! See our <a href="appendix/../development/contributing.html">Contributing Guide</a> for:</p>
+<p>We welcome contributions! See our <a href="appendix/../../CONTRIBUTING.html">Contributing Guide</a> for:</p>
 <ul>
 <li>Code style guidelines</li>
 <li>Testing requirements</li>

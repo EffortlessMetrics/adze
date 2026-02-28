@@ -29,9 +29,11 @@ impl ScannerWrapper {
     /// Scan for external tokens
     pub fn scan(&mut self, lexer: &mut impl super::Lexer, valid_symbols: &[bool]) -> bool {
         match self {
-            ScannerWrapper::Rust(scanner) => {
-                scanner.lock().unwrap().scan(lexer, valid_symbols).is_some()
-            }
+            ScannerWrapper::Rust(scanner) => scanner
+                .lock()
+                .unwrap_or_else(|err| err.into_inner())
+                .scan(lexer, valid_symbols)
+                .is_some(),
             ScannerWrapper::C(_guard) => {
                 // C scanners use the FFI interface
                 // This would need conversion from our Lexer trait to TSLexer FFI
@@ -44,7 +46,10 @@ impl ScannerWrapper {
     /// Serialize scanner state
     pub fn serialize(&self, buffer: &mut Vec<u8>) {
         match self {
-            ScannerWrapper::Rust(scanner) => scanner.lock().unwrap().serialize(buffer),
+            ScannerWrapper::Rust(scanner) => scanner
+                .lock()
+                .unwrap_or_else(|err| err.into_inner())
+                .serialize(buffer),
             ScannerWrapper::C(_guard) => {
                 // C scanner serialization via FFI
             }
@@ -54,7 +59,10 @@ impl ScannerWrapper {
     /// Deserialize scanner state
     pub fn deserialize(&mut self, buffer: &[u8]) {
         match self {
-            ScannerWrapper::Rust(scanner) => scanner.lock().unwrap().deserialize(buffer),
+            ScannerWrapper::Rust(scanner) => scanner
+                .lock()
+                .unwrap_or_else(|err| err.into_inner())
+                .deserialize(buffer),
             ScannerWrapper::C(_guard) => {
                 // C scanner deserialization via FFI
             }

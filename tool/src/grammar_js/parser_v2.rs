@@ -10,6 +10,24 @@ use anyhow::{Context, Result, anyhow, bail};
 use regex::Regex;
 use std::collections::HashMap;
 
+#[cfg(not(debug_assertions))]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            std::eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Parse a grammar.js file content with improved parsing
 pub fn parse_grammar_js_v2(content: &str) -> Result<GrammarJs> {
     let parser = ImprovedGrammarJsParser::new(content);

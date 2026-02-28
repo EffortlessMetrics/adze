@@ -104,6 +104,20 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 PRs are squash-merged. Your PR title becomes the commit message, so make it descriptive.
 
+## Release Readiness Checklist
+
+- [ ] Update crate versions and changelog entries together (`CHANGELOG.md` and `book/src/appendix/changelog.md`).
+- [ ] Verify all required checks pass locally:
+  - `cargo fmt --all --check`
+  - `cargo clippy --all -- -D warnings`
+  - `cargo test --all-features`
+- [ ] Decide and set release-surface mode (`RELEASE_SURFACE_MODE=fixed` or `auto`) and optional `RELEASE_CRATE_FILE` before validating.
+- [ ] Decide fixed-mode release-surface strictness (`strict_publish_surface` in workflow or `STRICT_PUBLISH_SURFACE` locally) before running the Release workflow.
+- [ ] If using manual Release workflow dispatch, set `release_surface_mode` and `release_crate_file` as needed.
+- [ ] Run release validation for crates scheduled for publish (`cargo publish --dry-run -p <crate>`).
+- [ ] Confirm docs and migration notes are updated for any API/behavior changes.
+- [ ] Get maintainer sign-off for compatibility notes and known issues before tagging.
+
 ## Architecture Overview
 
 Adze is a Rust workspace with multiple interconnected crates:

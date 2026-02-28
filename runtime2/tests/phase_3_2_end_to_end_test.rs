@@ -7,7 +7,7 @@
 //!
 //! Contract: Verify that all Phase 3.2 components work together seamlessly.
 
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 mod phase_3_2_end_to_end {
     use adze_glr_core::{Action, FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
     use adze_ir::{
@@ -240,7 +240,7 @@ mod phase_3_2_end_to_end {
     }
 }
 
-#[cfg(not(feature = "pure-rust-glr"))]
+#[cfg(not(feature = "pure-rust"))]
 #[test]
 fn test_phase_3_2_feature_not_enabled() {
     // Placeholder test when feature is disabled

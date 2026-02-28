@@ -8,8 +8,8 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/EffortlessMetrics/adze"
 homepage = "https://github.com/EffortlessMetrics/adze"
 documentation = "https://docs.rs/adze-ir"
-readme = "README.md"
-publish = false
+readme = "../README.md"
+publish = true
 include = [
     "Cargo.toml",
     "LICENSE*",

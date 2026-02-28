@@ -4,7 +4,7 @@ use crate::{Language, node::Node};
 use std::fmt;
 
 /// Errors that can occur during tree editing operations
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EditError {
     /// Invalid byte range in edit operation
@@ -20,7 +20,7 @@ pub enum EditError {
     ArithmeticUnderflow,
 }
 
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 impl fmt::Display for EditError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -37,7 +37,7 @@ impl fmt::Display for EditError {
     }
 }
 
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 impl std::error::Error for EditError {}
 
 /// A parsed syntax tree.
@@ -84,7 +84,7 @@ pub struct Tree {
     #[allow(dead_code)]
     pub(crate) source: Option<Vec<u8>>,
     /// Last edit applied to this tree (for incremental parsing)
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     last_edit: Option<crate::InputEdit>,
 }
 
@@ -113,7 +113,7 @@ pub(crate) struct TreeNode {
     /// Field ID if this node has a field name
     pub(crate) field_id: Option<u16>,
     /// Whether this node has been affected by an edit
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     pub(crate) dirty: bool,
 }
 
@@ -132,7 +132,7 @@ impl TreeNode {
             end_byte,
             children,
             field_id: None,
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             dirty: false,
         }
     }
@@ -158,7 +158,7 @@ impl Tree {
             root,
             language: None,
             source: None,
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             last_edit: None,
         }
     }
@@ -177,12 +177,12 @@ impl Tree {
                 end_byte: 0,
                 children: vec![],
                 field_id: None,
-                #[cfg(feature = "incremental")]
+                #[cfg(feature = "incremental_glr")]
                 dirty: false,
             },
             language: None,
             source: None,
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             last_edit: None,
         }
     }
@@ -213,7 +213,7 @@ impl Tree {
     }
 
     /// Apply an edit to the tree (for incremental parsing) - Enhanced with comprehensive error handling
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     pub fn edit(&mut self, edit: &crate::InputEdit) -> Result<(), EditError> {
         // Validate edit parameters upfront
         if edit.old_end_byte < edit.start_byte {
@@ -283,7 +283,7 @@ impl Tree {
             }
 
             // Node intersects edit. Mark dirty and adjust bounds.
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             {
                 node.dirty = true;
             }
@@ -394,7 +394,9 @@ impl<'tree> TreeCursor<'tree> {
 
         // Split the stack to borrow parent immutably and current mutably
         let (parent_slice, current_slice) = self.stack.split_at_mut(len - 1);
-        let parent = parent_slice.last().unwrap();
+        let Some(parent) = parent_slice.last() else {
+            return false;
+        };
         let current = &mut current_slice[0];
         let next_index = current.index + 1;
         if next_index < parent.node.children.len() {
@@ -471,7 +473,7 @@ mod tests {
     #[allow(unused_imports)]
     use crate::Point;
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     use super::EditError;
 
     fn sample_tree() -> Tree {
@@ -490,7 +492,7 @@ mod tests {
         assert_eq!(tree.root.children[0].start_byte, 0);
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_updates_ranges_and_marks_dirty() {
         let mut tree = sample_tree();
@@ -522,7 +524,7 @@ mod tests {
         assert!(second.dirty);
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_handles_edge_cases_safely() {
         let mut tree = sample_tree();
@@ -567,7 +569,7 @@ mod tests {
         assert_eq!(tree2.root.end_byte, 10); // Original 5 + 5 inserted
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_validates_input_ranges() {
         let mut tree = sample_tree();
@@ -611,7 +613,7 @@ mod tests {
         ));
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_underflow_protection() {
         let mut tree = Tree::new(TreeNode::new_with_children(
@@ -642,7 +644,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_recursive_safety() {
         // Test deep tree to ensure recursive operations are bounded

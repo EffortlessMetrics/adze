@@ -2,7 +2,7 @@
 // This module replaces the old Tree-sitter C generation with pure Rust code
 
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
-use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
 use adze_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
 use anyhow::{Context, Result};
@@ -10,6 +10,48 @@ use serde_json::Value;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
+
+#[cfg(not(debug_assertions))]
+fn open_builder_debug_file(_: &str) -> Option<fs::File> {
+    None
+}
+
+#[cfg(debug_assertions)]
+fn open_builder_debug_file(grammar_name: &str) -> Option<fs::File> {
+    fs::File::create(std::env::temp_dir().join(format!("adze_debug_{}.log", grammar_name))).ok()
+}
+
+#[cfg(not(debug_assertions))]
+macro_rules! debug_file_writeln {
+    ($dst:expr, $($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_file_writeln {
+    ($dst:expr, $($arg:tt)*) => {
+        if let Some(file) = $dst.as_mut() {
+            let _ = writeln!(file, $($arg)*);
+        }
+    };
+}
 
 /// Options for building a parser
 #[derive(Debug, Clone)]
@@ -45,6 +87,40 @@ pub struct BuildResult {
     pub parser_code: String,
     /// Generated NODE_TYPES.json content
     pub node_types_json: String,
+    /// Parser construction metrics for diagnostics and CLI consumers
+    pub build_stats: BuildStats,
+}
+
+#[derive(Debug)]
+pub struct BuildStats {
+    /// Number of states in the generated parse table
+    pub state_count: usize,
+    /// Number of symbols in the generated parse table
+    pub symbol_count: usize,
+    /// Number of cells in the action table with multiple possible actions
+    pub conflict_cells: usize,
+}
+
+fn compute_build_stats(parse_table: &adze_glr_core::ParseTable) -> BuildStats {
+    let mut conflict_cells = 0;
+
+    for state_actions in &parse_table.action_table {
+        for action_cell in state_actions {
+            let is_conflict = action_cell
+                .iter()
+                .any(|action| matches!(action, Action::Fork(_)))
+                || action_cell.len() > 1;
+            if is_conflict {
+                conflict_cells += 1;
+            }
+        }
+    }
+
+    BuildStats {
+        state_count: parse_table.state_count,
+        symbol_count: parse_table.symbol_count,
+        conflict_cells,
+    }
 }
 
 /// Allocate a valid ProductionId safely
@@ -161,18 +237,13 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     // Rebuild symbol registry after changes
     let _ = grammar.get_or_build_registry();
 
-    // Log what we did (only if debug logging is enabled)
-    if std::env::var("RUST_LOG")
-        .unwrap_or_default()
-        .contains("debug")
-        && !rules_to_add.is_empty()
-    {
-        eprintln!(
+    if !rules_to_add.is_empty() {
+        debug_trace!(
             "Desugaring: Added {} unit rules for pattern wrappers",
             rules_to_add.len()
         );
         for (nt, tok) in rules_to_add {
-            eprintln!("  {} -> Terminal({})", nt.0, tok.0);
+            debug_trace!("  {} -> Terminal({})", nt.0, tok.0);
         }
     }
 
@@ -230,8 +301,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
     let grammars = crate::generate_grammars(root_file)?;
 
     // Debug: write to file
-    {
-        use std::io::Write;
+    if cfg!(debug_assertions) {
         if let Ok(mut f) = std::fs::File::create("/tmp/adze_grammars.txt") {
             writeln!(
                 f,
@@ -267,8 +337,8 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
 
     // Debug: Print the grammar JSON to understand the extras
     if grammar_name.contains("arithmetic") {
-        eprintln!("DEBUG: Arithmetic grammar JSON:");
-        eprintln!("{}", serde_json::to_string_pretty(&grammar_value).unwrap());
+        debug_trace!("DEBUG: Arithmetic grammar JSON:");
+        debug_trace!("{}", serde_json::to_string_pretty(&grammar_value).unwrap());
     }
 
     // Convert directly from JSON to GrammarJs structure
@@ -310,49 +380,48 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         .with_context(|| "Failed to compute FIRST/FOLLOW sets")?;
 
     // Write debug info to a file
-    let debug_file_path = std::env::temp_dir().join(format!("adze_debug_{}.log", grammar_name));
-    let mut debug_file = fs::File::create(&debug_file_path)?;
+    let mut _debug_file = open_builder_debug_file(&grammar_name);
 
-    writeln!(
-        debug_file,
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Grammar has {} tokens, {} rules",
         grammar.tokens.len(),
         grammar.rules.len()
-    )?;
-    writeln!(
-        debug_file,
+    );
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Token names: {:?}",
         grammar.tokens.values().map(|t| &t.name).collect::<Vec<_>>()
-    )?;
-    writeln!(
-        debug_file,
+    );
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Rule names: {:?}",
         grammar.rule_names.values().collect::<Vec<_>>()
-    )?;
+    );
 
     // Debug symbol name to ID mapping
-    writeln!(
-        debug_file,
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Symbol name to ID mapping in grammar.rule_names:"
-    )?;
+    );
     for (symbol_id, name) in &grammar.rule_names {
-        writeln!(debug_file, "  '{}' -> SymbolId({})", name, symbol_id.0)?;
+        debug_file_writeln!(_debug_file, "  '{}' -> SymbolId({})", name, symbol_id.0);
     }
 
     // Debug: Print all rules in the grammar and verify desugaring
-    writeln!(debug_file, "Debug: All rules in grammar:")?;
+    debug_file_writeln!(_debug_file, "Debug: All rules in grammar:");
     let mut wrappers_with_rules = 0;
     let mut wrappers_without_rules = Vec::new();
 
     for (symbol_id, rules) in &grammar.rules {
-        writeln!(
-            debug_file,
+        debug_file_writeln!(
+            _debug_file,
             "  Symbol {:?} has {} rules:",
             symbol_id,
             rules.len()
-        )?;
+        );
         for rule in rules {
-            writeln!(debug_file, "    {:?} -> {:?}", rule.lhs, rule.rhs)?;
+            debug_file_writeln!(_debug_file, "    {:?} -> {:?}", rule.lhs, rule.rhs);
         }
 
         // Check if this is a wrapper that got desugared
@@ -360,7 +429,10 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
             if rules.len() == 1 && rules[0].rhs.len() == 1 {
                 if let Symbol::Terminal(_) = &rules[0].rhs[0] {
                     wrappers_with_rules += 1;
-                    writeln!(debug_file, "    -> This appears to be a desugared wrapper")?;
+                    debug_file_writeln!(
+                        _debug_file,
+                        "    -> This appears to be a desugared wrapper"
+                    );
                 }
             } else if rules.is_empty() {
                 wrappers_without_rules.push((symbol_id, name.clone()));
@@ -370,21 +442,21 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 
     // Sanity check: Report any wrappers that didn't get rules
     if !wrappers_without_rules.is_empty() {
-        writeln!(
-            debug_file,
+        debug_file_writeln!(
+            _debug_file,
             "WARNING: {} non-terminals have no rules:",
             wrappers_without_rules.len()
-        )?;
+        );
         for (id, name) in &wrappers_without_rules {
-            writeln!(debug_file, "  - Symbol {:?}: {}", id, name)?;
+            debug_file_writeln!(_debug_file, "  - Symbol {:?}: {}", id, name);
         }
     }
 
-    writeln!(
-        debug_file,
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Found {} desugared wrappers",
         wrappers_with_rules
-    )?;
+    );
 
     // Step 2: Build LR(1) automaton
     let parse_table = match build_lr1_automaton(&grammar, &first_follow) {
@@ -416,26 +488,28 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         }
     };
 
-    writeln!(
-        debug_file,
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Parse table has {} states, {} symbols",
-        parse_table.state_count, parse_table.symbol_count
-    )?;
-    writeln!(
-        debug_file,
+        parse_table.state_count,
+        parse_table.symbol_count
+    );
+    debug_file_writeln!(
+        _debug_file,
         "Debug: token_count={}, external_token_count={}",
-        parse_table.token_count, parse_table.external_token_count
-    )?;
-    writeln!(
-        debug_file,
+        parse_table.token_count,
+        parse_table.external_token_count
+    );
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Action table has {} entries",
         parse_table.action_table.len()
-    )?;
-    writeln!(
-        debug_file,
+    );
+    debug_file_writeln!(
+        _debug_file,
         "Debug: Goto table has {} entries",
         parse_table.goto_table.len()
-    )?;
+    );
 
     // Sanity check: Verify all terminals are in symbol_to_index
     let mut unmapped_terminals = Vec::new();
@@ -446,18 +520,18 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     }
 
     if !unmapped_terminals.is_empty() {
-        writeln!(
-            debug_file,
+        debug_file_writeln!(
+            _debug_file,
             "ERROR: {} terminals not in symbol_to_index:",
             unmapped_terminals.len()
-        )?;
+        );
         for tid in &unmapped_terminals {
             let name = grammar
                 .tokens
                 .get(*tid)
                 .map(|t| t.name.as_str())
                 .unwrap_or("<unknown>");
-            writeln!(debug_file, "  - Token {:?}: {}", tid, name)?;
+            debug_file_writeln!(_debug_file, "  - Token {:?}: {}", tid, name);
         }
         eprintln!(
             "ERROR: {} terminals not mapped in parse table",
@@ -466,9 +540,9 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
     }
 
     // Debug: Print detailed action table content
-    writeln!(debug_file, "Debug: Action table contents:")?;
+    debug_file_writeln!(_debug_file, "Debug: Action table contents:");
     for (state_idx, state_actions) in parse_table.action_table.iter().enumerate() {
-        writeln!(debug_file, "  State {}: {:?}", state_idx, state_actions)?;
+        debug_file_writeln!(_debug_file, "  State {}: {:?}", state_idx, state_actions);
     }
 
     // Debug: Print action table content
@@ -479,22 +553,18 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
             .filter(|(_, a)| !a.is_empty())
             .collect();
         if !non_error_actions.is_empty() {
-            writeln!(
-                debug_file,
+            debug_file_writeln!(
+                _debug_file,
                 "Debug: State {} has {} non-error actions",
                 state_idx,
                 non_error_actions.len()
-            )?;
+            );
         }
     }
 
     // Debug state 0 actions only in debug mode
-    if std::env::var("RUST_LOG")
-        .unwrap_or_default()
-        .contains("debug")
-        && let Some(state0_actions) = parse_table.action_table.first()
-    {
-        eprintln!(
+    if let Some(state0_actions) = parse_table.action_table.first() {
+        debug_trace!(
             "State 0 debug: {} action cells, {} tokens",
             state0_actions.len(),
             grammar.tokens.len()
@@ -514,12 +584,12 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         }
 
         if token_actions > 0 {
-            eprintln!(
+            debug_trace!(
                 "State 0 has {} token actions - parser can accept input ✓",
                 token_actions
             );
         } else {
-            eprintln!("WARNING: State 0 has no token actions - parser cannot accept input!");
+            debug_trace!("WARNING: State 0 has no token actions - parser cannot accept input!");
         }
     }
 
@@ -596,11 +666,11 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
                 format!("Failed to write .parsetable file to {:?}", parsetable_path)
             })?;
 
-            writeln!(
-                debug_file,
+            debug_file_writeln!(
+                _debug_file,
                 "Generated .parsetable file: {}",
                 parsetable_path.display()
-            )?;
+            );
         }
     }
 
@@ -655,6 +725,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         parser_path: parser_path.to_string_lossy().to_string(),
         parser_code: language_code.to_string(),
         node_types_json,
+        build_stats: compute_build_stats(&parse_table),
     })
 }
 

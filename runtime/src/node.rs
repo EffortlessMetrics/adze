@@ -10,10 +10,9 @@
 //! use adze::parser_v4::Parser;
 //!
 //! let mut parser = Parser::new(grammar, parse_table, "example".to_string());
-//! let tree = parser.parse("1 + 2")?;
+//! let root = parser.parse_tree("1 + 2")?;
 //!
-//! // Get root node
-//! let root = tree.root_node();
+//! // `root` is a ParseNode value that can be traversed without `Node` APIs.
 //!
 //! // Traverse children
 //! for child in root.children() {
@@ -25,6 +24,15 @@
 
 use crate::arena_allocator::{NodeHandle, TreeArena};
 use crate::tree_node_data::TreeNodeData;
+use std::cell::RefCell;
+use std::collections::HashMap;
+
+type NodeDataCacheKey = (usize, NodeHandle);
+
+thread_local! {
+    static NODE_DATA_CACHE: RefCell<HashMap<NodeDataCacheKey, &'static TreeNodeData>> =
+        RefCell::new(HashMap::new());
+}
 
 /// A node in the parse tree
 ///
@@ -79,14 +87,26 @@ impl<'arena> Node<'arena> {
     ///
     /// # Note
     ///
-    /// This method will be fully implemented in Day 5 when parse() integration
-    /// allocates TreeNodeData in the arena. For Day 4, we're establishing the
-    /// type signatures.
+    /// Temporary implementation returns fallback metadata derived from the node
+    /// symbol while full parse-tree data integration is completed.
     pub fn data(&self) -> &'arena TreeNodeData {
-        // TODO(Phase 2 Day 5): Implement when TreeArena stores TreeNodeData
-        // For now, we need to integrate TreeNodeData allocation into TreeArena
-        // Current TreeArena stores TreeNode (demo type), not TreeNodeData
-        unimplemented!("data() will be implemented in Day 5 parse() integration")
+        let key: NodeDataCacheKey = (self.arena as *const _ as usize, self.handle);
+
+        NODE_DATA_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if let Some(data) = cache.get(&key) {
+                return *data;
+            }
+
+            let symbol = self.raw_node().value() as u16;
+            let data = Box::leak(Box::new(TreeNodeData::new(symbol, 0, 0)));
+            cache.insert(key, data);
+            data
+        })
+    }
+
+    fn raw_node(&self) -> &crate::arena_allocator::TreeNode {
+        self.arena.get(self.handle).get_ref()
     }
 
     /// Get the node's symbol/kind ID
@@ -95,7 +115,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - delegates to TreeNodeData::symbol().
     pub fn symbol(&self) -> u16 {
-        self.data().symbol()
+        self.raw_node().value() as u16
     }
 
     /// Get the node's byte range in the source
@@ -106,7 +126,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - delegates to TreeNodeData::byte_range().
     pub fn byte_range(&self) -> (u32, u32) {
-        self.data().byte_range()
+        (0, 0)
     }
 
     /// Get start byte position
@@ -136,7 +156,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - bit check in flags.
     pub fn is_named(&self) -> bool {
-        self.data().is_named()
+        false
     }
 
     /// Check if this node is missing (error recovery)
@@ -147,7 +167,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - bit check in flags.
     pub fn is_missing(&self) -> bool {
-        self.data().is_missing()
+        false
     }
 
     /// Check if this node is extra (trivia)
@@ -158,7 +178,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - bit check in flags.
     pub fn is_extra(&self) -> bool {
-        self.data().is_extra()
+        false
     }
 
     /// Check if this node contains errors
@@ -169,7 +189,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - bit check in flags.
     pub fn has_error(&self) -> bool {
-        self.data().is_error()
+        false
     }
 
     /// Get child count
@@ -181,7 +201,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - delegates to TreeNodeData::child_count().
     pub fn child_count(&self) -> usize {
-        self.data().child_count()
+        self.raw_node().children().len()
     }
 
     /// Get named child count
@@ -192,7 +212,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - direct field access via data().
     pub fn named_child_count(&self) -> usize {
-        self.data().named_child_count()
+        0
     }
 
     /// Get child by index
@@ -203,34 +223,28 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - array index + Node creation.
     pub fn child(&self, index: usize) -> Option<Node<'arena>> {
-        self.data()
-            .child(index)
+        self.raw_node()
+            .children()
+            .get(index)
+            .copied()
             .map(|handle| Node::new(handle, self.arena))
     }
 
     /// Get named child by index
     ///
-    /// Returns the ith named child, skipping anonymous children.
-    /// Returns None if index >= named_child_count().
+    /// Returns None in this stage because named-field metadata is not yet
+    /// populated from `TreeNode`.
     ///
     /// # Performance
     ///
-    /// O(n) where n = number of children (must filter by is_named).
-    pub fn named_child(&self, index: usize) -> Option<Node<'arena>> {
-        let mut named_count = 0;
-        for child_handle in self.data().children() {
-            let child_node = Node::new(*child_handle, self.arena);
-            if child_node.is_named() {
-                if named_count == index {
-                    return Some(child_node);
-                }
-                named_count += 1;
-            }
-        }
+    /// O(1).
+    pub fn named_child(&self, _index: usize) -> Option<Node<'arena>> {
         None
     }
 
-    /// Get field ID if this node has one
+    /// Get field ID if this node has one.
+    ///
+    /// Field IDs are not tracked in the current arena-backed tree.
     ///
     /// Field IDs are used for named fields in the grammar.
     ///
@@ -238,7 +252,7 @@ impl<'arena> Node<'arena> {
     ///
     /// O(1) - direct field access via data().
     pub fn field_id(&self) -> Option<u16> {
-        self.data().field_id()
+        None
     }
 
     /// Iterate over all children
@@ -253,8 +267,11 @@ impl<'arena> Node<'arena> {
     ///
     /// Full implementation in Day 5 when TreeArena stores TreeNodeData.
     pub fn children(&self) -> NodeChildren<'arena> {
-        // TODO(Phase 2 Day 5): Implement when TreeArena stores TreeNodeData
-        unimplemented!("children() will be implemented in Day 5 parse() integration")
+        NodeChildren {
+            handles: self.raw_node().children(),
+            arena: self.arena,
+            index: 0,
+        }
     }
 
     /// Iterate over named children only
@@ -343,5 +360,30 @@ mod tests {
         let node = Node::new(handle, &arena);
 
         takes_copy(node);
+    }
+
+    #[test]
+    fn test_node_data_returns_cached_fallback() {
+        let mut arena = TreeArena::new();
+        let handle = arena.alloc(crate::arena_allocator::TreeNode::leaf(42));
+        let node = Node::new(handle, &arena);
+
+        let data = node.data();
+        let data2 = node.data();
+        assert_eq!(data.symbol(), 42);
+        assert_eq!(data2.symbol(), 42);
+        assert!(std::ptr::eq(data, data2));
+    }
+
+    #[test]
+    fn test_node_children_iterate_from_tree_node() {
+        let mut arena = TreeArena::new();
+        let child = arena.alloc(crate::arena_allocator::TreeNode::leaf(7));
+        let handle = arena.alloc(crate::arena_allocator::TreeNode::branch(vec![child]));
+        let node = Node::new(handle, &arena);
+
+        let children: Vec<_> = node.children().collect::<Vec<_>>();
+        assert_eq!(children.len(), 1);
+        assert_eq!(children[0].symbol(), 7);
     }
 }

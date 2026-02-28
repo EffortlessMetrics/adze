@@ -89,35 +89,43 @@ pub unsafe fn create_lexer_adapter(
     });
     let lexer_ptr = Box::into_raw(lexer);
 
-    // Store the state pointer in a way that the callback functions can access it
-    // For simplicity, we'll use the lexer pointer + 1 to store the state pointer
-    let state_storage = unsafe { lexer_ptr.add(1) } as *mut *mut LexerAdapterState;
-    unsafe {
-        *state_storage = state_ptr;
-    }
-
     (lexer_ptr, state_ptr)
 }
 
 /// Clean up the lexer adapter
 pub unsafe fn destroy_lexer_adapter(lexer: *mut TSLexer, state: *mut LexerAdapterState) {
+    let state_ptr = if lexer.is_null() {
+        state
+    } else {
+        unsafe { (*lexer).context as *mut LexerAdapterState }
+    };
+
     if !lexer.is_null() {
-        unsafe {
-            let _ = Box::from_raw(lexer);
-        }
+        let _ = unsafe { Box::from_raw(lexer) };
     }
-    if !state.is_null() {
-        unsafe {
-            let _ = Box::from_raw(state);
-        }
+    if !state_ptr.is_null() {
+        let _ = unsafe { Box::from_raw(state_ptr) };
     }
+    if !state.is_null() && state != state_ptr {
+        let _ = unsafe { Box::from_raw(state) };
+    }
+}
+
+#[inline]
+unsafe fn lexer_state(lexer: *mut TSLexer) -> *mut LexerAdapterState {
+    unsafe { (*lexer).context as *mut LexerAdapterState }
+}
+
+#[inline]
+unsafe fn lexer_state_const(lexer: *const TSLexer) -> *const LexerAdapterState {
+    unsafe { (*lexer).context as *const LexerAdapterState }
 }
 
 // Callback functions for TSLexer
 
 extern "C" fn ts_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return 0;
         }
@@ -128,7 +136,7 @@ extern "C" fn ts_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
 
 extern "C" fn ts_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return;
         }
@@ -149,7 +157,7 @@ extern "C" fn ts_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
 
 extern "C" fn ts_lexer_mark_end(lexer: *mut TSLexer) {
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return;
         }
@@ -160,7 +168,7 @@ extern "C" fn ts_lexer_mark_end(lexer: *mut TSLexer) {
 
 extern "C" fn ts_lexer_get_column(lexer: *mut TSLexer) -> u32 {
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return 0;
         }
@@ -191,7 +199,7 @@ extern "C" fn ts_lexer_is_at_included_range_start(_lexer: *const TSLexer) -> boo
 
 extern "C" fn ts_lexer_eof(lexer: *const TSLexer) -> bool {
     unsafe {
-        let state_ptr = *(lexer.add(1) as *const *const LexerAdapterState);
+        let state_ptr = lexer_state_const(lexer);
         if state_ptr.is_null() {
             return true;
         }

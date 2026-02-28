@@ -44,19 +44,29 @@ adze-parser-contract = { path = "../crates/parser-contract" }
 default = ["glr-core", "serialization"]
 # Enable GLR core integration
 glr-core = ["dep:adze-glr-core", "dep:adze-ir"]
-# Enable pure-Rust GLR runtime (bypasses TSLanguage encoding)
-# This is the Phase 3 feature that uses ParseTable directly
-pure-rust-glr = ["glr-core", "dep:regex"]
+# Enable pure-Rust GLR runtime (bypasses TSLanguage encoding).
+# This is the Phase 3 feature that uses ParseTable directly.
+pure-rust = ["glr-core", "dep:regex"]
+# Deprecated alias retained for backward compatibility.
+pure-rust-glr = ["pure-rust"]
 # Enable .parsetable file loading (Phase 3.1)
 serialization = ["adze-glr-core/serialization"]
 # Enable arena allocators for performance
 arenas = ["bumpalo", "typed-arena"]
 # Enable incremental parsing support
-incremental = []
+# Canonical GLR-style incremental feature (kept in sync with runtime crate naming).
+incremental_glr = []
+# Deprecated alias preserved for legacy runtime2 callers.
+incremental = ["incremental_glr"]
 # Enable external scanner support
-external-scanners = []
-# Enable query system (future)
-queries = []
+# Canonical naming matches runtime crate.
+external_scanners = []
+# Deprecated alias preserved for legacy runtime2 callers.
+external-scanners = ["external_scanners"]
+# Enable query system (future).
+query = []
+# Deprecated alias preserved for legacy runtime2 callers.
+queries = ["query"]
 # Make test utilities available outside of tests (for examples)
 test-utils = []
 
@@ -70,8 +80,8 @@ required-features = ["test-utils", "glr-core"]
 
 [[example]]
 name = "arithmetic"
-required-features = ["pure-rust-glr", "test-utils"]
+required-features = ["pure-rust", "test-utils"]
 
 [[example]]
 name = "precedence_debug"
-required-features = ["pure-rust-glr"]
+required-features = ["pure-rust"]

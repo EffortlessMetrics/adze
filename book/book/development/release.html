@@ -182,12 +182,23 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="release-process"><a class="header" href="#release-process">Release Process</a></h1>
-<p>This chapter is under construction.</p>
-<p>For now, see:</p>
+<p>Release orchestration is now handled by <a href="../../../.github/workflows/release.yml"><code>.github/workflows/release.yml</code></a>.</p>
+<p>Use workflow dispatch with a <code>version</code> input (and <code>dry_run</code> when needed) to perform the full, canonical path:</p>
 <ul>
-<li><a href="../../../scripts/release.sh"><code>scripts/release.sh</code></a></li>
-<li><a href="../../../release.toml"><code>release.toml</code></a></li>
+<li>validation</li>
+<li>full test suite</li>
+<li>artifact builds</li>
+<li>version/tags updates</li>
+<li>publish</li>
+<li>GitHub release creation</li>
 </ul>
+<p>Legacy local helpers are kept for ad-hoc use only:</p>
+<ul>
+<li><a href="../../../scripts/update-versions.sh"><code>scripts/update-versions.sh</code></a></li>
+<li><a href="../../../scripts/release.sh"><code>scripts/release.sh</code></a></li>
+<li><a href="../../../scripts/dry-run-publish.sh"><code>scripts/dry-run-publish.sh</code></a></li>
+</ul>
+<p><code>release.toml</code> is still used for changelog/version replacement metadata.</p>
 
                     </main>
 

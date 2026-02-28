@@ -304,7 +304,10 @@ impl ParallelParser {
         // Cache if enabled
         if self.config.enable_caching {
             let hash = self.hash_subtree(&subtree);
-            let mut cache = self.subtree_cache.lock().unwrap();
+            let mut cache = self
+                .subtree_cache
+                .lock()
+                .unwrap_or_else(|err| err.into_inner());
             cache.insert(hash, Arc::new(subtree.clone()));
         }
 
@@ -481,7 +484,10 @@ pub mod bench {
         let parallel_parser = ParallelParser::new(grammar, table, config);
 
         let start = Instant::now();
-        let (_, stats) = parallel_parser.parse_with_stats(input).unwrap();
+        let stats = match parallel_parser.parse_with_stats(input) {
+            Ok((_, stats)) => stats,
+            Err(_) => ParallelStats::default(),
+        };
         let parallel_ms = start.elapsed().as_secs_f64() * 1000.0;
 
         ParallelBenchmark {

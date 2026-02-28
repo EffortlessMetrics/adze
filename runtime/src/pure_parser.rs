@@ -1379,7 +1379,23 @@ impl Parser {
             // Create parent node or unwrap if hidden
             let parent = if is_hidden && children.len() == 1 {
                 // Return the child directly, skipping the hidden wrapper
-                children.into_iter().next().unwrap()
+                if let Some(node) = children.pop() {
+                    node
+                } else {
+                    Subtree {
+                        symbol,
+                        children,
+                        start_byte,
+                        end_byte,
+                        start_point,
+                        end_point,
+                        is_extra: false,
+                        is_error: false,
+                        is_missing: false,
+                        production_id,
+                        field_id: None,
+                    }
+                }
             } else {
                 // Create the parent node normally
                 Subtree {

@@ -5,7 +5,7 @@
 //!
 //! Contract: docs/specs/PHASE_3.3_COMPONENT_2_PARITY.md
 
-#![cfg(feature = "pure-rust-glr")]
+#![cfg(feature = "pure-rust")]
 
 use adze_glr_core::{FirstFollowSets, ParseTable, SymbolId, build_lr1_automaton};
 use adze_ir::{

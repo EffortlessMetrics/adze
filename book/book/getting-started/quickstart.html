@@ -265,11 +265,11 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <h3 id="step-2-add-dependencies"><a class="header" href="#step-2-add-dependencies">Step 2: Add Dependencies</a></h3>
 <p>Add to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { version = "0.6", features = ["glr-core", "incremental"] }
+adze = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
 adze-runtime = "0.1"  # GLR runtime
 
 [build-dependencies]
-adze-tool = "0.6"
+adze-tool = "0.8.0-dev"
 </code></pre>
 <p>Create <code>build.rs</code>:</p>
 <pre><code class="language-rust">fn main() {
@@ -469,7 +469,7 @@ fn test_glr_arithmetic() {
 <ol>
 <li>Read about <a href="../guide/parser-generation.html">Parser Generation</a> to understand GLR vs Pure-Rust backends</li>
 <li>Learn about <a href="../guide/incremental-parsing.html">Incremental Parsing</a> for real-time editor integration</li>
-<li>Explore <a href="../guide/glr-ambiguity.html">GLR Ambiguity Handling</a> for complex grammar conflicts</li>
+<li>Explore <a href="../guide/glr-precedence-resolution.html">GLR precedence behavior</a> for complex grammar conflicts</li>
 <li>Check out <a href="../guide/performance.html">Performance Optimization</a> for production deployment</li>
 </ol>
 <h2 id="tips-for-success"><a class="header" href="#tips-for-success">Tips for Success</a></h2>

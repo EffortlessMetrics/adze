@@ -8,8 +8,8 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/EffortlessMetrics/adze"
 homepage = "https://github.com/EffortlessMetrics/adze"
 documentation = "https://docs.rs/adze-glr-core"
-readme = "README.md"
-publish = false
+readme = "../README.md"
+publish = true
 include = [
     "Cargo.toml",
     "LICENSE*",
@@ -22,7 +22,6 @@ all-features = true
 
 [dependencies]
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
-adze-glr-versioning = { version = "0.8.0-dev", path = "../crates/glr-versioning" }
 indexmap = { version = "2.0", features = ["serde"] }
 fixedbitset = { version = "0.5", default-features = false }
 serde = { version = "1.0", features = ["derive"] }

@@ -397,3 +397,55 @@ impl<'a> Node<'a> {
         self.utf8_text(source).unwrap_or("").to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use adze_glr_core::Action;
+    use adze_ir::SymbolId;
+    use std::collections::BTreeMap;
+
+    fn empty_parse_table_language() -> Arc<Language> {
+        Arc::new(Language::new(
+            "ts_compat_empty_parse_table",
+            Grammar::default(),
+            ParseTable::default(),
+        ))
+    }
+
+    fn accept_on_eof_language() -> Arc<Language> {
+        let mut parse_table = ParseTable::default();
+        parse_table.symbol_to_index = BTreeMap::from([(SymbolId(0), 0)]);
+        parse_table.action_table = vec![vec![vec![Action::Accept]]];
+
+        Arc::new(Language::new(
+            "ts_compat_accept_on_eof",
+            Grammar::default(),
+            parse_table,
+        ))
+    }
+
+    #[test]
+    fn parse_ignores_old_tree_source() {
+        let mut parser = Parser::new();
+        parser.set_language(empty_parse_table_language()).unwrap();
+
+        let old_tree = parser.parse("old", None).unwrap();
+        let new_source = "incrementally updated";
+
+        let reparsed = parser.parse(new_source, Some(&old_tree)).unwrap();
+        assert_eq!(reparsed.root_node().text(new_source.as_bytes()), new_source);
+        assert_eq!(reparsed.core.source, new_source.as_bytes().to_vec());
+        assert_ne!(reparsed.core.source, old_tree.core.source);
+    }
+
+    #[test]
+    fn parse_returns_none_on_core_parse_error() {
+        let mut parser = Parser::new();
+        parser.set_language(accept_on_eof_language()).unwrap();
+
+        let tree = parser.parse("any input", None);
+
+        assert!(tree.is_none());
+    }
+}

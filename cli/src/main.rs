@@ -1,8 +1,12 @@
-use adze_tool::build_parsers;
+use adze_tool::{
+    build_parsers,
+    pure_rust_builder::{BuildOptions, BuildResult, build_parser_for_crate},
+};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use std::fs;
+use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -520,32 +524,72 @@ fn generate_docs(grammar: &Path, output: Option<PathBuf>) -> Result<()> {
 fn check_grammar(grammar: &Path) -> Result<()> {
     println!("{} Checking grammar syntax...", "🔍".blue());
 
-    // Try to build the grammar
-    match std::panic::catch_unwind(|| build_parsers(grammar)) {
-        Ok(_) => {
-            println!("{} Grammar syntax is valid!", "✅".green());
-            Ok(())
+    let results = analyze_grammar_file(grammar, false)?;
+    println!(
+        "{} Grammar syntax is valid ({})!",
+        "✅".green(),
+        if results.len() == 1 {
+            "1 grammar definition".to_string()
+        } else {
+            format!("{} grammar definitions", results.len())
         }
-        Err(_) => {
-            anyhow::bail!("Grammar syntax is invalid");
-        }
-    }
+    );
+
+    Ok(())
 }
 
 fn show_stats(grammar: &Path) -> Result<()> {
+    let results = analyze_grammar_file(grammar, false)?;
     println!("{} Grammar statistics:", "📊".blue());
 
-    let content = fs::read_to_string(grammar)?;
-
-    let lines = content.lines().count();
-    let rules = content.matches("#[adze::language]").count();
-    let leaf_rules = content.matches("#[adze::leaf").count();
-    let repeat_rules = content.matches("#[adze::repeat").count();
-
-    println!("  {} {}", "Lines:".bright_black(), lines);
-    println!("  {} {}", "Rules:".bright_black(), rules);
-    println!("  {} {}", "Leaf rules:".bright_black(), leaf_rules);
-    println!("  {} {}", "Repeat rules:".bright_black(), repeat_rules);
+    for result in results {
+        print_stats_summary(&result);
+    }
 
     Ok(())
+}
+
+fn analyze_grammar_file(grammar: &Path, compress_tables: bool) -> Result<Vec<BuildResult>> {
+    let temp_dir = tempfile::tempdir()?;
+    let options = BuildOptions {
+        out_dir: temp_dir.path().to_string_lossy().to_string(),
+        emit_artifacts: false,
+        compress_tables,
+    };
+
+    let grammar_path = grammar.to_owned();
+    let build_result = std::panic::catch_unwind(AssertUnwindSafe(move || {
+        build_parser_for_crate(&grammar_path, options)
+    }))
+    .map_err(|_| anyhow::anyhow!("Grammar analysis panicked"))?;
+
+    let results = build_result?;
+    if results.is_empty() {
+        anyhow::bail!("No adze grammar definitions found in {}", grammar.display());
+    }
+
+    Ok(results)
+}
+
+fn print_stats_summary(result: &BuildResult) {
+    println!(
+        "  {} {}",
+        "Grammar:".bright_black(),
+        result.grammar_name.bright_green()
+    );
+    println!(
+        "    {} {}",
+        "States:".bright_black(),
+        result.build_stats.state_count
+    );
+    println!(
+        "    {} {}",
+        "Symbols:".bright_black(),
+        result.build_stats.symbol_count
+    );
+    println!(
+        "    {} {}",
+        "Conflicts:".bright_black(),
+        result.build_stats.conflict_cells
+    );
 }

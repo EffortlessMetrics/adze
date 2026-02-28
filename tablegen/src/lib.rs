@@ -828,6 +828,24 @@ impl TableCompressor {
 mod tests {
     use super::*;
 
+    #[cfg(not(debug_assertions))]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {};
+    }
+
+    #[cfg(debug_assertions)]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {
+            if std::env::var("RUST_LOG")
+                .ok()
+                .unwrap_or_default()
+                .contains("debug")
+            {
+                eprintln!($($arg)*);
+            }
+        };
+    }
+
     #[test]
     fn test_static_language_generator_creation() {
         let grammar = Grammar::new("test".to_string());
@@ -1188,7 +1206,7 @@ mod tests {
 
         // Should generate valid Rust code
         let code_str = code.to_string();
-        println!("Generated code: {}", code_str);
+        debug_trace!("Generated code: {}", code_str);
         assert!(code_str.contains("pub fn language")); // Without parentheses in quote output
         assert!(code_str.contains("tree_sitter_test_lang")); // Language-specific function name
         assert!(code_str.contains("LANGUAGE_VERSION"));

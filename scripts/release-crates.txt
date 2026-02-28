@@ -1,0 +1,9 @@
+# Fixed release surface used by scripts/release-surface.sh in fixed mode.
+# Override with RELEASE_CRATE_FILE when running release helpers/workflows.
+adze-common
+adze-ir
+adze-glr-core
+adze-tablegen
+adze-macro
+adze
+adze-tool

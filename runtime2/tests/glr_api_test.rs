@@ -4,7 +4,7 @@
 //!
 //! Contract: docs/specs/GLR_PARSER_API_CONTRACT.md
 
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 mod glr_api_tests {
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
     use adze_ir::builder::GrammarBuilder;
@@ -74,7 +74,7 @@ mod glr_api_tests {
                 },
             ],
             field_names: vec![],
-            #[cfg(feature = "external-scanners")]
+            #[cfg(feature = "external_scanners")]
             external_scanner: None,
         };
 
@@ -172,9 +172,9 @@ mod glr_api_tests {
     // }
 }
 
-#[cfg(not(feature = "pure-rust-glr"))]
+#[cfg(not(feature = "pure-rust"))]
 #[test]
 fn test_glr_feature_not_enabled() {
-    // This test ensures the file compiles even without pure-rust-glr feature
+    // This test ensures the file compiles even without the canonical pure-rust feature
     // The actual GLR tests are feature-gated
 }

@@ -92,7 +92,7 @@ impl Parser {
     ///
     /// # Returns
     /// * `Some(Tree)` on successful parse
-    /// * `None` if parsing fails or no language is set
+    /// * `None` if parsing fails, is not yet supported for this backend, or no language is set
     pub fn parse<'a>(
         &'a mut self,
         source: &str,
@@ -110,7 +110,7 @@ impl Parser {
     ///
     /// # Returns
     /// * `Some(Tree)` on successful parse
-    /// * `None` if parsing fails or no language is set
+    /// * `None` if parsing fails, if incremental parse is not yet fully supported, or no language is set
     ///
     /// # Note
     /// Currently falls back to full reparse. GLR-aware incremental parsing is being implemented.
@@ -170,7 +170,7 @@ impl Parser {
     ///
     /// # Returns
     /// * `Ok(Tree)` on successful parse
-    /// * `Err` with details about what went wrong
+    /// * `Err` with details on internal parser errors or custom-lexer incompatibility
     pub fn parse_with_error(&mut self, source: &str) -> Result<parser_v4::Tree<'_>> {
         if let Some(ref mut parser) = self.inner {
             parser.parse(source)

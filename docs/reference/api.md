@@ -14,7 +14,9 @@ use adze::Parser;
 
 let mut parser = Parser::new();
 parser.set_language(my_grammar::language())?;
-let tree = parser.parse("input", None)?;
+let tree = parser.parse("input", None).ok_or("parse failed")?;
+// If the active parser backend cannot service this input yet (for example,
+// parser_v4 Tree integration is still incomplete), parse() may return `None`.
 ```
 
 ### `Extract` Trait
@@ -60,7 +62,7 @@ See [Getting Started](../tutorials/getting-started.md) for macro usage.
 | `pure-rust` | Use the pure Rust runtime (no C deps) | Yes |
 | `simd` | Enable SIMD lexing optimizations | No |
 | `glr` | Enable GLR runtime for ambiguous grammars | No |
-| `serde` | Enable serialization support | No |
+| `serialization` | Enable parse tree serialization | No |
 
 ## Experimental APIs
 

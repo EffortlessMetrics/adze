@@ -82,10 +82,10 @@ You likely have conflicting backend features enabled. Choose only one:
 Ensure both dependencies are present:
 ```toml
 [dependencies]
-adze = "0.5.0-beta"
+adze = "0.8.0-dev"
 
 [build-dependencies]
-adze-tool = "0.5.0-beta"
+adze-tool = "0.8.0-dev"
 ```
 
 ### Grammar has conflicts
@@ -93,7 +93,7 @@ adze-tool = "0.5.0-beta"
 This is normal for ambiguous grammars. Options:
 1. Add precedence annotations
 2. Refactor to remove ambiguity
-3. Use GLR parsing (automatic in v0.5)
+3. Use GLR parsing (automatic in 0.8+)
 
 ### How do I fix precedence errors?
 
@@ -150,7 +150,7 @@ const HIGH: u32 = 10;
 
 Make sure you're using the `pure-rust` feature:
 ```toml
-adze = { version = "0.5.0-beta", features = ["pure-rust"] }
+adze = { version = "0.8.0-dev", features = ["pure-rust"] }
 ```
 
 ## Migration Questions
@@ -159,7 +159,7 @@ adze = { version = "0.5.0-beta", features = ["pure-rust"] }
 
 See the comprehensive [Migration Guide](../getting-started/migration.md).
 
-### What changed in v0.5?
+### What changed in v0.8?
 
 Major changes include:
 - GLR parsing support
@@ -169,15 +169,15 @@ Major changes include:
 
 See the [Changelog](changelog.md) for details.
 
-### Is v0.5 stable?
+### Is 0.8 stable?
 
-v0.5.0-beta is feature-complete and well-tested. The "beta" label indicates we're gathering feedback before the final release. The API is stable and ready for production use.
+0.8.0-dev is feature-complete and under RC hardening.
 
 ## Contributing
 
 ### How can I contribute?
 
-We welcome contributions! See our [Contributing Guide](../development/contributing.md) for:
+We welcome contributions! See our [Contributing Guide](../../CONTRIBUTING.md) for:
 - Code style guidelines
 - Testing requirements
 - PR process

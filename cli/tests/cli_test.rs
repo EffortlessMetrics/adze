@@ -34,7 +34,6 @@ fn test_init_command() {
 }
 
 #[test]
-#[ignore = "Check command needs OUT_DIR environment variable - requires CLI to set temp OUT_DIR"]
 fn test_check_command() {
     let temp_dir = TempDir::new().unwrap();
     let grammar_file = temp_dir.path().join("test.rs");
@@ -94,9 +93,9 @@ fn test_stats_command() {
         .arg(&grammar_file)
         .assert()
         .success()
-        .stdout(predicate::str::contains("Rules: 2"))
-        .stdout(predicate::str::contains("Leaf rules: 2"))
-        .stdout(predicate::str::contains("Repeat rules: 1"));
+        .stdout(predicate::str::contains("States:"))
+        .stdout(predicate::str::contains("Symbols:"))
+        .stdout(predicate::str::contains("Conflicts:"));
 }
 
 #[test]

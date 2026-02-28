@@ -198,7 +198,12 @@ impl GLREngine {
         new_stacks: &mut Vec<ParserStack>,
         next_stack_id: &mut usize,
     ) -> Result<(), ParseError> {
-        let state = stack.top_state();
+        let state = match stack.top_state() {
+            Some(state) => state,
+            None => {
+                return Err(ParseError::with_msg("Parser stack is missing a top state"));
+            }
+        };
         // Clone actions to avoid holding a borrow of self during iteration
         let actions = self.get_actions(state, token.kind).to_vec();
 
@@ -274,25 +279,38 @@ impl GLREngine {
             .get(rule_id.0 as usize)
             .ok_or_else(|| ParseError::with_msg(&format!("Invalid rule ID: {:?}", rule_id)))?;
 
-        let rhs_len = rule.rhs_len;
+        let rhs_len = rule.rhs_len as usize;
         let lhs = rule.lhs;
 
-        // Pop RHS symbols from stack
-        let children: Vec<ForestNodeId> = stack
-            .nodes
-            .drain(stack.nodes.len().saturating_sub(rhs_len as usize)..)
-            .collect();
+        if rhs_len > stack.nodes.len() || rhs_len > stack.states.len() {
+            return Err(ParseError::with_msg(&format!(
+                "Malformed parser stack for rule {:?}: insufficient symbols",
+                rule_id
+            )));
+        }
 
-        stack
-            .states
-            .truncate(stack.states.len() - (rhs_len as usize));
+        // Pop RHS symbols from stack
+        let children: Vec<ForestNodeId> =
+            stack.nodes.drain(stack.nodes.len() - rhs_len..).collect();
+
+        stack.states.truncate(stack.states.len() - rhs_len);
 
         // Calculate byte range (span of all children)
         let range = if children.is_empty() {
             0..0 // Empty production
         } else {
-            let first = &self.forest.nodes[children[0].0];
-            let last = &self.forest.nodes[children.last().unwrap().0];
+            let first_child = self.forest.nodes.get(children[0].0).ok_or_else(|| {
+                ParseError::with_msg("Malformed parser stack: invalid first child node id")
+            })?;
+            let last_child = self
+                .forest
+                .nodes
+                .get(children[children.len() - 1].0)
+                .ok_or_else(|| {
+                    ParseError::with_msg("Malformed parser stack: invalid last child node id")
+                })?;
+            let first = first_child.range.clone();
+            let last = last_child.range.clone();
             first.range.start..last.range.end
         };
 
@@ -300,7 +318,9 @@ impl GLREngine {
         let node_id = self.forest.add_nonterminal(lhs, children, range);
 
         // Get goto state
-        let goto_state = stack.top_state();
+        let goto_state = stack.top_state().ok_or_else(|| {
+            ParseError::with_msg("Malformed parser stack: missing top state after reduce")
+        })?;
         let next_state = self.get_goto(goto_state, lhs)?;
 
         // Push nonterminal and new state
@@ -370,8 +390,8 @@ impl GLREngine {
 
 impl ParserStack {
     /// Get the top state
-    fn top_state(&self) -> StateId {
-        *self.states.last().expect("Stack should never be empty")
+    fn top_state(&self) -> Option<StateId> {
+        self.states.last().copied()
     }
 
     /// Push a new state and node
@@ -465,6 +485,22 @@ mod tests {
             ],
             vec![vec![], vec![]],
             vec![vec![], vec![]],
+        ];
+        table.goto_table = vec![vec![], vec![], vec![]];
+        Box::leak(Box::new(table))
+    }
+
+    fn forking_accept_table() -> &'static ParseTable {
+        let mut table = ParseTable::default();
+        table.state_count = 3;
+        table.symbol_count = 2;
+        table.action_table = vec![
+            vec![
+                vec![],
+                vec![Action::Shift(StateId(1)), Action::Shift(StateId(2))],
+            ],
+            vec![vec![Action::Accept], vec![]],
+            vec![vec![Action::Accept], vec![]],
         ];
         table.goto_table = vec![vec![], vec![], vec![]];
         Box::leak(Box::new(table))
@@ -576,6 +612,34 @@ mod tests {
 
         // Then
         assert!(err.to_string().contains("Fork limit exceeded"));
+    }
+
+    #[test]
+    fn given_forked_shifts_when_both_paths_accept_on_eof_then_two_roots_are_preserved() {
+        // Given
+        let table = forking_accept_table();
+        let mut engine = GLREngine::new(table, GLRConfig::default());
+        let tokens = vec![
+            Token {
+                kind: 1,
+                start: 0,
+                end: 1,
+            },
+            Token {
+                kind: 0,
+                start: 1,
+                end: 1,
+            },
+        ];
+
+        // When
+        let forest = engine.parse(&tokens).expect("parse should succeed");
+
+        // Then
+        assert_eq!(forest.root_count(), 2);
+        assert_eq!(forest.node_count(), 2);
+        assert_eq!(forest.nodes[forest.roots[0].0].symbol, SymbolId(1));
+        assert_eq!(forest.nodes[forest.roots[1].0].symbol, SymbolId(1));
     }
 
     #[test]

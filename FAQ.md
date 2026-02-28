@@ -36,7 +36,7 @@ adze is a parser generator for Rust that lets you define grammars using Rust typ
 
 ### Is adze production-ready?
 
-**v0.6.x**: Macro-based grammar generation is production-ready.
+**v0.8.x (RC)**: Macro-based grammar generation is production-ready for the current release-candidate workstream.
 - Core parsing (LR): stable, enabled by default
 - GLR parsing: available via `features = ["glr"]`
 - Type-safe ASTs: Working
@@ -74,10 +74,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.6"
+adze = "0.8.0-dev"
 
 [build-dependencies]
-adze-tool = "0.6"
+adze-tool = "0.8.0-dev"
 ```
 
 See [QUICK_START.md](./QUICK_START.md) for a 5-minute tutorial.
@@ -86,7 +86,7 @@ See [QUICK_START.md](./QUICK_START.md) for a 5-minute tutorial.
 
 - **Quick Start**: [QUICK_START.md](./QUICK_START.md) - 5-minute calculator
 - **Full Examples**: [example/src/](./example/src/) - arithmetic, JSON, more
-- **Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
+- **Tutorial**: [docs/tutorials/getting-started.md](./docs/tutorials/getting-started.md)
 
 ### What's the smallest example?
 
@@ -277,7 +277,7 @@ Error nodes are inserted for missing/unexpected tokens.
 
 ```toml
 [dependencies]
-adze = { version = "0.6", features = ["pure-rust"] }
+adze = { version = "0.8.0-dev", features = ["pure-rust"] }
 ```
 
 Then compile to WASM:
@@ -323,7 +323,7 @@ Expected performance:
 - Pure-Rust overhead is minimal
 - GLR has overhead only when grammar is ambiguous
 
-See [docs/PERFORMANCE_BASELINE.md](./docs/PERFORMANCE_BASELINE.md) for upcoming benchmarks.
+See [docs/archive/PERFORMANCE_BASELINE.md](./docs/archive/PERFORMANCE_BASELINE.md) for upcoming benchmarks.
 
 ### How can I make my parser faster?
 
@@ -468,7 +468,7 @@ See [tools/ts-bridge/](./tools/ts-bridge/) for the bridge tool.
 - **Check**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
 - **Ask**: [GitHub Discussions](https://github.com/EffortlessMetrics/adze/discussions)
 - **Report Bugs**: [GitHub Issues](https://github.com/EffortlessMetrics/adze/issues)
-- **Tutorial**: [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)
+- **Tutorial**: [docs/tutorials/getting-started.md](./docs/tutorials/getting-started.md)
 - **Examples**: [example/src/](./example/src/)
 
 **Can't find an answer?** Open a discussion - we'll add it to this FAQ!

@@ -4,8 +4,7 @@
 
 This file tracks intentional exclusions from the supported lane:
 
-- `just ci-supported`
-- GitHub required check: `CI / ci-supported`
+- Required PR gate: `just ci-supported` locally, `CI / ci-supported` in GitHub checks
 
 Rule: if something is excluded from the supported lane, it must be listed here with:
 - what is excluded
@@ -44,8 +43,10 @@ These may run as optional signal (nightly/manual/canary), but are not required f
 
 - fuzzing lanes
 - wide platform matrices
+- workflow_dispatch-only CI lanes and manual opt-ins (e.g. feature-matrix examples/burn-in paths)
 - deployment workflows (mdBook / pages)
 - performance regression canaries
+- All other `.github/workflows/ci.yml` jobs are optional unless explicitly promoted in settings.
 
 ---
 

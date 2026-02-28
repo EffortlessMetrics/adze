@@ -102,16 +102,27 @@ pub mod serialization;
 
 // Trace macro for debugging GLR conflicts and decisions
 /// Internal tracing macro used by the GLR runtime in debug/test builds.
-#[cfg(feature = "glr-trace")]
+#[cfg(any(feature = "glr-trace", feature = "debug_glr"))]
 #[macro_export]
-macro_rules! glr_trace {
+macro_rules! debug_trace {
     ($($t:tt)*) => { eprintln!("[GLR] {}", format!($($t)*)); }
 }
-/// Internal tracing macro used by the GLR runtime in debug/test builds.
-#[cfg(not(feature = "glr-trace"))]
+#[cfg(not(any(feature = "glr-trace", feature = "debug_glr")))]
+#[macro_export]
+macro_rules! debug_trace {
+    ($($t:tt)*) => {};
+}
+
+/// Backward-compatible trace macro.
+#[cfg(any(feature = "glr-trace", feature = "debug_glr"))]
 #[macro_export]
 macro_rules! glr_trace {
-    ($($t:tt)*) => {};
+    ($($t:tt)*) => { debug_trace!($($t)*); }
+}
+#[cfg(not(any(feature = "glr-trace", feature = "debug_glr")))]
+#[macro_export]
+macro_rules! glr_trace {
+    ($($t:tt)*) => { debug_trace!($($t)*); }
 }
 
 #[doc(hidden)]
@@ -1021,7 +1032,7 @@ impl ItemSetCollection {
 
         // Compute closure
         let _ = initial_set.closure(grammar, first_follow);
-        eprintln!(
+        debug_trace!(
             "Initial state 0 after closure has {} items:",
             initial_set.items.len()
         );
@@ -1050,9 +1061,11 @@ impl ItemSetCollection {
                 if item.position == rule.rhs.len() {
                     rhs_str.push_str(" • ");
                 }
-                eprintln!(
+                debug_trace!(
                     "  Item: NT({}) -> {}, lookahead={}",
-                    rule.lhs.0, rhs_str, item.lookahead.0
+                    rule.lhs.0,
+                    rhs_str,
+                    item.lookahead.0
                 );
 
                 // Track what symbol is next
@@ -1070,9 +1083,9 @@ impl ItemSetCollection {
             }
         }
 
-        eprintln!("State 0 expects transitions for:");
-        eprintln!("  Terminals: {:?}", expected_terminals);
-        eprintln!("  Nonterminals: {:?}", expected_nonterminals);
+        debug_trace!("State 0 expects transitions for:");
+        debug_trace!("  Terminals: {:?}", expected_terminals);
+        debug_trace!("  Nonterminals: {:?}", expected_nonterminals);
 
         collection.sets.push(initial_set);
         let mut state_counter = 1;
@@ -1107,8 +1120,8 @@ impl ItemSetCollection {
             let mut terminal_count = 0;
             let mut non_terminal_count = 0;
             if i == 0 {
-                eprintln!("\n=== State 0 Analysis ===");
-                eprintln!("State 0 has {} items:", current_set.items.len());
+                debug_trace!("\n=== State 0 Analysis ===");
+                debug_trace!("State 0 has {} items:", current_set.items.len());
             }
             for (idx, item) in current_set.items.iter().enumerate() {
                 if i == 0 {
@@ -1135,7 +1148,7 @@ impl ItemSetCollection {
                         if item.position == rule.rhs.len() {
                             item_str.push_str("• ");
                         }
-                        eprintln!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
+                        debug_trace!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
                     }
                 }
 
@@ -1154,17 +1167,17 @@ impl ItemSetCollection {
                     }
                     symbols.insert(symbol.clone());
                     if i == 0 {
-                        eprintln!("    -> next symbol: {:?}", symbol);
+                        debug_trace!("    -> next symbol: {:?}", symbol);
                     }
                 }
             }
 
             if i == 0 {
-                eprintln!("\nState 0 summary:");
-                eprintln!("  Total symbols that can be shifted: {}", symbols.len());
-                eprintln!("  Terminals: {}", terminal_count);
-                eprintln!("  Non-terminals: {}", non_terminal_count);
-                eprintln!("  Symbols: {:?}\n", symbols);
+                debug_trace!("\nState 0 summary:");
+                debug_trace!("  Total symbols that can be shifted: {}", symbols.len());
+                debug_trace!("  Terminals: {}", terminal_count);
+                debug_trace!("  Non-terminals: {}", non_terminal_count);
+                debug_trace!("  Symbols: {:?}\n", symbols);
             }
 
             // Debug: symbols.len(), terminal_count, non_terminal_count
@@ -1207,9 +1220,10 @@ impl ItemSetCollection {
                         }
                     };
                     if current_set.id.0 == 0 {
-                        eprintln!(
+                        debug_trace!(
                             "  State 0 GOTO: symbol {:?} -> state {}",
-                            symbol_id, target_state.0
+                            symbol_id,
+                            target_state.0
                         );
                     }
                     collection
@@ -1304,8 +1318,8 @@ impl ItemSetCollection {
             let mut terminal_count = 0;
             let mut non_terminal_count = 0;
             if i == 0 {
-                eprintln!("\n=== State 0 Analysis ===");
-                eprintln!("State 0 has {} items:", current_set.items.len());
+                debug_trace!("\n=== State 0 Analysis ===");
+                debug_trace!("State 0 has {} items:", current_set.items.len());
             }
             for (idx, item) in current_set.items.iter().enumerate() {
                 if i == 0 {
@@ -1332,7 +1346,7 @@ impl ItemSetCollection {
                         if item.position == rule.rhs.len() {
                             item_str.push_str("• ");
                         }
-                        eprintln!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
+                        debug_trace!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
                     }
                 }
 
@@ -1351,17 +1365,17 @@ impl ItemSetCollection {
                     }
                     symbols.insert(symbol.clone());
                     if i == 0 {
-                        eprintln!("    -> next symbol: {:?}", symbol);
+                        debug_trace!("    -> next symbol: {:?}", symbol);
                     }
                 }
             }
 
             if i == 0 {
-                eprintln!("\nState 0 summary:");
-                eprintln!("  Total symbols that can be shifted: {}", symbols.len());
-                eprintln!("  Terminals: {}", terminal_count);
-                eprintln!("  Non-terminals: {}", non_terminal_count);
-                eprintln!("  Symbols: {:?}\n", symbols);
+                debug_trace!("\nState 0 summary:");
+                debug_trace!("  Total symbols that can be shifted: {}", symbols.len());
+                debug_trace!("  Terminals: {}", terminal_count);
+                debug_trace!("  Non-terminals: {}", non_terminal_count);
+                debug_trace!("  Symbols: {:?}\n", symbols);
             }
 
             // Debug: symbols.len(), terminal_count, non_terminal_count
@@ -1421,9 +1435,10 @@ impl ItemSetCollection {
                         }
                     };
                     if current_set.id.0 == 0 {
-                        eprintln!(
+                        debug_trace!(
                             "  State 0 GOTO: symbol {:?} -> state {}",
-                            symbol_id, target_state.0
+                            symbol_id,
+                            target_state.0
                         );
                     }
                     collection
@@ -1574,7 +1589,7 @@ impl ParseTable {
         let old_eof = self.eof_symbol;
         // Log the normalization for debugging
         #[cfg(debug_assertions)]
-        eprintln!("Normalizing EOF from {:?} to SymbolId(0)", old_eof);
+        debug_trace!("Normalizing EOF from {:?} to SymbolId(0)", old_eof);
 
         // Get the indices for remapping
         let old_idx = self.symbol_to_index.get(&old_eof).copied();
@@ -2534,18 +2549,18 @@ pub fn build_lr1_automaton(
     }
 
     // Debug: Print goto table entries
-    eprintln!(
+    debug_trace!(
         "DEBUG: Collection goto table has {} entries",
         collection.goto_table.len()
     );
-    eprintln!(
+    debug_trace!(
         "DEBUG: Augmented grammar has {} tokens",
         augmented_grammar.tokens.len()
     );
 
     // Debug: Print what tokens are in the augmented grammar
-    eprintln!("=== Symbol Classification Debug ===");
-    eprintln!(
+    debug_trace!("=== Symbol Classification Debug ===");
+    debug_trace!(
         "Tokens in augmented_grammar: {:?}",
         augmented_grammar
             .tokens
@@ -2553,7 +2568,7 @@ pub fn build_lr1_automaton(
             .map(|k| k.0)
             .collect::<Vec<_>>()
     );
-    eprintln!(
+    debug_trace!(
         "Externals in augmented_grammar: {:?}",
         augmented_grammar
             .externals
@@ -2561,8 +2576,8 @@ pub fn build_lr1_automaton(
             .map(|e| e.symbol_id.0)
             .collect::<Vec<_>>()
     );
-    eprintln!("Original grammar tokens: {}", grammar.tokens.len());
-    eprintln!(
+    debug_trace!("Original grammar tokens: {}", grammar.tokens.len());
+    debug_trace!(
         "Collection goto_table size: {}",
         collection.goto_table.len()
     );
@@ -2573,9 +2588,9 @@ pub fn build_lr1_automaton(
         .iter()
         .filter(|((from, _), _)| from.0 == 0)
         .collect();
-    eprintln!("State 0 has {} goto entries", state0_gotos.len());
+    debug_trace!("State 0 has {} goto entries", state0_gotos.len());
     for ((_, symbol), to_state) in &state0_gotos {
-        eprintln!("  Symbol {} -> State {}", symbol.0, to_state.0);
+        debug_trace!("  Symbol {} -> State {}", symbol.0, to_state.0);
     }
 
     // First, add shift actions from goto table for terminals
@@ -2592,7 +2607,7 @@ pub fn build_lr1_automaton(
             .unwrap_or(*symbol == eof_symbol); // EOF is a terminal
 
         if from_state.0 == 0 {
-            eprintln!(
+            debug_trace!(
                 "State 0 goto entry: symbol {} -> state {}, is_terminal={} (in tokens={}, in externals={}, is EOF={})",
                 symbol.0,
                 to_state.0,
@@ -2614,9 +2629,11 @@ pub fn build_lr1_automaton(
                     // Add as a shift action
                     let new_action = Action::Shift(*to_state);
                     if state_idx == 0 {
-                        eprintln!(
+                        debug_trace!(
                             "DEBUG: Adding shift action to state 0: symbol {} (idx={}) -> state {}",
-                            symbol.0, symbol_idx, to_state.0
+                            symbol.0,
+                            symbol_idx,
+                            to_state.0
                         );
                     }
                     add_action_with_conflict(
@@ -2627,7 +2644,7 @@ pub fn build_lr1_automaton(
                         new_action,
                     );
                 } else if state_idx == 0 {
-                    eprintln!(
+                    debug_trace!(
                         "DEBUG: SKIPPING shift for state 0: bounds check failed - state_idx={}, symbol_idx={}, action_table.len={}, inner_len={}",
                         state_idx,
                         symbol_idx,
@@ -2640,7 +2657,7 @@ pub fn build_lr1_automaton(
                     );
                 }
             } else if from_state.0 == 0 {
-                eprintln!(
+                debug_trace!(
                     "DEBUG: Terminal {} not in symbol_to_index for state 0",
                     symbol.0
                 );

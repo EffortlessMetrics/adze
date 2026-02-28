@@ -1,15 +1,52 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DRY_RUN=false
-if [[ "${1:-}" == "--dry-run" ]]; then DRY_RUN=true; fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RELEASE_CRATE_FILE="${RELEASE_CRATE_FILE:-${SCRIPT_DIR}/release-crates.txt}"
+RELEASE_SURFACE_MODE="${RELEASE_SURFACE_MODE:-fixed}"
+STRICT_PUBLISH_SURFACE="${STRICT_PUBLISH_SURFACE:-0}"
 
-tag="v0.6.1-beta"
+DRY_RUN=false
+if [[ "${1:-}" == "--dry-run" ]]; then
+  DRY_RUN=true
+  shift
+fi
+
+release_version="${1:-$(cargo metadata --no-deps --format-version 1 2>/dev/null | jq -r '.packages[] | select(.name == "adze") | .version' | head -n 1)}"
+if [[ -z "$release_version" ]]; then
+  echo "Usage: $0 [--dry-run] <version>" >&2
+  echo "Provide a version explicitly or run from workspace after bumping Cargo versions." >&2
+  exit 1
+fi
+
+release_version="${release_version#v}"
+if [[ -z "$release_version" ]]; then
+  echo "Invalid release version." >&2
+  exit 1
+fi
+tag="v${release_version}"
 msg="Release ${tag}: Algorithmically correct GLR parser"
+
+mapfile -t CRATES_TO_PUBLISH < <(RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
+  RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" "${SCRIPT_DIR}/release-surface.sh")
+if [[ ${#CRATES_TO_PUBLISH[@]} -eq 0 ]]; then
+  echo "Error: release crate list is empty." >&2
+  exit 1
+fi
 
 echo "=== Release helper ==="
 echo "Tag: ${tag}"
 echo "Dry run: ${DRY_RUN}"
+echo "Release surface mode: ${RELEASE_SURFACE_MODE}"
+echo "Release crate file: ${RELEASE_CRATE_FILE}"
+echo "Strict publish surface: ${STRICT_PUBLISH_SURFACE}"
+echo
+
+# Run release surface validation before publishing
+RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
+RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" \
+STRICT_PUBLISH_SURFACE="$STRICT_PUBLISH_SURFACE" \
+"${SCRIPT_DIR}/validate-release-surface.sh"
 echo
 
 # Check if tag already exists locally
@@ -19,17 +56,9 @@ if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
 fi
 
 # Check if tag already exists on origin
-if git ls-remote --exit-code --tags origin "${tag}" >/dev/null 2>&1; then
+if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
   echo "Tag ${tag} already exists on origin. Aborting."
   exit 1
-fi
-
-if $DRY_RUN; then
-  echo "DRY RUN: git tag -a ${tag} -m \"${msg}\""
-  echo "DRY RUN: git push origin ${tag}"
-else
-  git tag -a "${tag}" -m "${msg}"
-  git push origin "${tag}"
 fi
 
 # Allow SLEEP_SECS override
@@ -47,14 +76,17 @@ publish() {
   fi
 }
 
-# Publish in safe order:
-publish adze-glr-core
-publish adze-ir
-publish adze-common
-publish adze
-publish adze-macro
-publish adze-tool
-# optional:
-# publish adze-example
+for crate in "${CRATES_TO_PUBLISH[@]}"; do
+  publish "$crate"
+done
+
+if $DRY_RUN; then
+  echo "DRY RUN: git tag -a ${tag} -m \"${msg}\""
+  echo "DRY RUN: git push origin ${tag}"
+else
+  git tag -a "${tag}" -m "${msg}"
+  git push origin "${tag}"
+  echo "Tag created after successful publish: ${tag}"
+fi
 
 echo "Done. If not dry-run: double-check crates.io and run smoke tests."

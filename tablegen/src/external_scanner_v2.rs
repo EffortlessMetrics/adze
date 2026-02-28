@@ -5,6 +5,24 @@ use adze_ir::{ExternalToken, Grammar, SymbolId};
 use quote::quote;
 use std::collections::HashMap;
 
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Enhanced external scanner generator that computes state-based validity
 pub struct ExternalScannerGenerator {
     #[allow(dead_code)]
@@ -132,23 +150,23 @@ impl ExternalScannerGenerator {
     pub fn debug_print_validity(&self) {
         let state_bitmap = self.compute_state_validity();
 
-        println!("External Token Validity Matrix:");
-        println!("States x External Tokens");
+        debug_trace!("External Token Validity Matrix:");
+        debug_trace!("States x External Tokens");
 
         // Print header with external token names
-        print!("State |");
+        let mut header = String::from("State |");
         for token in &self.external_tokens {
-            print!(" {} |", token.name);
+            header.push_str(&format!(" {} |", token.name));
         }
-        println!();
+        debug_trace!("{}", header);
 
         // Print validity for each state
         for (state_idx, state_validity) in state_bitmap.iter().enumerate() {
-            print!("{:5} |", state_idx);
+            let mut row = format!("{:5} |", state_idx);
             for &valid in state_validity {
-                print!(" {:5} |", if valid { "✓" } else { " " });
+                row.push_str(&format!(" {:5} |", if valid { "✓" } else { " " }));
             }
-            println!();
+            debug_trace!("{}", row);
         }
     }
 }

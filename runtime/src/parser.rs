@@ -808,7 +808,7 @@ fn decode_action(encoded: u16) -> Action {
         0xFFFF => Action::Accept,
         0xFFFE => Action::Error,
         _ if encoded & 0x8000 != 0 => {
-            let rule_id = (encoded & 0x7FFF) >> 1;
+            let rule_id = (encoded & 0x7FFF).saturating_sub(1);
             Action::Reduce(rule_id)
         }
         state => Action::Shift(state),
@@ -927,7 +927,7 @@ mod tests {
     #[test]
     fn test_action_decoding() {
         assert!(matches!(decode_action(42), Action::Shift(42)));
-        assert!(matches!(decode_action(0x8022), Action::Reduce(17)));
+        assert!(matches!(decode_action(0x8012), Action::Reduce(17)));
         assert!(matches!(decode_action(0xFFFF), Action::Accept));
         assert!(matches!(decode_action(0xFFFE), Action::Error));
     }

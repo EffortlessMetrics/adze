@@ -207,7 +207,9 @@ impl GLRParser {
         let mut new_work = Vec::new();
 
         while let Some(stack_idx) = self.work_queue.pop_front() {
-            let stack = &self.stack.stacks[stack_idx];
+            let Some(stack) = self.stack.stacks.get(stack_idx) else {
+                continue;
+            };
             if !stack.active {
                 continue;
             }
@@ -247,17 +249,12 @@ impl GLRParser {
         }
 
         // Check for merge opportunities
-        let merge_data: Vec<_> = {
-            let active = self.stack.active_stacks();
-            active
-                .into_iter()
-                .map(|stack| {
-                    let state = stack.state_stack.last().unwrap().state;
-                    let position = stack.position;
-                    (state, position)
-                })
-                .collect()
-        };
+        let mut merge_data = Vec::new();
+        for stack in self.stack.active_stacks() {
+            if let Some(state) = stack.state_stack.last() {
+                merge_data.push((state.state, stack.position));
+            }
+        }
 
         for (state, position) in merge_data {
             let merge_groups = self.stack.check_merge(state, position);

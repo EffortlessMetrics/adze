@@ -3,7 +3,7 @@
 //! Following TDD/BDD methodology - tests written before implementation.
 //! Contract: docs/specs/PHASE_3.2_TOKENIZATION_FOREST_CONVERSION.md
 
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 mod tokenizer_unit_tests {
     use adze_glr_core::SymbolId;
     use adze_runtime::Token;
@@ -252,7 +252,7 @@ mod tokenizer_unit_tests {
     }
 }
 
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 mod tokenizer_integration_tests {
     use adze_glr_core::SymbolId;
     use adze_runtime::tokenizer::{Matcher, TokenPattern, Tokenizer, WhitespaceMode};
@@ -405,7 +405,7 @@ mod tokenizer_integration_tests {
     }
 }
 
-#[cfg(not(feature = "pure-rust-glr"))]
+#[cfg(not(feature = "pure-rust"))]
 #[test]
 fn test_tokenizer_feature_not_enabled() {
     // Placeholder test when feature is disabled

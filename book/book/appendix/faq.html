@@ -242,17 +242,17 @@ struct Whitespace {
 <h3 id="build-fails-with-macro-errors"><a class="header" href="#build-fails-with-macro-errors">Build fails with macro errors</a></h3>
 <p>Ensure both dependencies are present:</p>
 <pre><code class="language-toml">[dependencies]
-adze = "0.5.0-beta"
+adze = "0.8.0-dev"
 
 [build-dependencies]
-adze-tool = "0.5.0-beta"
+adze-tool = "0.8.0-dev"
 </code></pre>
 <h3 id="grammar-has-conflicts"><a class="header" href="#grammar-has-conflicts">Grammar has conflicts</a></h3>
 <p>This is normal for ambiguous grammars. Options:</p>
 <ol>
 <li>Add precedence annotations</li>
 <li>Refactor to remove ambiguity</li>
-<li>Use GLR parsing (automatic in v0.5)</li>
+<li>Use GLR parsing (automatic in 0.8+)</li>
 </ol>
 <h3 id="how-do-i-fix-precedence-errors"><a class="header" href="#how-do-i-fix-precedence-errors">How do I fix precedence errors?</a></h3>
 <p>Common precedence errors and solutions:</p>
@@ -293,12 +293,12 @@ const HIGH: u32 = 10;
 #[adze::prec(40)]       // Comparison operators</code></pre>
 <h3 id="wasm-build-fails"><a class="header" href="#wasm-build-fails">WASM build fails</a></h3>
 <p>Make sure you're using the <code>pure-rust</code> feature:</p>
-<pre><code class="language-toml">adze = { version = "0.5.0-beta", features = ["pure-rust"] }
+<pre><code class="language-toml">adze = { version = "0.8.0-dev", features = ["pure-rust"] }
 </code></pre>
 <h2 id="migration-questions"><a class="header" href="#migration-questions">Migration Questions</a></h2>
 <h3 id="how-do-i-migrate-from-tree-sitter"><a class="header" href="#how-do-i-migrate-from-tree-sitter">How do I migrate from Tree-sitter?</a></h3>
 <p>See the comprehensive <a href="../getting-started/migration.html">Migration Guide</a>.</p>
-<h3 id="what-changed-in-v05"><a class="header" href="#what-changed-in-v05">What changed in v0.5?</a></h3>
+<h3 id="what-changed-in-v08"><a class="header" href="#what-changed-in-v08">What changed in v0.8?</a></h3>
 <p>Major changes include:</p>
 <ul>
 <li>GLR parsing support</li>
@@ -307,11 +307,11 @@ const HIGH: u32 = 10;
 <li>Improved incremental parsing</li>
 </ul>
 <p>See the <a href="changelog.html">Changelog</a> for details.</p>
-<h3 id="is-v05-stable"><a class="header" href="#is-v05-stable">Is v0.5 stable?</a></h3>
-<p>v0.5.0-beta is feature-complete and well-tested. The "beta" label indicates we're gathering feedback before the final release. The API is stable and ready for production use.</p>
+<h3 id="is-08-stable"><a class="header" href="#is-08-stable">Is 0.8 stable?</a></h3>
+<p>0.8.0-dev is feature-complete and under RC hardening.</p>
 <h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
 <h3 id="how-can-i-contribute"><a class="header" href="#how-can-i-contribute">How can I contribute?</a></h3>
-<p>We welcome contributions! See our <a href="../development/contributing.html">Contributing Guide</a> for:</p>
+<p>We welcome contributions! See our <a href="../../CONTRIBUTING.html">Contributing Guide</a> for:</p>
 <ul>
 <li>Code style guidelines</li>
 <li>Testing requirements</li>
