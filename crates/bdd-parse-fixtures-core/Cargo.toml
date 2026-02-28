@@ -1,10 +1,10 @@
 [package]
-name = "adze-bdd-grammar-fixtures"
+name = "adze-bdd-parse-fixtures-core"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Compatibility facade over SRP GLR BDD fixture microcrates."
+description = "SRP parse-table builder and conflict analysis fixtures for GLR BDD scenarios."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 
@@ -15,4 +15,5 @@ strict_docs = []
 
 [dependencies]
 adze-bdd-grammar-core = { version = "0.1.0", path = "../bdd-grammar-core" }
-adze-bdd-parse-fixtures-core = { version = "0.1.0", path = "../bdd-parse-fixtures-core" }
+adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }
