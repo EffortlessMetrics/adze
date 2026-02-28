@@ -39,6 +39,7 @@ dependencies = [
  "adze-python-simple",
  "adze-runtime-governance-api",
  "adze-tablegen",
+ "adze-ts-format-core",
  "ahash",
  "anyhow",
  "criterion",
@@ -612,6 +613,13 @@ dependencies = [
  "thiserror 2.0.18",
  "tree-sitter 0.25.10",
  "tree-sitter-generate",
+]
+
+[[package]]
+name = "adze-ts-format-core"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
 ]
 
 [[package]]
