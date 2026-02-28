@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Environment-backed concurrency cap policy and parsing utilities."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
+categories = ["concurrency"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-concurrency-env-core"
 
 [features]
 default = []

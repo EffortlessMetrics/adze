@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Thread-local and reusable stack pool utilities for parser workloads."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["stack", "pool", "memory", "parser", "reuse"]
+categories = ["data-structures", "memory-management"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-stack-pool-core"
 
 [features]
 default = []
@@ -15,3 +19,8 @@ strict_docs = []
 
 [dev-dependencies]
 proptest = "1.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "stack_pool_bench"
+harness = false

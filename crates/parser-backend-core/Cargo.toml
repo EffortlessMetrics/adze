@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Pure parser backend selection primitives."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["parser", "grammar", "tree-sitter", "ast", "glr"]
+categories = ["parsing", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-parser-backend-core"
 
 [features]
 default = []

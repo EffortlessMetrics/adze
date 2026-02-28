@@ -3,6 +3,14 @@ name = "ts-c-harness"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Internal Tree-sitter C FFI parity test harness."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = false
+keywords = ["tree-sitter", "ffi", "testing", "parity", "parser"]
+categories = ["development-tools::testing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/ts-c-harness"
 
 [features]
 default = []

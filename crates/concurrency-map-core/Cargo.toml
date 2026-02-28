@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Bounded parallel map utilities with deterministic partition planning."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
+categories = ["concurrency"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-concurrency-map-core"
 
 [features]
 default = []

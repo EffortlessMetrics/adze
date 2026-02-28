@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Tree-sitter action-tag constants and action-priority selection helpers."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["tree-sitter", "parser", "format", "action", "glr"]
+categories = ["parsing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-ts-format-core"
 
 [features]
 default = []
@@ -15,6 +19,9 @@ strict_docs = []
 
 [dependencies]
 adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
+serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
+insta = { version = "1.31", features = ["json", "yaml"] }
 proptest = "1.4"
+serde_json = "1.0"

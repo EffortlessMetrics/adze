@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Syntax parsing helpers shared by macro and tool crates."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["parser", "grammar", "tree-sitter", "ast", "glr"]
+categories = ["parsing", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-common-syntax-core"
 
 [features]
 default = []

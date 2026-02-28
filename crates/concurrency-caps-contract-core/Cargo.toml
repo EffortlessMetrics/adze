@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Contract-focused API surface for concurrency caps compatibility."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
+categories = ["concurrency"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-concurrency-caps-contract-core"
 
 [features]
 default = []
