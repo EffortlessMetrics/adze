@@ -20,4 +20,5 @@ path = "src/bin/adze-lsp-gen.rs"
 
 [dependencies.clap]
 version = "4.0"
+license = "MIT OR Apache-2.0"
 features = ["derive"]
