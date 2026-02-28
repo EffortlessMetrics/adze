@@ -39,6 +39,7 @@ members = [
   "crates/bdd-scenario-fixtures",
   "crates/bdd-grid-contract",
   "crates/bdd-grid-core",
+  "crates/bdd-grid-fixtures",
   "crates/feature-policy-core",
   "tool",
   "common",

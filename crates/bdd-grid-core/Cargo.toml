@@ -4,7 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Core BDD grid contracts for parser progress reporting and feature-aware status tracking."
+description = "Compatibility core for BDD grid contracts + fixture datasets."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 
@@ -12,3 +12,7 @@ publish = ["crates.io"]
 default = []
 strict_api = []
 strict_docs = []
+
+[dependencies]
+adze-bdd-grid-contract = { path = "../bdd-grid-contract", version = "0.1.0", default-features = false }
+adze-bdd-grid-fixtures = { path = "../bdd-grid-fixtures", version = "0.1.0", default-features = false }

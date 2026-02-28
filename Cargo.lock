@@ -105,13 +105,21 @@ dependencies = [
 [[package]]
 name = "adze-bdd-grid-contract"
 version = "0.1.0"
-dependencies = [
- "adze-bdd-grid-core",
-]
 
 [[package]]
 name = "adze-bdd-grid-core"
 version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-contract",
+ "adze-bdd-grid-fixtures",
+]
+
+[[package]]
+name = "adze-bdd-grid-fixtures"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-contract",
+]
 
 [[package]]
 name = "adze-bdd-scenario-fixtures"
