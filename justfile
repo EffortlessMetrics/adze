@@ -78,3 +78,21 @@ ci-supported:
 # Clean build artifacts
 clean:
     cargo clean
+
+# Run doc tests for core crates
+doctest:
+    cargo test -p adze-ir -p adze-glr-core -p adze-tablegen -p adze-common --doc
+
+# Run all core crate tests including doc tests
+test-all:
+    cargo test -p adze -p adze-glr-core -p adze-ir -p adze-tablegen -p adze-common -p adze-macro -p adze-runtime --lib --tests --doc
+
+# Run property tests only
+test-prop:
+    cargo test -p adze-ir --test property_tests
+    cargo test -p adze-glr-core --test property_first_follow
+    cargo test -p adze-tablegen --test property_compression
+
+# Run integration pipeline test
+test-pipeline:
+    cargo test -p adze-glr-core --test integration_pipeline
