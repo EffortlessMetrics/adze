@@ -1,72 +1,153 @@
 #![no_main]
 
-use adze::*;
+use adze_ir::validation::GrammarValidator;
+use adze_ir::{
+    ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+};
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
-    // Fuzz the external scanner FFI boundary
-    // This is critical for finding memory safety issues
-
-    if data.len() < 4 {
+    if data.len() < 2 || data.len() > 2_000 {
         return;
     }
 
-    // Split data into scanner state and input
-    let (state_bytes, input_bytes) = data.split_at(4);
-    let state = u32::from_le_bytes([
-        state_bytes[0],
-        state_bytes[1],
-        state_bytes[2],
-        state_bytes[3],
-    ]);
+    // Use first byte to select grammar construction strategy
+    let strategy = data[0] % 3;
+    let payload = &data[1..];
 
-    // Create a mock external scanner context
-    let mut scanner = MockExternalScanner::new();
-
-    // Fuzz the scanner with random state and input
-    // This should never cause UB, even with malformed input
-    scanner.scan(state, input_bytes);
-
-    // Serialize and deserialize to check round-trip safety
-    let serialized = scanner.serialize();
-    let mut scanner2 = MockExternalScanner::new();
-    scanner2.deserialize(&serialized);
+    match strategy {
+        0 => fuzz_grammar_names(payload),
+        1 => fuzz_external_tokens(payload),
+        _ => fuzz_validator(payload),
+    }
 });
 
-/// Mock external scanner for fuzzing
-struct MockExternalScanner {
-    state: Vec<u8>,
+/// Feed arbitrary bytes as grammar/symbol names to Grammar::new() and validate
+fn fuzz_grammar_names(data: &[u8]) {
+    let name = String::from_utf8_lossy(data).to_string();
+    let mut grammar = Grammar::new(name);
+
+    // Add tokens with fuzz-derived names
+    for (i, chunk) in data.chunks(4).enumerate().take(20) {
+        let token_name = String::from_utf8_lossy(chunk).to_string();
+        let pattern = if i % 2 == 0 {
+            TokenPattern::String(token_name.clone())
+        } else {
+            TokenPattern::Regex(token_name.clone())
+        };
+        grammar.tokens.insert(
+            SymbolId(i as u16 + 1),
+            Token {
+                name: token_name,
+                pattern,
+                fragile: i % 3 == 0,
+            },
+        );
+    }
+
+    // Must never panic
+    let _ = grammar.validate();
+    let _ = grammar.check_empty_terminals();
+    let _ = grammar.normalize();
 }
 
-impl MockExternalScanner {
-    fn new() -> Self {
-        Self { state: Vec::new() }
+/// Feed arbitrary bytes to construct external token declarations and validate
+fn fuzz_external_tokens(data: &[u8]) {
+    let mut grammar = Grammar::new("fuzz_ext".to_string());
+
+    // Add a base terminal for rules to reference
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "tok".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+
+    // Add external tokens from fuzz data
+    for (i, chunk) in data.chunks(3).enumerate().take(30) {
+        let ext_name = String::from_utf8_lossy(chunk).to_string();
+        let ext_id = SymbolId(100 + i as u16);
+        grammar.externals.push(ExternalToken {
+            name: ext_name,
+            symbol_id: ext_id,
+        });
+
+        // Add a rule referencing this external token
+        grammar.add_rule(Rule {
+            lhs: SymbolId(10),
+            rhs: vec![Symbol::External(ext_id)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(i as u16),
+        });
     }
 
-    fn scan(&mut self, state: u32, input: &[u8]) {
-        // Bounds check everything
-        if input.len() > 10000 {
-            return; // Avoid DOS
-        }
+    grammar
+        .rule_names
+        .insert(SymbolId(10), "start".to_string());
 
-        // Simulate scanning logic
-        self.state.clear();
-        self.state.extend_from_slice(&state.to_le_bytes());
+    // Must never panic
+    let _ = grammar.validate();
+    let _ = grammar.normalize();
+}
 
-        for &byte in input.iter().take(100) {
-            if byte == b'\n' {
-                self.state.push(0);
-            } else {
-                self.state.push(byte.wrapping_add(1));
-            }
-        }
+/// Run the full GrammarValidator on fuzz-constructed grammars
+fn fuzz_validator(data: &[u8]) {
+    let mut grammar = Grammar::new("fuzz_validate".to_string());
+
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        SymbolId(2),
+        Token {
+            name: "b".to_string(),
+            pattern: TokenPattern::String("b".to_string()),
+            fragile: false,
+        },
+    );
+
+    // Use fuzz bytes to build rules with varying structure
+    let mut prod_id = 0u16;
+    for chunk in data.chunks(2).take(50) {
+        let lhs_id = SymbolId(10 + (chunk[0] % 5) as u16);
+        let rhs_choice = chunk.get(1).unwrap_or(&0) % 5;
+
+        let rhs = match rhs_choice {
+            0 => vec![Symbol::Terminal(SymbolId(1))],
+            1 => vec![Symbol::Terminal(SymbolId(2))],
+            2 => vec![Symbol::NonTerminal(SymbolId(10 + (chunk[0] % 3) as u16))],
+            3 => vec![
+                Symbol::Terminal(SymbolId(1)),
+                Symbol::NonTerminal(SymbolId(10)),
+            ],
+            _ => vec![Symbol::Epsilon],
+        };
+
+        let name = format!("rule_{}", lhs_id.0);
+        grammar.rule_names.entry(lhs_id).or_insert(name);
+        grammar.add_rule(Rule {
+            lhs: lhs_id,
+            rhs,
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(prod_id),
+        });
+        prod_id = prod_id.wrapping_add(1);
     }
 
-    fn serialize(&self) -> Vec<u8> {
-        self.state.clone()
-    }
-
-    fn deserialize(&mut self, data: &[u8]) {
-        self.state = data.to_vec();
-    }
+    // Must never panic
+    let mut validator = GrammarValidator::new();
+    let _ = validator.validate(&grammar);
+    let _ = grammar.validate();
+    let _ = grammar.normalize();
 }

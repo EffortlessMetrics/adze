@@ -1,42 +1,71 @@
 #![no_main]
 
-use adze::*;
+use adze::glr_lexer::GLRLexer;
+use adze_ir::{Grammar, SymbolId, Token, TokenPattern};
 use libfuzzer_sys::fuzz_target;
 
+fn create_test_grammar() -> Grammar {
+    let mut grammar = Grammar::new("fuzz_lexer".to_string());
+
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        SymbolId(2),
+        Token {
+            name: "word".to_string(),
+            pattern: TokenPattern::Regex(r"[a-zA-Z_]\w*".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        SymbolId(3),
+        Token {
+            name: "operator".to_string(),
+            pattern: TokenPattern::Regex(r"[+\-*/=<>!&|^~%]+".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        SymbolId(4),
+        Token {
+            name: "space".to_string(),
+            pattern: TokenPattern::Regex(r"\s+".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        SymbolId(5),
+        Token {
+            name: "punctuation".to_string(),
+            pattern: TokenPattern::Regex(r"[(){}\[\];,.]".to_string()),
+            fragile: false,
+        },
+    );
+
+    grammar
+}
+
+static TEST_GRAMMAR: std::sync::LazyLock<Grammar> =
+    std::sync::LazyLock::new(create_test_grammar);
+
 fuzz_target!(|data: &[u8]| {
-    // Convert random bytes to UTF-8 string (lossy is fine for fuzzing)
     let input = String::from_utf8_lossy(data);
 
-    // Try to tokenize the input
-    // This should never panic, only return errors
-    let _ = tokenize(&input);
+    if input.len() > 10_000 {
+        return;
+    }
 
-    // Additional invariants to check:
-    // - Tokenizer should handle all valid UTF-8
-    // - Tokenizer should not allocate unbounded memory
-    // - Tokenizer should complete in reasonable time
+    // Fuzz the GLR lexer with arbitrary input - must never panic
+    match GLRLexer::new(&TEST_GRAMMAR, input.to_string()) {
+        Ok(mut lexer) => {
+            let _tokens = lexer.tokenize_all();
+        }
+        Err(_) => {}
+    }
 });
-
-/// Helper function to tokenize input (placeholder - adapt to your lexer API)
-fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
-    // Your actual tokenization logic here
-    Ok(vec![])
-}
-
-#[derive(Debug)]
-struct Token {
-    kind: TokenKind,
-    text: String,
-    span: (usize, usize),
-}
-
-#[derive(Debug)]
-enum TokenKind {
-    Number,
-    Operator,
-    Identifier,
-    // ... other token types
-}
-
-#[derive(Debug)]
-struct LexError;

@@ -121,6 +121,8 @@ dependencies = [
  "adze-concurrency-normalize-core",
  "adze-concurrency-parse-core",
  "adze-concurrency-plan-core",
+ "adze-glr-core",
+ "adze-ir",
  "adze-linecol-core",
  "libfuzzer-sys",
 ]

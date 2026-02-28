@@ -3,7 +3,7 @@ name = "adze-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2024"
-rust-version = "1.89"
+rust-version = "1.92"
 
 [package.metadata]
 cargo-fuzz = true
@@ -12,7 +12,9 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-adze = { path = "../runtime" }
+adze = { path = "../runtime", features = ["pure-rust"] }
+adze-ir = { path = "../ir" }
+adze-glr-core = { path = "../glr-core" }
 adze-linecol-core = { path = "../crates/linecol-core" }
 adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
 adze-concurrency-map-core = { path = "../crates/concurrency-map-core" }
@@ -99,5 +101,11 @@ doc = false
 [[bin]]
 name = "fuzz_concurrency_init_classifier_core"
 path = "fuzz_targets/fuzz_concurrency_init_classifier_core.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ir_normalization"
+path = "fuzz_targets/fuzz_ir_normalization.rs"
 test = false
 doc = false
