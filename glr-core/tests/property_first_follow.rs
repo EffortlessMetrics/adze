@@ -27,9 +27,7 @@ fn build_simple_grammar(num_nt: usize, num_t: usize) -> Grammar {
     let nt_base = num_t as u16 + 10; // offset to avoid ID collisions
     for i in 0..num_nt {
         let lhs = SymbolId(nt_base + i as u16);
-        grammar
-            .rule_names
-            .insert(lhs, format!("nt_{i}"));
+        grammar.rule_names.insert(lhs, format!("nt_{i}"));
 
         // Each non-terminal produces a terminal (if any exist)
         if num_t > 0 {

@@ -5,8 +5,8 @@
 //!   term → NUMBER
 
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use adze_ir::builder::GrammarBuilder;
 use adze_ir::StateId;
+use adze_ir::builder::GrammarBuilder;
 
 /// Build a simple arithmetic grammar using the builder API.
 fn arithmetic_grammar() -> adze_ir::Grammar {
@@ -30,7 +30,11 @@ fn pipeline_grammar_structure() {
     // Two tokens: NUMBER, PLUS
     assert_eq!(grammar.tokens.len(), 2, "expected 2 tokens");
     // Two non-terminals with rules: expr, term
-    assert_eq!(grammar.rules.len(), 2, "expected 2 non-terminal rule groups");
+    assert_eq!(
+        grammar.rules.len(),
+        2,
+        "expected 2 non-terminal rule groups"
+    );
     // Three productions total
     assert_eq!(grammar.all_rules().count(), 3, "expected 3 productions");
 
@@ -49,7 +53,8 @@ fn pipeline_normalize_is_idempotent_for_simple_grammar() {
 
     // normalize() returns all rules (not just new ones); count must be preserved
     assert_eq!(
-        all_rules.len(), rule_count_before,
+        all_rules.len(),
+        rule_count_before,
         "simple grammar should have the same number of rules after normalize"
     );
     assert_eq!(grammar.all_rules().count(), rule_count_before);
@@ -122,7 +127,8 @@ fn pipeline_lr1_parse_table() {
     let grammar = arithmetic_grammar();
     let ff = FirstFollowSets::compute(&grammar).expect("FIRST/FOLLOW should succeed");
 
-    let table = build_lr1_automaton(&grammar, &ff).expect("LR(1) automaton construction should succeed");
+    let table =
+        build_lr1_automaton(&grammar, &ff).expect("LR(1) automaton construction should succeed");
 
     // --- basic table dimensions ---
     assert!(table.state_count > 0, "table must have at least one state");
@@ -225,7 +231,10 @@ fn pipeline_end_to_end_deterministic() {
     for (state_idx, row) in table.action_table.iter().enumerate() {
         for (col_idx, cell) in row.iter().enumerate() {
             // Filter out Error-only cells
-            let non_error: Vec<_> = cell.iter().filter(|a| !matches!(a, Action::Error)).collect();
+            let non_error: Vec<_> = cell
+                .iter()
+                .filter(|a| !matches!(a, Action::Error))
+                .collect();
             assert!(
                 non_error.len() <= 1,
                 "State {} column {} has {} non-error actions — expected deterministic table \
