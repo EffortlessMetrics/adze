@@ -3,7 +3,22 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-//! Shared utilities for adze macro and tool crates
+//! Shared utilities for the `adze-macro` and `adze-tool` crates.
+//!
+//! This crate provides parsing helpers and type-manipulation functions used by
+//! both the proc-macro frontend (`adze-macro`) and the build-time code generator
+//! (`adze-tool`). It is not intended for direct use by end users.
+//!
+//! # Contents
+//!
+//! - [`NameValueExpr`] — Parses `key = value` attribute parameters.
+//! - [`FieldThenParams`] — Parses a field declaration followed by optional
+//!   comma-separated parameters.
+//! - [`try_extract_inner_type`] — Unwraps a container type (e.g. `Vec<T>` → `T`),
+//!   optionally skipping through wrapper types.
+//! - [`filter_inner_type`] — Strips specified wrapper types from a type.
+//! - [`wrap_leaf_type`] — Wraps leaf types in `adze::WithLeaf<T>`, preserving
+//!   container types.
 
 use std::collections::HashSet;
 
@@ -13,14 +28,29 @@ use syn::{
     *,
 };
 
-/// Name-value expression for attribute parameters
+/// A name-value expression of the form `key = expr`, used to represent
+/// individual attribute parameters such as `precedence = 5` or
+/// `pattern = r"\d+"`.
+///
+/// Implements [`syn::parse::Parse`] so it can be used with
+/// [`syn::parse_quote!`] or parsed from a [`syn::parse::ParseStream`].
+///
+/// # Example
+///
+/// ```
+/// use adze_common::NameValueExpr;
+/// use syn::parse_quote;
+///
+/// let nv: NameValueExpr = parse_quote!(precedence = 5);
+/// assert_eq!(nv.path.to_string(), "precedence");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NameValueExpr {
-    /// The parameter name
+    /// The parameter name (left-hand side of `=`).
     pub path: Ident,
-    /// The equals token
+    /// The `=` token.
     pub eq_token: Token![=],
-    /// The parameter value expression
+    /// The value expression (right-hand side of `=`).
     pub expr: Expr,
 }
 
@@ -34,14 +64,31 @@ impl Parse for NameValueExpr {
     }
 }
 
-/// Field followed by optional parameters
+/// A parsed field declaration optionally followed by comma-separated
+/// [`NameValueExpr`] parameters.
+///
+/// This is the main parsing structure for adze attribute arguments like
+/// `#[adze::leaf(String, pattern = r"\d+")]` where `String` is the field
+/// type and `pattern = r"\d+"` is an additional parameter.
+///
+/// # Example
+///
+/// ```
+/// use adze_common::FieldThenParams;
+/// use syn::parse_quote;
+///
+/// let ftp: FieldThenParams = parse_quote!(Vec<String>, min = 1, max = 10);
+/// assert!(ftp.comma.is_some());
+/// assert_eq!(ftp.params.len(), 2);
+/// assert_eq!(ftp.params[0].path.to_string(), "min");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldThenParams {
-    /// The field declaration
+    /// The field declaration (an unnamed field parsed via [`Field::parse_unnamed`]).
     pub field: Field,
-    /// Optional comma separator
+    /// Optional comma separating the field from additional parameters.
     pub comma: Option<Token![,]>,
-    /// Additional parameters
+    /// Zero or more `key = value` parameters.
     pub params: Punctuated<NameValueExpr, Token![,]>,
 }
 
@@ -63,7 +110,38 @@ impl Parse for FieldThenParams {
     }
 }
 
-/// Attempts to extract the inner type from a container type
+/// Attempts to extract the inner type from a container type named `inner_of`,
+/// optionally looking through wrapper types listed in `skip_over`.
+///
+/// Returns a tuple of `(inner_type, true)` when the target container is found,
+/// or `(original_type, false)` when it is not.
+///
+/// # Example
+///
+/// ```
+/// use adze_common::try_extract_inner_type;
+/// use std::collections::HashSet;
+/// use syn::{Type, parse_quote};
+///
+/// let skip = HashSet::from(["Box"]);
+///
+/// // Direct extraction: Vec<String> → String
+/// let ty: Type = parse_quote!(Vec<String>);
+/// let (inner, found) = try_extract_inner_type(&ty, "Vec", &skip);
+/// assert!(found);
+/// assert_eq!(quote::quote!(#inner).to_string(), "String");
+///
+/// // Skips through Box: Box<Vec<i32>> → i32
+/// let ty: Type = parse_quote!(Box<Vec<i32>>);
+/// let (inner, found) = try_extract_inner_type(&ty, "Vec", &skip);
+/// assert!(found);
+/// assert_eq!(quote::quote!(#inner).to_string(), "i32");
+///
+/// // No match: returns original type unchanged
+/// let ty: Type = parse_quote!(String);
+/// let (inner, found) = try_extract_inner_type(&ty, "Vec", &skip);
+/// assert!(!found);
+/// ```
 pub fn try_extract_inner_type(
     ty: &Type,
     inner_of: &str,
@@ -101,7 +179,29 @@ pub fn try_extract_inner_type(
     }
 }
 
-/// Filters a type by removing specified container types
+/// Recursively strips wrapper types listed in `skip_over` from `ty`,
+/// returning the innermost non-wrapper type.
+///
+/// For example, `Box<Arc<String>>` with `skip_over = {"Box", "Arc"}` yields
+/// `String`. If `ty` is not in `skip_over`, it is returned unchanged.
+///
+/// # Example
+///
+/// ```
+/// use adze_common::filter_inner_type;
+/// use std::collections::HashSet;
+/// use syn::{Type, parse_quote};
+///
+/// let skip = HashSet::from(["Box", "Arc"]);
+///
+/// let ty: Type = parse_quote!(Box<Arc<String>>);
+/// let inner = filter_inner_type(&ty, &skip);
+/// assert_eq!(quote::quote!(#inner).to_string(), "String");
+///
+/// let ty: Type = parse_quote!(String);
+/// let inner = filter_inner_type(&ty, &skip);
+/// assert_eq!(quote::quote!(#inner).to_string(), "String");
+/// ```
 pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     if let Type::Path(p) = &ty {
         let type_segment = p.path.segments.last().unwrap();
@@ -123,7 +223,37 @@ pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     }
 }
 
-/// Wraps a leaf type in a Box if it's not already wrapped in specified container types
+/// Wraps the leaf (innermost) type in `adze::WithLeaf<T>`, preserving any
+/// container types listed in `skip_over`.
+///
+/// Container types in `skip_over` are kept as-is, while the innermost type
+/// that is *not* in `skip_over` gets wrapped. For example,
+/// `Option<Vec<String>>` with `skip_over = {"Option", "Vec"}` becomes
+/// `Option<Vec<adze::WithLeaf<String>>>`.
+///
+/// # Example
+///
+/// ```
+/// use adze_common::wrap_leaf_type;
+/// use std::collections::HashSet;
+/// use syn::{Type, parse_quote};
+///
+/// let skip = HashSet::from(["Vec"]);
+///
+/// let ty: Type = parse_quote!(Vec<String>);
+/// let wrapped = wrap_leaf_type(&ty, &skip);
+/// assert_eq!(
+///     quote::quote!(#wrapped).to_string(),
+///     "Vec < adze :: WithLeaf < String > >"
+/// );
+///
+/// let ty: Type = parse_quote!(i32);
+/// let wrapped = wrap_leaf_type(&ty, &skip);
+/// assert_eq!(
+///     quote::quote!(#wrapped).to_string(),
+///     "adze :: WithLeaf < i32 >"
+/// );
+/// ```
 pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     let mut ty = ty.clone();
     if let Type::Path(p) = &mut ty {
