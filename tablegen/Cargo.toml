@@ -15,6 +15,7 @@ include = [
     "LICENSE*",
     "README*",
     "src/**",
+    "tests/**",
     "MIGRATING.md"
 ]
 

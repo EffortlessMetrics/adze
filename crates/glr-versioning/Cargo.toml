@@ -13,7 +13,8 @@ include = [
     "Cargo.toml",
     "LICENSE*",
     "README*",
-    "src/**"
+    "src/**",
+    "tests/**"
 ]
 
 [features]
