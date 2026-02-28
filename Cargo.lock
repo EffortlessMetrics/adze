@@ -95,6 +95,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-bdd-governance-reporting-core"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-governance-core",
+]
+
+[[package]]
 name = "adze-bdd-grammar-fixtures"
 version = "0.1.0"
 dependencies = [
@@ -370,7 +377,7 @@ dependencies = [
 name = "adze-governance-runtime-reporting"
 version = "0.1.0"
 dependencies = [
- "adze-governance-matrix-contract",
+ "adze-bdd-governance-reporting-core",
 ]
 
 [[package]]
