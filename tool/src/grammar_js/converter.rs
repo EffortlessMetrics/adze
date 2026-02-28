@@ -22,6 +22,7 @@ pub struct GrammarJsConverter {
 }
 
 impl GrammarJsConverter {
+    /// Creates a new converter from the parsed `grammar.js` representation.
     pub fn new(grammar_js: GrammarJs) -> Self {
         Self {
             grammar_js,

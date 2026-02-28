@@ -3,7 +3,39 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-//! Build tool for adze parser generation
+//! Build-time tool for Adze parser generation.
+//!
+//! This crate extracts grammar definitions from Rust source files annotated with
+//! `#[adze::grammar]` and generates parsers from them. It supports two backends:
+//!
+//! - **C backend** (default `build_parsers` feature): generates a Tree-sitter C parser,
+//!   compiles it with [`cc`], and links it into the final binary.
+//! - **Pure-Rust backend**: converts grammars through the IR → GLR → table-generation
+//!   pipeline entirely in Rust, with no C toolchain required.
+//!
+//! # Typical usage
+//!
+//! Call [`build_parsers`] from a downstream crate's `build.rs`:
+//!
+//! ```rust,ignore
+//! // build.rs
+//! fn main() {
+//!     adze_tool::build_parsers("src/lib.rs".as_ref());
+//! }
+//! ```
+//!
+//! The function discovers every `#[adze::grammar]` module, generates the
+//! corresponding parser, and arranges for `cargo` to link it.
+//!
+//! # Feature flags
+//!
+//! | Feature | Description |
+//! |---------|-------------|
+//! | `build_parsers` | Enables the C-backend [`build_parsers`] entry-point (default) |
+//! | `serialization` | Enables serialization support in downstream IR / table-gen crates |
+//! | `optimize` | Runs the grammar optimizer before table generation |
+//! | `no_opt` | Disables optimizer (useful for debugging) |
+//! | `strict_docs` | Enables strict documentation lint |
 
 use serde_json::Value;
 use syn::{Item, parse_quote};
@@ -14,20 +46,26 @@ use expansion::*;
 mod grammar_converter;
 pub use grammar_converter::GrammarConverter;
 
+/// Grammar and parse-tree visualization (DOT, SVG railroad diagrams, plain text).
 pub mod visualization;
 pub use visualization::GrammarVisualizer;
 
+/// Compatibility layer for parsing Tree-sitter `grammar.js` files.
 pub mod grammar_js;
 pub use grammar_js::{GrammarJsConverter, parse_grammar_js};
 
+/// Pure-Rust parser builder using the IR → GLR → table-generation pipeline.
 pub mod pure_rust_builder;
 pub use pure_rust_builder::{
     BuildOptions, BuildResult, build_parser, build_parser_for_crate, build_parser_from_grammar_js,
 };
 
+/// Command-line interface for the `adze-gen` binary.
 pub mod cli;
+/// External scanner discovery and compilation helpers.
 pub mod scanner_build;
 
+/// Error types used throughout the tool crate.
 pub mod error;
 pub use error::{Result as ToolResult, ToolError};
 

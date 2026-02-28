@@ -1,16 +1,22 @@
-// Grammar visualization tools for Adze
-// This module provides tools to visualize grammars and parse trees
+//! Grammar visualization tools for Adze.
+//!
+//! Provides [`GrammarVisualizer`] which can render an [`adze_ir::Grammar`] as
+//! Graphviz DOT, SVG railroad diagrams, plain-text summaries, or dependency graphs.
 
 use adze_ir::{Grammar, Symbol, SymbolId};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
-/// Grammar visualizer that generates various output formats
+/// Grammar visualizer that generates various output formats.
+///
+/// Supports Graphviz DOT, SVG railroad diagrams, plain-text summaries,
+/// and dependency graphs for an [`adze_ir::Grammar`].
 pub struct GrammarVisualizer {
     grammar: Grammar,
 }
 
 impl GrammarVisualizer {
+    /// Creates a new visualizer for the given grammar.
     pub fn new(grammar: Grammar) -> Self {
         Self { grammar }
     }

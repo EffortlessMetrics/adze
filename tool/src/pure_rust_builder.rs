@@ -1,5 +1,8 @@
-// Pure-Rust parser builder that uses the new IR and GLR infrastructure
-// This module replaces the old Tree-sitter C generation with pure Rust code
+//! Pure-Rust parser builder using the IR and GLR infrastructure.
+//!
+//! This module replaces the Tree-sitter C code-generation path with a fully Rust
+//! pipeline: Grammar → FIRST/FOLLOW → LR(1) automaton → compressed parse tables →
+//! FFI-compatible `Language` struct.
 
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
@@ -179,7 +182,8 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
     Ok(())
 }
 
-/// Build a parser from a grammar.js file
+/// Reads a Tree-sitter `grammar.js` file, converts it to the Adze IR, and
+/// builds a pure-Rust parser from it.
 pub fn build_parser_from_grammar_js(
     grammar_js_path: &Path,
     options: BuildOptions,
@@ -222,7 +226,8 @@ pub fn build_parser_from_grammar_js(
     build_parser(grammar, options)
 }
 
-/// Build a parser for all grammars in a crate
+/// Discovers every `#[adze::grammar]` module in `root_file` (and its
+/// sub-modules) and builds a pure-Rust parser for each one.
 pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result<Vec<BuildResult>> {
     let mut results = Vec::new();
 
@@ -253,7 +258,7 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
     Ok(results)
 }
 
-/// Build a parser from a JSON grammar (Tree-sitter format)
+/// Builds a parser from a Tree-sitter–format JSON grammar string.
 pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Result<BuildResult> {
     // Parse the JSON string
     let grammar_value: Value =
@@ -295,7 +300,11 @@ pub fn build_parser_from_json(grammar_json: String, options: BuildOptions) -> Re
     build_parser(grammar, options)
 }
 
-/// Build a parser from an IR Grammar
+/// Builds a parser from an already-constructed [`Grammar`] IR.
+///
+/// This is the lowest-level entry point: it runs normalization, FIRST/FOLLOW
+/// computation, LR(1) automaton construction, table compression, and Rust
+/// code generation.
 pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<BuildResult> {
     let grammar_name = grammar.name.clone();
 

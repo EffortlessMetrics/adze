@@ -1,5 +1,8 @@
-// Build system integration for external scanners
-// This module provides functionality to discover and compile user-provided scanner implementations
+//! Build system integration for external scanners.
+//!
+//! This module discovers and compiles user-provided scanner implementations
+//! (C, C++, or Rust) that handle tokens which cannot be expressed as regular
+//! expressions (e.g., Python indentation, JavaScript template literals).
 
 use anyhow::{Context, Result, bail};
 use std::fs;
@@ -35,7 +38,10 @@ impl ScannerLanguage {
     }
 }
 
-/// Scanner builder configuration
+/// Discovers and compiles an external scanner (C, C++, or Rust) for a grammar.
+///
+/// Call [`ScannerBuilder::find_scanner`] to locate the source file, then
+/// [`ScannerBuilder::build`] to compile it and generate Rust FFI bindings.
 pub struct ScannerBuilder {
     /// Grammar name
     grammar_name: String,
@@ -284,7 +290,8 @@ pub fn register_scanner() {{
     }
 }
 
-/// Helper function to build scanners in build.rs
+/// Convenience function for `build.rs`: discovers and compiles the external
+/// scanner for the named grammar in the current crate.
 pub fn build_scanner(grammar_name: &str) -> Result<()> {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").context("CARGO_MANIFEST_DIR not set")?;
     let out_dir = std::env::var("OUT_DIR").context("OUT_DIR not set")?;

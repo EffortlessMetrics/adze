@@ -99,14 +99,20 @@ pub enum Commands {
     },
 }
 
+/// Output format for the `parse` sub-command.
 #[derive(clap::ValueEnum, Clone, Debug)]
 pub enum OutputFormat {
+    /// Indented tree (default).
     Tree,
+    /// S-expression.
     Sexp,
+    /// JSON.
     Json,
+    /// Graphviz DOT.
     Dot,
 }
 
+/// Run the `generate` sub-command: build a parser from a `grammar.js` file.
 pub fn run_generate(
     grammar: &PathBuf,
     output: &PathBuf,
@@ -140,6 +146,7 @@ pub fn run_generate(
     Ok(())
 }
 
+/// Run the `parse` sub-command: parse a source file and print the syntax tree.
 pub fn run_parse(
     file: &Path,
     parser: &Option<PathBuf>,
@@ -158,10 +165,12 @@ pub fn run_parse(
     parse::parse_file(file, parser.as_deref(), parse_format, fields, stats)
 }
 
+/// Run the `test` sub-command: execute a corpus of test cases against a parser.
 pub fn run_test(path: &Path, filter: &Option<String>, update: bool) -> Result<()> {
     test::run_tests(Some(path), None, filter.as_deref(), update, true)
 }
 
+/// Run the `init` sub-command: scaffold a new grammar project.
 pub fn run_init(name: &str, in_place: bool) -> Result<()> {
     use std::fs;
 
@@ -259,6 +268,7 @@ mod tests {{
     Ok(())
 }
 
+/// Run the `info` sub-command: display information about a grammar.
 pub fn run_info(path: &PathBuf, node_types: bool, rules: bool) -> Result<()> {
     use crate::grammar_js::parse_grammar_js_v2;
     use std::fs;

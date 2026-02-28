@@ -6,7 +6,7 @@ use adze_ir::{
     TokenPattern,
 };
 
-/// Simplified grammar converter
+/// Utility for creating sample [`Grammar`] instances for testing and demonstration.
 pub struct GrammarConverter;
 
 impl GrammarConverter {
