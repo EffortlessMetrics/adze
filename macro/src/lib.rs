@@ -570,4 +570,335 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn enum_prec_right() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Expression {
+                        Number(
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            i32
+                        ),
+                        #[adze::prec_right(1)]
+                        Cons(
+                            Box<Expression>,
+                            #[adze::leaf(text = "::")]
+                            (),
+                            Box<Expression>
+                        ),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn enum_prec_no_assoc() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Expression {
+                        Number(
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            i32
+                        ),
+                        #[adze::prec(2)]
+                        Cmp(
+                            Box<Expression>,
+                            #[adze::leaf(text = "==")]
+                            (),
+                            Box<Expression>
+                        ),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn struct_skip_field() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct MyNode {
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        value: i32,
+                        #[adze::skip(false)]
+                        visited: bool,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn struct_delimited_vec() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct NumberList {
+                        #[adze::delimited(
+                            #[adze::leaf(text = ",")]
+                            ()
+                        )]
+                        numbers: Vec<Number>,
+                    }
+
+                    pub struct Number {
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        v: i32,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn struct_external_scanner() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Code {
+                        body: Block,
+                    }
+
+                    #[adze::external]
+                    pub struct IndentToken;
+
+                    pub struct Block {
+                        #[adze::leaf(text = "{")]
+                        _open: (),
+                        #[adze::leaf(text = "}")]
+                        _close: (),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn struct_word_token() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Program {
+                        name: Identifier,
+                    }
+
+                    #[adze::word]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        _ident: (),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn enum_unit_variant_leaf() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Operator {
+                        #[adze::leaf(text = "+")]
+                        Plus,
+                        #[adze::leaf(text = "-")]
+                        Minus,
+                        #[adze::leaf(text = "*")]
+                        Star,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn grammar_multiple_types() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Program {
+                        stmts: Vec<Statement>,
+                    }
+
+                    pub enum Statement {
+                        Expr(Box<Expression>),
+                        Assign {
+                            #[adze::leaf(pattern = r"[a-z]+")]
+                            name: (),
+                            #[adze::leaf(text = "=")]
+                            _eq: (),
+                            value: Box<Expression>,
+                        },
+                    }
+
+                    pub enum Expression {
+                        Number(
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            i32
+                        ),
+                        #[adze::prec_left(1)]
+                        Add(
+                            Box<Expression>,
+                            #[adze::leaf(text = "+")]
+                            (),
+                            Box<Expression>
+                        ),
+                    }
+
+                    #[adze::extra]
+                    struct Whitespace {
+                        #[adze::leaf(pattern = r"\s")]
+                        _ws: (),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn error_missing_grammar_name() {
+        let result = expand_grammar(parse_quote! {
+            #[adze::grammar]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Number(
+                        #[adze::leaf(pattern = r"\d+")]
+                        ()
+                    ),
+                }
+            }
+        });
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("grammar") || err_msg.contains("name") || err_msg.contains("string"),
+            "Error should mention grammar name: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn error_missing_language_annotation() {
+        let result = expand_grammar(parse_quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                pub enum Expr {
+                    Number(
+                        #[adze::leaf(pattern = r"\d+")]
+                        ()
+                    ),
+                }
+            }
+        });
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("language") || err_msg.contains("root"),
+            "Error should mention language annotation: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn enum_leaf_text_on_field() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Token {
+                        #[adze::leaf(text = "if")]
+                        If,
+                        #[adze::leaf(text = "else")]
+                        Else,
+                        Ident(
+                            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                            ()
+                        ),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn struct_leaf_text_literal() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Parenthesized {
+                        #[adze::leaf(text = "(")]
+                        _open: (),
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        value: i32,
+                        #[adze::leaf(text = ")")]
+                        _close: (),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+
+        Ok(())
+    }
 }

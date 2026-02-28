@@ -1,0 +1,67 @@
+---
+source: macro/src/lib.rs
+expression: "rustfmt_code(&expand_grammar(parse_quote!\n{\n    #[adze::grammar(\"test\")] mod grammar\n    {\n        #[adze::language] pub struct Parenthesized\n        {\n            #[adze::leaf(text = \"(\")] _open: (),\n            #[adze::leaf(pattern = r\"\\d+\", transform = |v|\n            v.parse().unwrap())] value: i32, #[adze::leaf(text = \")\")] _close:\n            (),\n        }\n    }\n})? .to_token_stream().to_string())"
+---
+mod grammar {
+    pub struct Parenthesized {
+        _open: (),
+        value: i32,
+        _close: (),
+    }
+    impl ::adze::Extract<Parenthesized> for Parenthesized {
+        type LeafFn = ();
+        const GRAMMAR_NAME: &'static str = "test";
+        #[allow(non_snake_case)]
+        fn extract(
+            node: Option<&::adze::pure_parser::ParsedNode>,
+            source: &[u8],
+            last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.expect("Extract called with None node for struct");
+            ::adze::__private::extract_struct_or_variant(node, move |cursor, last_idx| {
+                Parenthesized {
+                    _open: {
+                        ::adze::__private::extract_field::<(), _>(
+                            cursor, source, last_idx, "_open", None,
+                        )
+                    },
+                    value: {
+                        ::adze::__private::extract_field::<adze::WithLeaf<i32>, _>(
+                            cursor,
+                            source,
+                            last_idx,
+                            "value",
+                            Some(&|v| v.parse().unwrap()),
+                        )
+                    },
+                    _close: {
+                        ::adze::__private::extract_field::<(), _>(
+                            cursor, source, last_idx, "_close", None,
+                        )
+                    },
+                }
+            })
+        }
+    }
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_",
+        "test",
+        "/parser_",
+        "test",
+        ".rs"
+    ));
+    pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
+        &LANGUAGE
+    }
+    pub const LANGUAGE_REF: &'static ::adze::pure_parser::TSLanguage = &LANGUAGE;
+    #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
+    #[doc = "[`Parenthesized`]"]
+    #[doc = r" instance containing the parsed structured data."]
+    pub fn parse(
+        input: &str,
+    ) -> core::result::Result<Parenthesized, Vec<::adze::errors::ParseError>> {
+        ::adze::__private::parse::<Parenthesized>(input, || language())
+    }
+}
