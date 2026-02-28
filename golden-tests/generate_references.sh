@@ -16,17 +16,40 @@ generate_reference() {
     local expected_dir="$SCRIPT_DIR/$lang/expected"
     local sexp_path="$expected_dir/${base_name}.sexp"
     local hash_path="$expected_dir/${base_name}.sha256"
+    local grammar_dir="${TREE_SITTER_GRAMMAR_DIR:-}"
+
+    if [ -z "$grammar_dir" ]; then
+        if [ "$lang" = "python" ]; then
+            grammar_dir="/tmp/tree-sitter-python"
+        elif [ "$lang" = "javascript" ]; then
+            grammar_dir="/tmp/tree-sitter-javascript"
+        fi
+    fi
 
     mkdir -p "$expected_dir"
     
     echo "Generating reference for $lang/$filename..."
     
     # Generate S-expression using tree-sitter CLI
-    tree-sitter parse "$input_path" --quiet > "$sexp_path" 2>/dev/null || {
+    if [ -n "$grammar_dir" ] && [ -d "$grammar_dir" ]; then
+        (cd "$grammar_dir" && tree-sitter parse "$input_path" --quiet) > "$sexp_path" 2>/dev/null || {
+            echo "Error: Failed to parse $input_path with tree-sitter"
+            echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
+            exit 1
+        }
+    else
+        tree-sitter parse "$input_path" --quiet > "$sexp_path" 2>/dev/null || {
+            echo "Error: Failed to parse $input_path with tree-sitter"
+            echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
+            exit 1
+        }
+    fi
+
+    if [ ! -s "$sexp_path" ]; then
         echo "Error: Failed to parse $input_path with tree-sitter"
-        echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
+        echo "No parse output was produced for $lang/$filename"
         exit 1
-    }
+    fi
     
     # Generate SHA256 hash of the S-expression
     sha256sum "$sexp_path" | cut -d' ' -f1 > "$hash_path"

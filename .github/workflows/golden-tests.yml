@@ -61,7 +61,8 @@ jobs:
         cd golden-tests
         if [ ! -d "${{ matrix.language }}/expected" ] || [ -z "$(ls -A ${{ matrix.language }}/expected)" ]; then
           echo "Generating reference files for ${{ matrix.language }}..."
-          ./generate_references.sh "${{ matrix.language }}"
+          grammar_dir="/tmp/tree-sitter-${{ matrix.language }}"
+          TREE_SITTER_GRAMMAR_DIR="$grammar_dir" ./generate_references.sh "${{ matrix.language }}"
         fi
     
     - name: Cache Cargo
