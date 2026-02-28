@@ -1,0 +1,21 @@
+[package]
+name = "adze-governance-runtime-profile-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Core runtime parser-profile and backend-selection helpers."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+pure-rust = ["adze-governance-runtime-reporting/pure-rust"]
+tree-sitter-c2rust = ["adze-governance-runtime-reporting/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-governance-runtime-reporting/tree-sitter-standard"]
+glr = ["pure-rust", "adze-governance-runtime-reporting/glr"]
+strict_api = ["adze-governance-runtime-reporting/strict_api"]
+strict_docs = ["adze-governance-runtime-reporting/strict_docs"]
+
+[dependencies]
+adze-governance-runtime-reporting = { version = "0.1.0", path = "../governance-runtime-reporting" }

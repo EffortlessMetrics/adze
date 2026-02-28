@@ -363,6 +363,14 @@ dependencies = [
 name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
+ "adze-governance-runtime-profile-core",
+ "adze-governance-runtime-reporting",
+]
+
+[[package]]
+name = "adze-governance-runtime-profile-core"
+version = "0.1.0"
+dependencies = [
  "adze-governance-runtime-reporting",
 ]
 
