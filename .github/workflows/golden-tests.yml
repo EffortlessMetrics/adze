@@ -54,6 +54,7 @@ jobs:
           cd tree-sitter-javascript
         fi
         tree-sitter generate
+        tree-sitter build
     
     - name: Generate reference files if missing
       if: steps.refs.outputs.missing == 'true'
