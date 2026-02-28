@@ -573,6 +573,31 @@ impl FirstFollowSets {
     }
 
     /// Compute FIRST/FOLLOW sets for the given grammar
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_ir::builder::GrammarBuilder;
+    /// use adze_glr_core::FirstFollowSets;
+    ///
+    /// // Build a simple arithmetic grammar: sum -> NUMBER "+" NUMBER
+    /// let grammar = GrammarBuilder::new("arith")
+    ///     .token("NUMBER", r"\d+")
+    ///     .token("+", "+")
+    ///     .rule("sum", vec!["NUMBER", "+", "NUMBER"])
+    ///     .start("sum")
+    ///     .build();
+    ///
+    /// let ff = FirstFollowSets::compute(&grammar).unwrap();
+    ///
+    /// // The start symbol "sum" is not nullable (it requires tokens)
+    /// let sum_id = grammar.start_symbol().unwrap();
+    /// assert!(!ff.is_nullable(sum_id));
+    ///
+    /// // FIRST(sum) should contain the NUMBER terminal
+    /// let first = ff.first(sum_id).unwrap();
+    /// assert!(first.count_ones(..) > 0);
+    /// ```
     pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
         // Clone and normalize the grammar if it contains complex symbols
         let normalized_grammar = {
@@ -1482,6 +1507,39 @@ pub enum GotoIndexing {
 }
 
 /// GLR-compatible parse table supporting multiple actions per state
+///
+/// # Examples
+///
+/// ```
+/// use adze_ir::builder::GrammarBuilder;
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton, Action};
+///
+/// let grammar = GrammarBuilder::new("tiny")
+///     .token("a", "a")
+///     .rule("S", vec!["a"])
+///     .start("S")
+///     .build();
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let table = build_lr1_automaton(&grammar, &ff).unwrap();
+///
+/// // The table has at least one state
+/// assert!(table.state_count > 0);
+///
+/// // The action table has one row per state
+/// assert_eq!(table.action_table.len(), table.state_count);
+///
+/// // EOF and start symbol are set
+/// assert_eq!(table.start_symbol, grammar.start_symbol().unwrap());
+///
+/// // There must be an Accept action somewhere on the EOF column
+/// let eof_col = table.symbol_to_index[&table.eof_symbol];
+/// let has_accept = table.action_table.iter().any(|row| {
+///     row.get(eof_col)
+///         .map_or(false, |cell| cell.iter().any(|a| matches!(a, Action::Accept)))
+/// });
+/// assert!(has_accept);
+/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
@@ -1954,6 +2012,23 @@ impl ParseTable {
 }
 
 /// Actions in GLR parse table (supporting multiple actions per state)
+///
+/// # Examples
+///
+/// ```
+/// use adze_glr_core::Action;
+/// use adze_ir::StateId;
+///
+/// let action = Action::Shift(StateId(5));
+///
+/// match &action {
+///     Action::Shift(state) => assert_eq!(state.0, 5),
+///     Action::Reduce(rule)  => panic!("expected shift"),
+///     Action::Accept        => panic!("expected shift"),
+///     Action::Error         => panic!("expected shift"),
+///     _                     => panic!("expected shift"),
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
@@ -2329,6 +2404,29 @@ fn action_sort_key(action: &Action) -> (u8, u16, u16, u16) {
 }
 
 /// Build LR(1) automaton (parse table) from grammar
+///
+/// # Examples
+///
+/// ```
+/// use adze_ir::builder::GrammarBuilder;
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton, sanity_check_tables};
+///
+/// // A grammar with two productions: S -> "a" "b" | "a" "c"
+/// let grammar = GrammarBuilder::new("ab_ac")
+///     .token("a", "a")
+///     .token("b", "b")
+///     .token("c", "c")
+///     .rule("S", vec!["a", "b"])
+///     .rule("S", vec!["a", "c"])
+///     .start("S")
+///     .build();
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let table = build_lr1_automaton(&grammar, &ff).unwrap();
+///
+/// // Verify the generated table is internally consistent
+/// sanity_check_tables(&table).unwrap();
+/// ```
 pub fn build_lr1_automaton(
     grammar: &Grammar,
     first_follow: &FirstFollowSets,

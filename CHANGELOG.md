@@ -5,13 +5,20 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- **Crate READMEs**: Added README.md files for `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-macro`, `adze-common`, `adze-tool`, and `adze-cli`.
+- **Complete README Coverage**: Added README.md files for all 60+ workspace crates, including core crates, grammar crates, microcrates, and infrastructure crates.
 - **Enhanced Rustdoc**: Improved crate-level documentation for `adze`, `adze-ir`, `adze-glr-core`, and `adze-tablegen` with quick-start guides, architecture overviews, and feature flag tables.
+- **Doc Tests**: Added 6 executable doc tests to `adze-ir` public API items (`SymbolId`, `Symbol`, `Grammar`, `GrammarBuilder`, `normalize()`).
+- **Integration Tests**: Added 7 integration tests exercising the full Grammar → IR → FIRST/FOLLOW → LR(1) → Parse Tables pipeline in `adze-glr-core`.
+- **Property Tests**: Added 17 proptest-based property tests for IR (symbol equality, serde roundtrip, normalization idempotence) and GLR core (FIRST/FOLLOW computation, terminal containment, nullable detection, determinism).
+- **Table Compression Property Tests**: Added 5 property tests for tablegen compression (determinism, goto roundtrip, action roundtrip, single-token grammar, empty table rejection).
+- **Crate Descriptions**: Added `description` fields to 13 workspace crates missing them.
 
 ### Fixed
 - **Manifest Warnings**: Removed invalid `license` fields from dependency tables in `lsp-generator` and `wasm-demo` Cargo.toml files.
 - **Duplicate Dependencies**: Resolved duplicate `clap` dependency in `lsp-generator/Cargo.toml`.
 - **Crate Metadata**: Fixed missing workspace fields (edition, rust-version, authors) and added homepage, keywords, and categories for `adze-cli`, `adze-macro`, `adze-tool`, and `adze-common`.
+- **Rustdoc Links**: Fixed broken intra-doc links in `adze-ir`, `adze-tablegen`, and `adze` runtime crates.
+- **Package Includes**: Added `tests/**` to package include lists for core crates to ensure tests ship with published packages.
 
 ## [0.8.0] - 2026-02-22
 
