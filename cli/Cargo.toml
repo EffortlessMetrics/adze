@@ -1,10 +1,16 @@
 [package]
 name = "adze-cli"
 version = "0.8.0-dev"
-edition = "2024"
-authors = ["Tree-sitter Contributors"]
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
 description = "CLI tools for adze grammar development"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+readme = "README.md"
+keywords = ["parsing", "grammar", "cli", "tree-sitter"]
+categories = ["development-tools", "command-line-utilities"]
 
 [[bin]]
 name = "adze"

@@ -1,13 +1,15 @@
 [package]
 name = "adze-common"
 description = "Shared logic for the Adze macro and tool"
-readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
-edition = "2024"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-keywords = ["parsing", "codegen"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+readme = "README.md"
+keywords = ["parsing", "codegen", "grammar"]
 categories = ["development-tools"]
 
 [lib]

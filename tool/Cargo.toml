@@ -1,13 +1,15 @@
 [package]
 name = "adze-tool"
 description = "The external tool for Adze that extracts grammars from Rust definitions"
-readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-edition = "2024"
-keywords = ["parsing", "codegen"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+readme = "README.md"
+keywords = ["parsing", "codegen", "grammar", "tree-sitter"]
 categories = ["development-tools"]
 
 [features]
