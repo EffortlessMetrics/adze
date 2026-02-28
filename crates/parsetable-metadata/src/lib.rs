@@ -175,7 +175,7 @@ pub struct TableStatistics {
 /// assert!(flags.glr_enabled);
 /// assert!(!flags.external_scanner);
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct FeatureFlags {
     /// GLR parsing feature flag.
     pub glr_enabled: bool,
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn format_version_is_positive() {
-        assert!(FORMAT_VERSION > 0);
+        const { assert!(FORMAT_VERSION > 0) };
     }
 
     #[test]
@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn error_construct_all_variants() {
-        let _ = ParsetableError::Io(std::io::Error::new(std::io::ErrorKind::Other, "x"));
+        let _ = ParsetableError::Io(std::io::Error::other("x"));
         let _ = ParsetableError::Serialization("x".into());
         let _ = ParsetableError::InvalidMetadata("x".into());
         let _ = ParsetableError::HashError("x".into());

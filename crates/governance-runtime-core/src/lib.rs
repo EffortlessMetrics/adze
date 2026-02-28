@@ -11,6 +11,7 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
+/// Re-exported governance reporting primitives (BDD grid, parser profiles, report helpers).
 pub use adze_governance_runtime_reporting::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,

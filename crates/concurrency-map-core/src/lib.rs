@@ -7,6 +7,7 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
+/// Re-exported bounded parallel map and partition planning utilities.
 pub use adze_concurrency_bounded_map_core::{
     ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency,
 };
