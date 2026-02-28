@@ -88,10 +88,8 @@ impl ExternalScanner for IndentationScanner {
                 }
                 std::cmp::Ordering::Less => {
                     if valid_symbols.get(DEDENT as usize) == Some(&true) {
-                        let mut dedent_levels = 0;
-                        while stack.len() > 1 && *stack.last().unwrap() > indent_level {
+                        if stack.len() > 1 && *stack.last().unwrap() > indent_level {
                             stack.pop();
-                            dedent_levels += 1;
                         }
                         lexer.mark_end();
                         return Some(ScanResult {
@@ -211,7 +209,7 @@ fn test_basic_indentation() {
     assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4]);
 
     // Move to next line with same indent
-    lexer.position = 29; // After "print('hello')\n"
+    lexer.position = 30; // After "print('hello')\n"
     lexer.column = 0;
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert_eq!(result, None); // Same indent level, no token
@@ -294,7 +292,7 @@ fn test_mixed_spaces_tabs() {
     );
 
     // After "print(1)\n" with 4 spaces
-    lexer.position = 15;
+    lexer.position = 16;
     lexer.column = 0;
     let result = scanner.scan(&mut lexer, &valid_symbols);
     assert_eq!(result, None); // Same indent level (4 spaces = 1 tab)
@@ -391,7 +389,7 @@ fn test_multi_dedent() {
     assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4]);
 
     // Skip to second newline (after "if y:")
-    lexer.position = 17;
+    lexer.position = 16;
     lexer.column = 0;
 
     // Should detect second INDENT (8 spaces)
@@ -406,7 +404,7 @@ fn test_multi_dedent() {
     assert_eq!(*scanner.indent_stack.lock().unwrap(), vec![0, 4, 8]);
 
     // Skip to third newline (after "pass")
-    lexer.position = 33;
+    lexer.position = 29;
     lexer.column = 0;
 
     // Now we're at column 0, should detect DEDENT
@@ -487,7 +485,7 @@ fn test_dedent_sequence() {
     // Position at the start of "end" (column 0)
     let mut lexer = TestLexer {
         input,
-        position: 45, // Position at 'e' in "end"
+        position: 47, // Position at 'e' in "end"
         column: 0,
         mark: 0,
     };

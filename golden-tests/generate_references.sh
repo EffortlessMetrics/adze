@@ -11,8 +11,12 @@ generate_reference() {
     local lang=$1
     local filename=$2
     local input_path="$SCRIPT_DIR/$lang/fixtures/$filename"
-    local sexp_path="$SCRIPT_DIR/$lang/expected/${filename%.${lang}}.sexp"
-    local hash_path="$SCRIPT_DIR/$lang/expected/${filename%.${lang}}.sha256"
+    local base_name="${filename%.*}"
+    local expected_dir="$SCRIPT_DIR/$lang/expected"
+    local sexp_path="$expected_dir/${base_name}.sexp"
+    local hash_path="$expected_dir/${base_name}.sha256"
+
+    mkdir -p "$expected_dir"
     
     echo "Generating reference for $lang/$filename..."
     

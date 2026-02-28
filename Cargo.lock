@@ -223,6 +223,15 @@ name = "adze-concurrency-caps-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-caps-contract-core",
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-classifier-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-init-rayon-core",
+ "adze-concurrency-map-core",
+ "adze-concurrency-normalize-core",
+ "adze-concurrency-parse-core",
+ "adze-concurrency-plan-core",
+ "proptest",
 ]
 
 [[package]]
