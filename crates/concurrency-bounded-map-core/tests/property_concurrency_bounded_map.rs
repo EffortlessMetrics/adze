@@ -1,4 +1,6 @@
-use adze_concurrency_bounded_map_core::{bounded_parallel_map, normalized_concurrency};
+use adze_concurrency_bounded_map_core::{
+    ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency,
+};
 use proptest::prelude::*;
 
 fn model_transform(value: i32) -> i32 {
@@ -45,5 +47,52 @@ proptest! {
         r1.sort_unstable();
         r2.sort_unstable();
         prop_assert_eq!(r1, r2);
+    }
+
+    #[test]
+    fn plan_concurrency_always_positive(
+        item_count in 0usize..1024,
+        concurrency in 0usize..128,
+    ) {
+        let plan = ParallelPartitionPlan::for_item_count(item_count, concurrency);
+        prop_assert!(plan.concurrency >= 1);
+        prop_assert!(plan.chunk_size >= 1);
+    }
+
+    #[test]
+    fn plan_chunk_size_covers_all_items(
+        item_count in 1usize..1024,
+        concurrency in 1usize..128,
+    ) {
+        let plan = ParallelPartitionPlan::for_item_count(item_count, concurrency);
+        // chunk_size * concurrency must cover all items
+        prop_assert!(plan.chunk_size * plan.concurrency >= item_count,
+            "chunk_size {} * concurrency {} < item_count {}",
+            plan.chunk_size, plan.concurrency, item_count);
+    }
+
+    #[test]
+    fn normalized_concurrency_is_idempotent(value in any::<usize>()) {
+        let once = normalized_concurrency(value);
+        let twice = normalized_concurrency(once);
+        prop_assert_eq!(once, twice);
+    }
+
+    #[test]
+    fn identity_map_preserves_values_exactly(
+        input in prop::collection::vec(any::<i32>(), 0..128),
+        concurrency in 1usize..16,
+    ) {
+        let mut result = bounded_parallel_map(input.clone(), concurrency, |x| x);
+        result.sort_unstable();
+        let mut expected = input;
+        expected.sort_unstable();
+        prop_assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn empty_input_always_empty(concurrency in 0usize..64) {
+        let result: Vec<i32> = bounded_parallel_map(Vec::new(), concurrency, model_transform);
+        prop_assert!(result.is_empty());
     }
 }
