@@ -1,0 +1,22 @@
+[package]
+name = "adze-bdd-governance-snapshot-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Snapshot/back-end policy primitives for BDD governance matrices."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+pure-rust = ["adze-feature-policy-core/pure-rust"]
+tree-sitter-c2rust = ["adze-feature-policy-core/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-feature-policy-core/tree-sitter-standard"]
+glr = ["pure-rust", "adze-feature-policy-core/glr"]
+strict_api = ["adze-bdd-grid-core/strict_api", "adze-feature-policy-core/strict_api"]
+strict_docs = ["adze-bdd-grid-core/strict_docs", "adze-feature-policy-core/strict_docs"]
+
+[dependencies]
+adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
+adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }

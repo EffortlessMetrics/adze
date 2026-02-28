@@ -1,7 +1,7 @@
 //! Core implementation of governance matrix snapshots, profiles, and reporting.
 //!
-//! This crate owns the combined BDD/feature-policy logic and can be consumed
-//! directly by BDD-facing crates or through compatibility facades.
+//! Matrix/report orchestration stays here while snapshot/backend-policy logic
+//! lives in `adze-bdd-governance-snapshot-core` for SRP-focused reuse.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -12,40 +12,14 @@
 
 use core::fmt::Write;
 
+pub use adze_bdd_governance_snapshot_core::{
+    BddGovernanceSnapshot, GLR_CONFLICT_FALLBACK, ParserBackend, ParserFeatureProfile,
+    bdd_governance_snapshot, describe_backend_for_conflicts,
+};
 pub use adze_bdd_grid_core::{
     BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
     bdd_progress_report,
 };
-pub use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
-
-/// Advisory profile description for conflict-capable grammars.
-pub const GLR_CONFLICT_FALLBACK: &str =
-    "Pure-rust without GLR: conflicts panic unless `glr` feature is enabled";
-
-/// Snapshot of governance progress for one phase and feature profile.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BddGovernanceSnapshot {
-    /// The phase being evaluated.
-    pub phase: BddPhase,
-    /// Number of implemented scenarios.
-    pub implemented: usize,
-    /// Total number of scenarios in the slice.
-    pub total: usize,
-    /// The active parser feature profile used to interpret behavior.
-    pub profile: ParserFeatureProfile,
-}
-
-impl BddGovernanceSnapshot {
-    /// Returns true when all scenarios for this phase are implemented.
-    pub const fn is_fully_implemented(self) -> bool {
-        self.implemented == self.total
-    }
-
-    /// Convenience helper to expose the active non-conflict backend.
-    pub const fn non_conflict_backend(self) -> ParserBackend {
-        self.profile.resolve_backend(false)
-    }
-}
 
 /// Typed composition of a BDD scenario grid and a parser feature profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,32 +73,6 @@ impl BddGovernanceMatrix {
     /// Returns true when all scenarios in the matrix are implemented.
     pub fn is_fully_implemented(self) -> bool {
         self.snapshot().is_fully_implemented()
-    }
-}
-
-/// Describe the conflict backend behavior for a given feature profile.
-pub const fn describe_backend_for_conflicts(profile: ParserFeatureProfile) -> &'static str {
-    if profile.glr {
-        ParserBackend::GLR.name()
-    } else if profile.pure_rust {
-        GLR_CONFLICT_FALLBACK
-    } else {
-        ParserBackend::TreeSitter.name()
-    }
-}
-
-/// Build a compact governance snapshot for a phase.
-pub fn bdd_governance_snapshot(
-    phase: BddPhase,
-    scenarios: &[BddScenario],
-    profile: ParserFeatureProfile,
-) -> BddGovernanceSnapshot {
-    let (implemented, total) = bdd_progress(phase, scenarios);
-    BddGovernanceSnapshot {
-        phase,
-        implemented,
-        total,
-        profile,
     }
 }
 
