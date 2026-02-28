@@ -71,6 +71,7 @@ members = [
   "test-mini",
   "golden-tests",
   "wasm-demo",
+  "tests/governance",
 ]
 # These crates are intentionally excluded from default workspace commands
 # due to mutually exclusive features. Build them explicitly with -p when needed.

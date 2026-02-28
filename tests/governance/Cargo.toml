@@ -1,0 +1,15 @@
+[package]
+name = "governance-integration-tests"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+adze-feature-policy-core = { path = "../../crates/feature-policy-core" }
+adze-governance-metadata = { path = "../../crates/governance-metadata" }
+adze-parsetable-metadata = { path = "../../crates/parsetable-metadata" }
+adze-bdd-grid-core = { path = "../../crates/bdd-grid-core" }
+adze-governance-runtime-core = { path = "../../crates/governance-runtime-core" }
+adze-governance-runtime-reporting = { path = "../../crates/governance-runtime-reporting" }
+serde_json = "1.0"

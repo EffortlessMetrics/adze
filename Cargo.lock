@@ -232,6 +232,7 @@ dependencies = [
  "adze-concurrency-normalize-core",
  "adze-concurrency-parse-core",
  "adze-concurrency-plan-core",
+ "criterion",
  "proptest",
 ]
 
@@ -435,7 +436,9 @@ version = "0.1.0"
 dependencies = [
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
+ "insta",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -477,6 +480,7 @@ dependencies = [
 name = "adze-linecol-core"
 version = "0.1.0"
 dependencies = [
+ "criterion",
  "proptest",
 ]
 
@@ -540,6 +544,8 @@ name = "adze-parsetable-metadata"
 version = "0.1.0"
 dependencies = [
  "adze-governance-metadata",
+ "criterion",
+ "insta",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -607,7 +613,12 @@ dependencies = [
 name = "adze-runtime-governance"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+ "adze-governance-metadata",
+ "adze-parsetable-metadata",
  "adze-runtime-governance-matrix",
+ "serde_json",
 ]
 
 [[package]]
@@ -635,6 +646,7 @@ dependencies = [
 name = "adze-stack-pool-core"
 version = "0.1.0"
 dependencies = [
+ "criterion",
  "proptest",
 ]
 
@@ -668,12 +680,21 @@ name = "adze-testing"
 version = "0.1.0"
 dependencies = [
  "adze",
+ "adze-concurrency-caps-core",
+ "adze-concurrency-normalize-core",
+ "adze-concurrency-parse-core",
+ "adze-concurrency-plan-core",
  "adze-glr-core",
+ "adze-glr-versioning",
  "adze-ir",
+ "adze-linecol-core",
+ "adze-parser-backend-core",
+ "adze-stack-pool-core",
  "anyhow",
  "chrono",
  "clap",
  "insta",
+ "proptest",
  "serde",
  "serde_json",
  "tempfile",
@@ -712,7 +733,10 @@ name = "adze-ts-format-core"
 version = "0.1.0"
 dependencies = [
  "adze-glr-core",
+ "insta",
  "proptest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1559,6 +1583,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-integration-tests"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+ "adze-governance-metadata",
+ "adze-governance-runtime-core",
+ "adze-governance-runtime-reporting",
+ "adze-parsetable-metadata",
+ "serde_json",
+]
+
+[[package]]
 name = "half"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1869,6 +1906,7 @@ checksum = "e82db8c87c7f1ccecb34ce0c24399b8a73081427f3c7c50a5d597925356115e4"
 dependencies = [
  "console",
  "once_cell",
+ "serde",
  "similar",
  "tempfile",
 ]
