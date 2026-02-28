@@ -83,6 +83,36 @@ pub struct Grammar {
 
 impl Grammar {
     /// Add a rule to the grammar
+    ///
+    /// Multiple rules with the same `lhs` are treated as alternatives.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_ir::{Grammar, Rule, Symbol, SymbolId, ProductionId};
+    ///
+    /// let mut grammar = Grammar::new("example".to_string());
+    ///
+    /// // Add two alternatives for the same LHS: S -> A | B
+    /// grammar.add_rule(Rule {
+    ///     lhs: SymbolId(0),
+    ///     rhs: vec![Symbol::Terminal(SymbolId(1))],
+    ///     precedence: None,
+    ///     associativity: None,
+    ///     fields: vec![],
+    ///     production_id: ProductionId(0),
+    /// });
+    /// grammar.add_rule(Rule {
+    ///     lhs: SymbolId(0),
+    ///     rhs: vec![Symbol::Terminal(SymbolId(2))],
+    ///     precedence: None,
+    ///     associativity: None,
+    ///     fields: vec![],
+    ///     production_id: ProductionId(1),
+    /// });
+    ///
+    /// assert_eq!(grammar.get_rules_for_symbol(SymbolId(0)).unwrap().len(), 2);
+    /// ```
     pub fn add_rule(&mut self, rule: Rule) {
         self.rules.entry(rule.lhs).or_default().push(rule);
     }
@@ -283,6 +313,33 @@ pub enum TokenPattern {
 }
 
 /// Grammar symbol types
+///
+/// Represents the different kinds of symbols that can appear in a grammar rule's
+/// right-hand side. Simple symbols (`Terminal`, `NonTerminal`, `External`) reference
+/// other grammar entities by [`SymbolId`]. Complex symbols (`Optional`, `Repeat`,
+/// `Choice`, `Sequence`) are expanded into auxiliary rules by [`Grammar::normalize()`].
+///
+/// # Examples
+///
+/// ```
+/// use adze_ir::{Symbol, SymbolId};
+///
+/// // Terminal and non-terminal symbols reference IDs
+/// let term = Symbol::Terminal(SymbolId(1));
+/// let non_term = Symbol::NonTerminal(SymbolId(2));
+///
+/// // Complex symbols compose other symbols
+/// let opt = Symbol::Optional(Box::new(Symbol::Terminal(SymbolId(3))));
+/// let rep = Symbol::Repeat(Box::new(Symbol::NonTerminal(SymbolId(4))));
+/// let choice = Symbol::Choice(vec![
+///     Symbol::Terminal(SymbolId(5)),
+///     Symbol::Terminal(SymbolId(6)),
+/// ]);
+///
+/// // Symbols support equality and hashing
+/// assert_eq!(term, Symbol::Terminal(SymbolId(1)));
+/// assert_ne!(term, non_term);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Symbol {
     /// Terminal symbol
@@ -365,6 +422,24 @@ pub struct ExternalToken {
 
 // Type-safe IDs
 /// Symbol identifier
+///
+/// A newtype wrapper around `u16` used to uniquely identify grammar symbols
+/// (terminals, non-terminals, and externals) throughout the IR.
+///
+/// # Examples
+///
+/// ```
+/// use adze_ir::SymbolId;
+///
+/// let id = SymbolId(1);
+/// assert_eq!(id.0, 1);
+/// assert_eq!(format!("{id}"), "Symbol(1)");
+///
+/// // SymbolIds are comparable and hashable
+/// let id2 = SymbolId(2);
+/// assert!(id < id2);
+/// assert_ne!(id, id2);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SymbolId(pub u16);
 
@@ -431,6 +506,32 @@ pub struct SymbolMetadata {
 /// Grammar validation and processing
 impl Grammar {
     /// Create a new empty grammar
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_ir::{Grammar, Rule, Symbol, SymbolId, Token, TokenPattern, ProductionId};
+    ///
+    /// let mut grammar = Grammar::new("arithmetic".to_string());
+    /// assert_eq!(grammar.name, "arithmetic");
+    /// assert!(grammar.rules.is_empty());
+    ///
+    /// // Add a token and a rule
+    /// grammar.tokens.insert(SymbolId(1), Token {
+    ///     name: "NUMBER".to_string(),
+    ///     pattern: TokenPattern::Regex(r"\d+".to_string()),
+    ///     fragile: false,
+    /// });
+    /// grammar.add_rule(Rule {
+    ///     lhs: SymbolId(0),
+    ///     rhs: vec![Symbol::Terminal(SymbolId(1))],
+    ///     precedence: None,
+    ///     associativity: None,
+    ///     fields: vec![],
+    ///     production_id: ProductionId(0),
+    /// });
+    /// assert_eq!(grammar.rules.len(), 1);
+    /// ```
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -516,8 +617,44 @@ impl Grammar {
         // This will be implemented based on Tree-sitter's optimization strategies
     }
 
-    /// Normalize complex symbols by creating auxiliary rules
-    /// This expands Optional, Repeat, Choice, etc. into standard rules
+    /// Normalize complex symbols by creating auxiliary rules.
+    ///
+    /// This expands `Optional`, `Repeat`, `RepeatOne`, `Choice`, and `Sequence`
+    /// symbols into standard rules with auxiliary non-terminals. Normalization is
+    /// required before FIRST/FOLLOW set computation in `adze-glr-core`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_ir::{Grammar, Rule, Symbol, SymbolId, ProductionId};
+    ///
+    /// let mut grammar = Grammar::new("test".to_string());
+    ///
+    /// // Add a rule with an Optional symbol: S -> A?
+    /// grammar.add_rule(Rule {
+    ///     lhs: SymbolId(0),
+    ///     rhs: vec![Symbol::Optional(Box::new(Symbol::Terminal(SymbolId(1))))],
+    ///     precedence: None,
+    ///     associativity: None,
+    ///     fields: vec![],
+    ///     production_id: ProductionId(0),
+    /// });
+    ///
+    /// // Before normalization: 1 rule with a complex symbol
+    /// assert_eq!(grammar.rules.len(), 1);
+    ///
+    /// grammar.normalize();
+    ///
+    /// // After normalization: the Optional was expanded into auxiliary rules
+    /// // Original rule now references a new non-terminal, plus aux -> Terminal | ε
+    /// assert!(grammar.rules.len() > 1);
+    /// // No complex symbols remain in any rule
+    /// for rule in grammar.all_rules() {
+    ///     for sym in &rule.rhs {
+    ///         assert!(!matches!(sym, Symbol::Optional(_)));
+    ///     }
+    /// }
+    /// ```
     pub fn normalize(&mut self) -> Vec<Rule> {
         let max_id = self.rules.keys().map(|id| id.0).max().unwrap_or(0);
         let mut aux_counter = max_id + 1000; // Start auxiliary IDs well above existing ones

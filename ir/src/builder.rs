@@ -13,7 +13,7 @@ use indexmap::IndexMap;
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```
 /// use adze_ir::builder::GrammarBuilder;
 ///
 /// let grammar = GrammarBuilder::new("example")
@@ -25,6 +25,10 @@ use indexmap::IndexMap;
 ///     .rule("expr", vec!["NUMBER"])
 ///     .start("expr")
 ///     .build();
+///
+/// assert_eq!(grammar.name, "example");
+/// assert_eq!(grammar.tokens.len(), 3);
+/// assert!(grammar.rules.len() >= 1);
 /// ```
 pub struct GrammarBuilder {
     name: String,
