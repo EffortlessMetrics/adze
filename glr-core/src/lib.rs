@@ -13,7 +13,24 @@
 )]
 
 //! GLR parser generation algorithms for Adze
-//! This module implements the core GLR state machine generation and conflict resolution
+//!
+//! This crate implements the core Generalized LR (GLR) parsing algorithms used
+//! by the Adze toolchain. It handles the full pipeline from grammar analysis to
+//! parse table generation.
+//!
+//! # Pipeline
+//!
+//! ```text
+//! Grammar (adze-ir) → FIRST/FOLLOW → LR(1) Items → Parse Tables → GLR Runtime
+//! ```
+//!
+//! # Key Components
+//!
+//! - **FIRST/FOLLOW sets**: Lookahead computation for grammar symbols
+//! - **LR(1) item sets**: Canonical collection construction
+//! - **Conflict detection**: Identifies shift-reduce and reduce-reduce conflicts
+//! - **GLR fork/merge**: Stack forking and merging for ambiguous grammars
+//! - **Parse tables**: ActionCell-based tables with multi-action cells
 //!
 //! ## Contracts & Invariants
 //!

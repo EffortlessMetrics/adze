@@ -4,7 +4,23 @@
 #![cfg_attr(not(feature = "strict_docs"), warn(missing_docs))]
 
 //! Grammar Intermediate Representation for Adze
-//! This module provides GLR-aware data structures for representing grammars
+//!
+//! This crate defines the intermediate representation (IR) used throughout the
+//! Adze parser toolchain. It bridges user-defined Rust grammar annotations and
+//! the low-level parse table generation in [`adze-glr-core`] and [`adze-tablegen`].
+//!
+//! # Key Types
+//!
+//! - [`Grammar`] — Core grammar representation with rules, tokens, and precedences
+//! - [`Symbol`] — Grammar symbol variants (terminal, non-terminal, complex)
+//! - [`Rule`] — Production rules with alternatives and field mappings
+//! - [`SymbolRegistry`] — Symbol ID management across the pipeline
+//!
+//! # Grammar Normalization
+//!
+//! Complex symbols (`Optional`, `Repeat`, `Choice`, `Sequence`) are normalized
+//! into auxiliary rules via [`Grammar::normalize()`], which is required before
+//! FIRST/FOLLOW set computation.
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};

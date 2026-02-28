@@ -10,6 +10,50 @@
 #![allow(clippy::only_used_in_recursion)] // Recursive algorithms in parsers
 
 //! Adze runtime library — GLR-capable parsing with typed extraction
+//!
+//! Adze is a Rust-native grammar toolchain that turns Rust type definitions into
+//! high-performance GLR parse machinery. This crate provides the runtime library
+//! for parsing and typed AST extraction.
+//!
+//! # Quick Start
+//!
+//! Define a grammar using Rust types with `#[adze::grammar]` attributes, then
+//! parse input text into typed values:
+//!
+//! ```rust,ignore
+//! #[adze::grammar]
+//! mod my_grammar {
+//!     #[adze::language]
+//!     pub enum Expr {
+//!         Number(Number),
+//!         #[adze::prec_left(1)]
+//!         Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+//!     }
+//!
+//!     #[adze::leaf(pattern = r"\d+")]
+//!     pub struct Number(String);
+//! }
+//! ```
+//!
+//! # Feature Flags
+//!
+//! | Feature | Description |
+//! |---------|-------------|
+//! | `pure-rust` | Pure-Rust parsing backend (default) |
+//! | `glr` | Enable GLR parser runtime for ambiguous grammars |
+//! | `serialization` | Enable tree serialization (JSON, S-expressions) |
+//! | `ts-compat` | Tree-sitter compatibility API |
+//! | `external_scanners` | External scanner support |
+//! | `incremental_glr` | GLR incremental parsing support |
+//! | `query` | Query predicates support |
+//!
+//! # Architecture
+//!
+//! The runtime is organized into several subsystems:
+//! - **Parsing**: GLR parser with multi-action cells and runtime forking
+//! - **Extraction**: `Extract` trait for typed AST construction
+//! - **Serialization**: Tree output in JSON and S-expression formats
+//! - **Compatibility**: Tree-sitter API compatibility layer
 
 /// Private implementation details exposed for macro use only.
 pub mod __private;

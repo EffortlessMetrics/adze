@@ -1,6 +1,19 @@
 //! # adze-tablegen
 //!
-//! Generate and compress LR(1) parse tables for Adze grammars.
+//! Generate and compress LR(1)/GLR parse tables for Adze grammars.
+//!
+//! This crate transforms parse tables from [`adze-glr-core`] into compact,
+//! Tree-sitter-compatible binary formats. It implements compression algorithms
+//! that achieve >10x size reduction for large grammars.
+//!
+//! ## Key Components
+//!
+//! - [`compress`] — Table compression algorithms
+//! - [`abi_builder`] — FFI-compatible Language struct generation
+//! - [`generate`] — Static language object generation
+//! - [`node_types`] — NODE_TYPES JSON metadata generation
+//! - [`parsetable_writer`] — `.parsetable` binary file serialization
+//! - [`validation`] — Compressed table correctness checking
 
 // Table generation requires unsafe for FFI-compatible Language struct generation
 #![forbid(unsafe_op_in_unsafe_fn)]
