@@ -94,10 +94,12 @@ adze-example = { path = "../example", features = ["ts-compat"] }
 adze-python-simple = { path = "../grammars/python-simple" }
 adze-python = { path = "../grammars/python" }
 serial_test = "3.0"
-
 # Tree-sitter dependencies for ts-compat golden tests
 tree-sitter-json = "0.24.8"
 ts-bridge = { path = "../tools/ts-bridge", features = ["with-grammars"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "=0.3.4", features = ["wasm_js"] }
 
 [[bench]]
 name = "simple_bench"

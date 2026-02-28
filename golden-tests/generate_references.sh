@@ -5,6 +5,7 @@ set -euo pipefail
 # Prerequisites: tree-sitter CLI and grammars must be installed
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_LANGUAGE="${1:-}"
 
 # Function to generate S-expression and hash for a file
 generate_reference() {
@@ -42,30 +43,35 @@ if ! command -v tree-sitter &> /dev/null; then
 fi
 
 # Python test files
-if [ -d "$SCRIPT_DIR/python/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/python/fixtures")" ]; then
-    echo "=== Generating Python references ==="
-    for file in "$SCRIPT_DIR/python/fixtures"/*.py; do
-        if [ -f "$file" ]; then
-            generate_reference "python" "$(basename "$file")"
-        fi
-    done
-else
-    echo "No Python fixtures found in $SCRIPT_DIR/python/fixtures/"
+if [ -z "$TARGET_LANGUAGE" ] || [ "$TARGET_LANGUAGE" = "python" ]; then
+    if [ -d "$SCRIPT_DIR/python/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/python/fixtures")" ]; then
+        echo "=== Generating Python references ==="
+        for file in "$SCRIPT_DIR/python/fixtures"/*.py; do
+            if [ -f "$file" ]; then
+                generate_reference "python" "$(basename "$file")"
+            fi
+        done
+    else
+        echo "No Python fixtures found in $SCRIPT_DIR/python/fixtures/"
+    fi
 fi
 
 echo
 
 # JavaScript test files
-if [ -d "$SCRIPT_DIR/javascript/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/javascript/fixtures")" ]; then
-    echo "=== Generating JavaScript references ==="
-    for file in "$SCRIPT_DIR/javascript/fixtures"/*.js; do
-        if [ -f "$file" ]; then
-            generate_reference "javascript" "$(basename "$file")"
-        fi
-    done
-else
-    echo "No JavaScript fixtures found in $SCRIPT_DIR/javascript/fixtures/"
+if [ -z "$TARGET_LANGUAGE" ] || [ "$TARGET_LANGUAGE" = "javascript" ]; then
+    if [ -d "$SCRIPT_DIR/javascript/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/javascript/fixtures")" ]; then
+        echo "=== Generating JavaScript references ==="
+        for file in "$SCRIPT_DIR/javascript/fixtures"/*.js; do
+            if [ -f "$file" ]; then
+                generate_reference "javascript" "$(basename "$file")"
+            fi
+        done
+    else
+        echo "No JavaScript fixtures found in $SCRIPT_DIR/javascript/fixtures/"
+    fi
 fi
+
 
 echo
 echo "Reference generation complete!"

@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1", optional = true }
-adze = { path = "../runtime", features = ["pure-rust", "ts-compat"] }
+adze = { path = "../runtime", default-features = false, features = ["pure-rust", "ts-compat"] }
 adze-python = { path = "../grammars/python", features = ["pure-rust"] }
 adze-example = { path = "../example", features = ["pure-rust", "ts-compat"] }
 
