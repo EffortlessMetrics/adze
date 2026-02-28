@@ -139,9 +139,7 @@ impl NodeHandle {
 }
 
 impl TreeArena {
-    /// Create a new arena with default capacity
-    ///
-    /// The arena starts with one chunk of [`DEFAULT_CHUNK_SIZE`] nodes.
+    /// Create a new arena with default capacity (1024 nodes)
     pub fn new() -> Self {
         Self::with_capacity(DEFAULT_CHUNK_SIZE)
     }

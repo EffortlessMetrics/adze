@@ -2,7 +2,7 @@
 //!
 //! Generate and compress LR(1)/GLR parse tables for Adze grammars.
 //!
-//! This crate transforms parse tables from [`adze-glr-core`] into compact,
+//! This crate transforms parse tables from `adze-glr-core` into compact,
 //! Tree-sitter-compatible binary formats. It implements compression algorithms
 //! that achieve >10x size reduction for large grammars.
 //!

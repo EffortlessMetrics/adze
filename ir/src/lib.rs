@@ -7,7 +7,7 @@
 //!
 //! This crate defines the intermediate representation (IR) used throughout the
 //! Adze parser toolchain. It bridges user-defined Rust grammar annotations and
-//! the low-level parse table generation in [`adze-glr-core`] and [`adze-tablegen`].
+//! the low-level parse table generation in `adze-glr-core` and `adze-tablegen`.
 //!
 //! # Key Types
 //!
