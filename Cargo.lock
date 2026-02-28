@@ -31,6 +31,7 @@ dependencies = [
  "adze-concurrency-parse-core",
  "adze-concurrency-plan-core",
  "adze-example",
+ "adze-field-tree-core",
  "adze-glr-core",
  "adze-ir",
  "adze-linecol-core",
@@ -271,6 +272,10 @@ dependencies = [
 
 [[package]]
 name = "adze-feature-policy-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-field-tree-core"
 version = "0.1.0"
 
 [[package]]
