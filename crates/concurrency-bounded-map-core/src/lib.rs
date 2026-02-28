@@ -9,11 +9,24 @@
 
 use rayon::prelude::*;
 
+/// Re-exported partition planning types used by the bounded parallel map.
 pub use adze_concurrency_plan_core::{ParallelPartitionPlan, normalized_concurrency};
 
 /// Run a bounded parallel map operation.
 ///
 /// This keeps work partitioned by `concurrency`, while preserving all outputs.
+///
+/// # Examples
+///
+/// ```
+/// use adze_concurrency_bounded_map_core::bounded_parallel_map;
+///
+/// let input: Vec<i32> = (0..10).collect();
+/// let mut result = bounded_parallel_map(input, 4, |x| x * 2);
+/// result.sort();
+/// assert_eq!(result, vec![0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
+/// ```
+#[must_use]
 pub fn bounded_parallel_map<T, R, F>(items: Vec<T>, concurrency: usize, f: F) -> Vec<R>
 where
     T: Send,

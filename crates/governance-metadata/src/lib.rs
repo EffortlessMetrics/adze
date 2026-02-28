@@ -15,7 +15,18 @@ use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
 use serde::{Deserialize, Serialize};
 
 /// Snapshot of parser feature flags captured in build artifacts and diagnostics.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+///
+/// # Examples
+///
+/// ```
+/// use adze_governance_metadata::ParserFeatureProfileSnapshot;
+///
+/// let snap = ParserFeatureProfileSnapshot::new(true, false, true, false);
+/// assert!(snap.pure_rust);
+/// assert!(snap.tree_sitter_c2rust);
+/// assert!(!snap.glr);
+/// ```
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct ParserFeatureProfileSnapshot {
     /// Pure-rust mode flag.
     pub pure_rust: bool,
@@ -29,6 +40,18 @@ pub struct ParserFeatureProfileSnapshot {
 
 impl ParserFeatureProfileSnapshot {
     /// Create a snapshot from explicit parser feature flags.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_governance_metadata::ParserFeatureProfileSnapshot;
+    ///
+    /// let snap = ParserFeatureProfileSnapshot::new(false, true, false, true);
+    /// assert!(!snap.pure_rust);
+    /// assert!(snap.tree_sitter_standard);
+    /// assert!(snap.glr);
+    /// ```
+    #[must_use]
     pub const fn new(
         pure_rust: bool,
         tree_sitter_standard: bool,
@@ -44,6 +67,22 @@ impl ParserFeatureProfileSnapshot {
     }
 
     /// Create a snapshot from the parser-profile contract.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_governance_metadata::ParserFeatureProfileSnapshot;
+    /// use adze_feature_policy_core::ParserFeatureProfile;
+    ///
+    /// let profile = ParserFeatureProfile {
+    ///     pure_rust: true, tree_sitter_standard: false,
+    ///     tree_sitter_c2rust: false, glr: true,
+    /// };
+    /// let snap = ParserFeatureProfileSnapshot::from_profile(profile);
+    /// assert!(snap.pure_rust);
+    /// assert!(snap.glr);
+    /// ```
+    #[must_use]
     pub const fn from_profile(profile: ParserFeatureProfile) -> Self {
         Self {
             pure_rust: profile.pure_rust,
@@ -54,6 +93,7 @@ impl ParserFeatureProfileSnapshot {
     }
 
     /// Resolve an equivalent parser-profile from this snapshot.
+    #[must_use]
     pub const fn as_profile(self) -> ParserFeatureProfile {
         ParserFeatureProfile {
             pure_rust: self.pure_rust,
@@ -64,6 +104,7 @@ impl ParserFeatureProfileSnapshot {
     }
 
     /// Build a snapshot from Cargo feature environment variables.
+    #[must_use]
     pub fn from_env() -> Self {
         Self {
             pure_rust: env_flag(&["CARGO_FEATURE_PURE_RUST", "ADZE_USE_PURE_RUST"]),
@@ -74,6 +115,7 @@ impl ParserFeatureProfileSnapshot {
     }
 
     /// Return the non-conflict backend name implied by this profile.
+    #[must_use]
     pub const fn non_conflict_backend(self) -> &'static str {
         if self.glr {
             ParserBackend::GLR.name()
@@ -85,11 +127,13 @@ impl ParserFeatureProfileSnapshot {
     }
 
     /// Resolve the non-conflict backend for this profile.
+    #[must_use]
     pub const fn resolve_non_conflict_backend(self) -> ParserBackend {
         self.as_profile().resolve_backend(false)
     }
 
     /// Resolve backend selection for a grammar with conflicts.
+    #[must_use]
     pub const fn resolve_conflict_backend(self) -> ParserBackend {
         self.as_profile().resolve_backend(true)
     }
@@ -100,6 +144,17 @@ fn env_flag(names: &[&str]) -> bool {
 }
 
 /// BDD governance metadata embedded in generated parse artifacts.
+///
+/// # Examples
+///
+/// ```
+/// use adze_governance_metadata::GovernanceMetadata;
+///
+/// let meta = GovernanceMetadata::with_counts("core", 5, 8, "core:5/8");
+/// assert_eq!(meta.implemented, 5);
+/// assert_eq!(meta.total, 8);
+/// assert!(!meta.is_complete());
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GovernanceMetadata {
     /// Phase label for this BDD snapshot.
@@ -114,11 +169,35 @@ pub struct GovernanceMetadata {
 
 impl GovernanceMetadata {
     /// Whether all known scenarios are complete.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_governance_metadata::GovernanceMetadata;
+    ///
+    /// let done = GovernanceMetadata::with_counts("rt", 8, 8, "rt:8/8");
+    /// assert!(done.is_complete());
+    ///
+    /// let wip = GovernanceMetadata::with_counts("rt", 3, 8, "rt:3/8");
+    /// assert!(!wip.is_complete());
+    /// ```
+    #[must_use]
     pub fn is_complete(&self) -> bool {
         self.implemented == self.total
     }
 
     /// Construct a governance snapshot from explicit counts.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_governance_metadata::GovernanceMetadata;
+    ///
+    /// let meta = GovernanceMetadata::with_counts("runtime", 6, 8, "runtime:6/8");
+    /// assert_eq!(meta.phase, "runtime");
+    /// assert_eq!(meta.implemented, 6);
+    /// ```
+    #[must_use]
     pub fn with_counts(
         phase: impl Into<String>,
         implemented: usize,
@@ -134,6 +213,7 @@ impl GovernanceMetadata {
     }
 
     /// Build metadata from a BDD scenario grid and parser feature profile.
+    #[must_use]
     pub fn for_grid(
         phase: BddPhase,
         scenarios: &[BddScenario],
@@ -176,4 +256,89 @@ fn status_line(
     let backend = profile.resolve_backend(false).name();
     let phase_label = phase_name(phase);
     format!("{phase_label}:{implemented}/{total}:{backend}:{profile}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn profile_snapshot_new() {
+        let snap = ParserFeatureProfileSnapshot::new(true, false, true, false);
+        assert!(snap.pure_rust);
+        assert!(!snap.tree_sitter_standard);
+        assert!(snap.tree_sitter_c2rust);
+        assert!(!snap.glr);
+    }
+
+    #[test]
+    fn profile_snapshot_roundtrip_via_profile() {
+        let snap = ParserFeatureProfileSnapshot::new(false, true, false, true);
+        let profile = snap.as_profile();
+        let snap2 = ParserFeatureProfileSnapshot::from_profile(profile);
+        assert_eq!(snap, snap2);
+    }
+
+    #[test]
+    fn profile_snapshot_serde_roundtrip() {
+        let snap = ParserFeatureProfileSnapshot::new(true, false, true, true);
+        let json = serde_json::to_string(&snap).unwrap();
+        let deserialized: ParserFeatureProfileSnapshot = serde_json::from_str(&json).unwrap();
+        assert_eq!(snap, deserialized);
+    }
+
+    #[test]
+    fn non_conflict_backend_name_is_non_empty() {
+        let snap = ParserFeatureProfileSnapshot::new(false, false, false, false);
+        assert!(!snap.non_conflict_backend().is_empty());
+    }
+
+    #[test]
+    fn governance_metadata_default() {
+        let meta = GovernanceMetadata::default();
+        assert_eq!(meta.phase, "runtime");
+        assert_eq!(meta.implemented, 0);
+        assert_eq!(meta.total, 0);
+        assert!(!meta.is_complete());
+    }
+
+    #[test]
+    fn governance_metadata_with_counts() {
+        let meta = GovernanceMetadata::with_counts("core", 5, 10, "core:5/10");
+        assert_eq!(meta.implemented, 5);
+        assert_eq!(meta.total, 10);
+        assert!(!meta.is_complete());
+    }
+
+    #[test]
+    fn governance_metadata_complete() {
+        let meta = GovernanceMetadata::with_counts("core", 8, 8, "done");
+        assert!(meta.is_complete());
+    }
+
+    #[test]
+    fn governance_metadata_serde_roundtrip() {
+        let meta = GovernanceMetadata::with_counts("runtime", 3, 7, "runtime:3/7");
+        let json = serde_json::to_string(&meta).unwrap();
+        let deserialized: GovernanceMetadata = serde_json::from_str(&json).unwrap();
+        assert_eq!(meta, deserialized);
+    }
+
+    #[test]
+    fn governance_metadata_for_grid() {
+        use adze_bdd_grid_core::BddScenarioStatus;
+        let scenarios = [BddScenario {
+            id: 1,
+            title: "test",
+            reference: "T-1",
+            core_status: BddScenarioStatus::Implemented,
+            runtime_status: BddScenarioStatus::Deferred { reason: "wip" },
+        }];
+        let profile = ParserFeatureProfile::current();
+        let meta = GovernanceMetadata::for_grid(BddPhase::Core, &scenarios, profile);
+        assert_eq!(meta.phase, "core");
+        assert_eq!(meta.total, 1);
+        assert_eq!(meta.implemented, 1);
+        assert!(!meta.status_line.is_empty());
+    }
 }

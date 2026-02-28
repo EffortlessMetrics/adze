@@ -10,12 +10,29 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
+/// Re-exported parser backend enum for feature-profile–based backend resolution.
 pub use adze_parser_backend_core::ParserBackend;
 
 use core::fmt::{self, Display, Formatter};
 
 /// Snapshot of parser-related feature flags for this build.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+///
+/// # Examples
+///
+/// ```
+/// use adze_feature_policy_core::ParserFeatureProfile;
+///
+/// let profile = ParserFeatureProfile {
+///     pure_rust: true,
+///     tree_sitter_standard: false,
+///     tree_sitter_c2rust: false,
+///     glr: false,
+/// };
+/// assert!(profile.has_pure_rust());
+/// assert!(!profile.has_glr());
+/// assert!(!profile.has_tree_sitter());
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ParserFeatureProfile {
     /// `pure-rust` feature is enabled.
     pub pure_rust: bool,
@@ -29,6 +46,7 @@ pub struct ParserFeatureProfile {
 
 impl ParserFeatureProfile {
     /// Snapshot of active feature flags for the current crate compilation.
+    #[must_use]
     pub const fn current() -> Self {
         Self {
             pure_rust: cfg!(feature = "pure-rust"),
@@ -39,6 +57,19 @@ impl ParserFeatureProfile {
     }
 
     /// Resolve the effective backend from this profile.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_feature_policy_core::{ParserFeatureProfile, ParserBackend};
+    ///
+    /// let profile = ParserFeatureProfile {
+    ///     pure_rust: true, tree_sitter_standard: false,
+    ///     tree_sitter_c2rust: false, glr: false,
+    /// };
+    /// assert_eq!(profile.resolve_backend(false), ParserBackend::PureRust);
+    /// ```
+    #[must_use]
     pub const fn resolve_backend(self, has_conflicts: bool) -> ParserBackend {
         if self.glr {
             ParserBackend::GLR
@@ -62,16 +93,19 @@ adze = \"0.8\"\n"
     }
 
     /// Whether feature flags indicate the pure-Rust runtime is compiled in.
+    #[must_use]
     pub const fn has_pure_rust(self) -> bool {
         self.pure_rust
     }
 
     /// Whether feature flags indicate GLR is compiled in.
+    #[must_use]
     pub const fn has_glr(self) -> bool {
         self.glr
     }
 
     /// Whether feature flags indicate any tree-sitter backend is compiled in.
+    #[must_use]
     pub const fn has_tree_sitter(self) -> bool {
         self.tree_sitter_standard || self.tree_sitter_c2rust
     }
