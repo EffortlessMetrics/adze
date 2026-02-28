@@ -41,7 +41,39 @@ impl CompressedParseTable {
 // Removed: This From implementation was returning dummy empty tables.
 // Compression is now handled by TableCompressor::compress() method directly.
 
-/// Complete compressed tables for Tree-sitter
+/// Complete compressed tables for Tree-sitter.
+///
+/// Holds the compressed action and goto tables produced by
+/// [`TableCompressor::compress`]. Access the inner tables to inspect
+/// individual entries or pass them to code-generation routines.
+///
+/// # Examples
+///
+/// ```
+/// use adze_ir::builder::GrammarBuilder;
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+/// use adze_tablegen::{TableCompressor, collect_token_indices, eof_accepts_or_reduces};
+///
+/// let grammar = GrammarBuilder::new("arith")
+///     .token("N", r"\d+")
+///     .token("+", "+")
+///     .rule("expr", vec!["N"])
+///     .rule("expr", vec!["expr", "+", "N"])
+///     .start("expr")
+///     .build();
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let pt = build_lr1_automaton(&grammar, &ff).unwrap();
+/// let tok = collect_token_indices(&grammar, &pt);
+///
+/// let tables = TableCompressor::new()
+///     .compress(&pt, &tok, eof_accepts_or_reduces(&pt))
+///     .unwrap();
+///
+/// // Action and goto tables have row offsets for each state
+/// assert!(tables.action_table.row_offsets.len() > 0);
+/// assert!(tables.goto_table.row_offsets.len() > 0);
+/// ```
 pub struct CompressedTables {
     pub action_table: CompressedActionTable,
     pub goto_table: CompressedGotoTable,
@@ -110,6 +142,32 @@ pub enum CompressedGotoEntry {
 ///
 /// The compressor packs the ACTION/GOTO matrices into compact columnar
 /// representations while preserving all transitions.
+///
+/// # Examples
+///
+/// ```
+/// use adze_ir::builder::GrammarBuilder;
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+/// use adze_tablegen::{TableCompressor, collect_token_indices, eof_accepts_or_reduces};
+///
+/// let grammar = GrammarBuilder::new("demo")
+///     .token("NUMBER", r"\d+")
+///     .token("+", "+")
+///     .rule("sum", vec!["NUMBER"])
+///     .rule("sum", vec!["sum", "+", "NUMBER"])
+///     .start("sum")
+///     .build();
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let pt = build_lr1_automaton(&grammar, &ff).unwrap();
+/// let token_ix = collect_token_indices(&grammar, &pt);
+///
+/// let compressed = TableCompressor::new()
+///     .compress(&pt, &token_ix, eof_accepts_or_reduces(&pt))
+///     .unwrap();
+///
+/// assert!(!compressed.action_table.data.is_empty());
+/// ```
 pub struct TableCompressor {
     // Tree-sitter's magic constants for compression
     small_table_threshold: usize,
@@ -179,18 +237,28 @@ impl TableCompressor {
     ///
     /// Returns compressed tables suitable for embedding.
     ///
-    /// ```ignore
-    /// # use adze_ir::builder::GrammarBuilder;
-    /// # use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    /// # use adze_tablegen::{TableCompressor, helpers::{collect_token_indices, eof_accepts_or_reduces}};
-    /// # let g = GrammarBuilder::new("demo").start("module").build();
-    /// # let ff = FirstFollowSets::compute(&g);
-    /// # let pt = build_lr1_automaton(&g, &ff).unwrap();
-    /// # let token_ix = collect_token_indices(&g, &pt);
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_ir::builder::GrammarBuilder;
+    /// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    /// use adze_tablegen::{TableCompressor, collect_token_indices, eof_accepts_or_reduces};
+    ///
+    /// let g = GrammarBuilder::new("demo")
+    ///     .token("ID", r"[a-z]+")
+    ///     .rule("start", vec!["ID"])
+    ///     .start("start")
+    ///     .build();
+    ///
+    /// let ff = FirstFollowSets::compute(&g).unwrap();
+    /// let pt = build_lr1_automaton(&g, &ff).unwrap();
+    /// let token_ix = collect_token_indices(&g, &pt);
+    ///
     /// let compressed = TableCompressor::new()
     ///     .compress(&pt, &token_ix, eof_accepts_or_reduces(&pt))
     ///     .unwrap();
-    /// # let _ = compressed;
+    ///
+    /// assert!(!compressed.action_table.data.is_empty());
     /// ```
     ///
     /// # Breaking Change Note

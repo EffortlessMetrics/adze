@@ -15,15 +15,22 @@ use adze_ir::Grammar;
 ///
 /// # Examples
 ///
-/// ```ignore
-/// # use adze_ir::Grammar;
-/// # use adze_glr_core::ParseTable;
-/// # use adze_tablegen::helpers::collect_token_indices;
-/// # let grammar = Grammar::new("my_grammar".to_string());
-/// # let parse_table = ParseTable::default();
-/// let token_indices = collect_token_indices(&grammar, &parse_table);
-/// // token_indices will include the EOF column and all grammar tokens
-/// // EOF column is always included (but not necessarily at index 0)
+/// ```
+/// use adze_ir::builder::GrammarBuilder;
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+/// use adze_tablegen::collect_token_indices;
+///
+/// let grammar = GrammarBuilder::new("ex")
+///     .token("X", "x")
+///     .rule("s", vec!["X"])
+///     .start("s")
+///     .build();
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let pt = build_lr1_automaton(&grammar, &ff).unwrap();
+/// let indices = collect_token_indices(&grammar, &pt);
+/// // indices always contains the EOF column and every grammar token
+/// assert!(!indices.is_empty());
 /// ```
 #[must_use]
 pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec<usize> {
@@ -71,14 +78,21 @@ pub fn collect_token_indices(grammar: &Grammar, parse_table: &ParseTable) -> Vec
 ///
 /// # Examples
 ///
-/// ```ignore
-/// # use adze_glr_core::ParseTable;
-/// # use adze_tablegen::helpers::eof_accepts_or_reduces;
-/// # let parse_table = ParseTable::default();
-/// let start_can_be_empty = eof_accepts_or_reduces(&parse_table);
-/// if start_can_be_empty {
-///     println!("Grammar has a nullable start symbol");
-/// }
+/// ```
+/// use adze_ir::builder::GrammarBuilder;
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+/// use adze_tablegen::eof_accepts_or_reduces;
+///
+/// let grammar = GrammarBuilder::new("ex")
+///     .token("X", "x")
+///     .rule("s", vec!["X"])
+///     .start("s")
+///     .build();
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let pt = build_lr1_automaton(&grammar, &ff).unwrap();
+/// // A grammar that requires at least one token is not nullable
+/// assert!(!eof_accepts_or_reduces(&pt));
 /// ```
 #[must_use]
 pub fn eof_accepts_or_reduces(parse_table: &ParseTable) -> bool {

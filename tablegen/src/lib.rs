@@ -85,7 +85,31 @@ use quote::quote;
 
 // Tree-sitter backend selection will be done in the relevant modules
 
-/// Static Language generator that produces Rust code
+/// Static Language generator that produces Rust code.
+///
+/// Wraps a [`Grammar`] and [`ParseTable`] and optionally their compressed
+/// forms. Use [`Self::generate_language_code`] to emit a Rust
+/// `TokenStream` containing the static parser tables.
+///
+/// # Examples
+///
+/// ```
+/// use adze_ir::builder::GrammarBuilder;
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+/// use adze_tablegen::StaticLanguageGenerator;
+///
+/// let grammar = GrammarBuilder::new("tiny")
+///     .token("A", "a")
+///     .rule("root", vec!["A"])
+///     .start("root")
+///     .build();
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let pt = build_lr1_automaton(&grammar, &ff).unwrap();
+///
+/// let generator = StaticLanguageGenerator::new(grammar, pt);
+/// assert!(!generator.start_can_be_empty);
+/// ```
 pub struct StaticLanguageGenerator {
     /// Grammar definition
     pub grammar: Grammar,
