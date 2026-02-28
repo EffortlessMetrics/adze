@@ -1,0 +1,16 @@
+[package]
+name = "adze-ts-format-core"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
