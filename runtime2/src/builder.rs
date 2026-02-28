@@ -151,34 +151,6 @@ fn build_from_glr(core: adze_glr_core::Forest) -> Tree {
     Tree::new(root_node)
 }
 
-/// Simple recursive tree builder without performance tracking.
-///
-/// This function recursively constructs a `TreeNode` from a forest view node,
-/// selecting the "best" children at each ambiguous point. Currently unused in
-/// favor of `build_node_with_metrics()`, but kept for potential future use.
-///
-/// # Arguments
-///
-/// * `view` - Forest view providing access to node data
-/// * `id` - Node identifier in the forest
-///
-/// # Returns
-///
-/// A `TreeNode` with all descendants built recursively.
-#[cfg(feature = "glr-core")]
-#[allow(dead_code)]
-fn build_node(view: &dyn CoreForestView, id: u32) -> TreeNode {
-    let span = view.span(id);
-    let kind = view.kind(id);
-    let kids = view
-        .best_children(id)
-        .iter()
-        .copied()
-        .map(|c| build_node(view, c))
-        .collect();
-    TreeNode::new_with_children(kind, span.start as usize, span.end as usize, kids)
-}
-
 /// Recursive tree builder with performance metrics tracking.
 ///
 /// This function builds a `TreeNode` tree from a forest view while tracking

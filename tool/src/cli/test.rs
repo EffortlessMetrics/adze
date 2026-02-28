@@ -1,18 +1,7 @@
 use anyhow::Result;
 use glob::glob;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-
-/// Test result for a single file
-#[allow(dead_code)] // For future use in structured test output
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TestResult {
-    pub file: String,
-    pub passed: bool,
-    pub parse_time_ms: f64,
-    pub error: Option<String>,
-}
 
 /// Run parser tests on a corpus
 pub fn run_tests(
