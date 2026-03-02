@@ -166,7 +166,6 @@ dependencies = [
 name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
- "quote",
  "syn 2.0.117",
 ]
 
@@ -420,6 +419,7 @@ version = "0.8.0-dev"
 dependencies = [
  "adze",
  "adze-common",
+ "adze-syn-type-core",
  "insta",
  "proc-macro2",
  "quote",
@@ -546,6 +546,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-syn-type-core"
+version = "0.8.0-dev"
+dependencies = [
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "adze-tablegen"
 version = "0.8.0-dev"
 dependencies = [
@@ -593,6 +601,7 @@ dependencies = [
  "adze-common",
  "adze-glr-core",
  "adze-ir",
+ "adze-syn-type-core",
  "adze-tablegen",
  "anyhow",
  "cc",

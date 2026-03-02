@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::errors::IteratorExt as _;
 use adze_common::*;
+use adze_syn_type_core::wrap_leaf_type;
 use proc_macro2::Span;
 use quote::{ToTokens, quote};
 use syn::{parse::Parse, punctuated::Punctuated, *};

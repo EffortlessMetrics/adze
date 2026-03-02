@@ -1,7 +1,7 @@
 [package]
-name = "adze-common"
-description = "Shared logic for the Adze macro and tool"
-readme = "../README.md"
+name = "adze-syn-type-core"
+description = "Syn type-shape helpers for Adze macro/tool code generation"
+readme = "../../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
@@ -10,11 +10,9 @@ license = "MIT OR Apache-2.0"
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
 
-[lib]
-path = "src/lib.rs"
-
 [features]
-strict_docs = [] # Enable strict documentation requirements
+strict_docs = []
 
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }
+quote = "1"
