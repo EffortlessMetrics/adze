@@ -14,8 +14,15 @@ pure-rust = ["adze-governance-runtime-core/pure-rust"]
 tree-sitter-c2rust = ["adze-governance-runtime-core/tree-sitter-c2rust"]
 tree-sitter-standard = ["adze-governance-runtime-core/tree-sitter-standard"]
 glr = ["pure-rust", "adze-governance-runtime-core/glr"]
-strict_api = ["adze-governance-runtime-core/strict_api"]
-strict_docs = ["adze-governance-runtime-core/strict_docs"]
+strict_api = [
+  "adze-governance-runtime-core/strict_api",
+  "adze-governance-runtime2-core/strict_api",
+]
+strict_docs = [
+  "adze-governance-runtime-core/strict_docs",
+  "adze-governance-runtime2-core/strict_docs",
+]
 
 [dependencies]
 adze-governance-runtime-core = { version = "0.1.0", path = "../governance-runtime-core" }
+adze-governance-runtime2-core = { version = "0.1.0", path = "../governance-runtime2-core" }

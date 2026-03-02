@@ -1,0 +1,17 @@
+[package]
+name = "adze-governance-runtime2-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Runtime2-specific governance primitives built on shared runtime governance core."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+strict_api = ["adze-governance-runtime-core/strict_api"]
+strict_docs = ["adze-governance-runtime-core/strict_docs"]
+
+[dependencies]
+adze-governance-runtime-core = { version = "0.1.0", path = "../governance-runtime-core" }

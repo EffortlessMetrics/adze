@@ -374,6 +374,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-governance-runtime2-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-runtime-core",
+]
+
+[[package]]
 name = "adze-ir"
 version = "0.8.0-dev"
 dependencies = [
@@ -536,6 +543,7 @@ name = "adze-runtime-governance-matrix"
 version = "0.1.0"
 dependencies = [
  "adze-governance-runtime-core",
+ "adze-governance-runtime2-core",
 ]
 
 [[package]]
