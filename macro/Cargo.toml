@@ -23,6 +23,7 @@ syn = { version = "2", features = [ "full", "extra-traits" ] }
 quote = "1"
 proc-macro2 = "1"
 adze-common = { version = "0.8.0-dev", path = "../common" }
+adze-syn-type-utils-core = { version = "0.8.0-dev", path = "../crates/syn-type-utils-core" }
 
 [dev-dependencies]
 insta = "1.39"

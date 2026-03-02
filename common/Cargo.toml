@@ -19,3 +19,4 @@ strict_docs = [] # Enable strict documentation requirements
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }
 quote = "1"
+adze-syn-type-utils-core = { version = "0.8.0-dev", path = "../crates/syn-type-utils-core" }
