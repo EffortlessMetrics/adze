@@ -19,3 +19,4 @@ strict_docs = [] # Enable strict documentation requirements
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }
 quote = "1"
+adze-macro-type-utils-core = { version = "0.8.0-dev", path = "../crates/macro-type-utils-core" }

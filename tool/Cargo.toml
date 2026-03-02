@@ -29,6 +29,7 @@ syn-inline-mod = "0.6"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 adze-common = { version = "0.8.0-dev", path = "../common" }
+adze-macro-type-utils-core = { version = "0.8.0-dev", path = "../crates/macro-type-utils-core" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }

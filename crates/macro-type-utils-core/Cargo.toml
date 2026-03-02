@@ -1,0 +1,14 @@
+[package]
+name = "adze-macro-type-utils-core"
+description = "SRP microcrate for procedural macro type utility transforms"
+version = "0.8.0-dev"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[features]
+strict_docs = []
+
+[dependencies]
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
