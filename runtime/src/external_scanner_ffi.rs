@@ -5,7 +5,7 @@
 // FFI bridge for Tree-sitter C external scanners
 // This module provides the C ABI-compatible interface for external scanners
 
-use crate::linecol::LineCol;
+use adze_external_lexer_core::LexerCursor;
 use std::ffi::c_void;
 use std::os::raw::{c_char, c_uint};
 
@@ -201,36 +201,22 @@ impl Drop for CExternalScanner {
 /// Rust lexer adapter that implements the TSLexer interface
 pub struct RustLexerAdapter<'a> {
     input: &'a [u8],
-    position: usize,
-    token_end: usize,
+    cursor: LexerCursor,
     result_symbol: u16,
-    line: u32,
-    line_start: usize, // byte offset of beginning of current line
 }
 
 impl<'a> RustLexerAdapter<'a> {
     pub fn new(input: &'a [u8], position: usize) -> Self {
-        // Calculate initial line and line_start from position
-        let (line, line_start) = Self::calculate_line_info(input, position);
         RustLexerAdapter {
             input,
-            position,
-            token_end: position,
+            cursor: LexerCursor::new(input, position),
             result_symbol: 0,
-            line,
-            line_start,
         }
-    }
-
-    /// Calculate line number and line start offset from byte position
-    fn calculate_line_info(input: &[u8], position: usize) -> (u32, usize) {
-        let tracker = LineCol::at_position(input, position);
-        (tracker.line as u32, tracker.line_start)
     }
 
     /// Get current column (byte offset from line start)
     pub fn get_column(&self) -> u32 {
-        (self.position.saturating_sub(self.line_start)) as u32
+        self.cursor.column()
     }
 
     /// Create a C-compatible TSLexer
@@ -249,7 +235,7 @@ impl<'a> RustLexerAdapter<'a> {
 
     /// Get the consumed token length
     pub fn token_length(&self) -> usize {
-        self.token_end - self.position
+        self.cursor.token_end.saturating_sub(self.cursor.position)
     }
 }
 
@@ -264,8 +250,8 @@ extern "C" fn rust_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
     unsafe {
         let adapter = &mut *as_adapter(lexer);
 
-        if adapter.position < adapter.input.len() {
-            adapter.input[adapter.position] as u32
+        if adapter.cursor.position < adapter.input.len() {
+            adapter.input[adapter.cursor.position] as u32
         } else {
             0
         }
@@ -276,40 +262,14 @@ extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, skip: bool) {
     unsafe {
         let adapter = &mut *as_adapter(lexer);
 
-        if adapter.position < adapter.input.len() {
-            let byte = adapter.input[adapter.position];
-            adapter.position += 1;
-
-            // Handle newlines using shared utility
-            let next_byte = if adapter.position < adapter.input.len() {
-                Some(adapter.input[adapter.position])
-            } else {
-                None
-            };
-
-            if byte == b'\n' {
-                adapter.line += 1;
-                adapter.line_start = adapter.position;
-            } else if byte == b'\r' {
-                // Handle CR and CRLF
-                if next_byte == Some(b'\n') {
-                    adapter.position += 1; // Skip the LF in CRLF
-                }
-                adapter.line += 1;
-                adapter.line_start = adapter.position;
-            }
-
-            if !skip && adapter.token_end < adapter.position {
-                adapter.token_end = adapter.position;
-            }
-        }
+        adapter.cursor.advance(adapter.input, skip);
     }
 }
 
 extern "C" fn rust_lexer_mark_end(lexer: *mut TSLexer) {
     unsafe {
         let adapter = &mut *as_adapter(lexer);
-        adapter.token_end = adapter.position;
+        adapter.cursor.mark_end();
     }
 }
 
@@ -327,7 +287,7 @@ extern "C" fn rust_lexer_is_at_included_range_start(_lexer: *const TSLexer) -> b
 extern "C" fn rust_lexer_eof(lexer: *const TSLexer) -> bool {
     unsafe {
         let adapter = &*((*lexer).context as *const RustLexerAdapter<'static>);
-        adapter.position >= adapter.input.len()
+        adapter.cursor.position >= adapter.input.len()
     }
 }
 

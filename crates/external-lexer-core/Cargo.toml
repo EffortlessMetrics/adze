@@ -1,0 +1,17 @@
+[package]
+name = "adze-external-lexer-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Shared byte-oriented lexer cursor state for Tree-sitter external scanner adapters."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-linecol-core = { version = "0.1.0", path = "../linecol-core" }

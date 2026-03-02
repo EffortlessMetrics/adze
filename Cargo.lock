@@ -31,6 +31,7 @@ dependencies = [
  "adze-concurrency-parse-core",
  "adze-concurrency-plan-core",
  "adze-example",
+ "adze-external-lexer-core",
  "adze-glr-core",
  "adze-ir",
  "adze-linecol-core",
@@ -260,6 +261,13 @@ dependencies = [
  "codemap",
  "codemap-diagnostic",
  "toml 0.8.23",
+]
+
+[[package]]
+name = "adze-external-lexer-core"
+version = "0.1.0"
+dependencies = [
+ "adze-linecol-core",
 ]
 
 [[package]]
