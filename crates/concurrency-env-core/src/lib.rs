@@ -9,19 +9,11 @@
 
 use std::env;
 
-pub use adze_concurrency_parse_core::parse_positive_usize_or_default;
-
-/// Environment variable used for Rayon global thread-pool caps.
-pub const RAYON_NUM_THREADS_ENV: &str = "RAYON_NUM_THREADS";
-
-/// Environment variable used for Tokio worker-thread caps.
-pub const TOKIO_WORKER_THREADS_ENV: &str = "TOKIO_WORKER_THREADS";
-
-/// Default thread count used for Rayon when `RAYON_NUM_THREADS` is unset/invalid.
-pub const DEFAULT_RAYON_NUM_THREADS: usize = 4;
-
-/// Default worker count used for Tokio when `TOKIO_WORKER_THREADS` is unset/invalid.
-pub const DEFAULT_TOKIO_WORKER_THREADS: usize = 2;
+use adze_concurrency_policy_core::resolve_caps_from_lookup;
+pub use adze_concurrency_policy_core::{
+    DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS, RAYON_NUM_THREADS_ENV,
+    TOKIO_WORKER_THREADS_ENV, parse_positive_usize_or_default,
+};
 
 /// Snapshot of active concurrency cap values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,19 +35,14 @@ impl ConcurrencyCaps {
     ///
     /// This supports deterministic testing without mutating process-wide environment state.
     #[must_use]
-    pub fn from_lookup<F>(mut lookup: F) -> Self
+    pub fn from_lookup<F>(lookup: F) -> Self
     where
         F: FnMut(&str) -> Option<String>,
     {
+        let (rayon_threads, tokio_worker_threads) = resolve_caps_from_lookup(lookup);
         Self {
-            rayon_threads: parse_positive_usize_or_default(
-                lookup(RAYON_NUM_THREADS_ENV).as_deref(),
-                DEFAULT_RAYON_NUM_THREADS,
-            ),
-            tokio_worker_threads: parse_positive_usize_or_default(
-                lookup(TOKIO_WORKER_THREADS_ENV).as_deref(),
-                DEFAULT_TOKIO_WORKER_THREADS,
-            ),
+            rayon_threads,
+            tokio_worker_threads,
         }
     }
 }
@@ -78,19 +65,6 @@ pub fn current_caps() -> ConcurrencyCaps {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn parse_positive_usize_falls_back_when_missing_invalid_or_zero() {
-        assert_eq!(parse_positive_usize_or_default(None, 7), 7);
-        assert_eq!(parse_positive_usize_or_default(Some(""), 7), 7);
-        assert_eq!(parse_positive_usize_or_default(Some("nope"), 7), 7);
-        assert_eq!(parse_positive_usize_or_default(Some("0"), 7), 7);
-    }
-
-    #[test]
-    fn parse_positive_usize_accepts_trimmed_positive_input() {
-        assert_eq!(parse_positive_usize_or_default(Some(" 42 "), 7), 42);
-    }
 
     #[test]
     fn from_lookup_uses_defaults_when_unset() {

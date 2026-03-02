@@ -190,6 +190,7 @@ name = "adze-concurrency-env-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-parse-core",
+ "adze-concurrency-policy-core",
  "proptest",
 ]
 
@@ -249,6 +250,13 @@ version = "0.1.0"
 dependencies = [
  "adze-concurrency-normalize-core",
  "proptest",
+]
+
+[[package]]
+name = "adze-concurrency-policy-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-parse-core",
 ]
 
 [[package]]
