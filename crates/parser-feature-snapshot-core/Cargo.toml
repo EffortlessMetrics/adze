@@ -1,10 +1,10 @@
 [package]
-name = "adze-governance-metadata"
+name = "adze-parser-feature-snapshot-core"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Governance metadata primitives for BDD progress and parser feature snapshots."
+description = "Parser feature-profile snapshots for metadata and diagnostics."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 
@@ -14,7 +14,5 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
 adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
-adze-parser-feature-snapshot-core = { version = "0.1.0", path = "../parser-feature-snapshot-core" }
 serde = { version = "1.0", features = ["derive"] }

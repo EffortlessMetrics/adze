@@ -40,6 +40,7 @@ members = [
   "crates/bdd-grid-contract",
   "crates/bdd-grid-core",
   "crates/feature-policy-core",
+  "crates/parser-feature-snapshot-core",
   "tool",
   "common",
   "ir",
