@@ -33,6 +33,7 @@ dependencies = [
  "adze-example",
  "adze-glr-core",
  "adze-ir",
+ "adze-lexer-advance-core",
  "adze-linecol-core",
  "adze-macro",
  "adze-python",
@@ -393,6 +394,10 @@ dependencies = [
  "adze-tool",
  "insta",
 ]
+
+[[package]]
+name = "adze-lexer-advance-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-linecol-core"

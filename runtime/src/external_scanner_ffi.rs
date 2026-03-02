@@ -6,6 +6,7 @@
 // This module provides the C ABI-compatible interface for external scanners
 
 use crate::linecol::LineCol;
+use adze_lexer_advance_core::{LineState, advance_position};
 use std::ffi::c_void;
 use std::os::raw::{c_char, c_uint};
 
@@ -277,27 +278,10 @@ extern "C" fn rust_lexer_advance(lexer: *mut TSLexer, skip: bool) {
         let adapter = &mut *as_adapter(lexer);
 
         if adapter.position < adapter.input.len() {
-            let byte = adapter.input[adapter.position];
-            adapter.position += 1;
-
-            // Handle newlines using shared utility
-            let next_byte = if adapter.position < adapter.input.len() {
-                Some(adapter.input[adapter.position])
-            } else {
-                None
-            };
-
-            if byte == b'\n' {
-                adapter.line += 1;
-                adapter.line_start = adapter.position;
-            } else if byte == b'\r' {
-                // Handle CR and CRLF
-                if next_byte == Some(b'\n') {
-                    adapter.position += 1; // Skip the LF in CRLF
-                }
-                adapter.line += 1;
-                adapter.line_start = adapter.position;
-            }
+            let mut line_state = LineState::new(adapter.line, adapter.line_start);
+            adapter.position = advance_position(adapter.input, adapter.position, &mut line_state);
+            adapter.line = line_state.line;
+            adapter.line_start = line_state.line_start;
 
             if !skip && adapter.token_end < adapter.position {
                 adapter.token_end = adapter.position;

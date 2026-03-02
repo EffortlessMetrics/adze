@@ -1,0 +1,14 @@
+[package]
+name = "adze-lexer-advance-core"
+version = "0.1.0"
+edition = "2024"
+description = "Core byte-advance helpers for lexers with newline tracking"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/EffortlessMetrics/adze"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+strict_docs = []
+strict_api = []

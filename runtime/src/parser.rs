@@ -4,6 +4,7 @@
 use crate::external_scanner_ffi::TSLexer;
 use crate::linecol::LineCol;
 use crate::{InputEdit, Node, Point, Range, Tree, TreeCursor};
+use adze_lexer_advance_core::{LineState, advance_position};
 use std::os::raw::c_void;
 
 /// Parser state for incremental parsing
@@ -726,21 +727,10 @@ unsafe fn create_ts_lexer(lexer: &mut ExternalLexer) -> TSLexer {
         unsafe {
             let lexer = &mut *((*lexer_ptr).context as *mut ExternalLexer);
             if lexer.position < lexer.input.len() {
-                let byte = lexer.input[lexer.position];
-                lexer.position += 1;
-
-                // Handle newlines (CR, LF, CRLF)
-                if byte == b'\n' {
-                    lexer.line += 1;
-                    lexer.line_start = lexer.position;
-                } else if byte == b'\r' {
-                    // Handle CR and CRLF
-                    if lexer.position < lexer.input.len() && lexer.input[lexer.position] == b'\n' {
-                        lexer.position += 1; // Skip the LF in CRLF
-                    }
-                    lexer.line += 1;
-                    lexer.line_start = lexer.position;
-                }
+                let mut line_state = LineState::new(lexer.line, lexer.line_start);
+                lexer.position = advance_position(lexer.input, lexer.position, &mut line_state);
+                lexer.line = line_state.line;
+                lexer.line_start = line_state.line_start;
 
                 if !skip && lexer.token_end < lexer.position {
                     lexer.token_end = lexer.position;
