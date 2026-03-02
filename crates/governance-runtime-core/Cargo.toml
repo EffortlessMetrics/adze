@@ -10,12 +10,13 @@ publish = ["crates.io"]
 
 [features]
 default = []
-pure-rust = ["adze-governance-runtime-reporting/pure-rust"]
-tree-sitter-c2rust = ["adze-governance-runtime-reporting/tree-sitter-c2rust"]
-tree-sitter-standard = ["adze-governance-runtime-reporting/tree-sitter-standard"]
-glr = ["pure-rust", "adze-governance-runtime-reporting/glr"]
-strict_api = ["adze-governance-runtime-reporting/strict_api"]
-strict_docs = ["adze-governance-runtime-reporting/strict_docs"]
+pure-rust = ["adze-governance-profile-core/pure-rust", "adze-governance-runtime-reporting/pure-rust"]
+tree-sitter-c2rust = ["adze-governance-profile-core/tree-sitter-c2rust", "adze-governance-runtime-reporting/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-governance-profile-core/tree-sitter-standard", "adze-governance-runtime-reporting/tree-sitter-standard"]
+glr = ["pure-rust", "adze-governance-profile-core/glr", "adze-governance-runtime-reporting/glr"]
+strict_api = ["adze-governance-profile-core/strict_api", "adze-governance-runtime-reporting/strict_api"]
+strict_docs = ["adze-governance-profile-core/strict_docs", "adze-governance-runtime-reporting/strict_docs"]
 
 [dependencies]
+adze-governance-profile-core = { version = "0.1.0", path = "../governance-profile-core" }
 adze-governance-runtime-reporting = { version = "0.1.0", path = "../governance-runtime-reporting" }

@@ -360,9 +360,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-governance-profile-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-contract",
+]
+
+[[package]]
 name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
+ "adze-governance-profile-core",
  "adze-governance-runtime-reporting",
 ]
 
