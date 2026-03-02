@@ -1,10 +1,10 @@
 [package]
-name = "adze-bdd-grammar-fixtures"
+name = "adze-bdd-conflict-core"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Shared GLR BDD grammar and parse-table fixture helpers."
+description = "Conflict analysis and parse-table builders for GLR BDD fixtures."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 
@@ -14,6 +14,5 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-bdd-conflict-core = { version = "0.1.0", path = "../bdd-conflict-core" }
 adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
 adze-ir = { version = "0.8.0-dev", path = "../../ir" }

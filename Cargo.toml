@@ -6,6 +6,7 @@ members = [
   "runtime2",
   "crates/parsetable-metadata",
   "crates/bdd-grammar-fixtures",
+  "crates/bdd-conflict-core",
   "crates/bdd-governance-fixtures",
   "crates/parser-contract",
   "crates/parser-governance-contract",

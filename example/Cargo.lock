@@ -6,8 +6,10 @@ version = 4
 name = "adze"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-concurrency-caps-core",
  "adze-glr-core",
  "adze-ir",
+ "adze-linecol-core",
  "adze-macro",
  "adze-runtime-governance-api",
  "adze-tablegen",
@@ -42,6 +44,65 @@ version = "0.8.0-dev"
 dependencies = [
  "quote",
  "syn 2.0.106",
+]
+
+[[package]]
+name = "adze-concurrency-caps-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-env-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-parse-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-classifier-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-init-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-rayon-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-rayon-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-init-classifier-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-map-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-plan-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-normalize-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-parse-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-plan-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-normalize-core",
 ]
 
 [[package]]
@@ -137,6 +198,10 @@ dependencies = [
  "serde_json",
  "thiserror",
 ]
+
+[[package]]
+name = "adze-linecol-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-macro"
