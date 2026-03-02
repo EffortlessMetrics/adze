@@ -33,6 +33,7 @@ typed-arena = "2.0"
 rayon = { version = "1.0", optional = true }
 rustc-hash = "2.1.1"
 smallvec = "1.13"
+adze-stack-pool-core = { path = "../crates/stack-pool-core" }
 
 # Optional serialization support for GLR mode
 postcard = { version = "1", features = ["use-std"], optional = true }

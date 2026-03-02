@@ -1,6 +1,7 @@
 // GLR parser performance optimizations
 
 use crate::{Action, StateId, SymbolId};
+pub use adze_stack_pool_core::StackPool;
 use std::collections::HashMap;
 
 /// Performance statistics for GLR parsing
@@ -86,35 +87,6 @@ impl StackDeduplicator {
 
     pub fn unique_stacks(&self) -> usize {
         self.seen_states.len()
-    }
-}
-
-/// Memory pool for stack allocations
-pub struct StackPool<T> {
-    pool: Vec<Vec<T>>,
-}
-
-impl<T> Default for StackPool<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T> StackPool<T> {
-    pub fn new() -> Self {
-        Self { pool: Vec::new() }
-    }
-
-    pub fn acquire(&mut self) -> Vec<T> {
-        self.pool.pop().unwrap_or_default()
-    }
-
-    pub fn release(&mut self, mut vec: Vec<T>) {
-        vec.clear();
-        if self.pool.len() < 100 {
-            // Keep pool size reasonable
-            self.pool.push(vec);
-        }
     }
 }
 

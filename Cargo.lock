@@ -281,6 +281,7 @@ dependencies = [
  "adze-glr-versioning",
  "adze-ir",
  "adze-parser-contract",
+ "adze-stack-pool-core",
  "criterion",
  "dhat",
  "fixedbitset",
@@ -544,6 +545,10 @@ version = "0.1.0"
 dependencies = [
  "adze-runtime-governance-matrix",
 ]
+
+[[package]]
+name = "adze-stack-pool-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-tablegen"
