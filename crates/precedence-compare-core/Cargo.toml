@@ -1,0 +1,13 @@
+[package]
+name = "adze-precedence-compare-core"
+version = "0.8.0-dev"
+edition.workspace = true
+rust-version.workspace = true
+description = "Tree-sitter compatible precedence comparison logic for Adze"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+publish = false
+
+[dependencies]
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }
