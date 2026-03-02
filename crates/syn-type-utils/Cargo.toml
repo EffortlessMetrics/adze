@@ -1,0 +1,15 @@
+[package]
+name = "adze-syn-type-utils"
+description = "Utilities for extracting and transforming nested syn::Type shapes"
+version = "0.8.0-dev"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/EffortlessMetrics/adze"
+authors = ["Adze Contributors"]
+
+[features]
+strict_docs = []
+
+[dependencies]
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"

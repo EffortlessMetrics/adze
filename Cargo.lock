@@ -166,6 +166,7 @@ dependencies = [
 name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-syn-type-utils",
  "quote",
  "syn 2.0.117",
 ]
@@ -543,6 +544,14 @@ name = "adze-runtime2-governance"
 version = "0.1.0"
 dependencies = [
  "adze-runtime-governance-matrix",
+]
+
+[[package]]
+name = "adze-syn-type-utils"
+version = "0.8.0-dev"
+dependencies = [
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
