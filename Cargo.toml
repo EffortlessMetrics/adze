@@ -10,6 +10,7 @@ members = [
   "crates/parser-contract",
   "crates/parser-governance-contract",
   "crates/parser-feature-contract",
+  "crates/parser-feature-profile-snapshot",
   "crates/runtime-governance",
   "crates/runtime-governance-api",
   "crates/runtime-governance-matrix",

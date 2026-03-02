@@ -354,8 +354,10 @@ dependencies = [
 name = "adze-governance-metadata"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-governance-core",
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
+ "adze-parser-feature-profile-snapshot",
  "serde",
 ]
 
@@ -440,6 +442,14 @@ name = "adze-parser-feature-contract"
 version = "0.1.0"
 dependencies = [
  "adze-feature-policy-contract",
+]
+
+[[package]]
+name = "adze-parser-feature-profile-snapshot"
+version = "0.1.0"
+dependencies = [
+ "adze-feature-policy-core",
+ "serde",
 ]
 
 [[package]]

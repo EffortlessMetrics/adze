@@ -1,7 +1,8 @@
 //! Shared governance metadata building blocks for BDD scenario progress and parser feature profiles.
 //!
-//! This crate intentionally owns the small, reusable metadata types used by build-time
-//! artifacts and runtime dashboards.
+//! This crate intentionally owns reusable metadata envelopes for build-time artifacts
+//! and runtime dashboards, while parser feature snapshots live in
+//! `adze-parser-feature-profile-snapshot`.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -10,94 +11,11 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
+use adze_bdd_governance_core::bdd_progress_status_line;
 use adze_bdd_grid_core::{BddPhase, BddScenario, bdd_progress};
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use adze_feature_policy_core::ParserFeatureProfile;
+pub use adze_parser_feature_profile_snapshot::ParserFeatureProfileSnapshot;
 use serde::{Deserialize, Serialize};
-
-/// Snapshot of parser feature flags captured in build artifacts and diagnostics.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ParserFeatureProfileSnapshot {
-    /// Pure-rust mode flag.
-    pub pure_rust: bool,
-    /// `tree-sitter-standard` feature flag.
-    pub tree_sitter_standard: bool,
-    /// `tree-sitter-c2rust` feature flag.
-    pub tree_sitter_c2rust: bool,
-    /// GLR feature flag.
-    pub glr: bool,
-}
-
-impl ParserFeatureProfileSnapshot {
-    /// Create a snapshot from explicit parser feature flags.
-    pub const fn new(
-        pure_rust: bool,
-        tree_sitter_standard: bool,
-        tree_sitter_c2rust: bool,
-        glr: bool,
-    ) -> Self {
-        Self {
-            pure_rust,
-            tree_sitter_standard,
-            tree_sitter_c2rust,
-            glr,
-        }
-    }
-
-    /// Create a snapshot from the parser-profile contract.
-    pub const fn from_profile(profile: ParserFeatureProfile) -> Self {
-        Self {
-            pure_rust: profile.pure_rust,
-            tree_sitter_standard: profile.tree_sitter_standard,
-            tree_sitter_c2rust: profile.tree_sitter_c2rust,
-            glr: profile.glr,
-        }
-    }
-
-    /// Resolve an equivalent parser-profile from this snapshot.
-    pub const fn as_profile(self) -> ParserFeatureProfile {
-        ParserFeatureProfile {
-            pure_rust: self.pure_rust,
-            tree_sitter_standard: self.tree_sitter_standard,
-            tree_sitter_c2rust: self.tree_sitter_c2rust,
-            glr: self.glr,
-        }
-    }
-
-    /// Build a snapshot from Cargo feature environment variables.
-    pub fn from_env() -> Self {
-        Self {
-            pure_rust: env_flag(&["CARGO_FEATURE_PURE_RUST", "ADZE_USE_PURE_RUST"]),
-            tree_sitter_standard: env_flag(&["CARGO_FEATURE_TREE_SITTER_STANDARD"]),
-            tree_sitter_c2rust: env_flag(&["CARGO_FEATURE_TREE_SITTER_C2RUST"]),
-            glr: env_flag(&["CARGO_FEATURE_GLR"]),
-        }
-    }
-
-    /// Return the non-conflict backend name implied by this profile.
-    pub const fn non_conflict_backend(self) -> &'static str {
-        if self.glr {
-            ParserBackend::GLR.name()
-        } else if self.pure_rust {
-            ParserBackend::PureRust.name()
-        } else {
-            ParserBackend::TreeSitter.name()
-        }
-    }
-
-    /// Resolve the non-conflict backend for this profile.
-    pub const fn resolve_non_conflict_backend(self) -> ParserBackend {
-        self.as_profile().resolve_backend(false)
-    }
-
-    /// Resolve backend selection for a grammar with conflicts.
-    pub const fn resolve_conflict_backend(self) -> ParserBackend {
-        self.as_profile().resolve_backend(true)
-    }
-}
-
-fn env_flag(names: &[&str]) -> bool {
-    names.iter().any(|name| std::env::var(name).is_ok())
-}
 
 /// BDD governance metadata embedded in generated parse artifacts.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -144,7 +62,7 @@ impl GovernanceMetadata {
             phase: phase_name(phase).to_string(),
             implemented,
             total,
-            status_line: status_line(phase, implemented, total, profile),
+            status_line: bdd_progress_status_line(phase, scenarios, profile),
         }
     }
 }
@@ -167,13 +85,32 @@ fn phase_name(phase: BddPhase) -> &'static str {
     }
 }
 
-fn status_line(
-    phase: BddPhase,
-    implemented: usize,
-    total: usize,
-    profile: ParserFeatureProfile,
-) -> String {
-    let backend = profile.resolve_backend(false).name();
-    let phase_label = phase_name(phase);
-    format!("{phase_label}:{implemented}/{total}:{backend}:{profile}")
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn for_grid_status_line_uses_shared_renderer() {
+        let profile = ParserFeatureProfile {
+            pure_rust: false,
+            tree_sitter_standard: true,
+            tree_sitter_c2rust: false,
+            glr: false,
+        };
+
+        let metadata = GovernanceMetadata::for_grid(
+            BddPhase::Runtime,
+            adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID,
+            profile,
+        );
+
+        assert_eq!(
+            metadata.status_line,
+            bdd_progress_status_line(
+                BddPhase::Runtime,
+                adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID,
+                profile,
+            )
+        );
+    }
 }
