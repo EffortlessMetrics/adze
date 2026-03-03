@@ -88,3 +88,53 @@ impl Display for ParserBackend {
         write!(f, "{}", self.name())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn name_returns_human_readable_string() {
+        assert_eq!(ParserBackend::TreeSitter.name(), "tree-sitter C runtime");
+        assert_eq!(ParserBackend::PureRust.name(), "pure-Rust LR parser");
+        assert_eq!(ParserBackend::GLR.name(), "pure-Rust GLR parser");
+    }
+
+    #[test]
+    fn display_matches_name() {
+        for backend in [
+            ParserBackend::TreeSitter,
+            ParserBackend::PureRust,
+            ParserBackend::GLR,
+        ] {
+            assert_eq!(format!("{backend}"), backend.name());
+        }
+    }
+
+    #[test]
+    fn is_glr_only_for_glr() {
+        assert!(ParserBackend::GLR.is_glr());
+        assert!(!ParserBackend::PureRust.is_glr());
+        assert!(!ParserBackend::TreeSitter.is_glr());
+    }
+
+    #[test]
+    fn is_pure_rust_for_lr_and_glr() {
+        assert!(ParserBackend::PureRust.is_pure_rust());
+        assert!(ParserBackend::GLR.is_pure_rust());
+        assert!(!ParserBackend::TreeSitter.is_pure_rust());
+    }
+
+    #[test]
+    fn clone_and_eq() {
+        let a = ParserBackend::GLR;
+        let b = a;
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn debug_format() {
+        let dbg = format!("{:?}", ParserBackend::TreeSitter);
+        assert_eq!(dbg, "TreeSitter");
+    }
+}

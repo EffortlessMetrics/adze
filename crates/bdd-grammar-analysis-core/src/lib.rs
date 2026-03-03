@@ -94,3 +94,102 @@ pub fn resolve_shift_reduce_actions(
         .actions
         .clone()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_table(
+        action_table: Vec<Vec<Vec<Action>>>,
+        states: usize,
+        symbols: usize,
+    ) -> ParseTable {
+        ParseTable {
+            action_table,
+            state_count: states,
+            symbol_count: symbols,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn empty_table_has_no_conflicts() {
+        let pt = ParseTable::default();
+        let analysis = analyze_conflicts(&pt);
+        assert_eq!(analysis.total_conflicts, 0);
+        assert_eq!(analysis.shift_reduce_conflicts, 0);
+        assert_eq!(analysis.reduce_reduce_conflicts, 0);
+        assert!(analysis.conflict_details.is_empty());
+    }
+
+    #[test]
+    fn single_action_cells_have_no_conflicts() {
+        let pt = make_table(
+            vec![vec![
+                vec![Action::Shift(StateId(1))],
+                vec![Action::Reduce(RuleId(0))],
+            ]],
+            1,
+            2,
+        );
+        assert_eq!(count_multi_action_cells(&pt), 0);
+        assert_eq!(analyze_conflicts(&pt).total_conflicts, 0);
+    }
+
+    #[test]
+    fn shift_reduce_conflict_detected() {
+        let pt = make_table(
+            vec![vec![vec![
+                Action::Shift(StateId(1)),
+                Action::Reduce(RuleId(0)),
+            ]]],
+            1,
+            1,
+        );
+        let analysis = analyze_conflicts(&pt);
+        assert_eq!(analysis.total_conflicts, 1);
+        assert_eq!(analysis.shift_reduce_conflicts, 1);
+        assert_eq!(analysis.reduce_reduce_conflicts, 0);
+    }
+
+    #[test]
+    fn reduce_reduce_conflict_detected() {
+        let pt = make_table(
+            vec![vec![vec![
+                Action::Reduce(RuleId(0)),
+                Action::Reduce(RuleId(1)),
+            ]]],
+            1,
+            1,
+        );
+        let analysis = analyze_conflicts(&pt);
+        assert_eq!(analysis.total_conflicts, 1);
+        assert_eq!(analysis.shift_reduce_conflicts, 0);
+        assert_eq!(analysis.reduce_reduce_conflicts, 1);
+    }
+
+    #[test]
+    fn count_multi_action_cells_matches_conflicts() {
+        let pt = make_table(
+            vec![vec![
+                vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))],
+                vec![Action::Accept],
+            ]],
+            1,
+            2,
+        );
+        assert_eq!(count_multi_action_cells(&pt), 1);
+    }
+
+    #[test]
+    fn conflict_analysis_debug_format() {
+        let analysis = ConflictAnalysis {
+            total_conflicts: 0,
+            shift_reduce_conflicts: 0,
+            reduce_reduce_conflicts: 0,
+            conflict_details: vec![],
+        };
+        let dbg = format!("{analysis:?}");
+        assert!(dbg.contains("total_conflicts"));
+    }
+}

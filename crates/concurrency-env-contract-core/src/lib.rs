@@ -75,3 +75,65 @@ impl Default for ConcurrencyCaps {
 pub fn current_caps() -> ConcurrencyCaps {
     ConcurrencyCaps::from_env()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_caps_use_expected_constants() {
+        let caps = ConcurrencyCaps::default();
+        assert_eq!(caps.rayon_threads, DEFAULT_RAYON_NUM_THREADS);
+        assert_eq!(caps.tokio_worker_threads, DEFAULT_TOKIO_WORKER_THREADS);
+    }
+
+    #[test]
+    fn from_lookup_returns_defaults_when_none() {
+        let caps = ConcurrencyCaps::from_lookup(|_| None);
+        assert_eq!(caps, ConcurrencyCaps::default());
+    }
+
+    #[test]
+    fn from_lookup_parses_valid_values() {
+        let caps = ConcurrencyCaps::from_lookup(|name| match name {
+            "RAYON_NUM_THREADS" => Some("16".to_string()),
+            "TOKIO_WORKER_THREADS" => Some("8".to_string()),
+            _ => None,
+        });
+        assert_eq!(caps.rayon_threads, 16);
+        assert_eq!(caps.tokio_worker_threads, 8);
+    }
+
+    #[test]
+    fn from_lookup_falls_back_on_zero() {
+        let caps = ConcurrencyCaps::from_lookup(|_| Some("0".to_string()));
+        assert_eq!(caps, ConcurrencyCaps::default());
+    }
+
+    #[test]
+    fn from_lookup_falls_back_on_invalid() {
+        let caps = ConcurrencyCaps::from_lookup(|_| Some("not_a_number".to_string()));
+        assert_eq!(caps, ConcurrencyCaps::default());
+    }
+
+    #[test]
+    fn clone_and_eq() {
+        let caps = ConcurrencyCaps::from_lookup(|_| Some("3".to_string()));
+        let cloned = caps;
+        assert_eq!(caps, cloned);
+    }
+
+    #[test]
+    fn debug_format_is_readable() {
+        let caps = ConcurrencyCaps::default();
+        let dbg = format!("{caps:?}");
+        assert!(dbg.contains("rayon_threads"));
+        assert!(dbg.contains("tokio_worker_threads"));
+    }
+
+    #[test]
+    fn env_var_constants_match_expected_names() {
+        assert_eq!(RAYON_NUM_THREADS_ENV, "RAYON_NUM_THREADS");
+        assert_eq!(TOKIO_WORKER_THREADS_ENV, "TOKIO_WORKER_THREADS");
+    }
+}

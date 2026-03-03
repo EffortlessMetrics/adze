@@ -35,3 +35,41 @@ pub use adze_concurrency_init_core::{
 pub use adze_concurrency_map_core::{
     ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn caps_defaults_via_facade() {
+        let caps = ConcurrencyCaps::from_lookup(|_| None);
+        assert_eq!(caps.rayon_threads, DEFAULT_RAYON_NUM_THREADS);
+        assert_eq!(caps.tokio_worker_threads, DEFAULT_TOKIO_WORKER_THREADS);
+    }
+
+    #[test]
+    fn parse_helper_via_facade() {
+        assert_eq!(parse_positive_usize_or_default(Some("10"), 1), 10);
+        assert_eq!(parse_positive_usize_or_default(Some("0"), 5), 5);
+        assert_eq!(parse_positive_usize_or_default(None, 3), 3);
+    }
+
+    #[test]
+    fn bounded_map_via_facade() {
+        let mut result = bounded_parallel_map(vec![1, 2, 3], 2, |x| x * 10);
+        result.sort();
+        assert_eq!(result, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn normalized_concurrency_via_facade() {
+        assert_eq!(normalized_concurrency(0), 1);
+        assert_eq!(normalized_concurrency(4), 4);
+    }
+
+    #[test]
+    fn partition_plan_via_facade() {
+        let plan = ParallelPartitionPlan::for_item_count(10, 3);
+        assert!(plan.chunk_size > 0);
+    }
+}

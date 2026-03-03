@@ -462,3 +462,56 @@ pub fn build_runtime_precedence_arithmetic_parse_table(
 ) -> Result<ParseTable, String> {
     build_runtime_parse_table(&precedence_arithmetic_grammar(plus_assoc))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dangling_else_grammar_has_expected_tokens() {
+        let g = dangling_else_grammar();
+        assert_eq!(g.name, "if_then_else");
+        assert_eq!(g.tokens.len(), 5);
+    }
+
+    #[test]
+    fn precedence_arithmetic_grammar_has_three_rules() {
+        let g = precedence_arithmetic_grammar(Associativity::Left);
+        assert_eq!(g.rules.get(&SymbolId(10)).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn no_precedence_grammar_builds_successfully() {
+        let g = no_precedence_grammar();
+        assert_eq!(g.name, "no_precedence_expr");
+        assert!(!g.rules.is_empty());
+    }
+
+    #[test]
+    fn token_pattern_kind_clone_eq() {
+        let a = TokenPatternKind::Literal("x");
+        let b = a;
+        assert_eq!(a, b);
+        let c = TokenPatternKind::Regex(r"\d+");
+        assert_ne!(format!("{c:?}"), format!("{a:?}"));
+    }
+
+    #[test]
+    fn symbol_metadata_spec_debug() {
+        let spec = SymbolMetadataSpec {
+            is_terminal: true,
+            is_visible: false,
+            is_supertype: false,
+        };
+        let dbg = format!("{spec:?}");
+        assert!(dbg.contains("is_terminal"));
+    }
+
+    #[test]
+    fn fixture_constants_are_non_empty() {
+        assert!(!DANGLING_ELSE_SYMBOL_METADATA.is_empty());
+        assert!(!DANGLING_ELSE_TOKEN_PATTERNS.is_empty());
+        assert!(!PRECEDENCE_ARITHMETIC_SYMBOL_METADATA.is_empty());
+        assert!(!PRECEDENCE_ARITHMETIC_TOKEN_PATTERNS.is_empty());
+    }
+}
