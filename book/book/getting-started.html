@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Changelog - Adze Documentation</title>
+        <title>Overview - Adze Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -12,34 +12,34 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="../favicon.svg">
-        <link rel="shortcut icon" href="../favicon.png">
-        <link rel="stylesheet" href="../css/variables.css">
-        <link rel="stylesheet" href="../css/general.css">
-        <link rel="stylesheet" href="../css/chrome.css">
-        <link rel="stylesheet" href="../css/print.css" media="print">
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="../fonts/fonts.css">
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
-            const path_to_root = "../";
+            const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex.js";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc.js"></script>
+        <script src="toc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -106,7 +106,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
             </noscript>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -141,13 +141,13 @@
                     <h1 class="menu-title">Adze Documentation</h1>
 
                     <div class="right-buttons">
-                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/appendix/changelog.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/getting-started.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -181,60 +181,122 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
-<p>All notable changes to this project will be documented in this file.</p>
-<p>This appendix mirrors the root <code>CHANGELOG.md</code>; keep it in sync when cutting releases.</p>
-<h2 id="unreleased"><a class="header" href="#unreleased">[Unreleased]</a></h2>
-<h2 id="080---2026-02-22"><a class="header" href="#080---2026-02-22">[0.8.0] - 2026-02-22</a></h2>
-<p><strong>Focus</strong>: Publishable baseline, documentation sync, and governance-as-code.</p>
-<h3 id="added"><a class="header" href="#added">Added</a></h3>
+                        <h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
+<p>This chapter walks you through installing Adze, defining your first grammar, building the parser, and using it to parse input.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<p>Add the runtime and build-tool crates to your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+adze = "0.5.0-beta"
+
+[build-dependencies]
+adze-tool = "0.5.0-beta"
+</code></pre>
+<p>Then create a <code>build.rs</code> in your project root:</p>
+<pre><code class="language-rust">use std::path::PathBuf;
+
+fn main() {
+    println!("cargo:rerun-if-changed=src");
+    adze_tool::build_parsers(&amp;PathBuf::from("src/main.rs"));
+}</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> For WASM targets, enable the <code>pure-rust</code> feature to avoid C
+dependencies. See <a href="getting-started/installation.html">Installation</a> for all
+backend options.</p>
+</blockquote>
+<h2 id="your-first-grammar"><a class="header" href="#your-first-grammar">Your First Grammar</a></h2>
+<p>Define a simple arithmetic grammar using Rust types annotated with Adze attributes. Create <code>src/main.rs</code>:</p>
+<pre><code class="language-rust">#[adze::grammar("arithmetic")]
+pub mod grammar {
+    /// The root type the parser returns.
+    #[adze::language]
+    #[derive(Debug, PartialEq, Eq)]
+    pub enum Expression {
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap_or_default())]
+            i32,
+        ),
+
+        #[adze::prec_left(1)]
+        Add(
+            Box&lt;Expression&gt;,
+            #[adze::leaf(text = "+")] (),
+            Box&lt;Expression&gt;,
+        ),
+
+        #[adze::prec_left(2)]
+        Mul(
+            Box&lt;Expression&gt;,
+            #[adze::leaf(text = "*")] (),
+            Box&lt;Expression&gt;,
+        ),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _ws: (),
+    }
+}</code></pre>
+<p><strong>Key annotations:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Attribute</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>#[adze::grammar("name")]</code></td><td>Declares a grammar module and generates the parser</td></tr>
+<tr><td><code>#[adze::language]</code></td><td>Marks the root AST type</td></tr>
+<tr><td><code>#[adze::leaf(pattern = …)]</code></td><td>Matches a regex token</td></tr>
+<tr><td><code>#[adze::leaf(text = …)]</code></td><td>Matches an exact string token</td></tr>
+<tr><td><code>#[adze::prec_left(n)]</code></td><td>Left-associative precedence (higher = tighter)</td></tr>
+<tr><td><code>#[adze::extra]</code></td><td>Tokens silently skipped between other tokens</td></tr>
+</tbody></table>
+</div>
+<h2 id="building"><a class="header" href="#building">Building</a></h2>
+<p>Run:</p>
+<pre><code class="language-bash">cargo build
+</code></pre>
+<p>During the build Adze:</p>
+<ol>
+<li>Reads the annotated types in your grammar module.</li>
+<li>Extracts grammar rules and generates an IR.</li>
+<li>Builds LR(1)/GLR parse tables.</li>
+<li>Emits Rust (or C, depending on backend) parser code that is compiled into your binary.</li>
+</ol>
+<p>Set <code>ADZE_EMIT_ARTIFACTS=true</code> to inspect the generated grammar JSON:</p>
+<pre><code class="language-bash">ADZE_EMIT_ARTIFACTS=true cargo build
+# Artifacts land in target/debug/build/&lt;crate&gt;-&lt;hash&gt;/out/
+</code></pre>
+<h2 id="parsing"><a class="header" href="#parsing">Parsing</a></h2>
+<p>Use the generated <code>grammar::parse</code> function to parse input and extract a typed AST:</p>
+<pre><code class="language-rust">fn main() {
+    let input = "1 + 2 * 3";
+    match grammar::parse(input) {
+        Ok(expr) =&gt; println!("{expr:?}"),
+        // Add(Number(1), (), Mul(Number(2), (), Number(3)))
+        Err(errs) =&gt; {
+            for e in errs {
+                eprintln!("parse error: {e}");
+            }
+        }
+    }
+}</code></pre>
+<p>Run it:</p>
+<pre><code class="language-bash">cargo run
+</code></pre>
+<p>Because multiplication has <code>prec_left(2)</code> (higher than addition's <code>1</code>), the expression <code>1 + 2 * 3</code> correctly parses as <code>1 + (2 * 3)</code>.</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
-<li><strong>Governance-as-Code</strong>: Integrated policy enforcement for backend selection (Pure-Rust vs GLR) and progress tracking via 25+ micro-crates in <code>crates/</code>.</li>
-<li><strong>Table Compression</strong>: Optimized parse tables using Tree-sitter's format, achieving &gt;10x reduction in binary size for large grammars.</li>
-<li><strong>Improved Macro Extraction</strong>: Enhanced <code>Extract</code> trait for more robust typed AST construction from both LR(1) and GLR trees.</li>
-<li><strong>Standardized CI Lane</strong>: Defined the <code>Supported Lane</code> (<code>just ci-supported</code>) ensuring core reliability across platforms.</li>
-<li><strong>Comprehensive Documentation</strong>: Complete overhaul of all guides and READMEs to reflect the transition from <code>rust-sitter</code> to Adze.</li>
-</ul>
-<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
-<ul>
-<li><strong>Project Rename</strong>: Formally transitioned from <code>rust-sitter</code> to <strong>Adze</strong>.</li>
-<li><strong>MSRV</strong>: Updated Minimum Supported Rust Version to <strong>1.92</strong> (Rust 2024 edition).</li>
-<li><strong>Default Backend</strong>: Pure-Rust LR(1) is now the default and primary recommended path.</li>
-</ul>
-<h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
-<ul>
-<li><strong>Precedence Disambiguation</strong>: Corrected operator precedence conflicts in the GLR runtime.</li>
-<li><strong>EOF Handling</strong>: Fixed proper end-of-input processing in the pure-Rust parser.</li>
-<li><strong>FFI Hardening</strong>: Eliminated potential segmentation faults in the legacy C bridge.</li>
-</ul>
-<hr />
-<h2 id="070---2025-12-20"><a class="header" href="#070---2025-12-20">[0.7.0] - 2025-12-20</a></h2>
-<p><strong>Focus</strong>: GLR Engine Completion and Ambiguity Handling.</p>
-<h3 id="added-1"><a class="header" href="#added-1">Added</a></h3>
-<ul>
-<li><strong>GLR Fork/Merge</strong>: Implementation of stack forking and merging (SPPF) for ambiguous grammars.</li>
-<li><strong>External Scanners</strong>: Support for custom lexing logic in Rust (implemented for Python indentation).</li>
-<li><strong>Initial Query Support</strong>: Basic Tree-sitter query pattern matching (<code>.scm</code> files).</li>
-</ul>
-<hr />
-<h2 id="061-beta---2025-01-22"><a class="header" href="#061-beta---2025-01-22">[0.6.1-beta] - 2025-01-22</a></h2>
-<h3 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h3>
-<ul>
-<li>Fixed Accept action encoding (0x7FFF to 0xFFFF).</li>
-<li>Corrected decoder check order.</li>
-<li>Fixed token_count calculation to include EOF symbol.</li>
-<li>Added missing GOTO table entries to compressed parse tables.</li>
+<li><a href="getting-started/quickstart.html">Quick Start</a> — a deeper walkthrough with GLR features</li>
+<li><a href="guide/grammar-definition.html">Grammar Definition</a> — full reference for grammar attributes</li>
+<li><a href="architecture.html">Architecture</a> — how the pieces fit together</li>
+<li><a href="microcrates.html">Microcrate Guide</a> — understanding the workspace layout</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../testing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../appendix/faq.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="getting-started/installation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -244,11 +306,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../testing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../appendix/faq.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="getting-started/installation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -263,13 +325,13 @@
         </script>
 
 
-        <script src="../elasticlunr.min.js"></script>
-        <script src="../mark.min.js"></script>
-        <script src="../searcher.js"></script>
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
 
-        <script src="../clipboard.min.js"></script>
-        <script src="../highlight.js"></script>
-        <script src="../book.js"></script>
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
 

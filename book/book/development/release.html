@@ -183,7 +183,7 @@
                     <main>
                         <h1 id="release-process"><a class="header" href="#release-process">Release Process</a></h1>
 <p>Release orchestration is now handled by <a href="../../../.github/workflows/release.yml"><code>.github/workflows/release.yml</code></a>.</p>
-<p>Use workflow dispatch with a <code>version</code> input (and <code>dry_run</code> when needed) to perform the full, canonical path:</p>
+<p>Use workflow dispatch with these inputs to perform the full, canonical path:</p>
 <ul>
 <li>validation</li>
 <li>full test suite</li>
@@ -192,13 +192,35 @@
 <li>publish</li>
 <li>GitHub release creation</li>
 </ul>
+<p>Workflow inputs:</p>
+<ul>
+<li><code>version</code> (required): release version (e.g. <code>0.10.0</code>).</li>
+<li><code>release_surface_mode</code> (default: <code>fixed</code>): <code>fixed</code> (use allowlist order) or <code>auto</code> (compute publishable crates).</li>
+<li><code>release_crate_file</code> (optional): custom allowlist path used with fixed mode or sync regeneration.</li>
+<li><code>dry_run</code> (default: <code>true</code>): run all validation and checks without publishing.</li>
+<li><code>strict_publish_surface</code> (default: <code>false</code>): in <code>fixed</code> mode, fail release if extra publishable crates are not in the release allowlist.</li>
+</ul>
 <p>Legacy local helpers are kept for ad-hoc use only:</p>
 <ul>
 <li><a href="../../../scripts/update-versions.sh"><code>scripts/update-versions.sh</code></a></li>
 <li><a href="../../../scripts/release.sh"><code>scripts/release.sh</code></a></li>
 <li><a href="../../../scripts/dry-run-publish.sh"><code>scripts/dry-run-publish.sh</code></a></li>
 </ul>
+<p>For local helper runs, set:</p>
+<ul>
+<li><code>RELEASE_SURFACE_MODE=fixed|auto</code></li>
+<li><code>RELEASE_CRATE_FILE=&lt;path&gt;</code></li>
+<li><code>STRICT_PUBLISH_SURFACE=true|false</code> (fixed mode only; default <code>false</code>)</li>
+<li><code>RELEASE_CRATE_SYNC=true</code> (only meaningful in <code>auto</code> mode)</li>
+</ul>
 <p><code>release.toml</code> is still used for changelog/version replacement metadata.</p>
+<p><code>release.sh</code> and <code>dry-run-publish.sh</code> now support two release-surface modes:</p>
+<ul>
+<li><code>RELEASE_SURFACE_MODE=fixed</code> (default): use <code>scripts/release-crates.txt</code> as a strict allowlist and publish order.</li>
+<li><code>RELEASE_SURFACE_MODE=auto</code>: compute publishable workspace crates and auto-resolve dependency order.</li>
+<li>Optional override: <code>RELEASE_CRATE_FILE</code> to point at an alternate allowlist file (defaults to <code>scripts/release-crates.txt</code>).</li>
+<li><code>RELEASE_CRATE_SYNC=true</code> with <code>RELEASE_SURFACE_MODE=auto</code>: regenerate the selected allowlist file from metadata.</li>
+</ul>
 
                     </main>
 
@@ -208,7 +230,7 @@
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../appendix/changelog.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -222,7 +244,7 @@
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../appendix/changelog.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

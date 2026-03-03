@@ -240,11 +240,117 @@ let result = grammar::parse("1+2+3");</code></pre>
 </ul>
 <h2 id="license"><a class="header" href="#license">License</a></h2>
 <p>Adze is licensed under the MIT license. See the <a href="https://github.com/EffortlessMetrics/adze/blob/main/LICENSE">LICENSE</a> file for details.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
+<p>This chapter walks you through installing Adze, defining your first grammar, building the parser, and using it to parse input.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<p>Add the runtime and build-tool crates to your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+adze = "0.5.0-beta"
+
+[build-dependencies]
+adze-tool = "0.5.0-beta"
+</code></pre>
+<p>Then create a <code>build.rs</code> in your project root:</p>
+<pre><code class="language-rust">use std::path::PathBuf;
+
+fn main() {
+    println!("cargo:rerun-if-changed=src");
+    adze_tool::build_parsers(&amp;PathBuf::from("src/main.rs"));
+}</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> For WASM targets, enable the <code>pure-rust</code> feature to avoid C
+dependencies. See <a href="getting-started/installation.html">Installation</a> for all
+backend options.</p>
+</blockquote>
+<h2 id="your-first-grammar"><a class="header" href="#your-first-grammar">Your First Grammar</a></h2>
+<p>Define a simple arithmetic grammar using Rust types annotated with Adze attributes. Create <code>src/main.rs</code>:</p>
+<pre><code class="language-rust">#[adze::grammar("arithmetic")]
+pub mod grammar {
+    /// The root type the parser returns.
+    #[adze::language]
+    #[derive(Debug, PartialEq, Eq)]
+    pub enum Expression {
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap_or_default())]
+            i32,
+        ),
+
+        #[adze::prec_left(1)]
+        Add(
+            Box&lt;Expression&gt;,
+            #[adze::leaf(text = "+")] (),
+            Box&lt;Expression&gt;,
+        ),
+
+        #[adze::prec_left(2)]
+        Mul(
+            Box&lt;Expression&gt;,
+            #[adze::leaf(text = "*")] (),
+            Box&lt;Expression&gt;,
+        ),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _ws: (),
+    }
+}</code></pre>
+<p><strong>Key annotations:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Attribute</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>#[adze::grammar("name")]</code></td><td>Declares a grammar module and generates the parser</td></tr>
+<tr><td><code>#[adze::language]</code></td><td>Marks the root AST type</td></tr>
+<tr><td><code>#[adze::leaf(pattern = …)]</code></td><td>Matches a regex token</td></tr>
+<tr><td><code>#[adze::leaf(text = …)]</code></td><td>Matches an exact string token</td></tr>
+<tr><td><code>#[adze::prec_left(n)]</code></td><td>Left-associative precedence (higher = tighter)</td></tr>
+<tr><td><code>#[adze::extra]</code></td><td>Tokens silently skipped between other tokens</td></tr>
+</tbody></table>
+</div>
+<h2 id="building"><a class="header" href="#building">Building</a></h2>
+<p>Run:</p>
+<pre><code class="language-bash">cargo build
+</code></pre>
+<p>During the build Adze:</p>
+<ol>
+<li>Reads the annotated types in your grammar module.</li>
+<li>Extracts grammar rules and generates an IR.</li>
+<li>Builds LR(1)/GLR parse tables.</li>
+<li>Emits Rust (or C, depending on backend) parser code that is compiled into your binary.</li>
+</ol>
+<p>Set <code>ADZE_EMIT_ARTIFACTS=true</code> to inspect the generated grammar JSON:</p>
+<pre><code class="language-bash">ADZE_EMIT_ARTIFACTS=true cargo build
+# Artifacts land in target/debug/build/&lt;crate&gt;-&lt;hash&gt;/out/
+</code></pre>
+<h2 id="parsing"><a class="header" href="#parsing">Parsing</a></h2>
+<p>Use the generated <code>grammar::parse</code> function to parse input and extract a typed AST:</p>
+<pre><code class="language-rust">fn main() {
+    let input = "1 + 2 * 3";
+    match grammar::parse(input) {
+        Ok(expr) =&gt; println!("{expr:?}"),
+        // Add(Number(1), (), Mul(Number(2), (), Number(3)))
+        Err(errs) =&gt; {
+            for e in errs {
+                eprintln!("parse error: {e}");
+            }
+        }
+    }
+}</code></pre>
+<p>Run it:</p>
+<pre><code class="language-bash">cargo run
+</code></pre>
+<p>Because multiplication has <code>prec_left(2)</code> (higher than addition's <code>1</code>), the expression <code>1 + 2 * 3</code> correctly parses as <code>1 + (2 * 3)</code>.</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="getting-started/quickstart.html">Quick Start</a> — a deeper walkthrough with GLR features</li>
+<li><a href="guide/grammar-definition.html">Grammar Definition</a> — full reference for grammar attributes</li>
+<li><a href="architecture.html">Architecture</a> — how the pieces fit together</li>
+<li><a href="microcrates.html">Microcrate Guide</a> — understanding the workspace layout</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="installation-1"><a class="header" href="#installation-1">Installation</a></h1>
 <p>This chapter covers how to install and set up Adze in your project.</p>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
 <ul>
-<li>Rust 1.70.0 or later</li>
+<li>Rust 1.92.0 or later (2024 edition)</li>
 <li>Cargo (comes with Rust)</li>
 </ul>
 <h2 id="adding-dependencies"><a class="header" href="#adding-dependencies">Adding Dependencies</a></h2>
@@ -347,7 +453,7 @@ cargo run
 </ul>
 </li>
 </ol>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
 <p>Now that you have Adze installed, proceed to the <a href="getting-started/quickstart.html">Quick Start</a> guide to create your first grammar!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
 <p>This guide will walk you through creating your first Adze grammar and parser.</p>
@@ -632,7 +738,7 @@ fn test_glr_arithmetic() {
 <li><strong>Tree-sitter Compatibility</strong>: Drop-in replacement for existing Tree-sitter usage</li>
 <li><strong>Performance Monitoring</strong>: Built-in metrics for optimization</li>
 </ul>
-<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
 <p>Now that you've created your first GLR grammar:</p>
 <ol>
 <li>Read about <a href="getting-started/../guide/parser-generation.html">Parser Generation</a> to understand GLR vs Pure-Rust backends</li>
@@ -820,6 +926,325 @@ let language = grammar::language();  // Must have parse_table: Some(...)</code><
 <li><strong>Future Proof</strong>: Foundation for advanced features like query optimization and LSP generation</li>
 </ol>
 <p>For more details on GLR features and best practices, see the <a href="getting-started/../guide/parser-generation.html">Parser Generation Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
+<p>This chapter explains how Adze works from end to end — what happens when you
+annotate Rust types, run <code>cargo build</code>, and parse source text at runtime. Use it
+to build a mental model of the system so you can make informed decisions about
+grammar design, performance tuning, and extensibility.</p>
+<blockquote>
+<p><strong>See also</strong>
+<a href="guide/../architecture.html">Architecture Overview</a> for the crate-level view,
+<a href="guide/../microcrates.html">Microcrate Guide</a> for the full crate catalogue, and
+<a href="guide/../development/architecture.html">Development Architecture</a> for contributor-oriented details.</p>
+</blockquote>
+<hr />
+<h2 id="high-level-architecture"><a class="header" href="#high-level-architecture">High-Level Architecture</a></h2>
+<pre><code class="language-text">                          ┌──────────────────────────────────────┐
+                          │           YOUR CRATE                 │
+                          │                                      │
+                          │   src/grammar.rs   ← you write this  │
+                          │       │                              │
+                          │       ▼                              │
+                          │   build.rs                           │
+                          │   adze_tool::build_parsers()         │
+                          │       │                              │
+                          │       ├── Macro expansion (common/)  │
+                          │       ├── IR construction  (ir/)     │
+                          │       ├── GLR analysis  (glr-core/)  │
+                          │       ├── Table compression          │
+                          │       │      (tablegen/)             │
+                          │       └── Code emission   (tool/)   │
+                          │               │                      │
+                          │               ▼                      │
+                          │   OUT_DIR/parser.rs  ← generated     │
+                          │               │                      │
+                          │               ▼                      │
+                          │   runtime / runtime2  ← linked       │
+                          │       │                              │
+                          │       ▼                              │
+                          │   your_crate::grammar::parse(text)   │
+                          └──────────────────────────────────────┘
+</code></pre>
+<p>Everything above the dashed line happens <strong>once at build time</strong>; everything
+below runs <strong>in your application</strong>.  The generated parser code lives in Cargo's
+<code>OUT_DIR</code> and is never checked into version control.</p>
+<hr />
+<h2 id="the-build-pipeline--step-by-step"><a class="header" href="#the-build-pipeline--step-by-step">The Build Pipeline — Step by Step</a></h2>
+<h3 id="1-grammar-definition-you-write-this"><a class="header" href="#1-grammar-definition-you-write-this">1. Grammar Definition (you write this)</a></h3>
+<p>You express a grammar as annotated Rust types.  The macro attributes
+(<code>#[adze::grammar]</code>, <code>#[adze::leaf]</code>, <code>#[adze::prec_left]</code>, …) are thin
+markers — they record metadata but do <strong>no</strong> code generation themselves.</p>
+<pre><code class="language-rust">#[adze::grammar("arithmetic")]
+mod grammar {
+    #[adze::language]
+    pub enum Expr {
+        Number(#[adze::leaf(pattern = r"\d+")] String),
+        #[adze::prec_left(1)]
+        Add(Box&lt;Expr&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expr&gt;),
+    }
+}</code></pre>
+<p>Why types and not a DSL?  Because Rust's type system already gives you enums,
+generics, <code>Box</code>, <code>Vec</code>, and <code>Option</code> — all of which map naturally to grammar
+constructs (choices, recursion, repetition, optionals).</p>
+<h3 id="2-buildrs--the-orchestrator"><a class="header" href="#2-buildrs--the-orchestrator">2. <code>build.rs</code> — The Orchestrator</a></h3>
+<p>Your crate's <code>build.rs</code> calls one function:</p>
+<pre><code class="language-rust">fn main() {
+    adze_tool::build_parsers(&amp;PathBuf::from("src/grammar.rs"));
+}</code></pre>
+<p>Under the hood this kicks off four stages, each owned by a dedicated crate.</p>
+<h3 id="3-ir-construction-adze-ir"><a class="header" href="#3-ir-construction-adze-ir">3. IR Construction (<code>adze-ir</code>)</a></h3>
+<p>The build tool reads the macro-annotated source and constructs a <strong>Grammar
+Intermediate Representation</strong>:</p>
+<pre><code class="language-text">Rust types + annotations
+        │
+        ▼
+  ┌──────────────┐
+  │   Grammar IR │   • rules, symbols, fields
+  │              │   • precedence / associativity
+  │              │   • external scanner declarations
+  └──────┬───────┘
+         │
+         ▼
+  Grammar::normalize()
+         │
+         ▼
+  Auxiliary rules for Optional, Repeat, Choice, Sequence
+</code></pre>
+<p><code>normalize()</code> rewrites complex symbols into simple auxiliary rules so that
+downstream stages only need to handle flat rule lists.</p>
+<h3 id="4-glr-analysis-adze-glr-core"><a class="header" href="#4-glr-analysis-adze-glr-core">4. GLR Analysis (<code>adze-glr-core</code>)</a></h3>
+<p>From the normalized grammar the GLR core builds the parsing automaton:</p>
+<pre><code class="language-text">  Grammar IR
+      │
+      ├─▶ FIRST / FOLLOW sets
+      │
+      ├─▶ LR(1) item sets  →  canonical collection
+      │
+      └─▶ Action &amp; goto tables
+              │
+              ├── Shift actions
+              ├── Reduce actions
+              └── Conflict cells (shift/reduce, reduce/reduce)
+</code></pre>
+<p><strong>Key design choice — conflict preservation.</strong>  Traditional LALR generators
+<em>resolve</em> conflicts at build time (or report them as errors).  Adze instead
+<strong>keeps every conflicting action</strong> in the table.  At parse time the GLR engine
+forks, exploring all paths in parallel, and merges them when the ambiguity
+resolves.  This means:</p>
+<ul>
+<li>You can parse inherently ambiguous grammars without rewriting them.</li>
+<li>Precedence and associativity <em>order</em> actions (preferred first) but never
+discard alternatives.</li>
+<li>Shift/reduce and reduce/reduce conflicts are not errors — they are expected.</li>
+</ul>
+<h3 id="5-table-compression-adze-tablegen"><a class="header" href="#5-table-compression-adze-tablegen">5. Table Compression (<code>adze-tablegen</code>)</a></h3>
+<p>Raw LR tables for a production grammar can be enormous (hundreds of states ×
+hundreds of symbols).  <code>tablegen</code> compresses them using the same algorithms
+Tree-sitter uses:</p>
+<div class="table-wrapper"><table><thead><tr><th>Technique</th><th>Effect</th></tr></thead><tbody>
+<tr><td>Default-action elimination</td><td>Removes the most common action per state</td></tr>
+<tr><td>Sparse row encoding</td><td>Stores only non-default entries</td></tr>
+<tr><td>Symbol grouping</td><td>Shares rows across symbols with identical actions</td></tr>
+</tbody></table>
+</div>
+<p>The output is a <strong>static <code>Language</code> struct</strong> with FFI-compatible layout,
+plus a <code>NODE_TYPES</code> JSON file describing every node kind.  Because the layout
+matches Tree-sitter's C ABI exactly, existing Tree-sitter tooling (queries,
+highlights, folds) works with Adze-generated parsers out of the box.</p>
+<h3 id="6-code-emission-adze-tool"><a class="header" href="#6-code-emission-adze-tool">6. Code Emission (<code>adze-tool</code>)</a></h3>
+<p>Finally the tool writes:</p>
+<ul>
+<li><strong>Generated Rust source</strong> — <code>include!</code>d from <code>OUT_DIR</code>.</li>
+<li><strong><code>Extract</code> implementations</strong> — one per grammar type, converting parse-tree
+nodes into your Rust types.</li>
+<li><strong>Build script output</strong> — <code>cargo:rerun-if-changed</code> directives so Cargo
+re-generates only when the grammar file changes.</li>
+</ul>
+<hr />
+<h2 id="crate-dependency-graph"><a class="header" href="#crate-dependency-graph">Crate Dependency Graph</a></h2>
+<p>Only the <strong>runtime</strong> crate ends up in your final binary.  Build-time crates
+are dev/build dependencies:</p>
+<pre><code class="language-text">  ┌────────────────── build-time only ──────────────────┐
+  │                                                     │
+  │  tool ──┐                                           │
+  │         ├──▶ common ──▶ ir ──▶ glr-core ──▶ tablegen│
+  │  macro ─┘                                           │
+  │                                                     │
+  └─────────────────────────────────────────────────────┘
+
+  ┌────────────────── shipped in binary ────────────────┐
+  │                                                     │
+  │  runtime   (Extract trait, error recovery, visitor)  │
+  │  runtime2  (GLR engine, tree builder, incremental)   │
+  │                                                     │
+  └─────────────────────────────────────────────────────┘
+</code></pre>
+<p>If you only use the <code>Extract</code> API you depend on <code>runtime</code>.  If you need the
+full GLR <code>Parser</code> + <code>Tree</code> API, depend on <code>runtime2</code> as well.</p>
+<hr />
+<h2 id="runtime-data-flow"><a class="header" href="#runtime-data-flow">Runtime Data Flow</a></h2>
+<p>Once the parser is compiled into your binary, parsing a string follows this
+path:</p>
+<pre><code class="language-text">  "1 + 2 * 3"                      ← input text
+       │
+       ▼
+  ┌──────────┐
+  │  Lexer   │  Splits text into tokens:
+  │          │    NUMBER("1") PLUS("+") NUMBER("2") STAR("*") NUMBER("3")
+  └────┬─────┘
+       │
+       ▼
+  ┌──────────────┐
+  │  GLR Driver  │  Pushes tokens through the parse table.
+  │              │  On conflicts → fork into parallel stacks.
+  │              │  On convergence → merge stacks.
+  └────┬─────────┘
+       │
+       ▼
+  ┌──────────────┐
+  │ Parse Forest │  A packed representation that may encode
+  │              │  multiple valid parse trees (ambiguity).
+  └────┬─────────┘
+       │
+       ▼
+  ┌──────────────┐
+  │ Tree Builder │  Selects the preferred tree (highest
+  │              │  precedence path) and emits a concrete
+  │              │  Tree-sitter-compatible Tree.
+  └────┬─────────┘
+       │
+       ▼
+  ┌──────────────┐
+  │   Extract    │  Walks the tree and populates your
+  │              │  typed Rust values (Expr, Statement, …).
+  └──────────────┘
+</code></pre>
+<h3 id="incremental-parsing-experimental"><a class="header" href="#incremental-parsing-experimental">Incremental Parsing (Experimental)</a></h3>
+<p>When a user edits a small region of a large file, reparsing from scratch is
+wasteful.  The incremental path (feature-gated behind <code>incremental_glr</code>)
+identifies the unchanged prefix and suffix, reparses only the changed middle
+section, and splices the result back into the existing forest.</p>
+<blockquote>
+<p><strong>Status:</strong> The incremental path currently falls back to a full reparse for
+correctness.  The infrastructure is in place but disabled until remaining
+edge cases are resolved.</p>
+</blockquote>
+<hr />
+<h2 id="key-design-decisions"><a class="header" href="#key-design-decisions">Key Design Decisions</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Decision</th><th>Rationale</th></tr></thead><tbody>
+<tr><td><strong>Types <em>are</em> the grammar</strong></td><td>No separate grammar DSL to learn.  Rust enums map to alternatives, <code>Box&lt;T&gt;</code> to recursion, <code>Vec&lt;T&gt;</code> to repetition, <code>Option&lt;T&gt;</code> to optionals.</td></tr>
+<tr><td><strong>Two-stage build</strong></td><td>Proc macros cannot do file I/O or share state across crates.  Splitting annotation (macros) from generation (build tool) sidesteps those limitations.</td></tr>
+<tr><td><strong>Conflict preservation</strong></td><td>Discarding conflicts forces grammar authors to restructure rules.  Preserving them lets the GLR engine handle ambiguity transparently.</td></tr>
+<tr><td><strong>Tree-sitter ABI</strong></td><td>Reusing Tree-sitter's <code>Language</code> struct layout means existing editor integrations, syntax highlighting queries, and code-folding rules work unchanged.</td></tr>
+<tr><td><strong>Microcrate architecture</strong></td><td>Each stage is a small, independently testable crate.  This keeps compile times low and makes it easy to swap implementations.</td></tr>
+<tr><td><strong>Bounded concurrency</strong></td><td>Configurable caps on test threads, rayon pools, and async runtimes prevent resource exhaustion in CI and on constrained machines.</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="extension-points"><a class="header" href="#extension-points">Extension Points</a></h2>
+<h3 id="custom-external-scanners"><a class="header" href="#custom-external-scanners">Custom External Scanners</a></h3>
+<p>Some tokens (Python indentation, Haskell layout rules, template literals)
+cannot be expressed as regular expressions.  Implement the <code>ExternalScanner</code>
+trait:</p>
+<pre><code class="language-rust">use adze::ExternalScanner;
+
+#[derive(Default)]
+struct IndentScanner { indent_stack: Vec&lt;usize&gt; }
+
+impl ExternalScanner for IndentScanner {
+    fn scan(&amp;mut self, lexer: &amp;mut Lexer, valid_symbols: &amp;[bool]) -&gt; ScanResult {
+        // custom indentation logic
+    }
+    fn serialize(&amp;self) -&gt; Vec&lt;u8&gt;   { /* … */ }
+    fn deserialize(&amp;mut self, buf: &amp;[u8]) { /* … */ }
+}</code></pre>
+<p>The scanner is called during lexing whenever the token set includes an
+externally-defined symbol.</p>
+<h3 id="visitor--query-apis"><a class="header" href="#visitor--query-apis">Visitor &amp; Query APIs</a></h3>
+<p>After parsing you can traverse the tree in two ways:</p>
+<ul>
+<li><strong>Visitor pattern</strong> (<code>runtime/visitor.rs</code>) — implement a visitor trait and
+walk the tree with callbacks for enter/leave on each node kind.</li>
+<li><strong>Query / pattern matching</strong> — write S-expression patterns to extract nodes
+matching structural constraints (see <a href="guide/query-patterns.html">Query and Pattern Matching</a>).</li>
+</ul>
+<h3 id="serialization"><a class="header" href="#serialization">Serialization</a></h3>
+<p>Trees can be serialized to JSON or S-expression format for debugging, logging,
+or cross-process communication:</p>
+<pre><code class="language-rust">use adze::serialization::{to_json, to_sexp};
+
+let json = to_json(&amp;tree);
+let sexp = to_sexp(&amp;tree);</code></pre>
+<h3 id="build-time-artifact-inspection"><a class="header" href="#build-time-artifact-inspection">Build-Time Artifact Inspection</a></h3>
+<p>Set <code>ADZE_EMIT_ARTIFACTS=true</code> before building to write intermediate files
+(grammar JSON, node types, generated source) to <code>target/debug/build/&lt;crate&gt;/out/</code>.
+This is invaluable for debugging grammar issues.</p>
+<h3 id="adding-a-new-grammar"><a class="header" href="#adding-a-new-grammar">Adding a New Grammar</a></h3>
+<ol>
+<li>Create a new crate with <code>#[adze::grammar]</code>-annotated types.</li>
+<li>Add a <code>build.rs</code> calling <code>adze_tool::build_parsers()</code>.</li>
+<li>Depend on <code>adze</code> (runtime) in <code>[dependencies]</code> and <code>adze-tool</code> in
+<code>[build-dependencies]</code>.</li>
+<li>Optionally add golden tests to validate against a reference parser.</li>
+</ol>
+<hr />
+<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
+<h3 id="build-time"><a class="header" href="#build-time">Build Time</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Phase</th><th>Typical cost</th><th>Scales with</th></tr></thead><tbody>
+<tr><td>Macro expansion</td><td>&lt; 1 s</td><td>Number of annotated types</td></tr>
+<tr><td>IR construction</td><td>&lt; 1 s</td><td>Grammar rule count</td></tr>
+<tr><td>GLR analysis</td><td>1–30 s</td><td>States × symbols (quadratic worst case)</td></tr>
+<tr><td>Table compression</td><td>&lt; 5 s</td><td>Table size</td></tr>
+<tr><td>Code emission</td><td>&lt; 1 s</td><td>Grammar size</td></tr>
+</tbody></table>
+</div>
+<p>For a grammar the size of Python (~270 symbols, ~60 fields) the full pipeline
+completes in under 30 seconds on a modern laptop.</p>
+<h3 id="parse-time"><a class="header" href="#parse-time">Parse Time</a></h3>
+<ul>
+<li><strong>Unambiguous input:</strong> The GLR engine behaves like a standard LR parser —
+linear in the input length, O(n).</li>
+<li><strong>Ambiguous input:</strong> Each conflict introduces a fork.  In the worst case
+(highly ambiguous grammar + adversarial input) parsing can be O(n³), but
+real-world grammars rarely trigger this.</li>
+<li><strong>Incremental reparse:</strong> When enabled, cost is proportional to the size of
+the edited region, not the whole file.</li>
+</ul>
+<h3 id="memory"><a class="header" href="#memory">Memory</a></h3>
+<ul>
+<li>Parse tables are <strong>static data</strong> — they live in the binary's read-only
+segment and cost zero allocation at runtime.</li>
+<li>The GLR parse forest uses arena allocation internally, reducing allocator
+pressure during parsing.</li>
+<li>Tree nodes are compact structs; a typical 1 000-line source file produces
+a tree under 1 MB.</li>
+</ul>
+<h3 id="tuning-knobs"><a class="header" href="#tuning-knobs">Tuning Knobs</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody>
+<tr><td><code>RUST_TEST_THREADS</code></td><td>2</td><td>Max concurrent test threads</td></tr>
+<tr><td><code>RAYON_NUM_THREADS</code></td><td>4</td><td>Rayon thread-pool size</td></tr>
+<tr><td><code>ADZE_LOG_PERFORMANCE</code></td><td>off</td><td>Logs forest→tree metrics (node count, depth, time)</td></tr>
+<tr><td><code>ADZE_EMIT_ARTIFACTS</code></td><td>off</td><td>Writes intermediate build artifacts for inspection</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<pre><code class="language-text">  You write          Adze generates         You call at runtime
+  ──────────         ──────────────         ───────────────────
+  Rust types    ──▶  Parse tables     ──▶   parse("input")
+  with attrs         + Extract impls        → typed AST
+</code></pre>
+<p>The entire build pipeline is <strong>deterministic and reproducible</strong> — the same
+grammar always produces the same tables and the same generated code, regardless
+of platform.  The runtime is <strong>allocation-light and fork-safe</strong>, suitable for
+embedding in editors, CLI tools, and WASM environments.</p>
+<p>For deeper dives into individual topics see:</p>
+<ul>
+<li><a href="guide/grammar-definition.html">Grammar Definition</a> — annotation syntax reference</li>
+<li><a href="guide/parser-generation.html">Parser Generation</a> — build.rs configuration</li>
+<li><a href="guide/../advanced/glr-parsing.html">GLR Parsing</a> — how the GLR algorithm works</li>
+<li><a href="guide/performance.html">Performance Optimization</a> — profiling and tuning tips</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="grammar-definition"><a class="header" href="#grammar-definition">Grammar Definition</a></h1>
 <p>This chapter covers how to define grammars in Adze using Rust's type system.</p>
 <h2 id="grammar-module"><a class="header" href="#grammar-module">Grammar Module</a></h2>
@@ -1064,7 +1489,7 @@ pub enum Expr {
 Add(...),
 #[adze::prec_left(2)]
 Mul(...),</code></pre>
-<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
+<h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
 <ul>
 <li>Learn about <a href="guide/parser-generation.html">Parser Generation</a> to understand how grammars become parsers</li>
 <li>Explore <a href="guide/query-patterns.html">Query and Pattern Matching</a> for analyzing parsed trees</li>
@@ -1254,7 +1679,7 @@ match language.validate_glr() {
 <li>Maximum performance for simple grammars</li>
 <li>Minimal binary size requirements</li>
 </ul>
-<h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
+<h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
 <ul>
 <li>Learn about <a href="guide/incremental-parsing.html">Incremental Parsing</a></li>
 <li>Explore <a href="guide/performance.html">Performance Optimization</a></li>
@@ -1523,7 +1948,7 @@ Add(Box&lt;Expr&gt;, (), Box&lt;Expr&gt;),
 
 #[adze::prec_right(2)]
 Pow(Box&lt;Expr&gt;, (), Box&lt;Expr&gt;),</code></pre>
-<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<h2 id="summary-1"><a class="header" href="#summary-1">Summary</a></h2>
 <p>GLR precedence resolution provides:</p>
 <ul>
 <li><strong>Correct operator precedence</strong> without grammar modification</li>
@@ -2753,7 +3178,7 @@ cargo build -p adze-javascript
 # Verify feature flags
 cargo metadata --format-version 1 | jq '.packages[] | select(.name=="adze-golden-tests") | .features'
 </code></pre>
-<h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
+<h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
 <ul>
 <li><strong>Read <a href="guide/../development/testing.html">Testing Guide</a></strong> for comprehensive testing strategies</li>
 <li><strong>See <a href="guide/../reference/s-expression-format.html">S-Expression Reference</a></strong> for format details</li>
@@ -3019,7 +3444,7 @@ RUST_LOG=debug my-language-lsp --stdio
 # Enable performance monitoring  
 ADZE_LOG_PERFORMANCE=true my-language-lsp --stdio
 </code></pre>
-<h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
 <ul>
 <li>Explore the <a href="guide/../LSP_GENERATOR.html">LSP Generator documentation</a> for complete API reference</li>
 <li>Check out <a href="guide/../API_DOCUMENTATION.html">API Documentation</a> for detailed function signatures</li>
@@ -3563,7 +3988,7 @@ product -&gt; NUMBER
 (modifier) @vis (#any-of? @vis "public" "private" "protected")
 </code></pre>
 <h2 id="implementation-details-1"><a class="header" href="#implementation-details-1">Implementation Details</a></h2>
-<h3 id="architecture"><a class="header" href="#architecture">Architecture</a></h3>
+<h3 id="architecture-1"><a class="header" href="#architecture-1">Architecture</a></h3>
 <p>The predicate evaluation system consists of:</p>
 <ol>
 <li><strong>PredicateContext</strong> (<code>query/predicate_eval.rs</code>): Handles predicate evaluation with source text</li>
@@ -4680,7 +5105,7 @@ TOKIO_WORKER_THREADS=2     // Async runtime threads</code></pre>
 <p><strong>Arena Allocation</strong>: Optional arena allocators reduce fragmentation for large parse operations.</p>
 <p><strong>Copy-on-Write</strong>: Incremental parsing uses COW semantics to minimize memory usage during edits.</p>
 <p><strong>Bounded Collections</strong>: Internal data structures use bounded sizes to prevent memory exhaustion attacks.</p>
-<h2 id="extension-points"><a class="header" href="#extension-points">Extension Points</a></h2>
+<h2 id="extension-points-1"><a class="header" href="#extension-points-1">Extension Points</a></h2>
 <h3 id="adding-new-languages-1"><a class="header" href="#adding-new-languages-1">Adding New Languages</a></h3>
 <ol>
 <li><strong>Create Grammar Crate</strong>: Define Rust types with adze annotations</li>
@@ -4808,7 +5233,7 @@ std::env::set_var("ADZE_LOG_PERFORMANCE", "true");
 <p><strong>Machine Learning Integration</strong>: Grammar inference and automatic optimization using ML techniques.</p>
 <p><strong>Formal Verification</strong>: Mathematical proofs of parser correctness and completeness.</p>
 <p><strong>Domain-Specific Languages</strong>: Specialized architectures for particular language families.</p>
-<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
 <ul>
 <li><strong>Explore <a href="development/golden-tests.html">Golden Tests Guide</a></strong> for compatibility testing</li>
 <li><strong>Read <a href="development/testing.html">Testing Guide</a></strong> for comprehensive testing strategies</li>
@@ -5269,7 +5694,7 @@ fn test_independent_parsing() {
 <li><strong>Property tests</strong>: Universal invariants</li>
 <li><strong>Benchmarks</strong>: Performance characteristics</li>
 </ul>
-<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
+<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
 <ul>
 <li><strong>Explore <a href="development/golden-tests.html">Golden Tests Guide</a></strong> for compatibility testing</li>
 <li><strong>Review <a href="development/architecture.html">Architecture Documentation</a></strong> for system understanding</li>
@@ -5454,7 +5879,7 @@ npm install -g tree-sitter-cli
 cd /path/to/tree-sitter-python
 tree-sitter generate
 </code></pre>
-<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
+<h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
 <ul>
 <li><strong>Read the <a href="development/testing.html">Testing Guide</a></strong> for comprehensive testing strategies</li>
 <li><strong>Explore <a href="development/../reference/s-expression-format.html">S-Expression Reference</a></strong> for format details</li>
@@ -5464,7 +5889,7 @@ tree-sitter generate
 <p>Golden tests provide the foundation for reliable parser development and ensure adze maintains perfect compatibility with Tree-sitter's reference implementations.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="release-process"><a class="header" href="#release-process">Release Process</a></h1>
 <p>Release orchestration is now handled by <a href="development/../../../.github/workflows/release.yml"><code>.github/workflows/release.yml</code></a>.</p>
-<p>Use workflow dispatch with a <code>version</code> input (and <code>dry_run</code> when needed) to perform the full, canonical path:</p>
+<p>Use workflow dispatch with these inputs to perform the full, canonical path:</p>
 <ul>
 <li>validation</li>
 <li>full test suite</li>
@@ -5473,13 +5898,370 @@ tree-sitter generate
 <li>publish</li>
 <li>GitHub release creation</li>
 </ul>
+<p>Workflow inputs:</p>
+<ul>
+<li><code>version</code> (required): release version (e.g. <code>0.10.0</code>).</li>
+<li><code>release_surface_mode</code> (default: <code>fixed</code>): <code>fixed</code> (use allowlist order) or <code>auto</code> (compute publishable crates).</li>
+<li><code>release_crate_file</code> (optional): custom allowlist path used with fixed mode or sync regeneration.</li>
+<li><code>dry_run</code> (default: <code>true</code>): run all validation and checks without publishing.</li>
+<li><code>strict_publish_surface</code> (default: <code>false</code>): in <code>fixed</code> mode, fail release if extra publishable crates are not in the release allowlist.</li>
+</ul>
 <p>Legacy local helpers are kept for ad-hoc use only:</p>
 <ul>
 <li><a href="development/../../../scripts/update-versions.sh"><code>scripts/update-versions.sh</code></a></li>
 <li><a href="development/../../../scripts/release.sh"><code>scripts/release.sh</code></a></li>
 <li><a href="development/../../../scripts/dry-run-publish.sh"><code>scripts/dry-run-publish.sh</code></a></li>
 </ul>
+<p>For local helper runs, set:</p>
+<ul>
+<li><code>RELEASE_SURFACE_MODE=fixed|auto</code></li>
+<li><code>RELEASE_CRATE_FILE=&lt;path&gt;</code></li>
+<li><code>STRICT_PUBLISH_SURFACE=true|false</code> (fixed mode only; default <code>false</code>)</li>
+<li><code>RELEASE_CRATE_SYNC=true</code> (only meaningful in <code>auto</code> mode)</li>
+</ul>
 <p><code>release.toml</code> is still used for changelog/version replacement metadata.</p>
+<p><code>release.sh</code> and <code>dry-run-publish.sh</code> now support two release-surface modes:</p>
+<ul>
+<li><code>RELEASE_SURFACE_MODE=fixed</code> (default): use <code>scripts/release-crates.txt</code> as a strict allowlist and publish order.</li>
+<li><code>RELEASE_SURFACE_MODE=auto</code>: compute publishable workspace crates and auto-resolve dependency order.</li>
+<li>Optional override: <code>RELEASE_CRATE_FILE</code> to point at an alternate allowlist file (defaults to <code>scripts/release-crates.txt</code>).</li>
+<li><code>RELEASE_CRATE_SYNC=true</code> with <code>RELEASE_SURFACE_MODE=auto</code>: regenerate the selected allowlist file from metadata.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture-2"><a class="header" href="#architecture-2">Architecture</a></h1>
+<p>Adze transforms annotated Rust types into high-performance GLR parsers. This page explains the crate organization, build pipeline, and runtime.</p>
+<h2 id="crate-organization"><a class="header" href="#crate-organization">Crate Organization</a></h2>
+<p>The workspace is split into focused microcrates (see the <a href="microcrates.html">Microcrate Guide</a> for the full list). At the highest level they fall into three layers:</p>
+<pre><code class="language-text">┌─ Grammar Definition ──────────┐
+│  macro/      proc-macro attrs  │
+│  common/     shared expansion  │
+└────────────────────────────────┘
+          │  extracts rules
+          ▼
+┌─ Build-Time Generation ───────┐
+│  ir/         grammar IR        │
+│  glr-core/   LR(1) + GLR      │
+│  tablegen/   table compression │
+│  tool/       build.rs driver   │
+└────────────────────────────────┘
+          │  emits parser code
+          ▼
+┌─ Runtime Execution ───────────┐
+│  runtime/    legacy + Extract  │
+│  runtime2/   production GLR    │
+└────────────────────────────────┘
+</code></pre>
+<h3 id="dependency-flow"><a class="header" href="#dependency-flow">Dependency flow</a></h3>
+<pre><code class="language-text">tool ─┐
+      ├─▶ common ─▶ ir ─▶ glr-core ─▶ tablegen
+macro ┘
+</code></pre>
+<p>Build-time crates are <strong>never</strong> linked into the user's final binary; only the runtime crate is.</p>
+<h2 id="build-pipeline"><a class="header" href="#build-pipeline">Build Pipeline</a></h2>
+<p>When you run <code>cargo build</code> on a project that uses Adze:</p>
+<pre><code class="language-text">Rust types          IR               Parse tables        Compiled parser
+with annotations ──▶ Grammar ──▶ LR(1) automaton ──▶ compressed ──▶ linked into
+                    (ir/)       (glr-core/)          (tablegen/)    binary
+</code></pre>
+<h3 id="stage-1--macro-expansion-macro-common"><a class="header" href="#stage-1--macro-expansion-macro-common">Stage 1 — Macro Expansion (<code>macro/</code>, <code>common/</code>)</a></h3>
+<p><code>#[adze::grammar]</code> and friends collect type information. The <code>common</code> crate contains the actual expansion logic shared between the proc-macro and the build tool.</p>
+<h3 id="stage-2--ir-construction-ir"><a class="header" href="#stage-2--ir-construction-ir">Stage 2 — IR Construction (<code>ir/</code>)</a></h3>
+<p>The tool reads the annotated source and builds a <code>Grammar</code> IR. Complex symbols (<code>Optional</code>, <code>Repeat</code>, <code>Choice</code>, <code>Sequence</code>) are normalized into auxiliary rules via <code>Grammar::normalize()</code>.</p>
+<h3 id="stage-3--glr-analysis-glr-core"><a class="header" href="#stage-3--glr-analysis-glr-core">Stage 3 — GLR Analysis (<code>glr-core/</code>)</a></h3>
+<p>FIRST/FOLLOW sets are computed, then the canonical LR(1) collection is built. Conflicts are <strong>preserved</strong> (not eliminated) to support GLR parsing — each state/symbol cell can hold multiple actions.</p>
+<h3 id="stage-4--table-generation-tablegen"><a class="header" href="#stage-4--table-generation-tablegen">Stage 4 — Table Generation (<code>tablegen/</code>)</a></h3>
+<p>Parse tables are compressed using Tree-sitter-compatible algorithms and emitted as static <code>Language</code> structs with FFI-compatible layout. The output also includes <code>NODE_TYPES</code> JSON metadata.</p>
+<h3 id="stage-5--code-emission-tool"><a class="header" href="#stage-5--code-emission-tool">Stage 5 — Code Emission (<code>tool/</code>)</a></h3>
+<p><code>adze_tool::build_parsers()</code> ties the stages together. It writes generated Rust (or C) source files and compile instructions for Cargo.</p>
+<h2 id="runtime"><a class="header" href="#runtime">Runtime</a></h2>
+<h3 id="the-extract-trait"><a class="header" href="#the-extract-trait">The <code>Extract</code> trait</a></h3>
+<p>The runtime crate (<code>runtime/</code>) provides <code>Extract</code>, the core trait that converts a raw parse tree node into a typed Rust value. The generated code implements <code>Extract</code> for every type in your grammar module.</p>
+<h3 id="glr-engine-runtime2"><a class="header" href="#glr-engine-runtime2">GLR Engine (<code>runtime2/</code>)</a></h3>
+<p><code>runtime2</code> is the production runtime:</p>
+<div class="table-wrapper"><table><thead><tr><th>Component</th><th>File</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>Parser API</td><td><code>parser.rs</code></td><td>Tree-sitter-compatible <code>Parser</code> struct</td></tr>
+<tr><td>GLR Engine</td><td><code>engine.rs</code></td><td>Fork/merge driver over parse tables</td></tr>
+<tr><td>Tree Builder</td><td><code>builder.rs</code></td><td>Converts GLR forests to trees</td></tr>
+<tr><td>Tree</td><td><code>tree.rs</code></td><td>Node API with incremental edit support</td></tr>
+</tbody></table>
+</div>
+<p>Parsing flow:</p>
+<pre><code class="language-text">source text
+    │
+    ▼
+  Lexer ──▶ Token stream
+                │
+                ▼
+          GLR Driver ──▶ Parse forest (may contain ambiguity)
+                              │
+                              ▼
+                        Tree Builder ──▶ Tree-sitter compatible Tree
+                                              │
+                                              ▼
+                                        Extract ──▶ Typed AST
+</code></pre>
+<h3 id="performance-monitoring-1"><a class="header" href="#performance-monitoring-1">Performance monitoring</a></h3>
+<p>Set <code>ADZE_LOG_PERFORMANCE=true</code> to log forest-to-tree conversion statistics (node count, tree depth, elapsed time).</p>
+<h2 id="key-design-decisions-1"><a class="header" href="#key-design-decisions-1">Key Design Decisions</a></h2>
+<ol>
+<li><strong>Two-stage processing</strong> — macros mark types; the build tool generates the parser. This avoids proc-macro limitations (no file I/O, no cross-crate state).</li>
+<li><strong>Conflict preservation</strong> — GLR tables keep all shift/reduce and reduce/reduce conflicts so the parser can fork at runtime, enabling ambiguous-grammar support.</li>
+<li><strong>Tree-sitter ABI compatibility</strong> — generated <code>Language</code> structs match Tree-sitter's C ABI exactly, allowing interop with existing Tree-sitter tooling.</li>
+<li><strong>Bounded concurrency</strong> — all parallel work respects configurable caps (<code>RUST_TEST_THREADS</code>, <code>RAYON_NUM_THREADS</code>) to prevent resource exhaustion.</li>
+</ol>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="microcrates.html">Microcrate Guide</a> — detailed per-crate responsibilities</li>
+<li><a href="development/architecture.html">Development Architecture</a> — deeper diagrams and data-flow details</li>
+<li><a href="advanced/glr-parsing.html">GLR Parsing</a> — how the GLR algorithm works in Adze</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="microcrate-guide"><a class="header" href="#microcrate-guide">Microcrate Guide</a></h1>
+<p>Adze follows a <strong>single-responsibility-principle (SRP) microcrate</strong> architecture. Each crate owns one concern, keeps a narrow public API, and declares its dependencies explicitly. This page catalogues every workspace crate, grouped by layer.</p>
+<h2 id="core-pipeline-crates"><a class="header" href="#core-pipeline-crates">Core pipeline crates</a></h2>
+<p>These crates form the main grammar-to-parser pipeline:</p>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>adze-macro</code></td><td><code>macro/</code></td><td>Proc-macro attributes (<code>#[adze::grammar]</code>, <code>#[adze::leaf]</code>, etc.)</td></tr>
+<tr><td><code>adze-common</code></td><td><code>common/</code></td><td>Shared grammar expansion logic used by both the macro and the build tool</td></tr>
+<tr><td><code>adze-ir</code></td><td><code>ir/</code></td><td>Grammar intermediate representation, normalization, validation, and optimization</td></tr>
+<tr><td><code>adze-glr-core</code></td><td><code>glr-core/</code></td><td>FIRST/FOLLOW sets, LR(1) item sets, canonical collection, conflict detection</td></tr>
+<tr><td><code>adze-tablegen</code></td><td><code>tablegen/</code></td><td>Table compression and static <code>Language</code> struct generation (Tree-sitter ABI)</td></tr>
+<tr><td><code>adze-tool</code></td><td><code>tool/</code></td><td>Build-time driver (<code>build_parsers()</code>), code emission, visualization</td></tr>
+<tr><td><code>adze</code></td><td><code>runtime/</code></td><td>Runtime library: <code>Extract</code> trait, error recovery, visitor, serialization</td></tr>
+<tr><td><code>adze-runtime2</code></td><td><code>runtime2/</code></td><td>Production GLR runtime: <code>Parser</code>, <code>Tree</code>, forest builder, incremental editing</td></tr>
+</tbody></table>
+</div>
+<h2 id="concurrency-crates"><a class="header" href="#concurrency-crates">Concurrency crates</a></h2>
+<p>Bounded-concurrency infrastructure to prevent resource exhaustion:</p>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>concurrency-caps-core</code></td><td><code>crates/concurrency-caps-core/</code></td><td>Core cap values and initialization</td></tr>
+<tr><td><code>concurrency-caps-contract-core</code></td><td><code>crates/concurrency-caps-contract-core/</code></td><td>Trait contracts for cap providers</td></tr>
+<tr><td><code>concurrency-env-core</code></td><td><code>crates/concurrency-env-core/</code></td><td>Read caps from environment variables</td></tr>
+<tr><td><code>concurrency-env-contract-core</code></td><td><code>crates/concurrency-env-contract-core/</code></td><td>Contracts for env-based cap sources</td></tr>
+<tr><td><code>concurrency-init-core</code></td><td><code>crates/concurrency-init-core/</code></td><td>Thread-pool initialization</td></tr>
+<tr><td><code>concurrency-init-rayon-core</code></td><td><code>crates/concurrency-init-rayon-core/</code></td><td>Rayon pool initialization with caps</td></tr>
+<tr><td><code>concurrency-init-bootstrap-core</code></td><td><code>crates/concurrency-init-bootstrap-core/</code></td><td>Bootstrap-time cap detection</td></tr>
+<tr><td><code>concurrency-init-bootstrap-policy-core</code></td><td><code>crates/concurrency-init-bootstrap-policy-core/</code></td><td>Policy for bootstrap caps</td></tr>
+<tr><td><code>concurrency-init-classifier-core</code></td><td><code>crates/concurrency-init-classifier-core/</code></td><td>Classifies system into cap tiers</td></tr>
+<tr><td><code>concurrency-map-core</code></td><td><code>crates/concurrency-map-core/</code></td><td>Concurrent map utilities</td></tr>
+<tr><td><code>concurrency-bounded-map-core</code></td><td><code>crates/concurrency-bounded-map-core/</code></td><td>Size-bounded concurrent map</td></tr>
+<tr><td><code>concurrency-plan-core</code></td><td><code>crates/concurrency-plan-core/</code></td><td>Concurrency execution plans</td></tr>
+<tr><td><code>concurrency-normalize-core</code></td><td><code>crates/concurrency-normalize-core/</code></td><td>Normalize caps across sources</td></tr>
+<tr><td><code>concurrency-parse-core</code></td><td><code>crates/concurrency-parse-core/</code></td><td>Parse concurrency config strings</td></tr>
+</tbody></table>
+</div>
+<h2 id="governance-and-bdd-crates"><a class="header" href="#governance-and-bdd-crates">Governance and BDD crates</a></h2>
+<p>Quality-assurance infrastructure for feature tracking and behavioral contracts:</p>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>bdd-contract</code></td><td><code>crates/bdd-contract/</code></td><td>Shared BDD scenario and phase contracts</td></tr>
+<tr><td><code>bdd-grammar-analysis-core</code></td><td><code>crates/bdd-grammar-analysis-core/</code></td><td>Grammar-level BDD analysis</td></tr>
+<tr><td><code>bdd-grammar-fixtures</code></td><td><code>crates/bdd-grammar-fixtures/</code></td><td>Test fixtures for grammar BDD</td></tr>
+<tr><td><code>bdd-governance-contract</code></td><td><code>crates/bdd-governance-contract/</code></td><td>Governance BDD contracts</td></tr>
+<tr><td><code>bdd-governance-core</code></td><td><code>crates/bdd-governance-core/</code></td><td>Governance BDD logic</td></tr>
+<tr><td><code>bdd-governance-fixtures</code></td><td><code>crates/bdd-governance-fixtures/</code></td><td>Governance test fixtures</td></tr>
+<tr><td><code>bdd-scenario-fixtures</code></td><td><code>crates/bdd-scenario-fixtures/</code></td><td>Shared BDD scenario fixtures</td></tr>
+<tr><td><code>bdd-grid-contract</code></td><td><code>crates/bdd-grid-contract/</code></td><td>Grid/matrix BDD contracts</td></tr>
+<tr><td><code>bdd-grid-core</code></td><td><code>crates/bdd-grid-core/</code></td><td>Grid BDD evaluation logic</td></tr>
+<tr><td><code>governance-contract</code></td><td><code>crates/governance-contract/</code></td><td>Core governance trait contracts</td></tr>
+<tr><td><code>governance-metadata</code></td><td><code>crates/governance-metadata/</code></td><td>Governance metadata types</td></tr>
+<tr><td><code>governance-matrix-contract</code></td><td><code>crates/governance-matrix-contract/</code></td><td>Feature matrix contracts</td></tr>
+<tr><td><code>governance-matrix-core</code></td><td><code>crates/governance-matrix-core/</code></td><td>Feature matrix evaluation</td></tr>
+<tr><td><code>governance-matrix-core-impl</code></td><td><code>crates/governance-matrix-core-impl/</code></td><td>Feature matrix implementation</td></tr>
+<tr><td><code>governance-runtime-core</code></td><td><code>crates/governance-runtime-core/</code></td><td>Runtime governance checks</td></tr>
+<tr><td><code>governance-runtime-reporting</code></td><td><code>crates/governance-runtime-reporting/</code></td><td>Governance reports</td></tr>
+<tr><td><code>runtime-governance</code></td><td><code>crates/runtime-governance/</code></td><td>Runtime governance integration</td></tr>
+<tr><td><code>runtime-governance-api</code></td><td><code>crates/runtime-governance-api/</code></td><td>Public governance API</td></tr>
+<tr><td><code>runtime-governance-matrix</code></td><td><code>crates/runtime-governance-matrix/</code></td><td>Runtime feature matrix</td></tr>
+<tr><td><code>runtime2-governance</code></td><td><code>crates/runtime2-governance/</code></td><td>GLR runtime governance</td></tr>
+<tr><td><code>feature-policy-contract</code></td><td><code>crates/feature-policy-contract/</code></td><td>Feature-flag policy contracts</td></tr>
+<tr><td><code>feature-policy-core</code></td><td><code>crates/feature-policy-core/</code></td><td>Feature-flag policy logic</td></tr>
+<tr><td><code>parser-contract</code></td><td><code>crates/parser-contract/</code></td><td>Parser trait contracts</td></tr>
+<tr><td><code>parser-governance-contract</code></td><td><code>crates/parser-governance-contract/</code></td><td>Parser governance contracts</td></tr>
+<tr><td><code>parser-feature-contract</code></td><td><code>crates/parser-feature-contract/</code></td><td>Parser feature contracts</td></tr>
+<tr><td><code>parser-backend-core</code></td><td><code>crates/parser-backend-core/</code></td><td>Backend abstraction</td></tr>
+</tbody></table>
+</div>
+<h2 id="utility-and-supporting-crates"><a class="header" href="#utility-and-supporting-crates">Utility and supporting crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>parsetable-metadata</code></td><td><code>crates/parsetable-metadata/</code></td><td>Parse-table metadata types</td></tr>
+<tr><td><code>ts-format-core</code></td><td><code>crates/ts-format-core/</code></td><td>Tree-sitter format utilities</td></tr>
+<tr><td><code>stack-pool-core</code></td><td><code>crates/stack-pool-core/</code></td><td>Stack-based object pooling</td></tr>
+<tr><td><code>glr-versioning</code></td><td><code>crates/glr-versioning/</code></td><td>GLR version tracking</td></tr>
+<tr><td><code>glr-test-support</code></td><td><code>glr-test-support/</code></td><td>Test helpers for GLR crates</td></tr>
+<tr><td><code>linecol-core</code></td><td><code>crates/linecol-core/</code></td><td>Line/column position computation</td></tr>
+<tr><td><code>common-syntax-core</code></td><td><code>crates/common-syntax-core/</code></td><td>Shared syntax utilities</td></tr>
+</tbody></table>
+</div>
+<h2 id="application-and-tooling-crates"><a class="header" href="#application-and-tooling-crates">Application and tooling crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>adze-cli</code></td><td><code>cli/</code></td><td>Command-line interface</td></tr>
+<tr><td><code>lsp-generator</code></td><td><code>lsp-generator/</code></td><td>LSP server code generation</td></tr>
+<tr><td><code>playground</code></td><td><code>playground/</code></td><td>Interactive grammar playground</td></tr>
+<tr><td><code>wasm-demo</code></td><td><code>wasm-demo/</code></td><td>Browser-based WASM demo</td></tr>
+<tr><td><code>ts-bridge</code></td><td><code>tools/ts-bridge/</code></td><td>Extracts parse tables from compiled Tree-sitter grammars</td></tr>
+</tbody></table>
+</div>
+<h2 id="test-and-example-crates"><a class="header" href="#test-and-example-crates">Test and example crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>example</code></td><td><code>example/</code></td><td>Example grammars (arithmetic, optionals, repetitions, etc.)</td></tr>
+<tr><td><code>golden-tests</code></td><td><code>golden-tests/</code></td><td>Tree-sitter compatibility verification</td></tr>
+<tr><td><code>testing</code></td><td><code>testing/</code></td><td>Shared test utilities</td></tr>
+<tr><td><code>test-mini</code></td><td><code>test-mini/</code></td><td>Minimal integration smoke tests</td></tr>
+<tr><td><code>benchmarks</code></td><td><code>benchmarks/</code></td><td>Performance benchmarks</td></tr>
+<tr><td><code>downstream-demo</code></td><td><code>samples/downstream-demo/</code></td><td>Demonstrates downstream consumption</td></tr>
+<tr><td><code>xtask</code></td><td><code>xtask/</code></td><td>Workspace automation tasks</td></tr>
+</tbody></table>
+</div>
+<h2 id="grammar-crates"><a class="header" href="#grammar-crates">Grammar crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Language</th></tr></thead><tbody>
+<tr><td><code>adze-javascript</code></td><td><code>grammars/javascript/</code></td><td>JavaScript grammar</td></tr>
+<tr><td><code>adze-python</code></td><td><code>grammars/python/</code></td><td>Python grammar (with external scanner)</td></tr>
+<tr><td><code>adze-python-simple</code></td><td><code>grammars/python-simple/</code></td><td>Simplified Python grammar</td></tr>
+<tr><td><code>adze-go</code></td><td><code>grammars/go/</code></td><td>Go grammar</td></tr>
+<tr><td><code>test-vec-wrapper</code></td><td><code>grammars/test-vec-wrapper/</code></td><td>Test helper grammar</td></tr>
+</tbody></table>
+</div>
+<h2 id="how-crates-relate"><a class="header" href="#how-crates-relate">How crates relate</a></h2>
+<p>The dependency graph is intentionally acyclic and layered. A quick rule of thumb:</p>
+<ul>
+<li><strong>Contract crates</strong> (<code>*-contract</code>) define traits. They have no logic and no dependencies beyond <code>std</code>.</li>
+<li><strong>Core crates</strong> (<code>*-core</code>) implement those traits. They depend only on their contract crate.</li>
+<li><strong>Integration crates</strong> (e.g., <code>runtime-governance</code>) wire cores together behind a façade.</li>
+<li><strong>Application crates</strong> (<code>cli</code>, <code>playground</code>, <code>tool</code>) sit at the top and pull in whatever they need.</li>
+</ul>
+<p>This keeps compile times low, enforces API boundaries, and makes it straightforward to swap implementations.</p>
+<h2 id="adding-a-new-microcrate"><a class="header" href="#adding-a-new-microcrate">Adding a new microcrate</a></h2>
+<ol>
+<li><code>cargo init crates/my-new-core --lib</code></li>
+<li>Add it to the <code>[workspace] members</code> list in the root <code>Cargo.toml</code>.</li>
+<li>Give it a narrow, descriptive name following the <code>&lt;domain&gt;-&lt;layer&gt;-core</code> convention.</li>
+<li>If it defines a public API contract, split the trait into a <code>&lt;domain&gt;-&lt;layer&gt;-contract</code> crate first.</li>
+<li>Wire it into the integration crate that needs it.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="testing-1"><a class="header" href="#testing-1">Testing</a></h1>
+<p>This page gives a practical overview of running and writing tests in the Adze workspace. For the full testing strategy see the <a href="development/testing.html">Development Testing Guide</a>.</p>
+<h2 id="running-the-test-suite"><a class="header" href="#running-the-test-suite">Running the test suite</a></h2>
+<pre><code class="language-bash"># All workspace tests (recommended: use capped concurrency)
+cargo test
+
+# Concurrency-capped variants (more stable on CI or constrained machines)
+cargo t2                  # 2 test threads
+cargo test-safe           # safe defaults
+cargo test-ultra-safe     # single-threaded
+./scripts/test-capped.sh  # auto-detect caps
+</code></pre>
+<h3 id="per-crate-tests"><a class="header" href="#per-crate-tests">Per-crate tests</a></h3>
+<pre><code class="language-bash">cargo test -p adze            # runtime
+cargo test -p adze-macro       # proc-macro
+cargo test -p adze-ir          # grammar IR
+cargo test -p adze-glr-core    # GLR analysis (use --features test-api for internal helpers)
+cargo test -p adze-tablegen    # table compression
+cargo test -p adze-tool        # build tool
+cargo test -p adze-runtime2    # GLR runtime
+</code></pre>
+<h3 id="feature-combinations"><a class="header" href="#feature-combinations">Feature combinations</a></h3>
+<p>Some crates behave differently depending on feature flags:</p>
+<pre><code class="language-bash">cargo test -p adze --features glr-core
+cargo test -p adze --features incremental
+cargo test -p adze --features all-features
+</code></pre>
+<h2 id="golden-tests"><a class="header" href="#golden-tests">Golden tests</a></h2>
+<p>Golden tests verify Adze parsers produce byte-for-byte identical parse trees to the official Tree-sitter parsers.</p>
+<pre><code class="language-bash">cd golden-tests
+
+# Generate reference S-expressions and SHA256 hashes (one-time)
+./generate_references.sh
+
+# Run all golden tests
+cargo test --features all-grammars
+
+# Run for a single language
+cargo test --features python-grammar
+cargo test --features javascript-grammar
+
+# Update references after intentional parser changes
+UPDATE_GOLDEN=1 cargo test --features python-grammar
+</code></pre>
+<p>See <a href="guide/golden-tests-maintenance.html">Golden Tests Maintenance</a> for the full workflow.</p>
+<h2 id="snapshot-tests-insta"><a class="header" href="#snapshot-tests-insta">Snapshot tests (insta)</a></h2>
+<p>Example grammars use <a href="https://insta.rs">insta</a> for snapshot testing:</p>
+<pre><code class="language-bash">cargo test -p example --features c-backend   # or --features pure-rust
+cargo insta review                            # interactive diff review
+</code></pre>
+<p>When grammar output changes intentionally, review and accept the new snapshots.</p>
+<h2 id="writing-a-grammar-test"><a class="header" href="#writing-a-grammar-test">Writing a grammar test</a></h2>
+<p>The simplest pattern is to parse a string and assert against the typed AST:</p>
+<pre><code class="language-rust">#[cfg(test)]
+mod tests {
+    use super::grammar;
+
+    #[test]
+    fn addition() {
+        let ast = grammar::parse("1 + 2").unwrap();
+        assert_eq!(
+            ast,
+            grammar::Expression::Add(
+                Box::new(grammar::Expression::Number(1)),
+                (),
+                Box::new(grammar::Expression::Number(2)),
+            )
+        );
+    }
+
+    #[test]
+    fn precedence() {
+        // Multiplication binds tighter than addition
+        let ast = grammar::parse("1 + 2 * 3").unwrap();
+        match ast {
+            grammar::Expression::Add(_, _, rhs) =&gt; {
+                assert!(matches!(*rhs, grammar::Expression::Mul(..)));
+            }
+            other =&gt; panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_input() {
+        assert!(grammar::parse("1 + + 2").is_err());
+    }
+}</code></pre>
+<h2 id="bdd-framework"><a class="header" href="#bdd-framework">BDD framework</a></h2>
+<p>Adze includes a BDD (Behavior-Driven Development) framework in the <code>crates/bdd-*</code> family for tracking feature scenarios and governance:</p>
+<pre><code class="language-rust">use adze_bdd_contract::{BddScenario, BddScenarioStatus, BddPhase};
+
+// Scenarios are defined declaratively
+let scenario = BddScenario {
+    name: "GLR conflict preservation",
+    phase: BddPhase::Given,
+    status: BddScenarioStatus::Passing,
+    // ...
+};</code></pre>
+<p>The governance crates (<code>crates/governance-*</code>) use BDD grids to track which features pass across different runtime configurations.</p>
+<p>Run BDD-related tests:</p>
+<pre><code class="language-bash">cargo test -p bdd-grammar-analysis-core
+cargo test -p bdd-governance-core
+cargo test -p bdd-grid-core
+</code></pre>
+<h2 id="test-connectivity-safeguards-1"><a class="header" href="#test-connectivity-safeguards-1">Test connectivity safeguards</a></h2>
+<p>Several layers prevent tests from being silently disconnected:</p>
+<ol>
+<li><strong>CI job</strong> — blocks <code>.rs.disabled</code> files and enforces non-zero test counts per crate.</li>
+<li><strong>Pre-commit hook</strong> — warns about disabled test files.</li>
+<li><strong>Local check</strong> — <code>./scripts/check-test-connectivity.sh</code> reports per-crate counts and orphans.</li>
+</ol>
+<h2 id="concurrency-tips"><a class="header" href="#concurrency-tips">Concurrency tips</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Default</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>RUST_TEST_THREADS</code></td><td>2</td><td>Rust test parallelism</td></tr>
+<tr><td><code>RAYON_NUM_THREADS</code></td><td>4</td><td>Rayon pool size</td></tr>
+<tr><td><code>TOKIO_WORKER_THREADS</code></td><td>2</td><td>Tokio async workers</td></tr>
+<tr><td><code>CARGO_BUILD_JOBS</code></td><td>4</td><td>Cargo compile jobs</td></tr>
+</tbody></table>
+</div>
+<p>Lower these if tests fail with "Too many open files" or thread-creation errors. The <code>./scripts/preflight.sh</code> script auto-detects safe values.</p>
+<h2 id="further-reading-1"><a class="header" href="#further-reading-1">Further reading</a></h2>
+<ul>
+<li><a href="development/testing.html">Development Testing Guide</a> — exhaustive testing strategy</li>
+<li><a href="development/golden-tests.html">Golden Tests Guide</a> — golden test internals</li>
+<li><a href="guide/performance.html">Performance Optimization</a> — benchmarking and profiling</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>All notable changes to this project will be documented in this file.</p>
 <p>This appendix mirrors the root <code>CHANGELOG.md</code>; keep it in sync when cutting releases.</p>

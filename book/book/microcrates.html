@@ -1,0 +1,358 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Microcrate Guide - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/microcrates.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="microcrate-guide"><a class="header" href="#microcrate-guide">Microcrate Guide</a></h1>
+<p>Adze follows a <strong>single-responsibility-principle (SRP) microcrate</strong> architecture. Each crate owns one concern, keeps a narrow public API, and declares its dependencies explicitly. This page catalogues every workspace crate, grouped by layer.</p>
+<h2 id="core-pipeline-crates"><a class="header" href="#core-pipeline-crates">Core pipeline crates</a></h2>
+<p>These crates form the main grammar-to-parser pipeline:</p>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>adze-macro</code></td><td><code>macro/</code></td><td>Proc-macro attributes (<code>#[adze::grammar]</code>, <code>#[adze::leaf]</code>, etc.)</td></tr>
+<tr><td><code>adze-common</code></td><td><code>common/</code></td><td>Shared grammar expansion logic used by both the macro and the build tool</td></tr>
+<tr><td><code>adze-ir</code></td><td><code>ir/</code></td><td>Grammar intermediate representation, normalization, validation, and optimization</td></tr>
+<tr><td><code>adze-glr-core</code></td><td><code>glr-core/</code></td><td>FIRST/FOLLOW sets, LR(1) item sets, canonical collection, conflict detection</td></tr>
+<tr><td><code>adze-tablegen</code></td><td><code>tablegen/</code></td><td>Table compression and static <code>Language</code> struct generation (Tree-sitter ABI)</td></tr>
+<tr><td><code>adze-tool</code></td><td><code>tool/</code></td><td>Build-time driver (<code>build_parsers()</code>), code emission, visualization</td></tr>
+<tr><td><code>adze</code></td><td><code>runtime/</code></td><td>Runtime library: <code>Extract</code> trait, error recovery, visitor, serialization</td></tr>
+<tr><td><code>adze-runtime2</code></td><td><code>runtime2/</code></td><td>Production GLR runtime: <code>Parser</code>, <code>Tree</code>, forest builder, incremental editing</td></tr>
+</tbody></table>
+</div>
+<h2 id="concurrency-crates"><a class="header" href="#concurrency-crates">Concurrency crates</a></h2>
+<p>Bounded-concurrency infrastructure to prevent resource exhaustion:</p>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>concurrency-caps-core</code></td><td><code>crates/concurrency-caps-core/</code></td><td>Core cap values and initialization</td></tr>
+<tr><td><code>concurrency-caps-contract-core</code></td><td><code>crates/concurrency-caps-contract-core/</code></td><td>Trait contracts for cap providers</td></tr>
+<tr><td><code>concurrency-env-core</code></td><td><code>crates/concurrency-env-core/</code></td><td>Read caps from environment variables</td></tr>
+<tr><td><code>concurrency-env-contract-core</code></td><td><code>crates/concurrency-env-contract-core/</code></td><td>Contracts for env-based cap sources</td></tr>
+<tr><td><code>concurrency-init-core</code></td><td><code>crates/concurrency-init-core/</code></td><td>Thread-pool initialization</td></tr>
+<tr><td><code>concurrency-init-rayon-core</code></td><td><code>crates/concurrency-init-rayon-core/</code></td><td>Rayon pool initialization with caps</td></tr>
+<tr><td><code>concurrency-init-bootstrap-core</code></td><td><code>crates/concurrency-init-bootstrap-core/</code></td><td>Bootstrap-time cap detection</td></tr>
+<tr><td><code>concurrency-init-bootstrap-policy-core</code></td><td><code>crates/concurrency-init-bootstrap-policy-core/</code></td><td>Policy for bootstrap caps</td></tr>
+<tr><td><code>concurrency-init-classifier-core</code></td><td><code>crates/concurrency-init-classifier-core/</code></td><td>Classifies system into cap tiers</td></tr>
+<tr><td><code>concurrency-map-core</code></td><td><code>crates/concurrency-map-core/</code></td><td>Concurrent map utilities</td></tr>
+<tr><td><code>concurrency-bounded-map-core</code></td><td><code>crates/concurrency-bounded-map-core/</code></td><td>Size-bounded concurrent map</td></tr>
+<tr><td><code>concurrency-plan-core</code></td><td><code>crates/concurrency-plan-core/</code></td><td>Concurrency execution plans</td></tr>
+<tr><td><code>concurrency-normalize-core</code></td><td><code>crates/concurrency-normalize-core/</code></td><td>Normalize caps across sources</td></tr>
+<tr><td><code>concurrency-parse-core</code></td><td><code>crates/concurrency-parse-core/</code></td><td>Parse concurrency config strings</td></tr>
+</tbody></table>
+</div>
+<h2 id="governance-and-bdd-crates"><a class="header" href="#governance-and-bdd-crates">Governance and BDD crates</a></h2>
+<p>Quality-assurance infrastructure for feature tracking and behavioral contracts:</p>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>bdd-contract</code></td><td><code>crates/bdd-contract/</code></td><td>Shared BDD scenario and phase contracts</td></tr>
+<tr><td><code>bdd-grammar-analysis-core</code></td><td><code>crates/bdd-grammar-analysis-core/</code></td><td>Grammar-level BDD analysis</td></tr>
+<tr><td><code>bdd-grammar-fixtures</code></td><td><code>crates/bdd-grammar-fixtures/</code></td><td>Test fixtures for grammar BDD</td></tr>
+<tr><td><code>bdd-governance-contract</code></td><td><code>crates/bdd-governance-contract/</code></td><td>Governance BDD contracts</td></tr>
+<tr><td><code>bdd-governance-core</code></td><td><code>crates/bdd-governance-core/</code></td><td>Governance BDD logic</td></tr>
+<tr><td><code>bdd-governance-fixtures</code></td><td><code>crates/bdd-governance-fixtures/</code></td><td>Governance test fixtures</td></tr>
+<tr><td><code>bdd-scenario-fixtures</code></td><td><code>crates/bdd-scenario-fixtures/</code></td><td>Shared BDD scenario fixtures</td></tr>
+<tr><td><code>bdd-grid-contract</code></td><td><code>crates/bdd-grid-contract/</code></td><td>Grid/matrix BDD contracts</td></tr>
+<tr><td><code>bdd-grid-core</code></td><td><code>crates/bdd-grid-core/</code></td><td>Grid BDD evaluation logic</td></tr>
+<tr><td><code>governance-contract</code></td><td><code>crates/governance-contract/</code></td><td>Core governance trait contracts</td></tr>
+<tr><td><code>governance-metadata</code></td><td><code>crates/governance-metadata/</code></td><td>Governance metadata types</td></tr>
+<tr><td><code>governance-matrix-contract</code></td><td><code>crates/governance-matrix-contract/</code></td><td>Feature matrix contracts</td></tr>
+<tr><td><code>governance-matrix-core</code></td><td><code>crates/governance-matrix-core/</code></td><td>Feature matrix evaluation</td></tr>
+<tr><td><code>governance-matrix-core-impl</code></td><td><code>crates/governance-matrix-core-impl/</code></td><td>Feature matrix implementation</td></tr>
+<tr><td><code>governance-runtime-core</code></td><td><code>crates/governance-runtime-core/</code></td><td>Runtime governance checks</td></tr>
+<tr><td><code>governance-runtime-reporting</code></td><td><code>crates/governance-runtime-reporting/</code></td><td>Governance reports</td></tr>
+<tr><td><code>runtime-governance</code></td><td><code>crates/runtime-governance/</code></td><td>Runtime governance integration</td></tr>
+<tr><td><code>runtime-governance-api</code></td><td><code>crates/runtime-governance-api/</code></td><td>Public governance API</td></tr>
+<tr><td><code>runtime-governance-matrix</code></td><td><code>crates/runtime-governance-matrix/</code></td><td>Runtime feature matrix</td></tr>
+<tr><td><code>runtime2-governance</code></td><td><code>crates/runtime2-governance/</code></td><td>GLR runtime governance</td></tr>
+<tr><td><code>feature-policy-contract</code></td><td><code>crates/feature-policy-contract/</code></td><td>Feature-flag policy contracts</td></tr>
+<tr><td><code>feature-policy-core</code></td><td><code>crates/feature-policy-core/</code></td><td>Feature-flag policy logic</td></tr>
+<tr><td><code>parser-contract</code></td><td><code>crates/parser-contract/</code></td><td>Parser trait contracts</td></tr>
+<tr><td><code>parser-governance-contract</code></td><td><code>crates/parser-governance-contract/</code></td><td>Parser governance contracts</td></tr>
+<tr><td><code>parser-feature-contract</code></td><td><code>crates/parser-feature-contract/</code></td><td>Parser feature contracts</td></tr>
+<tr><td><code>parser-backend-core</code></td><td><code>crates/parser-backend-core/</code></td><td>Backend abstraction</td></tr>
+</tbody></table>
+</div>
+<h2 id="utility-and-supporting-crates"><a class="header" href="#utility-and-supporting-crates">Utility and supporting crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>parsetable-metadata</code></td><td><code>crates/parsetable-metadata/</code></td><td>Parse-table metadata types</td></tr>
+<tr><td><code>ts-format-core</code></td><td><code>crates/ts-format-core/</code></td><td>Tree-sitter format utilities</td></tr>
+<tr><td><code>stack-pool-core</code></td><td><code>crates/stack-pool-core/</code></td><td>Stack-based object pooling</td></tr>
+<tr><td><code>glr-versioning</code></td><td><code>crates/glr-versioning/</code></td><td>GLR version tracking</td></tr>
+<tr><td><code>glr-test-support</code></td><td><code>glr-test-support/</code></td><td>Test helpers for GLR crates</td></tr>
+<tr><td><code>linecol-core</code></td><td><code>crates/linecol-core/</code></td><td>Line/column position computation</td></tr>
+<tr><td><code>common-syntax-core</code></td><td><code>crates/common-syntax-core/</code></td><td>Shared syntax utilities</td></tr>
+</tbody></table>
+</div>
+<h2 id="application-and-tooling-crates"><a class="header" href="#application-and-tooling-crates">Application and tooling crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>adze-cli</code></td><td><code>cli/</code></td><td>Command-line interface</td></tr>
+<tr><td><code>lsp-generator</code></td><td><code>lsp-generator/</code></td><td>LSP server code generation</td></tr>
+<tr><td><code>playground</code></td><td><code>playground/</code></td><td>Interactive grammar playground</td></tr>
+<tr><td><code>wasm-demo</code></td><td><code>wasm-demo/</code></td><td>Browser-based WASM demo</td></tr>
+<tr><td><code>ts-bridge</code></td><td><code>tools/ts-bridge/</code></td><td>Extracts parse tables from compiled Tree-sitter grammars</td></tr>
+</tbody></table>
+</div>
+<h2 id="test-and-example-crates"><a class="header" href="#test-and-example-crates">Test and example crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>example</code></td><td><code>example/</code></td><td>Example grammars (arithmetic, optionals, repetitions, etc.)</td></tr>
+<tr><td><code>golden-tests</code></td><td><code>golden-tests/</code></td><td>Tree-sitter compatibility verification</td></tr>
+<tr><td><code>testing</code></td><td><code>testing/</code></td><td>Shared test utilities</td></tr>
+<tr><td><code>test-mini</code></td><td><code>test-mini/</code></td><td>Minimal integration smoke tests</td></tr>
+<tr><td><code>benchmarks</code></td><td><code>benchmarks/</code></td><td>Performance benchmarks</td></tr>
+<tr><td><code>downstream-demo</code></td><td><code>samples/downstream-demo/</code></td><td>Demonstrates downstream consumption</td></tr>
+<tr><td><code>xtask</code></td><td><code>xtask/</code></td><td>Workspace automation tasks</td></tr>
+</tbody></table>
+</div>
+<h2 id="grammar-crates"><a class="header" href="#grammar-crates">Grammar crates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Language</th></tr></thead><tbody>
+<tr><td><code>adze-javascript</code></td><td><code>grammars/javascript/</code></td><td>JavaScript grammar</td></tr>
+<tr><td><code>adze-python</code></td><td><code>grammars/python/</code></td><td>Python grammar (with external scanner)</td></tr>
+<tr><td><code>adze-python-simple</code></td><td><code>grammars/python-simple/</code></td><td>Simplified Python grammar</td></tr>
+<tr><td><code>adze-go</code></td><td><code>grammars/go/</code></td><td>Go grammar</td></tr>
+<tr><td><code>test-vec-wrapper</code></td><td><code>grammars/test-vec-wrapper/</code></td><td>Test helper grammar</td></tr>
+</tbody></table>
+</div>
+<h2 id="how-crates-relate"><a class="header" href="#how-crates-relate">How crates relate</a></h2>
+<p>The dependency graph is intentionally acyclic and layered. A quick rule of thumb:</p>
+<ul>
+<li><strong>Contract crates</strong> (<code>*-contract</code>) define traits. They have no logic and no dependencies beyond <code>std</code>.</li>
+<li><strong>Core crates</strong> (<code>*-core</code>) implement those traits. They depend only on their contract crate.</li>
+<li><strong>Integration crates</strong> (e.g., <code>runtime-governance</code>) wire cores together behind a façade.</li>
+<li><strong>Application crates</strong> (<code>cli</code>, <code>playground</code>, <code>tool</code>) sit at the top and pull in whatever they need.</li>
+</ul>
+<p>This keeps compile times low, enforces API boundaries, and makes it straightforward to swap implementations.</p>
+<h2 id="adding-a-new-microcrate"><a class="header" href="#adding-a-new-microcrate">Adding a new microcrate</a></h2>
+<ol>
+<li><code>cargo init crates/my-new-core --lib</code></li>
+<li>Add it to the <code>[workspace] members</code> list in the root <code>Cargo.toml</code>.</li>
+<li>Give it a narrow, descriptive name following the <code>&lt;domain&gt;-&lt;layer&gt;-core</code> convention.</li>
+<li>If it defines a public API contract, split the trait into a <code>&lt;domain&gt;-&lt;layer&gt;-contract</code> crate first.</li>
+<li>Wire it into the integration crate that needs it.</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
