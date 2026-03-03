@@ -10,6 +10,8 @@ homepage = "https://github.com/EffortlessMetrics/adze"
 documentation = "https://docs.rs/adze-tablegen"
 readme = "../README.md"
 publish = true
+keywords = ["parsing", "tablegen", "compression"]
+categories = ["development-tools"]
 include = [
     "Cargo.toml",
     "LICENSE*",

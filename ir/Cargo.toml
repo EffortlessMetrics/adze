@@ -10,6 +10,8 @@ homepage = "https://github.com/EffortlessMetrics/adze"
 documentation = "https://docs.rs/adze-ir"
 readme = "../README.md"
 publish = true
+keywords = ["parsing", "grammar", "ir"]
+categories = ["development-tools"]
 include = [
     "Cargo.toml",
     "LICENSE*",

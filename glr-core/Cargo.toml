@@ -10,6 +10,8 @@ homepage = "https://github.com/EffortlessMetrics/adze"
 documentation = "https://docs.rs/adze-glr-core"
 readme = "../README.md"
 publish = true
+keywords = ["parsing", "glr", "parser-generator"]
+categories = ["development-tools"]
 include = [
     "Cargo.toml",
     "LICENSE*",
@@ -57,9 +59,9 @@ insta = "1.0"
 criterion = "0.5"
 dhat = "0.3"
 serde_json = "1.0"
-adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
-adze-parser-contract = { path = "../crates/parser-contract" }
-glr-test-support = { path = "../glr-test-support" }
+adze-bdd-scenario-fixtures = { version = "0.1.0", path = "../crates/bdd-scenario-fixtures" }
+adze-parser-contract = { version = "0.1.0", path = "../crates/parser-contract" }
+glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 trybuild = "1"
 
 [[bench]]

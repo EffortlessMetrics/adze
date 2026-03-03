@@ -3,6 +3,8 @@ name = "adze"
 description = "Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable."
 readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze"
 version = "0.8.0-dev"
 authors.workspace = true
 edition = "2024"
@@ -86,7 +88,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
-glr-test-support = { path = "../glr-test-support" }
+glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 adze-concurrency-plan-core = { version = "0.1.0", path = "../crates/concurrency-plan-core" }
 adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-map-core" }
 adze-concurrency-env-core = { version = "0.1.0", path = "../crates/concurrency-env-core" }
@@ -95,13 +97,13 @@ adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concur
 adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../crates/concurrency-init-classifier-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
-adze-example = { path = "../example", features = ["ts-compat"] }
-adze-python-simple = { path = "../grammars/python-simple" }
-adze-python = { path = "../grammars/python" }
+adze-example = { version = "0.8.0-dev", path = "../example", features = ["ts-compat"] }
+adze-python-simple = { version = "0.1.0", path = "../grammars/python-simple" }
+adze-python = { version = "0.1.0", path = "../grammars/python" }
 serial_test = "3.0"
 # Tree-sitter dependencies for ts-compat golden tests
 tree-sitter-json = "0.24.8"
-ts-bridge = { path = "../tools/ts-bridge", features = ["with-grammars"] }
+ts-bridge = { version = "0.1.0", path = "../tools/ts-bridge", features = ["with-grammars"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "=0.3.4", features = ["wasm_js"] }

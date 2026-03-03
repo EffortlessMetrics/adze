@@ -10,7 +10,7 @@ authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
 publish = true
-keywords = ["parsing", "codegen"]
+keywords = ["parsing", "codegen", "grammar"]
 categories = ["development-tools"]
 include = [
     "Cargo.toml",
