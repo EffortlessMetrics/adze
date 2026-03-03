@@ -1131,7 +1131,12 @@ mod edge_case_tests {
             };
             let json = serde_json::to_string(&node).unwrap();
             let decoded: SerializedNode = serde_json::from_str(&json).unwrap();
-            assert_eq!(decoded.text, Some(text.to_string()), "Failed for {:?}", text);
+            assert_eq!(
+                decoded.text,
+                Some(text.to_string()),
+                "Failed for {:?}",
+                text
+            );
         }
     }
 
