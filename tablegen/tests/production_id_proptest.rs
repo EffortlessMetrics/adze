@@ -32,9 +32,17 @@
 //! 28.  Production count from serializer equals rule count
 //! 29.  Generated code contains LANGUAGE struct
 //! 30.  Production ID map is reproducible across 10 iterations
+//! 31.  Alias sequences don't alter production ID map
+//! 32.  Fields on rules don't alter production ID map values
+//! 33.  Production ID zero case: zero-ID rule always first in map
+//! 34.  Alias sequences deterministic across rebuilds
+//! 35.  Fields preserve production ID count
 
 use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
-use adze_ir::{Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{
+    AliasSequence, FieldId, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token,
+    TokenPattern,
+};
 use adze_tablegen::AbiLanguageBuilder;
 use adze_tablegen::serializer::serialize_language;
 use proptest::prelude::*;
@@ -641,5 +649,114 @@ proptest! {
             let map = extract_production_id_map(&gen_code(&g, &table));
             prop_assert_eq!(&map, &reference, "map must be identical across iterations");
         }
+    }
+
+    // 31. Alias sequences don't alter production ID map
+    #[test]
+    fn aliases_dont_alter_production_id_map(n in 1..=15usize) {
+        // Build baseline grammar
+        let (g_base, table) = grammar_with_n_rules(n);
+        let map_base = extract_production_id_map(&gen_code(&g_base, &table));
+
+        // Build grammar with alias sequences added
+        let (mut g_alias, table2) = grammar_with_n_rules(n);
+        for i in 0..n {
+            let pid = ProductionId(i as u16);
+            let mut aliases = vec![None; (i % 3) + 1];
+            aliases[0] = Some(format!("alias_{}", i));
+            g_alias.alias_sequences.insert(pid, AliasSequence { aliases });
+        }
+        g_alias.max_alias_sequence_length = 3;
+        let map_alias = extract_production_id_map(&gen_code(&g_alias, &table2));
+
+        prop_assert_eq!(map_base, map_alias, "aliases must not alter production ID map");
+    }
+
+    // 32. Fields on rules don't alter production ID map values
+    #[test]
+    fn fields_dont_alter_production_id_map_values(n in 1..=15usize) {
+        // Baseline without fields
+        let (g_base, table) = grammar_with_n_rules(n);
+        let map_base = extract_production_id_map(&gen_code(&g_base, &table));
+
+        // Grammar with fields on rules
+        let table2 = empty_table(1, 1, 1, 0);
+        let (mut g_fields, start, t) = base_grammar("fields", &table2);
+        g_fields.fields.insert(FieldId(1), "left".to_string());
+        g_fields.fields.insert(FieldId(2), "right".to_string());
+        for i in 0..n {
+            let mut rule = make_rule(
+                start,
+                vec![Symbol::Terminal(t); (i % 3) + 1],
+                i as u16,
+            );
+            // Attach field to position 0
+            rule.fields.push((FieldId(1), 0));
+            g_fields.add_rule(rule);
+        }
+        let map_fields = extract_production_id_map(&gen_code(&g_fields, &table2));
+
+        // Same length and same values
+        prop_assert_eq!(map_base.len(), map_fields.len(), "field rules same count");
+        prop_assert_eq!(map_base, map_fields, "fields must not alter production ID map values");
+    }
+
+    // 33. Production ID zero case: zero-ID rule always first in map
+    #[test]
+    fn zero_id_rule_first_in_map(n in 1..=20usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        prop_assert!(!map.is_empty(), "map must not be empty");
+        prop_assert_eq!(map[0], 0u16, "production ID 0 must occupy slot 0");
+    }
+
+    // 34. Alias sequences deterministic across rebuilds
+    #[test]
+    fn alias_determinism_across_rebuilds(n in 1..=10usize) {
+        let build = || {
+            let (mut g, table) = grammar_with_n_rules(n);
+            for i in 0..n {
+                let pid = ProductionId(i as u16);
+                g.alias_sequences.insert(pid, AliasSequence {
+                    aliases: vec![Some(format!("a{}", i))],
+                });
+            }
+            g.max_alias_sequence_length = 1;
+            (g, table)
+        };
+        let (g1, t1) = build();
+        let (g2, t2) = build();
+        let map1 = extract_production_id_map(&gen_code(&g1, &t1));
+        let map2 = extract_production_id_map(&gen_code(&g2, &t2));
+        prop_assert_eq!(map1, map2, "alias grammars must be deterministic across rebuilds");
+    }
+
+    // 35. Fields preserve production ID count
+    #[test]
+    fn fields_preserve_production_id_count(n in 1..=15usize) {
+        // Baseline count
+        let (g_base, table_base) = grammar_with_n_rules(n);
+        let count_base = extract_production_id_count(&gen_code(&g_base, &table_base)).unwrap();
+
+        // Grammar with fields
+        let table2 = empty_table(1, 2, 1, 0);
+        let start = table2.start_symbol;
+        let t1 = SymbolId(1);
+        let t2 = SymbolId(2);
+        let mut g = Grammar::new("fields_count".to_string());
+        g.rule_names.insert(start, "start".to_string());
+        g.tokens.insert(t1, tok("a", "a"));
+        g.tokens.insert(t2, tok("b", "b"));
+        g.fields.insert(FieldId(1), "operand".to_string());
+        for i in 0..n {
+            let tok_sym = if i % 2 == 0 { Symbol::Terminal(t1) } else { Symbol::Terminal(t2) };
+            let mut rule = make_rule(start, vec![tok_sym], i as u16);
+            rule.fields.push((FieldId(1), 0));
+            g.add_rule(rule);
+        }
+        let count_fields = extract_production_id_count(&gen_code(&g, &table2)).unwrap();
+
+        prop_assert_eq!(count_base, count_fields, "field rules must preserve production_id_count");
     }
 }
