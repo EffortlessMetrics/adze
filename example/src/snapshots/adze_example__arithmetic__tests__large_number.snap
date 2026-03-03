@@ -1,0 +1,9 @@
+---
+source: src/arithmetic.rs
+expression: "grammar::parse(\"999999\")"
+---
+Ok(
+    Number(
+        999999,
+    ),
+)

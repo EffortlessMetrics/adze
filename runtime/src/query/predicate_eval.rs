@@ -113,7 +113,9 @@ impl<'a> PredicateContext<'a> {
 
             // Get or compile regex
             let mut cache = self.regex_cache.borrow_mut();
-            let Some(regex) = cache.get(regex_str).cloned() else {
+            let regex = if let Some(regex) = cache.get(regex_str).cloned() {
+                regex
+            } else {
                 let Ok(regex) = Regex::new(regex_str) else {
                     return false;
                 };

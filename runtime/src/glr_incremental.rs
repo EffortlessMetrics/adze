@@ -536,7 +536,7 @@ impl IncrementalGLRParser {
         match parser.finish_all_alternatives() {
             Ok(trees) => {
                 if trees.is_empty() {
-                    return Err(format!("Parse failed to produce any parse alternatives"));
+                    return Err("Parse failed to produce any parse alternatives".to_string());
                 }
                 // Create a forest node with all parse alternatives
                 let forest = if trees.len() == 1 {
@@ -949,10 +949,10 @@ impl IncrementalGLRParser {
                 return middle_forest;
             }
 
-            if all_children.len() == 1 {
-                if let Some(single_child) = all_children.into_iter().next() {
-                    return single_child;
-                }
+            if all_children.len() == 1
+                && let Some(single_child) = all_children.first().cloned()
+            {
+                return single_child;
             }
 
             // Multiple non-middle children - create synthetic parent

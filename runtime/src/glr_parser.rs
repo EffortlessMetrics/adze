@@ -1595,10 +1595,7 @@ impl GLRParser {
         }
 
         // 1) Try synthesizing an insertion if it unlocks progress
-        let recovery = match self.error_recovery.as_ref() {
-            Some(recovery) => recovery,
-            None => return None,
-        };
+        let recovery = self.error_recovery.clone()?;
         let max_insertions = recovery.max_token_insertions;
         if self.inserted_in_row < max_insertions {
             let candidates = recovery.insert_candidates.clone();

@@ -377,7 +377,7 @@ impl<'tree> GLRTreeCursor<'tree> {
     pub fn reset(&mut self, node: GLRNode<'tree>) {
         let node = node.clone();
         self.stack.clear();
-        self.stack.push((node, 0));
+        self.stack.push((node.clone(), 0));
         self.root = node;
     }
 

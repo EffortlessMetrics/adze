@@ -268,7 +268,7 @@ impl<'arena> Node<'arena> {
     /// Full implementation in Day 5 when TreeArena stores TreeNodeData.
     pub fn children(&self) -> NodeChildren<'arena> {
         NodeChildren {
-            handles: self.raw_node().children(),
+            handles: self.arena.get(self.handle).get_ref().children(),
             arena: self.arena,
             index: 0,
         }

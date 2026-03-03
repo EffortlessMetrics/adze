@@ -93,7 +93,7 @@ pub fn forest_to_v4_tree<'arena>(forest: &ForestNode) -> V4Tree<'arena> {
 }
 
 fn forest_to_v4_node(arena: &mut TreeArena, forest: &ForestNode) -> NodeHandle {
-    let child_handles = forest
+    let child_handles: Vec<_> = forest
         .alternatives
         .first()
         .map(|alternative| {
