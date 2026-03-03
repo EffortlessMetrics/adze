@@ -7,8 +7,8 @@
 
 use super::{ExternalToken, GrammarJs, Rule};
 use anyhow::{Context, Result, anyhow, bail};
+use indexmap::IndexMap;
 use regex::Regex;
-use std::collections::HashMap;
 
 #[cfg(not(debug_assertions))]
 macro_rules! eprintln {
@@ -212,8 +212,8 @@ impl ImprovedGrammarJsParser {
         }
     }
 
-    fn extract_rules(&self, content: &str) -> Result<HashMap<String, Rule>> {
-        let mut rules = HashMap::new();
+    fn extract_rules(&self, content: &str) -> Result<IndexMap<String, Rule>> {
+        let mut rules = IndexMap::new();
 
         // Find the rules: section
         if let Some(rules_start) = content.find("rules:") {

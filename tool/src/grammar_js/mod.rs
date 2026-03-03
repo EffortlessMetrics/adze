@@ -4,9 +4,9 @@
 //! to Adze's internal representation.
 
 use anyhow::{Result, bail};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
 
 pub mod converter;
 pub mod helpers;
@@ -46,7 +46,7 @@ pub struct GrammarJs {
     pub precedences: Vec<Vec<(String, i32)>>,
 
     /// Grammar rules
-    pub rules: HashMap<String, Rule>,
+    pub rules: IndexMap<String, Rule>,
 
     /// Supertypes for the grammar
     pub supertypes: Vec<String>,
@@ -147,7 +147,7 @@ impl GrammarJs {
             extras: Vec::new(),
             externals: Vec::new(),
             precedences: Vec::new(),
-            rules: HashMap::new(),
+            rules: IndexMap::new(),
             supertypes: Vec::new(),
         }
     }
