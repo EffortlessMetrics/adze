@@ -178,6 +178,9 @@ pub fn decode_grammar_with_patterns(
         let symbol_count = lang.symbol_count as usize;
         if symbol_count > 0 {
             // Create a safe slice from the pointer array
+            // SAFETY: `lang.symbol_names` is non-null (branch guard above),
+            // and `symbol_count` matches `lang.symbol_count`. The TSLanguage
+            // contract guarantees the array has at least `symbol_count` elements.
             let symbol_name_ptrs =
                 unsafe { std::slice::from_raw_parts(lang.symbol_names, symbol_count) };
 
@@ -186,6 +189,8 @@ pub fn decode_grammar_with_patterns(
                     format!("symbol_{}", i)
                 } else {
                     // Safe string conversion with error handling
+                    // SAFETY: `name_ptr` is non-null (branch guard above) and
+                    // points to a null-terminated C string per TSLanguage contract.
                     match unsafe { CStr::from_ptr(name_ptr as *const c_char) }.to_str() {
                         Ok(valid_str) => valid_str.to_owned(),
                         Err(_) => {
@@ -204,6 +209,8 @@ pub fn decode_grammar_with_patterns(
         let symbol_count = lang.symbol_count as usize;
         if symbol_count > 0 {
             // Create a safe slice from the metadata array
+            // SAFETY: `lang.symbol_metadata` is non-null (branch guard) and
+            // the TSLanguage contract guarantees the array has `symbol_count` elements.
             let symbol_metadata_slice =
                 unsafe { std::slice::from_raw_parts(lang.symbol_metadata, symbol_count) };
 
@@ -264,11 +271,15 @@ pub fn decode_grammar_with_patterns(
     if !lang.field_names.is_null() && lang.field_count > 0 {
         // Create a safe slice from the field names array
         let field_count = lang.field_count as usize;
+        // SAFETY: `lang.field_names` is non-null and `field_count > 0` (branch guard).
+        // TSLanguage contract guarantees the array has `field_count` elements.
         let field_name_ptrs = unsafe { std::slice::from_raw_parts(lang.field_names, field_count) };
 
         for (i, &name_ptr) in field_name_ptrs.iter().enumerate() {
             if !name_ptr.is_null() {
                 // Safe string conversion with error handling
+                // SAFETY: `name_ptr` is non-null (branch guard) and points to a
+                // null-terminated C string per TSLanguage contract.
                 match unsafe { CStr::from_ptr(name_ptr as *const c_char) }.to_str() {
                     Ok(valid_str) => {
                         field_names_map.insert(FieldId(i as u16), valid_str.to_owned());
@@ -286,6 +297,8 @@ pub fn decode_grammar_with_patterns(
     if !lang.rules.is_null() && lang.rule_count > 0 {
         let rule_count = lang.rule_count as usize;
         // Create safe slice from rules array
+        // SAFETY: `lang.rules` is non-null and `rule_count > 0` (branch guard).
+        // TSLanguage contract guarantees the array has `rule_count` elements.
         let rules_slice = unsafe { std::slice::from_raw_parts(lang.rules, rule_count) };
 
         for (i, &ts_rule) in rules_slice.iter().enumerate() {
@@ -303,6 +316,8 @@ pub fn decode_grammar_with_patterns(
             let has_alias_data = !lang.alias_map.is_null() && !lang.alias_sequences.is_null();
             if has_alias_data {
                 // Safe access to alias_map with bounds checking
+                // SAFETY: `lang.alias_map` is non-null (has_alias_data check above).
+                // `rule_count` matches the alias_map array length per TSLanguage contract.
                 let alias_map_slice =
                     unsafe { std::slice::from_raw_parts(lang.alias_map, rule_count) };
 
@@ -316,6 +331,10 @@ pub fn decode_grammar_with_patterns(
                     // Only proceed if we can safely access the required range
                     if max_sequences_needed <= usize::MAX / 2 {
                         // Conservative bound check
+                        // TODO(safety): `max_sequences_needed` is computed from
+                        // alias_map data which may not reflect the true allocation
+                        // size of `lang.alias_sequences`. If the alias_map contains
+                        // corrupted offsets, this could read out of bounds.
                         let alias_sequences_slice = unsafe {
                             // Create a slice that covers at least what we need
                             // Note: We can't know the true size, so we use a conservative estimate
@@ -366,6 +385,9 @@ pub fn decode_grammar_with_patterns(
                 let production_count = lang.production_id_count as usize;
                 if i < production_count {
                     // Create safe slice for parse_actions
+                    // SAFETY: `lang.parse_actions` is non-null (branch guard) and
+                    // `production_count` is derived from `lang.production_id_count`.
+                    // TSLanguage contract guarantees the array has at least this many entries.
                     let parse_actions_slice =
                         unsafe { std::slice::from_raw_parts(lang.parse_actions, production_count) };
 
@@ -395,6 +417,9 @@ pub fn decode_grammar_with_patterns(
 
                 if slice_count > 0 && slice_count <= usize::MAX / 4 {
                     // Conservative bounds check
+                    // SAFETY: `lang.field_map_slices` is non-null (branch guard) and
+                    // `slice_count = production_count * 2`. TSLanguage contract guarantees
+                    // the field_map_slices array covers all productions.
                     let slices =
                         unsafe { std::slice::from_raw_parts(lang.field_map_slices, slice_count) };
 
@@ -412,6 +437,9 @@ pub fn decode_grammar_with_patterns(
 
                             // Check if the calculation is safe
                             if entry_count <= usize::MAX / 4 && start <= entry_count {
+                                // TODO(safety): `entry_count` is derived from slice data
+                                // (start + len) which may not match the true allocation
+                                // size of `lang.field_map_entries`.
                                 let entries = unsafe {
                                     std::slice::from_raw_parts(lang.field_map_entries, entry_count)
                                 };
@@ -462,6 +490,8 @@ pub fn decode_grammar_with_patterns(
         let slice_array_size = production_count.saturating_mul(2);
 
         if slice_array_size > 0 && slice_array_size <= usize::MAX / 4 {
+            // SAFETY: `lang.field_map_slices` is non-null (branch guard) and
+            // `slice_array_size = production_count * 2`. Bounded by `usize::MAX / 4` check.
             let slices_array =
                 unsafe { std::slice::from_raw_parts(lang.field_map_slices, slice_array_size) };
 
@@ -477,6 +507,10 @@ pub fn decode_grammar_with_patterns(
                         let total_entries_needed = start.saturating_add(len).saturating_mul(2);
 
                         // Ensure we can safely access the entries
+                        // TODO(safety): `total_entries_needed` is derived from
+                        // slice data which may not match the true allocation size
+                        // of `lang.field_map_entries`. Bounds check above mitigates
+                        // overflow but cannot verify the underlying allocation.
                         if total_entries_needed <= usize::MAX / 4 && start <= total_entries_needed {
                             let entries_array = unsafe {
                                 std::slice::from_raw_parts(
@@ -521,6 +555,9 @@ pub fn decode_grammar_with_patterns(
                 // Prevent excessive allocations
                 // Safe access to alias_map
                 let alias_map_size = (lang.production_count as usize).max(i + 1);
+                // SAFETY: `lang.alias_map` is non-null (has_alias_data check).
+                // `alias_map_size` is bounded to at least `i + 1` elements, which
+                // is the minimum needed for indexing below.
                 if alias_map_size > 0 {
                     let alias_map_slice =
                         unsafe { std::slice::from_raw_parts(lang.alias_map, alias_map_size) };
@@ -530,6 +567,8 @@ pub fn decode_grammar_with_patterns(
                         let total_sequences_needed = offset.saturating_add(rhs_len);
 
                         // Conservative bounds check for alias_sequences access
+                        // TODO(safety): `total_sequences_needed` is derived from alias_map
+                        // data which may not match the true alias_sequences allocation size.
                         if total_sequences_needed <= usize::MAX / 2 {
                             let alias_sequences_slice = unsafe {
                                 std::slice::from_raw_parts(
@@ -591,6 +630,9 @@ pub fn decode_grammar_with_patterns(
         let external_count = lang.external_token_count as usize;
         // Reasonable limit to prevent DoS
         if external_count <= 1000 {
+            // SAFETY: `lang.external_scanner.symbol_map` is non-null (branch guard) and
+            // `external_count` equals `lang.external_token_count`. TSLanguage contract
+            // guarantees the symbol_map array has this many elements.
             let external_symbol_map = unsafe {
                 std::slice::from_raw_parts(lang.external_scanner.symbol_map, external_count)
             };
@@ -644,12 +686,17 @@ fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
     }
 
     // Create safe slice for production_lhs_index
+    // SAFETY: `lang.production_lhs_index` is non-null (checked above).
+    // `safe_production_count` is capped at 100000. TSLanguage contract guarantees
+    // the production_lhs_index array has `production_count` elements.
     let production_lhs_slice =
         unsafe { std::slice::from_raw_parts(lang.production_lhs_index, safe_production_count) };
 
     // Create safe slice for rules if available
     let rules_slice = if !lang.rules.is_null() && lang.rule_count > 0 {
         let rule_count = (lang.rule_count as usize).min(safe_production_count);
+        // SAFETY: `lang.rules` is non-null (branch guard) and `rule_count` is
+        // bounded by both `lang.rule_count` and `safe_production_count`.
         Some(unsafe { std::slice::from_raw_parts(lang.rules, rule_count) })
     } else {
         None
@@ -750,6 +797,10 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         symbol_to_index.insert(SymbolId(i as u16), i);
 
         // Decode symbol metadata
+        // SAFETY: Pointer arithmetic on `lang.symbol_metadata` and `lang.symbol_names`
+        // is valid because `i < lang.symbol_count` (loop bound). Both pointers are
+        // null-checked before dereferencing. `CStr::from_ptr` requires null-terminated
+        // strings, which is guaranteed by the TSLanguage contract.
         let (ts_metadata, name) = unsafe {
             let ts_metadata = if !lang.symbol_metadata.is_null() {
                 *lang.symbol_metadata.add(i)
@@ -797,6 +848,12 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
         for symbol in 0..lang.symbol_count as usize {
             let table_offset = state * lang.symbol_count as usize + symbol;
+            // SAFETY: `lang.parse_table` is a flat 2D array of size
+            // `state_count * symbol_count`. `table_offset = state * symbol_count + symbol`
+            // is in bounds because `state < large_state_count <= state_count` and
+            // `symbol < symbol_count`. `lang.parse_actions` is indexed by `action_idx`
+            // which is read from the parse table (trusted TSLanguage data).
+            // TODO(safety): No bounds check on `action_idx` against parse_actions array size.
             let action = unsafe {
                 let action_idx = *lang.parse_table.add(table_offset);
 
@@ -837,17 +894,31 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
             // Get the offset into small_parse_table from the map
             let map_index = state - lang.large_state_count as usize;
+            // SAFETY: `lang.small_parse_table_map` is non-null (branch guard).
+            // `map_index = state - large_state_count` where `state` ranges from
+            // `large_state_count..state_count`, so `map_index < state_count - large_state_count`.
+            // TSLanguage contract guarantees the map array covers all small states.
             let offset = unsafe { *lang.small_parse_table_map.add(map_index) } as usize;
 
-            // Read from small_parse_table at the offset
+            // SAFETY: `lang.small_parse_table` is non-null (branch guard).
+            // `offset` comes from `small_parse_table_map` which is trusted TSLanguage data.
+            // TODO(safety): No independent validation that `offset` is within the
+            // small_parse_table allocation. Corrupted TSLanguage data could cause OOB reads.
             let mut ptr = unsafe { lang.small_parse_table.add(offset) };
 
-            // First value is the field count (number of symbol/action pairs)
+            // SAFETY: `ptr` points within the small_parse_table array (see above).
+            // Each subsequent `ptr.add(1)` advances to the next entry. The total number
+            // of reads is `1 + 2 * field_count`, which must fit within the allocation.
+            // TODO(safety): `field_count` is read from the table itself with no upper-bound
+            // validation against the total allocation size.
             let field_count = unsafe { *ptr } as usize;
             ptr = unsafe { ptr.add(1) };
 
             // Read field_count pairs of (symbol, action_index)
             for _ in 0..field_count {
+                // SAFETY: `ptr` is advanced sequentially within small_parse_table.
+                // Each iteration reads two entries. Validity depends on `field_count`
+                // being correct per TSLanguage contract (see TODO above).
                 let symbol = unsafe { *ptr } as usize;
                 ptr = unsafe { ptr.add(1) };
 
@@ -894,6 +965,13 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
             // The states are stored as a flat array of bools
             // Each state has external_token_count bools indicating which externals are valid
+            // SAFETY: `lang.external_scanner.states` is non-null (branch guard) and is
+            // cast to `*const bool`. The flat array has `state_count * external_count`
+            // entries per TSLanguage contract. `idx = state_idx * external_count + external_idx`
+            // is in bounds because both indices are within their respective ranges.
+            // TODO(safety): Casting `*const u8` to `*const bool` assumes that the
+            // memory representation of `bool` is a single byte (0 or 1), which is
+            // guaranteed on all Rust targets but values other than 0/1 would be UB.
             unsafe {
                 let states_ptr = lang.external_scanner.states as *const bool;
                 for state_idx in 0..lang.state_count as usize {
@@ -960,6 +1038,8 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // Decode lex modes with safe access
     let lex_modes = if !lang.lex_modes.is_null() && lang.state_count > 0 {
         let state_count = lang.state_count as usize;
+        // SAFETY: `lang.lex_modes` is non-null and `state_count > 0` (branch guard).
+        // TSLanguage contract guarantees the lex_modes array has `state_count` entries.
         let lex_modes_slice = unsafe { std::slice::from_raw_parts(lang.lex_modes, state_count) };
 
         lex_modes_slice
@@ -1023,9 +1103,17 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                     .iter()
                     .filter(|s| {
                         // Get symbol name from symbol_names if available
+                        // SAFETY: `lang.symbol_names` is a `*const *const u8` array with
+                        // `symbol_count` entries. `s.0` is a valid SymbolId from the
+                        // grammar rules, which should be < symbol_count. `as_ref()`
+                        // returns None if the computed pointer is null.
+                        // TODO(safety): No explicit bounds check that `s.0 < symbol_count`.
+                        // If a SymbolId exceeds symbol_count, this reads out of bounds.
                         if let Some(name_ptr) =
                             unsafe { lang.symbol_names.add(s.0 as usize).as_ref() }
                         {
+                            // SAFETY: `*name_ptr` is a pointer to a null-terminated C string
+                            // per TSLanguage contract.
                             let name = unsafe { std::ffi::CStr::from_ptr(*name_ptr as *const i8) };
                             if let Ok(name_str) = name.to_str() {
                                 // Prefer symbols that don't look like internal helpers
