@@ -1,5 +1,9 @@
 #!/usr/bin/env just --justfile
 # Adze development shortcuts
+#
+# If you see: error: I/O error in runtime dir ... Permission denied
+# Run: source scripts/just-ensure-tmpdir.sh
+# Or:  JUST_TEMPDIR=/tmp/just just <recipe>
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 

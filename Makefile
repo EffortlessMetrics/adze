@@ -29,6 +29,10 @@ test-asserts:
 test-glr-asserts:
 	RUSTFLAGS='-C debug-assertions' cargo test -p adze-glr-core
 
+# Run `just` with tmpdir workaround for permission errors
+just-%:
+	@source scripts/just-ensure-tmpdir.sh && just $*
+
 # Clean
 clean:
 	cargo clean
