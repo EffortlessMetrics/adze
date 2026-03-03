@@ -175,7 +175,7 @@ fn scan_result_clone_copy() {
         bytes_consumed: 5,
     };
     let r2 = r; // Copy
-    let r3 = r.clone();
+    let r3 = r;
     assert_eq!(r, r2);
     assert_eq!(r, r3);
 }

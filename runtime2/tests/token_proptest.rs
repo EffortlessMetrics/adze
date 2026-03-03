@@ -77,13 +77,13 @@ proptest! {
 proptest! {
     #[test]
     fn clone_equals_original(t in arb_token()) {
-        let cloned = t.clone();
+        let cloned = t;
         prop_assert_eq!(t, cloned);
     }
 
     #[test]
     fn clone_is_independent(t in arb_token()) {
-        let mut cloned = t.clone();
+        let mut cloned = t;
         cloned.start = t.start.wrapping_add(1);
         prop_assert_ne!(t.start, cloned.start);
     }
@@ -204,7 +204,7 @@ proptest! {
         end in prop_oneof![Just(0u32), Just(u32::MAX), any::<u32>()],
     ) {
         let t = Token { kind, start, end };
-        let cloned = t.clone();
+        let cloned = t;
         prop_assert_eq!(t, cloned);
         let _ = format!("{:?}", t);
     }

@@ -575,10 +575,8 @@ proptest! {
         let result = panic::catch_unwind(move || {
             let _ = &src.as_str()[sp];
         });
-        if let Err(payload) = result {
-            if let Some(msg) = payload.downcast_ref::<String>() {
-                prop_assert!(msg.contains("Invalid span"));
-            }
+        if let Err(payload) = result && let Some(msg) = payload.downcast_ref::<String>() {
+            prop_assert!(msg.contains("Invalid span"));
         }
     }
 }

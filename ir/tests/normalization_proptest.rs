@@ -11,7 +11,7 @@
 //! - Deep nesting and mixed complex symbols are handled
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------
@@ -431,7 +431,7 @@ proptest! {
     fn sequence_with_trailing_terminal(
         seq_len in 1_usize..4,
     ) {
-        let mut seq: Vec<Symbol> = (0..seq_len)
+        let seq: Vec<Symbol> = (0..seq_len)
             .map(|_| Symbol::Terminal(tok_a()))
             .collect();
         // Add a plain terminal after the sequence

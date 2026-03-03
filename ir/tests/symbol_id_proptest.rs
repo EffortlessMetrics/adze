@@ -172,7 +172,7 @@ proptest! {
     #[test]
     fn symbol_id_distinct_from_rule_id_by_type(v in any::<u16>()) {
         // Same inner value but different types should serialize differently
-        let sid_json = serde_json::to_string(&SymbolId(v)).unwrap();
+        let _sid_json = serde_json::to_string(&SymbolId(v)).unwrap();
         let rid_json = serde_json::to_string(&RuleId(v)).unwrap();
         // Both serialize their inner u16 the same way, but deserialization
         // into the wrong type must still produce the same numeric value

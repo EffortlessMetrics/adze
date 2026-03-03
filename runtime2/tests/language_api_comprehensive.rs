@@ -465,8 +465,10 @@ fn parse_table_default_can_be_leaked_and_used() {
 
 #[test]
 fn parse_table_with_custom_state_count() {
-    let mut table = adze_glr_core::ParseTable::default();
-    table.state_count = 42;
+    let table = adze_glr_core::ParseTable {
+        state_count: 42,
+        ..adze_glr_core::ParseTable::default()
+    };
     let table_ref: &'static adze_glr_core::ParseTable = Box::leak(Box::new(table));
 
     let lang = Language::builder()

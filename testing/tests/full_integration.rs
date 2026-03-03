@@ -5,10 +5,7 @@
 
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{
-    Associativity, ExternalToken, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
-    Token, TokenPattern,
-};
+use adze_ir::{Associativity, Grammar};
 use adze_tablegen::{
     NodeTypesGenerator, StaticLanguageGenerator, TableCompressor,
     helpers::{collect_token_indices, eof_accepts_or_reduces},

@@ -16,14 +16,6 @@ fn symbol_id_strategy() -> impl Strategy<Value = SymbolId> {
     any::<u16>().prop_map(SymbolId)
 }
 
-fn rule_id_strategy() -> impl Strategy<Value = RuleId> {
-    any::<u16>().prop_map(RuleId)
-}
-
-fn state_id_strategy() -> impl Strategy<Value = StateId> {
-    any::<u16>().prop_map(StateId)
-}
-
 fn field_id_strategy() -> impl Strategy<Value = FieldId> {
     any::<u16>().prop_map(FieldId)
 }
@@ -165,7 +157,7 @@ proptest! {
         }
         let grammar = builder.build();
         // Each unique rule name gets its own entry in the rules map
-        prop_assert!(grammar.rules.len() >= 1);
+        prop_assert!(!grammar.rules.is_empty());
         let total_rules: usize = grammar.rules.values().map(|v| v.len()).sum();
         prop_assert_eq!(total_rules, count);
     }
@@ -419,7 +411,7 @@ proptest! {
         }
         if n_tokens > 0 {
             for i in 0..n_rules {
-                builder = builder.rule(&format!("r{i}"), vec![&format!("T0")]);
+                builder = builder.rule(&format!("r{i}"), vec!["T0"]);
             }
         }
         let grammar = builder.build();

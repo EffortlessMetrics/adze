@@ -990,7 +990,7 @@ fn javascript_like_grammar_roundtrip() {
     let g = GrammarBuilder::javascript_like();
 
     assert_eq!(g.name, "javascript_like");
-    assert!(g.extras.len() >= 1);
+    assert!(!g.extras.is_empty());
 
     let expr_id = find_symbol_id(&g, "expression");
     let expr_rules = g.get_rules_for_symbol(expr_id).unwrap();

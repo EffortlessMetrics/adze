@@ -29,10 +29,6 @@ fn arb_production_id() -> impl Strategy<Value = ProductionId> {
     (0u16..100).prop_map(ProductionId)
 }
 
-fn arb_rule_id() -> impl Strategy<Value = RuleId> {
-    (0u16..100).prop_map(RuleId)
-}
-
 fn arb_associativity() -> impl Strategy<Value = Associativity> {
     prop_oneof![
         Just(Associativity::Left),

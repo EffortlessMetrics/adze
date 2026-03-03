@@ -636,9 +636,6 @@ fn multiple_visitors_same_tree() {
 fn dfs_and_bfs_visit_same_node_set() {
     let (root, source) = sample_tree();
 
-    let mut dfs_syms: Vec<u16> = vec![];
-    struct Collect<'a>(&'a mut Vec<u16>);
-    // We can't borrow mutably twice, so use StatsVisitor for both
     let dfs_walker = TreeWalker::new(&source);
     let mut dfs_stats = StatsVisitor::default();
     dfs_walker.walk(&root, &mut dfs_stats);

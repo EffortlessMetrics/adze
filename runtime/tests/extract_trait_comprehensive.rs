@@ -4,7 +4,7 @@
 //! primitives, `String`, `Option`, `Box`, and `Vec`.
 
 use adze::pure_parser::{ParsedNode, Point};
-use adze::{Extract, ExtractDefault, SpanError, SpanErrorReason, Spanned, WithLeaf};
+use adze::{Extract, SpanError, SpanErrorReason, Spanned, WithLeaf};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,10 +46,6 @@ fn make_node(
 
 fn leaf(start: usize, end: usize) -> ParsedNode {
     make_node(1, vec![], start, end, true)
-}
-
-fn unnamed_leaf(start: usize, end: usize) -> ParsedNode {
-    make_node(2, vec![], start, end, false)
 }
 
 // ---------------------------------------------------------------------------
@@ -150,10 +146,11 @@ fn extract_u64_large_value() {
 
 #[test]
 fn extract_f64_with_decimals() {
-    let source = b"3.14";
-    let node = leaf(0, 4);
+    let pi_text = std::f64::consts::PI.to_string();
+    let source = pi_text.as_bytes();
+    let node = leaf(0, source.len());
     let val = f64::extract(Some(&node), source, 0, None);
-    assert!((val - 3.14).abs() < f64::EPSILON);
+    assert!((val - std::f64::consts::PI).abs() < f64::EPSILON);
 }
 
 #[test]

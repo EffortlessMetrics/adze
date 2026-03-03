@@ -39,7 +39,7 @@ fn associativity_none_variant() {
 #[test]
 fn associativity_clone() {
     let a = Associativity::Left;
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
@@ -150,7 +150,7 @@ fn precedence_kind_i16_extremes() {
 #[test]
 fn precedence_kind_clone() {
     let p = PrecedenceKind::Static(3);
-    let q = p.clone();
+    let q = p;
     assert_eq!(p, q);
 }
 

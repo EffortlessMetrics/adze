@@ -112,14 +112,7 @@ fn branch_forest(sym: u16, children: Vec<Arc<ForestNode>>) -> Arc<ForestNode> {
 
 #[test]
 fn forest_leaf_no_alternatives_becomes_v4_leaf() {
-    let forest = ForestNode {
-        symbol: SymbolId(42),
-        alternatives: vec![],
-        byte_range: 0..0,
-        token_range: 0..0,
-        cached_subtree: None,
-    };
-
+    let forest = leaf_forest(42);
     let tree = forest_to_v4_tree(&forest);
     let root = tree.root_node();
 
@@ -156,7 +149,7 @@ fn forest_branch_one_child_becomes_v4_branch() {
 
 #[test]
 fn forest_branch_multiple_children() {
-    let children: Vec<_> = (1..=4).map(|s| leaf_forest_with_alt(s)).collect();
+    let children: Vec<_> = (1..=4u16).map(leaf_forest_with_alt).collect();
     let root_forest = branch_forest(50, children);
 
     let tree = forest_to_v4_tree(&root_forest);
@@ -366,7 +359,7 @@ fn forest_deeply_nested_chain_converts() {
 
 #[test]
 fn forest_wide_tree_ten_children() {
-    let children: Vec<_> = (0..10).map(|i| leaf_forest_with_alt(i)).collect();
+    let children: Vec<_> = (0..10u16).map(leaf_forest_with_alt).collect();
     let root_forest = branch_forest(200, children);
 
     let tree = forest_to_v4_tree(&root_forest);
@@ -457,7 +450,7 @@ fn roundtrip_preserves_root_symbol() {
 
 #[test]
 fn roundtrip_preserves_child_count() {
-    let children: Vec<_> = (1..=5).map(|s| leaf_forest_with_alt(s)).collect();
+    let children: Vec<_> = (1..=5u16).map(leaf_forest_with_alt).collect();
     let original = branch_forest(99, children);
 
     let tree = forest_to_v4_tree(&original);
@@ -518,7 +511,7 @@ fn roundtrip_deep_chain() {
 
 #[test]
 fn roundtrip_wide_tree() {
-    let children: Vec<_> = (0..10).map(|i| leaf_forest_with_alt(i)).collect();
+    let children: Vec<_> = (0..10u16).map(leaf_forest_with_alt).collect();
     let original = branch_forest(200, children);
 
     let tree = forest_to_v4_tree(&original);

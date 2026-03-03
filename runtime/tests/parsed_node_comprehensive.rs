@@ -17,6 +17,7 @@ fn pt(row: u32, col: u32) -> Point {
 /// Create a `ParsedNode` without naming the `pub(crate)` `language` field.
 /// Zero-init sets `language: Option<*const TSLanguage>` to `None`, then we
 /// overwrite every public field.
+#[allow(clippy::too_many_arguments)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,

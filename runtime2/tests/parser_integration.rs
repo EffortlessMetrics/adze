@@ -5,8 +5,7 @@
 
 #[cfg(feature = "glr-core")]
 mod with_glr {
-    use adze_glr_core::{Action, GotoIndexing, ParseRule, ParseTable, StateId, SymbolId};
-    use adze_ir::Grammar;
+    use adze_glr_core::{Action, ParseTable, StateId, SymbolId};
     use adze_runtime::language::SymbolMetadata;
     use adze_runtime::{Language, Parser, Token};
     use std::collections::BTreeMap;
