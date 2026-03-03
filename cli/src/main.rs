@@ -10,24 +10,22 @@ use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-mod parse;
-
 /// Adze CLI
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(name = "adze")]
 #[command(about = "Adze CLI - Tools for grammar development")]
 #[command(author, version, long_about = None)]
-struct Cli {
+pub(crate) struct Cli {
     /// Enable verbose output
     #[arg(short, long, global = true)]
-    verbose: bool,
+    pub verbose: bool,
 
     #[command(subcommand)]
-    command: Commands,
+    pub command: Commands,
 }
 
-#[derive(Subcommand)]
-enum Commands {
+#[derive(Subcommand, Debug)]
+pub(crate) enum Commands {
     /// Initialize a new adze grammar project
     Init {
         /// Name of the grammar
@@ -94,10 +92,13 @@ enum Commands {
         /// Path to grammar file
         grammar: PathBuf,
     },
+
+    /// Show version information
+    Version,
 }
 
-#[derive(clap::ValueEnum, Clone)]
-enum OutputFormat {
+#[derive(clap::ValueEnum, Clone, Debug)]
+pub(crate) enum OutputFormat {
     Tree,
     Json,
     Sexp,
@@ -132,6 +133,7 @@ fn main() -> Result<()> {
         Commands::Doc { grammar, output } => generate_docs(&grammar, output)?,
         Commands::Check { grammar } => check_grammar(&grammar)?,
         Commands::Stats { grammar } => show_stats(&grammar)?,
+        Commands::Version => print_version(),
     }
 
     Ok(())
@@ -374,14 +376,14 @@ fn watch_and_build(path: &Path) -> Result<()> {
 fn parse_file(
     grammar: &Path,
     input: &Path,
-    format: OutputFormat,
+    _format: OutputFormat,
     dynamic: bool,
     _symbol: &str,
 ) -> Result<()> {
     if dynamic {
         #[cfg(feature = "dynamic")]
         {
-            return parse_file_dynamic(grammar, input, format, _symbol);
+            return parse_file_dynamic(grammar, input, _format, _symbol);
         }
         #[cfg(not(feature = "dynamic"))]
         {
@@ -394,28 +396,19 @@ fn parse_file(
     }
     println!("{} Parsing file: {}", "📄".blue(), input.display());
 
-    // Convert clap OutputFormat to our parse module's format
-    let parse_format = match format {
-        OutputFormat::Tree => parse::OutputFormat::Tree,
-        OutputFormat::Json => parse::OutputFormat::Json,
-        OutputFormat::Sexp => parse::OutputFormat::Sexp,
-        OutputFormat::Dot => parse::OutputFormat::Dot,
-    };
+    let input_content = fs::read_to_string(input)?;
+    println!(
+        "  Grammar: {}\n  Input: {} ({} bytes)",
+        grammar.display(),
+        input.display(),
+        input_content.len()
+    );
+    println!(
+        "{} Static parsing not yet implemented. Use `adze build` first, then parse in your Rust code.",
+        "⚠️ ".yellow()
+    );
 
-    // Try to parse with the generated parser
-    match parse::parse_file_with_generated_parser(grammar, input, parse_format) {
-        Ok(()) => Ok(()),
-        Err(e) => {
-            // If parsing fails, provide helpful guidance
-            eprintln!("{} Failed to parse: {}", "❌".red(), e);
-            eprintln!("\n{} Alternative approaches:", "💡".yellow());
-            eprintln!("1. Ensure your grammar file is valid");
-            eprintln!("2. Build your grammar with `adze build`");
-            eprintln!("3. Use the generated parse() function in your Rust code:");
-            eprintln!("\n   use my_grammar::parse;\n   let result = parse(\"input text\");\n");
-            Err(e)
-        }
-    }
+    Ok(())
 }
 
 #[cfg(feature = "dynamic")]
@@ -592,4 +585,8 @@ fn print_stats_summary(result: &BuildResult) {
         "Conflicts:".bright_black(),
         result.build_stats.conflict_cells
     );
+}
+
+fn print_version() {
+    println!("adze {}", env!("CARGO_PKG_VERSION"));
 }
