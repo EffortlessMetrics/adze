@@ -836,3 +836,778 @@ proptest! {
         }
     }
 }
+
+// ── 34. Expansion determinism: same input yields identical token streams ─────
+
+proptest! {
+    #[test]
+    fn expansion_determinism_same_tokens(idx in 0usize..=3) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+", r"\S+"];
+        let pat = patterns[idx];
+        let mk = || -> proc_macro2::TokenStream {
+            let s: ItemStruct = syn::parse2(quote::quote! {
+                pub struct S {
+                    #[adze::leaf(pattern = #pat)]
+                    val: String,
+                }
+            }).unwrap();
+            s.to_token_stream()
+        };
+        prop_assert_eq!(mk().to_string(), mk().to_string());
+    }
+}
+
+// ── 35. Pattern on Option<String> field ─────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_on_option_field(idx in 0usize..=3) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+", r"\S+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat)]
+                val: Option<String>,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let attr = find_leaf_attr(&field.attrs);
+        prop_assert_eq!(extract_pattern_value(attr), pat);
+        let ty_str = field.ty.to_token_stream().to_string();
+        prop_assert!(ty_str.contains("Option"));
+    }
+}
+
+// ── 36. Pattern on Vec field (repeated leaf) ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_on_vec_field(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat)]
+                vals: Vec<String>,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let attr = find_leaf_attr(&field.attrs);
+        prop_assert_eq!(extract_pattern_value(attr), pat);
+        let ty_str = field.ty.to_token_stream().to_string();
+        prop_assert!(ty_str.contains("Vec"));
+    }
+}
+
+// ── 37. Transform with explicit type annotation in closure ──────────────────
+
+proptest! {
+    #[test]
+    fn transform_with_type_annotation(idx in 0usize..=3) {
+        let patterns = [r"\d+", r"-?\d+", r"\d+\.\d+", r"0b[01]+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat, transform = |v: &str| v.parse::<i64>().unwrap())]
+                val: i64,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let attr = find_leaf_attr(&field.attrs);
+        let params = leaf_params(attr);
+        prop_assert_eq!(params.len(), 2);
+        prop_assert_eq!(params[0].path.to_string(), "pattern");
+        prop_assert_eq!(params[1].path.to_string(), "transform");
+        prop_assert_eq!(extract_pattern_value(attr), pat);
+    }
+}
+
+// ── 38. Multiple leaf types: text and pattern in same struct ────────────────
+
+proptest! {
+    #[test]
+    fn text_and_pattern_in_same_struct(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+"];
+        let texts = ["(", ")", ";"];
+        let pat = patterns[idx];
+        let txt = texts[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(text = #txt)]
+                _open: (),
+                #[adze::leaf(pattern = #pat)]
+                val: String,
+            }
+        }).unwrap();
+        let fields: Vec<_> = s.fields.iter().collect();
+        let text_attr = find_leaf_attr(&fields[0].attrs);
+        let pat_attr = find_leaf_attr(&fields[1].attrs);
+        let text_params = leaf_params(text_attr);
+        let pat_params = leaf_params(pat_attr);
+        prop_assert_eq!(text_params[0].path.to_string(), "text");
+        prop_assert_eq!(pat_params[0].path.to_string(), "pattern");
+    }
+}
+
+// ── 39. Leaf text on unit enum variant (string literal pattern) ─────────────
+
+proptest! {
+    #[test]
+    fn leaf_text_string_literal_on_variant(idx in 0usize..=4) {
+        let texts = ["true", "false", "null", "nil", "void"];
+        let txt = texts[idx];
+        let name = syn::Ident::new(&format!("V{idx}"), proc_macro2::Span::call_site());
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum E {
+                #[adze::leaf(text = #txt)]
+                #name
+            }
+        }).unwrap();
+        let attr = find_leaf_attr(&e.variants[0].attrs);
+        let params = leaf_params(attr);
+        prop_assert_eq!(params[0].path.to_string(), "text");
+        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+            prop_assert_eq!(s.value(), txt);
+        } else {
+            prop_assert!(false, "Expected string literal for text param");
+        }
+    }
+}
+
+// ── 40. Pattern with prec_right on enum ─────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_with_prec_right(prec in 1i32..=10) {
+        let lit = proc_macro2::Literal::i32_unsuffixed(prec);
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Expr {
+                Number(
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    i32
+                ),
+                #[adze::prec_right(#lit)]
+                Cons(
+                    Box<Expr>,
+                    #[adze::leaf(text = "::")]
+                    (),
+                    Box<Expr>
+                )
+            }
+        }).unwrap();
+        prop_assert!(e.variants[1].attrs.iter().any(|a| is_adze_attr(a, "prec_right")));
+        if let Fields::Unnamed(ref u) = e.variants[0].fields {
+            prop_assert_eq!(extract_pattern_value(find_leaf_attr(&u.unnamed[0].attrs)), r"\d+");
+        } else {
+            prop_assert!(false, "Expected unnamed fields");
+        }
+    }
+}
+
+// ── 41. Pattern with prec (no associativity) ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_with_prec_no_assoc(prec in 1i32..=5) {
+        let lit = proc_macro2::Literal::i32_unsuffixed(prec);
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Expr {
+                Num(
+                    #[adze::leaf(pattern = r"-?\d+")]
+                    String
+                ),
+                #[adze::prec(#lit)]
+                Cmp(
+                    Box<Expr>,
+                    #[adze::leaf(text = "==")]
+                    (),
+                    Box<Expr>
+                )
+            }
+        }).unwrap();
+        prop_assert!(e.variants[1].attrs.iter().any(|a| is_adze_attr(a, "prec")));
+        if let Fields::Unnamed(ref u) = e.variants[0].fields {
+            prop_assert_eq!(extract_pattern_value(find_leaf_attr(&u.unnamed[0].attrs)), r"-?\d+");
+        } else {
+            prop_assert!(false, "Expected unnamed fields");
+        }
+    }
+}
+
+// ── 42. Pattern on multiple enum variants with distinct regexes ─────────────
+
+proptest! {
+    #[test]
+    fn distinct_regex_per_variant(count in 2usize..=4) {
+        let regexes = [r"\d+", r"[a-zA-Z_]\w*", r"0x[0-9a-fA-F]+", r#""[^"]*""#];
+        let tokens: Vec<proc_macro2::TokenStream> = (0..count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Tok{i}"), proc_macro2::Span::call_site());
+                let pat = regexes[i];
+                quote::quote! {
+                    #name(
+                        #[adze::leaf(pattern = #pat)]
+                        String
+                    )
+                }
+            })
+            .collect();
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Lexer { #(#tokens),* }
+        }).unwrap();
+        let mut seen = std::collections::HashSet::new();
+        for i in 0..count {
+            if let Fields::Unnamed(ref u) = e.variants[i].fields {
+                let val = extract_pattern_value(find_leaf_attr(&u.unnamed[0].attrs));
+                prop_assert!(seen.insert(val.clone()), "Duplicate pattern: {val}");
+            }
+        }
+    }
+}
+
+// ── 43. Leaf pattern with unicode escape sequences ──────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_with_unicode_escapes(idx in 0usize..=3) {
+        let patterns = [r"[\x00-\x7f]", r"[\u0080-\u00ff]", r"[\p{L}]+", r"[\p{N}]+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat)]
+                val: String,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let attr = find_leaf_attr(&field.attrs);
+        prop_assert_eq!(extract_pattern_value(attr), pat);
+    }
+}
+
+// ── 44. Pattern roundtrip determinism via double-parse ──────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_double_parse_determinism(idx in 0usize..=4) {
+        let patterns = [r"\d+", r"[a-z]+", r"\w+", r"//[^\n]*", r"\d+\.\d+"];
+        let pat = patterns[idx];
+        let parse_once = || -> String {
+            let s: ItemStruct = syn::parse2(quote::quote! {
+                pub struct S {
+                    #[adze::leaf(pattern = #pat)]
+                    val: String,
+                }
+            }).unwrap();
+            s.to_token_stream().to_string()
+        };
+        let first = parse_once();
+        let second = parse_once();
+        prop_assert_eq!(first, second, "Determinism violated");
+    }
+}
+
+// ── 45. Leaf pattern combined with delimited repeat ─────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_with_delimited_repeat(idx in 0usize..=2) {
+        let delimiters = [",", ";", "|"];
+        let delim = delimiters[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Expr {
+                List(
+                    #[adze::leaf(text = "(")]
+                    (),
+                    #[adze::delimited(
+                        #[adze::leaf(text = #delim)]
+                        ()
+                    )]
+                    Vec<Item>,
+                    #[adze::leaf(text = ")")]
+                    ()
+                )
+            }
+        }).unwrap();
+        if let Fields::Unnamed(ref u) = e.variants[0].fields {
+            let open_params = leaf_params(find_leaf_attr(&u.unnamed[0].attrs));
+            prop_assert_eq!(open_params[0].path.to_string(), "text");
+            let close_params = leaf_params(find_leaf_attr(&u.unnamed[2].attrs));
+            prop_assert_eq!(close_params[0].path.to_string(), "text");
+        } else {
+            prop_assert!(false, "Expected unnamed fields");
+        }
+    }
+}
+
+// ── 46. Transform returning different numeric types ─────────────────────────
+
+proptest! {
+    #[test]
+    fn transform_with_various_return_types(idx in 0usize..=4) {
+        let types_and_transforms: Vec<(proc_macro2::TokenStream, proc_macro2::TokenStream)> = vec![
+            (quote::quote! { i32 }, quote::quote! { |v| v.parse::<i32>().unwrap() }),
+            (quote::quote! { u64 }, quote::quote! { |v| v.parse::<u64>().unwrap() }),
+            (quote::quote! { f64 }, quote::quote! { |v| v.parse::<f64>().unwrap() }),
+            (quote::quote! { usize }, quote::quote! { |v| v.parse::<usize>().unwrap() }),
+            (quote::quote! { i8 }, quote::quote! { |v| v.parse::<i8>().unwrap() }),
+        ];
+        let (ty, tr) = &types_and_transforms[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = r"\d+", transform = #tr)]
+                val: #ty,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let attr = find_leaf_attr(&field.attrs);
+        let params = leaf_params(attr);
+        prop_assert_eq!(params.len(), 2);
+        prop_assert_eq!(extract_pattern_value(attr), r"\d+");
+    }
+}
+
+// ── 47. Leaf in struct with multiple non-leaf fields referenced ─────────────
+
+proptest! {
+    #[test]
+    fn pattern_coexists_with_non_leaf_fields(extra_count in 1usize..=3) {
+        let extra_fields: Vec<proc_macro2::TokenStream> = (0..extra_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("child{i}"), proc_macro2::Span::call_site());
+                quote::quote! { #name: Box<Other> }
+            })
+            .collect();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = r"[a-z]+")]
+                name: String,
+                #(#extra_fields),*
+            }
+        }).unwrap();
+        let leaf_count = s.fields.iter()
+            .filter(|f| f.attrs.iter().any(|a| is_adze_attr(a, "leaf")))
+            .count();
+        prop_assert_eq!(leaf_count, 1);
+        prop_assert_eq!(s.fields.len(), 1 + extra_count);
+    }
+}
+
+// ── 48. Leaf pattern with empty string (edge case) ──────────────────────────
+
+#[test]
+fn pattern_empty_string_preserved() {
+    let pat = "";
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        pub struct S {
+            #[adze::leaf(pattern = #pat)]
+            val: String,
+        }
+    })
+    .unwrap();
+    let field = s.fields.iter().next().unwrap();
+    let attr = find_leaf_attr(&field.attrs);
+    assert_eq!(extract_pattern_value(attr), "");
+}
+
+// ── 49. Leaf pattern and text are mutually exclusive param names ─────────────
+
+proptest! {
+    #[test]
+    fn pattern_and_text_separate_params(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+"];
+        let pat = patterns[idx];
+        let nv_pat: NameValueExpr = syn::parse2(quote::quote! { pattern = #pat }).unwrap();
+        prop_assert_eq!(nv_pat.path.to_string(), "pattern");
+
+        let texts = ["hello", "world", "foo"];
+        let txt = texts[idx];
+        let nv_txt: NameValueExpr = syn::parse2(quote::quote! { text = #txt }).unwrap();
+        prop_assert_eq!(nv_txt.path.to_string(), "text");
+
+        prop_assert_ne!(nv_pat.path.to_string(), nv_txt.path.to_string());
+    }
+}
+
+// ── 50. Leaf with transform on enum named variant field ─────────────────────
+
+proptest! {
+    #[test]
+    fn transform_on_named_enum_field(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"-?\d+", r"[01]+"];
+        let pat = patterns[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Expr {
+                Num {
+                    #[adze::leaf(pattern = #pat, transform = |v| v.parse().unwrap())]
+                    value: i32,
+                }
+            }
+        }).unwrap();
+        if let Fields::Named(ref n) = e.variants[0].fields {
+            let attr = find_leaf_attr(&n.named[0].attrs);
+            let params = leaf_params(attr);
+            prop_assert_eq!(params.len(), 2);
+            prop_assert_eq!(params[1].path.to_string(), "transform");
+            prop_assert_eq!(extract_pattern_value(attr), pat);
+        } else {
+            prop_assert!(false, "Expected named fields");
+        }
+    }
+}
+
+// ── 51. Multiple text leaf variants (keyword enum validation) ───────────────
+
+proptest! {
+    #[test]
+    fn multiple_text_leaf_variants(count in 2usize..=6) {
+        let keywords = ["if", "else", "while", "for", "return", "break"];
+        let tokens: Vec<proc_macro2::TokenStream> = (0..count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Kw{i}"), proc_macro2::Span::call_site());
+                let kw = keywords[i];
+                quote::quote! {
+                    #[adze::leaf(text = #kw)]
+                    #name
+                }
+            })
+            .collect();
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Keywords { #(#tokens),* }
+        }).unwrap();
+        prop_assert_eq!(e.variants.len(), count);
+        for i in 0..count {
+            let attr = find_leaf_attr(&e.variants[i].attrs);
+            let params = leaf_params(attr);
+            prop_assert_eq!(params[0].path.to_string(), "text");
+        }
+    }
+}
+
+// ── 52. Pattern field ordering determinism in struct ─────────────────────────
+
+proptest! {
+    #[test]
+    fn field_order_determinism(count in 2usize..=4) {
+        let regexes = [r"\d+", r"\w+", r"[a-z]+", r"\S+"];
+        let mk = || -> Vec<String> {
+            let fields: Vec<proc_macro2::TokenStream> = (0..count)
+                .map(|i| {
+                    let name = syn::Ident::new(&format!("f{i}"), proc_macro2::Span::call_site());
+                    let pat = regexes[i];
+                    quote::quote! {
+                        #[adze::leaf(pattern = #pat)]
+                        #name: String
+                    }
+                })
+                .collect();
+            let s: ItemStruct = syn::parse2(quote::quote! {
+                pub struct S { #(#fields),* }
+            }).unwrap();
+            s.fields.iter()
+                .map(|f| extract_pattern_value(find_leaf_attr(&f.attrs)))
+                .collect()
+        };
+        let first = mk();
+        let second = mk();
+        prop_assert_eq!(first, second);
+    }
+}
+
+// ── 53. Pattern with nested groups ──────────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_with_nested_groups(idx in 0usize..=3) {
+        let patterns = [
+            r"((a|b)+)",
+            r"((\d+)(\.\d+)?)",
+            r"([a-z]([a-z0-9]*))",
+            r"((true|false)|(yes|no))",
+        ];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat)]
+                val: String,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let attr = find_leaf_attr(&field.attrs);
+        prop_assert_eq!(extract_pattern_value(attr), pat);
+    }
+}
+
+// ── 54. Leaf validation: param count is exactly 1 without transform ─────────
+
+proptest! {
+    #[test]
+    fn leaf_pattern_exactly_one_param(idx in 0usize..=5) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+", r"\s", r".*", r"[^\n]+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat)]
+                val: String,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let params = leaf_params(find_leaf_attr(&field.attrs));
+        prop_assert_eq!(params.len(), 1, "Expected exactly 1 param, got {}", params.len());
+    }
+}
+
+// ── 55. Leaf validation: param count is exactly 2 with transform ────────────
+
+proptest! {
+    #[test]
+    fn leaf_pattern_exactly_two_params_with_transform(idx in 0usize..=3) {
+        let patterns = [r"\d+", r"-?\d+", r"\d+\.\d+", r"0[xX][0-9a-fA-F]+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat, transform = |v| v.to_string())]
+                val: String,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let params = leaf_params(find_leaf_attr(&field.attrs));
+        prop_assert_eq!(params.len(), 2, "Expected exactly 2 params, got {}", params.len());
+    }
+}
+
+// ── 56. Leaf text on struct (unit struct leaf) ──────────────────────────────
+
+#[test]
+fn leaf_text_on_unit_struct() {
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        #[adze::leaf(text = "9")]
+        pub struct BigDigit;
+    })
+    .unwrap();
+    let attr = find_leaf_attr(&s.attrs);
+    let params = leaf_params(attr);
+    assert_eq!(params[0].path.to_string(), "text");
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
+        assert_eq!(s.value(), "9");
+    } else {
+        panic!("Expected string literal for text param");
+    }
+}
+
+// ── 57. Pattern on Box<T> wrapped field in enum ─────────────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_alongside_boxed_fields(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+"];
+        let pat = patterns[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Expr {
+                Unary(
+                    #[adze::leaf(pattern = #pat)]
+                    String,
+                    Box<Expr>
+                )
+            }
+        }).unwrap();
+        if let Fields::Unnamed(ref u) = e.variants[0].fields {
+            prop_assert_eq!(u.unnamed.len(), 2);
+            let attr = find_leaf_attr(&u.unnamed[0].attrs);
+            prop_assert_eq!(extract_pattern_value(attr), pat);
+            // Second field has no leaf attr
+            prop_assert!(!u.unnamed[1].attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+        } else {
+            prop_assert!(false, "Expected unnamed fields");
+        }
+    }
+}
+
+// ── 58. Expansion determinism: enum with mixed leaf types ───────────────────
+
+proptest! {
+    #[test]
+    fn expansion_determinism_mixed_enum(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"[a-z]+", r"\w+"];
+        let pat = patterns[idx];
+        let mk = || -> String {
+            let e: ItemEnum = syn::parse2(quote::quote! {
+                pub enum E {
+                    #[adze::leaf(text = "k")]
+                    Keyword,
+                    Pat(
+                        #[adze::leaf(pattern = #pat, transform = |v| v.to_string())]
+                        String
+                    )
+                }
+            }).unwrap();
+            e.to_token_stream().to_string()
+        };
+        prop_assert_eq!(mk(), mk(), "Expansion not deterministic");
+    }
+}
+
+// ── 59. Leaf text with special characters ───────────────────────────────────
+
+proptest! {
+    #[test]
+    fn leaf_text_special_chars(idx in 0usize..=5) {
+        let texts = ["->", "=>", "::", "&&", "||", "!="];
+        let txt = texts[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Op {
+                #[adze::leaf(text = #txt)]
+                Op
+            }
+        }).unwrap();
+        let attr = find_leaf_attr(&e.variants[0].attrs);
+        let params = leaf_params(attr);
+        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+            prop_assert_eq!(s.value(), txt);
+        } else {
+            prop_assert!(false, "Expected string literal");
+        }
+    }
+}
+
+// ── 60. Leaf with repeat non_empty on containing field ──────────────────────
+
+proptest! {
+    #[test]
+    fn pattern_with_repeat_non_empty(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::repeat(non_empty = true)]
+                items: Vec<Item>,
+                #[adze::leaf(pattern = #pat)]
+                separator: String,
+            }
+        }).unwrap();
+        let fields: Vec<_> = s.fields.iter().collect();
+        prop_assert!(fields[0].attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+        let attr = find_leaf_attr(&fields[1].attrs);
+        prop_assert_eq!(extract_pattern_value(attr), pat);
+    }
+}
+
+// ── 61. Pattern extraction from NameValueExpr directly ──────────────────────
+
+proptest! {
+    #[test]
+    fn name_value_expr_pattern_roundtrip(idx in 0usize..=4) {
+        let patterns = [r"\d+", r"\w+", r"[a-z]+", r"\s+", r"[^\n]+"];
+        let pat = patterns[idx];
+        let nv: NameValueExpr = syn::parse2(quote::quote! { pattern = #pat }).unwrap();
+        prop_assert_eq!(nv.path.to_string(), "pattern");
+        // Roundtrip: parse again with same input
+        let reparsed_nv: NameValueExpr = syn::parse2(quote::quote! { pattern = #pat }).unwrap();
+        prop_assert_eq!(nv.path.to_string(), reparsed_nv.path.to_string());
+        // Value matches
+        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s1), .. }) = &nv.expr {
+            if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s2), .. }) = &reparsed_nv.expr {
+                prop_assert_eq!(s1.value(), s2.value());
+            }
+        }
+    }
+}
+
+// ── 62. Enum with both text and pattern variants count preserved ────────────
+
+proptest! {
+    #[test]
+    fn mixed_variant_count_preserved(n_text in 1usize..=3, n_pat in 1usize..=3) {
+        let texts: Vec<&str> = vec!["a", "b", "c"];
+        let pats: Vec<&str> = vec![r"\d+", r"\w+", r"[a-z]+"];
+        let mut variant_tokens: Vec<proc_macro2::TokenStream> = Vec::new();
+        for i in 0..n_text {
+            let name = syn::Ident::new(&format!("T{i}"), proc_macro2::Span::call_site());
+            let txt = texts[i];
+            variant_tokens.push(quote::quote! {
+                #[adze::leaf(text = #txt)]
+                #name
+            });
+        }
+        for i in 0..n_pat {
+            let name = syn::Ident::new(&format!("P{i}"), proc_macro2::Span::call_site());
+            let pat = pats[i];
+            variant_tokens.push(quote::quote! {
+                #name(
+                    #[adze::leaf(pattern = #pat)]
+                    String
+                )
+            });
+        }
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum E { #(#variant_tokens),* }
+        }).unwrap();
+        prop_assert_eq!(e.variants.len(), n_text + n_pat);
+    }
+}
+
+// ── 63. Leaf text value is always a string literal in NameValueExpr ──────────
+
+proptest! {
+    #[test]
+    fn text_value_is_str_lit(idx in 0usize..=4) {
+        let texts = ["foo", "bar", "+", "->", "::"];
+        let txt = texts[idx];
+        let nv: NameValueExpr = syn::parse2(quote::quote! { text = #txt }).unwrap();
+        prop_assert_eq!(nv.path.to_string(), "text");
+        let is_str = matches!(
+            nv.expr,
+            syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(_), .. })
+        );
+        prop_assert!(is_str, "text value should be a string literal");
+    }
+}
+
+// ── 64. Pattern attr not found on non-leaf fields ───────────────────────────
+
+proptest! {
+    #[test]
+    fn non_leaf_field_has_no_leaf_attr(count in 1usize..=3) {
+        let fields: Vec<proc_macro2::TokenStream> = (0..count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("child{i}"), proc_macro2::Span::call_site());
+                quote::quote! { #name: Box<Other> }
+            })
+            .collect();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S { #(#fields),* }
+        }).unwrap();
+        for field in s.fields.iter() {
+            prop_assert!(!field.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+        }
+    }
+}
+
+// ── 65. Leaf transform expression preserved in token stream ─────────────────
+
+proptest! {
+    #[test]
+    fn transform_expr_preserved(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"-?\d+", r"\d+\.\d+"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct S {
+                #[adze::leaf(pattern = #pat, transform = |v| v.parse().unwrap())]
+                val: i32,
+            }
+        }).unwrap();
+        // Roundtrip through token stream
+        let ts = s.to_token_stream().to_string();
+        let s2: ItemStruct = syn::parse_str(&ts).unwrap();
+        let field = s2.fields.iter().next().unwrap();
+        let attr = find_leaf_attr(&field.attrs);
+        let params = leaf_params(attr);
+        prop_assert_eq!(params.len(), 2);
+        prop_assert_eq!(params[1].path.to_string(), "transform");
+        // The transform is a closure expression
+        prop_assert!(matches!(params[1].expr, syn::Expr::Closure(_)));
+    }
+}

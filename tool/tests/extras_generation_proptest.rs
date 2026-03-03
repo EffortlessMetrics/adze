@@ -602,3 +602,390 @@ proptest! {
         prop_assert_eq!(&g["extras"], &parsed);
     }
 }
+
+// ===========================================================================
+// 10. Block comment extras
+// ===========================================================================
+
+#[test]
+fn block_comment_extra_appears_in_extras() {
+    let src = r#"
+    #[adze::grammar("block_cmt")]
+    mod grammar {
+        #[adze::language]
+        pub struct Root {
+            #[adze::leaf(pattern = r"[a-z]+")]
+            name: String,
+        }
+
+        #[adze::extra]
+        struct BlockComment {
+            #[adze::leaf(pattern = r"/\*[^*]*\*/")]
+            _tok: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    let names = extras_names(&g);
+    assert!(names.contains(&"BlockComment".to_string()));
+}
+
+#[test]
+fn line_and_block_comment_extras_coexist() {
+    let src = r#"
+    #[adze::grammar("both_cmt")]
+    mod grammar {
+        #[adze::language]
+        pub struct Root {
+            #[adze::leaf(pattern = r"[a-z]+")]
+            name: String,
+        }
+
+        #[adze::extra]
+        struct LineComment {
+            #[adze::leaf(pattern = r"//[^\n]*")]
+            _tok: (),
+        }
+
+        #[adze::extra]
+        struct BlockComment {
+            #[adze::leaf(pattern = r"/\*[^*]*\*/")]
+            _tok2: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    let names = extras_names(&g);
+    assert_eq!(names.len(), 2);
+    assert!(names.contains(&"LineComment".to_string()));
+    assert!(names.contains(&"BlockComment".to_string()));
+}
+
+// ===========================================================================
+// 11. Extras interaction with enum rules
+// ===========================================================================
+
+#[test]
+fn extras_with_enum_language_rule() {
+    let src = r#"
+    #[adze::grammar("enum_extras")]
+    mod grammar {
+        #[adze::language]
+        pub enum Expression {
+            Number(
+                #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                i32
+            ),
+        }
+
+        #[adze::extra]
+        struct Whitespace {
+            #[adze::leaf(pattern = r"\s")]
+            _whitespace: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    let names = extras_names(&g);
+    assert!(names.contains(&"Whitespace".to_string()));
+    // The enum rule should not reference the extra
+    let expr_rule = serde_json::to_string(&g["rules"]["Expression"]).unwrap();
+    assert!(!expr_rule.contains("Whitespace"));
+}
+
+#[test]
+fn extras_not_included_in_enum_choice_members() {
+    let src = r#"
+    #[adze::grammar("enum_choice")]
+    mod grammar {
+        #[adze::language]
+        pub enum Expr {
+            Num(#[adze::leaf(pattern = r"\d+")] String),
+            Id(#[adze::leaf(pattern = r"[a-z]+")] String),
+        }
+
+        #[adze::extra]
+        struct Ws {
+            #[adze::leaf(pattern = r"\s+")]
+            _w: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    let expr = &g["rules"]["Expr"];
+    let members = expr["members"].as_array().unwrap();
+    // None of the choice members should reference the extra
+    for member in members {
+        let member_str = serde_json::to_string(member).unwrap();
+        assert!(
+            !member_str.contains("\"Ws\""),
+            "enum choice should not reference extra Ws"
+        );
+    }
+}
+
+// ===========================================================================
+// 12. Extras interaction with repeat/vec rules
+// ===========================================================================
+
+#[test]
+fn extras_with_repeat_rule() {
+    let src = r#"
+    #[adze::grammar("repeat_extras")]
+    mod grammar {
+        #[adze::language]
+        pub struct NumberList {
+            #[adze::repeat(non_empty = true)]
+            #[adze::delimited(
+                #[adze::leaf(text = ",")]
+                ()
+            )]
+            numbers: Vec<Number>,
+        }
+
+        pub struct Number {
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            v: i32,
+        }
+
+        #[adze::extra]
+        struct Whitespace {
+            #[adze::leaf(pattern = r"\s")]
+            _whitespace: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    let names = extras_names(&g);
+    assert!(names.contains(&"Whitespace".to_string()));
+    // Repeat rules should exist alongside extras
+    let rules = g["rules"].as_object().unwrap();
+    assert!(rules.contains_key("NumberList"));
+    assert!(rules.contains_key("Number"));
+    assert!(rules.contains_key("Whitespace"));
+}
+
+// ===========================================================================
+// 13. Extras interaction with precedence rules
+// ===========================================================================
+
+#[test]
+fn extras_with_prec_left_rule() {
+    let src = r#"
+    #[adze::grammar("prec_extras")]
+    mod grammar {
+        #[adze::language]
+        pub enum Expression {
+            Number(
+                #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                i32
+            ),
+            #[adze::prec_left(1)]
+            Sub(
+                Box<Expression>,
+                #[adze::leaf(text = "-", transform = |v| ())]
+                (),
+                Box<Expression>
+            ),
+        }
+
+        #[adze::extra]
+        struct Whitespace {
+            #[adze::leaf(pattern = r"\s")]
+            _ws: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    let names = extras_names(&g);
+    assert_eq!(names.len(), 1);
+    assert!(names.contains(&"Whitespace".to_string()));
+    // The prec rule should still be generated
+    let rules = g["rules"].as_object().unwrap();
+    assert!(rules.contains_key("Expression"));
+}
+
+// ===========================================================================
+// 14. Extra rule internal structure
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn extra_rule_contains_field_wrapper(
+        name in grammar_name_strategy(),
+        extra in extra_type_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let src = grammar_one_extra(&name, &extra, &pattern);
+        let g = extract_one(&src);
+        let rule = &g["rules"][&extra];
+        // The extra struct rule wraps its content in a FIELD
+        prop_assert_eq!(
+            rule["type"].as_str().unwrap(),
+            "FIELD",
+            "extra rule should be a FIELD wrapper"
+        );
+    }
+
+    #[test]
+    fn extra_inner_pattern_rule_exists(
+        name in grammar_name_strategy(),
+        extra in extra_type_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let src = grammar_one_extra(&name, &extra, &pattern);
+        let g = extract_one(&src);
+        let rules = g["rules"].as_object().unwrap();
+        // The inner pattern rule is named like "ExtraName__tok"
+        let inner_key = format!("{extra}__tok");
+        prop_assert!(
+            rules.contains_key(&inner_key),
+            "inner pattern rule {inner_key} should exist in rules"
+        );
+    }
+
+    #[test]
+    fn extra_inner_rule_is_pattern_type(
+        name in grammar_name_strategy(),
+        extra in extra_type_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let src = grammar_one_extra(&name, &extra, &pattern);
+        let g = extract_one(&src);
+        let inner_key = format!("{extra}__tok");
+        let inner_rule = &g["rules"][&inner_key];
+        prop_assert_eq!(
+            inner_rule["type"].as_str().unwrap(),
+            "PATTERN",
+            "inner extra rule should be a PATTERN"
+        );
+    }
+}
+
+// ===========================================================================
+// 15. Extras grammar name independence
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn extras_independent_of_grammar_name(
+        name1 in grammar_name_strategy(),
+        name2 in grammar_name_strategy(),
+        extra in extra_type_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let g1 = extract_one(&grammar_one_extra(&name1, &extra, &pattern));
+        let g2 = extract_one(&grammar_one_extra(&name2, &extra, &pattern));
+        // Extras array should be identical regardless of grammar name
+        prop_assert_eq!(
+            serde_json::to_string(&g1["extras"]).unwrap(),
+            serde_json::to_string(&g2["extras"]).unwrap(),
+        );
+    }
+
+    #[test]
+    fn extras_count_invariant_across_runs(
+        name in grammar_name_strategy(),
+        ws_pat in safe_pattern_strategy(),
+        cmt_pat in comment_pattern_strategy(),
+    ) {
+        let src = grammar_two_extras(&name, "Whitespace", &ws_pat, "Comment", &cmt_pat);
+        let counts: Vec<usize> = (0..3)
+            .map(|_| extras_array(&extract_one(&src)).len())
+            .collect();
+        prop_assert!(counts.iter().all(|&c| c == counts[0]));
+    }
+}
+
+// ===========================================================================
+// 16. Extras with word rule interaction
+// ===========================================================================
+
+#[test]
+fn extras_alongside_word_rule() {
+    let src = r#"
+    #[adze::grammar("word_extras")]
+    mod grammar {
+        #[adze::language]
+        pub struct Root {
+            ident: Identifier,
+        }
+
+        #[adze::word]
+        pub struct Identifier {
+            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+            name: String,
+        }
+
+        #[adze::extra]
+        struct Whitespace {
+            #[adze::leaf(pattern = r"\s")]
+            _ws: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    // word rule should be set
+    assert_eq!(g["word"].as_str().unwrap(), "Identifier");
+    // extras should still work
+    let names = extras_names(&g);
+    assert!(names.contains(&"Whitespace".to_string()));
+}
+
+// ===========================================================================
+// 17. Grammar JSON top-level structure with extras
+// ===========================================================================
+
+#[test]
+fn grammar_json_has_required_keys_with_extras() {
+    let src = r#"
+    #[adze::grammar("json_keys")]
+    mod grammar {
+        #[adze::language]
+        pub struct Root {
+            #[adze::leaf(pattern = r"[a-z]+")]
+            name: String,
+        }
+
+        #[adze::extra]
+        struct Whitespace {
+            #[adze::leaf(pattern = r"\s")]
+            _ws: (),
+        }
+    }
+    "#;
+    let g = extract_one(src);
+    let obj = g.as_object().unwrap();
+    assert!(obj.contains_key("name"));
+    assert!(obj.contains_key("rules"));
+    assert!(obj.contains_key("extras"));
+    assert!(obj.contains_key("word"));
+}
+
+#[test]
+fn extras_do_not_duplicate_on_repeated_generation() {
+    let src = r#"
+    #[adze::grammar("dedup")]
+    mod grammar {
+        #[adze::language]
+        pub struct Root {
+            #[adze::leaf(pattern = r"[a-z]+")]
+            name: String,
+        }
+
+        #[adze::extra]
+        struct Ws {
+            #[adze::leaf(pattern = r"\s")]
+            _ws: (),
+        }
+    }
+    "#;
+    let g1 = extract_one(src);
+    let g2 = extract_one(src);
+    assert_eq!(extras_array(&g1).len(), extras_array(&g2).len());
+    assert_eq!(extras_array(&g1).len(), 1);
+}

@@ -358,3 +358,341 @@ proptest! {
         prop_assert!(!dbg.is_empty());
     }
 }
+
+// ===========================================================================
+// Additional tests: string literals, integer literals, boolean literals,
+// name extraction, value extraction, complex expressions, determinism,
+// and error cases.
+// ===========================================================================
+
+/// Helper: extract a syn::Lit from a NameValueExpr, panicking if not a literal.
+fn extract_lit(nve: &NameValueExpr) -> &syn::Lit {
+    match &nve.expr {
+        syn::Expr::Lit(el) => &el.lit,
+        other => panic!("expected Expr::Lit, got {other:?}"),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 34-38: String literal parsing (value extraction, unicode, special chars)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nve_string_value_extraction() {
+    let nve: NameValueExpr = syn::parse_str(r#"label = "world""#).unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Str(s) => assert_eq!(s.value(), "world"),
+        other => panic!("expected Str, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_string_unicode_content() {
+    let nve: NameValueExpr = syn::parse_str(r#"emoji = "héllo 🌍""#).unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Str(s) => assert_eq!(s.value(), "héllo 🌍"),
+        other => panic!("expected Str, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_string_with_quotes_escaped() {
+    let nve: NameValueExpr = syn::parse_str(r#"q = "say \"hi\"""#).unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Str(s) => assert_eq!(s.value(), "say \"hi\""),
+        other => panic!("expected Str, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_string_with_tab_escape() {
+    let nve: NameValueExpr = syn::parse_str(r#"sep = "a\tb""#).unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Str(s) => assert_eq!(s.value(), "a\tb"),
+        other => panic!("expected Str, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_string_with_backslash() {
+    let nve: NameValueExpr = syn::parse_str(r#"path = "c:\\dir""#).unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Str(s) => assert_eq!(s.value(), "c:\\dir"),
+        other => panic!("expected Str, got {other:?}"),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 39-43: Integer literal parsing (zero, large, hex, suffixed)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nve_int_zero() {
+    let nve: NameValueExpr = syn::parse_str("level = 0").unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Int(i) => assert_eq!(i.base10_parse::<i64>().unwrap(), 0),
+        other => panic!("expected Int, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_int_large_positive() {
+    let nve: NameValueExpr = syn::parse_str("big = 999999").unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Int(i) => assert_eq!(i.base10_parse::<i64>().unwrap(), 999_999),
+        other => panic!("expected Int, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_int_hex_literal() {
+    let nve: NameValueExpr = syn::parse_str("color = 0xFF").unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Int(i) => assert_eq!(i.base10_parse::<u64>().unwrap(), 255),
+        other => panic!("expected Int, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_int_binary_literal() {
+    let nve: NameValueExpr = syn::parse_str("mask = 0b1010").unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Int(i) => assert_eq!(i.base10_parse::<u64>().unwrap(), 10),
+        other => panic!("expected Int, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_int_octal_literal() {
+    let nve: NameValueExpr = syn::parse_str("perm = 0o755").unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Int(i) => assert_eq!(i.base10_parse::<u64>().unwrap(), 0o755),
+        other => panic!("expected Int, got {other:?}"),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 44-46: Boolean literal parsing (value extraction)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nve_bool_true_value() {
+    let nve: NameValueExpr = syn::parse_str("enabled = true").unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Bool(b) => assert!(b.value),
+        other => panic!("expected Bool, got {other:?}"),
+    }
+}
+
+#[test]
+fn nve_bool_false_value() {
+    let nve: NameValueExpr = syn::parse_str("enabled = false").unwrap();
+    match extract_lit(&nve) {
+        syn::Lit::Bool(b) => assert!(!b.value),
+        other => panic!("expected Bool, got {other:?}"),
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 47. Bool value round-trips correctly
+    #[test]
+    fn nve_bool_value_roundtrip(name in ident_strategy(), b in prop::bool::ANY) {
+        let src = format!("{name} = {b}");
+        let parsed: NameValueExpr = syn::parse_str(&src).unwrap();
+        match extract_lit(&parsed) {
+            syn::Lit::Bool(lit) => prop_assert_eq!(lit.value, b),
+            other => prop_assert!(false, "expected Bool, got {other:?}"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 48-51: Name extraction (underscore, raw ident, leading underscore, long)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nve_error_underscore_as_name() {
+    // `_` is a keyword, not a valid identifier in this context
+    assert!(syn::parse_str::<NameValueExpr>("_ = 1").is_err());
+}
+
+#[test]
+fn nve_name_leading_underscore() {
+    let nve: NameValueExpr = syn::parse_str("_hidden = 42").unwrap();
+    assert_eq!(nve.path.to_string(), "_hidden");
+}
+
+#[test]
+fn nve_name_raw_ident() {
+    let nve: NameValueExpr = syn::parse_str("r#type = 10").unwrap();
+    // syn preserves the raw ident prefix
+    assert_eq!(nve.path.to_string(), "r#type");
+}
+
+#[test]
+fn nve_name_long_snake_case() {
+    let nve: NameValueExpr = syn::parse_str("my_very_long_parameter_name = 0").unwrap();
+    assert_eq!(nve.path.to_string(), "my_very_long_parameter_name");
+}
+
+// ---------------------------------------------------------------------------
+// 52-54: Value extraction (expr token stream content)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 52. Integer value token stream contains the literal text
+    #[test]
+    fn nve_int_value_in_tokens(name in ident_strategy(), val in 0i64..500) {
+        let src = format!("{name} = {val}");
+        let parsed: NameValueExpr = syn::parse_str(&src).unwrap();
+        let tokens = parsed.expr.to_token_stream().to_string();
+        prop_assert!(tokens.contains(&val.to_string()));
+    }
+
+    // 53. String value token stream contains the string
+    #[test]
+    fn nve_string_value_in_tokens(name in ident_strategy()) {
+        let src = format!("{name} = \"testval\"");
+        let parsed: NameValueExpr = syn::parse_str(&src).unwrap();
+        let tokens = parsed.expr.to_token_stream().to_string();
+        prop_assert!(tokens.contains("testval"));
+    }
+
+    // 54. Bool value token stream matches input
+    #[test]
+    fn nve_bool_value_in_tokens(name in ident_strategy(), b in prop::bool::ANY) {
+        let src = format!("{name} = {b}");
+        let parsed: NameValueExpr = syn::parse_str(&src).unwrap();
+        let tokens = parsed.expr.to_token_stream().to_string();
+        prop_assert!(tokens.contains(&b.to_string()));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 55-57: Complex expressions as values
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nve_complex_expr_binary_op() {
+    let nve: NameValueExpr = syn::parse_str("x = 1 + 2").unwrap();
+    assert_eq!(nve.path.to_string(), "x");
+    let tokens = nve.expr.to_token_stream().to_string();
+    assert!(tokens.contains("1"), "tokens should contain '1': {tokens}");
+    assert!(tokens.contains("2"), "tokens should contain '2': {tokens}");
+}
+
+#[test]
+fn nve_complex_expr_method_call() {
+    let nve: NameValueExpr = syn::parse_str("v = foo.bar()").unwrap();
+    assert_eq!(nve.path.to_string(), "v");
+    let tokens = nve.expr.to_token_stream().to_string();
+    assert!(tokens.contains("foo"), "tokens: {tokens}");
+    assert!(tokens.contains("bar"), "tokens: {tokens}");
+}
+
+#[test]
+fn nve_complex_expr_closure() {
+    let nve: NameValueExpr = syn::parse_str("f = |x| x + 1").unwrap();
+    assert_eq!(nve.path.to_string(), "f");
+    assert!(!nve.expr.to_token_stream().is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 58-60: Parsing determinism (complex and string values)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nve_deterministic_string_value() {
+    let src = r#"key = "deterministic""#;
+    let a: NameValueExpr = syn::parse_str(src).unwrap();
+    let b: NameValueExpr = syn::parse_str(src).unwrap();
+    assert_eq!(a, b);
+}
+
+#[test]
+fn nve_deterministic_bool_value() {
+    let src = "flag = true";
+    let a: NameValueExpr = syn::parse_str(src).unwrap();
+    let b: NameValueExpr = syn::parse_str(src).unwrap();
+    assert_eq!(a, b);
+}
+
+#[test]
+fn nve_deterministic_complex_expr() {
+    let src = "calc = 2 + 3 * 4";
+    let a: NameValueExpr = syn::parse_str(src).unwrap();
+    let b: NameValueExpr = syn::parse_str(src).unwrap();
+    assert_eq!(a, b);
+}
+
+// ---------------------------------------------------------------------------
+// 61-65: Error cases (additional invalid inputs)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nve_error_double_equals() {
+    assert!(syn::parse_str::<NameValueExpr>("x == 1").is_err());
+}
+
+#[test]
+fn nve_error_just_equals() {
+    assert!(syn::parse_str::<NameValueExpr>("=").is_err());
+}
+
+#[test]
+fn nve_error_just_value() {
+    assert!(syn::parse_str::<NameValueExpr>("42").is_err());
+}
+
+#[test]
+fn nve_error_string_as_name() {
+    assert!(syn::parse_str::<NameValueExpr>(r#""name" = 1"#).is_err());
+}
+
+#[test]
+fn nve_error_comma_separated_without_context() {
+    // Two NVE expressions without being parsed as a punctuated list
+    assert!(syn::parse_str::<NameValueExpr>("a = 1, b = 2").is_err());
+}
+
+// ---------------------------------------------------------------------------
+// 66-68: Eq_token presence and structural invariants
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 66. eq_token span is valid (non-zero length)
+    #[test]
+    fn nve_eq_token_present(name in ident_strategy(), val in int_value()) {
+        let src = format!("{name} = {val}");
+        let parsed: NameValueExpr = syn::parse_str(&src).unwrap();
+        // eq_token exists (it's not Option, so just accessing it is the test)
+        let _ = parsed.eq_token;
+    }
+
+    // 67. Path is always a single ident (not empty)
+    #[test]
+    fn nve_path_is_nonempty(name in ident_strategy(), val in int_value()) {
+        let src = format!("{name} = {val}");
+        let parsed: NameValueExpr = syn::parse_str(&src).unwrap();
+        prop_assert!(!parsed.path.to_string().is_empty());
+    }
+
+    // 68. Different names produce different NameValueExpr values
+    #[test]
+    fn nve_different_names_not_equal(
+        name1 in ident_strategy(),
+        name2 in ident_strategy(),
+        val in int_value()
+    ) {
+        prop_assume!(name1 != name2);
+        let a: NameValueExpr = syn::parse_str(&format!("{name1} = {val}")).unwrap();
+        let b: NameValueExpr = syn::parse_str(&format!("{name2} = {val}")).unwrap();
+        prop_assert_ne!(a, b);
+    }
+}
