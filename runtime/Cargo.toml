@@ -117,6 +117,10 @@ ts-bridge = { version = "0.1.0", path = "../tools/ts-bridge", features = ["with-
 getrandom = { version = "=0.3.4", features = ["wasm_js"] }
 
 [[bench]]
+name = "runtime_parse_serialize_bench"
+harness = false
+
+[[bench]]
 name = "simple_bench"
 harness = false
 
