@@ -108,6 +108,10 @@ check-msrv:
     fi
     echo "OK: all rust-version fields match MSRV $MSRV"
 
+# Show crates.io publish order
+publish-order:
+    ./scripts/publish-order.sh
+
 # Clean build artifacts
 clean:
     cargo clean
