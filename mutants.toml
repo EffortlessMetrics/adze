@@ -1,0 +1,33 @@
+# cargo-mutants configuration
+# Run: just mutate          (default: adze-ir)
+# Run: just mutate-all      (all supported crates)
+# See: https://mutants.rs/
+
+# Timeout multiplier for each mutant test run
+timeout_multiplier = 2.0
+# Minimum timeout so small tests don't flap
+minimum_timeout = 30
+
+# ── Packages under mutation ───────────────────────────────────────────
+[examine]
+# Focus on the core logic crates
+package = ["adze-ir", "adze-glr-core", "adze-tablegen"]
+
+# ── Excluded functions ────────────────────────────────────────────────
+# Test helpers, debug/display impls, and boilerplate are not worth mutating.
+exclude_re = [
+  # Test-only helpers and modules
+  "test_helpers::",
+  "test_symbol_alloc::",
+  "debug_macros::",
+  # Display / Debug trait impls (output formatting, not logic)
+  "impl fmt::Display",
+  "impl fmt::Debug",
+  "impl Display",
+  "impl Debug",
+  # Version / metadata functions
+  "version_info::",
+  # Telemetry and visualisation (observability, not correctness)
+  "telemetry::",
+  "conflict_visualizer::",
+]

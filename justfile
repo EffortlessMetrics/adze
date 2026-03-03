@@ -73,6 +73,14 @@ ci-supported:
     cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
     cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"
 
+# Run mutation testing on adze-ir (quick check)
+mutate crate="adze-ir":
+    cargo mutants -p {{crate}} --timeout-multiplier 2 -- --lib
+
+# Run mutation testing on all supported crates
+mutate-all:
+    cargo mutants -- --lib
+
 # Clean build artifacts
 clean:
     cargo clean
