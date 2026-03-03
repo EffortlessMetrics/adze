@@ -73,9 +73,7 @@ impl ExternalScanner for IndentationScanner {
                 let next = lexer.lookahead();
                 if next != Some(b'\n') && next != Some(b'#') {
                     self.at_line_start = false;
-                    let Some(&current_indent) = self.indent_stack.last() else {
-                        return None;
-                    };
+                    let &current_indent = self.indent_stack.last()?;
 
                     if indent_count > current_indent {
                         // Indent
