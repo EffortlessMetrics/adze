@@ -32,3 +32,4 @@ adze-common-syntax-core = { version = "0.1.0", path = "../crates/common-syntax-c
 [dev-dependencies]
 syn.workspace = true
 quote.workspace = true
+proc-macro2.workspace = true
