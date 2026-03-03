@@ -135,7 +135,7 @@ proptest! {
 
         // Use seed to pick token kind (always 'a' since it's the only terminal)
         let tokens: Vec<(u32, u32, u32)> = (0..num_tokens)
-            .map(|i| (a.0 as u32 + (seed as u32 % 1), i as u32, i as u32 + 1))
+            .map(|i| (a.0 as u32, i as u32, i as u32 + 1))
             .collect();
 
         let mut driver = Driver::new(&table);
