@@ -2,100 +2,170 @@
 
 [![CI](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
+[![docs.rs](https://img.shields.io/docsrs/adze)](https://docs.rs/adze)
 [![MSRV](https://img.shields.io/badge/MSRV-1.92-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
 
-**Rust-native grammar toolchain with GLR-capable parsing and typed extraction.**
-Tree-sitter interoperable.
+**Define your grammar as Rust types. Get a typed AST back.**
 
----
-
-## Mental Model
-
-Adze (formerly `rust-sitter`) is a compiler pipeline:
-
-- **Define**: Describe your language using Rust enums/structs + attributes.
-- **Compile**: Build tooling turns your types into an optimized LR(1) or GLR parse table in `build.rs`.
-- **Parse**: The zero-dependency runtime uses these tables to build a parse forest.
-- **Extract**: You receive **typed Rust values** (your own structs), not a generic "node" API.
-
----
-
-## Minimal Example
+Adze (formerly `rust-sitter`) is an AST-first grammar toolchain for Rust.
+Describe your language with enums and structs, and the build tooling generates
+an optimized GLR parser that returns your own types — no manual tree-walking
+required.
 
 ```rust
-#[adze::grammar("calc")]
-mod grammar {
+#[adze::grammar("arithmetic")]
+pub mod grammar {
     #[adze::language]
+    #[derive(Debug, PartialEq)]
     pub enum Expr {
-        // Field type String automatically extracts the token text
-        Number(#[adze::leaf(pattern = r"\d+")] String),
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
 
         #[adze::prec_left(1)]
-        Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+        Sub(Box<Expr>, #[adze::leaf(text = "-")] (), Box<Expr>),
+
+        #[adze::prec_left(2)]
+        Mul(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _ws: (),
     }
 }
 
 fn main() {
-    // Returns Result<Expr, Vec<ParseError>>
-    let ast = grammar::parse("2+3").unwrap();
+    let ast = grammar::parse("1 - 2 * 3").unwrap();
+    // ast = Sub(Number(1), (), Mul(Number(2), (), Number(3)))
     println!("{ast:?}");
 }
 ```
 
----
+## Quick Start
 
-## Installation
-
-### Add to `Cargo.toml`
+Add the dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.8.0-dev"
+adze = "0.8"
 
 [build-dependencies]
-adze-tool = "0.8.0-dev"
+adze-tool = "0.8"
 ```
 
-### Create `build.rs`
+Create a `build.rs` in your project root:
 
 ```rust
-use std::path::PathBuf;
-
 fn main() {
-    // This generates the parser source code at build time
-    adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
+    adze_tool::build_parsers(&std::path::PathBuf::from("src/main.rs"));
 }
 ```
 
----
+Define your grammar with `#[adze::grammar]` attributes in your Rust source,
+then call `grammar::parse(input)` to get a `Result<YourType, Vec<ParseError>>`.
+
+See the [Getting Started tutorial](./docs/tutorials/getting-started.md) for a
+complete walkthrough.
+
+## Features
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Typed extraction** | ✅ Stable | Grammar *is* your AST — parse directly into your Rust types |
+| **Pure Rust** | ✅ Stable | Default backend is 100% Rust; no C toolchain needed |
+| **GLR parsing** | ✅ Stable | Handles ambiguous grammars (C++, JavaScript, etc.) |
+| **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for disambiguation |
+| **WASM support** | ✅ Stable | Compile parsers to WebAssembly with `features = ["wasm"]` |
+| **Tree-sitter interop** | ✅ Stable | Import existing Tree-sitter grammars via `ts-bridge` |
+| **Serialization** | ✅ Stable | JSON and S-expression output with `features = ["serialization"]` |
+| **External scanners** | 🧪 Experimental | Custom tokenization via `ExternalScanner` trait |
+| **Incremental parsing** | 🧪 Experimental | Re-parse only edited regions (falls back to fresh parse) |
+
+### Cargo Features
+
+```toml
+# Default: pure-Rust backend
+adze = "0.8"
+
+# Enable GLR parser for ambiguous grammars
+adze = { version = "0.8", features = ["glr"] }
+
+# Enable WASM support
+adze = { version = "0.8", features = ["wasm"] }
+
+# Use the standard C Tree-sitter runtime instead
+adze = { version = "0.8", default-features = false, features = ["tree-sitter-standard"] }
+```
 
 ## Why Adze?
 
-1. **Type Safety**: Your grammar *is* your AST. No more manual mapping from generic trees to domain objects.
-2. **Pure Rust**: The default runtime is 100% Rust. No C toolchain required for WASM or cross-compilation.
-3. **GLR Power**: Can handle inherently ambiguous grammars (like C++ or JavaScript) that standard LR(1) parsers struggle with.
-4. **Interoperable**: Can import existing Tree-sitter grammars and export Tree-sitter compatible tables.
+- **Type safety** — Your grammar *is* your AST. No manual mapping from generic
+  tree nodes to domain types. Parse errors are caught at the type level.
+- **Pure Rust** — The default runtime needs no C compiler, making
+  cross-compilation and WASM targets straightforward.
+- **GLR power** — Handles inherently ambiguous grammars that standard LR(1)
+  parsers cannot, with automatic fork/merge at conflict points.
+- **Interoperable** — Import existing Tree-sitter grammars and export
+  Tree-sitter-compatible parse tables.
 
----
+## How It Works
+
+```
+  ┌─────────────┐    build.rs     ┌──────────────┐    compile    ┌─────────────┐
+  │  Rust types  │ ──────────────▶ │  Parse tables │ ──────────▶  │  Runtime    │
+  │  + #[adze]   │   adze-tool    │  (generated)  │              │  parser     │
+  └─────────────┘                 └──────────────┘              └──────┬──────┘
+                                                                       │
+                                                            text ──▶ parse()
+                                                                       │
+                                                                ▼
+                                                        Result<YourType, Vec<ParseError>>
+```
+
+1. **Define** — Annotate Rust enums/structs with `#[adze::grammar]`,
+   `#[adze::language]`, `#[adze::leaf]`, and precedence attributes.
+2. **Generate** — `adze-tool` in `build.rs` extracts your grammar, builds an
+   IR, computes LR(1)/GLR parse tables, and emits optimized Rust code.
+3. **Parse** — At runtime, call `grammar::parse(input)` to get back your typed
+   AST or a list of parse errors.
+
+### Workspace Crates
+
+| Crate | Role |
+|-------|------|
+| [`adze`](./runtime/) | Runtime library — parsing, extraction, error handling |
+| [`adze-macro`](./macro/) | Proc-macro attributes (`#[adze::grammar]`, etc.) |
+| [`adze-tool`](./tool/) | Build-time code generation (called from `build.rs`) |
+| [`adze-ir`](./ir/) | Grammar intermediate representation |
+| [`adze-glr-core`](./glr-core/) | GLR table generation — FIRST/FOLLOW, LR(1) items, conflicts |
+| [`adze-tablegen`](./tablegen/) | Parse table compression and FFI-compatible output |
 
 ## Documentation
 
-* [**Getting Started**](./docs/tutorials/getting-started.md) - Build your first parser in 5 minutes.
-* [**Architecture**](./docs/explanations/architecture.md) - How the macro, tool, and runtime fit together.
-* [**Grammar Examples**](./docs/reference/grammar-examples.md) - Patterns for common language constructs.
-* [**Developer Guide**](./docs/DEVELOPER_GUIDE.md) - For contributors to the Adze project.
+- [**Getting Started**](./docs/tutorials/getting-started.md) — Build your first parser in 5 minutes
+- [**Architecture**](./docs/explanations/architecture.md) — How the macro, tool, and runtime fit together
+- [**Grammar Examples**](./docs/reference/grammar-examples.md) — Patterns for common language constructs
+- [**Quick Reference**](./QUICK_REFERENCE.md) — Attribute cheat sheet
+- [**API Reference**](https://docs.rs/adze) — Generated API docs on docs.rs
 
----
+## Contributing
 
-## Status and Planning
+Contributions are welcome! Please see [`CONTRIBUTING.md`](./CONTRIBUTING.md) for
+guidelines and [`ROADMAP.md`](./ROADMAP.md) for planned work.
 
-* **Roadmap:** [`ROADMAP.md`](./ROADMAP.md)
-* **Execution Plan:** [`docs/status/NOW_NEXT_LATER.md`](./docs/status/NOW_NEXT_LATER.md)
-* **Friction Log:** [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md)
-
----
+For internal development setup, see the
+[Developer Guide](./docs/DEVELOPER_GUIDE.md).
 
 ## License
 
-Dual-licensed under MIT OR Apache 2.0.
+Licensed under either of
+
+- [Apache License, Version 2.0](./LICENSE-APACHE)
+- [MIT License](./LICENSE-MIT)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
