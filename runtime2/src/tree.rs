@@ -187,6 +187,40 @@ impl Tree {
         }
     }
 
+    /// Create a tree for testing with the given symbol, byte range, and children.
+    ///
+    /// Each child `Tree` is flattened into a `TreeNode` subtree.
+    pub fn new_for_testing(symbol: u32, start_byte: usize, end_byte: usize, children: Vec<Tree>) -> Self {
+        fn tree_to_node(t: Tree) -> TreeNode {
+            let child_nodes = t.root.children.into_iter().collect();
+            TreeNode {
+                symbol: t.root.symbol,
+                start_byte: t.root.start_byte,
+                end_byte: t.root.end_byte,
+                children: child_nodes,
+                field_id: t.root.field_id,
+                #[cfg(feature = "incremental_glr")]
+                dirty: false,
+            }
+        }
+        let child_nodes: Vec<TreeNode> = children.into_iter().map(tree_to_node).collect();
+        Self {
+            root: TreeNode {
+                symbol,
+                start_byte,
+                end_byte,
+                children: child_nodes,
+                field_id: None,
+                #[cfg(feature = "incremental_glr")]
+                dirty: false,
+            },
+            language: None,
+            source: None,
+            #[cfg(feature = "incremental_glr")]
+            last_edit: None,
+        }
+    }
+
     /// Get the root node of the tree
     pub fn root_node(&self) -> Node<'_> {
         Node::new(&self.root, self.language.as_ref())
@@ -387,6 +421,8 @@ struct CursorEntry<'tree> {
 pub struct TreeCursor<'tree> {
     /// Stack of nodes from root to current position
     stack: Vec<CursorEntry<'tree>>,
+    /// Language reference for creating Node values
+    language: Option<&'tree Language>,
 }
 
 impl<'tree> TreeCursor<'tree> {
@@ -397,7 +433,14 @@ impl<'tree> TreeCursor<'tree> {
                 node: &tree.root,
                 index: 0,
             }],
+            language: tree.language.as_ref(),
         }
+    }
+
+    /// Get the current node the cursor is pointing at.
+    pub fn node(&self) -> Node<'tree> {
+        let entry = self.stack.last().expect("cursor stack should never be empty");
+        Node::new(entry.node, self.language)
     }
 
     /// Move to the first child of the current node.
@@ -452,6 +495,21 @@ impl<'tree> TreeCursor<'tree> {
         } else {
             false
         }
+    }
+
+    /// Reset the cursor back to the root of the tree.
+    pub fn reset(&mut self, tree: &'tree Tree) {
+        self.stack.clear();
+        self.stack.push(CursorEntry {
+            node: &tree.root,
+            index: 0,
+        });
+        self.language = tree.language.as_ref();
+    }
+
+    /// Return the depth of the cursor in the tree (0 = root).
+    pub fn depth(&self) -> usize {
+        self.stack.len().saturating_sub(1)
     }
 }
 
