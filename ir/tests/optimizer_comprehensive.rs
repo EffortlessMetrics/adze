@@ -1,8 +1,9 @@
+#![allow(clippy::needless_range_loop)]
 //! Comprehensive tests for the IR grammar optimizer.
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::optimizer::{GrammarOptimizer, optimize_grammar};
-use adze_ir::{Associativity, Grammar, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -639,4 +640,289 @@ fn optimize_python_like_grammar() {
 
     assert!(optimized.start_symbol().is_some());
     assert!(total_rule_count(&optimized) >= 1);
+}
+
+// ===========================================================================
+// 15. Regex tokens survive deduplication
+// ===========================================================================
+
+#[test]
+fn regex_tokens_with_same_pattern_are_merged() {
+    let mut grammar = Grammar::new("regex_dedup".into());
+    let id1 = SymbolId(1);
+    let id2 = SymbolId(2);
+    let rule_sym = SymbolId(3);
+
+    grammar.tokens.insert(
+        id1,
+        Token {
+            name: "digits_a".into(),
+            pattern: TokenPattern::Regex(r"\d+".into()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        id2,
+        Token {
+            name: "digits_b".into(),
+            pattern: TokenPattern::Regex(r"\d+".into()),
+            fragile: false,
+        },
+    );
+    grammar.rule_names.insert(rule_sym, "expr".to_string());
+    grammar.add_rule(Rule {
+        lhs: rule_sym,
+        rhs: vec![Symbol::Terminal(id1), Symbol::Terminal(id2)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut grammar);
+    assert!(stats.merged_tokens >= 1);
+
+    let regex_count = grammar
+        .tokens
+        .values()
+        .filter(|t| matches!(&t.pattern, TokenPattern::Regex(r) if r == r"\d+"))
+        .count();
+    assert_eq!(regex_count, 1);
+}
+
+// ===========================================================================
+// 16. Distinct tokens are not merged
+// ===========================================================================
+
+#[test]
+fn distinct_tokens_are_not_merged() {
+    let grammar = GrammarBuilder::new("distinct")
+        .token("A", "a")
+        .token("B", "b")
+        .rule("expr", vec!["A", "B"])
+        .start("expr")
+        .build();
+
+    let mut g = grammar;
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut g);
+    assert_eq!(stats.merged_tokens, 0);
+}
+
+// ===========================================================================
+// 17. Non-left-recursive rules are left untouched
+// ===========================================================================
+
+#[test]
+fn right_recursion_is_not_transformed() {
+    // A -> B A  is right-recursive, NOT left-recursive.
+    let grammar = GrammarBuilder::new("rr")
+        .token("B", "b")
+        .rule("expr", vec!["B", "expr"])
+        .rule("expr", vec!["B"])
+        .start("expr")
+        .build();
+
+    let mut g = grammar;
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut g);
+    assert_eq!(
+        stats.optimized_left_recursion, 0,
+        "right recursion should not trigger left-recursion elimination"
+    );
+}
+
+// ===========================================================================
+// 18. Associativity preserved through left-recursion elimination
+// ===========================================================================
+
+#[test]
+fn associativity_preserved_after_lr_elimination() {
+    let grammar = GrammarBuilder::new("assoc_lr")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .rule_with_precedence("expr", vec!["expr", "+", "NUM"], 1, Associativity::Right)
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+
+    let has_right_assoc = optimized
+        .all_rules()
+        .any(|r| r.associativity == Some(Associativity::Right));
+    assert!(
+        has_right_assoc,
+        "right associativity should survive left-recursion elimination"
+    );
+}
+
+// ===========================================================================
+// 19. Optimizer creates helper symbol name for LR transformation
+// ===========================================================================
+
+#[test]
+fn lr_transform_creates_rec_helper_name() {
+    let grammar = GrammarBuilder::new("lr_name")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .rule_with_precedence("expr", vec!["expr", "+", "NUM"], 1, Associativity::Left)
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+
+    let has_rec_name = optimized.rule_names.values().any(|n| n.contains("__rec"));
+    assert!(
+        has_rec_name,
+        "left-recursion elimination should create an __rec helper symbol"
+    );
+}
+
+// ===========================================================================
+// 20. source_file symbol is never inlined
+// ===========================================================================
+
+#[test]
+fn source_file_is_not_inlined() {
+    let mut grammar = Grammar::new("sf_test".into());
+    let sf = SymbolId(10);
+    let inner = SymbolId(11);
+    let tok = SymbolId(12);
+
+    grammar.rule_names.insert(sf, "source_file".to_string());
+    grammar.rule_names.insert(inner, "inner".to_string());
+    grammar.tokens.insert(
+        tok,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
+
+    // source_file -> inner (unit rule, single RHS)
+    grammar.add_rule(Rule {
+        lhs: sf,
+        rhs: vec![Symbol::NonTerminal(inner)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+    // inner -> a
+    grammar.add_rule(Rule {
+        lhs: inner,
+        rhs: vec![Symbol::Terminal(tok)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
+
+    let mut opt = GrammarOptimizer::new();
+    opt.optimize(&mut grammar);
+
+    // source_file should still exist as a named rule
+    let has_sf = grammar.rule_names.values().any(|n| n == "source_file");
+    assert!(has_sf, "source_file should never be inlined away");
+}
+
+// ===========================================================================
+// 21. Epsilon-only grammar
+// ===========================================================================
+
+#[test]
+fn epsilon_only_grammar_optimizes_without_panic() {
+    let grammar = GrammarBuilder::new("eps_only")
+        .rule("start", vec![])
+        .start("start")
+        .build();
+
+    let result = optimize_grammar(grammar);
+    assert!(result.is_ok());
+}
+
+// ===========================================================================
+// 22. Conflict declarations survive optimization
+// ===========================================================================
+
+#[test]
+fn conflict_declarations_survive_optimization() {
+    use adze_ir::{ConflictDeclaration, ConflictResolution};
+
+    let mut grammar = GrammarBuilder::new("conflict")
+        .token("A", "a")
+        .token("B", "b")
+        .rule("expr", vec!["A", "B"])
+        .start("expr")
+        .build();
+
+    let a_id = grammar.find_symbol_by_name("expr").unwrap();
+    grammar.conflicts.push(ConflictDeclaration {
+        symbols: vec![a_id],
+        resolution: ConflictResolution::GLR,
+    });
+
+    let optimized = optimize_grammar(grammar).unwrap();
+    assert!(
+        !optimized.conflicts.is_empty(),
+        "conflict declarations should survive optimization"
+    );
+}
+
+// ===========================================================================
+// 23. Supertypes survive optimization
+// ===========================================================================
+
+#[test]
+fn supertypes_are_renumbered_during_optimization() {
+    // Use a multi-symbol RHS to avoid inlining, so the rule survives and
+    // the supertype ID remains in the renumbering map.
+    let mut grammar = GrammarBuilder::new("super")
+        .token("A", "a")
+        .token("B", "b")
+        .rule("expr", vec!["A", "B"])
+        .start("expr")
+        .build();
+
+    let expr_id = grammar.find_symbol_by_name("expr").unwrap();
+    grammar.supertypes.push(expr_id);
+
+    let optimized = optimize_grammar(grammar).unwrap();
+    assert!(
+        !optimized.supertypes.is_empty(),
+        "supertypes referencing known symbols should be renumbered"
+    );
+}
+
+// ===========================================================================
+// 24. Multiple left-recursive symbols
+// ===========================================================================
+
+#[test]
+fn multiple_left_recursive_symbols_are_all_transformed() {
+    let grammar = GrammarBuilder::new("multi_lr")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .token("*", "*")
+        .rule_with_precedence("expr", vec!["expr", "+", "term"], 1, Associativity::Left)
+        .rule("expr", vec!["term"])
+        .rule_with_precedence("term", vec!["term", "*", "NUM"], 2, Associativity::Left)
+        .rule("term", vec!["NUM"])
+        .start("expr")
+        .build();
+
+    let mut g = grammar;
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut g);
+
+    // Both expr and term are left-recursive
+    assert!(
+        stats.optimized_left_recursion >= 2,
+        "both left-recursive symbols should be transformed, got {}",
+        stats.optimized_left_recursion
+    );
 }
