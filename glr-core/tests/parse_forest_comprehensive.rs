@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Comprehensive tests for the ParseForest API.
 
 use adze_glr_core::parse_forest::{
@@ -538,4 +539,175 @@ fn parse_error_is_cloneable() {
     let err = ParseError::Failed("oops".to_string());
     let cloned = err.clone();
     assert_eq!(cloned.to_string(), "Parse failed: oops");
+}
+
+// ===========================================================================
+// 12. ErrorMeta Copy semantics
+// ===========================================================================
+
+#[test]
+fn error_meta_is_copy() {
+    let meta = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 42,
+    };
+    let copied = meta; // Copy, not move
+    assert_eq!(copied.missing, meta.missing);
+    assert_eq!(copied.is_error, meta.is_error);
+    assert_eq!(copied.cost, meta.cost);
+}
+
+#[test]
+fn error_meta_clone_equals_copy() {
+    let meta = ErrorMeta {
+        missing: false,
+        is_error: true,
+        cost: 99,
+    };
+    let cloned = meta.clone();
+    assert_eq!(cloned.cost, meta.cost);
+    assert_eq!(cloned.is_error, meta.is_error);
+}
+
+// ===========================================================================
+// 13. Clone independence
+// ===========================================================================
+
+#[test]
+fn cloned_forest_is_independent() {
+    let mut forest = empty_forest(simple_grammar());
+    insert_node(&mut forest, SymbolId(1), (0, 1), vec![]);
+    let mut cloned = forest.clone();
+
+    // Mutate the clone: add a node only there
+    insert_node(&mut cloned, SymbolId(2), (1, 2), vec![]);
+    assert_eq!(forest.nodes.len(), 1);
+    assert_eq!(cloned.nodes.len(), 2);
+}
+
+#[test]
+fn cloned_forest_roots_are_independent() {
+    let mut forest = empty_forest(simple_grammar());
+    let id = insert_node(&mut forest, SymbolId(1), (0, 1), vec![]);
+    forest.roots.push(forest.nodes[&id].clone());
+    let mut cloned = forest.clone();
+
+    cloned.roots.clear();
+    assert_eq!(forest.roots.len(), 1);
+    assert!(cloned.roots.is_empty());
+}
+
+// ===========================================================================
+// 14. Edge-case spans
+// ===========================================================================
+
+#[test]
+fn zero_width_span_node() {
+    let mut forest = empty_forest(simple_grammar());
+    let id = insert_node(&mut forest, SymbolId(1), (5, 5), vec![]);
+    let node = &forest.nodes[&id];
+    assert_eq!(node.span.0, node.span.1);
+}
+
+#[test]
+fn zero_width_error_chunk() {
+    let mut forest = empty_forest(simple_grammar());
+    let id = forest.push_error_chunk((3, 3));
+    let node = &forest.nodes[&id];
+    assert_eq!(node.span, (3, 3));
+    assert!(node.error_meta.is_error);
+}
+
+// ===========================================================================
+// 15. ParseNode deep nesting
+// ===========================================================================
+
+#[test]
+fn parse_node_deeply_nested() {
+    // Build a 10-deep chain: sym(10) -> sym(9) -> ... -> sym(1)
+    let mut node = ParseNode {
+        symbol: SymbolId(1),
+        span: (0, 1),
+        children: vec![],
+    };
+    for i in 2..=10 {
+        node = ParseNode {
+            symbol: SymbolId(i),
+            span: (0, 1),
+            children: vec![node],
+        };
+    }
+    assert_eq!(node.symbol, SymbolId(10));
+    // Walk to the leaf
+    let mut cur = &node;
+    for _ in 0..9 {
+        cur = &cur.children[0];
+    }
+    assert_eq!(cur.symbol, SymbolId(1));
+    assert!(cur.children.is_empty());
+}
+
+// ===========================================================================
+// 16. ParseError Debug
+// ===========================================================================
+
+#[test]
+fn parse_error_debug_contains_variant() {
+    let err = ParseError::Incomplete;
+    let dbg = format!("{err:?}");
+    assert!(dbg.contains("Incomplete"));
+
+    let err2 = ParseError::Failed("xyz".into());
+    let dbg2 = format!("{err2:?}");
+    assert!(dbg2.contains("Failed"));
+    assert!(dbg2.contains("xyz"));
+
+    let err3 = ParseError::Unknown;
+    let dbg3 = format!("{err3:?}");
+    assert!(dbg3.contains("Unknown"));
+}
+
+// ===========================================================================
+// 17. ForestNode shared children across alternatives
+// ===========================================================================
+
+#[test]
+fn alternatives_share_child_nodes() {
+    let mut forest = empty_forest(simple_grammar());
+    let shared = insert_node(&mut forest, SymbolId(1), (0, 1), vec![]);
+    let left = insert_node(&mut forest, SymbolId(2), (1, 2), vec![]);
+    let right = insert_node(&mut forest, SymbolId(3), (1, 2), vec![]);
+
+    // Parent with two alternatives that share the `shared` child
+    let parent_id = forest.next_node_id;
+    forest.next_node_id += 1;
+    forest.nodes.insert(
+        parent_id,
+        ForestNode {
+            id: parent_id,
+            symbol: SymbolId(10),
+            span: (0, 2),
+            alternatives: vec![
+                ForestAlternative {
+                    children: vec![shared, left],
+                },
+                ForestAlternative {
+                    children: vec![shared, right],
+                },
+            ],
+            error_meta: ErrorMeta::default(),
+        },
+    );
+
+    let parent = &forest.nodes[&parent_id];
+    assert_eq!(parent.alternatives.len(), 2);
+    // Both alternatives reference the shared child
+    assert_eq!(parent.alternatives[0].children[0], shared);
+    assert_eq!(parent.alternatives[1].children[0], shared);
+    // But differ in the second child
+    assert_ne!(
+        parent.alternatives[0].children[1],
+        parent.alternatives[1].children[1]
+    );
 }
