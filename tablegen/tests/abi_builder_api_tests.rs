@@ -4,9 +4,11 @@ use adze_glr_core::*;
 use adze_ir::SymbolId;
 
 fn build_simple_parse_table() -> ParseTable {
-    let mut pt = ParseTable::default();
-    pt.state_count = 4;
-    pt.eof_symbol = SymbolId(0);
+    let mut pt = ParseTable {
+        state_count: 4,
+        eof_symbol: SymbolId(0),
+        ..ParseTable::default()
+    };
     pt.symbol_metadata = vec![
         SymbolMetadata {
             name: "end".to_string(),

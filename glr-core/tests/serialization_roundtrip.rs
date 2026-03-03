@@ -162,8 +162,7 @@ mod tests {
 
     #[test]
     fn roundtrip_preserves_goto_indexing_variant() {
-        let mut table = make_table(1, 1);
-        table.goto_indexing = GotoIndexing::DirectSymbolId;
+        let table = make_table(1, 1).remap_goto_to_direct_symbol_id();
         let bytes = table.to_bytes().unwrap();
         let restored = ParseTable::from_bytes(&bytes).unwrap();
         assert_eq!(restored.goto_indexing, GotoIndexing::DirectSymbolId);

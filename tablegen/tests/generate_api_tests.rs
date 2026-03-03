@@ -108,7 +108,7 @@ fn test_symbol_names_include_tokens() {
         .collect();
 
     assert!(
-        names.iter().any(|n| *n == "identifier"),
+        names.contains(&"identifier"),
         "expected 'identifier' in symbol names, got: {names:?}"
     );
 }

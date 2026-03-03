@@ -81,9 +81,11 @@ fn test_abi_version_constants_valid_range() {
     // Version 15 is the current ABI.
     assert_eq!(TREE_SITTER_LANGUAGE_VERSION, 15);
     // Min compatible must be ≤ current.
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION <= TREE_SITTER_LANGUAGE_VERSION);
+    let min = TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION;
+    let cur = TREE_SITTER_LANGUAGE_VERSION;
+    assert!(min <= cur, "min {min} should be <= current {cur}");
     // Min compatible must be at least 13 per tree-sitter's documented range.
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION >= 13);
+    assert!(min >= 13, "min {min} should be >= 13");
 }
 
 // ---------------------------------------------------------------------------
@@ -162,10 +164,10 @@ fn test_lex_modes_array_via_language() {
 
     // Safety: we own the array and the pointer is valid for the lifetime of this test.
     unsafe {
-        for i in 0..lang.state_count as usize {
+        for (i, mode) in modes.iter().enumerate().take(lang.state_count as usize) {
             let m = *lang.lex_modes.add(i);
-            assert_eq!(m.lex_state, modes[i].lex_state);
-            assert_eq!(m.external_lex_state, modes[i].external_lex_state);
+            assert_eq!(m.lex_state, mode.lex_state);
+            assert_eq!(m.external_lex_state, mode.external_lex_state);
         }
     }
 }
