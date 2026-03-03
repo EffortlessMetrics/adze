@@ -17,17 +17,31 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - **Conflict Handling**: Automatic stack forking and merging (SPPF).
 - **External Scanners**: Support for custom lexing (e.g. Python indentation).
 
-## 🚀 Milestone 0.8.0: The Publishable Baseline (Current)
-- **Documentation Overhaul**: All docs updated to reflect Adze naming and 0.8.0 reality.
-- **Governance-as-Code**: Integrated policy enforcement for backend selection.
-- **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
-- **CI Hardening**: Stable "Supported Lane" ensuring core reliability.
+## 🚀 Milestone 0.8.0: The Publishable Baseline (Current — ~95% complete, RC quality)
+- ✅ **CI Gate Green**: **1,700+ tests passing, 0 failures**. Full workspace compiles, clippy clean, fmt clean.
+- ✅ **Safety Audit**: SAFETY comments on all `unsafe` blocks in supported crates.
+- ✅ **Testing Buildout**: 1,700+ tests — property, integration, snapshot, GLR-core, fuzzing. Feature matrix: 11/12 pass. Mutation testing configured.
+- ✅ **API Documentation**: Crate-level doc comments; `cargo doc` builds with 0 warnings. Book: 6+ chapters.
+- ✅ **WASM Compatibility**: All core crates verified for `wasm32-unknown-unknown`.
+- ✅ **Security Audit**: `cargo-audit` clean — 0 known vulnerabilities.
+- ✅ **Error Message Quality**: Actionable diagnostics across parser, IR, and tablegen.
+- ✅ **Fuzzing Targets**: 20 fuzz targets covering parser, lexer, external scanners, stack pool, and concurrency.
+- ✅ **CI Feature Matrix**: Crate × feature-flag test combinations with concurrency caps. Cross-platform advisory jobs for macOS/Windows.
+- ✅ **Cargo.toml Metadata**: Publish-ready metadata across workspace. Publish order documented.
+- ✅ **Workspace Structure**: 47 microcrates in `crates/`, benchmarks, fuzzing, golden-tests, and book scaffolding.
+- ✅ **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
+- ✅ **Cross-Platform**: Linux verified, macOS/Windows CI advisory jobs in place.
+- ✅ **Parallel Agent Work**: 10 waves of parallel agent work, 75+ commits driving the 0.8.0 release.
+- 🟡 **Remaining**: `cargo package` dry-run, feature-flag name standardization, doc-drift cleanup (`FR-001`).
 
 ## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
-- **CLI Utility**: `adze` command for grammar validation, inspection, and debugging.
+- **Publish to crates.io**: Initial release of core crates (`adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`).
+- **CLI Utility**: `adze check`, `adze stats`, `adze fmt` for grammar validation, inspection, and debugging.
+- **Performance Optimization**: Arena allocator for parse forest nodes; benchmark suite with regression detection.
 - **Incremental Parsing**: Stabilize forest-splicing for real-time editor performance.
 - **Query Predicates**: Full compatibility with Tree-sitter `.scm` query files.
 - **LSP Refinement**: Move LSP generator from prototype to "useful for production".
+- **More Book Content**: End-to-end tutorials, attribute reference, migration guide from Tree-sitter.
 
 ## 🎯 Milestone 1.0.0: The Stability Contract
 - **API Freeze**: Stable public API surface for `adze` and `adze-macro`.

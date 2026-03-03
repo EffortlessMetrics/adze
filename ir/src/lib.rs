@@ -12,20 +12,24 @@ use std::fmt;
 
 /// Error types and Result alias for IR operations.
 pub mod error;
+/// Error types for grammar IR operations.
 pub use error::{IrError, Result as IrResult};
 
 /// Grammar optimization utilities
 pub mod optimizer;
+/// Grammar optimization utilities and statistics.
 pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 
 /// Grammar validation utilities
 pub mod validation;
+/// Grammar validation types and results.
 pub use validation::{GrammarValidator, ValidationError, ValidationResult, ValidationWarning};
 
 /// Debug macros for development
 pub mod debug_macros;
 /// Symbol registry for managing grammar symbols
 pub mod symbol_registry;
+/// Symbol registry for deterministic ID assignment.
 pub use symbol_registry::{SymbolInfo, SymbolRegistry};
 /// Builder API for programmatically constructing grammars
 pub mod builder;
@@ -133,10 +137,14 @@ impl Grammar {
         if self.symbol_registry.is_none() {
             self.symbol_registry = Some(self.build_registry());
         }
-        self.symbol_registry.as_ref().unwrap()
+        // SAFETY: we just ensured `symbol_registry` is `Some` above
+        self.symbol_registry
+            .as_ref()
+            .expect("symbol_registry was just initialized above")
     }
 
     /// Check for empty string terminals (separate from main validate)
+    #[must_use = "validation result must be checked"]
     pub fn check_empty_terminals(&self) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
 
@@ -436,6 +444,7 @@ impl Grammar {
     }
 
     /// Extract IR from procedural macro data
+    #[must_use = "parsing result must be checked"]
     pub fn from_macro_output(data: &str) -> Result<Self, GrammarError> {
         // This will be implemented to parse the output from adze macros
         serde_json::from_str(data).map_err(GrammarError::ParseError)
@@ -473,6 +482,7 @@ impl Grammar {
     }
 
     /// Validate grammar consistency and detect issues
+    #[must_use = "validation result must be checked"]
     pub fn validate(&self) -> Result<(), GrammarError> {
         // Validate field name ordering (must be lexicographic)
         let mut field_names: Vec<_> = self.fields.values().collect();

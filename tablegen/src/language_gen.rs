@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! TSLanguage structure generation with ABI compatibility.
+
 // Proper TSLanguage structure generation
 // This module creates a valid Tree-sitter Language structure from our IR
 
@@ -7,6 +9,24 @@ use adze_glr_core::ParseTable;
 use adze_ir::Grammar;
 use proc_macro2::TokenStream;
 use quote::quote;
+
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
 
 /// Language generator that creates proper TSLanguage structures
 pub struct LanguageGenerator<'a> {
@@ -131,6 +151,9 @@ impl<'a> LanguageGenerator<'a> {
 
             /// Get the Tree-sitter Language for this grammar
             pub fn language() -> ts::Language {
+                // SAFETY: LANGUAGE is a module-level static with all fields initialized
+                // from compile-time-generated tables. The layout matches Tree-sitter's
+                // C ABI (TSLanguage). `from_raw` requires a valid TSLanguage pointer.
                 unsafe {
                     ts::Language::from_raw(&LANGUAGE as *const TSLanguage as *const _)
                 }
@@ -140,7 +163,7 @@ impl<'a> LanguageGenerator<'a> {
             /// SAFETY: This function is required for Tree-sitter C ABI compatibility
             #[unsafe(no_mangle)]
             pub extern "C" fn #language_fn_ident() -> ts::Language {
-                // SAFETY: language() returns a valid Language struct
+                // SAFETY: `language()` returns a valid Language from a well-formed static.
                 unsafe { language() }
             }
         }
@@ -171,9 +194,11 @@ impl<'a> LanguageGenerator<'a> {
                     .cloned()
                     .unwrap_or_else(|| format!("rule_{}", symbol_id.0))
             };
-            eprintln!(
+            debug_trace!(
                 "DEBUG: Symbol index {} -> ID {} (name {})",
-                i, symbol_id.0, name
+                i,
+                symbol_id.0,
+                name
             );
             names.push(name);
         }
@@ -345,6 +370,16 @@ impl<'a> LanguageGenerator<'a> {
         }
         // Production ID count is max ID + 1 (since they start at 0)
         (max_production_id + 1) as usize
+    }
+
+    /// Public wrapper for `generate_symbol_metadata` (test use only).
+    pub fn generate_symbol_metadata_public(&self) -> Vec<u8> {
+        self.generate_symbol_metadata()
+    }
+
+    /// Public wrapper for `count_production_ids` (test use only).
+    pub fn count_production_ids_public(&self) -> usize {
+        self.count_production_ids()
     }
 }
 

@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Shared BDD scenario fixtures and GLR conflict helpers for parser/table tests."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["bdd", "testing", "scenarios", "parser", "grammar"]
+categories = ["development-tools::testing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-bdd-scenario-fixtures"
 
 [features]
 default = []

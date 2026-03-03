@@ -1,0 +1,28 @@
+[package]
+name = "adze-common-syntax-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Syntax parsing helpers shared by macro and tool crates."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["parser", "grammar", "tree-sitter", "ast", "glr"]
+categories = ["parsing", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-common-syntax-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+syn.workspace = true
+quote.workspace = true
+
+[dev-dependencies]
+adze-common = { version = "0.8.0-dev", path = "../../common" }
+proptest.workspace = true
+quote.workspace = true
+syn.workspace = true

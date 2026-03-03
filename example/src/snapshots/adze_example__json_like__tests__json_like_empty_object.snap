@@ -1,0 +1,11 @@
+---
+source: src/json_like.rs
+expression: "grammar::parse(\"{}\")"
+---
+Ok(
+    Object {
+        _open: (),
+        entries: [],
+        _close: (),
+    },
+)

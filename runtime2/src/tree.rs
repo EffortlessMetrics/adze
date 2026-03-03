@@ -4,7 +4,7 @@ use crate::{Language, node::Node};
 use std::fmt;
 
 /// Errors that can occur during tree editing operations
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EditError {
     /// Invalid byte range in edit operation
@@ -20,7 +20,7 @@ pub enum EditError {
     ArithmeticUnderflow,
 }
 
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 impl fmt::Display for EditError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -37,7 +37,7 @@ impl fmt::Display for EditError {
     }
 }
 
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 impl std::error::Error for EditError {}
 
 /// A parsed syntax tree.
@@ -84,7 +84,7 @@ pub struct Tree {
     #[allow(dead_code)]
     pub(crate) source: Option<Vec<u8>>,
     /// Last edit applied to this tree (for incremental parsing)
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     last_edit: Option<crate::InputEdit>,
 }
 
@@ -113,7 +113,7 @@ pub(crate) struct TreeNode {
     /// Field ID if this node has a field name
     pub(crate) field_id: Option<u16>,
     /// Whether this node has been affected by an edit
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     pub(crate) dirty: bool,
 }
 
@@ -132,7 +132,7 @@ impl TreeNode {
             end_byte,
             children,
             field_id: None,
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             dirty: false,
         }
     }
@@ -158,17 +158,17 @@ impl Tree {
             root,
             language: None,
             source: None,
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             last_edit: None,
         }
     }
 
-    /// Get the root node's kind
+    /// Get the root node's symbol ID as a raw `u32`.
     pub fn root_kind(&self) -> u32 {
         self.root.symbol
     }
 
-    /// Create a stub tree for testing
+    /// Create a stub tree with an empty root node, useful for testing.
     pub fn new_stub() -> Self {
         Self {
             root: TreeNode {
@@ -177,12 +177,12 @@ impl Tree {
                 end_byte: 0,
                 children: vec![],
                 field_id: None,
-                #[cfg(feature = "incremental")]
+                #[cfg(feature = "incremental_glr")]
                 dirty: false,
             },
             language: None,
             source: None,
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             last_edit: None,
         }
     }
@@ -212,8 +212,17 @@ impl Tree {
         self.source.as_deref()
     }
 
-    /// Apply an edit to the tree (for incremental parsing) - Enhanced with comprehensive error handling
-    #[cfg(feature = "incremental")]
+    /// Apply an edit to the tree for incremental parsing.
+    ///
+    /// Updates byte ranges throughout the tree to reflect an edit operation.
+    /// Nodes that overlap the edit are marked dirty for selective re-parsing.
+    ///
+    /// # Errors
+    ///
+    /// - [`EditError::InvalidRange`] if `old_end_byte < start_byte` or `new_end_byte < start_byte`
+    /// - [`EditError::ArithmeticOverflow`] if shifting a node position would overflow
+    /// - [`EditError::ArithmeticUnderflow`] if shifting a node position would underflow
+    #[cfg(feature = "incremental_glr")]
     pub fn edit(&mut self, edit: &crate::InputEdit) -> Result<(), EditError> {
         // Validate edit parameters upfront
         if edit.old_end_byte < edit.start_byte {
@@ -283,7 +292,7 @@ impl Tree {
             }
 
             // Node intersects edit. Mark dirty and adjust bounds.
-            #[cfg(feature = "incremental")]
+            #[cfg(feature = "incremental_glr")]
             {
                 node.dirty = true;
             }
@@ -354,14 +363,34 @@ struct CursorEntry<'tree> {
     index: usize,
 }
 
-/// Tree cursor for efficient tree traversal
+/// A cursor for efficient depth-first traversal of a [`Tree`].
+///
+/// The cursor maintains a stack of parent nodes, allowing navigation to
+/// children, siblings, and parents without allocating new node references.
+///
+/// # Examples
+///
+/// ```ignore
+/// use adze_runtime::tree::TreeCursor;
+///
+/// let tree = parser.parse(b"1 + 2", None)?;
+/// let mut cursor = TreeCursor::new(&tree);
+///
+/// // Walk to first child
+/// if cursor.goto_first_child() {
+///     // Move to sibling
+///     cursor.goto_next_sibling();
+///     // Back to parent
+///     cursor.goto_parent();
+/// }
+/// ```
 pub struct TreeCursor<'tree> {
     /// Stack of nodes from root to current position
     stack: Vec<CursorEntry<'tree>>,
 }
 
 impl<'tree> TreeCursor<'tree> {
-    /// Create a new cursor at the root
+    /// Create a new cursor positioned at the root of the given tree.
     pub fn new(tree: &'tree Tree) -> Self {
         Self {
             stack: vec![CursorEntry {
@@ -371,7 +400,9 @@ impl<'tree> TreeCursor<'tree> {
         }
     }
 
-    /// Move to the first child
+    /// Move to the first child of the current node.
+    ///
+    /// Returns `true` if the node has children, `false` if it is a leaf.
     pub fn goto_first_child(&mut self) -> bool {
         if let Some(entry) = self.stack.last()
             && let Some(child) = entry.node.children.first()
@@ -385,7 +416,10 @@ impl<'tree> TreeCursor<'tree> {
         false
     }
 
-    /// Move to the next sibling
+    /// Move to the next sibling of the current node.
+    ///
+    /// Returns `true` if a next sibling exists, `false` if the current node
+    /// is the last child of its parent.
     pub fn goto_next_sibling(&mut self) -> bool {
         let len = self.stack.len();
         if len < 2 {
@@ -394,7 +428,9 @@ impl<'tree> TreeCursor<'tree> {
 
         // Split the stack to borrow parent immutably and current mutably
         let (parent_slice, current_slice) = self.stack.split_at_mut(len - 1);
-        let parent = parent_slice.last().unwrap();
+        let Some(parent) = parent_slice.last() else {
+            return false;
+        };
         let current = &mut current_slice[0];
         let next_index = current.index + 1;
         if next_index < parent.node.children.len() {
@@ -406,7 +442,9 @@ impl<'tree> TreeCursor<'tree> {
         }
     }
 
-    /// Move to the parent
+    /// Move to the parent of the current node.
+    ///
+    /// Returns `true` if the cursor moved up, `false` if already at the root.
     pub fn goto_parent(&mut self) -> bool {
         if self.stack.len() > 1 {
             self.stack.pop();
@@ -471,7 +509,7 @@ mod tests {
     #[allow(unused_imports)]
     use crate::Point;
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     use super::EditError;
 
     fn sample_tree() -> Tree {
@@ -490,7 +528,7 @@ mod tests {
         assert_eq!(tree.root.children[0].start_byte, 0);
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_updates_ranges_and_marks_dirty() {
         let mut tree = sample_tree();
@@ -522,7 +560,7 @@ mod tests {
         assert!(second.dirty);
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_handles_edge_cases_safely() {
         let mut tree = sample_tree();
@@ -567,7 +605,7 @@ mod tests {
         assert_eq!(tree2.root.end_byte, 10); // Original 5 + 5 inserted
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_validates_input_ranges() {
         let mut tree = sample_tree();
@@ -611,7 +649,7 @@ mod tests {
         ));
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_underflow_protection() {
         let mut tree = Tree::new(TreeNode::new_with_children(
@@ -642,7 +680,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "incremental")]
+    #[cfg(feature = "incremental_glr")]
     #[test]
     fn edit_recursive_safety() {
         // Test deep tree to ensure recursive operations are bounded

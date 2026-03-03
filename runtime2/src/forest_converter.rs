@@ -59,17 +59,29 @@ pub enum ConversionError {
     NoRoots,
 
     /// Ambiguous forest with multiple valid parses
-    AmbiguousForest { count: usize },
+    AmbiguousForest {
+        /// Number of alternative parse trees in the forest
+        count: usize,
+    },
 
     /// Invalid forest structure
-    InvalidForest { reason: String },
+    InvalidForest {
+        /// Description of the structural problem
+        reason: String,
+    },
 
     /// Invalid node reference
-    InvalidNodeId { node_id: usize },
+    InvalidNodeId {
+        /// The invalid node ID that was referenced
+        node_id: usize,
+    },
 
     /// Cycle detected in forest
     #[allow(dead_code)]
-    CycleDetected { node_id: usize },
+    CycleDetected {
+        /// The node ID where the cycle was detected
+        node_id: usize,
+    },
 }
 
 impl fmt::Display for ConversionError {

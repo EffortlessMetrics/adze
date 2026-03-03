@@ -1,5 +1,7 @@
 // Debug macros for IR development
 
+//! Debug macros for inspecting grammar IR at build time.
+
 /// Emit IR for debugging purposes
 #[macro_export]
 macro_rules! emit_ir {

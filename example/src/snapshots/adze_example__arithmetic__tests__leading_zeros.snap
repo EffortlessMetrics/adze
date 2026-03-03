@@ -1,0 +1,9 @@
+---
+source: src/arithmetic.rs
+expression: "grammar::parse(\"007\")"
+---
+Ok(
+    Number(
+        7,
+    ),
+)

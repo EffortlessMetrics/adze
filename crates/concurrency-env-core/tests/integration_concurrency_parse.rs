@@ -1,5 +1,5 @@
+use adze_concurrency_env_contract_core::parse_positive_usize_or_default as parse_core_parse;
 use adze_concurrency_env_core::parse_positive_usize_or_default as env_parse;
-use adze_concurrency_parse_core::parse_positive_usize_or_default as parse_core_parse;
 
 #[test]
 fn env_core_reexport_matches_parse_core_behavior() {

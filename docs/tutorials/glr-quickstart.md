@@ -28,7 +28,7 @@ Enable these features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze-runtime = { version = "0.1", features = ["pure-rust-glr", "serialization"] }
+adze-runtime = { version = "0.1", features = ["pure-rust", "serialization"] }
 
 [build-dependencies]
 adze-tool = { version = "0.8.0-dev", features = ["serialization"] }

@@ -197,7 +197,10 @@ impl ParsedNode {
             (0, 0)
         } else {
             let start = parsed_children[0].node.start_byte;
-            let end = parsed_children.last().unwrap().node.end_byte;
+            let end = parsed_children
+                .last()
+                .map(|child| child.node.end_byte)
+                .unwrap_or(start);
             (start, end)
         };
 
@@ -206,7 +209,10 @@ impl ParsedNode {
             (Point::new(0, 0), Point::new(0, 0))
         } else {
             let start = parsed_children[0].node.start_point;
-            let end = parsed_children.last().unwrap().node.end_point;
+            let end = parsed_children
+                .last()
+                .map(|child| child.node.end_point)
+                .unwrap_or(start);
             (start, end)
         };
 

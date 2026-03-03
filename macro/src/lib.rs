@@ -13,13 +13,31 @@ mod expansion;
 use expansion::*;
 
 #[proc_macro_attribute]
-/// Marks the top level AST node where parsing should start.
+/// Marks the top-level AST node where parsing should start.
 ///
-/// ## Example
+/// Exactly one type inside an [`macro@grammar`] module must carry this attribute.
+/// It can be applied to either a `struct` or an `enum`.
+///
+/// ## Examples
+///
+/// As a struct (single production):
 /// ```ignore
 /// #[adze::language]
-/// pub struct Code {
-///     ...
+/// pub struct Program {
+///     statements: Vec<Statement>,
+/// }
+/// ```
+///
+/// As an enum (multiple alternatives):
+/// ```ignore
+/// #[adze::language]
+/// pub enum Expr {
+///     Number(
+///         #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+///         i32
+///     ),
+///     #[adze::prec_left(1)]
+///     Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
 /// }
 /// ```
 pub fn language(
@@ -244,9 +262,39 @@ pub fn word(
     item
 }
 
-/// Mark a module to be analyzed for a Adze grammar. Takes a single, unnamed argument, which
+/// Mark a module to be analyzed for an Adze grammar. Takes a single, unnamed argument, which
 /// specifies the name of the grammar. This name must be unique across all Adze grammars within
 /// a compilation unit.
+///
+/// The module must contain exactly one type annotated with [`macro@language`] to serve as the
+/// parse entry point. Other types in the module define the remaining grammar rules.
+///
+/// ## Example
+/// ```ignore
+/// #[adze::grammar("arithmetic")]
+/// mod grammar {
+///     #[adze::language]
+///     pub enum Expr {
+///         Number(
+///             #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+///             i32
+///         ),
+///         #[adze::prec_left(1)]
+///         Add(
+///             Box<Expr>,
+///             #[adze::leaf(text = "+")]
+///             (),
+///             Box<Expr>,
+///         ),
+///     }
+///
+///     #[adze::extra]
+///     struct Whitespace {
+///         #[adze::leaf(pattern = r"\s")]
+///         _whitespace: (),
+///     }
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn grammar(
     attr: proc_macro::TokenStream,
@@ -568,6 +616,350 @@ mod tests {
             .to_string()
         ));
 
+        Ok(())
+    }
+
+    // === Error case tests ===
+
+    #[test]
+    fn error_grammar_missing_name() {
+        let result = expand_grammar(parse_quote! {
+            #[adze::grammar]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Number(#[adze::leaf(pattern = r"\d+")] String),
+                }
+            }
+        });
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("grammar name"),
+            "Expected 'grammar name' error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn error_grammar_non_string_name() {
+        let result = expand_grammar(parse_quote! {
+            #[adze::grammar(42)]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Number(#[adze::leaf(pattern = r"\d+")] String),
+                }
+            }
+        });
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("string literal"),
+            "Expected 'string literal' error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn error_grammar_missing_language_attr() {
+        let result = expand_grammar(parse_quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                pub enum Expr {
+                    Number(#[adze::leaf(pattern = r"\d+")] String),
+                }
+            }
+        });
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("adze::language"),
+            "Expected 'adze::language' error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn error_grammar_on_non_module() {
+        // expand_grammar expects an ItemMod; using parse_quote with a module
+        // that has no body simulates the semicolon-only module case
+        let result = expand_grammar(parse_quote! {
+            #[adze::grammar("test")]
+            mod grammar;
+        });
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("inline contents"),
+            "Expected 'inline contents' error, got: {err}"
+        );
+    }
+
+    // === Valid attribute variation tests ===
+
+    #[test]
+    fn enum_prec_right() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Expression {
+                        Number(
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            i32
+                        ),
+                        #[adze::prec_right(1)]
+                        Cons(
+                            Box<Expression>,
+                            #[adze::leaf(text = "::")]
+                            (),
+                            Box<Expression>
+                        ),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn enum_prec_no_assoc() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Expression {
+                        Number(
+                            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                            i32
+                        ),
+                        #[adze::prec(2)]
+                        Compare(
+                            Box<Expression>,
+                            #[adze::leaf(text = "==")]
+                            (),
+                            Box<Expression>
+                        ),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn struct_delimited_repeat() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct NumberList {
+                        #[adze::delimited(
+                            #[adze::leaf(text = ",")]
+                            ()
+                        )]
+                        numbers: Vec<Number>,
+                    }
+
+                    pub struct Number {
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        v: i32
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn struct_with_skip_field() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct MyNode {
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        value: i32,
+                        #[adze::skip(false)]
+                        visited: bool,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn struct_repeat_non_empty() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct NumberList {
+                        #[adze::repeat(non_empty = true)]
+                        numbers: Vec<Number>,
+                    }
+
+                    pub struct Number {
+                        #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                        v: i32
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn leaf_text_literal() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Token {
+                        #[adze::leaf(text = "+")]
+                        Plus,
+                        #[adze::leaf(text = "-")]
+                        Minus,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn leaf_pattern_only() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        name: String,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn grammar_with_word_attr() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Code {
+                        ident: Identifier,
+                    }
+
+                    #[adze::word]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        name: String,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn grammar_with_external_attr() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Code {
+                        #[adze::leaf(pattern = r"\w+")]
+                        token: String,
+                    }
+
+                    #[adze::external]
+                    struct IndentToken {
+                        #[adze::leaf(pattern = r"\t+")]
+                        _indent: (),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn enum_unit_variant_leaf() -> Result<()> {
+        // Unit variants with leaf attributes are a special code path
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Keyword {
+                        #[adze::leaf(text = "if")]
+                        If,
+                        #[adze::leaf(text = "else")]
+                        Else,
+                        #[adze::leaf(text = "while")]
+                        While,
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn multiple_extra_types() -> Result<()> {
+        insta::assert_snapshot!(rustfmt_code(
+            &expand_grammar(parse_quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Code {
+                        #[adze::leaf(pattern = r"\w+")]
+                        token: String,
+                    }
+
+                    #[adze::extra]
+                    struct Whitespace {
+                        #[adze::leaf(pattern = r"\s")]
+                        _ws: (),
+                    }
+
+                    #[adze::extra]
+                    struct Comment {
+                        #[adze::leaf(pattern = r"//[^\n]*")]
+                        _comment: (),
+                    }
+                }
+            })?
+            .to_token_stream()
+            .to_string()
+        ));
         Ok(())
     }
 }

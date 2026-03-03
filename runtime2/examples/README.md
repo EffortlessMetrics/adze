@@ -86,19 +86,19 @@ Statement ::= if Expression Statement
 
 ```bash
 # From workspace root
-cargo build -p adze-runtime --features pure-rust-glr --examples
+cargo build -p adze-runtime --features pure-rust --examples
 ```
 
 ### Run Specific Example
 
 ```bash
-cargo run -p adze-runtime --features pure-rust-glr --example arithmetic
+cargo run -p adze-runtime --features pure-rust --example arithmetic
 ```
 
 ### Run All Example Tests
 
 ```bash
-cargo test -p adze-runtime --features pure-rust-glr --examples
+cargo test -p adze-runtime --features pure-rust --examples
 ```
 
 ---
@@ -175,7 +175,7 @@ mod tests {
 Per [PHASE_3.3_INTEGRATION_TESTING.md](../../docs/specs/PHASE_3.3_INTEGRATION_TESTING.md):
 
 ### Functional
-- [ ] All example grammars parse with `pure-rust-glr`
+- [ ] All example grammars parse with `pure-rust`
 - [ ] Ambiguous grammars produce valid trees
 - [ ] GLR matches LR for unambiguous grammars
 - [ ] All integration tests pass

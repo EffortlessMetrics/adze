@@ -1,0 +1,6 @@
+---
+source: glr-core/tests/snapshot_tests.rs
+expression: "lines.join(\"\\n\")"
+---
+FOLLOW(expr) = [0, 2]
+FOLLOW(source_file) = [0]

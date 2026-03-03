@@ -50,6 +50,7 @@ pub struct Forest {
 }
 
 impl Forest {
+    /// Returns a read-only view of the parse forest.
     pub fn view(&self) -> &dyn ForestView {
         &*self.view
     }

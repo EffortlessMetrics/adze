@@ -939,9 +939,16 @@ fn create_large_grammar(num_rules: usize) -> Grammar {
     }
 
     // Create non-terminals and rules
+    // Keep the generated non-terminal space bounded to the same band used on LHS.
+    // This avoids introducing named symbols that never participate as non-terminals
+    // in the grammar, which violates automaton partition invariants.
     for i in 0..num_rules {
-        let nt_id = SymbolId((i + 11) as u16);
-        grammar.rule_names.insert(nt_id, format!("nt{}", i));
+        let nt_index = i % 5;
+        let nt_id = SymbolId((nt_index + 11) as u16);
+        grammar
+            .rule_names
+            .entry(nt_id)
+            .or_insert_with(|| format!("nt{}", nt_index));
 
         // Create rules with varying patterns
         let rule_id = ProductionId(i as u16);

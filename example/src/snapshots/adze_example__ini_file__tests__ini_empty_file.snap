@@ -1,0 +1,9 @@
+---
+source: src/ini_file.rs
+expression: "grammar::parse(\"\")"
+---
+Ok(
+    IniFile {
+        entries: [],
+    },
+)

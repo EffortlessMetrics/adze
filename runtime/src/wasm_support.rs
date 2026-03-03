@@ -140,7 +140,7 @@ fn node_to_json(node: &ParsedNode) -> String {
         let children: Vec<serde_json::Value> = node
             .children()
             .iter()
-            .map(|child| serde_json::from_str(&node_to_json(child)).unwrap())
+            .filter_map(|child| serde_json::from_str(&node_to_json(child)).ok())
             .collect();
         obj["children"] = serde_json::Value::Array(children);
     }
@@ -170,13 +170,17 @@ pub mod registry {
     pub fn register_language(name: &str, language: &'static TSLanguage) {
         LANGUAGE_REGISTRY
             .lock()
-            .unwrap()
+            .unwrap_or_else(|err| err.into_inner())
             .insert(name.to_string(), language);
     }
 
     /// Get a language by name
     pub fn get_language(name: &str) -> Option<&'static TSLanguage> {
-        LANGUAGE_REGISTRY.lock().unwrap().get(name).copied()
+        LANGUAGE_REGISTRY
+            .lock()
+            .unwrap_or_else(|err| err.into_inner())
+            .get(name)
+            .copied()
     }
 }
 

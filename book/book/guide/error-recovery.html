@@ -1,0 +1,705 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Error Recovery - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/guide/error-recovery.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="error-recovery"><a class="header" href="#error-recovery">Error Recovery</a></h1>
+<p>Error recovery in adze enables robust parsing of malformed or partially complete code. This guide covers the error recovery systems available in adze, from basic span validation to advanced parser recovery strategies.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Adze provides multiple layers of error recovery:</p>
+<ol>
+<li><strong>Span Error Recovery</strong> (PR #55) - Safe span operations with comprehensive validation</li>
+<li><strong>Parser Error Recovery</strong> - Graceful handling of syntax errors during parsing</li>
+<li><strong>Incremental Error Recovery</strong> - Smart recovery during incremental parsing operations</li>
+<li><strong>GLR Error Recovery</strong> - Advanced error handling for ambiguous grammars</li>
+</ol>
+<h2 id="span-error-recovery"><a class="header" href="#span-error-recovery">Span Error Recovery</a></h2>
+<h3 id="the-spanerror-system"><a class="header" href="#the-spanerror-system">The SpanError System</a></h3>
+<p>The <code>SpanError</code> system provides comprehensive error handling for span-based operations, eliminating panic-prone indexing that can crash parsers when working with malformed input.</p>
+<pre><code class="language-rust">use adze::{Spanned, SpanError};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SpanError {
+    /// The span start index is greater than the span end index
+    InvalidRange { start: usize, end: usize },
+    /// The span extends beyond the bounds of the target string or buffer  
+    OutOfBounds { span: (usize, usize), length: usize },
+}</code></pre>
+<h3 id="safe-span-operations"><a class="header" href="#safe-span-operations">Safe Span Operations</a></h3>
+<p>All span operations now provide safe alternatives that return <code>Result</code> instead of panicking:</p>
+<pre><code class="language-rust">// Validate spans before use
+let span = Spanned::new("identifier", (10, 20));
+match span.validate_for_str(source_code) {
+    Ok(()) =&gt; {
+        // Safe to proceed with span operations
+        let text = span.try_slice_str(source_code)?;
+        println!("Extracted: {}", text);
+    },
+    Err(SpanError::InvalidRange { start, end }) =&gt; {
+        eprintln!("Invalid span: start {} &gt; end {}", start, end);
+        // Handle malformed span gracefully
+    },
+    Err(SpanError::OutOfBounds { span, length }) =&gt; {
+        eprintln!("Span {:?} exceeds source length {}", span, length);
+        // Handle truncated input gracefully  
+    }
+}</code></pre>
+<h3 id="error-recovery-patterns"><a class="header" href="#error-recovery-patterns">Error Recovery Patterns</a></h3>
+<h4 id="pattern-1-defensive-span-extraction"><a class="header" href="#pattern-1-defensive-span-extraction">Pattern 1: Defensive Span Extraction</a></h4>
+<pre><code class="language-rust">fn safe_extract_token(source: &amp;str, span: &amp;Spanned&lt;()&gt;) -&gt; Option&lt;String&gt; {
+    match span.try_slice_str(source) {
+        Ok(text) =&gt; Some(text.to_string()),
+        Err(SpanError::OutOfBounds { .. }) =&gt; {
+            // Input was truncated, extract what we can
+            if span.span.0 &lt; source.len() {
+                Some(source[span.span.0..].to_string())
+            } else {
+                None
+            }
+        },
+        Err(SpanError::InvalidRange { .. }) =&gt; {
+            // Malformed span, skip this token
+            None
+        }
+    }
+}</code></pre>
+<h4 id="pattern-2-graceful-mutable-operations"><a class="header" href="#pattern-2-graceful-mutable-operations">Pattern 2: Graceful Mutable Operations</a></h4>
+<pre><code class="language-rust">fn safe_rename_identifier(
+    source: &amp;mut String, 
+    span: &amp;Spanned&lt;()&gt;, 
+    new_name: &amp;str
+) -&gt; Result&lt;(), String&gt; {
+    match span.try_slice_str_mut(source) {
+        Ok(identifier) =&gt; {
+            // Safely replace the identifier
+            let start = span.span.0;
+            let end = span.span.1;
+            source.replace_range(start..end, new_name);
+            Ok(())
+        },
+        Err(e) =&gt; Err(format!("Cannot rename identifier: {}", e))
+    }
+}</code></pre>
+<h4 id="pattern-3-error-recovery-in-batch-operations"><a class="header" href="#pattern-3-error-recovery-in-batch-operations">Pattern 3: Error Recovery in Batch Operations</a></h4>
+<pre><code class="language-rust">fn process_spans_with_recovery(
+    source: &amp;str, 
+    spans: &amp;[Spanned&lt;String&gt;]
+) -&gt; (Vec&lt;String&gt;, Vec&lt;SpanError&gt;) {
+    let mut results = Vec::new();
+    let mut errors = Vec::new();
+    
+    for span in spans {
+        match span.try_slice_str(source) {
+            Ok(text) =&gt; results.push(text.to_string()),
+            Err(e) =&gt; {
+                errors.push(e);
+                // Continue processing other spans
+            }
+        }
+    }
+    
+    (results, errors)
+}</code></pre>
+<h2 id="parser-error-recovery"><a class="header" href="#parser-error-recovery">Parser Error Recovery</a></h2>
+<h3 id="basic-error-handling"><a class="header" href="#basic-error-handling">Basic Error Handling</a></h3>
+<p>Adze parsers return detailed error information when parsing fails:</p>
+<pre><code class="language-rust">use adze_runtime::{Parser, ParseError};
+
+let mut parser = Parser::new();
+parser.set_language(my_language())?;
+
+match parser.parse_utf8("fn main( { // missing closing paren", None) {
+    Ok(tree) =&gt; println!("Parsed successfully"),
+    Err(ParseError::UnexpectedToken { expected, found, location }) =&gt; {
+        eprintln!("Expected {:?}, found '{}' at {}:{}", 
+            expected, found, location.line, location.column);
+        // Implement recovery strategy
+    },
+    Err(ParseError::AmbiguousParse { alternatives }) =&gt; {
+        eprintln!("Ambiguous parse with {} alternatives", alternatives.len());
+        // Choose best alternative or request disambiguation
+    },
+    Err(e) =&gt; eprintln!("Parse error: {}", e),
+}</code></pre>
+<h3 id="error-recovery-strategies"><a class="header" href="#error-recovery-strategies">Error Recovery Strategies</a></h3>
+<h4 id="strategy-1-partial-parse-recovery"><a class="header" href="#strategy-1-partial-parse-recovery">Strategy 1: Partial Parse Recovery</a></h4>
+<pre><code class="language-rust">fn parse_with_recovery(source: &amp;str) -&gt; Result&lt;PartialParseResult, ParseError&gt; {
+    let mut parser = Parser::new();
+    parser.set_language(my_language())?;
+    
+    // Try full parse first
+    match parser.parse_utf8(source, None) {
+        Ok(tree) =&gt; Ok(PartialParseResult::Complete(tree)),
+        Err(ParseError::UnexpectedToken { location, .. }) =&gt; {
+            // Try parsing up to the error location
+            let truncated = &amp;source[..location.byte_offset.min(source.len())];
+            match parser.parse_utf8(truncated, None) {
+                Ok(partial_tree) =&gt; Ok(PartialParseResult::Partial {
+                    tree: partial_tree,
+                    error_location: location,
+                }),
+                Err(e) =&gt; Err(e),
+            }
+        },
+        Err(e) =&gt; Err(e),
+    }
+}
+
+enum PartialParseResult {
+    Complete(Tree),
+    Partial { tree: Tree, error_location: Location },
+}</code></pre>
+<h4 id="strategy-2-error-node-insertion"><a class="header" href="#strategy-2-error-node-insertion">Strategy 2: Error Node Insertion</a></h4>
+<pre><code class="language-rust">fn parse_with_error_nodes(source: &amp;str) -&gt; Result&lt;Tree, ParseError&gt; {
+    let mut parser = Parser::new();
+    parser.set_language(my_language())?;
+    
+    // Configure parser to create error nodes for invalid syntax
+    let config = ErrorRecoveryConfig::builder()
+        .enable_error_nodes(true)
+        .max_error_recovery_attempts(5)
+        .build();
+        
+    parser.set_error_recovery_config(config);
+    parser.parse_utf8(source, None)
+}</code></pre>
+<h2 id="incremental-error-recovery"><a class="header" href="#incremental-error-recovery">Incremental Error Recovery</a></h2>
+<p>When using incremental parsing, error recovery becomes more complex because edits can invalidate previously valid spans.</p>
+<h3 id="edit-validation"><a class="header" href="#edit-validation">Edit Validation</a></h3>
+<pre><code class="language-rust">use adze_runtime::{Tree, InputEdit, EditError, Point};
+
+fn apply_edit_safely(
+    tree: &amp;mut Tree, 
+    edit: InputEdit
+) -&gt; Result&lt;(), EditError&gt; {
+    // Validate edit bounds
+    match tree.edit(&amp;edit) {
+        Ok(()) =&gt; {
+            println!("Edit applied successfully");
+            Ok(())
+        },
+        Err(EditError::InvalidRange { start, old_end }) =&gt; {
+            eprintln!("Invalid edit range: {} -&gt; {}", start, old_end);
+            // Could try to fix the edit range
+            let corrected_edit = InputEdit {
+                start_byte: start,
+                old_end_byte: start, // Make it a pure insertion
+                new_end_byte: edit.new_end_byte,
+                start_position: edit.start_position,
+                old_end_position: edit.start_position,
+                new_end_position: edit.new_end_position,
+            };
+            tree.edit(&amp;corrected_edit)
+        },
+        Err(EditError::ArithmeticOverflow) =&gt; {
+            eprintln!("Edit would cause position overflow");
+            Err(EditError::ArithmeticOverflow)
+        },
+        Err(EditError::ArithmeticUnderflow) =&gt; {
+            eprintln!("Edit would cause position underflow");  
+            Err(EditError::ArithmeticUnderflow)
+        }
+    }
+}</code></pre>
+<h3 id="incremental-recovery-patterns"><a class="header" href="#incremental-recovery-patterns">Incremental Recovery Patterns</a></h3>
+<h4 id="pattern-1-conservative-recovery"><a class="header" href="#pattern-1-conservative-recovery">Pattern 1: Conservative Recovery</a></h4>
+<pre><code class="language-rust">fn incremental_parse_with_fallback(
+    parser: &amp;mut Parser,
+    source: &amp;str,
+    old_tree: Option&lt;&amp;Tree&gt;,
+    edit: Option&lt;InputEdit&gt;
+) -&gt; Result&lt;Tree, ParseError&gt; {
+    if let (Some(tree), Some(edit)) = (old_tree, edit) {
+        // Try incremental parsing
+        let mut tree_copy = tree.clone();
+        match tree_copy.edit(&amp;edit) {
+            Ok(()) =&gt; {
+                // Incremental parse succeeded
+                parser.parse_utf8(source, Some(&amp;tree_copy))
+            },
+            Err(_) =&gt; {
+                // Edit failed, fall back to full parse
+                eprintln!("Edit failed, falling back to full parse");
+                parser.parse_utf8(source, None)
+            }
+        }
+    } else {
+        // No incremental context, do full parse
+        parser.parse_utf8(source, None)
+    }
+}</code></pre>
+<h4 id="pattern-2-edit-repair"><a class="header" href="#pattern-2-edit-repair">Pattern 2: Edit Repair</a></h4>
+<pre><code class="language-rust">fn repair_edit(edit: InputEdit, source_len: usize) -&gt; InputEdit {
+    let InputEdit { mut start_byte, mut old_end_byte, mut new_end_byte, .. } = edit;
+    
+    // Ensure bounds are within source
+    start_byte = start_byte.min(source_len);
+    old_end_byte = old_end_byte.min(source_len).max(start_byte);
+    
+    // Ensure new_end is reasonable (could be larger for insertions)
+    new_end_byte = new_end_byte.max(start_byte);
+    
+    InputEdit {
+        start_byte,
+        old_end_byte, 
+        new_end_byte,
+        ..edit
+    }
+}</code></pre>
+<h2 id="glr-error-recovery"><a class="header" href="#glr-error-recovery">GLR Error Recovery</a></h2>
+<p>GLR parsers handle ambiguous grammars and can provide more sophisticated error recovery.</p>
+<h3 id="ambiguity-resolution"><a class="header" href="#ambiguity-resolution">Ambiguity Resolution</a></h3>
+<pre><code class="language-rust">fn handle_glr_ambiguity(result: ParseResult) -&gt; Tree {
+    match result {
+        ParseResult::Single(tree) =&gt; tree,
+        ParseResult::Ambiguous(forest) =&gt; {
+            // Choose the most likely parse based on heuristics
+            let best_parse = forest.alternatives()
+                .max_by_key(|alt| alt.confidence_score())
+                .unwrap_or_else(|| forest.alternatives().next().unwrap());
+            
+            println!("Resolved ambiguity: chose parse with {} nodes", 
+                best_parse.node_count());
+            best_parse.to_tree()
+        }
+    }
+}</code></pre>
+<h3 id="error-forest-analysis"><a class="header" href="#error-forest-analysis">Error Forest Analysis</a></h3>
+<pre><code class="language-rust">fn analyze_parse_errors(forest: &amp;ParseForest) -&gt; Vec&lt;RecoveryHint&gt; {
+    let mut hints = Vec::new();
+    
+    for error_node in forest.error_nodes() {
+        let hint = match error_node.error_type() {
+            ErrorType::MissingToken(expected) =&gt; {
+                RecoveryHint::InsertToken {
+                    position: error_node.start_position(),
+                    token: expected,
+                }
+            },
+            ErrorType::UnexpectedToken(found) =&gt; {
+                RecoveryHint::DeleteToken {
+                    span: error_node.span(),
+                    token: found,
+                }
+            },
+            ErrorType::StructuralError =&gt; {
+                RecoveryHint::Restructure {
+                    span: error_node.span(),
+                    suggestion: "Consider adding parentheses or braces",
+                }
+            }
+        };
+        hints.push(hint);
+    }
+    
+    hints
+}
+
+enum RecoveryHint {
+    InsertToken { position: Point, token: String },
+    DeleteToken { span: (usize, usize), token: String },
+    Restructure { span: (usize, usize), suggestion: &amp;'static str },
+}</code></pre>
+<h2 id="testing-error-recovery"><a class="header" href="#testing-error-recovery">Testing Error Recovery</a></h2>
+<h3 id="unit-testing-error-conditions"><a class="header" href="#unit-testing-error-conditions">Unit Testing Error Conditions</a></h3>
+<pre><code class="language-rust">#[cfg(test)]
+mod error_recovery_tests {
+    use super::*;
+
+    #[test]
+    fn test_span_out_of_bounds_recovery() {
+        let source = "hello";
+        let span = Spanned::new((), (0, 10)); // Extends beyond source
+        
+        match span.try_slice_str(source) {
+            Err(SpanError::OutOfBounds { span, length }) =&gt; {
+                assert_eq!(span, (0, 10));
+                assert_eq!(length, 5);
+            },
+            _ =&gt; panic!("Expected OutOfBounds error"),
+        }
+    }
+    
+    #[test]
+    fn test_invalid_range_recovery() {
+        let source = "hello world";
+        let span = Spanned::new((), (5, 3)); // start &gt; end
+        
+        match span.validate_for_str(source) {
+            Err(SpanError::InvalidRange { start, end }) =&gt; {
+                assert_eq!(start, 5);
+                assert_eq!(end, 3);
+            },
+            _ =&gt; panic!("Expected InvalidRange error"),
+        }
+    }
+    
+    #[test]  
+    fn test_edit_error_recovery() {
+        let mut tree = create_test_tree();
+        let invalid_edit = InputEdit {
+            start_byte: 10,
+            old_end_byte: 5, // Invalid: old_end &lt; start
+            new_end_byte: 15,
+            start_position: Point { row: 0, column: 10 },
+            old_end_position: Point { row: 0, column: 5 },
+            new_end_position: Point { row: 0, column: 15 },
+        };
+        
+        match tree.edit(&amp;invalid_edit) {
+            Err(EditError::InvalidRange { start, old_end }) =&gt; {
+                assert_eq!(start, 10);
+                assert_eq!(old_end, 5);
+            },
+            _ =&gt; panic!("Expected InvalidRange error"),
+        }
+    }
+}</code></pre>
+<h3 id="integration-testing"><a class="header" href="#integration-testing">Integration Testing</a></h3>
+<pre><code class="language-rust">#[test]
+fn test_malformed_input_recovery() {
+    let malformed_inputs = vec![
+        "fn main(",           // Missing closing paren
+        "let x = ;",          // Missing expression  
+        "if true { else }",   // Missing if body
+        "",                   // Empty input
+        "fn main() { let x = 42",  // Missing closing brace
+    ];
+    
+    let mut parser = Parser::new();
+    parser.set_language(rust_language())?;
+    
+    for input in malformed_inputs {
+        match parser.parse_utf8(input, None) {
+            Ok(tree) =&gt; {
+                // Parser successfully recovered
+                assert!(tree.root_node().has_error(), 
+                    "Expected error nodes in tree for input: {}", input);
+            },
+            Err(e) =&gt; {
+                // Parser failed gracefully with useful error
+                println!("Parse error for '{}': {}", input, e);
+                assert!(!e.to_string().contains("panic"));
+            }
+        }
+    }
+}</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-always-use-safe-span-operations"><a class="header" href="#1-always-use-safe-span-operations">1. Always Use Safe Span Operations</a></h3>
+<pre><code class="language-rust">// ❌ Panic-prone 
+let text = &amp;source[span.0..span.1];
+
+// ✅ Safe with error handling
+let text = match span.try_slice_str(source) {
+    Ok(text) =&gt; text,
+    Err(e) =&gt; {
+        eprintln!("Failed to extract span: {}", e);
+        return Err("Invalid span".into());
+    }
+};</code></pre>
+<h3 id="2-validate-edits-before-applying"><a class="header" href="#2-validate-edits-before-applying">2. Validate Edits Before Applying</a></h3>
+<pre><code class="language-rust">// ✅ Validate edit before use
+fn apply_edit_safely(tree: &amp;mut Tree, edit: InputEdit) -&gt; Result&lt;(), EditError&gt; {
+    // Check bounds manually if needed
+    if edit.start_byte &gt; edit.old_end_byte {
+        return Err(EditError::InvalidRange { 
+            start: edit.start_byte, 
+            old_end: edit.old_end_byte 
+        });
+    }
+    
+    tree.edit(&amp;edit)
+}</code></pre>
+<h3 id="3-implement-progressive-recovery"><a class="header" href="#3-implement-progressive-recovery">3. Implement Progressive Recovery</a></h3>
+<pre><code class="language-rust">fn parse_with_progressive_recovery(source: &amp;str) -&gt; ParseResult {
+    // Try full parse first
+    if let Ok(tree) = try_full_parse(source) {
+        return ParseResult::Success(tree);
+    }
+    
+    // Try partial parse
+    if let Ok(partial) = try_partial_parse(source) {
+        return ParseResult::Partial(partial);  
+    }
+    
+    // Create minimal error tree
+    ParseResult::Error(create_error_tree(source))
+}</code></pre>
+<h3 id="4-provide-rich-error-information"><a class="header" href="#4-provide-rich-error-information">4. Provide Rich Error Information</a></h3>
+<pre><code class="language-rust">#[derive(Debug)]
+struct DetailedParseError {
+    message: String,
+    location: Point,
+    suggestions: Vec&lt;String&gt;,
+    recovery_hint: Option&lt;RecoveryHint&gt;,
+}
+
+impl DetailedParseError {
+    fn with_suggestion(mut self, suggestion: impl Into&lt;String&gt;) -&gt; Self {
+        self.suggestions.push(suggestion.into());
+        self
+    }
+    
+    fn with_recovery_hint(mut self, hint: RecoveryHint) -&gt; Self {
+        self.recovery_hint = Some(hint);
+        self
+    }
+}</code></pre>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<p>Error recovery adds some overhead, but adze's implementation is designed to be efficient:</p>
+<ul>
+<li><strong>Lazy Validation</strong>: Spans are only validated when accessed</li>
+<li><strong>Zero-Cost Abstractions</strong>: No overhead when not using error recovery features</li>
+<li><strong>Incremental Recovery</strong>: Only affected regions are revalidated during incremental parsing</li>
+<li><strong>GLR Efficiency</strong>: Ambiguity resolution uses efficient forest algorithms</li>
+</ul>
+<p>Monitor performance using the built-in instrumentation:</p>
+<pre><code class="language-rust">// Enable performance logging
+std::env::set_var("ADZE_LOG_PERFORMANCE", "true");
+
+// Monitor error recovery overhead
+let start = std::time::Instant::now();
+let result = parse_with_recovery(large_malformed_input);
+let duration = start.elapsed();
+
+println!("Recovery parse took {:?}", duration);</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Adze's error recovery system provides multiple layers of protection against malformed input:</p>
+<ol>
+<li><strong>SpanError system</strong> prevents panics and provides detailed error information</li>
+<li><strong>Safe span operations</strong> allow graceful handling of invalid ranges</li>
+<li><strong>Incremental error recovery</strong> maintains consistency during edits</li>
+<li><strong>GLR error recovery</strong> handles ambiguous and malformed syntax elegantly</li>
+</ol>
+<p>By following the patterns and best practices in this guide, you can build robust parsers that handle real-world malformed input gracefully while providing useful error messages for debugging and user feedback.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../guide/query-patterns.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../guide/golden-tests-maintenance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../guide/query-patterns.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../guide/golden-tests-maintenance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

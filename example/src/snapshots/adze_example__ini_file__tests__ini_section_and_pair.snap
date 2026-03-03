@@ -1,0 +1,71 @@
+---
+source: src/ini_file.rs
+expression: "grammar::parse(\"[section]\\nkey=value\")"
+---
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 10,
+            end: 10,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 11,
+            end: 11,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 12,
+            end: 12,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "=",
+            ),
+            start: 13,
+            end: 13,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 14,
+            end: 14,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 15,
+            end: 15,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 16,
+            end: 16,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 17,
+            end: 17,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "_11",
+            ),
+            start: 18,
+            end: 18,
+        },
+    ],
+)

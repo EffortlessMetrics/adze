@@ -16,6 +16,7 @@ harness = false
 name = "glr_hot"
 harness = false
 
+# Legacy auxiliary benchmark. Use glr_performance_real for release/perf gating.
 [[bench]]
 name = "optimization_bench"
 harness = false
@@ -36,6 +37,10 @@ harness = false
 name = "arena_vs_box_allocation"
 harness = false
 
+[[bench]]
+name = "core_baselines"
+harness = false
+
 [dependencies]
 adze = { path = "../runtime", features = ["pure-rust"] }
 adze-example = { path = "../example" }
@@ -44,8 +49,8 @@ adze-ir = { path = "../ir" }
 adze-glr-core = { path = "../glr-core", features = ["glr_telemetry"] }
 adze-tablegen = { path = "../tablegen" }
 tree-sitter = "0.20"
-criterion = "0.5"
-indexmap = "2.0"
+criterion.workspace = true
+indexmap.workspace = true
 
 [dev-dependencies]
-insta = "1.0"
+insta.workspace = true

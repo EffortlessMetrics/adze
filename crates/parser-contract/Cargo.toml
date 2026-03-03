@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Shared contracts for parser backend selection and BDD scenario tracking."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["parser", "grammar", "tree-sitter", "ast", "glr"]
+categories = ["parsing", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-parser-contract"
 
 [dependencies]
 adze-governance-contract = { version = "0.1.0", path = "../governance-contract" }

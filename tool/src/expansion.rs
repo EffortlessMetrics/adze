@@ -1,3 +1,5 @@
+//! Grammar expansion from annotated Rust types to Tree-sitter JSON.
+
 use std::collections::HashSet;
 
 use adze_common::*;
@@ -5,6 +7,24 @@ use serde_json::{Map, Value, json};
 use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, *};
 
 use crate::error::{Result as ToolResult, ToolError};
+
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
 
 fn gen_field(
     path: String,
@@ -712,7 +732,7 @@ fn gen_struct_or_variant(
                     match gen_field_optional(&path, field, word_rule, out, ident_str) {
                         Ok(result) => Some(result),
                         Err(e) => {
-                            eprintln!("Error generating field {}: {:?}", ident_str_clone, e);
+                            debug_trace!("Error generating field {}: {:?}", ident_str_clone, e);
                             None // Skip this field on error
                         }
                     }
@@ -781,7 +801,7 @@ fn gen_struct_or_variant(
     };
 
     if potentially_empty {
-        eprintln!(
+        debug_trace!(
             "Warning: Rule '{}' can match empty input. Tree-sitter requires all named rules to match at least one character. Consider adding at least one required field or using 'non_empty = true' for Vec fields.",
             path
         );

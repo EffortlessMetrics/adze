@@ -65,9 +65,10 @@ The runtime is structured as follows:
 ## Feature Flags
 
 - `arenas`: Enable arena allocators for better performance
-- `incremental`: Enable incremental parsing support
-- `external-scanners`: Enable external scanner support
-- `queries`: Enable query system (future)
+- `pure-rust`: Enable pure-Rust GLR runtime (feature alias: `pure-rust-glr`, legacy)
+- `incremental_glr`: Enable incremental parsing support (`incremental` alias preserved for compatibility)
+- `external_scanners`: Enable external scanner support (`external-scanners` alias preserved for compatibility)
+- `query`: Enable query system (future; `queries` alias preserved for compatibility)
 
 ## Testing
 

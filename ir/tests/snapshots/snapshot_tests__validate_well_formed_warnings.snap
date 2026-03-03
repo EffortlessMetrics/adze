@@ -1,0 +1,5 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: render_warnings(&result.warnings)
+---
+Rule for symbol SymbolId(3) has no field names

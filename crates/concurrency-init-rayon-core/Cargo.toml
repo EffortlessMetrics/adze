@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Idempotent Rayon global thread-pool initialization primitives."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
+categories = ["concurrency"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-concurrency-init-rayon-core"
 
 [features]
 default = []
@@ -15,7 +19,7 @@ strict_docs = []
 
 [dependencies]
 adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../concurrency-init-classifier-core" }
-rayon = "1.10"
+rayon.workspace = true
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true

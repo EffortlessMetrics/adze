@@ -2,13 +2,20 @@
 use anyhow::{Context, Result};
 use xshell::{Shell, cmd};
 
+const RELEASE_PARSER_BENCHMARKS: &[&str] = &["glr_performance_real"];
+
 /// Run benchmarks with optional baseline saving
 pub fn run_benchmarks(
     sh: &Shell,
     save_baseline: bool,
     baseline_name: Option<String>,
 ) -> Result<()> {
-    println!("Running adze benchmarks...");
+    println!(
+        "Running adze performance benchmarks: {}",
+        RELEASE_PARSER_BENCHMARKS.join(", ")
+    );
+
+    run_released_parser_benchmarks(sh)?;
 
     if save_baseline {
         let version = baseline_name.unwrap_or_else(|| {
@@ -19,20 +26,22 @@ pub fn run_benchmarks(
         println!("Will save baseline as: {}", version);
 
         // Use the baseline module to save results
-        cmd!(sh, "cargo bench --workspace")
-            .run()
-            .context("Failed to run benchmarks")?;
-
         // After benchmarks complete, save baseline
         crate::baseline::save_baseline(sh, &version)?;
     } else {
-        // Just run benchmarks normally
-        cmd!(sh, "cargo bench --workspace")
-            .run()
-            .context("Failed to run benchmarks")?;
+        println!("Benchmarks completed. Baseline not saved.");
     }
 
     println!("✅ Benchmarks complete!");
+    Ok(())
+}
+
+fn run_released_parser_benchmarks(sh: &Shell) -> Result<()> {
+    for bench in RELEASE_PARSER_BENCHMARKS {
+        cmd!(sh, "cargo bench -p adze-benchmarks --bench {bench}")
+            .run()
+            .context(format!("Failed to run benchmark {bench}"))?;
+    }
     Ok(())
 }
 

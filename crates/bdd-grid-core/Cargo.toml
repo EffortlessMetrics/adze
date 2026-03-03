@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Core BDD grid contracts for parser progress reporting and feature-aware status tracking."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["bdd", "testing", "scenarios", "parser", "grammar"]
+categories = ["development-tools::testing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-bdd-grid-core"
 
 [features]
 default = []

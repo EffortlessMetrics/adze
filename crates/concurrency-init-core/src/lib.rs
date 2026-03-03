@@ -11,23 +11,8 @@ pub use adze_concurrency_env_core::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };
+pub use adze_concurrency_init_bootstrap_core::init_concurrency_caps;
 pub use adze_concurrency_init_rayon_core::{init_rayon_global_once, is_already_initialized_error};
-
-/// Initialize Rayon global thread-pool caps once for the process.
-///
-/// Calling this function multiple times is safe and idempotent.
-pub fn init_concurrency_caps() {
-    let caps = current_caps();
-
-    if let Err(message) = init_rayon_global_once(caps.rayon_threads) {
-        panic!("failed to initialize rayon global thread pool: {message}");
-    }
-
-    eprintln!(
-        "Concurrency caps initialized: {RAYON_NUM_THREADS_ENV}={}, {TOKIO_WORKER_THREADS_ENV}={}",
-        caps.rayon_threads, caps.tokio_worker_threads
-    );
-}
 
 #[cfg(test)]
 mod tests {
@@ -60,5 +45,49 @@ mod tests {
         assert!(!is_already_initialized_error(
             "global thread pool initialized"
         ));
+    }
+
+    #[test]
+    fn default_caps_have_expected_constants() {
+        assert_eq!(DEFAULT_RAYON_NUM_THREADS, 4);
+        assert_eq!(DEFAULT_TOKIO_WORKER_THREADS, 2);
+    }
+
+    #[test]
+    fn current_caps_returns_valid_values() {
+        let caps = current_caps();
+        assert!(caps.rayon_threads >= 1 || caps.rayon_threads == DEFAULT_RAYON_NUM_THREADS);
+        assert!(
+            caps.tokio_worker_threads >= 1
+                || caps.tokio_worker_threads == DEFAULT_TOKIO_WORKER_THREADS
+        );
+    }
+
+    #[test]
+    fn parse_positive_usize_or_default_returns_default_for_none() {
+        assert_eq!(parse_positive_usize_or_default(None, 7), 7);
+    }
+
+    #[test]
+    fn parse_positive_usize_or_default_returns_default_for_zero() {
+        assert_eq!(parse_positive_usize_or_default(Some("0"), 5), 5);
+    }
+
+    #[test]
+    fn parse_positive_usize_or_default_parses_valid_value() {
+        assert_eq!(parse_positive_usize_or_default(Some("42"), 1), 42);
+    }
+
+    #[test]
+    fn env_var_constants_match_expected_names() {
+        assert_eq!(RAYON_NUM_THREADS_ENV, "RAYON_NUM_THREADS");
+        assert_eq!(TOKIO_WORKER_THREADS_ENV, "TOKIO_WORKER_THREADS");
+    }
+
+    #[test]
+    fn concurrency_caps_default_matches_constants() {
+        let caps = ConcurrencyCaps::default();
+        assert_eq!(caps.rayon_threads, DEFAULT_RAYON_NUM_THREADS);
+        assert_eq!(caps.tokio_worker_threads, DEFAULT_TOKIO_WORKER_THREADS);
     }
 }

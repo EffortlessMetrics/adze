@@ -34,7 +34,10 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
         }],
     );
     let ff = FirstFollowSets::compute(&grammar).unwrap();
-    let table = build_lr1_automaton(&grammar, &ff).expect("table");
+    let table = build_lr1_automaton(&grammar, &ff)
+        .expect("table")
+        .normalize_eof_to_zero()
+        .with_detected_goto_indexing();
     let table: &'static _ = Box::leak(Box::new(table));
 
     let t_counter = counter.clone();
@@ -99,7 +102,7 @@ fn glr_parse_simple() {
     assert_eq!(counter.load(Ordering::SeqCst), 1);
 }
 
-#[cfg(all(feature = "glr-core", feature = "incremental"))]
+#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
 #[test]
 fn glr_incremental_reuse() {
     let counter = Arc::new(AtomicUsize::new(0));

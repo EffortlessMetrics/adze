@@ -626,7 +626,9 @@ pub fn tree_to_json(
 /// Get symbol name from language tables
 #[cfg(feature = "serialization")]
 fn get_symbol_name(lang: &crate::pure_parser::TSLanguage, symbol: u16) -> String {
-    // Safety: We trust the language tables are valid
+    // SAFETY: `symbol_names` is a static array of `symbol_count` C-string pointers
+    // from the TSLanguage. `symbol` is bounds-checked before indexing. The
+    // resulting pointer is null-checked before calling `CStr::from_ptr`.
     unsafe {
         if lang.symbol_names.is_null() || symbol as u32 >= lang.symbol_count {
             return format!("UNKNOWN_{}", symbol);

@@ -11,10 +11,19 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-use core::fmt::Write;
+use core::fmt::{self, Write};
 
 /// BDD status phase for a scenario.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+///
+/// # Examples
+///
+/// ```
+/// use adze_bdd_grid_core::BddPhase;
+///
+/// let phase = BddPhase::Core;
+/// assert_eq!(phase, BddPhase::Core);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BddPhase {
     /// Parser-core validation phase (glr-core).
     Core,
@@ -22,7 +31,27 @@ pub enum BddPhase {
     Runtime,
 }
 
+impl fmt::Display for BddPhase {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
 /// Scenario status for a feature matrix row.
+///
+/// # Examples
+///
+/// ```
+/// use adze_bdd_grid_core::BddScenarioStatus;
+///
+/// let done = BddScenarioStatus::Implemented;
+/// assert!(done.implemented());
+/// assert_eq!(done.label(), "IMPLEMENTED");
+///
+/// let pending = BddScenarioStatus::Deferred { reason: "wip" };
+/// assert!(!pending.implemented());
+/// assert_eq!(pending.detail(), "wip");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BddScenarioStatus {
     /// Completed in a given phase.
@@ -32,6 +61,15 @@ pub enum BddScenarioStatus {
         /// Explanation for why the scenario is deferred.
         reason: &'static str,
     },
+}
+
+impl fmt::Display for BddScenarioStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Implemented => write!(f, "Implemented"),
+            Self::Deferred { reason } => write!(f, "Deferred: {reason}"),
+        }
+    }
 }
 
 impl BddScenarioStatus {
@@ -87,6 +125,12 @@ impl BddScenario {
             BddPhase::Core => self.core_status,
             BddPhase::Runtime => self.runtime_status,
         }
+    }
+}
+
+impl fmt::Display for BddScenario {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Scenario {}: {}", self.id, self.title)
     }
 }
 
@@ -155,6 +199,23 @@ pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
 ];
 
 /// Aggregate progress for a phase.
+///
+/// # Examples
+///
+/// ```
+/// use adze_bdd_grid_core::*;
+///
+/// let scenarios = [BddScenario {
+///     id: 1,
+///     title: "example",
+///     reference: "REF-1",
+///     core_status: BddScenarioStatus::Implemented,
+///     runtime_status: BddScenarioStatus::Deferred { reason: "todo" },
+/// }];
+/// let (done, total) = bdd_progress(BddPhase::Core, &scenarios);
+/// assert_eq!(done, 1);
+/// assert_eq!(total, 1);
+/// ```
 pub fn bdd_progress(phase: BddPhase, scenarios: &[BddScenario]) -> (usize, usize) {
     let mut implemented = 0usize;
     for scenario in scenarios {
@@ -166,6 +227,20 @@ pub fn bdd_progress(phase: BddPhase, scenarios: &[BddScenario]) -> (usize, usize
 }
 
 /// Shared formatting for BDD progress summaries.
+///
+/// # Examples
+///
+/// ```
+/// use adze_bdd_grid_core::*;
+///
+/// let report = bdd_progress_report(
+///     BddPhase::Runtime,
+///     GLR_CONFLICT_PRESERVATION_GRID,
+///     "Runtime",
+/// );
+/// assert!(report.contains("Runtime"));
+/// assert!(report.contains("Scenario 1"));
+/// ```
 pub fn bdd_progress_report(
     phase: BddPhase,
     scenarios: &[BddScenario],

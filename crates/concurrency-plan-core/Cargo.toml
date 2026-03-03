@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Pure policy helpers for normalized concurrency and bounded parallel partitioning."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
+categories = ["concurrency"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-concurrency-plan-core"
 
 [features]
 default = []
@@ -17,5 +21,5 @@ strict_docs = []
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }

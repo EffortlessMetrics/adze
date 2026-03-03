@@ -113,17 +113,19 @@ impl<'a> PredicateContext<'a> {
 
             // Get or compile regex
             let mut cache = self.regex_cache.borrow_mut();
-            let regex = cache.entry(regex_str.to_string()).or_insert_with(|| {
-                match Regex::new(regex_str) {
-                    Ok(re) => re,
-                    Err(_e) => {
-                        // eprintln!("Invalid regex '{}': {}", regex_str, e);
-                        // Return a regex that never matches
-                        // Using a character class that can never match
-                        Regex::new(r"^\b$").unwrap()
-                    }
+            let regex = if let Some(regex) = cache.get(regex_str).cloned() {
+                regex
+            } else {
+                let Ok(regex) = Regex::new(regex_str) else {
+                    return false;
+                };
+                cache.insert(regex_str.to_string(), regex);
+                if let Some(regex) = cache.get(regex_str).cloned() {
+                    regex
+                } else {
+                    return false;
                 }
-            });
+            };
 
             // Full-string match: the entire text must match the regex
             if let Some(m) = regex.find(text) {

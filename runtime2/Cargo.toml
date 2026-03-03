@@ -13,8 +13,8 @@ categories = ["parsing", "compilers"]
 [dependencies]
 # Core dependencies
 thiserror = "1.0"
-smallvec = "1.13"
-rustc-hash = "2.1"
+smallvec.workspace = true
+rustc-hash.workspace = true
 adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 adze-runtime2-governance = { version = "0.1.0", path = "../crates/runtime2-governance" }
 
@@ -26,16 +26,16 @@ adze-ir = { path = "../ir", optional = true }
 memchr = "2.7"
 
 # For tokenization (Phase 3.2)
-regex = { version = "1.11", optional = true }
+regex = { workspace = true, optional = true }
 
 # Optional dependencies for different features
 bumpalo = { version = "3.16", optional = true }
 typed-arena = { version = "2.0", optional = true }
 
 [dev-dependencies]
-criterion = "0.5"
+criterion.workspace = true
 pretty_assertions = "1.4"
-serde_json = "1.0.142"
+serde_json.workspace = true
 adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
 adze-tablegen = { path = "../tablegen", features = ["serialization"] }
 adze-parser-contract = { path = "../crates/parser-contract" }
@@ -44,19 +44,29 @@ adze-parser-contract = { path = "../crates/parser-contract" }
 default = ["glr-core", "serialization"]
 # Enable GLR core integration
 glr-core = ["dep:adze-glr-core", "dep:adze-ir"]
-# Enable pure-Rust GLR runtime (bypasses TSLanguage encoding)
-# This is the Phase 3 feature that uses ParseTable directly
-pure-rust-glr = ["glr-core", "dep:regex"]
+# Enable pure-Rust GLR runtime (bypasses TSLanguage encoding).
+# This is the Phase 3 feature that uses ParseTable directly.
+pure-rust = ["glr-core", "dep:regex"]
+# Deprecated alias retained for backward compatibility.
+pure-rust-glr = ["pure-rust"]
 # Enable .parsetable file loading (Phase 3.1)
 serialization = ["adze-glr-core/serialization"]
 # Enable arena allocators for performance
 arenas = ["bumpalo", "typed-arena"]
 # Enable incremental parsing support
-incremental = []
+# Canonical GLR-style incremental feature (kept in sync with runtime crate naming).
+incremental_glr = []
+# Deprecated alias preserved for legacy runtime2 callers.
+incremental = ["incremental_glr"]
 # Enable external scanner support
-external-scanners = []
-# Enable query system (future)
-queries = []
+# Canonical naming matches runtime crate.
+external_scanners = []
+# Deprecated alias preserved for legacy runtime2 callers.
+external-scanners = ["external_scanners"]
+# Enable query system (future).
+query = []
+# Deprecated alias preserved for legacy runtime2 callers.
+queries = ["query"]
 # Make test utilities available outside of tests (for examples)
 test-utils = []
 
@@ -70,8 +80,8 @@ required-features = ["test-utils", "glr-core"]
 
 [[example]]
 name = "arithmetic"
-required-features = ["pure-rust-glr", "test-utils"]
+required-features = ["pure-rust", "test-utils"]
 
 [[example]]
 name = "precedence_debug"
-required-features = ["pure-rust-glr"]
+required-features = ["pure-rust"]

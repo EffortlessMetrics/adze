@@ -4,12 +4,14 @@
 
 # Getting Started
 
+- [Overview](getting-started.md)
 - [Installation](getting-started/installation.md)
 - [Quick Start](getting-started/quickstart.md)
 - [Migration Guide](getting-started/migration.md)
 
 # User Guide
 
+- [Architecture](guide/architecture.md)
 - [Grammar Definition](guide/grammar-definition.md)
 - [Parser Generation](guide/parser-generation.md)
 - [GLR Precedence Resolution](guide/glr-precedence-resolution.md)
@@ -43,6 +45,12 @@
 - [Testing](development/testing.md)
 - [Golden Tests](development/golden-tests.md)
 - [Release Process](development/release.md)
+
+# Concepts
+
+- [Architecture Overview](architecture.md)
+- [Microcrate Guide](microcrates.md)
+- [Testing Overview](testing.md)
 
 # Appendix
 

@@ -22,6 +22,7 @@
 //! ```
 
 #![warn(missing_docs)]
+#![forbid(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod error;
@@ -36,15 +37,15 @@ mod builder;
 #[cfg(feature = "glr-core")]
 mod engine;
 /// Forest-to-tree conversion for GLR parsing (Phase 3.2)
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 pub mod forest_converter;
 /// GLR parsing engine (Phase 3.1)
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 pub mod glr_engine;
 /// Token types and lexing helpers.
 pub mod token;
 /// Lexical scanner (tokenizer) for GLR parsing (Phase 3.2)
-#[cfg(feature = "pure-rust-glr")]
+#[cfg(feature = "pure-rust")]
 pub mod tokenizer;
 
 /// Test helper utilities for creating stub languages and parse tables.
@@ -68,17 +69,17 @@ pub use tree::Tree;
 // Governance + feature-flag reporting compatibility surface for runtime2 consumers.
 pub use adze_runtime2_governance::*;
 
-#[cfg(feature = "incremental")]
+#[cfg(feature = "incremental_glr")]
 pub use tree::EditError;
 
 /// Return the active runtime2 parser feature profile.
 pub const fn parser_feature_profile_for_current_runtime2() -> ParserFeatureProfile {
-    parser_feature_profile_for_runtime2(cfg!(feature = "pure-rust-glr"))
+    parser_feature_profile_for_runtime2(cfg!(feature = "pure-rust"))
 }
 
 /// Resolve the backend for the active runtime2 feature profile.
 pub const fn current_backend_for_runtime2(has_conflicts: bool) -> ParserBackend {
-    resolve_runtime2_backend(cfg!(feature = "pure-rust-glr"), has_conflicts)
+    resolve_runtime2_backend(cfg!(feature = "pure-rust"), has_conflicts)
 }
 
 /// Resolve the backend for the active runtime2 feature profile.
@@ -127,14 +128,24 @@ pub struct InputEdit {
     pub new_end_position: Point,
 }
 
-/// Query system types (stub for now)
-#[cfg(feature = "queries")]
-#[cfg_attr(docsrs, doc(cfg(feature = "queries")))]
+/// Query system types for pattern matching over parse trees.
+///
+/// This module is a stub for future implementation. Requires the `query` feature.
+#[cfg(feature = "query")]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 pub mod query {
-    /// A compiled query
+    /// A compiled query for matching patterns in syntax trees.
+    ///
+    /// Queries are compiled from S-expression patterns and can be executed
+    /// against any parse tree to find matching nodes.
     pub struct Query;
-    /// A query cursor for executing queries
+    /// A stateful cursor for executing queries against a tree.
+    ///
+    /// Manages iteration state when running a [`Query`] against a parse tree,
+    /// yielding [`QueryMatch`] results.
     pub struct QueryCursor;
-    /// A query match
+    /// A single match result from executing a query.
+    ///
+    /// Contains the captured nodes that matched the query pattern.
     pub struct QueryMatch;
 }

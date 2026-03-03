@@ -5,6 +5,7 @@ members = [
   "runtime",
   "runtime2",
   "crates/parsetable-metadata",
+  "crates/bdd-grammar-analysis-core",
   "crates/bdd-grammar-fixtures",
   "crates/bdd-governance-fixtures",
   "crates/parser-contract",
@@ -12,8 +13,10 @@ members = [
   "crates/parser-feature-contract",
   "crates/runtime-governance",
   "crates/runtime-governance-api",
+  "crates/ts-format-core",
   "crates/runtime-governance-matrix",
   "crates/runtime2-governance",
+  "crates/stack-pool-core",
   "crates/glr-versioning",
   "crates/governance-matrix-contract",
   "crates/governance-matrix-core-impl",
@@ -26,8 +29,10 @@ members = [
   "crates/concurrency-normalize-core",
   "crates/concurrency-parse-core",
   "crates/concurrency-env-core",
+  "crates/concurrency-env-contract-core",
   "crates/concurrency-init-classifier-core",
   "crates/concurrency-init-rayon-core",
+  "crates/concurrency-init-bootstrap-core",
   "crates/concurrency-init-core",
   "crates/concurrency-caps-core",
   "crates/governance-metadata",
@@ -40,7 +45,12 @@ members = [
   "crates/bdd-grid-contract",
   "crates/bdd-grid-core",
   "crates/feature-policy-core",
+  "crates/concurrency-bounded-map-core",
+  "crates/concurrency-caps-contract-core",
+  "crates/concurrency-init-bootstrap-policy-core",
+  "crates/parser-backend-core",
   "tool",
+  "crates/common-syntax-core",
   "common",
   "ir",
   "glr-core",
@@ -61,6 +71,7 @@ members = [
   "test-mini",
   "golden-tests",
   "wasm-demo",
+  "tests/governance",
 ]
 # These crates are intentionally excluded from default workspace commands
 # due to mutually exclusive features. Build them explicitly with -p when needed.
@@ -91,6 +102,23 @@ unused_extern_crates = "deny"
 
 [workspace.dependencies]
 tree-sitter = "=0.26.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+proptest = "1.4"
+insta = "1.39"
+criterion = { version = "0.5", features = ["html_reports"] }
+thiserror = "2.0"
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
+anyhow = "1.0"
+tempfile = "3"
+indexmap = "2.0"
+clap = { version = "4.5", features = ["derive"] }
+rayon = "1.10"
+rustc-hash = "2.1"
+smallvec = "1.13"
+regex = "1.11"
 
 [profile.ci]
 inherits = "dev"

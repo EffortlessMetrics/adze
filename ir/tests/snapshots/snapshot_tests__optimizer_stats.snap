@@ -1,0 +1,5 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: "format!(\"removed_unused={} inlined={} merged_tokens={} opt_left_rec={} elim_unit={}\",\nstats.removed_unused_symbols, stats.inlined_rules, stats.merged_tokens,\nstats.optimized_left_recursion, stats.eliminated_unit_rules,)"
+---
+removed_unused=0 inlined=0 merged_tokens=0 opt_left_rec=1 elim_unit=0

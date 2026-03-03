@@ -12,23 +12,34 @@ mod expansion;
 use expansion::*;
 
 mod grammar_converter;
+/// Re-exported grammar format converter.
 pub use grammar_converter::GrammarConverter;
 
+/// Grammar and parse tree visualization tools.
 pub mod visualization;
+/// Re-exported grammar visualizer.
 pub use visualization::GrammarVisualizer;
 
+/// JavaScript grammar.js parsing and conversion.
 pub mod grammar_js;
+/// Re-exported grammar.js converter and parser.
 pub use grammar_js::{GrammarJsConverter, parse_grammar_js};
 
+/// Pure-Rust parser builder bypassing C code generation.
 pub mod pure_rust_builder;
+/// Re-exported builder types and entry points.
 pub use pure_rust_builder::{
     BuildOptions, BuildResult, build_parser, build_parser_for_crate, build_parser_from_grammar_js,
 };
 
+/// Command-line interface for the adze build tool.
 pub mod cli;
+/// Build system integration for external scanners.
 pub mod scanner_build;
 
+/// Error types for the build tool.
 pub mod error;
+/// Re-exported error types.
 pub use error::{Result as ToolResult, ToolError};
 
 // Use tree-sitter-generate's version for compatibility
@@ -76,12 +87,19 @@ use tree_sitter_generate::generate_parser_for_grammar;
 /// for every Adze grammar found in the given module and recursive
 /// submodules.
 pub fn build_parsers(root_file: &Path) {
+    // Keep build-script diagnostics off unless explicitly requested.
+    let enable_debug_file = std::env::var("RUST_LOG")
+        .ok()
+        .unwrap_or_default()
+        .contains("debug")
+        || std::env::var("ADZE_DEBUG_FILE").is_ok();
+
     // Determine which builder to use - check both env vars for compatibility
     let use_pure_rust = std::env::var("CARGO_FEATURE_PURE_RUST").is_ok()
         || std::env::var("ADZE_USE_PURE_RUST").is_ok();
 
     // Debug to file to bypass any stderr capture issues
-    {
+    if enable_debug_file {
         use std::io::Write;
         if let Ok(mut f) = std::fs::File::create("adze_debug.txt") {
             writeln!(f, "build_parsers called for: {}", root_file.display()).ok();
@@ -109,7 +127,13 @@ pub fn build_parsers(root_file: &Path) {
             Ok(results) => {
                 for result in results {
                     println!("cargo:rerun-if-changed={}", result.parser_path);
-                    println!("Built pure-Rust parser for {}", result.grammar_name);
+                    if std::env::var("RUST_LOG")
+                        .ok()
+                        .unwrap_or_default()
+                        .contains("debug")
+                    {
+                        println!("Built pure-Rust parser for {}", result.grammar_name);
+                    }
                 }
             }
             Err(e) => {
@@ -339,6 +363,24 @@ mod tests {
 
     use super::{GENERATED_SEMANTIC_VERSION, generate_grammar};
     use tree_sitter_generate::generate_parser_for_grammar;
+
+    #[cfg(not(debug_assertions))]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {};
+    }
+
+    #[cfg(debug_assertions)]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {
+            if std::env::var("RUST_LOG")
+                .ok()
+                .unwrap_or_default()
+                .contains("debug")
+            {
+                eprintln!($($arg)*);
+            }
+        };
+    }
 
     #[test]
     fn enum_with_named_field() {
@@ -788,10 +830,10 @@ mod tests {
             panic!("Failed to parse test module")
         };
 
-        eprintln!("\n=== Testing Binary Variant Inlined Generation ===\n");
+        debug_trace!("\n=== Testing Binary Variant Inlined Generation ===\n");
 
         let grammar = generate_grammar(&m).expect("Failed to generate grammar");
-        eprintln!(
+        debug_trace!(
             "Generated grammar:\n{}",
             serde_json::to_string_pretty(&grammar).unwrap()
         );
@@ -800,14 +842,14 @@ mod tests {
         let rules = grammar.get("rules").expect("No rules in grammar");
         let rules_obj = rules.as_object().expect("Rules not an object");
 
-        eprintln!("\n=== All Rules ===");
+        debug_trace!("\n=== All Rules ===");
         for (name, _rule) in rules_obj {
-            eprintln!("  - {}", name);
+            debug_trace!("  - {}", name);
         }
 
         // Find the Expr rule
         let expr_rule = rules_obj.get("Expr").expect("No Expr rule found!");
-        eprintln!(
+        debug_trace!(
             "\n=== Expr Rule ===\n{}",
             serde_json::to_string_pretty(expr_rule).unwrap()
         );
@@ -820,9 +862,9 @@ mod tests {
         let members = expr_rule.get("members").expect("No members in Expr CHOICE");
         let members_array = members.as_array().expect("Members not an array");
 
-        eprintln!("\n=== Expr CHOICE Members ({}) ===", members_array.len());
+        debug_trace!("\n=== Expr CHOICE Members ({}) ===", members_array.len());
         for (i, member) in members_array.iter().enumerate() {
-            eprintln!(
+            debug_trace!(
                 "Member {}:\n{}",
                 i,
                 serde_json::to_string_pretty(member).unwrap()
@@ -879,7 +921,7 @@ mod tests {
             number_type
         );
 
-        eprintln!("\n✅ TEST PASSED: Binary variant generates correctly!\n");
+        debug_trace!("\n✅ TEST PASSED: Binary variant generates correctly!\n");
     }
 
     #[cfg(feature = "build_parsers")]

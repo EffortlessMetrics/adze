@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Line/column byte-position tracking utilities for parser lexers and scanners."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["parser", "line-column", "position", "lexer", "scanner"]
+categories = ["parsing", "text-processing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-linecol-core"
 
 [features]
 default = []
@@ -14,4 +18,9 @@ strict_api = []
 strict_docs = []
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "linecol_bench"
+harness = false

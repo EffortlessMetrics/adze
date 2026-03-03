@@ -3,12 +3,22 @@ name = "adze-tool"
 description = "The external tool for Adze that extracts grammars from Rust definitions"
 readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-tool"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 license = "MIT OR Apache-2.0"
+publish = true
 edition = "2024"
+rust-version.workspace = true
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
+include = [
+    "Cargo.toml",
+    "/LICENSE*",
+    "/README*",
+    "src/**"
+]
 
 [features]
 default = ["build_parsers", "serialization"]
@@ -24,25 +34,25 @@ optimize = ["adze-ir/optimize"]
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
-syn = { version = "2", features = ["full", "extra-traits"] }
+syn.workspace = true
 syn-inline-mod = "0.6"
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
 adze-common = { version = "0.8.0-dev", path = "../common" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
-regex = "1.10"
-anyhow = "1.0"
-thiserror = "2.0"
-indexmap = "2.0"
-clap = { version = "4.5", features = ["derive"] }
+regex.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+indexmap.workspace = true
+clap.workspace = true
 glob = "0.3"
 prettyplease = "0.2"
-proc-macro2 = "1"
-quote = "1"
+proc-macro2.workspace = true
+quote.workspace = true
 
-tempfile = { version = "3", optional = true }
+tempfile = { workspace = true, optional = true }
 tree-sitter = { version = "0.25.2", optional = true }
 tree-sitter-generate = { version = "0.25.1", optional = true }
 cc = { version = "1", optional = true }
@@ -52,4 +62,4 @@ name = "adze-gen"
 path = "src/bin/adze.rs"
 
 [dev-dependencies]
-insta = "1.39"
+insta.workspace = true

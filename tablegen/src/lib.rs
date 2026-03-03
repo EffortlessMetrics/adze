@@ -17,51 +17,71 @@ mod util;
 #[cfg(test)]
 pub use crate::test_helpers::test::{make_empty_table, make_minimal_table};
 
+/// Tree-sitter ABI type definitions and constants.
 pub mod abi;
+/// Builder for generating ABI-compatible Language structs.
 pub mod abi_builder;
+/// Parse table compression algorithms.
 pub mod compress;
+/// Additional compression utilities and strategies.
 pub mod compression;
 /// Error types for table generation
 pub mod error;
+/// External scanner code generation (v1).
 pub mod external_scanner;
+/// External scanner code generation (v2, improved).
 pub mod external_scanner_v2;
 /// Language builder for generating static parsers
 pub mod generate;
 /// Helper utilities for table generation
 pub mod helpers;
+/// Language code generation from parse tables.
 pub mod language_gen;
 /// Lexer generation utilities
 pub mod lexer_gen;
+/// NODE_TYPES JSON metadata generation.
 pub mod node_types;
+/// Parser template and parse table code generation.
 pub mod parser;
 /// .parsetable binary file format writer
 #[cfg(feature = "serialization")]
 pub mod parsetable_writer;
 /// Schema validation for parse tables
 pub mod schema;
+/// Parse table serialization to various output formats.
 pub mod serializer;
+/// Parse table and language struct validation.
 pub mod validation;
 
+/// Error and Result types for table generation.
 pub use error::{Result, TableGenError};
 
 // Re-export commonly used helpers at crate root for ergonomics
+/// Utility functions for querying parse tables.
 pub use helpers::{collect_token_indices, eof_accepts_or_reduces};
 
 // Re-export key types
+/// ABI-compatible language struct builder.
 pub use abi_builder::AbiLanguageBuilder;
+/// Compressed table types and compressor.
 pub use compress::{
     ActionEntry, CompressedActionEntry, CompressedActionTable, CompressedGotoEntry,
     CompressedGotoTable, CompressedParseTable, CompressedTables, GotoEntry, TableCompressor,
 };
+/// External scanner code generator.
 pub use external_scanner::ExternalScannerGenerator;
+/// High-level language builder.
 pub use generate::LanguageBuilder;
+/// NODE_TYPES metadata generator.
 pub use node_types::NodeTypesGenerator;
 #[cfg(feature = "serialization")]
+/// Binary `.parsetable` file format writer and types.
 pub use parsetable_writer::{
     FORMAT_VERSION, FeatureFlags, GenerationInfo, GovernanceMetadata, GrammarInfo, MAGIC_NUMBER,
     METADATA_SCHEMA_VERSION, ParserFeatureProfileSnapshot, ParsetableError, ParsetableMetadata,
     ParsetableWriter, TableStatistics,
 };
+/// ABI language validator and validation error types.
 pub use validation::{LanguageValidator, ValidationError};
 
 // use indexmap::IndexMap; // Currently unused
@@ -769,16 +789,18 @@ impl TableCompressor {
                     run_length += 1;
                 } else {
                     if run_length > 0 {
+                        // SAFETY: run_length > 0 implies last_state was set
+                        let prev = last_state.expect("run_length > 0 implies last_state is set");
                         // Emit previous run
                         if run_length > 2 {
                             data.push(CompressedGotoEntry::RunLength {
-                                state: last_state.unwrap().0,
+                                state: prev.0,
                                 count: run_length,
                             });
                         } else {
                             // For short runs, individual entries are more efficient
                             for _ in 0..run_length {
-                                data.push(CompressedGotoEntry::Single(last_state.unwrap().0));
+                                data.push(CompressedGotoEntry::Single(prev.0));
                             }
                         }
                     }
@@ -789,14 +811,15 @@ impl TableCompressor {
 
             // Emit final run
             if run_length > 0 {
+                let prev = last_state.expect("run_length > 0 implies last_state is set");
                 if run_length > 2 {
                     data.push(CompressedGotoEntry::RunLength {
-                        state: last_state.unwrap().0,
+                        state: prev.0,
                         count: run_length,
                     });
                 } else {
                     for _ in 0..run_length {
-                        data.push(CompressedGotoEntry::Single(last_state.unwrap().0));
+                        data.push(CompressedGotoEntry::Single(prev.0));
                     }
                 }
             }
@@ -827,6 +850,24 @@ impl TableCompressor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(not(debug_assertions))]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {};
+    }
+
+    #[cfg(debug_assertions)]
+    macro_rules! debug_trace {
+        ($($arg:tt)*) => {
+            if std::env::var("RUST_LOG")
+                .ok()
+                .unwrap_or_default()
+                .contains("debug")
+            {
+                eprintln!($($arg)*);
+            }
+        };
+    }
 
     #[test]
     fn test_static_language_generator_creation() {
@@ -1188,7 +1229,7 @@ mod tests {
 
         // Should generate valid Rust code
         let code_str = code.to_string();
-        println!("Generated code: {}", code_str);
+        debug_trace!("Generated code: {}", code_str);
         assert!(code_str.contains("pub fn language")); // Without parentheses in quote output
         assert!(code_str.contains("tree_sitter_test_lang")); // Language-specific function name
         assert!(code_str.contains("LANGUAGE_VERSION"));

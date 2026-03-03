@@ -1,23 +1,35 @@
 # Contributing to Adze
 
-Thank you for your interest in contributing! This guide covers everything you need to get started.
+Thank you for your interest in contributing! This guide covers everything you need to get started developing, testing, and submitting changes.
 
 ## Quick Start
 
-1. **Fork and clone** the repository
-2. **Install prerequisites**: Rust 1.92+ (via `rustup`), `jq`, optionally `rg` (ripgrep)
-3. **Build**: `cargo build`
-4. **Test**: `cargo test`
-5. **Find work**: Check [open issues](https://github.com/EffortlessMetrics/adze/issues) labeled `good first issue`
+```bash
+# 1. Fork and clone
+git clone https://github.com/<you>/adze.git && cd adze
 
-## Setup
+# 2. Toolchain installs automatically via rust-toolchain.toml (Rust 1.92+)
+rustup show  # verify toolchain
 
-### Prerequisites
+# 3. Build
+cargo build
+
+# 4. Test
+cargo test
+
+# 5. Lint
+cargo fmt --all --check && cargo clippy --all -- -D warnings
+```
+
+**Find work**: Check [open issues](https://github.com/EffortlessMetrics/adze/issues) labeled `good first issue`.
+
+## Prerequisites
 
 - **Rust 1.92.0+** with `rustfmt` and `clippy` (configured via `rust-toolchain.toml`)
 - **jq** for crate-aware checks
-- **rg** (ripgrep) - optional but recommended
-- **libtree-sitter-dev** - only needed for ts-bridge tool
+- **rg** (ripgrep) — optional but recommended
+- **libtree-sitter-dev** — only needed for the `ts-bridge` tool
+- **libclang** — only needed for binding generation in some features
 
 ### Enable Git Hooks
 
@@ -29,122 +41,270 @@ git update-index --chmod=+x .githooks/pre-commit .githooks/pre-push \
   scripts/affected-crates.sh scripts/check-goto-indexing.sh
 ```
 
-### Hook Behavior
+**Pre-commit (fast path)** — formats staged files with `rustfmt`, runs clippy on affected crates, blocks conflict markers.
 
-**Pre-commit (fast path)**
-- Formats only staged files with `rustfmt`
-- Runs clippy on affected crates only
-- Blocks commits with conflict markers
+**Pre-push (full validation)** — runs clippy across the entire workspace and tests the feature matrix.
 
-**Pre-push (full validation)**
-- Runs clippy across entire workspace
-- Tests with feature matrix
-
-## Development Workflow
-
-### Building
+## Building
 
 ```bash
-cargo build                    # Build all workspace members
-cargo build -p adze     # Build a specific package
+cargo build                        # Build all workspace members
+cargo build --release              # Build with release optimizations
+cargo build -p adze                # Build only the runtime crate
+cargo build -p adze-macro          # Build only the proc-macro crate
+cargo build -p adze-tool           # Build only the build tool
 ```
 
-### Testing
+## Running Tests
+
+### Unit and Crate Tests
 
 ```bash
-cargo test                              # Run all tests
-cargo test -p adze-glr-core      # Test a specific crate
-cargo test test_name -- --nocapture     # Run one test with output
-cargo insta review                      # Update snapshot tests
+cargo test                                # All tests in the workspace
+cargo test -p adze-glr-core               # Tests for a single crate
+cargo test test_name                      # Run a specific test by name
+cargo test test_name -- --nocapture       # Show stdout/stderr output
 ```
 
-For stable test execution with concurrency caps:
+### Integration Tests
 
 ```bash
-cargo t2                    # Run tests with 2 threads
-cargo test-safe            # Run tests with safe defaults
-./scripts/test-local.sh    # Local test runner with timeout handling
+cargo test -p adze-golden-tests           # Validate against Tree-sitter reference parsers
+cargo test -p adze-glr-core --features test-api  # Internal debug helpers
 ```
 
-### Linting
+### Snapshot Tests (insta)
+
+Snapshot tests live in `/example/src/` and use [insta](https://insta.rs/):
 
 ```bash
-cargo fmt --all --check                 # Check formatting
-cargo clippy --all -- -D warnings       # Lint with warnings as errors
+cargo test -p example                     # Run snapshot tests
+cargo insta review                        # Interactively review pending snapshots
 ```
 
-## Making Changes
+When you intentionally change grammar output, run `cargo insta review` to accept the new snapshots.
 
-### Code Style
+### Property-Based Tests
 
-- **Follow existing patterns** in the surrounding code
-- **No unnecessary comments** - code should be self-documenting
-- **Prefer editing over creating** - modify existing files when possible
-- **Use `debugln!(...)` over raw `eprintln!/println!/dbg!`** for debug output
+Property tests use randomized inputs to validate incremental parsing behavior:
 
-### Commit Messages
+```bash
+cargo test -p adze --test property_incremental_test
+```
 
-We use [Conventional Commits](https://www.conventionalcommits.org/):
+### Feature Flag Combinations
 
-- `feat:` new features
-- `fix:` bug fixes
-- `docs:` documentation changes
-- `test:` test changes
-- `chore:` maintenance tasks
-- `refactor:` code restructuring without behavior change
-- `perf:` performance improvements
-
-### Pull Requests
-
-1. Create a feature branch from `main`
-2. Make your changes with clear, focused commits
-3. Run the pre-commit hook or lint manually before pushing
-4. Open a PR against `main`
-5. Fill out the PR template
-
-PRs are squash-merged. Your PR title becomes the commit message, so make it descriptive.
-
-## Architecture Overview
-
-Adze is a Rust workspace with multiple interconnected crates:
-
-### Core Crates
-
-| Crate | Location | Purpose |
-|-------|----------|---------|
-| `adze` | `/runtime/` | Main runtime library |
-| `adze-glr-core` | `/glr-core/` | GLR parser generation |
-| `adze-ir` | `/ir/` | Grammar intermediate representation |
-| `adze-tablegen` | `/tablegen/` | Table generation and compression |
-
-### Supporting Crates
-
-| Crate | Location | Purpose |
-|-------|----------|---------|
-| `adze-macro` | `/macro/` | Procedural macros |
-| `adze-tool` | `/tool/` | Build-time code generation |
-| `adze-common` | `/common/` | Shared utilities |
-| `example` | `/example/` | Example grammars and tests |
-| `ts-bridge` | `/tools/ts-bridge/` | Tree-sitter to GLR bridge |
-
-### Key Design Patterns
-
-1. **Two-stage processing**: Macros mark types at compile time; the build tool generates parsers at build time
-2. **GLR parsing**: Multi-action cells enable parsing ambiguous grammars without manual conflict resolution
-3. **Feature-gated backends**: `tree-sitter-c2rust` (pure Rust, WASM-compatible) or `tree-sitter-standard` (C runtime)
-
-## Testing Guidelines
-
-- **Grammar tests**: Add to `/example/src/` with snapshot tests
-- **GLR tests**: Test parser generation in `/glr-core/`
-- **Integration tests**: Validate with real grammars via golden tests
-- **Feature flag tests**: Ensure all feature combinations work
+Several features gate optional functionality. Test them explicitly:
 
 ```bash
 cargo test --features external_scanners
 cargo test --features incremental_glr
 cargo test --all-features
-./scripts/check-test-connectivity.sh    # Verify all tests are connected
+```
+
+### Fuzzing
+
+Fuzz targets live in `/fuzz/fuzz_targets/`:
+
+```bash
+cd fuzz
+cargo fuzz list                           # List available targets
+cargo fuzz run <target> -- -max_total_time=60  # Run a target for 60 seconds
+```
+
+### Concurrency-Capped Testing
+
+For stable results, especially in CI or resource-limited environments:
+
+```bash
+cargo t2                                  # 2 test threads
+cargo test-safe                           # Safe defaults
+cargo test-ultra-safe                     # 1 test thread
+./scripts/test-capped.sh                  # Auto-detect and cap concurrency
+./scripts/test-local.sh                   # Local runner with nextest fallback
+```
+
+### Test Connectivity
+
+Verify that all test files are properly wired into the test harness:
+
+```bash
+./scripts/check-test-connectivity.sh
+```
+
+## Code Style
+
+### Formatting
+
+All code must pass `rustfmt` using the workspace configuration (`rustfmt.toml`, edition 2024):
+
+```bash
+cargo fmt --all             # Format everything
+cargo fmt --all --check     # Check without modifying
+```
+
+### Linting
+
+Clippy warnings are treated as errors in CI:
+
+```bash
+cargo clippy --all -- -D warnings
+```
+
+### Style Guidelines
+
+- **Follow existing patterns** in the surrounding code.
+- **No unnecessary comments** — code should be self-documenting. Only comment when clarification is genuinely needed.
+- **Prefer editing over creating** — modify existing files when possible.
+- **Use `debugln!(...)` over raw `eprintln!`/`println!`/`dbg!`** for debug output.
+- **Doc comments**: Public APIs should have `///` doc comments. Include a one-line summary, examples where helpful, and `# Panics` / `# Errors` sections as appropriate.
+
+## Pull Request Process
+
+### Branch Naming
+
+Use descriptive branch names with a category prefix:
+
+- `feat/add-json-grammar`
+- `fix/eof-symbol-collision`
+- `docs/update-contributing`
+- `test/golden-test-python`
+- `refactor/simplify-ir-optimizer`
+
+### Commit Messages
+
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefix | Use for |
+|--------|---------|
+| `feat:` | New features |
+| `fix:` | Bug fixes |
+| `docs:` | Documentation changes |
+| `test:` | Test additions or changes |
+| `chore:` | Maintenance tasks |
+| `refactor:` | Code restructuring without behavior change |
+| `perf:` | Performance improvements |
+
+### Submitting a PR
+
+1. Create a feature branch from `main`.
+2. Make focused commits following the convention above.
+3. Run the full lint and test suite locally before pushing:
+   ```bash
+   cargo fmt --all --check && cargo clippy --all -- -D warnings && cargo test
+   ```
+4. Open a PR against `main` and fill out the PR template.
+5. All CI checks must pass before merge.
+
+### CI Requirements
+
+Every PR must pass:
+
+- **Formatting**: `cargo fmt --all --check`
+- **Linting**: `cargo clippy --all -- -D warnings`
+- **Tests**: `cargo test` across all feature combinations
+- **Test connectivity**: No `.rs.disabled` files; non-zero test counts per crate
+
+PRs are squash-merged. Your PR title becomes the merge commit message, so make it descriptive.
+
+## Architecture Overview
+
+Adze is an AST-first grammar toolchain for Rust. You define syntax using annotated Rust types, then parse text into those types. For full architecture details, see [`CLAUDE.md`](CLAUDE.md).
+
+### Core Crates
+
+| Crate | Location | Purpose |
+|-------|----------|---------|
+| `adze` | `/runtime/` | Main runtime library with `Extract` trait and parsing |
+| `adze-glr-core` | `/glr-core/` | GLR parser generation (FIRST/FOLLOW, LR(1), conflicts) |
+| `adze-ir` | `/ir/` | Grammar intermediate representation |
+| `adze-tablegen` | `/tablegen/` | Parse table generation and compression |
+
+### Supporting Crates
+
+| Crate | Location | Purpose |
+|-------|----------|---------|
+| `adze-macro` | `/macro/` | Procedural macros (`#[adze::grammar]`, `#[adze::leaf]`, etc.) |
+| `adze-tool` | `/tool/` | Build-time code generation (`build_parsers()`) |
+| `adze-common` | `/common/` | Shared grammar expansion logic |
+| `example` | `/example/` | Example grammars and snapshot tests |
+| `golden-tests` | `/golden-tests/` | Reference parser validation (Python, JavaScript) |
+| `ts-bridge` | `/tools/ts-bridge/` | Tree-sitter parse table extraction |
+
+### Key Design Patterns
+
+1. **Two-stage processing**: Macros mark types at compile time; the build tool generates parsers at build time.
+2. **GLR parsing**: Multi-action cells enable parsing ambiguous grammars without manual conflict resolution.
+3. **Feature-gated backends**: `tree-sitter-c2rust` (pure Rust, WASM-compatible) or `tree-sitter-standard` (C runtime).
+
+### Further Reading
+
+- [`CLAUDE.md`](CLAUDE.md) — Detailed architecture, crate descriptions, and design decisions
+- [`QUICK_START.md`](QUICK_START.md) — Getting started with Adze as a user
+- [`FAQ.md`](FAQ.md) — Frequently asked questions
+- [`PERFORMANCE_GUIDE.md.ISSUES_DOCUMENTED`](PERFORMANCE_GUIDE.md.ISSUES_DOCUMENTED) — Performance tuning notes
+
+## How to Add a New Grammar
+
+1. **Create a grammar file** in `/example/src/` (e.g., `my_grammar.rs`).
+2. **Define the grammar** using Adze annotations:
+   ```rust
+   use adze_macro::grammar;
+
+   #[grammar]
+   pub mod my_grammar {
+       #[adze::language]
+       pub struct Language;
+
+       // Define your rules using #[adze::leaf], structs, and enums
+   }
+   ```
+3. **Register the module** in `/example/src/lib.rs`:
+   ```rust
+   pub mod my_grammar;
+   ```
+4. **Add snapshot tests** — run `cargo test -p example` and then `cargo insta review` to accept the generated snapshots.
+5. **Verify** — the build tool (`build.rs`) will automatically generate the Tree-sitter JSON grammar and C parser at build time.
+
+See existing grammars in `/example/src/` (e.g., `arithmetic.rs`, `words.rs`, `optionals.rs`) for working examples.
+
+## How to Add a New Test
+
+### Unit Test
+
+Add a `#[test]` function in the relevant source file:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_my_feature() {
+        // ...
+    }
+}
+```
+
+### Integration Test
+
+Create a file in the crate's `tests/` directory (e.g., `runtime/tests/my_test.rs`). Integration tests have access to the crate's public API.
+
+### Snapshot Test
+
+Add a test in `/example/src/` that parses input and snapshots the result using `insta::assert_snapshot!`. Run `cargo insta review` to accept new snapshots.
+
+### Golden Test
+
+Add a test case to `/golden-tests/` that compares Adze parser output against a Tree-sitter reference parser using SHA256 hash verification.
+
+### Verify Connectivity
+
+After adding tests, verify they are discovered by the test harness:
+
+```bash
+cargo test -p <crate> -- --list           # List discovered tests
+./scripts/check-test-connectivity.sh      # Check all crates
 ```
 
 ## Environment Variables
@@ -152,13 +312,82 @@ cargo test --all-features
 | Variable | Purpose |
 |----------|---------|
 | `ADZE_EMIT_ARTIFACTS=true` | Output generated grammar files for debugging |
-| `ADZE_LOG_PERFORMANCE=true` | Enable GLR performance logging |
-| `RUST_TEST_THREADS=N` | Limit test thread concurrency |
-| `RAYON_NUM_THREADS=N` | Control rayon thread pool size |
+| `ADZE_LOG_PERFORMANCE=true` | Enable GLR forest-to-tree performance logging |
+| `RUST_TEST_THREADS=N` | Limit test thread concurrency (default: 2) |
+| `RAYON_NUM_THREADS=N` | Control rayon thread pool size (default: 4) |
+| `TOKIO_WORKER_THREADS=N` | Tokio async worker threads (default: 2) |
+
+## Troubleshooting
+
+### "Too many open files" or "Cannot create thread"
+
+System resource exhaustion under high concurrency. Use capped testing:
+
+```bash
+./scripts/preflight.sh          # Check system pressure
+cargo test-ultra-safe           # 1 test thread
+```
+
+### Snapshot test failures after intentional changes
+
+Run `cargo insta review` to interactively accept or reject the new snapshots.
+
+### Build failures in `example` crate
+
+The example crate depends on build-time code generation. If the grammar JSON or C parser is stale:
+
+```bash
+cargo clean -p example && cargo build -p example
+```
+
+Set `ADZE_EMIT_ARTIFACTS=true` to inspect the generated grammar files in `target/debug/build/`.
+
+### Feature-gated compilation errors
+
+Some code is behind feature flags. If you see missing-symbol errors, check which features are enabled:
+
+```bash
+cargo test --all-features       # Enable everything
+cargo test --features test-api  # Enable internal test helpers
+```
+
+### Inconsistent test results across runs
+
+Pin concurrency to eliminate non-determinism:
+
+```bash
+RUST_TEST_THREADS=1 RAYON_NUM_THREADS=1 cargo test
+```
+
+### Test connectivity failures
+
+CI enforces that every crate has non-zero test counts and no `.rs.disabled` files:
+
+```bash
+./scripts/check-test-connectivity.sh    # Run the same check locally
+```
+
+## Release Readiness Checklist
+
+- [ ] Update crate versions and changelog entries together (`CHANGELOG.md` and `book/src/appendix/changelog.md`).
+- [ ] Verify all required checks pass locally:
+  - `cargo fmt --all --check`
+  - `cargo clippy --all -- -D warnings`
+  - `cargo test --all-features`
+- [ ] Decide and set release-surface mode (`RELEASE_SURFACE_MODE=fixed` or `auto`) and optional `RELEASE_CRATE_FILE` before validating.
+- [ ] Decide fixed-mode release-surface strictness (`strict_publish_surface` in workflow or `STRICT_PUBLISH_SURFACE` locally) before running the Release workflow.
+- [ ] If using manual Release workflow dispatch, set `release_surface_mode` and `release_crate_file` as needed.
+- [ ] Run release validation for crates scheduled for publish (`cargo publish --dry-run -p <crate>`).
+- [ ] Confirm docs and migration notes are updated for any API/behavior changes.
+- [ ] Get maintainer sign-off for compatibility notes and known issues before tagging.
 
 ## Getting Help
 
 - Browse [open issues](https://github.com/EffortlessMetrics/adze/issues) and [discussions](https://github.com/EffortlessMetrics/adze/discussions)
-- Check `CLAUDE.md` for detailed architecture information
+- Check [`CLAUDE.md`](CLAUDE.md) for detailed architecture information
 - Run tests with `--nocapture` for debug output
 - Use `RUST_LOG=debug` for verbose logging
+
+## Code of Conduct
+
+All participants are expected to follow the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to git@effortlesssteven.com.

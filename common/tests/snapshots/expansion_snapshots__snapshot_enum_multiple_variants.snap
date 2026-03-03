@@ -1,0 +1,35 @@
+---
+source: common/tests/expansion_snapshots.rs
+assertion_line: 188
+expression: "serde_json::to_string_pretty(&result).unwrap()"
+---
+{
+  "rule_name": "Expression",
+  "kind": "enum",
+  "variants": [
+    {
+      "variant": "Literal",
+      "input_type": "LiteralExpr",
+      "filtered": "LiteralExpr",
+      "wrapped": "adze :: WithLeaf < LiteralExpr >"
+    },
+    {
+      "variant": "Binary",
+      "input_type": "Box < BinaryExpr >",
+      "filtered": "BinaryExpr",
+      "wrapped": "adze :: WithLeaf < Box < BinaryExpr > >"
+    },
+    {
+      "variant": "Unary",
+      "input_type": "Box < UnaryExpr >",
+      "filtered": "UnaryExpr",
+      "wrapped": "adze :: WithLeaf < Box < UnaryExpr > >"
+    },
+    {
+      "variant": "Group",
+      "input_type": "Box < GroupExpr >",
+      "filtered": "GroupExpr",
+      "wrapped": "adze :: WithLeaf < Box < GroupExpr > >"
+    }
+  ]
+}

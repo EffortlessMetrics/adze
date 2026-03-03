@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Alternative table compression algorithms for action tables.
+
 // Table compression algorithms for parse tables
 use adze_glr_core::Action;
 use adze_ir::StateId;
@@ -9,14 +11,16 @@ pub struct CompressedActionTable {
     // Row compression: map identical rows to a single index
     #[allow(dead_code)]
     row_map: HashMap<Vec<Vec<Action>>, usize>,
-    unique_rows: Vec<Vec<Vec<Action>>>,
-    state_to_row: Vec<usize>,
+    /// Deduplicated rows of the action table.
+    pub unique_rows: Vec<Vec<Vec<Action>>>,
+    /// Mapping from state index to deduplicated row index.
+    pub state_to_row: Vec<usize>,
 }
 
 /// Compressed representation of goto table
 pub struct CompressedGotoTable {
-    // Sparse representation: only store non-None entries
-    entries: HashMap<(usize, usize), StateId>,
+    /// Sparse representation: only store non-None entries.
+    pub entries: HashMap<(usize, usize), StateId>,
     #[allow(dead_code)]
     state_count: usize,
     #[allow(dead_code)]

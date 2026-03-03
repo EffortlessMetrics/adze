@@ -238,7 +238,13 @@ impl<'a> IncrementalParserState<'a> {
 
             // Normal parsing
             let token = &self.tokens[self.position];
-            let (state, _) = self.stack.last().unwrap();
+            let Some((state, _)) = self.stack.last() else {
+                return Err(ParseError::UnexpectedToken {
+                    expected: vec![],
+                    found: token.symbol,
+                    position: self.position,
+                });
+            };
 
             // Get action for current state and token
             if let Some(actions) = self.table.action_table.get(state.0 as usize)
@@ -352,7 +358,9 @@ impl<'a> IncrementalParserState<'a> {
         self.position += token_count;
 
         // Push the reused subtree onto the stack
-        let (state, _) = self.stack.last().unwrap();
+        let Some((state, _)) = self.stack.last() else {
+            return;
+        };
 
         // Get next state after shifting this symbol
         if let Some(gotos) = self.table.goto_table.get(state.0 as usize)
@@ -407,7 +415,13 @@ impl<'a> IncrementalParserState<'a> {
         };
 
         // Get goto state
-        let (state, _) = self.stack.last().unwrap();
+        let Some((state, _)) = self.stack.last() else {
+            return Err(ParseError::UnexpectedToken {
+                expected: vec![],
+                found: SymbolId(0),
+                position: self.position,
+            });
+        };
         if let Some(gotos) = self.table.goto_table.get(state.0 as usize) {
             if let Some(&goto_state) = gotos.get(rule.lhs.0 as usize) {
                 self.stack.push((goto_state, Some(node)));

@@ -1,0 +1,25 @@
+[package]
+name = "adze-bdd-grammar-analysis-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Conflict-analysis helpers extracted from BDD grammar fixtures."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["bdd", "testing", "scenarios", "parser", "grammar"]
+categories = ["development-tools::testing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-bdd-grammar-analysis-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
+
+[dev-dependencies]
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }
+proptest.workspace = true

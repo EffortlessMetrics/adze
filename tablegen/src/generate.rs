@@ -1,3 +1,5 @@
+//! High-level language builder producing validated Language structures.
+
 use crate::compress::CompressedParseTable;
 use crate::validation::TSLanguage;
 use adze_glr_core::ParseTable;
@@ -28,6 +30,7 @@ impl LanguageBuilder {
     }
 
     /// Generate a static Language struct with full validation
+    #[must_use = "generation result must be checked"]
     pub fn generate_language(&self) -> Result<TSLanguage, String> {
         // Create compressed tables
         let compressed = CompressedParseTable::from_parse_table(&self.parse_table);
@@ -123,19 +126,22 @@ impl LanguageBuilder {
 
         // Add terminal symbols
         for (_, token) in &self.grammar.tokens {
-            let name = std::ffi::CString::new(token.name.clone()).unwrap();
+            let name = std::ffi::CString::new(token.name.clone())
+                .expect("symbol name must not contain NUL bytes");
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
 
         // Add non-terminal symbols
         for (symbol_id, _) in &self.grammar.rules {
-            let name = std::ffi::CString::new(format!("rule_{}", symbol_id.0)).unwrap();
+            let name = std::ffi::CString::new(format!("rule_{}", symbol_id.0))
+                .expect("rule name must not contain NUL bytes");
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
 
         // Add external symbols
         for external in &self.grammar.externals {
-            let name = std::ffi::CString::new(external.name.clone()).unwrap();
+            let name = std::ffi::CString::new(external.name.clone())
+                .expect("external name must not contain NUL bytes");
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
 
@@ -146,12 +152,13 @@ impl LanguageBuilder {
         let mut names = Vec::new();
 
         // First entry is always empty string
-        let empty = std::ffi::CString::new("").unwrap();
+        let empty = std::ffi::CString::new("").expect("empty string cannot contain NUL bytes");
         names.push(Box::leak(Box::new(empty)).as_ptr());
 
         // Add field names in lexicographic order
         for (_, field_name) in &self.grammar.fields {
-            let name = std::ffi::CString::new(field_name.clone()).unwrap();
+            let name = std::ffi::CString::new(field_name.clone())
+                .expect("field name must not contain NUL bytes");
             names.push(Box::leak(Box::new(name)).as_ptr());
         }
 
@@ -304,6 +311,8 @@ mod tests {
         assert!(!names.is_empty());
         // Should have at least the token name
         assert!(
+            // SAFETY: `name` points to a string literal leaked by `build_symbol_names`,
+            // so it is valid, null-terminated, and lives for 'static.
             names.iter().any(|&name| unsafe {
                 std::ffi::CStr::from_ptr(name).to_str().unwrap() == "number"
             })
@@ -321,11 +330,13 @@ mod tests {
         assert_eq!(names.len(), 2);
         // First field should be null (empty string)
         assert_eq!(
+            // SAFETY: `names[0]` is a leaked CString pointer from `build_field_names`.
             unsafe { std::ffi::CStr::from_ptr(names[0]).to_str().unwrap() },
             ""
         );
         // Second field should be "value"
         assert_eq!(
+            // SAFETY: `names[1]` is a leaked CString pointer from `build_field_names`.
             unsafe { std::ffi::CStr::from_ptr(names[1]).to_str().unwrap() },
             "value"
         );

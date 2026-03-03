@@ -1,0 +1,7 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: render_rules(&grammar)
+---
+  Symbol(10) -> NonTerminal(SymbolId(1010))
+  Symbol(1010) -> Epsilon
+  Symbol(1010) -> NonTerminal(SymbolId(1010)) Terminal(SymbolId(1))

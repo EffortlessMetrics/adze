@@ -1,0 +1,26 @@
+[package]
+name = "adze-stack-pool-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Thread-local and reusable stack pool utilities for parser workloads."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["stack", "pool", "memory", "parser", "reuse"]
+categories = ["data-structures", "memory-management"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-stack-pool-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dev-dependencies]
+proptest.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "stack_pool_bench"
+harness = false

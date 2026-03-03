@@ -46,7 +46,7 @@ pub enum ParseErrorKind {
     SyntaxError(String),
 
     /// External scanner error
-    #[cfg(feature = "external-scanners")]
+    #[cfg(feature = "external_scanners")]
     #[error("external scanner error: {0}")]
     ExternalScannerError(String),
 

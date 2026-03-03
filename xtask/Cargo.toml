@@ -5,16 +5,16 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
-anyhow = "1.0"
+clap.workspace = true
+anyhow.workspace = true
 xshell = "0.2"
 camino = "1"      # OS-agnostic path printing
-serde_json = "1.0"
+serde_json.workspace = true
 similar = "2.6"
 console = "0.15"
 walkdir = "2.5"
 glob = "0.3"
 chrono = "0.4"
-serde = { version = "1.0", features = ["derive"] }
+serde.workspace = true
 adze-tool = { version = "0.8.0-dev", path = "../tool" }
-tempfile = "3.0"
+tempfile.workspace = true

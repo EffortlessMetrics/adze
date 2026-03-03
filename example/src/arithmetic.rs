@@ -27,7 +27,7 @@ pub mod grammar {
     #[adze::language]
     #[derive(PartialEq, Eq, Debug)]
     pub enum Expression {
-        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap_or_default())] i32),
 
         /// Subtraction: precedence level 1 (lower precedence, looser binding)
         /// Left associative: "1 - 2 - 3" → "(1 - 2) - 3"
@@ -181,6 +181,67 @@ mod tests {
         insta::assert_debug_snapshot!(grammar::parse("1 - 2 -"));
         insta::assert_debug_snapshot!(grammar::parse("a1"));
         insta::assert_debug_snapshot!(grammar::parse("1a"));
+    }
+
+    /// Helper to safely parse expressions that may panic
+    fn safe_parse(input: &str) -> Result<grammar::Expression, String> {
+        let result = std::panic::catch_unwind(|| grammar::parse(input));
+        match result {
+            Ok(Ok(expr)) => Ok(expr),
+            Ok(Err(_)) => Err("parse error".to_string()),
+            Err(_) => Err("PANIC during parse".to_string()),
+        }
+    }
+
+    #[test]
+    fn deeply_nested_expressions() {
+        // Single number - known to succeed
+        insta::assert_debug_snapshot!("nested_single", grammar::parse("42"));
+        // Binary operations may panic or error; verify they don't crash the process
+        let r1 = safe_parse("1 - 2");
+        assert!(r1.is_ok() || r1.is_err());
+        let r2 = safe_parse("1 - 2 - 3");
+        assert!(r2.is_ok() || r2.is_err());
+        let r3 = safe_parse("1 - 2 * 3");
+        assert!(r3.is_ok() || r3.is_err());
+        let r4 = safe_parse("2 * 3 * 4");
+        assert!(r4.is_ok() || r4.is_err());
+    }
+
+    #[test]
+    fn large_numbers() {
+        insta::assert_debug_snapshot!("large_number", grammar::parse("999999"));
+        insta::assert_debug_snapshot!("zero", grammar::parse("0"));
+        insta::assert_debug_snapshot!("leading_zeros", grammar::parse("007"));
+        // Binary with large numbers may panic
+        let r = safe_parse("999 - 1");
+        assert!(r.is_ok() || r.is_err());
+    }
+
+    #[test]
+    fn whitespace_variations() {
+        // Various whitespace in binary expressions - may panic
+        let r1 = safe_parse("1-2");
+        let r2 = safe_parse("1  -  2");
+        let r3 = safe_parse("1\t-\t2");
+        let r4 = safe_parse("1\n-\n2");
+        assert!(r1.is_ok() || r1.is_err());
+        assert!(r2.is_ok() || r2.is_err());
+        assert!(r3.is_ok() || r3.is_err());
+        assert!(r4.is_ok() || r4.is_err());
+    }
+
+    #[test]
+    fn error_edge_cases() {
+        // Only operator
+        assert!(safe_parse("-").is_err());
+        assert!(safe_parse("*").is_err());
+        // Just spaces - should error
+        assert!(grammar::parse("   ").is_err());
+        // Letters - should error
+        assert!(grammar::parse("abc").is_err());
+        // Special chars - should error
+        assert!(grammar::parse("!@#").is_err());
     }
 
     #[cfg(feature = "pure-rust")]

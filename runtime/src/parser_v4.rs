@@ -4,7 +4,7 @@
 // Enhanced Pure-Rust parser with external scanner support
 // This module extends parser_v3 with full external scanner integration
 
-use crate::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena};
+use crate::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
 use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
@@ -14,6 +14,9 @@ use adze_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use anyhow::{Result, anyhow, bail};
 use std::collections::HashSet;
 use std::rc::Rc;
+
+const PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED: &str = "Custom lexer functions are not yet supported by parser_v4 runtime. \
+     Provide a grammar/tokenization path without a custom transform lexer.";
 
 // Define types directly in parser_v4 (no longer dependent on parser_v3)
 
@@ -64,8 +67,7 @@ pub struct ParserState {
 ///
 /// ```ignore
 /// let mut parser = Parser::new(grammar, parse_table, "example".to_string());
-/// let tree = parser.parse("1 + 2")?;
-/// let root = tree.root_node(); // Node<'arena>
+/// let root = parser.parse_tree("1 + 2")?;
 /// ```
 #[derive(Debug)]
 pub struct Tree<'arena> {
@@ -127,6 +129,13 @@ pub struct Parser {
     /// Language name for scanner registry lookup
     #[allow(dead_code)]
     language: String,
+    /// Optional custom lexer function provided by the generated parser.
+    ///
+    /// `parser_v4` currently does not implement this path, so parse attempts are
+    /// rejected explicitly when present.
+    custom_lexer_fn: Option<
+        unsafe extern "C" fn(*mut core::ffi::c_void, crate::pure_parser::TSLexState) -> bool,
+    >,
 }
 
 impl Parser {
@@ -196,7 +205,7 @@ impl Parser {
         let (external_scanner, external_runtime) = if !grammar.externals.is_empty() {
             // Get scanner from registry
             let registry = get_global_registry();
-            let registry = registry.lock().unwrap();
+            let registry = registry.lock().unwrap_or_else(|err| err.into_inner());
 
             if let Some(scanner) = registry.create_scanner(&language) {
                 let external_tokens: Vec<crate::SymbolId> = grammar
@@ -227,6 +236,7 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
+            custom_lexer_fn: None,
         }
     }
 
@@ -251,6 +261,7 @@ impl Parser {
         // Decode the grammar and parse table from the TSLanguage struct
         let grammar = crate::decoder::decode_grammar_with_patterns(language, token_patterns);
         let parse_table = crate::decoder::decode_parse_table(language);
+        let custom_lexer_fn = language.lex_fn;
         // #[cfg(feature = "debug")]
         // eprintln!(
         // "Parser from_language: parse_table.rules has {} rules",
@@ -261,12 +272,15 @@ impl Parser {
         let (external_scanner, external_runtime) = if language.external_token_count > 0 {
             // Get scanner from registry
             let registry = get_global_registry();
-            let registry = registry.lock().unwrap();
+            let registry = registry.lock().unwrap_or_else(|err| err.into_inner());
 
             if let Some(scanner) = registry.create_scanner(&language_name) {
-                // Create external tokens list from the language struct
-                // For now just use a placeholder
-                let external_tokens: Vec<crate::SymbolId> = vec![];
+                // Create external tokens list from decoded grammar externals.
+                let external_tokens: Vec<crate::SymbolId> = grammar
+                    .externals
+                    .iter()
+                    .map(|ext| ext.symbol_id.0)
+                    .collect();
                 let runtime = ExternalScannerRuntime::new(external_tokens);
                 (Some(scanner), Some(runtime))
             } else {
@@ -290,6 +304,7 @@ impl Parser {
             external_scanner,
             external_runtime,
             language: language_name,
+            custom_lexer_fn,
         }
     }
 
@@ -317,7 +332,7 @@ impl Parser {
         let (external_scanner, external_runtime) = if !grammar.externals.is_empty() {
             // Get scanner from registry
             let registry = get_global_registry();
-            let registry = registry.lock().unwrap();
+            let registry = registry.lock().unwrap_or_else(|err| err.into_inner());
 
             if let Some(scanner) = registry.create_scanner(&language) {
                 let external_tokens: Vec<crate::SymbolId> = grammar
@@ -344,6 +359,7 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
+            custom_lexer_fn: None,
         }
     }
 
@@ -384,8 +400,11 @@ impl Parser {
             );
         }
 
+        let custom_lexer_fn = language.lex_fn;
+
         // Decode the grammar and parse table from the TSLanguage struct
         self.grammar = crate::decoder::decode_grammar(language);
+        self.parse_table = crate::decoder::decode_parse_table(language);
         // #[cfg(feature = "debug_parser")]
         // eprintln!(
         // "Parser set_language: parse_table.rules has {} rules",
@@ -396,14 +415,20 @@ impl Parser {
         // self.parse_table.rules.len()
         // );
         self.language = language_name.clone();
+        self.custom_lexer_fn = custom_lexer_fn;
 
         // Update external scanner if needed
         if language.external_token_count > 0 {
             let registry = get_global_registry();
-            let registry = registry.lock().unwrap();
+            let registry = registry.lock().unwrap_or_else(|err| err.into_inner());
 
             if let Some(scanner) = registry.create_scanner(&language_name) {
-                let external_tokens: Vec<crate::SymbolId> = vec![];
+                let external_tokens: Vec<crate::SymbolId> = self
+                    .grammar
+                    .externals
+                    .iter()
+                    .map(|ext| ext.symbol_id.0)
+                    .collect();
                 let runtime = ExternalScannerRuntime::new(external_tokens);
                 self.external_scanner = Some(scanner);
                 self.external_runtime = Some(runtime);
@@ -419,53 +444,18 @@ impl Parser {
         Ok(())
     }
 
-    /// Parse the input string with automatic lexer selection
+    /// Parse the input string with automatic lexer selection.
+    ///
+    /// If a custom lexer is present this returns an explicit unsupported error.
+    /// Otherwise it uses the parser-v4 `parse()` path.
     pub fn parse_with_auto_lexer<'a>(
         &'a mut self,
         input: &str,
         language: &crate::pure_parser::TSLanguage,
     ) -> Result<Tree<'a>> {
         // Check if language has a custom lexer
-        if let Some(_lex_fn) = language.lex_fn {
-            // ❌ CRITICAL BLOCKER: This is why parsing doesn't work! (Issue #74)
-            //
-            // PROBLEM: All grammars with custom lexers (transform functions) fall back
-            // to this broken path. The "type conversion not yet implemented safely"
-            // means NO REAL PARSING HAPPENS for grammars like:
-            //   #[adze::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())]
-            //
-            // IMPACT:
-            // - Python grammar can't parse numbers, strings, or identifiers
-            // - All performance benchmarks are measuring fallback behavior
-            // - Users get thousands of warning messages instead of parsed trees
-            // - Project appears functional but actually cannot parse real code
-            //
-            // ROOT CAUSE: TSLexState type incompatibility between:
-            // - Generated grammar lexer functions (expect one TSLexState layout)
-            // - Runtime lexer state management (uses different TSLexState layout)
-            // - Unsafe transmute was avoided, but no safe alternative was implemented
-            //
-            // REQUIRED FIX (HIGH PRIORITY):
-            // 1. Implement safe TSLexState type conversion system
-            // 2. Create proper lexer function call interface with error handling
-            // 3. Add transform function execution pipeline
-            // 4. Replace eprintln! warning with proper Result<> error handling
-            //
-            // TEMPORARY WORKAROUND NEEDED:
-            // Until fixed, this should return an Error instead of silently falling back:
-            // ```rust
-            // return Err(ParseError::LexerNotImplemented(
-            //     "Custom lexer functions require TSLexState type conversion - see Issue #74"
-            // ));
-            // ```
-            //
-            // TODO: Need to implement proper type-safe conversion between TSLexState types
-            // For now, fall back to regular parsing to avoid unsafe transmute
-            // The different TSLexState types are not directly compatible
-            eprintln!(
-                "Warning: Custom lexer function provided but type conversion not yet implemented safely"
-            );
-            self.parse(input) // ❌ WRONG: This fallback doesn't work either!
+        if let Some(lex_fn) = language.lex_fn {
+            self.parse_with_custom_lexer(input, lex_fn)
         } else {
             self.parse(input)
         }
@@ -475,231 +465,31 @@ impl Parser {
     pub fn parse_with_custom_lexer<'a>(
         &'a mut self,
         input: &str,
-        lex_fn: unsafe extern "C" fn(*mut core::ffi::c_void, crate::lex::TSLexState) -> bool,
+        lex_fn: unsafe extern "C" fn(
+            *mut core::ffi::c_void,
+            crate::pure_parser::TSLexState,
+        ) -> bool,
     ) -> Result<Tree<'a>> {
-        use crate::lex::{TokenSource, TsLexFnAdapter};
-
-        // eprintln!("\nStarting parse with custom lexer for: {:?}", input);
-
-        // Store the input
-        self.input = input.as_bytes().to_vec();
-        self.position = 0;
-
-        // Initialize the parser state
-        let mut state_stack: Vec<StateId> = vec![StateId(0)]; // Start in state 0
-        let mut symbol_stack: Vec<SymbolId> = vec![];
-        let mut node_stack: Vec<ParseNode> = vec![];
-        let mut _error_count = 0;
-
-        // Create the TsLexFnAdapter directly - no type conversion needed
-        let mut token_source = TsLexFnAdapter::new(input.as_bytes(), lex_fn);
-
-        // Main parsing loop with safety limits
-        let mut loop_iterations = 0;
-        const MAX_LOOP_ITERATIONS: usize = 1_000_000; // Prevent infinite loops
-
-        loop {
-            // Safety check to prevent infinite loops
-            loop_iterations += 1;
-            if loop_iterations > MAX_LOOP_ITERATIONS {
-                bail!(
-                    "Parser exceeded maximum iteration limit ({}), possible infinite loop",
-                    MAX_LOOP_ITERATIONS
-                );
-            }
-
-            // Enhanced safety checks to prevent various attack vectors
-            if state_stack.len() > 10000 {
-                bail!("Parse stack overflow: {} states", state_stack.len());
-            }
-            if symbol_stack.len() > 10000 {
-                bail!("Symbol stack overflow: {} symbols", symbol_stack.len());
-            }
-            if node_stack.len() > 10000 {
-                bail!("Node stack overflow: {} nodes", node_stack.len());
-            }
-
-            // Get current state
-            let current_state = *state_stack
-                .last()
-                .ok_or_else(|| anyhow!("State stack is empty"))?;
-
-            // Get the next token from the token source
-            let token = if let Some(tok) = token_source.peek() {
-                // eprintln!(
-                // "  Lexer returned token: symbol {} at pos {}-{}",
-                // tok.sym,
-                // tok.start,
-                // tok.start + tok.len
-                // );
-                tok
-            } else {
-                // We're at EOF - use the table's EOF symbol
-                let eof_sym = self.parse_table.eof_symbol.0; // Extract u16 from SymbolId
-                // eprintln!("  Lexer returned EOF (symbol {})", eof_sym);
-                crate::lex::Token {
-                    sym: eof_sym,
-                    start: token_source.offset(),
-                    len: 0,
-                }
-            };
-
-            let lookahead = SymbolId(token.sym);
-
-            // Get the actions for this state and lookahead symbol
-            let mut actions = self.get_parse_actions(current_state, lookahead)?;
-
-            // Sort actions by priority (highest first) to prefer better actions
-            actions.sort_by_key(|a| -self.action_priority(a));
-
-            let _col = self
-                .parse_table
-                .symbol_to_index
-                .get(&lookahead)
-                .map(|c| format!("col {}", c))
-                .unwrap_or_else(|| "no col".to_string());
-            // #[cfg(feature = "debug")]
-            // eprintln!(
-            // "State {}, Symbol {} ({}) -> Actions: {:?}",
-            // current_state.0, lookahead.0, _col, actions
-            // );
-
-            if actions.is_empty() {
-                // No valid action - error recovery needed
-                if lookahead == self.parse_table.eof_symbol {
-                    // We're at EOF with no valid reduce - accept if we can
-                    if state_stack.len() == 2 && state_stack[0] == StateId(0) {
-                        // Accept state - success!
-                        break;
-                    }
-                    // Otherwise it's an error
-                    _error_count += 1;
-                    // eprintln!("Parse error at EOF");
-                    break;
-                }
-
-                // Skip this token and continue
-                _error_count += 1;
-                // eprintln!(
-                // "Parse error: no action for symbol {} in state {}",
-                // lookahead.0, current_state.0
-                // );
-                token_source.bump();
-                continue;
-            }
-
-            // Execute the first action (for now, just pick the first)
-            let action = &actions[0];
-            match action {
-                Action::Shift(next_state) => {
-                    // eprintln!("  Shift to state {}", next_state.0);
-                    state_stack.push(*next_state);
-                    symbol_stack.push(lookahead);
-                    node_stack.push(ParseNode {
-                        symbol: lookahead,
-                        symbol_id: lookahead,
-                        start_byte: token.start,
-                        end_byte: token.start + token.len,
-                        field_name: None,
-                        children: vec![],
-                    });
-                    token_source.bump();
-                }
-                Action::Reduce(rule_idx) => {
-                    // eprintln!("  Reduce by rule {}", rule_idx.0);
-                    let rule =
-                        self.parse_table
-                            .rules
-                            .get(rule_idx.0 as usize)
-                            .ok_or_else(|| {
-                                anyhow!(
-                                    "Invalid rule index: {} (table has {} rules)",
-                                    rule_idx.0,
-                                    self.parse_table.rules.len()
-                                )
-                            })?;
-
-                    let rhs_len = rule.rhs_len as usize;
-
-                    // Pop RHS symbols from stacks
-                    let mut children = vec![];
-                    for _ in 0..rhs_len {
-                        state_stack.pop();
-                        symbol_stack.pop();
-                        if let Some(node) = node_stack.pop() {
-                            children.push(node);
-                        }
-                    }
-                    children.reverse();
-
-                    // Get goto state
-                    let prev_state = *state_stack
-                        .last()
-                        .ok_or_else(|| anyhow!("State stack empty after reduce"))?;
-
-                    // eprintln!(
-                    // "    Looking for goto from state {} for symbol {}",
-                    // prev_state.0, rule.lhs.0
-                    // );
-                    let goto_state = self.get_goto_state(prev_state, rule.lhs)?;
-                    // eprintln!("    Goto state {} for symbol {}", goto_state.0, rule.lhs.0);
-
-                    // Push LHS and new state
-                    state_stack.push(goto_state);
-                    symbol_stack.push(rule.lhs);
-
-                    let start_byte = children
-                        .first()
-                        .map(|n| n.start_byte)
-                        .unwrap_or(token.start);
-                    let end_byte = children.last().map(|n| n.end_byte).unwrap_or(token.start);
-
-                    node_stack.push(ParseNode {
-                        symbol: rule.lhs,
-                        symbol_id: rule.lhs,
-                        start_byte,
-                        end_byte,
-                        field_name: None,
-                        children,
-                    });
-                }
-                Action::Accept => {
-                    break; // Exit the parse loop successfully
-                }
-                _ => {
-                    bail!("Unhandled action type: {:?}", action);
-                }
-            }
-
-            // Check for accept condition
-            if state_stack.len() == 2
-                && symbol_stack.len() == 1
-                && let Some(start) = self.grammar.start_symbol()
-                && symbol_stack[0] == start
-            {
-                // eprintln!("Parse complete! Accepted.");
-                break;
-            }
-        }
-
-        // TODO(Phase 2 Day 5): Return arena-based Tree
-        // Ok(Tree {
-        //     root: root_handle,
-        //     arena: &self.arena,
-        //     error_count,
-        // })
-        unimplemented!("parse_with_custom_lexer will be updated in Phase 2 Day 5")
+        let _ = (input, lex_fn);
+        bail!(PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED)
     }
 
     /// Parse the input string and return the full parse tree
     ///
     /// This method returns the complete ParseNode tree, which can be used
-    /// for extraction and AST construction. For a simpler API that returns
-    /// just metadata, use `parse()`.
+    /// for extraction and AST construction.
     pub fn parse_tree(&mut self, input: &str) -> Result<ParseNode> {
+        if let Some(custom_lexer_fn) = self.custom_lexer_fn {
+            self.parse_with_custom_lexer(input, custom_lexer_fn)?;
+        }
         // Extract just the parse tree, ignoring error count
         let (root, _error_count) = self.parse_internal(input, true)?;
         Ok(root)
+    }
+
+    /// Parse the input string and return the parse tree plus error count.
+    pub fn parse_tree_with_error_count(&mut self, input: &str) -> Result<(ParseNode, usize)> {
+        self.parse_internal(input, true)
     }
 
     /// Parse the input string and return minimal tree metadata
@@ -711,27 +501,42 @@ impl Parser {
     /// The returned tree borrows the parser's arena. The tree is valid
     /// until the next `parse()` call or parser drop.
     ///
-    /// # Implementation Status
-    ///
-    /// Phase 2 Day 4: Type signatures established
-    /// Phase 2 Day 5: Full integration with arena allocation (TODO)
-    ///
     /// # Example
     ///
     /// ```ignore
     /// let mut parser = Parser::new(grammar, parse_table, "example".to_string());
     /// let tree = parser.parse("1 + 2")?;
-    /// let root = tree.root_node();
+    /// let root_node = parser.parse_tree("1 + 2")?;
     /// ```
-    pub fn parse<'a>(&'a mut self, _input: &str) -> Result<Tree<'a>> {
-        // TODO(Phase 2 Day 5): Implement arena-based parsing
-        // This will:
-        // 1. self.arena.reset() to clear previous parse
-        // 2. Allocate TreeNodeData in arena during tree construction
-        // 3. Return Tree { root: NodeHandle, arena: &self.arena, error_count }
-        //
-        // For now (Day 4), we're establishing type signatures
-        unimplemented!("parse() will be fully implemented in Phase 2 Day 5")
+    pub fn parse<'a>(&'a mut self, input: &str) -> Result<Tree<'a>> {
+        if let Some(custom_lexer_fn) = self.custom_lexer_fn {
+            return self.parse_with_custom_lexer(input, custom_lexer_fn);
+        }
+        let (root_node, error_count) = self.parse_internal(input, true)?;
+        self.arena.reset();
+        let root = self.allocate_tree_nodes(&root_node);
+        Ok(Tree {
+            root,
+            arena: &self.arena,
+            error_count,
+        })
+    }
+
+    /// Recursively allocate a `ParseNode` tree into the arena, returning the root handle.
+    fn allocate_tree_nodes(&mut self, node: &ParseNode) -> NodeHandle {
+        if node.children.is_empty() {
+            self.arena.alloc(TreeNode::leaf(node.symbol.0 as i32))
+        } else {
+            let child_handles: Vec<NodeHandle> = node
+                .children
+                .iter()
+                .map(|child| self.allocate_tree_nodes(child))
+                .collect();
+            self.arena.alloc(TreeNode::branch_with_symbol(
+                node.symbol.0 as i32,
+                child_handles,
+            ))
+        }
     }
 
     /// Internal parsing implementation shared by parse() and parse_tree()
@@ -792,9 +597,9 @@ impl Parser {
             }
 
             // Get current state
-            let current_state = *state_stack
-                .last()
-                .ok_or_else(|| anyhow!("State stack is empty"))?;
+            let current_state = *state_stack.last().ok_or_else(|| {
+                anyhow!("State stack is empty at parse loop iteration {loop_iterations}")
+            })?;
 
             // Get the next token from the lexer
             let token = if current_position >= input_bytes.len() {
@@ -940,9 +745,14 @@ impl Parser {
                     };
 
                     // Get the goto state for the non-terminal
-                    let goto_from_state = *state_stack
-                        .last()
-                        .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
+                    let goto_from_state = *state_stack.last().ok_or_else(|| {
+                        anyhow!(
+                            "State stack is empty after reducing rule {:?} (lhs {:?}, rhs_len {})",
+                            rule_id,
+                            rule.lhs,
+                            rule.rhs_len
+                        )
+                    })?;
                     let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
 
                     // Push the new state and symbol
@@ -953,9 +763,12 @@ impl Parser {
 
                 Action::Accept => {
                     // Parsing complete!
-                    let root_node = node_stack
-                        .pop()
-                        .ok_or_else(|| anyhow!("No root node after accept"))?;
+                    let root_node = node_stack.pop().ok_or_else(|| {
+                        anyhow!(
+                            "No root node on accept: node_stack is empty after parsing {} bytes",
+                            input_bytes.len()
+                        )
+                    })?;
 
                     // Return the actual parse tree with error count
                     return Ok((root_node, error_count));
@@ -1083,9 +896,12 @@ impl Parser {
                                 };
 
                                 // Get the goto state
-                                let goto_from_state = *state_stack
-                                    .last()
-                                    .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
+                                let goto_from_state = *state_stack.last().ok_or_else(|| {
+                                    anyhow!(
+                                        "State stack is empty after fork-path reduce of rule {:?}",
+                                        rule_id
+                                    )
+                                })?;
                                 let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
 
                                 // Push the new state and symbol
@@ -1275,7 +1091,13 @@ impl Parser {
             .parse_table
             .nonterminal_to_index
             .get(&symbol)
-            .ok_or_else(|| anyhow!("No NT column for {:?} in nonterminal_to_index", symbol))?;
+            .ok_or_else(|| {
+                anyhow!(
+                    "No nonterminal-to-index mapping for symbol {:?} in goto lookup from state {}",
+                    symbol,
+                    from_state.0
+                )
+            })?;
 
         // Check bounds
         if row >= self.parse_table.action_table.len() {
@@ -1343,10 +1165,10 @@ impl Parser {
         }
 
         // Convert valid externals to bool array
-        let _valid_symbols: Vec<bool> = self
-            .external_runtime
-            .as_ref()
-            .unwrap()
+        let Some(runtime) = self.external_runtime.as_ref() else {
+            return Ok(None);
+        };
+        let _valid_symbols: Vec<bool> = runtime
             .get_external_tokens()
             .iter()
             .map(|token| valid_externals.contains(&SymbolId(*token)))
@@ -1401,7 +1223,9 @@ impl Parser {
         }
 
         // We need to temporarily take the scanner out to avoid double borrow
-        let mut scanner = self.external_scanner.take().unwrap();
+        let Some(mut scanner) = self.external_scanner.take() else {
+            return Ok(None);
+        };
         let scan_result = {
             let mut adapter = LexerAdapter { parser: self };
             scanner.scan(&mut adapter, &valid_symbols)
@@ -1515,7 +1339,10 @@ impl Parser {
                 }
             }
         }
-        bail!("Rule with ID {:?} not found", rule_id)
+        bail!(
+            "Rule with ID {:?} not found in grammar (searched all symbol rule sets)",
+            rule_id
+        )
     }
 
     // GLR-specific methods
@@ -1536,8 +1363,9 @@ impl Parser {
         match lexer.next_token(&self.input, self.position) {
             Some(tok) => Ok(tok),
             None => bail!(
-                "Lexer failed to produce token at position {}",
-                self.position
+                "Lexer failed to produce token at position {} (input length: {} bytes)",
+                self.position,
+                self.input.len()
             ),
         }
     }
@@ -1660,7 +1488,11 @@ impl Parser {
             let start = if children.is_empty() {
                 self.position
             } else {
-                match children.first().unwrap().as_ref() {
+                match children
+                    .first()
+                    .expect("children verified non-empty above")
+                    .as_ref()
+                {
                     ForestNode::Terminal { start, .. } => *start,
                     ForestNode::NonTerminal { start, .. } => *start,
                 }
@@ -1669,7 +1501,11 @@ impl Parser {
             let end = if children.is_empty() {
                 self.position
             } else {
-                match children.last().unwrap().as_ref() {
+                match children
+                    .last()
+                    .expect("children verified non-empty above")
+                    .as_ref()
+                {
                     ForestNode::Terminal { end, .. } => *end,
                     ForestNode::NonTerminal { end, .. } => *end,
                 }
@@ -1756,7 +1592,12 @@ impl Parser {
                 return Ok(goto_state.0 as usize);
             }
         }
-        bail!("No goto action for symbol {:?} in state {}", symbol, state)
+        bail!(
+            "No goto action for symbol {:?} in state {} (goto table has {} states)",
+            symbol,
+            state,
+            self.parse_table.goto_table.len()
+        )
     }
 
     /// Build final tree from accepted GSS node
@@ -1776,7 +1617,10 @@ impl Parser {
         if let Some(root) = nodes.last() {
             Ok(root.as_ref().clone())
         } else {
-            bail!("No parse tree found")
+            bail!(
+                "No parse tree found after processing {} GSS nodes",
+                nodes.len()
+            )
         }
     }
 
@@ -1866,29 +1710,78 @@ impl crate::external_scanner::Lexer for Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pure_parser::TSLanguage;
+    use crate::pure_parser::{ExternalScanner, TSLexState};
     use crate::scanner_registry::ExternalScannerBuilder;
     use crate::scanners::IndentationScanner;
+    use std::ffi::c_void;
+
+    #[allow(dead_code)]
+    unsafe extern "C" fn test_custom_lexer_fn(_lexer: *mut c_void, _state: TSLexState) -> bool {
+        true
+    }
+
+    fn minimal_custom_lexer_language() -> &'static TSLanguage {
+        let language = TSLanguage {
+            version: 15,
+            symbol_count: 0,
+            alias_count: 0,
+            token_count: 0,
+            external_token_count: 0,
+            state_count: 0,
+            large_state_count: 0,
+            production_id_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: std::ptr::null(),
+            small_parse_table: std::ptr::null(),
+            small_parse_table_map: std::ptr::null(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: Some(test_custom_lexer_fn),
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            rules: std::ptr::null(),
+            rule_count: 0,
+            eof_symbol: 0,
+        };
+        Box::leak(Box::new(language))
+    }
 
     #[test]
     fn test_parser_with_external_scanner() {
-        // Register an indentation scanner
-        ExternalScannerBuilder::new("test_python").register_rust::<IndentationScanner>();
+        // Register a scanner with a stable language key for this regression test
+        let language_name = "test_parser_with_external_scanner".to_string();
+        ExternalScannerBuilder::new(language_name.clone()).register_rust::<IndentationScanner>();
 
         // Create a simple grammar with external tokens
-        let mut grammar = Grammar::new("test_python".to_string());
+        let mut grammar = Grammar::new(language_name.clone());
 
         // Add external tokens
         grammar.externals.push(adze_ir::ExternalToken {
             name: "NEWLINE".to_string(),
-            symbol_id: SymbolId(100),
+            symbol_id: SymbolId(0),
         });
         grammar.externals.push(adze_ir::ExternalToken {
             name: "INDENT".to_string(),
-            symbol_id: SymbolId(101),
+            symbol_id: SymbolId(1),
         });
         grammar.externals.push(adze_ir::ExternalToken {
             name: "DEDENT".to_string(),
-            symbol_id: SymbolId(102),
+            symbol_id: SymbolId(2),
         });
 
         // Create a dummy parse table
@@ -1900,7 +1793,7 @@ mod tests {
             symbol_count: 0,
             symbol_to_index: std::collections::BTreeMap::new(),
             index_to_symbol: vec![],
-            external_scanner_states: vec![],
+            external_scanner_states: vec![vec![true, false, false]],
             rules: vec![],
             nonterminal_to_index: std::collections::BTreeMap::new(),
             goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
@@ -1920,10 +1813,45 @@ mod tests {
         };
 
         // Create parser
-        let _parser = Parser::new(grammar, parse_table, "test_python".to_string());
+        let mut parser = Parser::new(grammar, parse_table, language_name);
+        parser.input = b"\n".to_vec();
+        parser.position = 0;
 
-        // TODO: Fix external scanner loading in tests
-        // assert!(parser.external_scanner.is_some());
-        // assert!(parser.external_runtime.is_some());
+        // Regression: ensure external scanner path is exercised
+        assert!(parser.external_scanner.is_some());
+        assert!(parser.external_runtime.is_some());
+
+        let scanned = parser
+            .try_external_scanner(StateId(0))
+            .expect("external scanner should be available")
+            .expect("external scanner should emit NEWLINE");
+        assert_eq!(scanned.symbol, SymbolId(0));
+        // After scanner advances, position reflects post-scan state
+        assert_eq!(scanned.start, 1);
+        assert_eq!(scanned.end, 2);
+        // Text is empty because position advanced past input during scan
+        assert!(scanned.text.is_empty());
+    }
+
+    #[test]
+    fn test_parse_with_custom_lexer_is_rejected() {
+        let language = minimal_custom_lexer_language();
+        let mut parser = Parser::from_language(language, "custom_lexer_test".to_string());
+
+        let err = parser.parse("abc");
+        assert!(err.is_err());
+        assert!(
+            err.unwrap_err()
+                .to_string()
+                .contains("Custom lexer functions")
+        );
+
+        let err = parser.parse_with_auto_lexer("abc", language);
+        assert!(err.is_err());
+        assert!(
+            err.unwrap_err()
+                .to_string()
+                .contains("Custom lexer functions")
+        );
     }
 }

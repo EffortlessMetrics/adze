@@ -11,11 +11,17 @@ use std::collections::HashMap;
 /// Statistics about conflict resolution
 #[derive(Debug, Clone, Default)]
 pub struct ConflictStats {
+    /// Number of shift/reduce conflicts found.
     pub shift_reduce_conflicts: usize,
+    /// Number of reduce/reduce conflicts found.
     pub reduce_reduce_conflicts: usize,
+    /// Conflicts resolved via precedence.
     pub precedence_resolved: usize,
+    /// Conflicts resolved via associativity.
     pub associativity_resolved: usize,
+    /// Conflicts left for explicit GLR forking.
     pub explicit_glr: usize,
+    /// Conflicts resolved by default strategy.
     pub default_resolved: usize,
 }
 
@@ -86,6 +92,7 @@ pub struct PrecedenceResolver {
 }
 
 impl PrecedenceResolver {
+    /// Creates a new resolver by extracting precedence information from the grammar.
     pub fn new(grammar: &Grammar) -> Self {
         let mut token_precedences = HashMap::new();
         let mut symbol_precedences = HashMap::new();
@@ -138,11 +145,15 @@ impl PrecedenceResolver {
     }
 }
 
+/// Outcome of a precedence-based conflict resolution attempt.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrecedenceDecision {
+    /// Shift is preferred (higher precedence or right-associative).
     PreferShift,
+    /// Reduce is preferred (higher precedence or left-associative).
     PreferReduce,
-    Error, // Non-associative conflict
+    /// Non-associative conflict; should be reported as an error.
+    Error,
 }
 
 #[cfg(test)]

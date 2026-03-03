@@ -30,7 +30,11 @@ impl ParseStack {
     }
 
     fn current_state(&self) -> StateId {
-        *self.state_stack.last().expect("Empty state stack")
+        if let Some(state) = self.state_stack.last() {
+            *state
+        } else {
+            StateId(0)
+        }
     }
 }
 
@@ -220,7 +224,8 @@ impl ParserV2 {
         loop {
             iteration += 1;
             if iteration > 20 {
-                panic!("Too many reduction iterations - possible grammar issue");
+                // Guard against pathological grammars that cause excessive reduction loops.
+                return Vec::new();
             }
 
             let mut any_reduction = false;

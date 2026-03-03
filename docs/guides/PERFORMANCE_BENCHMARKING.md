@@ -9,6 +9,7 @@ This guide explains how to run, analyze, and extend adze's performance benchmark
 cargo xtask generate-fixtures
 
 # Run benchmarks and save as baseline
+# Runs only the real parser workloads used by release/perf gates.
 cargo xtask bench --save-baseline v0.8.0
 
 # Compare against baseline (fail if regression > 5%)
@@ -37,6 +38,7 @@ adze uses Criterion for performance benchmarking with the following structure:
 
 - `fixture_loading`: Compile-time fixture embedding verification (~1 ns)
 - `validate_parse_result`: Parse result validation overhead (~350 ps)
+  These checks are retained for diagnostics but excluded from perf gate baselines.
 
 ### Fixture Generation
 
@@ -76,9 +78,8 @@ cargo xtask validate-fixtures              # Verify fixtures parse correctly
 cargo xtask fixtures-info                  # Show fixture statistics
 
 # Benchmarking
-cargo bench -p adze-benchmarks      # Run all benchmarks
-cargo bench -- arithmetic_parsing          # Run specific group
-cargo bench --bench glr_performance_real   # Run specific benchmark file
+cargo bench -p adze-benchmarks --bench glr_performance_real    # Release/perf gate target
+cargo bench -p adze-benchmarks --bench glr_hot                 # Optional hot-path target
 
 # Baseline Management
 cargo xtask save-baseline v0.8.0           # Save current results as baseline
@@ -87,8 +88,8 @@ cargo xtask compare-baseline v0.8.0 --threshold 10  # Custom threshold
 
 # Profiling
 cargo xtask profile cpu arithmetic large   # CPU profiling with flamegraph
-cargo xtask profile memory python medium   # Memory profiling with heaptrack
-cargo xtask profile cpu arithmetic small --json  # Output JSON metrics
+cargo xtask profile memory arithmetic medium   # Memory profiling with heaptrack
+# `--json` stores profile metadata for tooling integration (not parser metrics).
 ```
 
 ## Baseline Management
@@ -103,15 +104,13 @@ Baselines are stored in `baselines/<version>.json` and contain:
 
 1. **Initial Baseline**: Establish reference performance
    ```bash
-   cargo bench
-   cargo xtask save-baseline v0.8.0
+   cargo xtask bench --save-baseline v0.8.0
    ```
 
 2. **Make Changes**: Implement optimizations, refactorings, etc.
 
 3. **Measure Impact**: Compare against baseline
    ```bash
-   cargo bench
    cargo xtask compare-baseline v0.8.0 --threshold 5
    ```
 
@@ -201,10 +200,10 @@ cargo xtask profile cpu arithmetic large
 ### Memory Profiling
 
 ```bash
-cargo xtask profile memory python medium
+cargo xtask profile memory arithmetic medium
 ```
 
-**Output**: `target/profile/massif-memory-python-medium.txt`
+**Output**: `target/profile/massif-memory-arithmetic-medium.out`
 
 **What to Look For**:
 - Peak memory usage
@@ -220,7 +219,7 @@ Performance gates ensure regressions don't slip through:
 ```yaml
 - name: Run performance benchmarks
   run: |
-    cargo bench
+    cargo xtask bench
     cargo xtask compare-baseline v0.8.0 --threshold 5
 ```
 

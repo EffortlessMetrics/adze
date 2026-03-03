@@ -1,4 +1,9 @@
 // Lexer generation for pure-Rust parser
+//
+// NOTE: This module generates `quote!` token streams containing `unsafe` blocks.
+// The generated unsafe code dereferences a `*mut TsLexer` raw pointer passed by the
+// GLR runtime. The safety contract is: the runtime guarantees the pointer is valid
+// and exclusively borrowed for the duration of the `lexer_fn` call.
 use adze_ir::{Grammar, SymbolId, TokenPattern};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -105,7 +110,7 @@ pub fn generate_lexer(
     // Second: Add other string patterns
     for (symbol_index, s) in other_strings {
         if s.len() == 1 {
-            let ch = s.chars().next().unwrap() as u32;
+            let ch = s.chars().next().expect("s.len() == 1 guarantees a char") as u32;
             token_matches.push(quote! {
                 if unsafe { ((*lexer).lookahead)(lexer) == #ch } {
                     unsafe {
@@ -237,6 +242,9 @@ pub fn generate_lexer(
     }
 
     quote! {
+        // SAFETY: Called by the GLR runtime which guarantees `state_ptr` is a valid
+        // `*mut TsLexer` for the duration of the call. The null check below guards
+        // against the degenerate case.
         unsafe extern "C" fn lexer_fn(state_ptr: *mut ::std::ffi::c_void, _lex_mode: adze::pure_parser::TSLexState) -> bool {
             if state_ptr.is_null() {
                 return false;

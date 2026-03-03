@@ -72,7 +72,9 @@ mod tests {
         assert_eq!(runtime_matrix.profile, profile);
 
         let runtime2_matrix = bdd_governance_matrix_for_runtime2(BddPhase::Core, profile.glr);
-        assert_eq!(runtime2_matrix.profile, profile);
+        let runtime2_profile =
+            adze_runtime_governance_matrix::parser_feature_profile_for_runtime2(profile.glr);
+        assert_eq!(runtime2_matrix.profile, runtime2_profile);
     }
 
     #[test]
@@ -80,5 +82,41 @@ mod tests {
         let profile = parser_feature_profile_for_runtime();
         let backend = resolve_backend_for_profile(profile, false);
         assert_eq!(backend, profile.resolve_backend(false));
+    }
+
+    #[test]
+    fn bdd_governance_matrix_for_runtime2_works() {
+        let profile = parser_feature_profile_for_runtime();
+        let matrix = bdd_governance_matrix_for_runtime2(BddPhase::Runtime, profile.glr);
+        assert_eq!(matrix.phase, BddPhase::Runtime);
+    }
+
+    #[test]
+    fn runtime_governance_snapshot_accessible() {
+        let snap = runtime_governance_snapshot(BddPhase::Core);
+        assert_eq!(snap.phase, BddPhase::Core);
+        assert_eq!(snap.profile, parser_feature_profile_for_runtime());
+    }
+
+    #[test]
+    fn bdd_progress_report_for_current_profile_both_phases() {
+        let core = bdd_progress_report_for_current_profile(BddPhase::Core, "Core Phase");
+        let runtime = bdd_progress_report_for_current_profile(BddPhase::Runtime, "Runtime Phase");
+        assert!(core.contains("Core Phase"));
+        assert!(runtime.contains("Runtime Phase"));
+    }
+
+    #[test]
+    fn bdd_status_line_for_current_profile_both_phases() {
+        let core = bdd_status_line_for_current_profile(BddPhase::Core);
+        let runtime = bdd_status_line_for_current_profile(BddPhase::Runtime);
+        assert!(core.starts_with("core:"));
+        assert!(runtime.starts_with("runtime:"));
+    }
+
+    #[test]
+    fn bdd_governance_matrix_for_runtime_uses_current_profile() {
+        let matrix = bdd_governance_matrix_for_runtime();
+        assert_eq!(matrix.profile, parser_feature_profile_for_runtime());
     }
 }

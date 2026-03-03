@@ -1,4 +1,6 @@
 // Build system integration for external scanners
+//! Build system integration for discovering and compiling external scanners.
+
 // This module provides functionality to discover and compile user-provided scanner implementations
 
 use anyhow::{Context, Result, bail};

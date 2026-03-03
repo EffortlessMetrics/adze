@@ -1,16 +1,24 @@
 // GLR parser performance optimizations
 
+//! Performance optimizations: caching, deduplication, and stack pooling.
+
 use crate::{Action, StateId, SymbolId};
 use std::collections::HashMap;
 
 /// Performance statistics for GLR parsing
 #[derive(Debug, Default)]
 pub struct PerfStats {
+    /// Total tokens processed.
     pub total_tokens: usize,
+    /// Total stacks created during parsing.
     pub total_stacks: usize,
+    /// Peak number of concurrent stacks.
     pub max_stacks: usize,
+    /// Number of stack merge operations.
     pub stack_merges: usize,
+    /// Number of cache hits.
     pub cache_hits: usize,
+    /// Number of cache misses.
     pub cache_misses: usize,
 }
 
@@ -27,6 +35,7 @@ impl Default for ParseTableCache {
 }
 
 impl ParseTableCache {
+    /// Creates an empty cache.
     pub fn new() -> Self {
         Self {
             cache: HashMap::new(),
@@ -34,6 +43,7 @@ impl ParseTableCache {
         }
     }
 
+    /// Looks up the cached action or computes and caches it.
     pub fn get_or_compute<F>(&mut self, state: StateId, symbol: SymbolId, compute: F) -> Action
     where
         F: FnOnce() -> Action,
@@ -50,6 +60,7 @@ impl ParseTableCache {
         }
     }
 
+    /// Returns a reference to the accumulated performance statistics.
     pub fn stats(&self) -> &PerfStats {
         &self.stats
     }
@@ -67,6 +78,7 @@ impl Default for StackDeduplicator {
 }
 
 impl StackDeduplicator {
+    /// Creates a new empty deduplicator.
     pub fn new() -> Self {
         Self {
             seen_states: HashMap::new(),
@@ -84,6 +96,7 @@ impl StackDeduplicator {
         }
     }
 
+    /// Returns the number of unique stack configurations seen.
     pub fn unique_stacks(&self) -> usize {
         self.seen_states.len()
     }
@@ -101,14 +114,17 @@ impl<T> Default for StackPool<T> {
 }
 
 impl<T> StackPool<T> {
+    /// Creates an empty pool.
     pub fn new() -> Self {
         Self { pool: Vec::new() }
     }
 
+    /// Acquires a vec from the pool, or creates a new one if empty.
     pub fn acquire(&mut self) -> Vec<T> {
         self.pool.pop().unwrap_or_default()
     }
 
+    /// Returns a vec to the pool for later reuse.
     pub fn release(&mut self, mut vec: Vec<T>) {
         vec.clear();
         if self.pool.len() < 100 {

@@ -1,0 +1,9 @@
+---
+source: src/ini_file.rs
+expression: "grammar::parse(\"# comment\\n[s]\\nk=v\")"
+---
+Ok(
+    IniFile {
+        entries: [],
+    },
+)

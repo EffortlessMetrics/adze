@@ -1,4 +1,6 @@
 // Simple grammar converter for demonstration
+//! Conversion utilities between grammar representations.
+
 // This would be expanded with actual grammar extraction logic
 
 use adze_ir::{

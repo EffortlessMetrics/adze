@@ -1,6 +1,12 @@
 // Beta testing framework for adze
 // Tests compatibility with official Tree-sitter grammars
 
+pub mod assertions;
+pub mod fixtures;
+pub mod grammar_helpers;
+pub mod snapshots;
+pub mod strategies;
+
 use adze_glr_core::ParseTable;
 use adze_ir::Grammar;
 use anyhow::{Context, Result};

@@ -38,10 +38,13 @@ dependencies = [
  "adze-python",
  "adze-python-simple",
  "adze-runtime-governance-api",
+ "adze-stack-pool-core",
  "adze-tablegen",
+ "adze-ts-format-core",
  "ahash",
  "anyhow",
  "criterion",
+ "getrandom 0.3.4",
  "glr-test-support",
  "hex",
  "indexmap",
@@ -95,9 +98,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-bdd-grammar-analysis-core"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
+ "adze-ir",
+ "proptest",
+]
+
+[[package]]
 name = "adze-bdd-grammar-fixtures"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-grammar-analysis-core",
  "adze-glr-core",
  "adze-ir",
 ]
@@ -141,11 +154,6 @@ dependencies = [
 name = "adze-cli"
 version = "0.8.0-dev"
 dependencies = [
- "adze",
- "adze-common",
- "adze-ir",
- "adze-javascript",
- "adze-python",
  "adze-tool",
  "anyhow",
  "assert_cmd",
@@ -158,7 +166,6 @@ dependencies = [
  "predicates",
  "serde_json",
  "tempfile",
- "tree-sitter 0.25.10",
  "walkdir",
 ]
 
@@ -166,12 +173,36 @@ dependencies = [
 name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-common-syntax-core",
+ "insta",
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "adze-common-syntax-core"
+version = "0.1.0"
+dependencies = [
+ "adze-common",
+ "proptest",
  "quote",
  "syn 2.0.117",
 ]
 
 [[package]]
-name = "adze-concurrency-caps-core"
+name = "adze-concurrency-bounded-map-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-normalize-core",
+ "adze-concurrency-plan-core",
+ "proptest",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-caps-contract-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-core",
@@ -186,10 +217,54 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-env-core"
+name = "adze-concurrency-caps-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-caps-contract-core",
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-classifier-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-init-rayon-core",
+ "adze-concurrency-map-core",
+ "adze-concurrency-normalize-core",
+ "adze-concurrency-parse-core",
+ "adze-concurrency-plan-core",
+ "criterion",
+ "proptest",
+]
+
+[[package]]
+name = "adze-concurrency-env-contract-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-parse-core",
+ "proptest",
+]
+
+[[package]]
+name = "adze-concurrency-env-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-contract-core",
+ "proptest",
+]
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-policy-core",
+ "adze-concurrency-init-rayon-core",
+ "proptest",
+]
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-policy-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-normalize-core",
  "proptest",
 ]
 
@@ -205,6 +280,7 @@ name = "adze-concurrency-init-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-core",
  "adze-concurrency-init-classifier-core",
  "adze-concurrency-init-rayon-core",
  "proptest",
@@ -223,10 +299,9 @@ dependencies = [
 name = "adze-concurrency-map-core"
 version = "0.1.0"
 dependencies = [
+ "adze-concurrency-bounded-map-core",
  "adze-concurrency-normalize-core",
- "adze-concurrency-plan-core",
  "proptest",
- "rayon",
 ]
 
 [[package]]
@@ -272,13 +347,15 @@ dependencies = [
 [[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
+dependencies = [
+ "adze-parser-backend-core",
+]
 
 [[package]]
 name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
  "adze-bdd-scenario-fixtures",
- "adze-glr-versioning",
  "adze-ir",
  "adze-parser-contract",
  "criterion",
@@ -288,6 +365,7 @@ dependencies = [
  "indexmap",
  "insta",
  "postcard",
+ "proptest",
  "rayon",
  "rustc-hash 2.1.1",
  "serde",
@@ -356,7 +434,9 @@ version = "0.1.0"
 dependencies = [
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
+ "insta",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -380,6 +460,7 @@ dependencies = [
  "anyhow",
  "indexmap",
  "insta",
+ "proptest",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -398,6 +479,7 @@ dependencies = [
 name = "adze-linecol-core"
 version = "0.1.0"
 dependencies = [
+ "criterion",
  "proptest",
 ]
 
@@ -429,6 +511,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-parser-backend-core"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+]
+
+[[package]]
 name = "adze-parser-contract"
 version = "0.1.0"
 dependencies = [
@@ -454,6 +543,8 @@ name = "adze-parsetable-metadata"
 version = "0.1.0"
 dependencies = [
  "adze-governance-metadata",
+ "criterion",
+ "insta",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -521,7 +612,12 @@ dependencies = [
 name = "adze-runtime-governance"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+ "adze-governance-metadata",
+ "adze-parsetable-metadata",
  "adze-runtime-governance-matrix",
+ "serde_json",
 ]
 
 [[package]]
@@ -543,6 +639,14 @@ name = "adze-runtime2-governance"
 version = "0.1.0"
 dependencies = [
  "adze-runtime-governance-matrix",
+]
+
+[[package]]
+name = "adze-stack-pool-core"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "proptest",
 ]
 
 [[package]]
@@ -577,10 +681,12 @@ dependencies = [
  "adze",
  "adze-glr-core",
  "adze-ir",
+ "adze-tablegen",
  "anyhow",
  "chrono",
  "clap",
  "insta",
+ "proptest",
  "serde",
  "serde_json",
  "tempfile",
@@ -612,6 +718,17 @@ dependencies = [
  "thiserror 2.0.18",
  "tree-sitter 0.25.10",
  "tree-sitter-generate",
+]
+
+[[package]]
+name = "adze-ts-format-core"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
+ "insta",
+ "proptest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1417,9 +1534,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi",
  "wasip2",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1453,6 +1572,19 @@ version = "0.1.0"
 dependencies = [
  "adze-glr-core",
  "adze-ir",
+]
+
+[[package]]
+name = "governance-integration-tests"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+ "adze-governance-metadata",
+ "adze-governance-runtime-core",
+ "adze-governance-runtime-reporting",
+ "adze-parsetable-metadata",
+ "serde_json",
 ]
 
 [[package]]
@@ -1766,6 +1898,7 @@ checksum = "e82db8c87c7f1ccecb34ce0c24399b8a73081427f3c7c50a5d597925356115e4"
 dependencies = [
  "console",
  "once_cell",
+ "serde",
  "similar",
  "tempfile",
 ]
@@ -1828,9 +1961,9 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.86"
+version = "0.3.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d36139f1c97c42c0c86a411910b04e48d4939a0376e6e0f989420cbdee0120e5"
+checksum = "b49715b7073f385ba4bc528e5747d02e66cb39c6146efb66b781f131f0fb399c"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
@@ -3282,9 +3415,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.109"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ff9c7baef35ac3c0e17d8bfc9ad75eb62f85a2f02bccc906699dadb0aa9c622"
+checksum = "6532f9a5c1ece3798cb1c2cfdba640b9b3ba884f5db45973a6f442510a87d38e"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -3295,9 +3428,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.109"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39455e84ad887a0bbc93c116d72403f1bb0a39e37dd6f235a43e2128a0c7f1fd"
+checksum = "18a2d50fcf105fb33bb15f00e7a77b772945a2ee45dcf454961fd843e74c18e6"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -3305,9 +3438,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.109"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dff4761f60b0b51fd13fec8764167b7bbcc34498ce3e52805fe1db6f2d56b6d6"
+checksum = "03ce4caeaac547cdf713d280eda22a730824dd11e6b8c3ca9e42247b25c631e3"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -3318,9 +3451,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.109"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc6a171c53d98021a93a474c4a4579d76ba97f9517d871bc12e27640f218b6dd"
+checksum = "75a326b8c223ee17883a4251907455a2431acc2791c98c26279376490c378c16"
 dependencies = [
  "unicode-ident",
 ]
@@ -3361,9 +3494,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.86"
+version = "0.3.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "668fa5d00434e890a452ab060d24e3904d1be93f7bb01b70e5603baa2b8ab23b"
+checksum = "854ba17bb104abfb26ba36da9729addc7ce7f06f5c0f90f3c391f8461cca21f9"
 dependencies = [
  "js-sys",
  "wasm-bindgen",

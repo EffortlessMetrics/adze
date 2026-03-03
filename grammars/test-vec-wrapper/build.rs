@@ -27,7 +27,8 @@ fn main() {
 
         // Also write to a file for easier debugging
         use std::io::Write;
-        let mut file = std::fs::File::create("/tmp/test-vec-wrapper-grammar.json").unwrap();
+        let path = std::env::temp_dir().join("test-vec-wrapper-grammar.json");
+        let mut file = std::fs::File::create(&path).unwrap();
         writeln!(file, "{}", serde_json::to_string_pretty(&grammar).unwrap()).unwrap();
     }
 

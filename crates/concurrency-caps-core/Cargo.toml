@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Concurrency cap primitives for bounded parallel execution."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
+categories = ["concurrency"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-concurrency-caps-core"
 
 [features]
 default = []
@@ -14,15 +18,21 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
+adze-concurrency-caps-contract-core = { version = "0.1.0", path = "../concurrency-caps-contract-core" }
 adze-concurrency-map-core = { version = "0.1.0", path = "../concurrency-map-core" }
 adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true
+criterion.workspace = true
 adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
 adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../concurrency-init-classifier-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
+
+[[bench]]
+name = "caps_bench"
+harness = false

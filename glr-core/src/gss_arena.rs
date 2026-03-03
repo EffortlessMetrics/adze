@@ -1,4 +1,6 @@
 // Arena-based GSS implementation for high-performance GLR parsing
+//! Arena-allocated GSS implementation for high-performance parsing.
+
 // This version uses an arena allocator to minimize allocation overhead
 
 use crate::{StateId, SymbolId};
@@ -193,6 +195,7 @@ impl Default for ArenaGSSManager {
 }
 
 impl ArenaGSSManager {
+    /// Creates a new arena-based GSS manager.
     pub fn new() -> Self {
         Self {
             arena: Arena::new(),
@@ -202,8 +205,14 @@ impl ArenaGSSManager {
     /// Create a new parsing session
     /// The lifetime of the GSS is tied to the arena
     pub fn new_session<'a>(&'a self, initial_state: StateId) -> ArenaGSS<'a> {
-        // SAFETY: We're creating a new GSS that borrows from the arena
-        // The arena will outlive the GSS since it's owned by the manager
+        // SAFETY: We transmute the arena's lifetime from 'static to 'a. This is sound
+        // because: (1) the arena is owned by `self` and `&'a self` guarantees it lives
+        // at least as long as 'a, (2) ArenaGSS<'a> cannot outlive 'a, so all arena-
+        // allocated references are valid for their use.
+        // TODO(safety): The 'static → 'a transmute relies on typed_arena's covariance
+        // over the lifetime parameter of stored nodes. If Arena ever stores a
+        // PhantomData<fn(&'a ())> (contravariant), this becomes unsound. Pin to a
+        // specific typed_arena version or audit on upgrades.
         unsafe {
             let arena_ref = &*(&self.arena as *const Arena<ArenaStackNode<'static>>);
             let arena_transmuted = std::mem::transmute::<

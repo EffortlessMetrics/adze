@@ -1,5 +1,6 @@
 //! Public driver that runs the GLR engine and returns a trait-object forest.
 
+use crate::debug_trace;
 use crate::forest_view::{Forest, ForestView, Span};
 use crate::parse_forest::{ForestAlternative, ForestNode, ParseForest};
 use crate::{Action, ParseTable, RuleId, StateId, SymbolId};
@@ -623,44 +624,45 @@ impl<'t> Driver<'t> {
         // EOF phase - use the table's EOF symbol instead of hardcoded 0
         let eof = self.tables.eof();
         #[cfg(feature = "debug_glr")]
-        eprintln!(
+        debug_trace!(
             "DEBUG: EOF phase starting with {} stack(s)",
             state.stacks.len()
         );
 
         let stacks = std::mem::take(&mut state.stacks);
         for mut stk in stacks {
-            let top = stk.top_state()?;
-            eprintln!(
+            let _top = stk.top_state()?;
+            debug_trace!(
                 "DEBUG: Processing stack with {} states, top state={}",
                 stk.states.len(),
-                top.0
+                _top.0
             );
 
             self.reduce_closure(&mut state, &mut stk, eof)?;
 
-            let top_after_reduce = stk.top_state()?;
-            eprintln!(
+            let _top_after_reduce = stk.top_state()?;
+            debug_trace!(
                 "DEBUG: After reduce_closure, checking actions for state {} on EOF",
-                top_after_reduce.0
+                _top_after_reduce.0
             );
 
             // Check if we have the start symbol on top of the stack
             if let Some(&root_id) = stk.nodes.last()
                 && let Some(root) = state.forest.nodes.get(&root_id)
             {
-                eprintln!("DEBUG: Top node has symbol {}", root.symbol.0);
+                debug_trace!("DEBUG: Top node has symbol {}", root.symbol.0);
                 if root.symbol == self.tables.start_symbol() {
-                    eprintln!("DEBUG: Found start symbol! Adding as root");
+                    debug_trace!("DEBUG: Found start symbol! Adding as root");
                     state.forest.roots.push(root.clone());
                 }
             }
 
-            for action in self.tables.actions(*stk.states.last().unwrap(), eof) {
-                eprintln!("DEBUG: EOF action: {:?}", action);
+            let top_state = stk.states.last().expect("GLR stack must never be empty");
+            for action in self.tables.actions(*top_state, eof) {
+                debug_trace!("DEBUG: EOF action: {:?}", action);
                 match *action {
                     Action::Accept => {
-                        eprintln!("DEBUG: Accept action found");
+                        debug_trace!("DEBUG: Accept action found");
                         if let Some(&root_id) = stk.nodes.last()
                             && let Some(root) = state.forest.nodes.get(&root_id).cloned()
                         {
@@ -677,7 +679,7 @@ impl<'t> Driver<'t> {
                         return Ok(Self::wrap_forest(state.forest));
                     }
                     Action::Reduce(rid) => {
-                        eprintln!("DEBUG: Reduce action found, rule {}", rid.0);
+                        debug_trace!("DEBUG: Reduce action found, rule {}", rid.0);
                         let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
 
                         // Check if reduction produced start symbol
@@ -686,16 +688,17 @@ impl<'t> Driver<'t> {
                             && let Some(root) = state.forest.nodes.get(&root_id)
                         {
                             #[cfg(feature = "debug_glr")]
-                            eprintln!("DEBUG: After reduction, top symbol is {}", root.symbol.0);
+                            debug_trace!("DEBUG: After reduction, top symbol is {}", root.symbol.0);
                             if root.symbol == self.tables.start_symbol() {
                                 #[cfg(feature = "debug_glr")]
-                                eprintln!("DEBUG: Reduced to start symbol! Adding as root");
+                                debug_trace!("DEBUG: Reduced to start symbol! Adding as root");
                                 state.forest.roots.push(root.clone());
                             }
                         }
 
                         // Try accept after reduce
-                        for a2 in self.tables.actions(*s2.states.last().unwrap(), eof) {
+                        let s2_top = s2.states.last().expect("GLR stack must never be empty");
+                        for a2 in self.tables.actions(*s2_top, eof) {
                             if let Action::Accept = *a2 {
                                 if let Some(&root_id) = s2.nodes.last()
                                     && let Some(root) = state.forest.nodes.get(&root_id).cloned()
@@ -721,7 +724,7 @@ impl<'t> Driver<'t> {
 
         // If we found any roots with the start symbol, accept the parse
         if !state.forest.roots.is_empty() {
-            eprintln!(
+            debug_trace!(
                 "DEBUG: Accepting parse with {} root(s)",
                 state.forest.roots.len()
             );
@@ -786,7 +789,12 @@ impl<'t> Driver<'t> {
         let goto_from = *stack
             .states
             .get(stack.states.len() - 1 - rhs_len as usize)
-            .unwrap();
+            .ok_or_else(|| {
+                GlrError::Parse(format!(
+                    "stack underflow: cannot find goto state for rule {}",
+                    rid.0
+                ))
+            })?;
         stack.states.truncate(stack.states.len() - rhs_len as usize);
 
         // Span = [first_child.start, last_child.end], or current position if empty production
@@ -794,18 +802,24 @@ impl<'t> Driver<'t> {
             // Empty production - use current position
             (stack.pos, stack.pos)
         } else {
+            let first_id = child_ids
+                .first()
+                .expect("child_ids verified non-empty above");
+            let last_id = child_ids
+                .last()
+                .expect("child_ids verified non-empty above");
             let first = st
                 .forest
                 .nodes
-                .get(child_ids.first().unwrap())
-                .unwrap()
+                .get(first_id)
+                .ok_or_else(|| GlrError::Parse(format!("missing forest node {first_id}")))?
                 .span
                 .0;
             let last = st
                 .forest
                 .nodes
-                .get(child_ids.last().unwrap())
-                .unwrap()
+                .get(last_id)
+                .ok_or_else(|| GlrError::Parse(format!("missing forest node {last_id}")))?
                 .span
                 .1;
             (first, last)
@@ -847,7 +861,7 @@ impl<'t> Driver<'t> {
         lookahead: SymbolId,
     ) -> Result<(), GlrError> {
         loop {
-            let state = *stack.states.last().unwrap();
+            let state = *stack.states.last().expect("GLR stack must never be empty");
             let mut did_reduce = false;
             for action in self.tables.actions(state, lookahead) {
                 if let Action::Reduce(rid) = *action {
@@ -881,7 +895,7 @@ impl<'t> Driver<'t> {
         let stacks = state.stacks.clone();
 
         for stk in &stacks {
-            let top = *stk.states.last().unwrap();
+            let top = *stk.states.last().expect("GLR stack must never be empty");
 
             // Find terminals with any real (non-Recover) action from this state
             // Iterate to terminal_boundary (excludes EOF by definition)

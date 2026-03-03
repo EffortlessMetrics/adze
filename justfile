@@ -1,5 +1,9 @@
 #!/usr/bin/env just --justfile
 # Adze development shortcuts
+#
+# If you see: error: I/O error in runtime dir ... Permission denied
+# Run: source scripts/just-ensure-tmpdir.sh
+# Or:  JUST_TEMPDIR=/tmp/just just <recipe>
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
@@ -55,25 +59,58 @@ bench-perf:
 snap:
     cargo insta review
 
-# Supported CI lane - must always be green
-# See docs/status/KNOWN_RED.md for what is excluded and why.
+supported_crates := "-p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen"
+
+# Required PR gate: this is the single supported CI lane for branch protection
+# See docs/status/KNOWN_RED.md; update it whenever ci-supported command targets change.
 ci-supported:
     #!/usr/bin/env bash
     set -euo pipefail
     export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
     export RUST_TEST_THREADS="${RUST_TEST_THREADS:-2}"
     cargo fmt --all -- --check
-    cargo clippy -p adze --all-targets -- -D warnings
-    cargo clippy -p adze-macro -p adze-tool \
-        -p adze-common -p adze-ir -p adze-glr-core \
-        -p adze-tablegen \
-        --all-targets -- -D warnings
-    cargo test -p adze --lib --tests
-    cargo test -p adze-macro -p adze-tool \
-        -p adze-common -p adze-ir -p adze-glr-core \
-        -p adze-tablegen \
-        --lib --tests --bins
-    cargo test -p adze-glr-core --features serialization --doc
+    cargo clippy {{supported_crates}} --all-targets -- -D warnings
+    cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
+    cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"
+
+# Run mutation testing on adze-ir (quick check)
+mutate crate="adze-ir":
+    cargo mutants -p {{crate}} --timeout-multiplier 2 -- --lib
+
+# Run mutation testing on all supported crates
+mutate-all:
+    cargo mutants -- --lib
+
+# Verify MSRV is consistent across all Cargo.toml files
+check-msrv:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    MSRV=$(grep '^channel' rust-toolchain.toml | sed 's/.*"\(.*\)"/\1/')
+    echo "MSRV from rust-toolchain.toml: $MSRV"
+    errors=0
+    while IFS= read -r line; do
+      file="${line%%:*}"
+      # skip target/ directory
+      [[ "$file" == target/* ]] && continue
+      value=$(grep '^rust-version' "$file" | head -1)
+      if echo "$value" | grep -q 'workspace = true'; then
+        echo "  ✓ $file (inherits workspace)"
+      elif echo "$value" | grep -q "\"$MSRV\""; then
+        echo "  ✓ $file (explicit $MSRV)"
+      else
+        echo "  ✗ $file — $value (expected $MSRV)"
+        errors=$((errors + 1))
+      fi
+    done < <(grep -rl '^rust-version' --include='Cargo.toml' .)
+    if [ "$errors" -gt 0 ]; then
+      echo "FAIL: $errors Cargo.toml file(s) have mismatched rust-version"
+      exit 1
+    fi
+    echo "OK: all rust-version fields match MSRV $MSRV"
+
+# Show crates.io publish order
+publish-order:
+    ./scripts/publish-order.sh
 
 # Clean build artifacts
 clean:

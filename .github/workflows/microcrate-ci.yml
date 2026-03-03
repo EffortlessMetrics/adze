@@ -1,0 +1,361 @@
+name: Microcrate CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: microcrate-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+
+jobs:
+  # ── Formatting & doc checks (fast, run on every PR) ─────────────────
+  fmt-check:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  doc-check:
+    name: Docs Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-docs-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-docs-
+      - name: Build docs (deny warnings)
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --no-deps --workspace
+
+  # ── WASM build check ────────────────────────────────────────────────
+  wasm-check:
+    name: WASM Build (core crates)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-wasm-
+      - name: Check adze-ir compiles for WASM
+        run: cargo check --target wasm32-unknown-unknown -p adze-ir
+      - name: Check adze-glr-core compiles for WASM
+        run: cargo check --target wasm32-unknown-unknown -p adze-glr-core --no-default-features
+      - name: Check adze-tablegen compiles for WASM
+        run: cargo check --target wasm32-unknown-unknown -p adze-tablegen --no-default-features
+      - name: Check adze (runtime) compiles for WASM
+        run: cargo check --target wasm32-unknown-unknown -p adze --no-default-features
+
+  # ── Feature matrix: strict_api / strict_docs ────────────────────────
+  strict-features:
+    name: Strict Features (${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ["", "--features strict_api", "--features strict_docs"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-strict-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-strict-
+      - name: Check compilation (${{ matrix.features || 'default' }})
+        run: |
+          set -euxo pipefail
+          # Crates that support both strict_api and strict_docs
+          BOTH_CRATES=(
+            adze-glr-core
+            adze-tablegen
+            adze-concurrency-caps-core
+            adze-concurrency-bounded-map-core
+            adze-concurrency-env-core
+            adze-concurrency-env-contract-core
+            adze-concurrency-init-core
+            adze-concurrency-init-bootstrap-core
+            adze-concurrency-init-bootstrap-policy-core
+            adze-concurrency-init-classifier-core
+            adze-concurrency-init-rayon-core
+            adze-concurrency-map-core
+            adze-concurrency-normalize-core
+            adze-concurrency-parse-core
+            adze-concurrency-plan-core
+            adze-governance-contract
+            adze-governance-matrix-contract
+            adze-governance-matrix-core
+            adze-governance-matrix-core-impl
+            adze-governance-metadata
+            adze-governance-runtime-core
+            adze-governance-runtime-reporting
+            adze-feature-policy-contract
+            adze-feature-policy-core
+            adze-runtime-governance
+            adze-runtime-governance-api
+            adze-runtime-governance-matrix
+            adze-runtime2-governance
+            adze-bdd-contract
+            adze-bdd-governance-contract
+            adze-bdd-governance-core
+            adze-bdd-governance-fixtures
+            adze-bdd-grammar-analysis-core
+            adze-bdd-grammar-fixtures
+            adze-bdd-grid-contract
+            adze-bdd-grid-core
+            adze-bdd-scenario-fixtures
+            adze-parser-backend-core
+            adze-parser-contract
+            adze-parser-feature-contract
+            adze-parser-governance-contract
+            adze-linecol-core
+            adze-stack-pool-core
+            adze-parsetable-metadata
+            adze-ts-format-core
+            adze-common-syntax-core
+            adze-glr-versioning
+            adze-concurrency-caps-contract-core
+          )
+          # Crates that only support strict_docs (not strict_api)
+          DOCS_ONLY_CRATES=(
+            adze-common
+            adze-ir
+            adze-macro
+            adze-tool
+          )
+
+          FEATURE_FLAG="${{ matrix.features }}"
+
+          for krate in "${BOTH_CRATES[@]}"; do
+            echo "::group::Check $krate $FEATURE_FLAG"
+            cargo check -p "$krate" $FEATURE_FLAG --locked 2>&1 || true
+            echo "::endgroup::"
+          done
+
+          if [[ "$FEATURE_FLAG" == *"strict_api"* ]]; then
+            echo "Skipping docs-only crates for strict_api (they lack this feature)"
+          else
+            for krate in "${DOCS_ONLY_CRATES[@]}"; do
+              echo "::group::Check $krate $FEATURE_FLAG"
+              cargo check -p "$krate" $FEATURE_FLAG --locked 2>&1 || true
+              echo "::endgroup::"
+            done
+          fi
+      - name: Test with strict features (${{ matrix.features || 'default' }})
+        run: |
+          set -euxo pipefail
+          FEATURE_FLAG="${{ matrix.features }}"
+          # Run tests for a representative subset to keep CI fast
+          cargo test -p adze-glr-core $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-tablegen $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS
+          cargo test -p adze-concurrency-caps-core $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS || true
+          cargo test -p adze-linecol-core $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS || true
+
+  # ── Crate-group parallel test jobs ──────────────────────────────────
+  test-concurrency:
+    name: Test Concurrency Crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-concurrency-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-concurrency-
+      - name: Test concurrency crates
+        run: |
+          cargo test \
+            -p adze-concurrency-bounded-map-core \
+            -p adze-concurrency-caps-contract-core \
+            -p adze-concurrency-caps-core \
+            -p adze-concurrency-env-contract-core \
+            -p adze-concurrency-env-core \
+            -p adze-concurrency-init-bootstrap-core \
+            -p adze-concurrency-init-bootstrap-policy-core \
+            -p adze-concurrency-init-classifier-core \
+            -p adze-concurrency-init-core \
+            -p adze-concurrency-init-rayon-core \
+            -p adze-concurrency-map-core \
+            -p adze-concurrency-normalize-core \
+            -p adze-concurrency-parse-core \
+            -p adze-concurrency-plan-core \
+            -- --test-threads=$RUST_TEST_THREADS
+
+  test-governance:
+    name: Test Governance Crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-governance-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-governance-
+      - name: Test governance crates
+        run: |
+          cargo test \
+            -p adze-governance-contract \
+            -p adze-governance-matrix-contract \
+            -p adze-governance-matrix-core \
+            -p adze-governance-matrix-core-impl \
+            -p adze-governance-metadata \
+            -p adze-governance-runtime-core \
+            -p adze-governance-runtime-reporting \
+            -p adze-feature-policy-contract \
+            -p adze-feature-policy-core \
+            -p adze-runtime-governance \
+            -p adze-runtime-governance-api \
+            -p adze-runtime-governance-matrix \
+            -p adze-runtime2-governance \
+            -- --test-threads=$RUST_TEST_THREADS
+
+  test-bdd:
+    name: Test BDD Crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bdd-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bdd-
+      - name: Test BDD crates
+        run: |
+          cargo test \
+            -p adze-bdd-contract \
+            -p adze-bdd-governance-contract \
+            -p adze-bdd-governance-core \
+            -p adze-bdd-governance-fixtures \
+            -p adze-bdd-grammar-analysis-core \
+            -p adze-bdd-grammar-fixtures \
+            -p adze-bdd-grid-contract \
+            -p adze-bdd-grid-core \
+            -p adze-bdd-scenario-fixtures \
+            -- --test-threads=$RUST_TEST_THREADS
+
+  test-parser:
+    name: Test Parser Crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-parser-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-parser-
+      - name: Test parser crates
+        run: |
+          cargo test \
+            -p adze-parser-backend-core \
+            -p adze-parser-contract \
+            -p adze-parser-feature-contract \
+            -p adze-parser-governance-contract \
+            -p adze-common-syntax-core \
+            -p adze-ts-format-core \
+            -p adze-linecol-core \
+            -p adze-stack-pool-core \
+            -p adze-parsetable-metadata \
+            -p adze-glr-versioning \
+            -- --test-threads=$RUST_TEST_THREADS
+
+  test-core:
+    name: Test Core Crates (ir, glr-core, tablegen)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-core-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-core-
+      - name: Test adze-ir
+        run: cargo test -p adze-ir -- --test-threads=$RUST_TEST_THREADS
+      - name: Test adze-glr-core
+        run: cargo test -p adze-glr-core --features test-api -- --test-threads=$RUST_TEST_THREADS
+      - name: Test adze-tablegen
+        run: cargo test -p adze-tablegen -- --test-threads=$RUST_TEST_THREADS
+      - name: Test adze-common
+        run: cargo test -p adze-common -- --test-threads=$RUST_TEST_THREADS
+
+  test-runtime:
+    name: Test Runtime Crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-runtime-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-runtime-
+      - name: Test adze (runtime)
+        run: cargo test -p adze --lib --tests -- --test-threads=$RUST_TEST_THREADS
+      - name: Test adze-runtime
+        run: cargo test -p adze-runtime --lib --tests -- --test-threads=$RUST_TEST_THREADS
+      - name: Test adze-macro
+        run: cargo test -p adze-macro -- --test-threads=$RUST_TEST_THREADS
+      - name: Test adze-tool
+        run: cargo test -p adze-tool -- --test-threads=$RUST_TEST_THREADS

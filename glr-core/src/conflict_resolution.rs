@@ -1,3 +1,5 @@
+//! Conflict resolution strategies for GLR parse table construction.
+
 use crate::{Action, FirstFollowSets, Grammar, ParseTable, ProductionId, StateId, SymbolId};
 use fixedbitset::FixedBitSet;
 use rustc_hash::FxHashMap;
@@ -16,6 +18,7 @@ pub struct VecWrapperResolver {
 }
 
 impl VecWrapperResolver {
+    /// Creates a new resolver by analyzing the grammar for vec-wrapper patterns.
     pub fn new(grammar: &Grammar, first_follow: &FirstFollowSets) -> Self {
         // Get the maximum symbol ID to size our bitset properly
         let max_symbol_id = grammar
@@ -56,6 +59,7 @@ impl VecWrapperResolver {
         }
     }
 
+    /// Returns the empty-production ID if the state has a vec-wrapper conflict.
     pub fn get_vec_wrapper_action(
         &mut self,
         state: StateId,
@@ -119,6 +123,7 @@ impl VecWrapperResolver {
         result
     }
 
+    /// Returns `true` if the given token is NOT a statement-starter.
     pub fn should_reduce_empty(&self, token: SymbolId) -> bool {
         // Reduce empty if NOT a statement starter
         !self.statement_starters.contains(token.0 as usize)

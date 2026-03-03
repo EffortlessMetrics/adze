@@ -205,13 +205,13 @@ Incremental parsing requires specific feature flags:
 ```toml
 [dependencies]
 # Production incremental parsing (recommended)
-adze = { version = "0.6", features = ["incremental_glr"] }
+adze = { version = "0.8.0-dev", features = ["incremental_glr"] }
 
 # Alternative: basic incremental support (legacy)
-adze = { version = "0.6", features = ["incremental"] }
+adze = { version = "0.8.0-dev", features = ["incremental"] }
 
 # All features (comprehensive)
-adze = { version = "0.6", features = ["all-features"] }
+adze = { version = "0.8.0-dev", features = ["all-features"] }
 ```
 
 **Feature Behavior**:

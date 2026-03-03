@@ -221,7 +221,9 @@ impl GLRGrammarValidator {
         });
 
         if !has_explicit_start && !grammar.rules.is_empty() {
-            let first_rule = grammar.rules.keys().next().unwrap();
+            let Some(first_rule) = grammar.rules.keys().next() else {
+                return;
+            };
             self.warnings.push(ValidationWarning {
                 message: format!(
                     "No explicit start rule found, using '{}' as start symbol",
@@ -835,23 +837,28 @@ impl GLRGrammarValidator {
         for (symbol, rules) in &grammar.rules {
             for rule in rules {
                 for prefix_len in 1..=rule.rhs.len().min(3) {
-                    let prefix: Vec<_> = rule
-                        .rhs
-                        .iter()
-                        .take(prefix_len)
-                        .map(|s| match s {
-                            Symbol::Terminal(id) | Symbol::NonTerminal(id) => *id,
-                            Symbol::External(ext) => SymbolId(ext.0),
+                    let mut prefix = Vec::new();
+                    let mut unsupported_prefix = false;
+
+                    for sym in rule.rhs.iter().take(prefix_len) {
+                        match sym {
+                            Symbol::Terminal(id) | Symbol::NonTerminal(id) => prefix.push(*id),
+                            Symbol::External(ext) => prefix.push(SymbolId(ext.0)),
                             Symbol::Optional(_)
                             | Symbol::Repeat(_)
                             | Symbol::RepeatOne(_)
                             | Symbol::Choice(_)
                             | Symbol::Sequence(_)
                             | Symbol::Epsilon => {
-                                panic!("Complex symbols should be normalized before validation");
+                                unsupported_prefix = true;
+                                break;
                             }
-                        })
-                        .collect();
+                        }
+                    }
+
+                    if unsupported_prefix {
+                        continue;
+                    }
 
                     prefix_map
                         .entry(prefix)
@@ -865,7 +872,8 @@ impl GLRGrammarValidator {
             if occurrences.len() > 1 {
                 // Check if the rules have different lengths (shift/reduce conflict)
                 let lengths: HashSet<_> = occurrences.iter().map(|(_, len)| *len).collect();
-                if lengths.len() > 1 && prefix.len() < *lengths.iter().min().unwrap() {
+                if lengths.len() > 1 && lengths.iter().min().is_some_and(|min| prefix.len() < *min)
+                {
                     let prefix_str = prefix
                         .iter()
                         .map(|s| self.get_symbol_name(*s))

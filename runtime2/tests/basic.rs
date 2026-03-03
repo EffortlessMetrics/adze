@@ -52,7 +52,7 @@ fn error_display() {
     assert_eq!(error.to_string(), "parse timeout exceeded");
 }
 
-#[cfg(feature = "external-scanners")]
+#[cfg(feature = "external_scanners")]
 #[test]
 fn external_scanner_trait() {
     use adze_runtime::external_scanner::{ExternalScanner, ScanResult};

@@ -79,8 +79,8 @@ This milestone delivers a minimal adze-runtime crate with a Tree-sitter-compatib
 [features]
 default = ["glr-core"]
 glr-core = ["dep:adze-glr-core", "dep:adze-ir"]
-incremental = []
-external-scanners = []
+incremental_glr = []
+external_scanners = []
 arenas = ["bumpalo", "typed-arena"]
 ```
 

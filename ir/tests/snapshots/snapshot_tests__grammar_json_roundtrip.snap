@@ -1,0 +1,71 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: json
+---
+{
+  "name": "json_test",
+  "rules": {
+    "3": [
+      {
+        "lhs": 3,
+        "rhs": [
+          {
+            "NonTerminal": 3
+          },
+          {
+            "Terminal": 2
+          },
+          {
+            "NonTerminal": 3
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      },
+      {
+        "lhs": 3,
+        "rhs": [
+          {
+            "Terminal": 1
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 1
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "NUMBER",
+      "pattern": {
+        "Regex": "\\d+"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": "+",
+      "pattern": {
+        "String": "+"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "3": "expr"
+  },
+  "symbol_registry": null
+}

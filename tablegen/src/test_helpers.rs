@@ -1,6 +1,8 @@
 // Test helpers for tablegen tests
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
+//! Test helper utilities for tablegen unit tests.
+
 #[cfg(test)]
 pub(crate) mod test {
     use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};

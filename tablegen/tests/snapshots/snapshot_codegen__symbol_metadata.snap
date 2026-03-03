@@ -1,0 +1,8 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: formatted
+---
+[0] 0b00000011
+[1] 0b00000011
+[2] 0b00000011
+[3] 0b00000011

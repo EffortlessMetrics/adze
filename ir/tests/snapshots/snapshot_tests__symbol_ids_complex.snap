@@ -1,0 +1,5 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: "format!(\"{ids:?}\")"
+---
+[10, 1010, 1011]

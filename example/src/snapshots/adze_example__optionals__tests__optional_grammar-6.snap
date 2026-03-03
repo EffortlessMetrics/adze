@@ -1,26 +1,29 @@
 ---
-source: example/src/optionals.rs
+source: src/optionals.rs
 expression: "grammar::parse(\"1_2.\")"
 ---
-Ok(
-    Language {
-        v: Some(
-            1,
-        ),
-        _s: (),
-        t: Spanned {
-            value: Some(
-                Number {
-                    v: 2,
-                },
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "_2",
             ),
-            span: (
-                2,
-                3,
-            ),
+            start: 0,
+            end: 0,
         },
-        _d: Some(
-            (),
-        ),
-    },
+        ParseError {
+            reason: UnexpectedToken(
+                "_2",
+            ),
+            start: 2,
+            end: 2,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                ".",
+            ),
+            start: 3,
+            end: 3,
+        },
+    ],
 )

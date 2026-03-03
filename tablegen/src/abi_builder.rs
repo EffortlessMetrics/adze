@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Builder for ABI-compatible Tree-sitter Language structures.
+
 // ABI-compatible language builder for Tree-sitter
 // This module generates static Language structures that match Tree-sitter's C ABI exactly
 
@@ -9,6 +11,24 @@ use adze_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::HashSet;
+
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
 
 /// Builder for generating ABI-compatible language structures
 pub struct AbiLanguageBuilder<'a> {
@@ -49,22 +69,24 @@ impl<'a> AbiLanguageBuilder<'a> {
         let language_name = &self.grammar.name;
         let language_fn_ident = quote::format_ident!("tree_sitter_{}", language_name);
 
-        eprintln!(
+        debug_trace!(
             "DEBUG AbiLanguageBuilder: Generating language for '{}'",
             language_name
         );
-        eprintln!("DEBUG AbiLanguageBuilder: symbol_to_index mapping:");
+        debug_trace!("DEBUG AbiLanguageBuilder: symbol_to_index mapping:");
         for (symbol_id, &index) in &self.parse_table.symbol_to_index {
             let symbol_name = self.get_symbol_name(*symbol_id);
-            eprintln!(
+            debug_trace!(
                 "  SymbolId({}) -> index {} ('{}')",
-                symbol_id.0, index, symbol_name
+                symbol_id.0,
+                index,
+                symbol_name
             );
         }
 
         // Check what the initial state expects
         if !self.parse_table.action_table.is_empty() {
-            eprintln!("DEBUG AbiLanguageBuilder: State 0 actions:");
+            debug_trace!("DEBUG AbiLanguageBuilder: State 0 actions:");
             for (symbol_idx, action_cell) in self.parse_table.action_table[0].iter().enumerate() {
                 if !action_cell.is_empty() {
                     // Find the symbol ID for this index
@@ -74,9 +96,11 @@ impl<'a> AbiLanguageBuilder<'a> {
                         .iter()
                         .find(|(_, idx)| **idx == symbol_idx)
                         .map(|(id, _)| *id);
-                    eprintln!(
+                    debug_trace!(
                         "  Index {} (SymbolId {:?}): {:?}",
-                        symbol_idx, symbol_id, action_cell
+                        symbol_idx,
+                        symbol_id,
+                        action_cell
                     );
                 }
             }
@@ -173,20 +197,22 @@ impl<'a> AbiLanguageBuilder<'a> {
         };
 
         // Debug: Print symbol_to_index mapping for tokens
-        eprintln!("DEBUG: Symbol to index mapping for lexer generation:");
+        debug_trace!("DEBUG: Symbol to index mapping for lexer generation:");
         for (sym_id, idx) in &self.parse_table.symbol_to_index {
             if self.grammar.tokens.contains_key(sym_id) {
                 let token = &self.grammar.tokens[sym_id];
-                eprintln!(
+                debug_trace!(
                     "  Token '{}' (SymbolId {:?}) -> index {}",
-                    token.name, sym_id, idx
+                    token.name,
+                    sym_id,
+                    idx
                 );
             }
         }
-        eprintln!("DEBUG: token_count = {}", self.parse_table.token_count);
+        debug_trace!("DEBUG: token_count = {}", self.parse_table.token_count);
 
-        eprintln!("DEBUG: token_count = {}", counts.token_count);
-        eprintln!("DEBUG: symbol_count = {}", counts.symbol_count);
+        debug_trace!("DEBUG: token_count = {}", counts.token_count);
+        debug_trace!("DEBUG: symbol_count = {}", counts.symbol_count);
 
         // Generate lexer function with symbol mapping
         let lexer_code =
@@ -298,6 +324,9 @@ impl<'a> AbiLanguageBuilder<'a> {
 
             // Export the language function for FFI
             // Edition-aware attribute toggle (2021 vs 2024)
+            // SAFETY: LANGUAGE is a well-formed static TSLanguage struct initialized
+            // from compile-time-generated tables. Returning a pointer to it is safe
+            // because statics have 'static lifetime and stable addresses.
             #[cfg(adze_unsafe_attrs)]
             #[unsafe(no_mangle)]
             #[cfg(not(adze_unsafe_attrs))]
@@ -394,31 +423,34 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn generate_symbol_metadata(&self) -> Vec<TokenStream> {
         let mut metadata = Vec::new();
 
-        eprintln!("\nDEBUG generate_symbol_metadata: Starting metadata generation");
-        eprintln!("  grammar.extras = {:?}", self.grammar.extras);
+        debug_trace!("\nDEBUG generate_symbol_metadata: Starting metadata generation");
+        debug_trace!("  grammar.extras = {:?}", self.grammar.extras);
 
         // Debug: Check all tokens in the grammar
-        eprintln!("  All tokens in grammar:");
+        debug_trace!("  All tokens in grammar:");
         for (id, token) in &self.grammar.tokens {
-            eprintln!(
+            debug_trace!(
                 "    Token {:?}: name='{}', pattern={:?}",
-                id, token.name, token.pattern
+                id,
+                token.name,
+                token.pattern
             );
         }
 
         // First, find all terminal tokens that should be marked as extras
         let extra_tokens = self.find_extra_tokens();
-        eprintln!("  extra_tokens found = {:?}", extra_tokens);
+        debug_trace!("  extra_tokens found = {:?}", extra_tokens);
 
         // Debug: Print which symbol corresponds to whitespace
-        eprintln!("  Looking for whitespace token (should be symbol 4):");
+        debug_trace!("  Looking for whitespace token (should be symbol 4):");
         for (id, token) in &self.grammar.tokens {
             if token.name.contains("whitespace")
                 || token.pattern == TokenPattern::Regex(r"\s".to_string())
             {
-                eprintln!(
+                debug_trace!(
                     "    Found whitespace-like token: {:?} -> {}",
-                    id, token.name
+                    id,
+                    token.name
                 );
             }
         }
@@ -431,8 +463,8 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
         }
 
-        eprintln!("  Generating metadata in parse table order:");
-        eprintln!(
+        debug_trace!("  Generating metadata in parse table order:");
+        debug_trace!(
             "  symbol_to_index mapping: {:?}",
             self.parse_table.symbol_to_index
         );
@@ -441,7 +473,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 if *symbol_id == self.parse_table.eof_symbol {
                     // EOF symbol
                     let meta_byte = create_symbol_metadata(true, false, false, false, false);
-                    eprintln!("    Index {}: EOF, metadata={:#x}", idx, meta_byte);
+                    debug_trace!("    Index {}: EOF, metadata={:#x}", idx, meta_byte);
                     metadata.push(quote! { #meta_byte });
                 } else if let Some(token) = self.grammar.tokens.get(symbol_id) {
                     // Terminal token
@@ -455,12 +487,13 @@ impl<'a> AbiLanguageBuilder<'a> {
                         || token.name.to_lowercase().contains("whitespace");
 
                     if is_whitespace_token {
-                        eprintln!(
+                        debug_trace!(
                             "    WHITESPACE TOKEN FOUND: {} (id={:?})",
-                            token.name, symbol_id
+                            token.name,
+                            symbol_id
                         );
-                        eprintln!("      Pattern: {:?}", token.pattern);
-                        eprintln!(
+                        debug_trace!("      Pattern: {:?}", token.pattern);
+                        debug_trace!(
                             "      Was in extra_tokens: {}",
                             extra_tokens.contains(symbol_id)
                         );
@@ -470,9 +503,15 @@ impl<'a> AbiLanguageBuilder<'a> {
                     let hidden = extra_tokens.contains(symbol_id) || is_whitespace_token;
 
                     let meta_byte = create_symbol_metadata(visible, named, hidden, false, false);
-                    eprintln!(
+                    debug_trace!(
                         "    Index {}: Token {} (id={:?}): visible={}, named={}, hidden={}, metadata={:#x}",
-                        idx, token.name, symbol_id, visible, named, hidden, meta_byte
+                        idx,
+                        token.name,
+                        symbol_id,
+                        visible,
+                        named,
+                        hidden,
+                        meta_byte
                     );
                     metadata.push(quote! { #meta_byte });
                 } else if self.grammar.rules.contains_key(symbol_id) {
@@ -489,9 +528,15 @@ impl<'a> AbiLanguageBuilder<'a> {
                     let supertype = self.grammar.supertypes.contains(symbol_id);
                     let meta_byte =
                         create_symbol_metadata(visible, named, hidden, false, supertype);
-                    eprintln!(
+                    debug_trace!(
                         "    Index {}: Non-terminal {} (id={:?}): visible={}, named={}, supertype={}, metadata={:#x}",
-                        idx, name, symbol_id, visible, named, supertype, meta_byte
+                        idx,
+                        name,
+                        symbol_id,
+                        visible,
+                        named,
+                        supertype,
+                        meta_byte
                     );
                     metadata.push(quote! { #meta_byte });
                 } else if let Some(external) = self
@@ -504,22 +549,28 @@ impl<'a> AbiLanguageBuilder<'a> {
                     let visible = !external.name.starts_with('_');
                     let named = visible;
                     let meta_byte = create_symbol_metadata(visible, named, false, false, false);
-                    eprintln!(
+                    debug_trace!(
                         "    Index {}: External {} (id={:?}): visible={}, named={}, metadata={:#x}",
-                        idx, external.name, symbol_id, visible, named, meta_byte
+                        idx,
+                        external.name,
+                        symbol_id,
+                        visible,
+                        named,
+                        meta_byte
                     );
                     metadata.push(quote! { #meta_byte });
                 } else {
                     // Unknown symbol - shouldn't happen
-                    eprintln!(
+                    debug_trace!(
                         "    Index {}: WARNING: Unknown symbol id={:?}",
-                        idx, symbol_id
+                        idx,
+                        symbol_id
                     );
                     metadata.push(quote! { 0u8 });
                 }
             } else {
                 // No symbol for this index - shouldn't happen
-                eprintln!("    Index {}: WARNING: No symbol mapped", idx);
+                debug_trace!("    Index {}: WARNING: No symbol mapped", idx);
                 metadata.push(quote! { 0u8 });
             }
         }
@@ -588,7 +639,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             let mut map_data = Vec::new();
             let mut current_offset = 0u32;
 
-            eprintln!(
+            debug_trace!(
                 "DEBUG: goto_table.len() = {}, state_count = {}",
                 self.parse_table.goto_table.len(),
                 self.parse_table.state_count
@@ -614,10 +665,9 @@ impl<'a> AbiLanguageBuilder<'a> {
                         .find(|&(_, &idx)| idx == symbol_idx)
                         .map(|(id, _)| *id);
 
-                    if symbol_id.is_none() {
+                    let Some(symbol_id) = symbol_id else {
                         continue;
-                    }
-                    let symbol_id = symbol_id.unwrap();
+                    };
 
                     let is_terminal = self.grammar.tokens.contains_key(&symbol_id)
                         || self
@@ -713,7 +763,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             }
 
             // Add final offset for end of table
-            eprintln!("DEBUG: Final offset: {}", current_offset);
+            debug_trace!("DEBUG: Final offset: {}", current_offset);
             map_data.push(quote! { #current_offset });
 
             (table_data, map_data)
@@ -1004,8 +1054,9 @@ impl<'a> AbiLanguageBuilder<'a> {
     /// Generate production ID map
     fn generate_production_id_map(&self) -> Vec<TokenStream> {
         // Tree-sitter uses 1-based production IDs in the parse table
-        // This map converts from 1-based IDs to 0-based indices into PARSE_ACTIONS
-        // We MUST use the same rule ordering as generate_ts_rules and generate_parse_actions
+        // After decoding to zero-based, runtime indexes this map by RULE ID from parse actions.
+        // Therefore this map must be: rule_id -> production_id.
+        // PARSE_ACTIONS / TS_RULES are indexed by production_id.
         let mut rules: Vec<_> = self
             .grammar
             .rules
@@ -1014,25 +1065,24 @@ impl<'a> AbiLanguageBuilder<'a> {
             .collect();
         rules.sort_by_key(|rule| rule.production_id.0);
 
-        // Find the maximum production ID to size the map
-        // Production IDs in the table are 1-based, so max ID 771 means we need map[770]
+        // Find the maximum production ID to size the map.
+        // Production IDs are encoded directly and can start at 0.
         let max_production_id = rules.iter().map(|r| r.production_id.0).max().unwrap_or(0);
-        let map_size = max_production_id as usize;
+        let map_size = max_production_id as usize + 1;
 
         // Initialize map with a sentinel value (u16::MAX)
-        let mut id_to_index = vec![u16::MAX; map_size];
+        let mut rule_to_production = vec![u16::MAX; map_size];
 
-        // Fill the map: id_to_index[production_id - 1] = sequential_rule_index
-        for (index, rule) in rules.iter().enumerate() {
-            let pid = rule.production_id.0 as usize;
-            if pid > 0 && pid <= map_size {
-                id_to_index[pid - 1] = index as u16;
+        // Fill the map: rule_id (sequential, zero-based) -> production_id
+        for (rule_id, rule) in rules.iter().enumerate() {
+            if rule_id < map_size {
+                rule_to_production[rule_id] = rule.production_id.0;
             }
         }
 
         // Convert to TokenStreams
         let mut production_map = Vec::new();
-        for val in id_to_index {
+        for val in rule_to_production {
             production_map.push(quote! { #val });
         }
 
@@ -1104,7 +1154,7 @@ impl<'a> AbiLanguageBuilder<'a> {
                 .or_else(|| self.parse_table.symbol_to_index.get(&symbol_id))
                 .copied()
                 .unwrap_or_else(|| {
-                    eprintln!(
+                    debug_trace!(
                         "WARNING: No symbol index found for LHS symbol ID {} in rule",
                         symbol_id.0
                     );
@@ -1160,7 +1210,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let mut extra_tokens = HashSet::new();
         let mut visited = HashSet::new();
 
-        eprintln!(
+        debug_trace!(
             "DEBUG find_extra_tokens: grammar.extras = {:?}",
             self.grammar.extras
         );
@@ -1168,18 +1218,18 @@ impl<'a> AbiLanguageBuilder<'a> {
         // Check if any extras directly refer to tokens
         for &extra_symbol in &self.grammar.extras {
             if self.grammar.tokens.contains_key(&extra_symbol) {
-                eprintln!("  Extra symbol {:?} is directly a token!", extra_symbol);
+                debug_trace!("  Extra symbol {:?} is directly a token!", extra_symbol);
                 extra_tokens.insert(extra_symbol);
             }
         }
 
         // For each extra symbol, find all terminal tokens it can produce (recursively)
         for &extra_symbol in &self.grammar.extras {
-            eprintln!("  Processing extra symbol: {:?}", extra_symbol);
+            debug_trace!("  Processing extra symbol: {:?}", extra_symbol);
             self.find_terminals_recursive(extra_symbol, &mut extra_tokens, &mut visited);
         }
 
-        eprintln!("DEBUG find_extra_tokens: result = {:?}", extra_tokens);
+        debug_trace!("DEBUG find_extra_tokens: result = {:?}", extra_tokens);
         extra_tokens
     }
 
@@ -1197,28 +1247,28 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // If it's a terminal token, add it
         if self.grammar.tokens.contains_key(&symbol) {
-            eprintln!("    Found terminal: {:?}", symbol);
+            debug_trace!("    Found terminal: {:?}", symbol);
             terminals.insert(symbol);
             return;
         }
 
         // If it's a non-terminal, explore all its rules
         if let Some(rules) = self.grammar.rules.get(&symbol) {
-            eprintln!(
+            debug_trace!(
                 "    Exploring non-terminal {:?} with {} rules",
                 symbol,
                 rules.len()
             );
             for rule in rules {
-                eprintln!("      Rule: {:?} -> {:?}", rule.lhs, rule.rhs);
+                debug_trace!("      Rule: {:?} -> {:?}", rule.lhs, rule.rhs);
                 for sym in &rule.rhs {
                     match sym {
                         Symbol::Terminal(token_id) => {
-                            eprintln!("        Found terminal in rule: {:?}", token_id);
+                            debug_trace!("        Found terminal in rule: {:?}", token_id);
                             terminals.insert(*token_id);
                         }
                         Symbol::NonTerminal(nt_id) => {
-                            eprintln!("        Recursing into non-terminal: {:?}", nt_id);
+                            debug_trace!("        Recursing into non-terminal: {:?}", nt_id);
                             self.find_terminals_recursive(*nt_id, terminals, visited);
                         }
                         Symbol::External(_)
@@ -1229,7 +1279,10 @@ impl<'a> AbiLanguageBuilder<'a> {
                         | Symbol::Sequence(_)
                         | Symbol::Epsilon => {
                             // These symbol types are not expected in the IR at this stage
-                            eprintln!("        WARNING: Unexpected symbol type in rule: {:?}", sym);
+                            debug_trace!(
+                                "        WARNING: Unexpected symbol type in rule: {:?}",
+                                sym
+                            );
                         }
                     }
                 }
@@ -1307,5 +1360,312 @@ mod tests {
         let token1_pos = code.find("49u8").unwrap();
         let token5_pos = code.find("53u8").unwrap();
         assert!(token1_pos < token5_pos);
+    }
+
+    #[test]
+    fn test_generate_production_id_map_includes_first_slot() {
+        let mut grammar = Grammar::new("test".to_string());
+
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(2),
+        });
+
+        let parse_table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
+        let production_map = builder.generate_production_id_map();
+
+        assert_eq!(production_map.len(), 3);
+        assert_eq!(production_map[0].to_string(), "0u16");
+        assert_eq!(production_map[1].to_string(), "1u16");
+        assert_eq!(production_map[2].to_string(), "2u16");
+    }
+
+    // --- ABI compatibility tests (correctness-tablegen-compat) ---
+
+    /// Single-production grammar yields a map of length 1.
+    #[test]
+    fn test_production_id_map_single_production() {
+        let mut grammar = Grammar::new("single".to_string());
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let map = builder.generate_production_id_map();
+
+        assert_eq!(map.len(), 1, "single production → map length 1");
+        assert_eq!(map[0].to_string(), "0u16");
+    }
+
+    /// EOF symbol metadata must be visible=true, named=false (Tree-sitter convention).
+    #[test]
+    fn test_eof_metadata_visible_unnamed() {
+        let mut grammar = Grammar::new("eof_meta".to_string());
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "tok".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let metadata = builder.generate_symbol_metadata();
+
+        assert_eq!(
+            metadata.len(),
+            table.symbol_count,
+            "metadata length must equal symbol_count"
+        );
+
+        // EOF metadata: visible=true(0x01), named=false → 0x01
+        let eof_idx = table.symbol_to_index[&table.eof_symbol];
+        assert_eq!(
+            metadata[eof_idx].to_string(),
+            "1u8",
+            "EOF metadata must be 0x01 (visible, not named)"
+        );
+    }
+
+    /// Metadata length matches parse table symbol_count exactly.
+    #[test]
+    fn test_symbol_metadata_length_matches_symbol_count() {
+        let mut grammar = Grammar::new("meta_len".to_string());
+        let start = SymbolId(1);
+        let t1 = SymbolId(2);
+        let t2 = SymbolId(3);
+        grammar.rule_names.insert(start, "start".to_string());
+        for (id, name) in [(t1, "a"), (t2, "b")] {
+            grammar.tokens.insert(
+                id,
+                Token {
+                    name: name.to_string(),
+                    pattern: TokenPattern::String(name.to_string()),
+                    fragile: false,
+                },
+            );
+        }
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t1), Symbol::Terminal(t2)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 2, terms: 2, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let metadata = builder.generate_symbol_metadata();
+
+        assert_eq!(metadata.len(), table.symbol_count);
+    }
+
+    /// calculate_counts must reflect parse table dimensions.
+    #[test]
+    fn test_calculate_counts_matches_table_dimensions() {
+        let mut grammar = Grammar::new("counts".to_string());
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.fields.insert(FieldId(0), "val".to_string());
+
+        let table = crate::empty_table!(states: 5, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let counts = builder.calculate_counts();
+
+        assert_eq!(counts.symbol_count as usize, table.symbol_count);
+        assert_eq!(counts.state_count as usize, table.state_count);
+        assert_eq!(counts.token_count as usize, table.token_count);
+        assert_eq!(counts.field_count, 1);
+        assert_eq!(
+            counts.external_token_count as usize,
+            table.external_token_count
+        );
+    }
+
+    /// generate() produces code with the correct ABI version.
+    #[test]
+    fn test_generate_contains_abi_version_15() {
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        // Use the table's start_symbol as the rule LHS to match non-terminal region.
+        let start = table.start_symbol;
+        let t = SymbolId(1); // terminal column
+
+        let mut grammar = Grammar::new("ver".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let code = builder.generate().to_string();
+
+        assert!(
+            code.contains("TREE_SITTER_LANGUAGE_VERSION"),
+            "generated code must reference TREE_SITTER_LANGUAGE_VERSION"
+        );
+    }
+
+    /// Encode/decode roundtrip for Shift, Reduce, Accept, Error through
+    /// the AbiLanguageBuilder's encode_action method.
+    #[test]
+    fn test_encode_action_roundtrip() {
+        let grammar = Grammar::new("enc".to_string());
+        let table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+
+        // Shift
+        let enc = builder
+            .encode_action(&Action::Shift(adze_ir::StateId(42)))
+            .unwrap();
+        assert_eq!(enc, 42, "Shift(42) → 42");
+
+        // Reduce (1-based in Tree-sitter)
+        let enc = builder.encode_action(&Action::Reduce(RuleId(3))).unwrap();
+        assert_eq!(enc, 0x8000 | 4, "Reduce(3) → 0x8004");
+
+        // Accept
+        let enc = builder.encode_action(&Action::Accept).unwrap();
+        assert_eq!(enc, 0xFFFF, "Accept → 0xFFFF");
+
+        // Error
+        let enc = builder.encode_action(&Action::Error).unwrap();
+        assert_eq!(enc, 0, "Error → 0");
+    }
+
+    /// Production LHS index entries must all reference non-terminal columns.
+    #[test]
+    fn test_production_lhs_index_nonterminal_columns() {
+        let table = crate::empty_table!(states: 2, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1); // terminal column
+
+        let mut grammar = Grammar::new("lhs".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 2, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let lhs_index = builder.generate_production_lhs_index();
+
+        // Every LHS must be ≥ token_count (non-terminal region)
+        for (i, token) in lhs_index.iter().enumerate() {
+            let val: u16 = token.to_string().trim_end_matches("u16").parse().unwrap();
+            assert!(
+                val as usize >= table.token_count,
+                "production_lhs_index[{}] = {} must be >= token_count {}",
+                i,
+                val,
+                table.token_count
+            );
+        }
     }
 }

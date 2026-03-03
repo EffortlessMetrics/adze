@@ -54,6 +54,12 @@ pub struct LexerAdapterState {
 ///
 /// This function creates a TSLexer struct that the external scanner can use
 /// to read input and mark token boundaries.
+///
+/// # Safety
+///
+/// - `input` must point to a valid byte buffer of at least `length` bytes.
+/// - The buffer must remain valid for the lifetime of the returned pointers.
+/// - `position` must be ≤ `length`.
 pub unsafe fn create_lexer_adapter(
     input: *const u8,
     position: usize,
@@ -62,6 +68,8 @@ pub unsafe fn create_lexer_adapter(
     // Create the adapter state
     let mut initial_lookahead = 0u32;
     if position < length {
+        // SAFETY: Caller guarantees `input` points to a valid buffer of at least
+        // `length` bytes, and the branch guard ensures `position < length`.
         unsafe {
             initial_lookahead = *input.add(position) as u32;
         }
@@ -89,35 +97,67 @@ pub unsafe fn create_lexer_adapter(
     });
     let lexer_ptr = Box::into_raw(lexer);
 
-    // Store the state pointer in a way that the callback functions can access it
-    // For simplicity, we'll use the lexer pointer + 1 to store the state pointer
-    let state_storage = unsafe { lexer_ptr.add(1) } as *mut *mut LexerAdapterState;
-    unsafe {
-        *state_storage = state_ptr;
-    }
-
     (lexer_ptr, state_ptr)
 }
 
 /// Clean up the lexer adapter
+///
+/// # Safety
+///
+/// - `lexer` must be null or a pointer returned by `create_lexer_adapter`.
+/// - `state` must be null or a pointer returned by `create_lexer_adapter`.
+/// - Each pointer must not have been freed previously (no double-free).
 pub unsafe fn destroy_lexer_adapter(lexer: *mut TSLexer, state: *mut LexerAdapterState) {
+    let state_ptr = if lexer.is_null() {
+        state
+    } else {
+        // SAFETY: `lexer` is non-null (branch guard) and was created by
+        // `create_lexer_adapter` via `Box::into_raw`, so dereferencing is valid.
+        unsafe { (*lexer).context as *mut LexerAdapterState }
+    };
+
     if !lexer.is_null() {
-        unsafe {
-            let _ = Box::from_raw(lexer);
-        }
+        // SAFETY: `lexer` was allocated by `Box::into_raw` in `create_lexer_adapter`
+        // and is non-null (branch guard). We consume it exactly once here.
+        let _ = unsafe { Box::from_raw(lexer) };
     }
-    if !state.is_null() {
-        unsafe {
-            let _ = Box::from_raw(state);
-        }
+    if !state_ptr.is_null() {
+        // SAFETY: `state_ptr` was obtained from `lexer.context` which was set to
+        // a `Box::into_raw(state)` pointer in `create_lexer_adapter`. Non-null guard above.
+        let _ = unsafe { Box::from_raw(state_ptr) };
     }
+    if !state.is_null() && state != state_ptr {
+        // SAFETY: `state` is a separate `Box::into_raw` pointer that differs from
+        // `state_ptr`, so it has not been freed above. Non-null guard present.
+        // TODO(safety): Double-free risk if caller passes a `state` pointer that
+        // aliases `state_ptr` through a different bit pattern (unlikely but not enforced).
+        let _ = unsafe { Box::from_raw(state) };
+    }
+}
+
+#[inline]
+unsafe fn lexer_state(lexer: *mut TSLexer) -> *mut LexerAdapterState {
+    // SAFETY: Caller guarantees `lexer` is a valid, non-null pointer created by
+    // `create_lexer_adapter`. The `context` field holds a `LexerAdapterState` pointer.
+    unsafe { (*lexer).context as *mut LexerAdapterState }
+}
+
+#[inline]
+unsafe fn lexer_state_const(lexer: *const TSLexer) -> *const LexerAdapterState {
+    // SAFETY: Caller guarantees `lexer` is a valid, non-null pointer created by
+    // `create_lexer_adapter`. The `context` field holds a `LexerAdapterState` pointer.
+    unsafe { (*lexer).context as *const LexerAdapterState }
 }
 
 // Callback functions for TSLexer
 
 extern "C" fn ts_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
+    // SAFETY: `lexer` is provided by Tree-sitter runtime and points to a TSLexer
+    // created by `create_lexer_adapter`. `lexer_state` returns the context pointer
+    // which is validated for null below. The shared reference `&*state_ptr` is safe
+    // because no mutable alias exists during this callback's execution.
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return 0;
         }
@@ -127,8 +167,14 @@ extern "C" fn ts_lexer_lookahead(lexer: *mut TSLexer) -> u32 {
 }
 
 extern "C" fn ts_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
+    // SAFETY: `lexer` is provided by Tree-sitter runtime and points to a TSLexer
+    // created by `create_lexer_adapter`. `lexer_state` is null-checked below.
+    // The mutable reference `&mut *state_ptr` is safe because Tree-sitter
+    // guarantees single-threaded callback invocation (no concurrent access).
+    // Pointer arithmetic on `state.input.add(position)` is valid because
+    // `position < length` is checked, and the input buffer has `length` bytes.
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return;
         }
@@ -148,8 +194,11 @@ extern "C" fn ts_lexer_advance(lexer: *mut TSLexer, _skip: bool) {
 }
 
 extern "C" fn ts_lexer_mark_end(lexer: *mut TSLexer) {
+    // SAFETY: `lexer` points to a TSLexer from `create_lexer_adapter`.
+    // `lexer_state` is null-checked below. Mutable reference is safe because
+    // Tree-sitter guarantees single-threaded callback invocation.
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return;
         }
@@ -159,8 +208,12 @@ extern "C" fn ts_lexer_mark_end(lexer: *mut TSLexer) {
 }
 
 extern "C" fn ts_lexer_get_column(lexer: *mut TSLexer) -> u32 {
+    // SAFETY: `lexer` points to a TSLexer from `create_lexer_adapter`.
+    // `lexer_state` is null-checked below. Shared reference is safe (no mutation).
+    // Pointer arithmetic `state.input.add(pos)` is valid because `pos < state.position`
+    // and `state.position <= state.length`, and the input buffer spans `length` bytes.
     unsafe {
-        let state_ptr = *(lexer.add(1) as *mut *mut LexerAdapterState);
+        let state_ptr = lexer_state(lexer);
         if state_ptr.is_null() {
             return 0;
         }
@@ -190,8 +243,10 @@ extern "C" fn ts_lexer_is_at_included_range_start(_lexer: *const TSLexer) -> boo
 }
 
 extern "C" fn ts_lexer_eof(lexer: *const TSLexer) -> bool {
+    // SAFETY: `lexer` points to a TSLexer from `create_lexer_adapter`.
+    // `lexer_state_const` is null-checked below. Shared reference is safe (read-only).
     unsafe {
-        let state_ptr = *(lexer.add(1) as *const *const LexerAdapterState);
+        let state_ptr = lexer_state_const(lexer);
         if state_ptr.is_null() {
             return true;
         }

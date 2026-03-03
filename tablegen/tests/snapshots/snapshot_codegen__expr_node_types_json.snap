@@ -1,0 +1,19 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: json
+---
+[
+  {
+    "type": "rule_4",
+    "named": true,
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": []
+    }
+  },
+  {
+    "type": "number",
+    "named": true
+  }
+]

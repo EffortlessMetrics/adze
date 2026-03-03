@@ -1,4 +1,6 @@
 // Grammar optimization passes for Adze
+//! Grammar optimization passes that simplify and normalize rules.
+
 // This module implements various optimizations to improve parser performance
 
 #[cfg(test)]
@@ -6,6 +8,24 @@ use crate::Token;
 use crate::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
+
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
 
 /// Grammar optimizer that applies various optimization passes
 pub struct GrammarOptimizer {
@@ -45,12 +65,15 @@ impl GrammarOptimizer {
             if let Some(sf_id) = grammar.find_symbol_by_name("source_file") {
                 let has_rules = grammar.rules.contains_key(&sf_id);
                 let rule_count = grammar.rules.get(&sf_id).map(|r| r.len()).unwrap_or(0);
-                eprintln!(
+                debug_trace!(
                     "Debug after {}: source_file is SymbolId({}), has_rules={}, rule_count={}",
-                    phase, sf_id.0, has_rules, rule_count
+                    phase,
+                    sf_id.0,
+                    has_rules,
+                    rule_count
                 );
             } else {
-                eprintln!("Debug after {}: source_file not found!", phase);
+                debug_trace!("Debug after {}: source_file not found!", phase);
             }
         };
 
@@ -743,15 +766,15 @@ impl GrammarOptimizer {
         });
 
         // Assign new IDs preserving parse table ordering: tokens first, then non-terminals, then externals
-        eprintln!("DEBUG renumber_symbols: Assigning new IDs");
-        eprintln!("  Tokens: {:?}", token_vec);
-        eprintln!("  Non-terminals: {:?}", non_terminal_vec);
-        eprintln!("  Externals: {:?}", external_vec);
+        debug_trace!("DEBUG renumber_symbols: Assigning new IDs");
+        debug_trace!("  Tokens: {:?}", token_vec);
+        debug_trace!("  Non-terminals: {:?}", non_terminal_vec);
+        debug_trace!("  Externals: {:?}", external_vec);
 
         for old_id in token_vec {
             if let std::collections::hash_map::Entry::Vacant(e) = old_to_new.entry(old_id) {
                 e.insert(SymbolId(next_id));
-                eprintln!("  Token {:?} -> {:?}", old_id, SymbolId(next_id));
+                debug_trace!("  Token {:?} -> {:?}", old_id, SymbolId(next_id));
                 next_id += 1;
             }
         }
@@ -759,7 +782,7 @@ impl GrammarOptimizer {
         for old_id in non_terminal_vec {
             if let std::collections::hash_map::Entry::Vacant(e) = old_to_new.entry(old_id) {
                 e.insert(SymbolId(next_id));
-                eprintln!("  Non-terminal {:?} -> {:?}", old_id, SymbolId(next_id));
+                debug_trace!("  Non-terminal {:?} -> {:?}", old_id, SymbolId(next_id));
                 next_id += 1;
             }
         }
@@ -767,7 +790,7 @@ impl GrammarOptimizer {
         for old_id in external_vec {
             if let std::collections::hash_map::Entry::Vacant(e) = old_to_new.entry(old_id) {
                 e.insert(SymbolId(next_id));
-                eprintln!("  External {:?} -> {:?}", old_id, SymbolId(next_id));
+                debug_trace!("  External {:?} -> {:?}", old_id, SymbolId(next_id));
                 next_id += 1;
             }
         }
@@ -855,17 +878,17 @@ impl GrammarOptimizer {
         }
 
         // Update extras
-        eprintln!("DEBUG renumber_symbols: Updating extras");
-        eprintln!("  Old extras: {:?}", grammar.extras);
+        debug_trace!("DEBUG renumber_symbols: Updating extras");
+        debug_trace!("  Old extras: {:?}", grammar.extras);
         grammar.extras = grammar
             .extras
             .iter()
             .filter_map(|&old_id| {
                 if let Some(&new_id) = old_to_new.get(&old_id) {
-                    eprintln!("  Extra {:?} -> {:?}", old_id, new_id);
+                    debug_trace!("  Extra {:?} -> {:?}", old_id, new_id);
                     Some(new_id)
                 } else {
-                    eprintln!(
+                    debug_trace!(
                         "  WARNING: Extra {:?} not found in renumbering map!",
                         old_id
                     );
@@ -873,7 +896,7 @@ impl GrammarOptimizer {
                 }
             })
             .collect();
-        eprintln!("  New extras: {:?}", grammar.extras);
+        debug_trace!("  New extras: {:?}", grammar.extras);
     }
 }
 
@@ -995,12 +1018,12 @@ mod tests {
 
         optimizer.analyze_grammar(&grammar);
 
-        println!("Used symbols: {:?}", optimizer.used_symbols);
-        println!(
+        debug_trace!("Used symbols: {:?}", optimizer.used_symbols);
+        debug_trace!(
             "Tokens before: {:?}",
             grammar.tokens.keys().collect::<Vec<_>>()
         );
-        println!(
+        debug_trace!(
             "Rules: {:?}",
             grammar
                 .all_rules()
@@ -1010,8 +1033,8 @@ mod tests {
 
         let removed = optimizer.remove_unused_symbols(&mut grammar);
 
-        println!("Removed: {}", removed);
-        println!(
+        debug_trace!("Removed: {}", removed);
+        debug_trace!(
             "Tokens after: {:?}",
             grammar.tokens.keys().collect::<Vec<_>>()
         );
@@ -1040,7 +1063,7 @@ mod tests {
         let stats = optimizer.optimize(&mut grammar);
 
         assert!(stats.total() > 0);
-        println!("Optimization stats: {:?}", stats);
+        debug_trace!("Optimization stats: {:?}", stats);
     }
 
     #[test]

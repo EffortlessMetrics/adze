@@ -1,0 +1,49 @@
+---
+source: common/tests/expansion_snapshots.rs
+assertion_line: 232
+expression: "serde_json::to_string_pretty(&result).unwrap()"
+---
+{
+  "rule_name": "PrecedenceExpr",
+  "kind": "enum_with_precedence",
+  "variants": [
+    {
+      "input_type": "BinaryExpr",
+      "wrapped": "adze :: WithLeaf < BinaryExpr >",
+      "params": [
+        {
+          "name": "precedence",
+          "value": "1"
+        },
+        {
+          "name": "assoc",
+          "value": "\"left\""
+        }
+      ]
+    },
+    {
+      "input_type": "BinaryExpr",
+      "wrapped": "adze :: WithLeaf < BinaryExpr >",
+      "params": [
+        {
+          "name": "precedence",
+          "value": "2"
+        },
+        {
+          "name": "assoc",
+          "value": "\"left\""
+        }
+      ]
+    },
+    {
+      "input_type": "UnaryExpr",
+      "wrapped": "adze :: WithLeaf < UnaryExpr >",
+      "params": [
+        {
+          "name": "precedence",
+          "value": "3"
+        }
+      ]
+    }
+  ]
+}

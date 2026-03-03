@@ -8,12 +8,14 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/EffortlessMetrics/adze"
 homepage = "https://github.com/EffortlessMetrics/adze"
 documentation = "https://docs.rs/adze-tablegen"
-readme = "README.md"
-publish = false
+readme = "../README.md"
+publish = true
+keywords = ["parsing", "tablegen", "compression"]
+categories = ["development-tools"]
 include = [
     "Cargo.toml",
-    "LICENSE*",
-    "README*",
+    "/LICENSE*",
+    "/README*",
     "src/**",
     "MIGRATING.md"
 ]
@@ -27,13 +29,13 @@ features = ["strict_docs"]
 adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core", features = ["serialization"] }
-proc-macro2 = "1.0"
-quote = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-thiserror = "2.0"
-indexmap = "2.0"
-rustc-hash = "2.1"
+proc-macro2.workspace = true
+quote.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+indexmap.workspace = true
+rustc-hash.workspace = true
 
 # Parsetable file generation dependencies
 sha2 = "0.10"
@@ -46,10 +48,10 @@ tree-sitter = { version = "0.25.2", optional = true }
 tree-sitter-c2rust = { version = "0.25.2", optional = true }
 
 [dev-dependencies]
-proptest = "1.5"
-insta = "1.40"
-rustc-hash = "2.1"
-criterion = "0.5"
+proptest.workspace = true
+insta.workspace = true
+rustc-hash.workspace = true
+criterion.workspace = true
 
 [[bench]]
 name = "compression"

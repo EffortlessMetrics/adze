@@ -1,23 +1,34 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Pure-Rust parser implementation using compressed parse tables.
+
 // Pure-Rust parser implementation using compressed tables
 // This implements Tree-sitter's parsing algorithm with GLR support
 
 use crate::abi::*;
 
+/// A parser state consisting of the current state ID and lookahead symbol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ParseState {
+    /// Current parser state index.
     pub state: u16,
+    /// Current lookahead token symbol.
     pub lookahead: u16,
 }
 
+/// A node in the parse tree produced by the compressed table parser.
 #[derive(Debug, Clone)]
 pub struct ParseNode {
+    /// Symbol ID of this node.
     pub symbol: u16,
+    /// Child nodes.
     pub children: Vec<ParseNode>,
+    /// Byte offset where this node starts.
     pub start_byte: usize,
+    /// Byte offset where this node ends.
     pub end_byte: usize,
 }
 
+/// A parser that drives parsing using compressed parse tables.
 pub struct Parser {
     language: &'static TSLanguage,
     stack: Vec<ParseState>,
@@ -43,7 +54,11 @@ impl Parser {
 
         while position < tokens.len() {
             let token = tokens[position];
-            let current_state = self.stack.last().unwrap().state;
+            let current_state = self
+                .stack
+                .last()
+                .ok_or_else(|| "parser stack is empty".to_string())?
+                .state;
 
             // Look up action in compressed table
             let action = self.get_action(current_state, token.symbol)?;
@@ -67,7 +82,7 @@ impl Parser {
                 }
                 ParseAction::Accept => {
                     if self.nodes.len() == 1 {
-                        return Ok(self.nodes.pop().unwrap());
+                        return Ok(self.nodes.pop().expect("length checked == 1"));
                     }
                     return Err("Accept but multiple nodes remain".to_string());
                 }
@@ -83,6 +98,11 @@ impl Parser {
     fn get_action(&self, state: u16, symbol: u16) -> Result<ParseAction, String> {
         // Access compressed parse table
         let parse_table = unsafe {
+            // SAFETY: `self.language.parse_table` must be a valid pointer to at least
+            // `state_count * 2` contiguous `u16` values. This is guaranteed by the
+            // TSLanguage ABI contract — callers must supply a well-formed language struct.
+            // TODO(safety): No runtime validation that `parse_table` is non-null; a null
+            // pointer here is instant UB. Consider adding a null check.
             std::slice::from_raw_parts(
                 self.language.parse_table,
                 self.language.state_count as usize * 2,
@@ -139,6 +159,9 @@ impl Parser {
     fn perform_reduction(&mut self, rule_id: u16) -> Result<(), String> {
         // Get rule info from grammar
         let production_id_map = unsafe {
+            // SAFETY: `self.language.production_id_map` must point to at least
+            // `production_id_count` contiguous `u16` values per the TSLanguage ABI.
+            // TODO(safety): No null-pointer guard — UB if production_id_map is null.
             std::slice::from_raw_parts(
                 self.language.production_id_map,
                 self.language.production_id_count as usize,
@@ -181,7 +204,11 @@ impl Parser {
         });
 
         // Get goto state
-        let current_state = self.stack.last().unwrap().state;
+        let current_state = self
+            .stack
+            .last()
+            .ok_or_else(|| "parser stack is empty after reduction".to_string())?
+            .state;
         let goto_state = self.get_goto(current_state, lhs_symbol)?;
 
         self.stack.push(ParseState {
@@ -195,6 +222,9 @@ impl Parser {
     fn get_goto(&self, state: u16, _symbol: u16) -> Result<u16, String> {
         // Access small parse table for gotos
         let small_parse_table_map = unsafe {
+            // SAFETY: `self.language.small_parse_table_map` must point to at least
+            // `state_count * 4` contiguous `u32` values per the TSLanguage ABI.
+            // TODO(safety): No null-pointer guard — UB if small_parse_table_map is null.
             std::slice::from_raw_parts(
                 self.language.small_parse_table_map,
                 self.language.state_count as usize * 4,
@@ -309,6 +339,10 @@ mod tests {
         };
 
         // For testing, we'll use unsafe to extend the lifetime
+        // SAFETY: `lang` is stack-local and lives for the rest of this scope.
+        // We create a pointer and immediately re-borrow it as `&'static` to
+        // satisfy `Parser::new`. This is sound only because `parser` does not
+        // escape this function.
         let parser = unsafe {
             let lang_ptr = &lang as *const TSLanguage;
             Parser::new(&*lang_ptr)

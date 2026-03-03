@@ -5,23 +5,51 @@ set -euo pipefail
 # Prerequisites: tree-sitter CLI and grammars must be installed
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_LANGUAGE="${1:-}"
 
 # Function to generate S-expression and hash for a file
 generate_reference() {
     local lang=$1
     local filename=$2
     local input_path="$SCRIPT_DIR/$lang/fixtures/$filename"
-    local sexp_path="$SCRIPT_DIR/$lang/expected/${filename%.${lang}}.sexp"
-    local hash_path="$SCRIPT_DIR/$lang/expected/${filename%.${lang}}.sha256"
+    local base_name="${filename%.*}"
+    local expected_dir="$SCRIPT_DIR/$lang/expected"
+    local sexp_path="$expected_dir/${base_name}.sexp"
+    local hash_path="$expected_dir/${base_name}.sha256"
+    local grammar_dir="${TREE_SITTER_GRAMMAR_DIR:-}"
+
+    if [ -z "$grammar_dir" ]; then
+        if [ "$lang" = "python" ]; then
+            grammar_dir="/tmp/tree-sitter-python"
+        elif [ "$lang" = "javascript" ]; then
+            grammar_dir="/tmp/tree-sitter-javascript"
+        fi
+    fi
+
+    mkdir -p "$expected_dir"
     
     echo "Generating reference for $lang/$filename..."
     
     # Generate S-expression using tree-sitter CLI
-    tree-sitter parse "$input_path" --quiet > "$sexp_path" 2>/dev/null || {
+    if [ -n "$grammar_dir" ] && [ -d "$grammar_dir" ]; then
+        (cd "$grammar_dir" && tree-sitter parse "$input_path" --quiet) > "$sexp_path" 2>/dev/null || {
+            echo "Error: Failed to parse $input_path with tree-sitter"
+            echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
+            exit 1
+        }
+    else
+        tree-sitter parse "$input_path" --quiet > "$sexp_path" 2>/dev/null || {
+            echo "Error: Failed to parse $input_path with tree-sitter"
+            echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
+            exit 1
+        }
+    fi
+
+    if [ ! -s "$sexp_path" ]; then
         echo "Error: Failed to parse $input_path with tree-sitter"
-        echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
+        echo "No parse output was produced for $lang/$filename"
         exit 1
-    }
+    fi
     
     # Generate SHA256 hash of the S-expression
     sha256sum "$sexp_path" | cut -d' ' -f1 > "$hash_path"
@@ -38,30 +66,35 @@ if ! command -v tree-sitter &> /dev/null; then
 fi
 
 # Python test files
-if [ -d "$SCRIPT_DIR/python/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/python/fixtures")" ]; then
-    echo "=== Generating Python references ==="
-    for file in "$SCRIPT_DIR/python/fixtures"/*.py; do
-        if [ -f "$file" ]; then
-            generate_reference "python" "$(basename "$file")"
-        fi
-    done
-else
-    echo "No Python fixtures found in $SCRIPT_DIR/python/fixtures/"
+if [ -z "$TARGET_LANGUAGE" ] || [ "$TARGET_LANGUAGE" = "python" ]; then
+    if [ -d "$SCRIPT_DIR/python/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/python/fixtures")" ]; then
+        echo "=== Generating Python references ==="
+        for file in "$SCRIPT_DIR/python/fixtures"/*.py; do
+            if [ -f "$file" ]; then
+                generate_reference "python" "$(basename "$file")"
+            fi
+        done
+    else
+        echo "No Python fixtures found in $SCRIPT_DIR/python/fixtures/"
+    fi
 fi
 
 echo
 
 # JavaScript test files
-if [ -d "$SCRIPT_DIR/javascript/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/javascript/fixtures")" ]; then
-    echo "=== Generating JavaScript references ==="
-    for file in "$SCRIPT_DIR/javascript/fixtures"/*.js; do
-        if [ -f "$file" ]; then
-            generate_reference "javascript" "$(basename "$file")"
-        fi
-    done
-else
-    echo "No JavaScript fixtures found in $SCRIPT_DIR/javascript/fixtures/"
+if [ -z "$TARGET_LANGUAGE" ] || [ "$TARGET_LANGUAGE" = "javascript" ]; then
+    if [ -d "$SCRIPT_DIR/javascript/fixtures" ] && [ "$(ls -A "$SCRIPT_DIR/javascript/fixtures")" ]; then
+        echo "=== Generating JavaScript references ==="
+        for file in "$SCRIPT_DIR/javascript/fixtures"/*.js; do
+            if [ -f "$file" ]; then
+                generate_reference "javascript" "$(basename "$file")"
+            fi
+        done
+    else
+        echo "No JavaScript fixtures found in $SCRIPT_DIR/javascript/fixtures/"
+    fi
 fi
+
 
 echo
 echo "Reference generation complete!"

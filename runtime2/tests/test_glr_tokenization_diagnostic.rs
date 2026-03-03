@@ -3,7 +3,7 @@
 //! This test file isolates tokenization issues in the GLR pipeline to help
 //! debug Phase 3.3 parsing failures.
 
-#![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+#![cfg(all(feature = "pure-rust", feature = "serialization"))]
 
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};

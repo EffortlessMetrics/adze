@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! External scanner code generation for Tree-sitter.
+
 use adze_ir::{ExternalToken, Grammar, SymbolId};
 use quote::quote;
 use std::collections::HashMap;

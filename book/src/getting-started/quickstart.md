@@ -94,11 +94,11 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = { version = "0.6", features = ["glr-core", "incremental"] }
+adze = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
 adze-runtime = "0.1"  # GLR runtime
 
 [build-dependencies]
-adze-tool = "0.6"
+adze-tool = "0.8.0-dev"
 ```
 
 Create `build.rs`:
@@ -390,7 +390,7 @@ Now that you've created your first GLR grammar:
 
 1. Read about [Parser Generation](../guide/parser-generation.md) to understand GLR vs Pure-Rust backends
 2. Learn about [Incremental Parsing](../guide/incremental-parsing.md) for real-time editor integration
-3. Explore [GLR Ambiguity Handling](../guide/glr-ambiguity.md) for complex grammar conflicts
+3. Explore [GLR precedence behavior](../guide/glr-precedence-resolution.md) for complex grammar conflicts
 4. Check out [Performance Optimization](../guide/performance.md) for production deployment
 
 ## Tips for Success

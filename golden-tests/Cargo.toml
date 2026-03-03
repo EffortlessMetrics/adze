@@ -6,7 +6,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 sha2 = "0.10"
 adze-python = { path = "../grammars/python", optional = true }
 adze-javascript = { path = "../grammars/javascript", optional = true }

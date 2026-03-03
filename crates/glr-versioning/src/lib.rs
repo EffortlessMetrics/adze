@@ -1,14 +1,28 @@
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(private_interfaces)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", warn(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
-
 //! Tree-sitter-compatible GLR parse-version comparison logic.
 //!
 //! This crate isolates one responsibility: ranking competing GLR parse paths
 //! using Tree-sitter's version comparison algorithm.
+//!
+//! # Examples
+//!
+//! ```
+//! use adze_glr_versioning::{VersionInfo, compare_versions, CompareResult};
+//!
+//! let clean = VersionInfo::new();
+//! let mut errored = VersionInfo::new();
+//! errored.enter_error();
+//!
+//! // Non-error paths always win over error paths.
+//! assert_eq!(compare_versions(&clean, &errored), CompareResult::TakeLeft);
+//! ```
+
+#![forbid(unsafe_op_in_unsafe_fn)]
+#![deny(missing_docs)]
+#![deny(private_interfaces)]
+#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
+#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 use std::cmp::Ordering;
 
@@ -71,6 +85,23 @@ pub enum CompareResult {
 }
 
 /// Compare two parse versions according to Tree-sitter's exact algorithm.
+///
+/// Returns which version to prefer based on error state, cost, and dynamic
+/// precedence, following Tree-sitter's scoring rules.
+///
+/// # Examples
+///
+/// ```
+/// use adze_glr_versioning::{VersionInfo, compare_versions, CompareResult};
+///
+/// let mut a = VersionInfo::new();
+/// let mut b = VersionInfo::new();
+/// a.add_dynamic_prec(5);
+/// b.add_dynamic_prec(3);
+///
+/// // Higher dynamic precedence wins.
+/// assert_eq!(compare_versions(&a, &b), CompareResult::TakeLeft);
+/// ```
 #[must_use]
 pub fn compare_versions(a: &VersionInfo, b: &VersionInfo) -> CompareResult {
     // Step 1: Error vs non-error.

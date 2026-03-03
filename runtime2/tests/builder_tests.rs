@@ -1,0 +1,150 @@
+//! Builder (forest-to-tree conversion) tests.
+//!
+//! Tests the forest_to_tree path using the GLR engine with a proper
+//! grammar-derived parse table.
+
+#![cfg(feature = "glr-core")]
+
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};
+use adze_runtime::{Language, Parser, Token, Tree, language::SymbolMetadata};
+
+/// Build a minimal grammar: start → a
+fn make_language() -> Language {
+    let mut grammar = Grammar::new("test".to_string());
+    let a_id = SymbolId(1);
+    grammar.tokens.insert(
+        a_id,
+        IrToken {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+    let start_id = SymbolId(2);
+    grammar.rule_names.insert(start_id, "start".to_string());
+    grammar.rules.insert(
+        start_id,
+        vec![Rule {
+            lhs: start_id,
+            rhs: vec![Symbol::Terminal(a_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(0),
+            fields: vec![],
+        }],
+    );
+    let ff = FirstFollowSets::compute(&grammar).unwrap();
+    let table = build_lr1_automaton(&grammar, &ff)
+        .expect("table")
+        .normalize_eof_to_zero()
+        .with_detected_goto_indexing();
+    let table: &'static _ = Box::leak(Box::new(table));
+
+    Language::builder()
+        .parse_table(table)
+        .symbol_names(vec!["EOF".into(), "a".into(), "start".into()])
+        .symbol_metadata(vec![
+            SymbolMetadata {
+                is_terminal: true,
+                is_visible: false,
+                is_supertype: false,
+            },
+            SymbolMetadata {
+                is_terminal: true,
+                is_visible: true,
+                is_supertype: false,
+            },
+            SymbolMetadata {
+                is_terminal: false,
+                is_visible: true,
+                is_supertype: false,
+            },
+        ])
+        .tokenizer(|input: &[u8]| {
+            let mut toks = Vec::new();
+            if !input.is_empty() {
+                toks.push(Token {
+                    kind: 1,
+                    start: 0,
+                    end: 1,
+                });
+            }
+            toks.push(Token {
+                kind: 0,
+                start: input.len() as u32,
+                end: input.len() as u32,
+            });
+            Box::new(toks.into_iter()) as Box<dyn Iterator<Item = Token> + '_>
+        })
+        .build()
+        .unwrap()
+}
+
+#[test]
+fn forest_to_tree_produces_valid_root() {
+    let lang = make_language();
+    let mut parser = Parser::new();
+    parser.set_language(lang).unwrap();
+
+    let tree = parser.parse(b"a", None).unwrap();
+    let root = tree.root_node();
+    assert!(root.start_byte() <= root.end_byte());
+}
+
+#[test]
+fn forest_to_tree_sets_language_on_tree() {
+    let lang = make_language();
+    let mut parser = Parser::new();
+    parser.set_language(lang).unwrap();
+
+    let tree = parser.parse(b"a", None).unwrap();
+    assert!(tree.language().is_some());
+}
+
+#[test]
+fn forest_to_tree_stores_source_bytes() {
+    let lang = make_language();
+    let mut parser = Parser::new();
+    parser.set_language(lang).unwrap();
+
+    let tree = parser.parse(b"a", None).unwrap();
+    assert_eq!(tree.source_bytes(), Some(b"a".as_slice()));
+}
+
+#[test]
+fn stub_tree_root_has_zero_range() {
+    let tree = Tree::new_stub();
+    assert_eq!(tree.root_node().start_byte(), 0);
+    assert_eq!(tree.root_node().end_byte(), 0);
+    assert_eq!(tree.root_node().child_count(), 0);
+}
+
+#[test]
+fn parsed_tree_clone_is_independent() {
+    let lang = make_language();
+    let mut parser = Parser::new();
+    parser.set_language(lang).unwrap();
+
+    let tree = parser.parse(b"a", None).unwrap();
+    let cloned = tree.clone();
+
+    assert_eq!(tree.root_kind(), cloned.root_kind());
+    assert_eq!(
+        tree.root_node().start_byte(),
+        cloned.root_node().start_byte()
+    );
+}
+
+/// When incremental feature is disabled, parse_incremental falls back to full parse.
+#[test]
+fn parse_with_old_tree_succeeds() {
+    let lang = make_language();
+    let mut parser = Parser::new();
+    parser.set_language(lang).unwrap();
+
+    let tree1 = parser.parse(b"a", None).unwrap();
+    // Passing old_tree should work (falls back to full parse if incremental disabled)
+    let tree2 = parser.parse(b"a", Some(&tree1)).unwrap();
+    assert_eq!(tree1.root_kind(), tree2.root_kind());
+}

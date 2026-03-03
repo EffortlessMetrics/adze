@@ -3,12 +3,22 @@ name = "adze-macro"
 description = "Procedural macros for Adze"
 readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-macro"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
+publish = true
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
+include = [
+    "Cargo.toml",
+    "/LICENSE*",
+    "/README*",
+    "src/**"
+]
 
 [lib]
 proc-macro = true
@@ -19,13 +29,13 @@ pure-rust = []
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
-syn = { version = "2", features = [ "full", "extra-traits" ] }
-quote = "1"
-proc-macro2 = "1"
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
 adze-common = { version = "0.8.0-dev", path = "../common" }
 
 [dev-dependencies]
-insta = "1.39"
-tempfile = "3"
+insta.workspace = true
+tempfile.workspace = true
 trybuild = "1.0"
 adze = { version = "0.8.0-dev", path = "../runtime" }

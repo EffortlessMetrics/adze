@@ -29,6 +29,22 @@ struct RustScannerWrapper<S: ExternalScanner> {
     scanner: S,
 }
 
+struct NoopScanner;
+
+impl DynExternalScanner for NoopScanner {
+    fn scan(
+        &mut self,
+        _lexer: &mut dyn crate::external_scanner::Lexer,
+        _valid_symbols: &[bool],
+    ) -> Option<ScanResult> {
+        None
+    }
+
+    fn serialize(&self, _buffer: &mut Vec<u8>) {}
+
+    fn deserialize(&mut self, _buffer: &[u8]) {}
+}
+
 impl<S: ExternalScanner> DynExternalScanner for RustScannerWrapper<S> {
     fn scan(
         &mut self,
@@ -157,7 +173,7 @@ impl ScannerRegistry {
                     external_tokens: external_tokens.clone(),
                 })
             } else {
-                panic!("Failed to create C external scanner")
+                Box::new(NoopScanner)
             }
         });
         self.scanners.insert(language.to_string(), factory);
@@ -190,7 +206,7 @@ where
     S: ExternalScanner + Default + Send + Sync + 'static,
 {
     let registry = get_global_registry();
-    let mut registry = registry.lock().unwrap();
+    let mut registry = registry.lock().unwrap_or_else(|err| err.into_inner());
     registry.register_rust_scanner::<S>(language);
 }
 
@@ -201,7 +217,7 @@ pub fn register_c_scanner(
     external_tokens: Vec<SymbolId>,
 ) {
     let registry = get_global_registry();
-    let mut registry = registry.lock().unwrap();
+    let mut registry = registry.lock().unwrap_or_else(|err| err.into_inner());
     registry.register_c_scanner(language, data, external_tokens);
 }
 

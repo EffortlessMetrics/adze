@@ -1,3 +1,5 @@
+//! Command-line interface for the adze build tool.
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::{Path, PathBuf};
@@ -99,6 +101,7 @@ pub enum Commands {
     },
 }
 
+/// Output format for parse result display.
 #[derive(clap::ValueEnum, Clone, Debug)]
 pub enum OutputFormat {
     Tree,

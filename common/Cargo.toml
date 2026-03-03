@@ -3,12 +3,22 @@ name = "adze-common"
 description = "Shared logic for the Adze macro and tool"
 readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-common"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-keywords = ["parsing", "codegen"]
+publish = true
+keywords = ["parsing", "codegen", "grammar"]
 categories = ["development-tools"]
+include = [
+    "Cargo.toml",
+    "/LICENSE*",
+    "/README*",
+    "src/**"
+]
 
 [lib]
 path = "src/lib.rs"
@@ -17,5 +27,11 @@ path = "src/lib.rs"
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
-syn = { version = "2", features = [ "full", "extra-traits" ] }
-quote = "1"
+adze-common-syntax-core = { version = "0.1.0", path = "../crates/common-syntax-core" }
+
+[dev-dependencies]
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+insta.workspace = true
+serde_json.workspace = true

@@ -3,7 +3,7 @@
 //! This test verifies that the Parser can load .parsetable files generated
 //! by the build system and use them for parsing.
 
-#![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+#![cfg(all(feature = "pure-rust", feature = "serialization"))]
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
 use adze_ir::RuleId;

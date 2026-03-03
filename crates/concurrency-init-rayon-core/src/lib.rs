@@ -68,4 +68,26 @@ mod tests {
             "global thread pool initialized"
         ));
     }
+
+    #[test]
+    fn init_with_zero_threads_normalizes_and_succeeds() {
+        assert!(init_rayon_global_once(0).is_ok());
+    }
+
+    #[test]
+    fn init_result_is_stable_across_different_thread_counts() {
+        let first = init_rayon_global_once(2);
+        let second = init_rayon_global_once(64);
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn init_with_one_thread_succeeds() {
+        assert!(init_rayon_global_once(1).is_ok());
+    }
+
+    #[test]
+    fn init_with_large_thread_count_succeeds() {
+        assert!(init_rayon_global_once(1024).is_ok());
+    }
 }

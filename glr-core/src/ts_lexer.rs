@@ -101,13 +101,19 @@ pub struct TsLexerHost<'a> {
 }
 
 impl<'a> TsLexerHost<'a> {
-    // C callbacks
+    // C callbacks — invoked by the Tree-sitter lex_fn during `GrammarLexer::next()`.
+    // SAFETY (shared across eof/advance/mark_end): `payload` was set to a valid
+    // `&mut TsLexerHost` pointer in `GrammarLexer::next()` and these callbacks are
+    // only called synchronously by the C lex_fn during that call, so the pointer is
+    // valid and exclusively borrowed for the duration.
     extern "C" fn eof(payload: *mut c_void) -> bool {
+        // SAFETY: see shared invariant above.
         let host = unsafe { &mut *(payload as *mut Self) };
         host.pos >= host.input.len()
     }
 
     extern "C" fn advance(payload: *mut c_void, skip: bool) {
+        // SAFETY: see shared invariant above.
         let host = unsafe { &mut *(payload as *mut Self) };
         if host.pos < host.input.len() {
             host.pos += 1;
@@ -118,6 +124,7 @@ impl<'a> TsLexerHost<'a> {
     }
 
     extern "C" fn mark_end(payload: *mut c_void) {
+        // SAFETY: see shared invariant above.
         let host = unsafe { &mut *(payload as *mut Self) };
         host.end_mark = host.pos;
     }
@@ -181,7 +188,11 @@ impl GrammarLexer {
             payload: &mut host as *mut _ as *mut _,
         };
 
+        // SAFETY: `self.lang` was required to be a valid, non-null pointer to a live
+        // TSLanguage by the safety contract of `GrammarLexer::new()`.
         let lex_fn = unsafe { (*self.lang).lex_fn }?;
+        // SAFETY: `lex_fn` is a Tree-sitter-generated C function that expects a valid
+        // TSLexer pointer; `c_lexer` is a stack-local struct with valid callbacks.
         let ok = unsafe { lex_fn(&mut c_lexer as *mut TSLexer, mode.lex_state) };
 
         if !ok || c_lexer.result_symbol == 0 {

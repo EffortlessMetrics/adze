@@ -1,4 +1,6 @@
 // This is a proposed fix for the Extract trait implementation in expansion.rs
+//! Proposed fixes for Extract trait implementation using symbol IDs.
+
 // The key insight is that we need to generate code that uses symbol IDs
 // rather than heuristics based on child counts and string matching
 

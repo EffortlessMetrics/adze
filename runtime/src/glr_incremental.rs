@@ -29,6 +29,24 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+#[cfg(not(debug_assertions))]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! debug_trace {
+    ($($arg:tt)*) => {
+        if std::env::var("RUST_LOG")
+            .ok()
+            .unwrap_or_default()
+            .contains("debug")
+        {
+            eprintln!($($arg)*);
+        }
+    };
+}
+
 /// Simple edit descriptor for byte-based edits
 #[derive(Debug, Clone)]
 pub struct Edit {
@@ -173,130 +191,12 @@ pub fn reparse<'arena>(
     #[cfg_attr(not(feature = "incremental_glr"), allow(unused_variables))]
     edit: &crate::pure_incremental::Edit,
 ) -> Option<crate::parser_v4::Tree<'arena>> {
+    let _ = (grammar, table, source, old_tree, edit);
+
     // Only enable incremental parsing if the feature is enabled
     #[cfg(feature = "incremental_glr")]
     {
-        use crate::tree_bridge::{forest_to_v4_tree, v4_tree_to_forest};
-
-        // Convert old tree to forest for reuse
-        let old_forest = v4_tree_to_forest(old_tree);
-
-        // Create an incremental parser instance with the old forest
-        let mut parser = IncrementalGLRParser::new_with_forest(
-            grammar.clone(),
-            table.clone(),
-            Some(old_forest.clone()),
-        );
-
-        // Get the OLD tokens from the old tree (before the edit)
-        // For now, we'll reconstruct the old source by applying the inverse edit
-        // In a real implementation, we'd store the old source or tokens
-        let old_source = {
-            let mut old = source.to_vec();
-
-            // Bounds checking for the edit
-            if edit.start_byte > old.len() || edit.new_end_byte > old.len() {
-                // Invalid edit bounds - fallback to full reparse
-                eprintln!("Warning: Edit bounds out of range, falling back to full reparse");
-                return None;
-            }
-
-            // Apply inverse edit to get old source
-            old.splice(
-                edit.start_byte..edit.new_end_byte,
-                vec![0u8; edit.old_end_byte - edit.start_byte],
-            );
-            old
-        };
-        let old_tokens = tokenize_source(&old_source, grammar);
-
-        // Find which old tokens are affected by the edit
-        let mut affected_start_idx = 0;
-        let mut affected_end_idx = old_tokens.len();
-
-        for (i, token) in old_tokens.iter().enumerate() {
-            if token.end_byte <= edit.start_byte {
-                affected_start_idx = i + 1;
-            }
-            if token.start_byte < edit.old_end_byte {
-                affected_end_idx = i + 1;
-            } else {
-                break;
-            }
-        }
-
-        // Build the NEW token stream by splicing:
-        // 1. Reuse tokens before the edit (unaffected prefix)
-        let mut new_tokens = Vec::new();
-        for i in 0..affected_start_idx {
-            new_tokens.push(old_tokens[i].clone());
-        }
-
-        // 2. Tokenize only the new edited text
-        // Additional bounds check for source slicing
-        if edit.start_byte > source.len() || edit.new_end_byte > source.len() {
-            eprintln!("Warning: Edit bounds exceed source length, falling back to full reparse");
-            return None;
-        }
-
-        let new_text = &source[edit.start_byte..edit.new_end_byte];
-        let mut edited_tokens = tokenize_source(new_text, grammar);
-
-        // Adjust byte positions for the edited tokens
-        for token in &mut edited_tokens {
-            token.start_byte += edit.start_byte;
-            token.end_byte += edit.start_byte;
-        }
-        new_tokens.extend(edited_tokens.clone());
-
-        // 3. Reuse tokens after the edit (unaffected suffix)
-        // Adjust their byte positions by the size delta
-        let size_delta = (edit.new_end_byte as isize) - (edit.old_end_byte as isize);
-        for i in affected_end_idx..old_tokens.len() {
-            let mut token = old_tokens[i].clone();
-            token.start_byte = ((token.start_byte as isize) + size_delta) as usize;
-            token.end_byte = ((token.end_byte as isize) + size_delta) as usize;
-            new_tokens.push(token);
-        }
-
-        // Create the GLR edit with proper token ranges
-        let glr_edit = GLREdit {
-            old_range: edit.start_byte..edit.old_end_byte,
-            new_text: new_text.to_vec(),
-            old_token_range: affected_start_idx..affected_end_idx,
-            new_tokens: edited_tokens,
-            old_tokens: old_tokens.clone(),
-            old_forest: Some(old_forest),
-        };
-
-        // Perform the TRUE incremental parse
-        let new_forest = parser.parse_incremental(&new_tokens, &[glr_edit]);
-
-        // Convert back to v4 tree format
-        match new_forest {
-            Ok(forest) => {
-                let _v4_tree = forest_to_v4_tree(&forest);
-
-                // CRITICAL FIX: The GLR incremental parser has architectural issues that cause
-                // inconsistencies with fresh parsing:
-                // 1. Error tracking: hardcoded is_error: false in subtree creation
-                // 2. Root kind determination: uses forest symbols vs actual parse results
-                // 3. Token-level vs grammar-level parsing differences
-                //
-                // For property tests and other scenarios requiring exact equivalence,
-                // disable incremental parsing and always use fresh parsing.
-                // This ensures consistent behavior while we address the underlying issues.
-
-                // TODO: Fix GLR incremental parser architecture to match fresh parse behavior
-                // For now, fall back to fresh parsing to ensure correctness
-                #[cfg(debug_assertions)]
-                eprintln!(
-                    "GLR incremental parsing disabled for consistency - falling back to fresh parse"
-                );
-                None
-            }
-            Err(_) => None,
-        }
+        return None;
     }
 
     #[cfg(not(feature = "incremental_glr"))]
@@ -635,6 +535,9 @@ impl IncrementalGLRParser {
 
         match parser.finish_all_alternatives() {
             Ok(trees) => {
+                if trees.is_empty() {
+                    return Err("Parse failed to produce any parse alternatives".to_string());
+                }
                 // Create a forest node with all parse alternatives
                 let forest = if trees.len() == 1 {
                     // Single parse tree - no ambiguity
@@ -712,29 +615,26 @@ impl IncrementalGLRParser {
             let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, tokens, edit_delta);
 
             // Debug chunk boundaries for troubleshooting
-            if false {
-                // Enable for debugging
-                println!(
-                    "DEBUG: Chunk boundaries - prefix_len: {}, suffix_len: {}, total_tokens: {}",
-                    prefix_len,
-                    suffix_len,
-                    tokens.len()
-                );
-                println!(
-                    "DEBUG: Old tokens: {:?}",
-                    old_tokens
-                        .iter()
-                        .map(|t| String::from_utf8_lossy(&t.text))
-                        .collect::<Vec<_>>()
-                );
-                println!(
-                    "DEBUG: New tokens: {:?}",
-                    tokens
-                        .iter()
-                        .map(|t| String::from_utf8_lossy(&t.text))
-                        .collect::<Vec<_>>()
-                );
-            }
+            debug_trace!(
+                "DEBUG: Chunk boundaries - prefix_len: {}, suffix_len: {}, total_tokens: {}",
+                prefix_len,
+                suffix_len,
+                tokens.len()
+            );
+            debug_trace!(
+                "DEBUG: Old tokens: {:?}",
+                old_tokens
+                    .iter()
+                    .map(|t| String::from_utf8_lossy(&t.text))
+                    .collect::<Vec<_>>()
+            );
+            debug_trace!(
+                "DEBUG: New tokens: {:?}",
+                tokens
+                    .iter()
+                    .map(|t| String::from_utf8_lossy(&t.text))
+                    .collect::<Vec<_>>()
+            );
 
             // Determine if we should use forest splicing or fall back to full parse
             // Forest splicing is beneficial when we have significant unchanged regions
@@ -759,19 +659,17 @@ impl IncrementalGLRParser {
             let middle_is_small = middle_len < tokens.len() / 2; // Less than half the tokens
 
             if (had_ambiguity && middle_is_small) || might_introduce_ambiguity {
-                // Debug output for troubleshooting (enable when needed)
-                if false {
-                    println!(
-                        "DEBUG: Potentially ambiguous input detected - falling back to full parse"
-                    );
-                    println!(
-                        "DEBUG: Old alternatives: {}, Middle len: {}, Total len: {}, Might introduce ambiguity: {}",
-                        old_forest.alternatives.len(),
-                        middle_len,
-                        tokens.len(),
-                        might_introduce_ambiguity
-                    );
-                }
+                // Debug output for troubleshooting
+                debug_trace!(
+                    "DEBUG: Potentially ambiguous input detected - falling back to full parse"
+                );
+                debug_trace!(
+                    "DEBUG: Old alternatives: {}, Middle len: {}, Total len: {}, Might introduce ambiguity: {}",
+                    old_forest.alternatives.len(),
+                    middle_len,
+                    tokens.len(),
+                    might_introduce_ambiguity
+                );
                 // Fall back to full parsing to ensure ambiguity is correctly handled
                 return self.parse_fresh(tokens);
             }
@@ -827,13 +725,11 @@ impl IncrementalGLRParser {
                     // Get the parse result for the middle
                     match middle_parser.finish_all_alternatives() {
                         Ok(trees) if !trees.is_empty() => {
-                            // Debug output for troubleshooting (enable when needed)
-                            if false {
-                                println!(
-                                    "DEBUG: Middle segment parse produced {} alternatives",
-                                    trees.len()
-                                );
-                            }
+                            // Debug output for troubleshooting
+                            debug_trace!(
+                                "DEBUG: Middle segment parse produced {} alternatives",
+                                trees.len()
+                            );
                             if trees.len() == 1 {
                                 // Single alternative - create fork and build forest
                                 let fork_id = self.fork_tracker.create_fork(None);
@@ -867,13 +763,11 @@ impl IncrementalGLRParser {
                                     token_range: middle_start..middle_end,
                                     cached_subtree: None,
                                 });
-                                if false {
-                                    // Debug output
-                                    println!(
-                                        "DEBUG: Created middle forest with {} alternatives",
-                                        middle_forest.alternatives.len()
-                                    );
-                                }
+                                // Debug output
+                                debug_trace!(
+                                    "DEBUG: Created middle forest with {} alternatives",
+                                    middle_forest.alternatives.len()
+                                );
                                 middle_forest
                             }
                         }
@@ -894,28 +788,24 @@ impl IncrementalGLRParser {
                 );
 
                 // STEP 3: Splice the forests together
-                if false {
-                    // Debug output
-                    println!(
-                        "DEBUG: About to splice - prefix: {}, suffix: {}, middle alternatives: {}",
-                        prefix_nodes.len(),
-                        suffix_nodes.len(),
-                        middle_forest.alternatives.len()
-                    );
-                }
+                // Debug output
+                debug_trace!(
+                    "DEBUG: About to splice - prefix: {}, suffix: {}, middle alternatives: {}",
+                    prefix_nodes.len(),
+                    suffix_nodes.len(),
+                    middle_forest.alternatives.len()
+                );
                 let spliced_forest = self.splice_forests(
                     prefix_nodes.clone(),
                     middle_forest,
                     suffix_nodes.clone(),
                     tokens,
                 );
-                if false {
-                    // Debug output
-                    println!(
-                        "DEBUG: After splice - result alternatives: {}",
-                        spliced_forest.alternatives.len()
-                    );
-                }
+                // Debug output
+                debug_trace!(
+                    "DEBUG: After splice - result alternatives: {}",
+                    spliced_forest.alternatives.len()
+                );
 
                 // Update reuse counter with actual node count, not token count
                 let reuse_count = prefix_nodes.len() + suffix_nodes.len();
@@ -972,8 +862,8 @@ impl IncrementalGLRParser {
                 let mut found_children = false;
 
                 // Look at first alternative only to avoid duplicates
-                if !node.alternatives.is_empty() {
-                    for child in &node.alternatives[0].children {
+                if let Some(first_alt) = node.alternatives.first() {
+                    for child in &first_alt.children {
                         // Check if this child is also within range
                         if child.token_range.start >= target_range.start
                             && child.token_range.end <= target_range.end
@@ -1004,8 +894,8 @@ impl IncrementalGLRParser {
                 && node.token_range.end > target_range.start
             {
                 // This node spans the boundary - look at children
-                if !node.alternatives.is_empty() {
-                    for child in &node.alternatives[0].children {
+                if let Some(first_alt) = node.alternatives.first() {
+                    for child in &first_alt.children {
                         collect_nodes_in_range(
                             child,
                             target_range.clone(),
@@ -1059,8 +949,10 @@ impl IncrementalGLRParser {
                 return middle_forest;
             }
 
-            if all_children.len() == 1 {
-                return all_children[0].clone();
+            if all_children.len() == 1
+                && let Some(single_child) = all_children.first().cloned()
+            {
+                return single_child;
             }
 
             // Multiple non-middle children - create synthetic parent

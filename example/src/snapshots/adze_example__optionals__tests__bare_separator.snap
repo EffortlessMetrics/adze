@@ -1,0 +1,18 @@
+---
+source: src/optionals.rs
+expression: "grammar::parse(\"_\")"
+---
+Ok(
+    Language {
+        v: None,
+        _s: (),
+        t: Spanned {
+            value: None,
+            span: (
+                1,
+                1,
+            ),
+        },
+        _d: None,
+    },
+)

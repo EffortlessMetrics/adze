@@ -6,13 +6,18 @@ version = 4
 name = "adze"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-concurrency-caps-core",
  "adze-glr-core",
  "adze-ir",
+ "adze-linecol-core",
  "adze-macro",
  "adze-runtime-governance-api",
+ "adze-stack-pool-core",
  "adze-tablegen",
+ "adze-ts-format-core",
  "ahash",
  "anyhow",
+ "getrandom",
  "indexmap",
  "log",
  "once_cell",
@@ -40,8 +45,116 @@ version = "0.1.0"
 name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-common-syntax-core",
+]
+
+[[package]]
+name = "adze-common-syntax-core"
+version = "0.1.0"
+dependencies = [
  "quote",
  "syn 2.0.106",
+]
+
+[[package]]
+name = "adze-concurrency-bounded-map-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-plan-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-caps-contract-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-caps-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-caps-contract-core",
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-env-contract-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-parse-core",
+]
+
+[[package]]
+name = "adze-concurrency-env-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-contract-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-policy-core",
+ "adze-concurrency-init-rayon-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-policy-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-normalize-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-classifier-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-init-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-core",
+ "adze-concurrency-init-rayon-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-rayon-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-init-classifier-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-map-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-bounded-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-normalize-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-parse-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-plan-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-normalize-core",
 ]
 
 [[package]]
@@ -62,12 +175,14 @@ dependencies = [
 [[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
+dependencies = [
+ "adze-parser-backend-core",
+]
 
 [[package]]
 name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
- "adze-glr-versioning",
  "adze-ir",
  "fixedbitset",
  "indexmap",
@@ -78,10 +193,6 @@ dependencies = [
  "thiserror",
  "typed-arena",
 ]
-
-[[package]]
-name = "adze-glr-versioning"
-version = "0.8.0-dev"
 
 [[package]]
 name = "adze-governance-matrix-contract"
@@ -139,6 +250,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-linecol-core"
+version = "0.1.0"
+
+[[package]]
 name = "adze-macro"
 version = "0.8.0-dev"
 dependencies = [
@@ -147,6 +262,10 @@ dependencies = [
  "quote",
  "syn 2.0.106",
 ]
+
+[[package]]
+name = "adze-parser-backend-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-parsetable-metadata"
@@ -178,6 +297,10 @@ version = "0.1.0"
 dependencies = [
  "adze-governance-runtime-core",
 ]
+
+[[package]]
+name = "adze-stack-pool-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-tablegen"
@@ -225,6 +348,14 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-generate",
+]
+
+[[package]]
+name = "adze-ts-format-core"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
+ "serde",
 ]
 
 [[package]]
@@ -635,14 +766,16 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26145e563e54f2cadc477553f1ec5ee650b00862f0a58bcd12cbdc5f0ea2d2f4"
+checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi",
- "wasi",
+ "wasip2",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1485,12 +1618,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasi"
-version = "0.14.2+wasi-0.2.4"
+name = "wasip2"
+version = "1.0.2+wasi-0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9683f9a5a998d873c0d21fcbe3c083009670149a8fab228644b8bd36b2c48cb3"
+checksum = "9517f9239f02c069db75e65f174b3da828fe5f5b945c4dd26bd25d89c03ebcf5"
 dependencies = [
- "wit-bindgen-rt",
+ "wit-bindgen",
 ]
 
 [[package]]
@@ -1829,13 +1962,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "wit-bindgen-rt"
-version = "0.39.0"
+name = "wit-bindgen"
+version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
-dependencies = [
- "bitflags",
-]
+checksum = "d7249219f66ced02969388cf2bb044a09756a083d0fab1e566056b04d9fbcaa5"
 
 [[package]]
 name = "writeable"

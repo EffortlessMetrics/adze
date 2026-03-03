@@ -7,12 +7,22 @@ license = "MIT OR Apache-2.0"
 description = "Core parser feature-policy contracts shared by governance layers."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["parser", "grammar", "tree-sitter", "ast", "glr"]
+categories = ["parsing", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-feature-policy-core"
 
 [features]
 default = []
-pure-rust = []
-tree-sitter-c2rust = []
-tree-sitter-standard = []
-glr = ["pure-rust"]
+pure-rust = ["adze-parser-backend-core/pure-rust"]
+tree-sitter-c2rust = ["adze-parser-backend-core/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-parser-backend-core/tree-sitter-standard"]
+glr = ["pure-rust", "adze-parser-backend-core/glr"]
 strict_docs = []
 strict_api = []
+
+[dependencies]
+adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }
+
+[dev-dependencies]
+adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }

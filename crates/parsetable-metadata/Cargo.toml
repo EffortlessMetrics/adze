@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Shared .parsetable metadata model and parsing helpers."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
+keywords = ["parser", "grammar", "tree-sitter", "ast", "glr"]
+categories = ["parsing", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-parsetable-metadata"
 
 [features]
 strict_api = []
@@ -14,6 +18,14 @@ strict_docs = []
 
 [dependencies]
 adze-governance-metadata = { version = "0.1.0", path = "../governance-metadata" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-thiserror = "2.0"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+insta = { workspace = true, features = ["json", "yaml"] }
+criterion.workspace = true
+
+[[bench]]
+name = "metadata_bench"
+harness = false

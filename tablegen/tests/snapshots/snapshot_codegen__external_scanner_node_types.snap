@@ -1,0 +1,31 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: json
+---
+[
+  {
+    "type": "rule_6",
+    "named": true,
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": []
+    }
+  },
+  {
+    "type": "identifier",
+    "named": true
+  },
+  {
+    "type": "INDENT",
+    "named": true
+  },
+  {
+    "type": "DEDENT",
+    "named": true
+  },
+  {
+    "type": "NEWLINE",
+    "named": true
+  }
+]

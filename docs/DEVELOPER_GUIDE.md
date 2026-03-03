@@ -16,7 +16,7 @@ Adze uses a "Support Lane" model to keep the core green while allowing experimen
 
 ### 🟢 Supported Lane (Must be Green)
 These crates are the core product. CI enforces passing tests and lints on every PR.
-- `adze-runtime` (and `runtime2`)
+- `adze-runtime` (core runtime)
 - `adze-macro`
 - `adze-tool`
 - `adze-common`
@@ -28,6 +28,7 @@ These crates are the core product. CI enforces passing tests and lints on every 
 These crates are useful but may break during major refactors.
 - `grammars/*` (Python, JS, Go examples)
 - `example/` (Arithmetic demo)
+- `runtime2` (alternative runtime path)
 - `cli/`
 - `playground/`
 
@@ -84,6 +85,9 @@ cargo build -p adze-example
 3. **Bump Version**: Update `version` in `Cargo.toml` files (workspace members).
 4. **Tag**: `git tag v0.8.0`
 5. **Publish**: `cargo publish` (scripted in CI).
+6. **Release surface configuration**: choose `RELEASE_SURFACE_MODE` (`fixed`/`auto`) and optional `RELEASE_CRATE_FILE` override as needed.
+7. **Release surface strictness**: decide whether to run `strict_publish_surface` (fixed mode only) in the GitHub Release workflow when publishing, or `STRICT_PUBLISH_SURFACE=true` for local helper runs.
+8. Optionally set workflow dispatch inputs `release_surface_mode` and `release_crate_file` for one-off releases.
 
 ## Code Standards
 

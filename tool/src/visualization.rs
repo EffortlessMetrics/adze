@@ -1,4 +1,6 @@
 // Grammar visualization tools for Adze
+//! Grammar and parse tree visualization tools.
+
 // This module provides tools to visualize grammars and parse trees
 
 use adze_ir::{Grammar, Symbol, SymbolId};

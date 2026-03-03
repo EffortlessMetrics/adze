@@ -310,19 +310,25 @@ impl<'tree> std::fmt::Debug for GLRNode<'tree> {
 pub struct GLRTreeCursor<'tree> {
     /// Stack of (node, child_index) for traversal
     stack: Vec<(GLRNode<'tree>, usize)>,
+    root: GLRNode<'tree>,
 }
 
 impl<'tree> GLRTreeCursor<'tree> {
     /// Create a new cursor at the given node
     pub fn new(node: GLRNode<'tree>) -> Self {
+        let root = node.clone();
         Self {
             stack: vec![(node, 0)],
+            root,
         }
     }
 
     /// Get current node
     pub fn node(&self) -> GLRNode<'tree> {
-        self.stack.last().unwrap().0.clone()
+        self.stack
+            .last()
+            .map(|(node, _)| node.clone())
+            .unwrap_or_else(|| self.root.clone())
     }
 
     /// Go to first child
@@ -369,8 +375,10 @@ impl<'tree> GLRTreeCursor<'tree> {
 
     /// Reset cursor to a node
     pub fn reset(&mut self, node: GLRNode<'tree>) {
+        let node = node.clone();
         self.stack.clear();
-        self.stack.push((node, 0));
+        self.stack.push((node.clone(), 0));
+        self.root = node;
     }
 
     /// Get field name of current node (not implemented - would require field tracking)

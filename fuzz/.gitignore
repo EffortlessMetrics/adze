@@ -1,0 +1,3 @@
+# Fuzz corpus and artifacts (generated at runtime)
+corpus/
+artifacts/

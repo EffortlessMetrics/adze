@@ -1,3 +1,5 @@
+//! Error types for the adze build tool.
+
 /// Errors that can occur during grammar parsing and expansion
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]

@@ -9,7 +9,7 @@
 //!
 //! Contract: GLR_V1_COMPLETION_CONTRACT.md AC-1 through AC-6
 
-#![cfg(all(feature = "pure-rust-glr", feature = "serialization"))]
+#![cfg(all(feature = "pure-rust", feature = "serialization"))]
 
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{
