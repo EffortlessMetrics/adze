@@ -193,4 +193,81 @@ mod tests {
         let backend = resolve_backend_for_runtime2_profile(profile, false);
         assert_eq!(backend, profile.resolve_backend(false));
     }
+
+    #[test]
+    fn runtime2_governance_snapshot_consistency() {
+        let profile = parser_feature_profile_for_runtime2(true);
+        let snap = runtime2_governance_snapshot(BddPhase::Core, profile);
+        assert_eq!(snap.phase, BddPhase::Core);
+        assert_eq!(snap.profile, profile);
+    }
+
+    #[test]
+    fn runtime2_governance_snapshot_runtime_phase() {
+        let profile = parser_feature_profile_for_runtime2(false);
+        let snap = runtime2_governance_snapshot(BddPhase::Runtime, profile);
+        assert_eq!(snap.phase, BddPhase::Runtime);
+        assert_eq!(snap.profile, profile);
+    }
+
+    #[test]
+    fn resolve_runtime2_backend_consistent_with_profile() {
+        let backend_enabled = resolve_runtime2_backend(true, false);
+        let profile = parser_feature_profile_for_runtime2(true);
+        assert_eq!(backend_enabled, profile.resolve_backend(false));
+
+        let backend_disabled = resolve_runtime2_backend(false, false);
+        let profile_off = parser_feature_profile_for_runtime2(false);
+        assert_eq!(backend_disabled, profile_off.resolve_backend(false));
+    }
+
+    #[test]
+    fn resolve_runtime2_backend_with_conflicts() {
+        let backend = resolve_runtime2_backend(true, true);
+        let profile = parser_feature_profile_for_runtime2(true);
+        assert_eq!(backend, profile.resolve_backend(true));
+    }
+
+    #[test]
+    fn current_backend_for_no_conflicts() {
+        let backend = current_backend_for(false);
+        let profile = parser_feature_profile_for_runtime();
+        assert_eq!(backend, profile.resolve_backend(false));
+    }
+
+    #[test]
+    fn bdd_progress_report_for_runtime2_profile_format() {
+        let profile = parser_feature_profile_for_runtime2(true);
+        let report =
+            bdd_progress_report_for_runtime2_profile(BddPhase::Runtime, "RT2 Report", profile);
+        assert!(report.contains("RT2 Report"));
+        assert!(report.contains("Governance status"));
+    }
+
+    #[test]
+    fn bdd_progress_status_line_for_runtime2_profile_format() {
+        let profile = parser_feature_profile_for_runtime2(true);
+        let core = bdd_progress_status_line_for_runtime2_profile(BddPhase::Core, profile);
+        let runtime = bdd_progress_status_line_for_runtime2_profile(BddPhase::Runtime, profile);
+        assert!(core.starts_with("core:"));
+        assert!(runtime.starts_with("runtime:"));
+    }
+
+    #[test]
+    fn bdd_governance_matrix_for_runtime2_profile_constructor() {
+        let matrix = bdd_governance_matrix_for_runtime2_profile(BddPhase::Core, true);
+        assert_eq!(matrix.phase, BddPhase::Core);
+        assert!(matrix.profile.glr);
+
+        let matrix_off = bdd_governance_matrix_for_runtime2_profile(BddPhase::Runtime, false);
+        assert_eq!(matrix_off.phase, BddPhase::Runtime);
+        assert!(!matrix_off.profile.glr);
+    }
+
+    #[test]
+    fn runtime_governance_snapshot_matches_current_profile() {
+        let snap = runtime_governance_snapshot(BddPhase::Runtime);
+        assert_eq!(snap.phase, BddPhase::Runtime);
+        assert_eq!(snap.profile, parser_feature_profile_for_runtime());
+    }
 }

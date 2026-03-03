@@ -79,4 +79,70 @@ mod tests {
         let matrix = BddGovernanceMatrix::standard(profile);
         assert!(!matrix.status_line().is_empty());
     }
+
+    #[test]
+    fn bdd_progress_on_empty_scenarios() {
+        let (implemented, total) = bdd_progress(BddPhase::Core, &[]);
+        assert_eq!(implemented, 0);
+        assert_eq!(total, 0);
+    }
+
+    #[test]
+    fn bdd_progress_on_standard_grid() {
+        let (implemented, total) =
+            bdd_progress(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID);
+        assert!(total > 0);
+        assert!(implemented <= total);
+    }
+
+    #[test]
+    fn bdd_progress_report_format() {
+        let report = bdd_progress_report(
+            BddPhase::Core,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            "Contract Report",
+        );
+        assert!(report.contains("Contract Report"));
+    }
+
+    #[test]
+    fn bdd_progress_report_with_profile_format() {
+        let profile = ParserFeatureProfile::current();
+        let report = bdd_progress_report_with_profile(
+            BddPhase::Runtime,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            "Runtime Contract",
+            profile,
+        );
+        assert!(report.contains("Runtime Contract"));
+    }
+
+    #[test]
+    fn bdd_progress_status_line_phase_prefix() {
+        let profile = ParserFeatureProfile::current();
+        let core = bdd_progress_status_line(
+            BddPhase::Core,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            profile,
+        );
+        let runtime = bdd_progress_status_line(
+            BddPhase::Runtime,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            profile,
+        );
+        assert!(core.starts_with("core:"));
+        assert!(runtime.starts_with("runtime:"));
+    }
+
+    #[test]
+    fn snapshot_copy_semantics() {
+        let snap = BddGovernanceSnapshot {
+            phase: BddPhase::Core,
+            implemented: 3,
+            total: 5,
+            profile: ParserFeatureProfile::current(),
+        };
+        let copied = snap;
+        assert_eq!(snap, copied);
+    }
 }

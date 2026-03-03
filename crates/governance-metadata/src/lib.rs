@@ -341,4 +341,108 @@ mod tests {
         assert_eq!(meta.implemented, 1);
         assert!(!meta.status_line.is_empty());
     }
+
+    #[test]
+    fn non_conflict_backend_glr_profile() {
+        let snap = ParserFeatureProfileSnapshot::new(true, false, false, true);
+        assert_eq!(snap.non_conflict_backend(), ParserBackend::GLR.name());
+    }
+
+    #[test]
+    fn non_conflict_backend_pure_rust_profile() {
+        let snap = ParserFeatureProfileSnapshot::new(true, false, false, false);
+        assert_eq!(snap.non_conflict_backend(), ParserBackend::PureRust.name());
+    }
+
+    #[test]
+    fn non_conflict_backend_tree_sitter_fallback() {
+        let snap = ParserFeatureProfileSnapshot::new(false, true, false, false);
+        assert_eq!(snap.non_conflict_backend(), ParserBackend::TreeSitter.name());
+    }
+
+    #[test]
+    fn resolve_non_conflict_and_conflict_backend() {
+        let snap = ParserFeatureProfileSnapshot::new(true, false, false, true);
+        let non_conflict = snap.resolve_non_conflict_backend();
+        let conflict = snap.resolve_conflict_backend();
+        assert_eq!(non_conflict, snap.as_profile().resolve_backend(false));
+        assert_eq!(conflict, snap.as_profile().resolve_backend(true));
+    }
+
+    #[test]
+    fn profile_snapshot_debug_format() {
+        let snap = ParserFeatureProfileSnapshot::new(true, false, true, false);
+        let debug = format!("{:?}", snap);
+        assert!(debug.contains("ParserFeatureProfileSnapshot"));
+        assert!(debug.contains("pure_rust: true"));
+    }
+
+    #[test]
+    fn profile_snapshot_hash_consistency() {
+        use std::collections::HashSet;
+        let a = ParserFeatureProfileSnapshot::new(true, false, true, false);
+        let b = ParserFeatureProfileSnapshot::new(true, false, true, false);
+        let c = ParserFeatureProfileSnapshot::new(false, false, true, false);
+        let mut set = HashSet::new();
+        set.insert(a);
+        set.insert(b);
+        set.insert(c);
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn profile_snapshot_copy_semantics() {
+        let snap = ParserFeatureProfileSnapshot::new(true, false, true, false);
+        let copied = snap;
+        assert_eq!(snap, copied);
+    }
+
+    #[test]
+    fn from_env_with_no_vars() {
+        // With no governance env vars set, all fields should be false
+        // (unless actual Cargo features are active)
+        let snap = ParserFeatureProfileSnapshot::from_env();
+        let _ = snap.non_conflict_backend();
+        // Just verify it doesn't panic
+    }
+
+    #[test]
+    fn governance_metadata_clone_eq() {
+        let meta = GovernanceMetadata::with_counts("core", 3, 5, "core:3/5");
+        let cloned = meta.clone();
+        assert_eq!(meta, cloned);
+    }
+
+    #[test]
+    fn governance_metadata_for_grid_runtime_phase() {
+        use adze_bdd_grid_core::BddScenarioStatus;
+        let scenarios = [BddScenario {
+            id: 1,
+            title: "test",
+            reference: "T-1",
+            core_status: BddScenarioStatus::Deferred { reason: "later" },
+            runtime_status: BddScenarioStatus::Implemented,
+        }];
+        let profile = ParserFeatureProfile::current();
+        let meta = GovernanceMetadata::for_grid(BddPhase::Runtime, &scenarios, profile);
+        assert_eq!(meta.phase, "runtime");
+        assert_eq!(meta.implemented, 1);
+        assert_eq!(meta.total, 1);
+    }
+
+    #[test]
+    fn governance_metadata_for_grid_empty_scenarios() {
+        let profile = ParserFeatureProfile::current();
+        let meta = GovernanceMetadata::for_grid(BddPhase::Core, &[], profile);
+        assert_eq!(meta.implemented, 0);
+        assert_eq!(meta.total, 0);
+    }
+
+    #[test]
+    fn governance_metadata_debug_format() {
+        let meta = GovernanceMetadata::with_counts("core", 1, 2, "core:1/2");
+        let debug = format!("{:?}", meta);
+        assert!(debug.contains("GovernanceMetadata"));
+        assert!(debug.contains("core"));
+    }
 }

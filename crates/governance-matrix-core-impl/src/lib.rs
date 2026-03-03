@@ -59,4 +59,57 @@ mod tests {
             bdd_progress_report(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, "Impl Test");
         assert!(report.contains("Impl Test"));
     }
+
+    #[test]
+    fn facade_exports_bdd_progress_report_with_profile() {
+        let profile = ParserFeatureProfile::current();
+        let report = bdd_progress_report_with_profile(
+            BddPhase::Runtime,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            "Profile Report",
+            profile,
+        );
+        assert!(report.contains("Profile Report"));
+    }
+
+    #[test]
+    fn facade_exports_bdd_progress_status_line() {
+        let profile = ParserFeatureProfile::current();
+        let status =
+            bdd_progress_status_line(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, profile);
+        assert!(status.starts_with("core:"));
+    }
+
+    #[test]
+    fn facade_snapshot_is_fully_implemented_variations() {
+        let full = BddGovernanceSnapshot {
+            phase: BddPhase::Core,
+            implemented: 5,
+            total: 5,
+            profile: ParserFeatureProfile::current(),
+        };
+        assert!(full.is_fully_implemented());
+
+        let partial = BddGovernanceSnapshot {
+            phase: BddPhase::Runtime,
+            implemented: 2,
+            total: 5,
+            profile: ParserFeatureProfile::current(),
+        };
+        assert!(!partial.is_fully_implemented());
+    }
+
+    #[test]
+    fn facade_matrix_new_constructor() {
+        let profile = ParserFeatureProfile::current();
+        let matrix =
+            BddGovernanceMatrix::new(BddPhase::Core, profile, GLR_CONFLICT_PRESERVATION_GRID);
+        assert_eq!(matrix.phase, BddPhase::Core);
+        assert_eq!(matrix.profile, profile);
+    }
+
+    #[test]
+    fn facade_glr_conflict_fallback_non_empty() {
+        assert!(!GLR_CONFLICT_FALLBACK.is_empty());
+    }
 }

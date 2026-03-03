@@ -60,4 +60,64 @@ mod tests {
         let debug = format!("{:?}", snap);
         assert!(debug.contains("phase"));
     }
+
+    #[test]
+    fn bdd_progress_report_contains_title() {
+        let profile = ParserFeatureProfile::current();
+        let report = bdd_progress_report_with_profile(
+            BddPhase::Core,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            "Core Title",
+            profile,
+        );
+        assert!(report.contains("Core Title"));
+    }
+
+    #[test]
+    fn bdd_progress_status_line_format() {
+        let profile = ParserFeatureProfile::current();
+        let core_status =
+            bdd_progress_status_line(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, profile);
+        let runtime_status =
+            bdd_progress_status_line(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, profile);
+        assert!(core_status.starts_with("core:"));
+        assert!(runtime_status.starts_with("runtime:"));
+    }
+
+    #[test]
+    fn describe_backend_for_conflicts_non_empty() {
+        let desc = describe_backend_for_conflicts(ParserFeatureProfile::current());
+        assert!(!desc.is_empty());
+    }
+
+    #[test]
+    fn glr_conflict_fallback_is_accessible() {
+        assert!(!GLR_CONFLICT_FALLBACK.is_empty());
+    }
+
+    #[test]
+    fn governance_snapshot_is_fully_implemented_check() {
+        let snap = BddGovernanceSnapshot {
+            phase: BddPhase::Core,
+            implemented: 5,
+            total: 5,
+            profile: ParserFeatureProfile::current(),
+        };
+        assert!(snap.is_fully_implemented());
+
+        let partial = BddGovernanceSnapshot {
+            phase: BddPhase::Core,
+            implemented: 3,
+            total: 5,
+            profile: ParserFeatureProfile::current(),
+        };
+        assert!(!partial.is_fully_implemented());
+    }
+
+    #[test]
+    fn governance_matrix_status_line_non_empty() {
+        let profile = ParserFeatureProfile::current();
+        let matrix = BddGovernanceMatrix::standard(profile);
+        assert!(!matrix.status_line().is_empty());
+    }
 }
