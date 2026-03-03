@@ -263,10 +263,12 @@ impl<'a> IncrementalParseSession<'a> {
             }
 
             // Normal parsing
-            let current_state = *self
-                .state_stack
-                .last()
-                .ok_or_else(|| anyhow::anyhow!("Empty state stack"))?;
+            let current_state = *self.state_stack.last().ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Empty state stack during incremental parse at position {}",
+                    self.position
+                )
+            })?;
 
             // Get next token
             let token = self.lex_token()?;
@@ -286,20 +288,24 @@ impl<'a> IncrementalParseSession<'a> {
                     //     "Incremental parse complete. Reused {} subtrees",
                     //     self.reused_count
                     // );
-                    return self
-                        .node_stack
-                        .pop()
-                        .ok_or_else(|| anyhow::anyhow!("No parse tree"));
+                    return self.node_stack.pop().ok_or_else(|| {
+                        anyhow::anyhow!("No parse tree after accept (node_stack is empty)")
+                    });
                 }
                 Action::Error => {
-                    anyhow::bail!("Parse error at position {}", self.position);
+                    anyhow::bail!(
+                        "Parse error at position {} (state {:?}, token symbol {:?})",
+                        self.position,
+                        current_state,
+                        token.symbol
+                    );
                 }
                 Action::Fork(_) => {
                     anyhow::bail!("GLR forking not yet supported in incremental parsing");
                 }
                 _ => {
                     // Action is #[non_exhaustive] - required wildcard
-                    anyhow::bail!("Unknown action type"); // Expected: V for Recover
+                    anyhow::bail!("Unhandled action variant in incremental parse"); // Expected: V for Recover
                 }
             }
         }
@@ -342,10 +348,12 @@ impl<'a> IncrementalParseSession<'a> {
         self.position = subtree.byte_range.end;
 
         // Get next state
-        let current_state = *self
-            .state_stack
-            .last()
-            .ok_or_else(|| anyhow::anyhow!("Empty state stack"))?;
+        let current_state = *self.state_stack.last().ok_or_else(|| {
+            anyhow::anyhow!(
+                "Empty state stack when shifting subtree at position {}",
+                self.position
+            )
+        })?;
 
         match self.get_action(current_state, subtree.node.symbol)? {
             Action::Shift(next_state) => {
@@ -353,7 +361,11 @@ impl<'a> IncrementalParseSession<'a> {
                 self.node_stack.push(subtree.node);
                 Ok(())
             }
-            _ => anyhow::bail!("Cannot shift subtree"),
+            _ => anyhow::bail!(
+                "Cannot shift subtree: expected Shift action for symbol {:?} in state {:?}",
+                subtree.node.symbol,
+                current_state
+            ),
         }
     }
 
@@ -389,7 +401,7 @@ impl<'a> IncrementalParseSession<'a> {
                     .iter()
                     .any(|(rid, pid)| *rid == rule_id && r.production_id == *pid)
             })
-            .ok_or_else(|| anyhow::anyhow!("Rule not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("Rule not found for ID {:?} in grammar", rule_id))?;
 
         // Pop states and nodes
         let rhs_len = rule.rhs.len();
@@ -419,10 +431,9 @@ impl<'a> IncrementalParseSession<'a> {
         };
 
         // Get goto state
-        let return_state = *self
-            .state_stack
-            .last()
-            .ok_or_else(|| anyhow::anyhow!("Empty state stack after reduction"))?;
+        let return_state = *self.state_stack.last().ok_or_else(|| {
+            anyhow::anyhow!("Empty state stack after reducing rule {:?}", rule_id)
+        })?;
 
         let goto_state = self.get_goto_state(return_state, rule.lhs)?;
 
@@ -438,11 +449,20 @@ impl<'a> IncrementalParseSession<'a> {
         let symbol_idx = symbol.0 as usize;
 
         if state_idx >= self.parse_table.action_table.len() {
-            anyhow::bail!("Invalid state");
+            anyhow::bail!(
+                "Action lookup failed: state {} out of bounds (table has {} states)",
+                state_idx,
+                self.parse_table.action_table.len()
+            );
         }
 
         if symbol_idx >= self.parse_table.action_table[state_idx].len() {
-            anyhow::bail!("Invalid symbol");
+            anyhow::bail!(
+                "Action lookup failed: symbol {} out of bounds for state {} (row has {} columns)",
+                symbol_idx,
+                state_idx,
+                self.parse_table.action_table[state_idx].len()
+            );
         }
 
         let action_cell = &self.parse_table.action_table[state_idx][symbol_idx];
@@ -461,11 +481,20 @@ impl<'a> IncrementalParseSession<'a> {
         let symbol_idx = symbol.0 as usize;
 
         if state_idx >= self.parse_table.goto_table.len() {
-            anyhow::bail!("Invalid state for goto");
+            anyhow::bail!(
+                "Goto lookup failed: state {} out of bounds (table has {} states)",
+                state_idx,
+                self.parse_table.goto_table.len()
+            );
         }
 
         if symbol_idx >= self.parse_table.goto_table[state_idx].len() {
-            anyhow::bail!("Invalid symbol for goto");
+            anyhow::bail!(
+                "Goto lookup failed: symbol {} out of bounds for state {} (row has {} columns)",
+                symbol_idx,
+                state_idx,
+                self.parse_table.goto_table[state_idx].len()
+            );
         }
 
         Ok(self.parse_table.goto_table[state_idx][symbol_idx])

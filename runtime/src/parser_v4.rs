@@ -597,9 +597,9 @@ impl Parser {
             }
 
             // Get current state
-            let current_state = *state_stack
-                .last()
-                .ok_or_else(|| anyhow!("State stack is empty"))?;
+            let current_state = *state_stack.last().ok_or_else(|| {
+                anyhow!("State stack is empty at parse loop iteration {loop_iterations}")
+            })?;
 
             // Get the next token from the lexer
             let token = if current_position >= input_bytes.len() {
@@ -745,9 +745,14 @@ impl Parser {
                     };
 
                     // Get the goto state for the non-terminal
-                    let goto_from_state = *state_stack
-                        .last()
-                        .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
+                    let goto_from_state = *state_stack.last().ok_or_else(|| {
+                        anyhow!(
+                            "State stack is empty after reducing rule {:?} (lhs {:?}, rhs_len {})",
+                            rule_id,
+                            rule.lhs,
+                            rule.rhs_len
+                        )
+                    })?;
                     let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
 
                     // Push the new state and symbol
@@ -758,9 +763,12 @@ impl Parser {
 
                 Action::Accept => {
                     // Parsing complete!
-                    let root_node = node_stack
-                        .pop()
-                        .ok_or_else(|| anyhow!("No root node after accept"))?;
+                    let root_node = node_stack.pop().ok_or_else(|| {
+                        anyhow!(
+                            "No root node on accept: node_stack is empty after parsing {} bytes",
+                            input_bytes.len()
+                        )
+                    })?;
 
                     // Return the actual parse tree with error count
                     return Ok((root_node, error_count));
@@ -888,9 +896,12 @@ impl Parser {
                                 };
 
                                 // Get the goto state
-                                let goto_from_state = *state_stack
-                                    .last()
-                                    .ok_or_else(|| anyhow!("State stack is empty after reduce"))?;
+                                let goto_from_state = *state_stack.last().ok_or_else(|| {
+                                    anyhow!(
+                                        "State stack is empty after fork-path reduce of rule {:?}",
+                                        rule_id
+                                    )
+                                })?;
                                 let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
 
                                 // Push the new state and symbol
@@ -1080,7 +1091,13 @@ impl Parser {
             .parse_table
             .nonterminal_to_index
             .get(&symbol)
-            .ok_or_else(|| anyhow!("No NT column for {:?} in nonterminal_to_index", symbol))?;
+            .ok_or_else(|| {
+                anyhow!(
+                    "No nonterminal-to-index mapping for symbol {:?} in goto lookup from state {}",
+                    symbol,
+                    from_state.0
+                )
+            })?;
 
         // Check bounds
         if row >= self.parse_table.action_table.len() {
@@ -1322,7 +1339,10 @@ impl Parser {
                 }
             }
         }
-        bail!("Rule with ID {:?} not found", rule_id)
+        bail!(
+            "Rule with ID {:?} not found in grammar (searched all symbol rule sets)",
+            rule_id
+        )
     }
 
     // GLR-specific methods
@@ -1343,8 +1363,9 @@ impl Parser {
         match lexer.next_token(&self.input, self.position) {
             Some(tok) => Ok(tok),
             None => bail!(
-                "Lexer failed to produce token at position {}",
-                self.position
+                "Lexer failed to produce token at position {} (input length: {} bytes)",
+                self.position,
+                self.input.len()
             ),
         }
     }
@@ -1467,7 +1488,11 @@ impl Parser {
             let start = if children.is_empty() {
                 self.position
             } else {
-                match children.first().unwrap().as_ref() {
+                match children
+                    .first()
+                    .expect("children verified non-empty above")
+                    .as_ref()
+                {
                     ForestNode::Terminal { start, .. } => *start,
                     ForestNode::NonTerminal { start, .. } => *start,
                 }
@@ -1476,7 +1501,11 @@ impl Parser {
             let end = if children.is_empty() {
                 self.position
             } else {
-                match children.last().unwrap().as_ref() {
+                match children
+                    .last()
+                    .expect("children verified non-empty above")
+                    .as_ref()
+                {
                     ForestNode::Terminal { end, .. } => *end,
                     ForestNode::NonTerminal { end, .. } => *end,
                 }
@@ -1563,7 +1592,12 @@ impl Parser {
                 return Ok(goto_state.0 as usize);
             }
         }
-        bail!("No goto action for symbol {:?} in state {}", symbol, state)
+        bail!(
+            "No goto action for symbol {:?} in state {} (goto table has {} states)",
+            symbol,
+            state,
+            self.parse_table.goto_table.len()
+        )
     }
 
     /// Build final tree from accepted GSS node
@@ -1583,7 +1617,10 @@ impl Parser {
         if let Some(root) = nodes.last() {
             Ok(root.as_ref().clone())
         } else {
-            bail!("No parse tree found")
+            bail!(
+                "No parse tree found after processing {} GSS nodes",
+                nodes.len()
+            )
         }
     }
 

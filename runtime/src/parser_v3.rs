@@ -241,7 +241,7 @@ impl Parser {
                 }
                 _ => {
                     // Action is #[non_exhaustive] - required wildcard
-                    bail!("Unknown action type"); // Expected: V for Recover
+                    bail!("Unhandled action variant in parse loop"); // Expected: V for Recover
                 }
             }
         }
@@ -356,7 +356,10 @@ impl Parser {
                 self.handle_reduce(rule_id)?;
                 self.parse(&input_str)
             }
-            _ => bail!("Unexpected action in fork handling"),
+            _ => bail!(
+                "Unexpected action {:?} in fork handling (expected Shift or Reduce)",
+                action
+            ),
         }
     }
 
@@ -376,7 +379,11 @@ impl Parser {
             }
         }
 
-        bail!("Rule not found for ID {:?}", rule_id)
+        bail!(
+            "Rule not found for ID {:?} (searched {} production IDs)",
+            rule_id,
+            self.grammar.production_ids.len()
+        )
     }
 
     /// Get the goto state after a reduction
@@ -395,13 +402,22 @@ impl Parser {
         let symbol_idx = symbol.0 as usize;
 
         if state_idx >= self.parse_table.goto_table.len() {
-            bail!("Invalid state index: {}", state_idx);
+            bail!(
+                "Goto lookup failed: state index {} out of bounds (table has {} states)",
+                state_idx,
+                self.parse_table.goto_table.len()
+            );
         }
 
         let state_gotos = &self.parse_table.goto_table[state_idx];
 
         if symbol_idx >= state_gotos.len() {
-            bail!("Invalid symbol index for goto: {}", symbol_idx);
+            bail!(
+                "Goto lookup failed: symbol index {} out of bounds for state {} (row has {} columns)",
+                symbol_idx,
+                state_idx,
+                state_gotos.len()
+            );
         }
 
         Ok(state_gotos[symbol_idx])
@@ -413,13 +429,22 @@ impl Parser {
         let symbol_idx = symbol.0 as usize;
 
         if state_idx >= self.parse_table.action_table.len() {
-            bail!("Invalid state index: {}", state_idx);
+            bail!(
+                "Action lookup failed: state index {} out of bounds (table has {} states)",
+                state_idx,
+                self.parse_table.action_table.len()
+            );
         }
 
         let state_actions = &self.parse_table.action_table[state_idx];
 
         if symbol_idx >= state_actions.len() {
-            bail!("Invalid symbol index: {}", symbol_idx);
+            bail!(
+                "Action lookup failed: symbol index {} out of bounds for state {} (row has {} columns)",
+                symbol_idx,
+                state_idx,
+                state_actions.len()
+            );
         }
 
         let action_cell = &state_actions[symbol_idx];
@@ -481,12 +506,20 @@ impl Parser {
         match successful_parses.len() {
             0 => {
                 // No successful parse
-                Err(last_error.unwrap_or_else(|| anyhow::anyhow!("All fork actions failed")))
+                Err(last_error.unwrap_or_else(|| {
+                    anyhow::anyhow!(
+                        "All {} fork actions failed for token at position {}",
+                        actions.len(),
+                        token.start
+                    )
+                }))
             }
             1 => {
                 // Single successful parse - use it
                 let Some(parse) = successful_parses.into_iter().next() else {
-                    return Err(anyhow::anyhow!("Internal parser state inconsistency"));
+                    return Err(anyhow::anyhow!(
+                        "Internal parser state inconsistency: single successful parse vanished during extraction"
+                    ));
                 };
                 self.state_stack = parse.0;
                 self.node_stack = parse.1;
@@ -553,7 +586,10 @@ impl Parser {
                     Err(e) => Err(e),
                 }
             }
-            _ => bail!("Unexpected action in fork handling"),
+            _ => bail!(
+                "Unexpected action {:?} in fork path (expected Shift or Reduce)",
+                action
+            ),
         }
     }
 
@@ -564,7 +600,7 @@ impl Parser {
         let current_state = self
             .state_stack
             .last()
-            .ok_or_else(|| anyhow::anyhow!("Empty state stack"))?
+            .ok_or_else(|| anyhow::anyhow!("Empty state stack in parse_to_completion"))?
             .state;
 
         // Check for accept action with EOF

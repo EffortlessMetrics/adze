@@ -64,12 +64,19 @@ impl GLRStack {
     /// Handle a fork action by creating new parse stacks
     pub fn fork(&mut self, stack_idx: usize, actions: &[Action]) -> Result<ForkResult> {
         if stack_idx >= self.stacks.len() {
-            anyhow::bail!("Invalid stack index for fork");
+            anyhow::bail!(
+                "Invalid stack index for fork: {} (only {} stacks exist)",
+                stack_idx,
+                self.stacks.len()
+            );
         }
 
         let source_stack = &self.stacks[stack_idx];
         if !source_stack.active {
-            anyhow::bail!("Cannot fork from inactive stack");
+            anyhow::bail!(
+                "Cannot fork from inactive stack {} (it was previously merged or pruned)",
+                stack_idx
+            );
         }
 
         let mut new_stacks = Vec::new();
@@ -117,7 +124,10 @@ impl GLRStack {
     /// Merge multiple stacks into one
     pub fn merge(&mut self, stack_indices: &[usize]) -> Result<usize> {
         if stack_indices.len() < 2 {
-            anyhow::bail!("Need at least 2 stacks to merge");
+            anyhow::bail!(
+                "Need at least 2 stacks to merge, got {}",
+                stack_indices.len()
+            );
         }
 
         // Use the first stack as the base
@@ -217,7 +227,9 @@ impl GLRParser {
             let current_state = stack
                 .state_stack
                 .last()
-                .ok_or_else(|| anyhow::anyhow!("Empty state stack"))?
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Empty state stack in GLR step for stack {}", stack_idx)
+                })?
                 .state;
 
             let action = get_action(current_state, token_symbol);

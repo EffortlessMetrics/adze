@@ -175,7 +175,9 @@ impl Parser {
         if let Some(ref mut parser) = self.inner {
             parser.parse(source)
         } else {
-            Err(anyhow::anyhow!("No language set"))
+            Err(anyhow::anyhow!(
+                "No language set: call set_language() before parsing"
+            ))
         }
     }
 
