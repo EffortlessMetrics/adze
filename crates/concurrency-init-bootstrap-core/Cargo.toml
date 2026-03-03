@@ -23,4 +23,4 @@ adze-concurrency-init-bootstrap-policy-core = { version = "0.1.0", path = "../co
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true

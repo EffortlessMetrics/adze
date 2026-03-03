@@ -49,8 +49,8 @@ adze-ir = { path = "../ir" }
 adze-glr-core = { path = "../glr-core", features = ["glr_telemetry"] }
 adze-tablegen = { path = "../tablegen" }
 tree-sitter = "0.20"
-criterion = "0.5"
+criterion.workspace = true
 indexmap = "2.0"
 
 [dev-dependencies]
-insta = "1.0"
+insta.workspace = true

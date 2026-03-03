@@ -22,4 +22,4 @@ adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true

@@ -15,4 +15,4 @@ adze = { path = "../../runtime", default-features = false }
 adze-tool = { path = "../../tool" }
 
 [dev-dependencies]
-insta = "1.0"
+insta.workspace = true

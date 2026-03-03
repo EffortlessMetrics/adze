@@ -18,11 +18,11 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-syn = { version = "2", features = [ "full", "extra-traits" ] }
-quote = "1"
+syn.workspace = true
+quote.workspace = true
 
 [dev-dependencies]
 adze-common = { version = "0.8.0-dev", path = "../../common" }
-proptest = "1.4"
-quote = "1"
-syn = { version = "2", features = ["full", "extra-traits"] }
+proptest.workspace = true
+quote.workspace = true
+syn.workspace = true

@@ -33,9 +33,9 @@ bumpalo = { version = "3.16", optional = true }
 typed-arena = { version = "2.0", optional = true }
 
 [dev-dependencies]
-criterion = "0.5"
+criterion.workspace = true
 pretty_assertions = "1.4"
-serde_json = "1.0.142"
+serde_json.workspace = true
 adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
 adze-tablegen = { path = "../tablegen", features = ["serialization"] }
 adze-parser-contract = { path = "../crates/parser-contract" }

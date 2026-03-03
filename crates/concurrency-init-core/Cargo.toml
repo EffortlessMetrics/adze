@@ -23,6 +23,6 @@ adze-concurrency-init-bootstrap-core = { version = "0.1.0", path = "../concurren
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true
 adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../concurrency-init-classifier-core" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }

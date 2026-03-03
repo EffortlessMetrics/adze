@@ -28,13 +28,13 @@ pure-rust = []
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
-syn = { version = "2", features = [ "full", "extra-traits" ] }
-quote = "1"
-proc-macro2 = "1"
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
 adze-common = { version = "0.8.0-dev", path = "../common" }
 
 [dev-dependencies]
-insta = "1.39"
+insta.workspace = true
 tempfile = "3"
 trybuild = "1.0"
 adze = { version = "0.8.0-dev", path = "../runtime" }

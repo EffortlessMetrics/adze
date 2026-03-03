@@ -22,4 +22,4 @@ adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
 
 [dev-dependencies]
 adze-ir = { version = "0.8.0-dev", path = "../../ir" }
-proptest = "1.4"
+proptest.workspace = true

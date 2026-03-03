@@ -24,8 +24,8 @@ adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core
 adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
 
 [dev-dependencies]
-proptest = "1.4"
-criterion = { version = "0.5", features = ["html_reports"] }
+proptest.workspace = true
+criterion.workspace = true
 adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }

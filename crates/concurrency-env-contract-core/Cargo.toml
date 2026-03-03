@@ -21,4 +21,4 @@ strict_docs = []
 adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true

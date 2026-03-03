@@ -22,5 +22,5 @@ adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-co
 rayon = "1.10"
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }

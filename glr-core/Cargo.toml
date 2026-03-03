@@ -26,8 +26,8 @@ all-features = true
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 indexmap = { version = "2.0", features = ["serde"] }
 fixedbitset = { version = "0.5", default-features = false }
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "2"
+serde.workspace = true
+thiserror.workspace = true
 typed-arena = "2.0"
 
 # Optional parallel processing
@@ -55,10 +55,10 @@ test-api = []
 debug_glr = [] # Enable debug output for GLR parser
 
 [dev-dependencies]
-insta = "1.0"
-criterion = "0.5"
+insta.workspace = true
+criterion.workspace = true
 dhat = "0.3"
-serde_json = "1.0"
+serde_json.workspace = true
 adze-bdd-scenario-fixtures = { version = "0.1.0", path = "../crates/bdd-scenario-fixtures" }
 adze-parser-contract = { version = "0.1.0", path = "../crates/parser-contract" }
 glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
