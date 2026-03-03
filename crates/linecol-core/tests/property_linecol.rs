@@ -129,7 +129,7 @@ proptest! {
                 **b == b'\r' && input.get(i + 1).copied() != Some(b'\n')
             }).count();
         // CRLF pairs count as one line ending on the \n byte
-        let crlf_count = input.windows(2).filter(|w| w == &[b'\r', b'\n']).count();
+        let crlf_count = input.windows(2).filter(|w| w == b"\r\n").count();
         let expected_lines = newline_count + crlf_count;
 
         let tracker = LineCol::at_position(input, input.len());
