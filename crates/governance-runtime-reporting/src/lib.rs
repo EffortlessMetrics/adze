@@ -88,12 +88,8 @@ mod tests {
     #[test]
     fn runtime_report_with_empty_scenarios() {
         let profile = ParserFeatureProfile::current();
-        let report = bdd_progress_report_with_profile_runtime(
-            BddPhase::Core,
-            &[],
-            "Empty",
-            profile,
-        );
+        let report =
+            bdd_progress_report_with_profile_runtime(BddPhase::Core, &[], "Empty", profile);
         assert!(report.contains("Empty"));
         assert!(report.contains("Governance status: 0/0"));
         assert!(report.contains("Feature profile:"));
@@ -144,11 +140,7 @@ mod tests {
     #[test]
     fn re_exports_bdd_governance_snapshot() {
         let profile = ParserFeatureProfile::current();
-        let snap = bdd_governance_snapshot(
-            BddPhase::Core,
-            GLR_CONFLICT_PRESERVATION_GRID,
-            profile,
-        );
+        let snap = bdd_governance_snapshot(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, profile);
         assert_eq!(snap.phase, BddPhase::Core);
         assert_eq!(snap.profile, profile);
     }

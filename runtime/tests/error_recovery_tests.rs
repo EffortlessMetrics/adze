@@ -11,8 +11,7 @@
 // 8. Error count (matches expectations)
 
 use adze::error_recovery::{
-    ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
-    RecoveryStrategy,
+    ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryStrategy,
 };
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;

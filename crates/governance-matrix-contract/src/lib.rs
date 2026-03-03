@@ -89,8 +89,7 @@ mod tests {
 
     #[test]
     fn bdd_progress_on_standard_grid() {
-        let (implemented, total) =
-            bdd_progress(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID);
+        let (implemented, total) = bdd_progress(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID);
         assert!(total > 0);
         assert!(implemented <= total);
     }
@@ -120,16 +119,10 @@ mod tests {
     #[test]
     fn bdd_progress_status_line_phase_prefix() {
         let profile = ParserFeatureProfile::current();
-        let core = bdd_progress_status_line(
-            BddPhase::Core,
-            GLR_CONFLICT_PRESERVATION_GRID,
-            profile,
-        );
-        let runtime = bdd_progress_status_line(
-            BddPhase::Runtime,
-            GLR_CONFLICT_PRESERVATION_GRID,
-            profile,
-        );
+        let core =
+            bdd_progress_status_line(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, profile);
+        let runtime =
+            bdd_progress_status_line(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, profile);
         assert!(core.starts_with("core:"));
         assert!(runtime.starts_with("runtime:"));
     }

@@ -357,7 +357,10 @@ mod tests {
     #[test]
     fn non_conflict_backend_tree_sitter_fallback() {
         let snap = ParserFeatureProfileSnapshot::new(false, true, false, false);
-        assert_eq!(snap.non_conflict_backend(), ParserBackend::TreeSitter.name());
+        assert_eq!(
+            snap.non_conflict_backend(),
+            ParserBackend::TreeSitter.name()
+        );
     }
 
     #[test]

@@ -207,3 +207,6 @@ pub mod test_utilities {
 }
 
 pub mod perf;
+
+#[cfg(test)]
+mod tests;
