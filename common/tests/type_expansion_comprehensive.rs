@@ -374,9 +374,9 @@ fn batch_extract_option_from_mixed_fields() {
         .collect();
 
     assert_eq!(results[0], ("String".to_string(), true));
-    assert_eq!(results[1].1, false);
+    assert!(!results[1].1);
     assert_eq!(results[2], ("Token".to_string(), true));
-    assert_eq!(results[3].1, false);
+    assert!(!results[3].1);
 }
 
 // ===========================================================================
