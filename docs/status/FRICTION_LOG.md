@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-03-04
+**Last updated:** 2026-03-05
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -20,7 +20,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-008 | Tooling | `just` has permission issues on some systems | Commands fail with `/run/user/1000/just` errors | Mitigated | - |
 | FR-009 | Dev loop | Workspace build is very slow (10+ min for full check) | Developers avoid full validation locally | Open | - |
 | FR-010 | Runtime | `runtime/src/pure_parser.rs` has parse errors | Blocks `cargo fmt` on entire workspace | Resolved | - |
-| FR-011 | Docs | `rustdoc::private_intra_doc_links` warning in runtime | Cosmetic noise in doc build | Open | - |
+| FR-011 | Docs | `rustdoc::private_intra_doc_links` warning in runtime | Cosmetic noise in doc build | Resolved | - |
+| FR-012 | Publishing | No `cargo package` dry-run in CI | Broken publishes not caught early | Open | - |
+| FR-013 | Tooling | No CLI binary yet (`adze check`, `adze stats`) | Grammar validation requires writing Rust | Open | - |
 
 ---
 
@@ -124,7 +126,25 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** `cargo doc -p adze` emits a `rustdoc::private_intra_doc_links` warning.
 **Expected:** Clean doc build with no warnings.
 **Actual:** One warning about private intra-doc links in the runtime crate.
-**Fix:** Update doc links to reference public items only.
+**Fix:** Doc links updated to reference public items only.
+**Status:** Resolved (Wave 6)
+
+### FR-012 - No `cargo package` Dry-Run in CI
+
+**Area:** publishing
+**Symptom:** Publishing errors (missing files, bad metadata) are only discovered at `cargo publish` time.
+**Expected:** CI catches packaging issues before merge.
+**Actual:** No `cargo package --dry-run` step in the CI pipeline.
+**Fix:** Add `cargo package --dry-run` for core crates to CI.
+**Status:** Open
+
+### FR-013 - No CLI Binary
+
+**Area:** tooling
+**Symptom:** To validate a grammar, users must write a full Rust program with `build.rs` integration.
+**Expected:** A CLI command like `adze check grammar.rs` validates grammars without a full project.
+**Actual:** No CLI binary exists yet.
+**Fix:** Implement `adze check` and `adze stats` subcommands.
 **Status:** Open
 
 ---

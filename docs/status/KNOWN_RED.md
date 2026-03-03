@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-03-04
+**Last updated:** 2026-03-05
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -38,7 +38,7 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
-**Current status:** GREEN — all supported crates compile, lint clean, and tests pass.
+**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **1,416 tests passing, 0 failures.** Feature-combination matrix: 11/12 pass (1 expected failure). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`.
 
 ---
 
@@ -68,7 +68,7 @@ These may run as optional signal (nightly/manual/canary), but are not required f
 
 ## Known warnings (non-blocking)
 
-- `rustdoc::private_intra_doc_links` warning in `adze` (runtime) crate doc build — cosmetic, does not block CI.
+- ~~`rustdoc::private_intra_doc_links` warning in `adze` (runtime) crate doc build~~ — **Resolved.** 0 rustdoc warnings across supported crates.
 - `unused manifest key` warnings in `lsp-generator/Cargo.toml` and `wasm-demo/Cargo.toml` — these are excluded crates.
 
 ---
