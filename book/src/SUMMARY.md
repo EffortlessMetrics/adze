@@ -22,6 +22,7 @@
 - [Golden Tests Maintenance](guide/golden-tests-maintenance.md)
 - [LSP Server Generation](guide/lsp-generation.md)
 - [Performance Optimization](guide/performance.md)
+- [Migration: rust-sitter to Adze](guide/migration.md)
 
 # Advanced Topics
 
