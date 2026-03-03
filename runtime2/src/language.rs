@@ -291,6 +291,26 @@ impl Language {
             .get(symbol as usize)
             .is_some_and(|m| m.is_visible)
     }
+
+    /// Look up a symbol ID by name and named/anonymous status.
+    ///
+    /// Returns the first symbol whose name matches and whose visibility
+    /// equals `is_named`. This mirrors Tree-sitter's
+    /// `ts_language_symbol_for_name` behaviour where *named* nodes are
+    /// visible in the parse tree while *anonymous* nodes are hidden.
+    pub fn symbol_for_name(&self, name: &str, is_named: bool) -> Option<u16> {
+        self.symbol_names
+            .iter()
+            .enumerate()
+            .find(|(i, n)| {
+                n.as_str() == name
+                    && self
+                        .symbol_metadata
+                        .get(*i)
+                        .is_some_and(|m| m.is_visible == is_named)
+            })
+            .map(|(i, _)| i as u16)
+    }
 }
 
 /// Builder for constructing `Language` instances with a fluent API.
