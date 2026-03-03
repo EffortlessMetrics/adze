@@ -154,6 +154,7 @@ impl<'a> LanguageValidator<'a> {
     }
 
     /// Performs comprehensive validation of the Language struct
+    #[must_use = "validation result must be checked"]
     pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
 

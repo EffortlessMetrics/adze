@@ -63,8 +63,9 @@ impl StackNode {
         if head.len() < 2 {
             return None;
         }
-        let sym = head.pop().unwrap();
-        let state = head.pop().unwrap();
+        // SAFETY: length checked >= 2 above
+        let sym = head.pop().expect("length checked >= 2");
+        let state = head.pop().expect("length checked >= 2");
         Some((state, (sym != NO_SYM).then_some(sym)))
     }
 

@@ -110,7 +110,7 @@ pub fn generate_lexer(
     // Second: Add other string patterns
     for (symbol_index, s) in other_strings {
         if s.len() == 1 {
-            let ch = s.chars().next().unwrap() as u32;
+            let ch = s.chars().next().expect("s.len() == 1 guarantees a char") as u32;
             token_matches.push(quote! {
                 if unsafe { ((*lexer).lookahead)(lexer) == #ch } {
                     unsafe {

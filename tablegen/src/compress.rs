@@ -52,6 +52,7 @@ pub struct CompressedTables {
 
 impl CompressedTables {
     /// Validate compressed tables against original parse table
+    #[must_use = "validation result must be checked"]
     pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
         // TODO: Implement validation logic
         // For now, just return Ok to make tests compile
@@ -133,6 +134,7 @@ impl TableCompressor {
     }
 
     /// Encode an action for small tables
+    #[must_use = "encoding result must be checked"]
     pub fn encode_action_small(&self, action: &Action) -> Result<u16> {
         match action {
             Action::Shift(state) => {
@@ -474,16 +476,18 @@ impl TableCompressor {
                     run_length += 1;
                 } else {
                     if run_length > 0 {
+                        // SAFETY: run_length > 0 implies last_state was set
+                        let state = last_state.expect("run_length > 0 implies last_state is set");
                         // Emit previous run
                         if run_length > 2 {
                             entries.push(CompressedGotoEntry::RunLength {
-                                state: last_state.unwrap(),
+                                state,
                                 count: run_length,
                             });
                         } else {
                             // For short runs, individual entries are more efficient
                             for _ in 0..run_length {
-                                entries.push(CompressedGotoEntry::Single(last_state.unwrap()));
+                                entries.push(CompressedGotoEntry::Single(state));
                             }
                         }
                     }
@@ -493,14 +497,15 @@ impl TableCompressor {
             }
 
             if run_length > 0 {
+                let state = last_state.expect("run_length > 0 implies last_state is set");
                 if run_length > 2 {
                     entries.push(CompressedGotoEntry::RunLength {
-                        state: last_state.unwrap(),
+                        state,
                         count: run_length,
                     });
                 } else {
                     for _ in 0..run_length {
-                        entries.push(CompressedGotoEntry::Single(last_state.unwrap()));
+                        entries.push(CompressedGotoEntry::Single(state));
                     }
                 }
             }

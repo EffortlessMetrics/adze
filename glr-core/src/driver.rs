@@ -657,7 +657,8 @@ impl<'t> Driver<'t> {
                 }
             }
 
-            for action in self.tables.actions(*stk.states.last().unwrap(), eof) {
+            let top_state = stk.states.last().expect("GLR stack must never be empty");
+            for action in self.tables.actions(*top_state, eof) {
                 debug_trace!("DEBUG: EOF action: {:?}", action);
                 match *action {
                     Action::Accept => {
@@ -696,7 +697,8 @@ impl<'t> Driver<'t> {
                         }
 
                         // Try accept after reduce
-                        for a2 in self.tables.actions(*s2.states.last().unwrap(), eof) {
+                        let s2_top = s2.states.last().expect("GLR stack must never be empty");
+                        for a2 in self.tables.actions(*s2_top, eof) {
                             if let Action::Accept = *a2 {
                                 if let Some(&root_id) = s2.nodes.last()
                                     && let Some(root) = state.forest.nodes.get(&root_id).cloned()
@@ -787,7 +789,12 @@ impl<'t> Driver<'t> {
         let goto_from = *stack
             .states
             .get(stack.states.len() - 1 - rhs_len as usize)
-            .unwrap();
+            .ok_or_else(|| {
+                GlrError::Parse(format!(
+                    "stack underflow: cannot find goto state for rule {}",
+                    rid.0
+                ))
+            })?;
         stack.states.truncate(stack.states.len() - rhs_len as usize);
 
         // Span = [first_child.start, last_child.end], or current position if empty production
@@ -795,18 +802,24 @@ impl<'t> Driver<'t> {
             // Empty production - use current position
             (stack.pos, stack.pos)
         } else {
+            let first_id = child_ids
+                .first()
+                .expect("child_ids verified non-empty above");
+            let last_id = child_ids
+                .last()
+                .expect("child_ids verified non-empty above");
             let first = st
                 .forest
                 .nodes
-                .get(child_ids.first().unwrap())
-                .unwrap()
+                .get(first_id)
+                .ok_or_else(|| GlrError::Parse(format!("missing forest node {first_id}")))?
                 .span
                 .0;
             let last = st
                 .forest
                 .nodes
-                .get(child_ids.last().unwrap())
-                .unwrap()
+                .get(last_id)
+                .ok_or_else(|| GlrError::Parse(format!("missing forest node {last_id}")))?
                 .span
                 .1;
             (first, last)
@@ -848,7 +861,7 @@ impl<'t> Driver<'t> {
         lookahead: SymbolId,
     ) -> Result<(), GlrError> {
         loop {
-            let state = *stack.states.last().unwrap();
+            let state = *stack.states.last().expect("GLR stack must never be empty");
             let mut did_reduce = false;
             for action in self.tables.actions(state, lookahead) {
                 if let Action::Reduce(rid) = *action {
@@ -882,7 +895,7 @@ impl<'t> Driver<'t> {
         let stacks = state.stacks.clone();
 
         for stk in &stacks {
-            let top = *stk.states.last().unwrap();
+            let top = *stk.states.last().expect("GLR stack must never be empty");
 
             // Find terminals with any real (non-Recover) action from this state
             // Iterate to terminal_boundary (excludes EOF by definition)

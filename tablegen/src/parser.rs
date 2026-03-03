@@ -54,7 +54,11 @@ impl Parser {
 
         while position < tokens.len() {
             let token = tokens[position];
-            let current_state = self.stack.last().unwrap().state;
+            let current_state = self
+                .stack
+                .last()
+                .ok_or_else(|| "parser stack is empty".to_string())?
+                .state;
 
             // Look up action in compressed table
             let action = self.get_action(current_state, token.symbol)?;
@@ -78,7 +82,7 @@ impl Parser {
                 }
                 ParseAction::Accept => {
                     if self.nodes.len() == 1 {
-                        return Ok(self.nodes.pop().unwrap());
+                        return Ok(self.nodes.pop().expect("length checked == 1"));
                     }
                     return Err("Accept but multiple nodes remain".to_string());
                 }
@@ -200,7 +204,11 @@ impl Parser {
         });
 
         // Get goto state
-        let current_state = self.stack.last().unwrap().state;
+        let current_state = self
+            .stack
+            .last()
+            .ok_or_else(|| "parser stack is empty after reduction".to_string())?
+            .state;
         let goto_state = self.get_goto(current_state, lhs_symbol)?;
 
         self.stack.push(ParseState {

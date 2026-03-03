@@ -775,16 +775,18 @@ impl TableCompressor {
                     run_length += 1;
                 } else {
                     if run_length > 0 {
+                        // SAFETY: run_length > 0 implies last_state was set
+                        let prev = last_state.expect("run_length > 0 implies last_state is set");
                         // Emit previous run
                         if run_length > 2 {
                             data.push(CompressedGotoEntry::RunLength {
-                                state: last_state.unwrap().0,
+                                state: prev.0,
                                 count: run_length,
                             });
                         } else {
                             // For short runs, individual entries are more efficient
                             for _ in 0..run_length {
-                                data.push(CompressedGotoEntry::Single(last_state.unwrap().0));
+                                data.push(CompressedGotoEntry::Single(prev.0));
                             }
                         }
                     }
@@ -795,14 +797,15 @@ impl TableCompressor {
 
             // Emit final run
             if run_length > 0 {
+                let prev = last_state.expect("run_length > 0 implies last_state is set");
                 if run_length > 2 {
                     data.push(CompressedGotoEntry::RunLength {
-                        state: last_state.unwrap().0,
+                        state: prev.0,
                         count: run_length,
                     });
                 } else {
                     for _ in 0..run_length {
-                        data.push(CompressedGotoEntry::Single(last_state.unwrap().0));
+                        data.push(CompressedGotoEntry::Single(prev.0));
                     }
                 }
             }

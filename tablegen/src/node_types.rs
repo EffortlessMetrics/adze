@@ -75,6 +75,7 @@ impl<'a> NodeTypesGenerator<'a> {
     }
 
     /// Generate NODE_TYPES.json content
+    #[must_use = "generation result must be checked"]
     pub fn generate(&self) -> Result<String, String> {
         let mut node_types = Vec::new();
         let mut symbol_names: HashMap<_, _> = HashMap::new();

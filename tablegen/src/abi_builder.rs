@@ -665,10 +665,9 @@ impl<'a> AbiLanguageBuilder<'a> {
                         .find(|&(_, &idx)| idx == symbol_idx)
                         .map(|(id, _)| *id);
 
-                    if symbol_id.is_none() {
+                    let Some(symbol_id) = symbol_id else {
                         continue;
-                    }
-                    let symbol_id = symbol_id.unwrap();
+                    };
 
                     let is_terminal = self.grammar.tokens.contains_key(&symbol_id)
                         || self

@@ -125,6 +125,7 @@ impl std::error::Error for SchemaError {}
 /// 0x8000-0xFFFE → Reduce(N & 0x7FFF)
 /// 0xFFFF        → Accept
 /// ```
+#[must_use = "validation result must be checked"]
 pub fn validate_action_encoding(action: &Action) -> Result<u16, SchemaError> {
     match action {
         Action::Error => Ok(0x0000),
@@ -188,6 +189,7 @@ pub fn validate_action_encoding(action: &Action) -> Result<u16, SchemaError> {
 }
 
 /// Validate that a u16 encoding decodes to the expected action
+#[must_use = "validation result must be checked"]
 pub fn validate_action_decoding(encoded: u16, expected: &Action) -> Result<(), SchemaError> {
     let decoded = decode_action_from_encoding(encoded);
 
@@ -219,6 +221,7 @@ fn decode_action_from_encoding(encoded: u16) -> Action {
 }
 
 /// Validate a complete parse table
+#[must_use = "validation result must be checked"]
 pub fn validate_parse_table(table: &ParseTable) -> Result<(), Vec<SchemaError>> {
     let mut errors = Vec::new();
 
