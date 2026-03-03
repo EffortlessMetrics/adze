@@ -1,0 +1,6 @@
+---
+source: ir/tests/validation_snapshots.rs
+expression: msgs
+---
+WARNING: Token 'indent' (SymbolId(3)) is defined but never used
+stats: rules=1, tokens=1, symbols=3

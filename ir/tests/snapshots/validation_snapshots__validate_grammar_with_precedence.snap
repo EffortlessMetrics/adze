@@ -1,0 +1,9 @@
+---
+source: ir/tests/validation_snapshots.rs
+expression: msgs
+---
+ERROR: Cyclic dependency detected: [SymbolId(4)]
+WARNING: Rule for symbol SymbolId(4) has no field names
+WARNING: Rule for symbol SymbolId(4) has no field names
+WARNING: Rule for symbol SymbolId(4) has no field names
+stats: rules=4, tokens=3, symbols=4

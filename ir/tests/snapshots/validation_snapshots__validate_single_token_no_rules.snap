@@ -1,0 +1,7 @@
+---
+source: ir/tests/validation_snapshots.rs
+expression: msgs
+---
+ERROR: Grammar has no rules defined
+WARNING: Token 'x' (SymbolId(1)) is defined but never used
+stats: rules=0, tokens=1, symbols=1
