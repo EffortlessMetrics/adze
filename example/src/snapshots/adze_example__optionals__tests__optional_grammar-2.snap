@@ -1,20 +1,16 @@
 ---
-source: example/src/optionals.rs
+source: src/optionals.rs
+assertion_line: 32
 expression: "grammar::parse(\"_.\")"
 ---
-Ok(
-    Language {
-        v: None,
-        _s: (),
-        t: Spanned {
-            value: None,
-            span: (
-                1,
-                1,
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                ".",
             ),
+            start: 1,
+            end: 1,
         },
-        _d: Some(
-            (),
-        ),
-    },
+    ],
 )

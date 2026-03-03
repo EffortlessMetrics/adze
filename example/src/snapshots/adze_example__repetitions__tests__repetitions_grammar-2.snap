@@ -1,5 +1,6 @@
 ---
 source: src/repetitions.rs
+assertion_line: 76
 expression: "grammar::parse(\"1\")"
 ---
 Err(

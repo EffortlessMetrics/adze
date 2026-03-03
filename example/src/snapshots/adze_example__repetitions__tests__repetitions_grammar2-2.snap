@@ -1,21 +1,14 @@
 ---
 source: src/repetitions.rs
+assertion_line: 83
 expression: "grammar2::parse(\"1\")"
 ---
 Ok(
     NumberList {
         numbers: Spanned {
-            value: [
-                Spanned {
-                    value: 1,
-                    span: (
-                        0,
-                        1,
-                    ),
-                },
-            ],
+            value: [],
             span: (
-                0,
+                1,
                 1,
             ),
         },
