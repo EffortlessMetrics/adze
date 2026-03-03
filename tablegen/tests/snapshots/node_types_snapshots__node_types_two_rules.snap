@@ -1,0 +1,18 @@
+---
+source: tablegen/tests/node_types_snapshots.rs
+expression: output
+---
+[
+  {
+    "type": "a",
+    "named": false
+  },
+  {
+    "type": "b",
+    "named": false
+  },
+  {
+    "type": "start",
+    "named": true
+  }
+]

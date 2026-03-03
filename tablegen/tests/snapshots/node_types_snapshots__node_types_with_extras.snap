@@ -1,0 +1,10 @@
+---
+source: tablegen/tests/node_types_snapshots.rs
+expression: output
+---
+[
+  {
+    "type": "expr",
+    "named": true
+  }
+]
