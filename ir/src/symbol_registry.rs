@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 /// A centralized registry for symbol ID assignment and metadata.
 /// Ensures consistent, deterministic symbol ordering across all components.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SymbolRegistry {
     /// Ordered map of symbol names to IDs (maintains insertion order)
     symbols: IndexMap<String, SymbolId>,
