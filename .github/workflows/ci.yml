@@ -1022,6 +1022,23 @@ jobs:
       - name: Run ci-supported lane
         run: just ci-supported
 
+  wasm-check:
+    name: WASM Build Verification
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Check core crates for WASM
+        run: |
+          for crate in adze-ir adze-glr-core adze-tablegen adze-common; do
+            echo "Checking $crate..."
+            cargo check --target wasm32-unknown-unknown -p "$crate"
+          done
+
   cross-platform:
     name: Cross-platform (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
