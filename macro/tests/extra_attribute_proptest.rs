@@ -1082,3 +1082,700 @@ proptest! {
         prop_assert_eq!(extracted, pat);
     }
 }
+
+// ── 36. Extra struct with tab-only whitespace patterns ──────────────────────
+
+proptest! {
+    #[test]
+    fn extra_tab_only_whitespace(idx in 0usize..=2) {
+        let patterns = [r"\t", r"\t+", r"\t{1,4}"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct TabWs {
+                #[adze::leaf(pattern = #pat)]
+                _tab: (),
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+        prop_assert_eq!(s.ident.to_string(), "TabWs");
+        let field = s.fields.iter().next().unwrap();
+        let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        prop_assert_eq!(extract_leaf_pattern(attr), pat);
+    }
+}
+
+// ── 37. Extra struct with carriage-return patterns ──────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_carriage_return_patterns(idx in 0usize..=2) {
+        let patterns = [r"\r", r"\r\n", r"\r?\n"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct CrLf {
+                #[adze::leaf(pattern = #pat)]
+                _cr: (),
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+        let field = s.fields.iter().next().unwrap();
+        let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        prop_assert_eq!(extract_leaf_pattern(attr), pat);
+    }
+}
+
+// ── 38. Extra produces extras list — count in various module sizes ───────────
+
+proptest! {
+    #[test]
+    fn extra_list_scales_with_count(count in 1usize..=6) {
+        let extra_tokens: Vec<proc_macro2::TokenStream> = (0..count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Skip{i}"), proc_macro2::Span::call_site());
+                let pat = format!(r"\s{{{}}}", i + 1);
+                quote::quote! {
+                    #[adze::extra]
+                    struct #name {
+                        #[adze::leaf(pattern = #pat)]
+                        _f: (),
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Code {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+                #(#extra_tokens)*
+            }
+        });
+        let names = extra_struct_names(&m);
+        prop_assert_eq!(names.len(), count);
+        for i in 0..count {
+            prop_assert_eq!(&names[i], &format!("Skip{i}"));
+        }
+    }
+}
+
+// ── 39. Extra list preserves insertion order ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_list_preserves_order(idx in 0usize..=2) {
+        let orderings: &[&[&str]] = &[
+            &["Alpha", "Beta", "Gamma"],
+            &["Gamma", "Alpha", "Beta"],
+            &["Beta", "Gamma", "Alpha"],
+        ];
+        let chosen = orderings[idx];
+        let extra_tokens: Vec<proc_macro2::TokenStream> = chosen.iter().map(|n| {
+            let ident = syn::Ident::new(n, proc_macro2::Span::call_site());
+            quote::quote! {
+                #[adze::extra]
+                struct #ident {
+                    #[adze::leaf(pattern = r"\s")]
+                    _f: (),
+                }
+            }
+        }).collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Code {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+                #(#extra_tokens)*
+            }
+        });
+        let names = extra_struct_names(&m);
+        for i in 0..chosen.len() {
+            prop_assert_eq!(&names[i], chosen[i]);
+        }
+    }
+}
+
+// ── 40. Multiple extras with mixed ws + comment types ───────────────────────
+
+proptest! {
+    #[test]
+    fn extra_mixed_ws_and_comments(idx in 0usize..=2) {
+        let ws_pats = [r"\s+", r"[ \t]+", r"\n+"];
+        let comment_pats = [r"//[^\n]*", r"#[^\n]*", r"--[^\n]*"];
+        let ws_pat = ws_pats[idx];
+        let cmt_pat = comment_pats[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Code {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = #ws_pat)]
+                    _ws: (),
+                }
+                #[adze::extra]
+                struct Comment {
+                    #[adze::leaf(pattern = #cmt_pat)]
+                    _c: (),
+                }
+            }
+        });
+        prop_assert_eq!(count_extras_in_module(&m), 2);
+        let names = extra_struct_names(&m);
+        prop_assert!(names.contains(&"Ws".to_string()));
+        prop_assert!(names.contains(&"Comment".to_string()));
+    }
+}
+
+// ── 41. Extra with doc-comment regex patterns ───────────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_docstring_patterns(idx in 0usize..=2) {
+        let patterns = [
+            r#"///[^\n]*"#,
+            r#"//![^\n]*"#,
+            r#"/\*\*[^*]*\*/"#,
+        ];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct DocComment {
+                #[adze::leaf(pattern = #pat)]
+                _doc: (),
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+        let field = s.fields.iter().next().unwrap();
+        let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        prop_assert_eq!(extract_leaf_pattern(attr), pat);
+    }
+}
+
+// ── 42. Extra with shell/script comment patterns ────────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_shell_comment_patterns(idx in 0usize..=2) {
+        let patterns = [r"#[^\n]*", r"rem\s[^\n]*", r"%[^\n]*"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct ShellComment {
+                #[adze::leaf(pattern = #pat)]
+                _c: (),
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+        let field = s.fields.iter().next().unwrap();
+        let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        prop_assert_eq!(extract_leaf_pattern(attr), pat);
+    }
+}
+
+// ── 43. Extra interaction with optional fields in grammar ───────────────────
+
+proptest! {
+    #[test]
+    fn extra_with_optional_fields_grammar(idx in 0usize..=1) {
+        let patterns = [r"\s", r"\s+"];
+        let pat = patterns[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    v: Option<i32>,
+                    child: Option<Child>,
+                }
+                pub struct Child {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                }
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = #pat)]
+                    _ws: (),
+                }
+            }
+        });
+        prop_assert_eq!(count_extras_in_module(&m), 1);
+        let items = module_items(&m);
+        let lang = items.iter().find_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "language")) { Some(s) }
+                else { None }
+            } else { None }
+        }).unwrap();
+        prop_assert_eq!(lang.fields.iter().count(), 2);
+    }
+}
+
+// ── 44. Extra interaction with boxed recursive grammar ──────────────────────
+
+proptest! {
+    #[test]
+    fn extra_with_recursive_grammar(idx in 0usize..=1) {
+        let patterns = [r"\s", r"\n"];
+        let pat = patterns[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+                    Neg(#[adze::leaf(text = "-")] (), Box<Expr>),
+                }
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = #pat)]
+                    _ws: (),
+                }
+            }
+        });
+        prop_assert_eq!(count_extras_in_module(&m), 1);
+        let items = module_items(&m);
+        let has_lang_enum = items.iter().any(|i| {
+            if let Item::Enum(e) = i { e.attrs.iter().any(|a| is_adze_attr(a, "language")) }
+            else { false }
+        });
+        prop_assert!(has_lang_enum);
+    }
+}
+
+// ── 45. Extra on enum variant with named fields ─────────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_enum_variant_named_fields(idx in 0usize..=2) {
+        let texts = ["ws0", "ws1", "ws2"];
+        let txt = texts[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            #[adze::extra]
+            pub enum SkipToken {
+                Ws {
+                    #[adze::leaf(text = #txt)]
+                    _ws: (),
+                },
+            }
+        }).unwrap();
+        prop_assert!(e.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+        let variant = e.variants.first().unwrap();
+        prop_assert!(matches!(variant.fields, Fields::Named(_)));
+    }
+}
+
+// ── 46. Extra on enum variant with tuple fields ─────────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_enum_variant_tuple_fields(idx in 0usize..=2) {
+        let patterns = [r"\s", r"\n", r"\t"];
+        let pat = patterns[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            #[adze::extra]
+            pub enum SkipToken {
+                Ws(#[adze::leaf(pattern = #pat)] ()),
+            }
+        }).unwrap();
+        prop_assert!(e.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+        let variant = e.variants.first().unwrap();
+        prop_assert!(matches!(variant.fields, Fields::Unnamed(_)));
+    }
+}
+
+// ── 47. Extra enum with mixed unit and tuple variants ───────────────────────
+
+proptest! {
+    #[test]
+    fn extra_enum_mixed_variant_kinds(idx in 0usize..=1) {
+        let patterns = [r"\s", r"\n"];
+        let pat = patterns[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            #[adze::extra]
+            pub enum SkipToken {
+                #[adze::leaf(text = " ")]
+                Space,
+                Tab(#[adze::leaf(pattern = #pat)] ()),
+            }
+        }).unwrap();
+        prop_assert!(e.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+        prop_assert_eq!(e.variants.len(), 2);
+        prop_assert!(matches!(e.variants[0].fields, Fields::Unit));
+        prop_assert!(matches!(e.variants[1].fields, Fields::Unnamed(_)));
+    }
+}
+
+// ── 48. Extra struct fields underscore naming convention ─────────────────────
+
+proptest! {
+    #[test]
+    fn extra_field_underscore_naming(idx in 0usize..=3) {
+        let field_names = ["_ws", "_skip", "_blank", "_space"];
+        let fname = syn::Ident::new(field_names[idx], proc_macro2::Span::call_site());
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct Ws {
+                #[adze::leaf(pattern = r"\s")]
+                #fname: (),
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        prop_assert_eq!(field.ident.as_ref().unwrap().to_string(), field_names[idx]);
+        prop_assert!(field.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+    }
+}
+
+// ── 49. Extra validation — extra attr has no arguments ──────────────────────
+
+proptest! {
+    #[test]
+    fn extra_attr_has_no_args(idx in 0usize..=2) {
+        let patterns = [r"\s", r"\n", r"\t"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct Ws {
+                #[adze::leaf(pattern = #pat)]
+                _ws: (),
+            }
+        }).unwrap();
+        let extra_attr = s.attrs.iter().find(|a| is_adze_attr(a, "extra")).unwrap();
+        // extra should be a simple path with no parenthesized or key-value args
+        let ts = extra_attr.meta.to_token_stream().to_string();
+        prop_assert!(!ts.contains('('));
+        prop_assert!(!ts.contains('='));
+    }
+}
+
+// ── 50. Extra validation — no duplicate extra attrs on same struct ───────────
+
+proptest! {
+    #[test]
+    fn extra_no_duplicate_attr_on_struct(idx in 0usize..=2) {
+        let names = ["Ws", "Comment", "Newline"];
+        let ident = syn::Ident::new(names[idx], proc_macro2::Span::call_site());
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct #ident {
+                #[adze::leaf(pattern = r"\s")]
+                _f: (),
+            }
+        }).unwrap();
+        let extra_count = s.attrs.iter().filter(|a| is_adze_attr(a, "extra")).count();
+        prop_assert_eq!(extra_count, 1, "Extra should appear exactly once");
+    }
+}
+
+// ── 51. Extra validation — extra attr style is outer ────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_attr_is_outer_style(idx in 0usize..=2) {
+        let patterns = [r"\s", r"\n", r"\t"];
+        let pat = patterns[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct Ws {
+                #[adze::leaf(pattern = #pat)]
+                _ws: (),
+            }
+        }).unwrap();
+        let extra_attr = s.attrs.iter().find(|a| is_adze_attr(a, "extra")).unwrap();
+        prop_assert!(matches!(extra_attr.style, syn::AttrStyle::Outer));
+    }
+}
+
+// ── 52. Extra validation — extra on enum is also outer ──────────────────────
+
+proptest! {
+    #[test]
+    fn extra_attr_on_enum_is_outer(idx in 0usize..=1) {
+        let texts = ["space", "tab"];
+        let txt = texts[idx];
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            #[adze::extra]
+            pub enum SkipToken {
+                #[adze::leaf(text = #txt)]
+                Token,
+            }
+        }).unwrap();
+        let extra_attr = e.attrs.iter().find(|a| is_adze_attr(a, "extra")).unwrap();
+        prop_assert!(matches!(extra_attr.style, syn::AttrStyle::Outer));
+    }
+}
+
+// ── 53. Extra expansion determinism — multiple extras produce stable output ─
+
+proptest! {
+    #[test]
+    fn extra_multi_deterministic(idx in 0usize..=2) {
+        let counts = [2, 3, 4];
+        let count = counts[idx];
+        let make_mod = || {
+            let extra_tokens: Vec<proc_macro2::TokenStream> = (0..count)
+                .map(|i| {
+                    let name = syn::Ident::new(&format!("Ex{i}"), proc_macro2::Span::call_site());
+                    quote::quote! {
+                        #[adze::extra]
+                        struct #name {
+                            #[adze::leaf(pattern = r"\s")]
+                            _f: (),
+                        }
+                    }
+                })
+                .collect();
+            parse_mod(quote::quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Code {
+                        #[adze::leaf(pattern = r"\w+")]
+                        token: String,
+                    }
+                    #(#extra_tokens)*
+                }
+            })
+        };
+        let m1 = make_mod();
+        let m2 = make_mod();
+        prop_assert_eq!(
+            m1.to_token_stream().to_string(),
+            m2.to_token_stream().to_string()
+        );
+        let n1 = extra_struct_names(&m1);
+        let n2 = extra_struct_names(&m2);
+        prop_assert_eq!(n1, n2);
+    }
+}
+
+// ── 54. Extra expansion determinism — enum extras stable ────────────────────
+
+proptest! {
+    #[test]
+    fn extra_enum_deterministic(idx in 0usize..=1) {
+        let variant_counts = [2, 3];
+        let vc = variant_counts[idx];
+        let make_enum = || {
+            let variants: Vec<proc_macro2::TokenStream> = (0..vc)
+                .map(|i| {
+                    let name = syn::Ident::new(&format!("V{i}"), proc_macro2::Span::call_site());
+                    let txt = format!("v{i}");
+                    quote::quote! { #[adze::leaf(text = #txt)] #name }
+                })
+                .collect();
+            let e: ItemEnum = syn::parse2(quote::quote! {
+                #[adze::extra]
+                pub enum SkipToken { #(#variants),* }
+            }).unwrap();
+            e
+        };
+        let e1 = make_enum();
+        let e2 = make_enum();
+        prop_assert_eq!(
+            e1.to_token_stream().to_string(),
+            e2.to_token_stream().to_string()
+        );
+    }
+}
+
+// ── 55. Extra with multiple annotation types on same module — stable ────────
+
+proptest! {
+    #[test]
+    fn extra_full_grammar_deterministic(idx in 0usize..=1) {
+        let patterns = [r"\s", r"\n"];
+        let pat = patterns[idx];
+        let make = || {
+            parse_mod(quote::quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Expr {
+                        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+                        #[adze::prec_left(1)]
+                        Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+                    }
+                    #[adze::extra]
+                    struct Ws {
+                        #[adze::leaf(pattern = #pat)]
+                        _ws: (),
+                    }
+                }
+            })
+        };
+        let m1 = make();
+        let m2 = make();
+        prop_assert_eq!(
+            m1.to_token_stream().to_string(),
+            m2.to_token_stream().to_string()
+        );
+    }
+}
+
+// ── 56. Extra interaction — extra does not affect language field count ───────
+
+proptest! {
+    #[test]
+    fn extra_does_not_affect_language_fields(idx in 0usize..=2) {
+        let extra_counts = [0, 1, 3];
+        let ec = extra_counts[idx];
+        let extra_tokens: Vec<proc_macro2::TokenStream> = (0..ec)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Ex{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    #[adze::extra]
+                    struct #name {
+                        #[adze::leaf(pattern = r"\s")]
+                        _f: (),
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Code {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+                #(#extra_tokens)*
+            }
+        });
+        let items = module_items(&m);
+        let lang = items.iter().find_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "language")) { Some(s) }
+                else { None }
+            } else { None }
+        }).unwrap();
+        prop_assert_eq!(lang.fields.iter().count(), 1);
+        prop_assert_eq!(count_extras_in_module(&m), ec);
+    }
+}
+
+// ── 57. Extra interaction — extra does not affect enum variant count ─────────
+
+proptest! {
+    #[test]
+    fn extra_does_not_affect_enum_variants(idx in 0usize..=1) {
+        let variant_counts = [2, 3];
+        let vc = variant_counts[idx];
+        let variant_tokens: Vec<proc_macro2::TokenStream> = (0..vc)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("V{i}"), proc_macro2::Span::call_site());
+                let txt = format!("v{i}");
+                quote::quote! { #[adze::leaf(text = #txt)] #name }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Token { #(#variant_tokens),* }
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }
+            }
+        });
+        let items = module_items(&m);
+        let lang_enum = items.iter().find_map(|i| {
+            if let Item::Enum(e) = i {
+                if e.attrs.iter().any(|a| is_adze_attr(a, "language")) { Some(e) }
+                else { None }
+            } else { None }
+        }).unwrap();
+        prop_assert_eq!(lang_enum.variants.len(), vc);
+        prop_assert_eq!(count_extras_in_module(&m), 1);
+    }
+}
+
+// ── 58. Extra with skip field coexisting ────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_with_skip_field_grammar(idx in 0usize..=1) {
+        let patterns = [r"\s", r"\s+"];
+        let pat = patterns[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct MyNode {
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    value: i32,
+                    #[adze::skip(false)]
+                    visited: bool,
+                }
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = #pat)]
+                    _ws: (),
+                }
+            }
+        });
+        prop_assert_eq!(count_extras_in_module(&m), 1);
+        let items = module_items(&m);
+        let lang = items.iter().find_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "language")) { Some(s) }
+                else { None }
+            } else { None }
+        }).unwrap();
+        let has_skip = lang.fields.iter().any(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+        prop_assert!(has_skip);
+    }
+}
+
+// ── 59. Extra struct field name is preserved ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_struct_field_name_preserved(idx in 0usize..=3) {
+        let field_names = ["_whitespace", "_ws", "_comment", "_newline"];
+        let fname = syn::Ident::new(field_names[idx], proc_macro2::Span::call_site());
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::extra]
+            struct Ws {
+                #[adze::leaf(pattern = r"\s")]
+                #fname: (),
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let actual = field.ident.as_ref().unwrap().to_string();
+        prop_assert_eq!(actual, field_names[idx]);
+    }
+}
+
+// ── 60. Extra attr absent means not extra ───────────────────────────────────
+
+proptest! {
+    #[test]
+    fn no_extra_attr_means_regular_struct(idx in 0usize..=2) {
+        let names = ["Helper", "Aux", "NonExtra"];
+        let ident = syn::Ident::new(names[idx], proc_macro2::Span::call_site());
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            struct #ident {
+                #[adze::leaf(pattern = r"\w+")]
+                _f: String,
+            }
+        }).unwrap();
+        let extra_count = s.attrs.iter().filter(|a| is_adze_attr(a, "extra")).count();
+        prop_assert_eq!(extra_count, 0);
+    }
+}

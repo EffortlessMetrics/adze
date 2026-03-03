@@ -37,6 +37,36 @@
 //! 33.  Production ID zero case: zero-ID rule always first in map
 //! 34.  Alias sequences deterministic across rebuilds
 //! 35.  Fields preserve production ID count
+//! 36.  PRODUCTION_LHS_INDEX present in generated code
+//! 37.  PRODUCTION_LHS_INDEX length matches production count
+//! 38.  TS_RULES present in generated code
+//! 39.  Grammar name does not affect production IDs
+//! 40.  Production count monotonically increases with rule count
+//! 41.  Sentinel fill for production ID gaps
+//! 42.  Reverse-ordered production IDs handled correctly
+//! 43.  Uniform RHS length rules get correct IDs
+//! 44.  Supertypes don't affect production IDs
+//! 45.  Multiple epsilon rules across nonterminals
+//! 46.  PRODUCTION_LHS_INDEX deterministic across rebuilds
+//! 47.  FIELD_MAP_SLICES present when fields exist
+//! 48.  FIELD_MAP_ENTRIES minimal when no fields
+//! 49.  Interleaved nonterminal rules get distinct IDs
+//! 50.  Production ID map covers 0 to max
+//! 51.  Serialized and ABI counts agree for multi-NT grammars
+//! 52.  Production count equals total rules across nonterminals
+//! 53.  Single NT many tokens gets correct IDs
+//! 54.  Alias sequence length doesn't affect production_id_count
+//! 55.  Production map values ascending for sequential IDs
+//! 56.  Adding extras doesn't affect production IDs
+//! 57.  Multiple fields on same rule don't change production IDs
+//! 58.  Non-terminal references in RHS preserve production IDs
+//! 59.  Production ID count always at least 1
+//! 60.  PRODUCTION_LHS_INDEX consistent across identical codegen
+//! 61.  Sparse nonterminal IDs preserve production uniqueness
+//! 62.  Map and LHS index have same number of entries
+//! 63.  Single epsilon rule gives count = 1
+//! 64.  Alias None entries don't affect map
+//! 65.  Maximum gap still has correct count
 
 use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
 use adze_ir::{
@@ -758,5 +788,497 @@ proptest! {
         let count_fields = extract_production_id_count(&gen_code(&g, &table2)).unwrap();
 
         prop_assert_eq!(count_base, count_fields, "field rules must preserve production_id_count");
+    }
+
+    // 36. PRODUCTION_LHS_INDEX present in generated code
+    #[test]
+    fn production_lhs_index_present(n in 1..=15usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        prop_assert!(code.contains("PRODUCTION_LHS_INDEX"), "must contain PRODUCTION_LHS_INDEX");
+    }
+
+    // 37. PRODUCTION_LHS_INDEX length matches production count
+    #[test]
+    fn production_lhs_index_length_matches_count(n in 1..=20usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        let lhs_index = extract_u16_array(&code, "PRODUCTION_LHS_INDEX");
+        prop_assert_eq!(lhs_index.len(), n, "LHS index length must equal rule count");
+    }
+
+    // 38. TS_RULES present in generated code
+    #[test]
+    fn ts_rules_present(n in 1..=15usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        prop_assert!(code.contains("TS_RULES"), "must contain TS_RULES");
+    }
+
+    // 39. Grammar name does not affect production IDs
+    #[test]
+    fn grammar_name_independent(n in 1..=15usize) {
+        let table = empty_table(1, 1, 1, 0);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        let build = |name: &str| {
+            let mut g = Grammar::new(name.to_string());
+            g.rule_names.insert(start, "start".to_string());
+            g.tokens.insert(t, tok("t", "t"));
+            for i in 0..n {
+                g.add_rule(make_rule(start, vec![Symbol::Terminal(t); (i % 3) + 1], i as u16));
+            }
+            g
+        };
+
+        let map_a = extract_production_id_map(&gen_code(&build("alpha"), &table));
+        let map_b = extract_production_id_map(&gen_code(&build("beta"), &table));
+        prop_assert_eq!(map_a, map_b, "grammar name must not affect production ID map");
+    }
+
+    // 40. Production count monotonically increases with rule count
+    #[test]
+    fn count_monotonic_with_rules(n in 2..=25usize) {
+        let (g_small, table_small) = grammar_with_n_rules(n - 1);
+        let (g_large, table_large) = grammar_with_n_rules(n);
+        let count_small = extract_production_id_count(&gen_code(&g_small, &table_small)).unwrap();
+        let count_large = extract_production_id_count(&gen_code(&g_large, &table_large)).unwrap();
+        prop_assert!(count_large > count_small, "adding a rule must increase production count");
+    }
+
+    // 41. Production ID map sentinel fill for gaps
+    #[test]
+    fn sentinel_fill_for_gaps(gap in 3..=8u16) {
+        let table = empty_table(1, 1, 1, 0);
+        let (mut g, start, t) = base_grammar("sentinel", &table);
+        g.add_rule(make_rule(start, vec![Symbol::Terminal(t)], 0));
+        g.add_rule(make_rule(start, vec![Symbol::Terminal(t), Symbol::Terminal(t)], gap));
+
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        // Slot 0 = production ID 0, slot 1 = production ID `gap`
+        prop_assert_eq!(map[0], 0u16);
+        prop_assert_eq!(map[1], gap);
+    }
+
+    // 42. Reverse-ordered production IDs are handled
+    #[test]
+    fn reverse_ordered_ids(n in 2..=10usize) {
+        let table = empty_table(1, 1, 1, 0);
+        let (mut g, start, t) = base_grammar("reverse", &table);
+        for i in 0..n {
+            let prod_id = (n - 1 - i) as u16;
+            g.add_rule(make_rule(start, vec![Symbol::Terminal(t); (i % 3) + 1], prod_id));
+        }
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        let set: HashSet<u16> = map.iter().copied().collect();
+        prop_assert_eq!(set.len(), n, "reverse-ordered IDs must still be unique");
+        let count = extract_production_id_count(&code).unwrap();
+        prop_assert_eq!(count, n as u32);
+    }
+
+    // 43. Production ID map with all same RHS length
+    #[test]
+    fn uniform_rhs_length(n in 1..=20usize) {
+        let table = empty_table(1, 1, 1, 0);
+        let (mut g, start, t) = base_grammar("uniform", &table);
+        for i in 0..n {
+            g.add_rule(make_rule(start, vec![Symbol::Terminal(t); 2], i as u16));
+        }
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        prop_assert_eq!(map.len(), n);
+        for i in 0..n {
+            prop_assert_eq!(map[i], i as u16);
+        }
+    }
+
+    // 44. Supertypes don't affect production IDs
+    #[test]
+    fn supertypes_dont_affect_ids(n in 1..=10usize) {
+        let table = empty_table(1, 1, 1, 0);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        // Without supertypes
+        let mut g1 = Grammar::new("no_super".to_string());
+        g1.rule_names.insert(start, "start".to_string());
+        g1.tokens.insert(t, tok("t", "t"));
+        for i in 0..n {
+            g1.add_rule(make_rule(start, vec![Symbol::Terminal(t)], i as u16));
+        }
+        let map1 = extract_production_id_map(&gen_code(&g1, &table));
+
+        // With supertypes
+        let mut g2 = Grammar::new("with_super".to_string());
+        g2.rule_names.insert(start, "start".to_string());
+        g2.tokens.insert(t, tok("t", "t"));
+        g2.supertypes.push(start);
+        for i in 0..n {
+            g2.add_rule(make_rule(start, vec![Symbol::Terminal(t)], i as u16));
+        }
+        let map2 = extract_production_id_map(&gen_code(&g2, &table));
+
+        prop_assert_eq!(map1, map2, "supertypes must not affect production ID map");
+    }
+
+    // 45. Multiple epsilon rules across nonterminals
+    #[test]
+    fn epsilon_across_nonterminals(nt_count in 2..=5usize) {
+        let table = empty_table(1, 1, nt_count, 0);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        let mut g = Grammar::new("eps_multi".to_string());
+        g.tokens.insert(t, tok("t", "t"));
+        let mut prod_id = 0u16;
+        for off in 0..nt_count {
+            let nt = SymbolId(start.0 + off as u16);
+            g.rule_names.insert(nt, format!("nt_{}", off));
+            g.add_rule(make_rule(nt, vec![], prod_id));
+            prod_id += 1;
+        }
+
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        let set: HashSet<u16> = map.iter().copied().collect();
+        prop_assert_eq!(set.len(), nt_count, "epsilon rules across NTs must have distinct IDs");
+    }
+
+    // 46. PRODUCTION_LHS_INDEX deterministic across rebuilds
+    #[test]
+    fn lhs_index_deterministic(n in 1..=15usize) {
+        let (g1, t1) = grammar_with_n_rules(n);
+        let (g2, t2) = grammar_with_n_rules(n);
+        let lhs1 = extract_u16_array(&gen_code(&g1, &t1), "PRODUCTION_LHS_INDEX");
+        let lhs2 = extract_u16_array(&gen_code(&g2, &t2), "PRODUCTION_LHS_INDEX");
+        prop_assert_eq!(lhs1, lhs2, "LHS index must be deterministic across rebuilds");
+    }
+
+    // 47. FIELD_MAP_SLICES present when fields exist
+    #[test]
+    fn field_map_slices_present_with_fields(n in 1..=10usize) {
+        let table = empty_table(1, 1, 1, 0);
+        let (mut g, start, t) = base_grammar("fms", &table);
+        g.fields.insert(FieldId(1), "operand".to_string());
+        for i in 0..n {
+            let mut r = make_rule(start, vec![Symbol::Terminal(t)], i as u16);
+            r.fields.push((FieldId(1), 0));
+            g.add_rule(r);
+        }
+        let code = gen_code(&g, &table);
+        prop_assert!(code.contains("FIELD_MAP_SLICES"), "code must contain FIELD_MAP_SLICES");
+        prop_assert!(code.contains("FIELD_MAP_ENTRIES"), "code must contain FIELD_MAP_ENTRIES");
+    }
+
+    // 48. FIELD_MAP_ENTRIES is minimal when no fields
+    #[test]
+    fn field_map_entries_minimal_no_fields(n in 1..=10usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        // With no fields, field_count should be 0
+        prop_assert!(code.contains("field_count : 0u32") || code.contains("field_count : 0"),
+            "field_count must be 0 when no fields");
+    }
+
+    // 49. Production IDs with interleaved nonterminal rules
+    #[test]
+    fn interleaved_nt_rules(pairs in 1..=8usize) {
+        let table = empty_table(1, 1, 2, 0);
+        let start = table.start_symbol;
+        let other = SymbolId(start.0 + 1);
+        let t = SymbolId(1);
+
+        let mut g = Grammar::new("interleaved".to_string());
+        g.rule_names.insert(start, "start".to_string());
+        g.rule_names.insert(other, "other".to_string());
+        g.tokens.insert(t, tok("t", "t"));
+
+        for i in 0..pairs {
+            g.add_rule(make_rule(start, vec![Symbol::Terminal(t); (i % 3) + 1], (i * 2) as u16));
+            g.add_rule(make_rule(other, vec![Symbol::Terminal(t); (i % 2) + 1], (i * 2 + 1) as u16));
+        }
+
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        let set: HashSet<u16> = map.iter().copied().collect();
+        prop_assert_eq!(set.len(), pairs * 2, "interleaved IDs must all be distinct");
+    }
+
+    // 50. Production ID map covers all IDs from 0 to max
+    #[test]
+    fn map_covers_0_to_max(n in 1..=20usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        let max_id = map.iter().copied().max().unwrap_or(0);
+        prop_assert_eq!(max_id, (n - 1) as u16, "max ID must be n-1 for sequential IDs");
+    }
+
+    // 51. Serialized and ABI production counts agree for multi-NT grammars
+    #[test]
+    fn serialized_abi_agree_multi_nt(
+        n_rules in 2..=15usize,
+        nt_count in 2..=4usize,
+    ) {
+        let (g, table) = grammar_with_nonterminals(n_rules, nt_count);
+        let abi_count = extract_production_id_count(&gen_code(&g, &table)).unwrap();
+        let ser_count = serialized_production_count(&g, &table);
+        prop_assert_eq!(abi_count, ser_count, "ABI and serialized counts must agree for multi-NT");
+    }
+
+    // 52. Production count equals total rules across all nonterminals
+    #[test]
+    fn count_equals_total_rules(
+        n_rules in 1..=20usize,
+        nt_count in 1..=5usize,
+    ) {
+        let (g, table) = grammar_with_nonterminals(n_rules, nt_count);
+        let total: usize = g.rules.values().map(|v| v.len()).sum();
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        prop_assert_eq!(map.len(), total, "map length must equal total rule count");
+    }
+
+    // 53. Production IDs with single nonterminal, many tokens
+    #[test]
+    fn single_nt_many_tokens(tok_count in 2..=6usize) {
+        let table = empty_table(1, tok_count, 1, 0);
+        let start = table.start_symbol;
+        let mut g = Grammar::new("many_tok".to_string());
+        g.rule_names.insert(start, "start".to_string());
+        for i in 1..=tok_count {
+            g.tokens.insert(SymbolId(i as u16), tok(&format!("t{}", i), &format!("{}", i)));
+        }
+        for i in 0..tok_count {
+            g.add_rule(make_rule(start, vec![Symbol::Terminal(SymbolId((i + 1) as u16))], i as u16));
+        }
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        prop_assert_eq!(map.len(), tok_count);
+        for i in 0..tok_count {
+            prop_assert_eq!(map[i], i as u16);
+        }
+    }
+
+    // 54. Alias sequence length doesn't affect production_id_count
+    #[test]
+    fn alias_length_doesnt_affect_count(n in 1..=10usize, alias_len in 1..=5usize) {
+        let (mut g, table) = grammar_with_n_rules(n);
+        for i in 0..n {
+            let pid = ProductionId(i as u16);
+            let aliases = vec![Some(format!("a{}", i)); alias_len];
+            g.alias_sequences.insert(pid, AliasSequence { aliases });
+        }
+        g.max_alias_sequence_length = alias_len;
+        let count = extract_production_id_count(&gen_code(&g, &table)).unwrap();
+        prop_assert_eq!(count, n as u32, "alias length must not change production_id_count");
+    }
+
+    // 55. Production map is sorted by production ID (values are ascending)
+    #[test]
+    fn map_values_ascending_for_sequential(n in 1..=25usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        for i in 1..map.len() {
+            prop_assert!(map[i] > map[i - 1], "map values must be strictly ascending for sequential IDs");
+        }
+    }
+
+    // 56. Adding extras doesn't affect production IDs
+    #[test]
+    fn extras_dont_affect_ids(n in 1..=10usize) {
+        let table = empty_table(1, 2, 1, 0);
+        let start = table.start_symbol;
+        let t1 = SymbolId(1);
+        let t2 = SymbolId(2);
+
+        // Without extras
+        let mut g1 = Grammar::new("no_extras".to_string());
+        g1.rule_names.insert(start, "start".to_string());
+        g1.tokens.insert(t1, tok("a", "a"));
+        g1.tokens.insert(t2, tok("ws", " "));
+        for i in 0..n {
+            g1.add_rule(make_rule(start, vec![Symbol::Terminal(t1)], i as u16));
+        }
+        let map1 = extract_production_id_map(&gen_code(&g1, &table));
+
+        // With extras
+        let mut g2 = Grammar::new("with_extras".to_string());
+        g2.rule_names.insert(start, "start".to_string());
+        g2.tokens.insert(t1, tok("a", "a"));
+        g2.tokens.insert(t2, tok("ws", " "));
+        g2.extras.push(t2);
+        for i in 0..n {
+            g2.add_rule(make_rule(start, vec![Symbol::Terminal(t1)], i as u16));
+        }
+        let map2 = extract_production_id_map(&gen_code(&g2, &table));
+
+        prop_assert_eq!(map1, map2, "extras must not affect production ID map");
+    }
+
+    // 57. Multiple fields on a single rule don't change production IDs
+    #[test]
+    fn multiple_fields_same_rule(n in 1..=10usize) {
+        let (g_base, table_base) = grammar_with_n_rules(n);
+        let map_base = extract_production_id_map(&gen_code(&g_base, &table_base));
+
+        let table2 = empty_table(1, 2, 1, 0);
+        let start = table2.start_symbol;
+        let t1 = SymbolId(1);
+        let t2 = SymbolId(2);
+        let mut g = Grammar::new("multi_field".to_string());
+        g.rule_names.insert(start, "start".to_string());
+        g.tokens.insert(t1, tok("a", "a"));
+        g.tokens.insert(t2, tok("b", "b"));
+        g.fields.insert(FieldId(1), "left".to_string());
+        g.fields.insert(FieldId(2), "right".to_string());
+        g.fields.insert(FieldId(3), "op".to_string());
+        for i in 0..n {
+            let mut r = make_rule(start, vec![Symbol::Terminal(t1); (i % 3) + 1], i as u16);
+            r.fields.push((FieldId(1), 0));
+            if r.rhs.len() > 1 {
+                r.fields.push((FieldId(2), 1));
+            }
+            g.add_rule(r);
+        }
+        let map_fields = extract_production_id_map(&gen_code(&g, &table2));
+
+        prop_assert_eq!(map_base, map_fields, "multiple fields must not alter production ID map");
+    }
+
+    // 58. Production ID map with non-terminal references in RHS
+    #[test]
+    fn nt_references_in_rhs(n in 1..=8usize) {
+        let table = empty_table(1, 1, 2, 0);
+        let start = table.start_symbol;
+        let other = SymbolId(start.0 + 1);
+        let t = SymbolId(1);
+
+        let mut g = Grammar::new("nt_rhs".to_string());
+        g.rule_names.insert(start, "start".to_string());
+        g.rule_names.insert(other, "other".to_string());
+        g.tokens.insert(t, tok("t", "t"));
+
+        g.add_rule(make_rule(other, vec![Symbol::Terminal(t)], 0));
+        for i in 1..=n {
+            g.add_rule(make_rule(start, vec![Symbol::NonTerminal(other); (i % 3) + 1], i as u16));
+        }
+
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        let set: HashSet<u16> = map.iter().copied().collect();
+        prop_assert_eq!(set.len(), n + 1, "NT references in RHS must not break production IDs");
+    }
+
+    // 59. Production ID count is always at least 1 for any grammar
+    #[test]
+    fn count_at_least_one(_dummy in 0..10u8) {
+        let table = empty_table(1, 1, 1, 0);
+        let (g, _start, _t) = base_grammar("mincount", &table);
+        let code = gen_code(&g, &table);
+        let count = extract_production_id_count(&code).unwrap();
+        prop_assert!(count >= 1, "production_id_count must be at least 1");
+    }
+
+    // 60. PRODUCTION_LHS_INDEX values are consistent across identical grammars
+    #[test]
+    fn lhs_index_consistent(n in 1..=10usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code1 = gen_code(&g, &table);
+        let code2 = gen_code(&g, &table);
+        let lhs1 = extract_u16_array(&code1, "PRODUCTION_LHS_INDEX");
+        let lhs2 = extract_u16_array(&code2, "PRODUCTION_LHS_INDEX");
+        prop_assert_eq!(lhs1, lhs2, "LHS index must be consistent across identical codegen");
+    }
+
+    // 61. Production IDs with sparse nonterminal IDs
+    #[test]
+    fn sparse_nonterminal_ids(n in 1..=8usize) {
+        let table = empty_table(1, 2, 3, 0);
+        let start = table.start_symbol;
+        let nt2 = SymbolId(start.0 + 2); // skip one NT
+        let t1 = SymbolId(1);
+        let t2 = SymbolId(2);
+
+        let mut g = Grammar::new("sparse_nt".to_string());
+        g.rule_names.insert(start, "start".to_string());
+        g.rule_names.insert(nt2, "leaf".to_string());
+        g.tokens.insert(t1, tok("a", "a"));
+        g.tokens.insert(t2, tok("b", "b"));
+
+        let mut prod_id = 0u16;
+        for _ in 0..n {
+            g.add_rule(make_rule(start, vec![Symbol::Terminal(t1)], prod_id));
+            prod_id += 1;
+        }
+        for _ in 0..n {
+            g.add_rule(make_rule(nt2, vec![Symbol::Terminal(t2)], prod_id));
+            prod_id += 1;
+        }
+
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        let set: HashSet<u16> = map.iter().copied().collect();
+        prop_assert_eq!(set.len(), n * 2, "sparse NT IDs must not affect production uniqueness");
+    }
+
+    // 62. Production ID map and LHS index have same number of entries
+    #[test]
+    fn map_and_lhs_index_same_length(n in 1..=15usize) {
+        let (g, table) = grammar_with_n_rules(n);
+        let code = gen_code(&g, &table);
+        let map = extract_production_id_map(&code);
+        let lhs = extract_u16_array(&code, "PRODUCTION_LHS_INDEX");
+        prop_assert_eq!(map.len(), lhs.len(), "PRODUCTION_ID_MAP and PRODUCTION_LHS_INDEX must have same length");
+    }
+
+    // 63. Production ID count with only one epsilon rule
+    #[test]
+    fn single_epsilon_rule_count(_dummy in 0..5u8) {
+        let table = empty_table(1, 1, 1, 0);
+        let (mut g, start, _t) = base_grammar("single_eps", &table);
+        g.add_rule(make_rule(start, vec![], 0));
+        let code = gen_code(&g, &table);
+        let count = extract_production_id_count(&code).unwrap();
+        prop_assert_eq!(count, 1, "single epsilon rule must give count = 1");
+    }
+
+    // 64. Alias sequences with None entries don't affect map
+    #[test]
+    fn alias_none_entries_dont_affect_map(n in 1..=10usize) {
+        let (g_base, table) = grammar_with_n_rules(n);
+        let map_base = extract_production_id_map(&gen_code(&g_base, &table));
+
+        let (mut g_alias, table2) = grammar_with_n_rules(n);
+        for i in 0..n {
+            let pid = ProductionId(i as u16);
+            g_alias.alias_sequences.insert(pid, AliasSequence {
+                aliases: vec![None; 3],
+            });
+        }
+        g_alias.max_alias_sequence_length = 3;
+        let map_alias = extract_production_id_map(&gen_code(&g_alias, &table2));
+
+        prop_assert_eq!(map_base, map_alias, "None-only alias sequences must not alter map");
+    }
+
+    // 65. Production ID map with maximum gap still has correct count
+    #[test]
+    fn max_gap_correct_count(gap in 10..=30u16) {
+        let table = empty_table(1, 1, 1, 0);
+        let (mut g, start, t) = base_grammar("maxgap", &table);
+        g.add_rule(make_rule(start, vec![Symbol::Terminal(t)], 0));
+        g.add_rule(make_rule(start, vec![Symbol::Terminal(t), Symbol::Terminal(t)], gap));
+
+        let code = gen_code(&g, &table);
+        let count = extract_production_id_count(&code).unwrap();
+        prop_assert_eq!(count, gap as u32 + 1, "count must be gap + 1");
+        let map = extract_production_id_map(&code);
+        prop_assert_eq!(map[0], 0u16);
+        prop_assert_eq!(map[1], gap);
     }
 }

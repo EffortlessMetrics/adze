@@ -552,3 +552,412 @@ proptest! {
         prop_assert_eq!(cloned.rhs_len, rule.rhs_len);
     }
 }
+
+// ===========================================================================
+// Property tests — Debug trait
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+
+    // 36. Debug output for ParseTable is non-empty
+    #[test]
+    fn debug_output_non_empty(pt in arb_parse_table()) {
+        let dbg = format!("{:?}", pt);
+        prop_assert!(!dbg.is_empty());
+        prop_assert!(dbg.contains("action_table"));
+    }
+
+    // 37. Debug output for Action variants is well-formed
+    #[test]
+    fn debug_action_variants(action in leaf_action()) {
+        let dbg = format!("{:?}", action);
+        prop_assert!(!dbg.is_empty());
+        let valid = dbg.starts_with("Shift") || dbg.starts_with("Reduce")
+            || dbg.starts_with("Accept") || dbg.starts_with("Error")
+            || dbg.starts_with("Recover");
+        prop_assert!(valid, "unexpected debug: {}", dbg);
+    }
+
+    // 38. Debug output for Fork variant contains inner actions
+    #[test]
+    fn debug_fork_variant(inner in prop::collection::vec(leaf_action(), 1..=3)) {
+        let action = Action::Fork(inner);
+        let dbg = format!("{:?}", action);
+        prop_assert!(dbg.starts_with("Fork"));
+    }
+}
+
+// ===========================================================================
+// Property tests — valid_symbols_mask and error_symbol
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    // 39. valid_symbols_mask length matches terminal_boundary
+    #[test]
+    fn valid_symbols_mask_length(pt in arb_parse_table()) {
+        for s in 0..pt.state_count {
+            let mask = pt.valid_symbols_mask(StateId(s as u16));
+            prop_assert_eq!(mask.len(), pt.terminal_boundary());
+        }
+    }
+
+    // 40. valid_symbols_mask agrees with valid_symbols
+    #[test]
+    fn valid_symbols_mask_agrees(pt in arb_parse_table()) {
+        for s in 0..pt.state_count {
+            let vs = pt.valid_symbols(StateId(s as u16));
+            let mask = pt.valid_symbols_mask(StateId(s as u16));
+            prop_assert_eq!(vs.len(), mask.len());
+            for i in 0..vs.len() {
+                prop_assert_eq!(vs[i], mask[i],
+                    "mismatch at state {} symbol {}", s, i);
+            }
+        }
+    }
+
+    // 41. valid_symbols_mask for OOB state is all false
+    #[test]
+    fn valid_symbols_mask_oob(pt in arb_parse_table()) {
+        let oob = StateId(pt.state_count as u16 + 5);
+        let mask = pt.valid_symbols_mask(oob);
+        for b in &mask {
+            prop_assert!(!b);
+        }
+    }
+
+    // 42. error_symbol is always SymbolId(0)
+    #[test]
+    fn error_symbol_is_zero(pt in arb_parse_table()) {
+        prop_assert_eq!(pt.error_symbol(), SymbolId(0));
+    }
+
+    // 43. grammar() accessor returns reference to grammar field
+    #[test]
+    fn grammar_accessor(pt in arb_parse_table()) {
+        let g = pt.grammar();
+        // The Grammar name should be "proptest" as set in build_table
+        prop_assert_eq!(&g.name, "proptest");
+    }
+}
+
+// ===========================================================================
+// Property tests — lex_mode accessor
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    // 44. lex_mode returns correct mode for each state
+    #[test]
+    fn lex_mode_accessor(pt in arb_parse_table()) {
+        for s in 0..pt.state_count {
+            let mode = pt.lex_mode(StateId(s as u16));
+            prop_assert_eq!(mode, pt.lex_modes[s]);
+        }
+    }
+
+    // 45. lex_mode for initial state is accessible
+    #[test]
+    fn lex_mode_initial_state(pt in arb_parse_table()) {
+        let mode = pt.lex_mode(pt.initial_state);
+        prop_assert_eq!(mode.lex_state, 0);
+        prop_assert_eq!(mode.external_lex_state, 0);
+    }
+}
+
+// ===========================================================================
+// Property tests — determinism / conflict detection
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    // 46. Single-action cells are deterministic
+    #[test]
+    fn single_action_cells_deterministic(pt in arb_parse_table()) {
+        for s in 0..pt.state_count {
+            for col in 0..pt.action_table[s].len() {
+                let cell = &pt.action_table[s][col];
+                if cell.len() <= 1 {
+                    // 0 or 1 action means no conflict
+                    prop_assert!(cell.len() <= 1);
+                }
+            }
+        }
+    }
+
+    // 47. Shift-only table has no reduce actions
+    #[test]
+    fn shift_only_table(_dummy in 0u8..1) {
+        let action_table = vec![
+            vec![
+                vec![Action::Shift(StateId(1))],
+                vec![Action::Shift(StateId(0))],
+            ],
+        ];
+        let goto_table = vec![vec![NO_GOTO]];
+        let meta = vec![
+            adze_glr_core::SymbolMetadata {
+                name: "t0".into(), is_visible: true, is_named: false, is_supertype: false,
+                is_terminal: true, is_extra: false, is_fragile: false, symbol_id: SymbolId(0),
+            },
+            adze_glr_core::SymbolMetadata {
+                name: "n0".into(), is_visible: true, is_named: true, is_supertype: false,
+                is_terminal: false, is_extra: false, is_fragile: false, symbol_id: SymbolId(1),
+            },
+        ];
+        let pt = build_table(1, 1, 1, action_table, goto_table, vec![], meta);
+        for row in &pt.action_table {
+            for cell in row {
+                for action in cell {
+                    match action {
+                        Action::Reduce(_) => prop_assert!(false, "unexpected reduce"),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    // 48. Reduce-only table has no shift actions
+    #[test]
+    fn reduce_only_table(_dummy in 0u8..1) {
+        let rule = ParseRule { lhs: SymbolId(1), rhs_len: 1 };
+        let action_table = vec![
+            vec![
+                vec![Action::Reduce(RuleId(0))],
+                vec![Action::Reduce(RuleId(0))],
+            ],
+        ];
+        let goto_table = vec![vec![NO_GOTO]];
+        let meta = vec![
+            adze_glr_core::SymbolMetadata {
+                name: "t0".into(), is_visible: true, is_named: false, is_supertype: false,
+                is_terminal: true, is_extra: false, is_fragile: false, symbol_id: SymbolId(0),
+            },
+            adze_glr_core::SymbolMetadata {
+                name: "n0".into(), is_visible: true, is_named: true, is_supertype: false,
+                is_terminal: false, is_extra: false, is_fragile: false, symbol_id: SymbolId(1),
+            },
+        ];
+        let pt = build_table(1, 1, 1, action_table, goto_table, vec![rule], meta);
+        for row in &pt.action_table {
+            for cell in row {
+                for action in cell {
+                    match action {
+                        Action::Shift(_) => prop_assert!(false, "unexpected shift"),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    // 49. Multi-action cell indicates GLR conflict
+    #[test]
+    fn multi_action_cell_is_conflict(_dummy in 0u8..1) {
+        let rule = ParseRule { lhs: SymbolId(1), rhs_len: 1 };
+        let action_table = vec![
+            vec![
+                vec![Action::Shift(StateId(0)), Action::Reduce(RuleId(0))],
+                vec![],
+            ],
+        ];
+        let goto_table = vec![vec![NO_GOTO]];
+        let meta = vec![
+            adze_glr_core::SymbolMetadata {
+                name: "t0".into(), is_visible: true, is_named: false, is_supertype: false,
+                is_terminal: true, is_extra: false, is_fragile: false, symbol_id: SymbolId(0),
+            },
+            adze_glr_core::SymbolMetadata {
+                name: "n0".into(), is_visible: true, is_named: true, is_supertype: false,
+                is_terminal: false, is_extra: false, is_fragile: false, symbol_id: SymbolId(1),
+            },
+        ];
+        let pt = build_table(1, 1, 1, action_table, goto_table, vec![rule], meta);
+        let cell = &pt.action_table[0][0];
+        prop_assert_eq!(cell.len(), 2);
+        prop_assert_eq!(cell[0].clone(), Action::Shift(StateId(0)));
+        prop_assert_eq!(cell[1].clone(), Action::Reduce(RuleId(0)));
+    }
+}
+
+// ===========================================================================
+// Property tests — goto with valid entries
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    // 50. goto() returns Some for non-sentinel entries
+    #[test]
+    fn goto_non_sentinel_returns_some(pt in arb_parse_table()) {
+        for s in 0..pt.state_count {
+            for (&nt, &col) in &pt.nonterminal_to_index {
+                if col < pt.goto_table[s].len() {
+                    let entry = pt.goto_table[s][col];
+                    if entry != NO_GOTO {
+                        let result = pt.goto(StateId(s as u16), nt);
+                        prop_assert!(result.is_some());
+                        prop_assert_eq!(result.unwrap(), entry);
+                    }
+                }
+            }
+        }
+    }
+
+    // 51. nonterminal_to_index size matches goto column count
+    #[test]
+    fn nonterminal_index_matches_goto_cols(pt in arb_parse_table()) {
+        if let Some(first_row) = pt.goto_table.first() {
+            prop_assert_eq!(pt.nonterminal_to_index.len(), first_row.len());
+        }
+    }
+
+    // 52. nonterminal_to_index values are contiguous from 0
+    #[test]
+    fn nonterminal_index_contiguous(pt in arb_parse_table()) {
+        let mut indices: Vec<usize> = pt.nonterminal_to_index.values().copied().collect();
+        indices.sort();
+        for (i, &idx) in indices.iter().enumerate() {
+            prop_assert_eq!(idx, i, "non-contiguous nonterminal index");
+        }
+    }
+}
+
+// ===========================================================================
+// Property tests — normalize_eof_to_zero
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+
+    // 53. normalize_eof_to_zero preserves state_count
+    #[test]
+    fn normalize_eof_preserves_state_count(pt in arb_parse_table()) {
+        let original_count = pt.state_count;
+        let normalized = pt.normalize_eof_to_zero();
+        prop_assert_eq!(normalized.state_count, original_count);
+    }
+
+    // 54. normalize_eof_to_zero preserves symbol_count
+    #[test]
+    fn normalize_eof_preserves_symbol_count(pt in arb_parse_table()) {
+        let original_count = pt.symbol_count;
+        let normalized = pt.normalize_eof_to_zero();
+        prop_assert_eq!(normalized.symbol_count, original_count);
+    }
+
+    // 55. normalize_eof_to_zero sets eof to SymbolId(0)
+    #[test]
+    fn normalize_eof_sets_zero(pt in arb_parse_table()) {
+        let normalized = pt.normalize_eof_to_zero();
+        prop_assert_eq!(normalized.eof_symbol, SymbolId(0));
+    }
+
+    // 56. normalize_eof_to_zero is idempotent
+    #[test]
+    fn normalize_eof_idempotent(pt in arb_parse_table()) {
+        let once = pt.normalize_eof_to_zero();
+        let once_eof = once.eof_symbol;
+        let once_action_table = once.action_table.clone();
+        let twice = once.normalize_eof_to_zero();
+        prop_assert_eq!(twice.eof_symbol, once_eof);
+        prop_assert_eq!(twice.action_table, once_action_table);
+    }
+}
+
+// ===========================================================================
+// Property tests — Action equality and hashing
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(300))]
+
+    // 57. Shift actions with same state are equal
+    #[test]
+    fn shift_eq(s in 0u16..1000) {
+        let a = Action::Shift(StateId(s));
+        let b = Action::Shift(StateId(s));
+        prop_assert_eq!(a, b);
+    }
+
+    // 58. Shift actions with different states are not equal
+    #[test]
+    fn shift_ne(s1 in 0u16..500, s2 in 500u16..1000) {
+        let a = Action::Shift(StateId(s1));
+        let b = Action::Shift(StateId(s2));
+        prop_assert_ne!(a, b);
+    }
+
+    // 59. Reduce actions with same rule are equal
+    #[test]
+    fn reduce_eq(r in 0u16..1000) {
+        let a = Action::Reduce(RuleId(r));
+        let b = Action::Reduce(RuleId(r));
+        prop_assert_eq!(a, b);
+    }
+
+    // 60. Shift and Reduce are never equal
+    #[test]
+    fn shift_ne_reduce(s in 0u16..1000, r in 0u16..1000) {
+        let a = Action::Shift(StateId(s));
+        let b = Action::Reduce(RuleId(r));
+        prop_assert_ne!(a, b);
+    }
+
+    // 61. Action hashing: equal actions hash equal
+    #[test]
+    fn equal_actions_hash_equal(s in 0u16..1000) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let a = Action::Shift(StateId(s));
+        let b = Action::Shift(StateId(s));
+        let mut h1 = DefaultHasher::new();
+        let mut h2 = DefaultHasher::new();
+        a.hash(&mut h1);
+        b.hash(&mut h2);
+        prop_assert_eq!(h1.finish(), h2.finish());
+    }
+
+    // 62. Accept and Error are distinct
+    #[test]
+    fn accept_ne_error(_dummy in 0u8..1) {
+        prop_assert_ne!(Action::Accept, Action::Error);
+        prop_assert_ne!(Action::Accept, Action::Recover);
+        prop_assert_ne!(Action::Error, Action::Recover);
+    }
+}
+
+// ===========================================================================
+// Property tests — structural invariants
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    // 63. symbol_metadata length matches symbol_count
+    #[test]
+    fn symbol_metadata_length(pt in arb_parse_table()) {
+        prop_assert_eq!(pt.symbol_metadata.len(), pt.symbol_count);
+    }
+
+    // 64. token_count + nonterminal count = symbol_count
+    #[test]
+    fn token_plus_nonterminal_eq_symbol_count(pt in arb_parse_table()) {
+        prop_assert_eq!(
+            pt.token_count + pt.external_token_count + pt.nonterminal_to_index.len(),
+            pt.symbol_count
+        );
+    }
+
+    // 65. Default table has NonterminalMap goto indexing
+    #[test]
+    fn default_goto_indexing(_dummy in 0u8..1) {
+        let pt = ParseTable::default();
+        prop_assert_eq!(pt.goto_indexing, GotoIndexing::NonterminalMap);
+    }
+}

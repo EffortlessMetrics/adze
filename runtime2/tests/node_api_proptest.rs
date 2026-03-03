@@ -594,3 +594,416 @@ proptest! {
         prop_assert_eq!(tree.root_node().kind_id() as u32, sym);
     }
 }
+
+// ===========================================================================
+// 36 – kind_id of each child matches the symbol used to build it
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn child_kind_id_matches_construction(n in 1usize..10) {
+        let children: Vec<Tree> = (0..n)
+            .map(|i| Tree::new_for_testing(i as u32 + 50, i * 5, (i + 1) * 5, vec![]))
+            .collect();
+        let tree = Tree::new_for_testing(0, 0, n * 5, children);
+        let root = tree.root_node();
+        for i in 0..n {
+            prop_assert_eq!(root.child(i).unwrap().kind_id(), (i as u16) + 50);
+        }
+    }
+}
+
+// ===========================================================================
+// 37 – byte_range length equals end_byte - start_byte
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn byte_range_length(tree in any_tree()) {
+        let n = tree.root_node();
+        let r = n.byte_range();
+        prop_assert_eq!(r.len(), n.end_byte() - n.start_byte());
+    }
+}
+
+// ===========================================================================
+// 38 – utf8_text on a zero-length node returns an empty string
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn utf8_text_empty_range(offset in 0usize..200) {
+        let src = "abcdefghijklmnopqrstuvwxyz".repeat(10);
+        let bytes = src.as_bytes();
+        let pos = offset.min(bytes.len());
+        let tree = Tree::new_for_testing(0, pos, pos, vec![]);
+        let text = tree.root_node().utf8_text(bytes).unwrap();
+        prop_assert_eq!(text, "");
+    }
+}
+
+// ===========================================================================
+// 39 – utf8_text returns Err for invalid UTF-8 in range
+// ===========================================================================
+#[test]
+fn utf8_text_rejects_invalid_utf8() {
+    let bad: &[u8] = &[0x80, 0x81, 0x82, 0x83];
+    let tree = Tree::new_for_testing(0, 0, 4, vec![]);
+    assert!(tree.root_node().utf8_text(bad).is_err());
+}
+
+// ===========================================================================
+// 40 – utf8_text works with multi-byte Unicode characters
+// ===========================================================================
+#[test]
+fn utf8_text_multibyte_unicode() {
+    let src = "héllo wörld 🌍";
+    let bytes = src.as_bytes();
+    let tree = Tree::new_for_testing(0, 0, bytes.len(), vec![]);
+    let text = tree.root_node().utf8_text(bytes).unwrap();
+    assert_eq!(text, src);
+}
+
+// ===========================================================================
+// 41 – named_child out-of-bounds returns None
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn named_child_oob_none(tree in any_tree(), extra in 1usize..100) {
+        let root = tree.root_node();
+        prop_assert!(root.named_child(root.named_child_count() + extra).is_none());
+    }
+}
+
+// ===========================================================================
+// 42 – named_child_count is zero for leaf nodes
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn named_child_count_zero_for_leaf(sym in 0u32..500) {
+        let tree = Tree::new_for_testing(sym, 0, 10, vec![]);
+        prop_assert_eq!(tree.root_node().named_child_count(), 0);
+    }
+}
+
+// ===========================================================================
+// 43 – is_missing always false for root
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn is_missing_always_false(tree in any_tree()) {
+        prop_assert!(!tree.root_node().is_missing());
+    }
+}
+
+// ===========================================================================
+// 44 – is_error always false for root
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn is_error_always_false(tree in any_tree()) {
+        prop_assert!(!tree.root_node().is_error());
+    }
+}
+
+// ===========================================================================
+// 45 – kind_id truncates high bits (u32 > u16::MAX)
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn kind_id_truncates_high_bits(sym in 65536u32..200_000) {
+        let tree = Tree::new_for_testing(sym, 0, 1, vec![]);
+        prop_assert_eq!(tree.root_node().kind_id(), sym as u16);
+    }
+}
+
+// ===========================================================================
+// 46 – new_stub produces a node with zero byte range and zero children
+// ===========================================================================
+#[test]
+fn new_stub_defaults() {
+    let tree = Tree::new_stub();
+    let root = tree.root_node();
+    assert_eq!(root.kind_id(), 0);
+    assert_eq!(root.start_byte(), 0);
+    assert_eq!(root.end_byte(), 0);
+    assert_eq!(root.child_count(), 0);
+    assert_eq!(root.byte_range(), 0..0);
+}
+
+// ===========================================================================
+// 47 – children byte ranges tile the parent span without gaps
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn children_tile_parent_span(start in 0usize..2000, span in 1usize..2000, n in 1usize..8) {
+        let end = start + span;
+        let tree = make_tree(0, start, end, n);
+        let root = tree.root_node();
+        // First child starts at parent start
+        prop_assert_eq!(root.child(0).unwrap().start_byte(), start);
+        // Last child ends at parent end
+        prop_assert_eq!(root.child(n - 1).unwrap().end_byte(), end);
+        // Adjacent children are contiguous
+        for i in 1..n {
+            let prev_end = root.child(i - 1).unwrap().end_byte();
+            let curr_start = root.child(i).unwrap().start_byte();
+            prop_assert_eq!(prev_end, curr_start);
+        }
+    }
+}
+
+// ===========================================================================
+// 48 – is_named on grandchildren also returns true
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn grandchildren_is_named(tree in nested_tree()) {
+        let root = tree.root_node();
+        for i in 0..root.child_count() {
+            let child = root.child(i).unwrap();
+            for j in 0..child.child_count() {
+                prop_assert!(child.child(j).unwrap().is_named());
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 49 – is_missing and is_error on grandchildren both false
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn grandchildren_not_missing_not_error(tree in nested_tree()) {
+        let root = tree.root_node();
+        for i in 0..root.child_count() {
+            let child = root.child(i).unwrap();
+            for j in 0..child.child_count() {
+                let gc = child.child(j).unwrap();
+                prop_assert!(!gc.is_missing());
+                prop_assert!(!gc.is_error());
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 50 – utf8_text on grandchildren extracts correct sub-slice
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn grandchild_utf8_text(s in "[a-z]{20,60}") {
+        let bytes = s.as_bytes();
+        let len = bytes.len();
+        let tree = two_level_tree(0, 0, len, 3, 2);
+        let root = tree.root_node();
+        for i in 0..root.child_count() {
+            let child = root.child(i).unwrap();
+            for j in 0..child.child_count() {
+                let gc = child.child(j).unwrap();
+                let text = gc.utf8_text(bytes).unwrap();
+                let expected = &s[gc.start_byte()..gc.end_byte()];
+                prop_assert_eq!(text, expected);
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 51 – child_by_field_name returns None even on children
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn child_field_name_none_on_children(tree in tree_with_kids()) {
+        let root = tree.root_node();
+        for i in 0..root.child_count() {
+            let c = root.child(i).unwrap();
+            prop_assert!(c.child_by_field_name("value").is_none());
+            prop_assert!(c.child_by_field_name("name").is_none());
+        }
+    }
+}
+
+// ===========================================================================
+// 52 – parent/sibling of grandchildren also returns None
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn grandchild_nav_returns_none(tree in nested_tree()) {
+        let root = tree.root_node();
+        for i in 0..root.child_count() {
+            let child = root.child(i).unwrap();
+            for j in 0..child.child_count() {
+                let gc = child.child(j).unwrap();
+                prop_assert!(gc.parent().is_none());
+                prop_assert!(gc.next_sibling().is_none());
+                prop_assert!(gc.prev_sibling().is_none());
+                prop_assert!(gc.next_named_sibling().is_none());
+                prop_assert!(gc.prev_named_sibling().is_none());
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 53 – start_byte of children matches expected partition
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn child_start_byte_matches(start in 0usize..1000, span in 1usize..500, n in 1usize..8) {
+        let end = start + span;
+        let tree = make_tree(0, start, end, n);
+        let root = tree.root_node();
+        for i in 0..n {
+            let expected_start = start + (span * i) / n;
+            prop_assert_eq!(root.child(i).unwrap().start_byte(), expected_start);
+        }
+    }
+}
+
+// ===========================================================================
+// 54 – end_byte of children matches expected partition
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn child_end_byte_matches(start in 0usize..1000, span in 1usize..500, n in 1usize..8) {
+        let end = start + span;
+        let tree = make_tree(0, start, end, n);
+        let root = tree.root_node();
+        for i in 0..n {
+            let expected_end = start + (span * (i + 1)) / n;
+            prop_assert_eq!(root.child(i).unwrap().end_byte(), expected_end);
+        }
+    }
+}
+
+// ===========================================================================
+// 55 – byte_range on children is non-empty when parent span > 0
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn child_byte_range_nonempty(n in 1usize..6, span in 10usize..500) {
+        let tree = make_tree(0, 0, span, n);
+        let root = tree.root_node();
+        for i in 0..root.child_count() {
+            let c = root.child(i).unwrap();
+            prop_assert!(c.byte_range().len() > 0);
+        }
+    }
+}
+
+// ===========================================================================
+// 56 – kind_id on grandchildren matches construction symbol
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn grandchild_kind_id(nc in 1usize..5, ng in 1usize..4) {
+        let tree = two_level_tree(0, 0, 100, nc, ng);
+        let root = tree.root_node();
+        for i in 0..nc {
+            let child = root.child(i).unwrap();
+            // make_tree assigns symbol = idx + 100 to leaf children
+            for j in 0..child.child_count() {
+                let gc = child.child(j).unwrap();
+                prop_assert_eq!(gc.kind_id(), (j as u16) + 100);
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 57 – start_position and end_position on children return origin
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn child_positions_are_origin(tree in tree_with_kids()) {
+        let root = tree.root_node();
+        for i in 0..root.child_count() {
+            let c = root.child(i).unwrap();
+            prop_assert_eq!(c.start_position(), Point::new(0, 0));
+            prop_assert_eq!(c.end_position(), Point::new(0, 0));
+        }
+    }
+}
+
+// ===========================================================================
+// 58 – source_bytes returns None for testing-constructed trees
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+
+    #[test]
+    fn source_bytes_none_for_testing_tree(sym in 0u32..100) {
+        let tree = Tree::new_for_testing(sym, 0, 10, vec![]);
+        prop_assert!(tree.source_bytes().is_none());
+    }
+}
+
+// ===========================================================================
+// 59 – language returns None for testing-constructed trees
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+
+    #[test]
+    fn language_none_for_testing_tree(sym in 0u32..100) {
+        let tree = Tree::new_for_testing(sym, 0, 10, vec![]);
+        prop_assert!(tree.language().is_none());
+    }
+}
+
+// ===========================================================================
+// 60 – utf8_text on child and parent are consistent (parent covers children)
+// ===========================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn parent_utf8_text_covers_children(s in "[a-z]{10,100}") {
+        let bytes = s.as_bytes();
+        let len = bytes.len();
+        let tree = make_tree(0, 0, len, 4);
+        let root = tree.root_node();
+        let parent_text = root.utf8_text(bytes).unwrap();
+        let mut assembled = String::new();
+        for i in 0..root.child_count() {
+            assembled.push_str(root.child(i).unwrap().utf8_text(bytes).unwrap());
+        }
+        prop_assert_eq!(parent_text, assembled.as_str());
+    }
+}
