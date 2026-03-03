@@ -601,6 +601,7 @@ dependencies = [
  "criterion",
  "memchr",
  "pretty_assertions",
+ "proptest",
  "regex",
  "rustc-hash 2.1.1",
  "serde_json",
