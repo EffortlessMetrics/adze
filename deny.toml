@@ -28,7 +28,6 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
-    "Unicode-DFS-2016",
     "Unicode-3.0",
     "CC0-1.0",
     "MPL-2.0", # for some Mozilla crates
@@ -60,7 +59,7 @@ deny = [
 
 # Skip certain crates when checking for duplicates
 skip = [
-    # Example: { name = "winapi" }, # Commonly has multiple versions
+    { name = "bitflags", reason = "axum/lsp-types use v1, newer crates use v2" },
 ]
 
 # Skip entire tree of certain crates
