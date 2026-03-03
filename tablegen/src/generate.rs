@@ -304,6 +304,8 @@ mod tests {
         assert!(!names.is_empty());
         // Should have at least the token name
         assert!(
+            // SAFETY: `name` points to a string literal leaked by `build_symbol_names`,
+            // so it is valid, null-terminated, and lives for 'static.
             names.iter().any(|&name| unsafe {
                 std::ffi::CStr::from_ptr(name).to_str().unwrap() == "number"
             })
@@ -321,11 +323,13 @@ mod tests {
         assert_eq!(names.len(), 2);
         // First field should be null (empty string)
         assert_eq!(
+            // SAFETY: `names[0]` is a leaked CString pointer from `build_field_names`.
             unsafe { std::ffi::CStr::from_ptr(names[0]).to_str().unwrap() },
             ""
         );
         // Second field should be "value"
         assert_eq!(
+            // SAFETY: `names[1]` is a leaked CString pointer from `build_field_names`.
             unsafe { std::ffi::CStr::from_ptr(names[1]).to_str().unwrap() },
             "value"
         );

@@ -216,6 +216,10 @@ impl<'a> LanguageValidator<'a> {
             return;
         }
 
+        // SAFETY: `symbol_metadata` was verified non-null above. The ABI contract
+        // guarantees it points to `symbol_count` contiguous `SymbolMetadata` entries.
+        // TODO(safety): We trust that `symbol_count` matches the actual allocation
+        // size; a mismatch would cause an out-of-bounds read.
         unsafe {
             let metadata_slice = std::slice::from_raw_parts(
                 self.language.symbol_metadata,
@@ -237,6 +241,11 @@ impl<'a> LanguageValidator<'a> {
             return;
         }
 
+        // SAFETY: `field_names` was verified non-null above. The ABI contract guarantees
+        // it points to `field_count + 1` contiguous `*const c_char` pointers, each
+        // pointing to a valid null-terminated C string.
+        // TODO(safety): We trust that each pointer in the slice is non-null and
+        // points to a valid C string; a corrupt entry would cause UB in CStr::from_ptr.
         unsafe {
             let field_names = std::slice::from_raw_parts(
                 self.language.field_names,

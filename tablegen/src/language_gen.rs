@@ -149,6 +149,9 @@ impl<'a> LanguageGenerator<'a> {
 
             /// Get the Tree-sitter Language for this grammar
             pub fn language() -> ts::Language {
+                // SAFETY: LANGUAGE is a module-level static with all fields initialized
+                // from compile-time-generated tables. The layout matches Tree-sitter's
+                // C ABI (TSLanguage). `from_raw` requires a valid TSLanguage pointer.
                 unsafe {
                     ts::Language::from_raw(&LANGUAGE as *const TSLanguage as *const _)
                 }
@@ -158,7 +161,7 @@ impl<'a> LanguageGenerator<'a> {
             /// SAFETY: This function is required for Tree-sitter C ABI compatibility
             #[unsafe(no_mangle)]
             pub extern "C" fn #language_fn_ident() -> ts::Language {
-                // SAFETY: language() returns a valid Language struct
+                // SAFETY: `language()` returns a valid Language from a well-formed static.
                 unsafe { language() }
             }
         }

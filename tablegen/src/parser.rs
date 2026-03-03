@@ -83,6 +83,11 @@ impl Parser {
     fn get_action(&self, state: u16, symbol: u16) -> Result<ParseAction, String> {
         // Access compressed parse table
         let parse_table = unsafe {
+            // SAFETY: `self.language.parse_table` must be a valid pointer to at least
+            // `state_count * 2` contiguous `u16` values. This is guaranteed by the
+            // TSLanguage ABI contract — callers must supply a well-formed language struct.
+            // TODO(safety): No runtime validation that `parse_table` is non-null; a null
+            // pointer here is instant UB. Consider adding a null check.
             std::slice::from_raw_parts(
                 self.language.parse_table,
                 self.language.state_count as usize * 2,
@@ -139,6 +144,9 @@ impl Parser {
     fn perform_reduction(&mut self, rule_id: u16) -> Result<(), String> {
         // Get rule info from grammar
         let production_id_map = unsafe {
+            // SAFETY: `self.language.production_id_map` must point to at least
+            // `production_id_count` contiguous `u16` values per the TSLanguage ABI.
+            // TODO(safety): No null-pointer guard — UB if production_id_map is null.
             std::slice::from_raw_parts(
                 self.language.production_id_map,
                 self.language.production_id_count as usize,
@@ -195,6 +203,9 @@ impl Parser {
     fn get_goto(&self, state: u16, _symbol: u16) -> Result<u16, String> {
         // Access small parse table for gotos
         let small_parse_table_map = unsafe {
+            // SAFETY: `self.language.small_parse_table_map` must point to at least
+            // `state_count * 4` contiguous `u32` values per the TSLanguage ABI.
+            // TODO(safety): No null-pointer guard — UB if small_parse_table_map is null.
             std::slice::from_raw_parts(
                 self.language.small_parse_table_map,
                 self.language.state_count as usize * 4,
@@ -309,6 +320,10 @@ mod tests {
         };
 
         // For testing, we'll use unsafe to extend the lifetime
+        // SAFETY: `lang` is stack-local and lives for the rest of this scope.
+        // We create a pointer and immediately re-borrow it as `&'static` to
+        // satisfy `Parser::new`. This is sound only because `parser` does not
+        // escape this function.
         let parser = unsafe {
             let lang_ptr = &lang as *const TSLanguage;
             Parser::new(&*lang_ptr)
