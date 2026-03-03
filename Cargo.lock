@@ -359,6 +359,7 @@ dependencies = [
  "adze-bdd-scenario-fixtures",
  "adze-ir",
  "adze-parser-contract",
+ "adze-tablegen",
  "criterion",
  "dhat",
  "fixedbitset",

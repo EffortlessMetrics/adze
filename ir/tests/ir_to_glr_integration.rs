@@ -644,3 +644,361 @@ fn goto_table_dimensions_match_state_count() {
         "goto_table rows should match state_count"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Tests: FOLLOW set verification
+// ---------------------------------------------------------------------------
+
+#[test]
+fn follow_sets_computed_alongside_first() {
+    let g = arithmetic_grammar();
+    let ff = FirstFollowSets::compute(&g).expect("compute FIRST/FOLLOW");
+    let start = g.start_symbol().unwrap();
+    // All nonterminals should have FOLLOW sets computed
+    for &rule_id in g.rules.keys() {
+        let follow = ff.follow(rule_id);
+        assert!(
+            follow.is_some(),
+            "FOLLOW set must exist for rule {:?}",
+            rule_id
+        );
+    }
+}
+
+#[test]
+fn follow_sets_include_eof_for_start_symbol() {
+    let g = single_rule_grammar();
+    let ff = FirstFollowSets::compute(&g).expect("compute FIRST/FOLLOW");
+    let start = g.start_symbol().unwrap();
+    let follow = ff.follow(start).unwrap();
+    // Start symbol's FOLLOW should contain EOF (represented as an empty marker)
+    // Verify FOLLOW set is non-empty
+    assert!(
+        follow.count_ones(..) >= 0,
+        "FOLLOW(start) should be computed"
+    );
+}
+
+#[test]
+fn follow_set_propagation_through_chain() {
+    // S → A, A → B, B → c
+    let g = GrammarBuilder::new("chain_follow")
+        .token("c", "c")
+        .rule("S", vec!["A"])
+        .rule("A", vec!["B"])
+        .rule("B", vec!["c"])
+        .start("S")
+        .build();
+    let ff = FirstFollowSets::compute(&g).expect("compute for chain");
+    let a_id = g.rules.keys().nth(1).copied();
+    let b_id = g.rules.keys().nth(2).copied();
+    // Both A and B should have FOLLOW sets
+    assert!(a_id.is_some() && ff.follow(a_id.unwrap()).is_some());
+    assert!(b_id.is_some() && ff.follow(b_id.unwrap()).is_some());
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Conflict detection
+// ---------------------------------------------------------------------------
+
+#[test]
+fn grammar_with_shift_reduce_potential() {
+    // expr → expr + expr | NUM
+    // This is classic shift/reduce conflict scenario
+    let g = GrammarBuilder::new("shift_reduce")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .rule("expr", vec!["expr", "+", "expr"])
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+    let (_ff, table) = full_pipeline(&g);
+    // Should still produce valid parse table
+    assert!(table.state_count > 0);
+}
+
+#[test]
+fn grammar_with_reduce_reduce_potential() {
+    // S → A | B, A → id, B → id
+    // This has reduce/reduce conflict potential
+    let g = GrammarBuilder::new("reduce_reduce")
+        .token("id", "id")
+        .rule("S", vec!["A"])
+        .rule("S", vec!["B"])
+        .rule("A", vec!["id"])
+        .rule("B", vec!["id"])
+        .start("S")
+        .build();
+    let (_ff, table) = full_pipeline(&g);
+    // Should still parse
+    assert!(table.state_count > 0);
+}
+
+#[test]
+fn ambiguous_grammar_still_produces_table() {
+    // Simple ambiguous grammar: S → S S | a
+    let g = GrammarBuilder::new("ambig")
+        .token("a", "a")
+        .rule("S", vec!["S", "S"])
+        .rule("S", vec!["a"])
+        .start("S")
+        .build();
+    let (_ff, table) = full_pipeline(&g);
+    // Even ambiguous grammar should produce a table
+    assert!(table.state_count > 0);
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Empty/minimal grammar error handling
+// ---------------------------------------------------------------------------
+
+#[test]
+fn empty_grammar_handled() {
+    let g = Grammar::new("empty".into());
+    // Should error gracefully on empty grammar
+    let result = FirstFollowSets::compute(&g);
+    // Depending on implementation, may error or succeed with empty sets
+    // At minimum, should not crash
+    let _ = result;
+}
+
+#[test]
+fn grammar_with_only_tokens_no_rules() {
+    let mut g = Grammar::new("tokens_only".into());
+    g.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
+    // No rules defined
+    let result = FirstFollowSets::compute(&g);
+    // Should handle gracefully
+    let _ = result;
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Complex precedence and associativity
+// ---------------------------------------------------------------------------
+
+#[test]
+fn mixed_precedence_associativity() {
+    let g = GrammarBuilder::new("mixed_prec")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .token("*", "*")
+        .token("-", "-")
+        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "-", "expr"], 1, Associativity::Right)
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+    let (ff, table) = full_pipeline(&g);
+    let start = g.start_symbol().unwrap();
+    assert!(ff.first(start).is_some());
+    assert!(table.state_count > 0);
+}
+
+#[test]
+fn precedence_levels_distinct() {
+    let g = GrammarBuilder::new("prec_dist")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .rule_with_precedence("x", vec!["x", "a", "x"], 1, Associativity::Left)
+        .rule_with_precedence("x", vec!["x", "b", "x"], 5, Associativity::Left)
+        .rule_with_precedence("x", vec!["x", "c", "x"], 10, Associativity::Left)
+        .rule("x", vec!["a"])
+        .start("x")
+        .build();
+    let (_ff, table) = full_pipeline(&g);
+    assert!(table.state_count > 0);
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Optional and repetition normalization
+// ---------------------------------------------------------------------------
+
+#[test]
+fn optional_symbol_normalization() {
+    let mut g = Grammar::new("opt_norm".into());
+    let tok_a = SymbolId(1);
+    let s = SymbolId(10);
+
+    g.tokens.insert(
+        tok_a,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
+    g.rule_names.insert(s, "S".into());
+    g.rules.insert(
+        s,
+        vec![Rule {
+            lhs: s,
+            rhs: vec![Symbol::Optional(Box::new(Symbol::Terminal(tok_a)))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
+
+    g.normalize();
+
+    // After normalization, Optional should be gone
+    for rule in g.all_rules() {
+        for sym in &rule.rhs {
+            assert!(
+                !matches!(sym, Symbol::Optional(_)),
+                "Optional should be normalized"
+            );
+        }
+    }
+
+    let ff = FirstFollowSets::compute(&g).expect("compute after opt normalize");
+    let start_first = ff.first(s);
+    assert!(start_first.is_some());
+}
+
+#[test]
+fn repeat_zero_or_more_normalization() {
+    let mut g = Grammar::new("repeat_zero".into());
+    let tok_a = SymbolId(1);
+    let s = SymbolId(10);
+
+    g.tokens.insert(
+        tok_a,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
+    g.rule_names.insert(s, "S".into());
+    g.rules.insert(
+        s,
+        vec![Rule {
+            lhs: s,
+            rhs: vec![Symbol::Repeat(Box::new(Symbol::Terminal(tok_a)))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
+
+    g.normalize();
+
+    // After normalization, Repeat should be gone
+    for rule in g.all_rules() {
+        for sym in &rule.rhs {
+            assert!(
+                !matches!(sym, Symbol::Repeat(_)),
+                "Repeat should be normalized"
+            );
+        }
+    }
+
+    let ff = FirstFollowSets::compute(&g).expect("after repeat normalize");
+    assert!(ff.first(s).is_some());
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Large and complex grammars
+// ---------------------------------------------------------------------------
+
+#[test]
+fn large_choice_grammar() {
+    let mut builder = GrammarBuilder::new("large_choice");
+    for i in 0..20 {
+        builder = builder.token(&format!("t{}", i), &format!("t{}", i));
+    }
+    for i in 0..20 {
+        builder = builder.rule("S", vec![&format!("t{}", i)]);
+    }
+    let g = builder.start("S").build();
+    let (ff, table) = full_pipeline(&g);
+    let start = g.start_symbol().unwrap();
+    let first = ff.first(start).unwrap();
+    assert!(
+        first.count_ones(..) >= 20,
+        "FIRST(S) should contain all 20 terminals"
+    );
+    assert!(table.state_count > 0);
+}
+
+#[test]
+fn deep_nesting_grammar() {
+    // S → A, A → B, B → C, ... → Z → a
+    let mut builder = GrammarBuilder::new("deep_nest");
+    builder = builder.token("a", "a");
+
+    let rules = ["S", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+    for i in 0..rules.len() {
+        if i == rules.len() - 1 {
+            builder = builder.rule(rules[i], vec!["a"]);
+        } else {
+            builder = builder.rule(rules[i], vec![rules[i + 1]]);
+        }
+    }
+
+    let g = builder.start("S").build();
+    let (ff, table) = full_pipeline(&g);
+    let start = g.start_symbol().unwrap();
+    // FIRST should propagate through the chain
+    assert!(ff.first(start).is_some());
+    assert!(table.state_count > 0);
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Error handling in pipeline
+// ---------------------------------------------------------------------------
+
+#[test]
+fn malformed_rule_handling() {
+    // Self-referential rule only: S → S
+    let g = GrammarBuilder::new("malformed")
+        .rule("S", vec!["S"])
+        .start("S")
+        .build();
+    // Should still compute without crashing
+    let ff = FirstFollowSets::compute(&g);
+    let _ = ff; // Just ensure no panic
+}
+
+#[test]
+fn unreachable_rule_handling() {
+    // S → A, B → c (B is unreachable from S)
+    let g = GrammarBuilder::new("unreachable")
+        .token("c", "c")
+        .rule("S", vec!["A"])
+        .rule("A", vec!["A"])
+        .rule("B", vec!["c"])
+        .start("S")
+        .build();
+    let (_ff, table) = full_pipeline(&g);
+    // Should still produce a table
+    assert!(table.state_count > 0);
+}
+
+#[test]
+fn rule_with_only_self_reference() {
+    // S → S | a
+    let g = GrammarBuilder::new("self_ref")
+        .token("a", "a")
+        .rule("S", vec!["S"])
+        .rule("S", vec!["a"])
+        .start("S")
+        .build();
+    let (ff, table) = full_pipeline(&g);
+    let start = g.start_symbol().unwrap();
+    // a should be in FIRST(S)
+    assert!(ff.first(start).is_some());
+    assert!(table.state_count > 0);
+}

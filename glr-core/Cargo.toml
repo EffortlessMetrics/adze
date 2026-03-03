@@ -63,6 +63,7 @@ serde_json.workspace = true
 adze-bdd-scenario-fixtures = { version = "0.1.0", path = "../crates/bdd-scenario-fixtures" }
 adze-parser-contract = { version = "0.1.0", path = "../crates/parser-contract" }
 glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
+adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 trybuild = "1"
 
 [[bench]]
