@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Comprehensive tests for NODE_TYPES JSON generation in adze-tablegen.
 //!
 //! Covers: schema validation, roundtrip serialization, edge cases,
@@ -984,4 +985,243 @@ fn multiple_fields_all_present() {
     assert!(fields.get("first").is_some(), "missing 'first'");
     assert!(fields.get("second").is_some(), "missing 'second'");
     assert!(fields.get("third").is_some(), "missing 'third'");
+}
+
+// ---------------------------------------------------------------------------
+// 28. RepeatOne delegates to inner type (same as Repeat)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn repeat_one_symbol_delegates_to_inner() {
+    let mut g = Grammar::new("rep1".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "word".to_string(),
+            pattern: TokenPattern::Regex(r"[a-z]+".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "words".to_string());
+    let elems_field = FieldId(0);
+    g.fields.insert(elems_field, "elems".to_string());
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::RepeatOne(Box::new(Symbol::Terminal(tok_id)))],
+        precedence: None,
+        associativity: None,
+        fields: vec![(elems_field, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let words = find_node(&nodes, "words").expect("missing 'words'");
+    let types = &words["fields"]["elems"]["types"];
+    assert_eq!(types[0]["type"].as_str(), Some("word"));
+    assert_eq!(types[0]["named"], true);
+}
+
+// ---------------------------------------------------------------------------
+// 29. Empty choice produces "empty" type reference
+// ---------------------------------------------------------------------------
+
+#[test]
+fn empty_choice_produces_empty_type() {
+    let mut g = Grammar::new("empty_choice".to_string());
+
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "nothing".to_string());
+    let val_field = FieldId(0);
+    g.fields.insert(val_field, "val".to_string());
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Choice(vec![])],
+        precedence: None,
+        associativity: None,
+        fields: vec![(val_field, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let nothing = find_node(&nodes, "nothing").expect("missing 'nothing'");
+    let types = &nothing["fields"]["val"]["types"];
+    assert_eq!(types[0]["type"].as_str(), Some("empty"));
+    assert_eq!(types[0]["named"], false);
+}
+
+// ---------------------------------------------------------------------------
+// 30. Empty sequence produces "empty" type reference
+// ---------------------------------------------------------------------------
+
+#[test]
+fn empty_sequence_produces_empty_type() {
+    let mut g = Grammar::new("empty_seq".to_string());
+
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "void_seq".to_string());
+    let s_field = FieldId(0);
+    g.fields.insert(s_field, "s".to_string());
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Sequence(vec![])],
+        precedence: None,
+        associativity: None,
+        fields: vec![(s_field, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let vs = find_node(&nodes, "void_seq").expect("missing 'void_seq'");
+    let types = &vs["fields"]["s"]["types"];
+    assert_eq!(types[0]["type"].as_str(), Some("empty"));
+    assert_eq!(types[0]["named"], false);
+}
+
+// ---------------------------------------------------------------------------
+// 31. Unknown terminal produces "unknown" type reference
+// ---------------------------------------------------------------------------
+
+#[test]
+fn unknown_terminal_produces_unknown_type() {
+    let mut g = Grammar::new("unk".to_string());
+
+    // Reference a terminal that has no token definition
+    let phantom_id = SymbolId(99);
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "mystery".to_string());
+    let t_field = FieldId(0);
+    g.fields.insert(t_field, "t".to_string());
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(phantom_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![(t_field, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let mystery = find_node(&nodes, "mystery").expect("missing 'mystery'");
+    let types = &mystery["fields"]["t"]["types"];
+    assert_eq!(types[0]["type"].as_str(), Some("unknown"));
+    assert_eq!(types[0]["named"], false);
+}
+
+// ---------------------------------------------------------------------------
+// 32. Unknown non-terminal produces "unknown" type reference
+// ---------------------------------------------------------------------------
+
+#[test]
+fn unknown_nonterminal_produces_unknown_type() {
+    let mut g = Grammar::new("unk_nt".to_string());
+
+    // Reference a non-terminal that has no rule_name or token
+    let phantom_nt = SymbolId(88);
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "ref_unknown".to_string());
+    let r_field = FieldId(0);
+    g.fields.insert(r_field, "r".to_string());
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::NonTerminal(phantom_nt)],
+        precedence: None,
+        associativity: None,
+        fields: vec![(r_field, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let ru = find_node(&nodes, "ref_unknown").expect("missing 'ref_unknown'");
+    let types = &ru["fields"]["r"]["types"];
+    assert_eq!(types[0]["type"].as_str(), Some("unknown"));
+    assert_eq!(types[0]["named"], true);
+}
+
+// ---------------------------------------------------------------------------
+// 33. Nested optional(repeat(terminal)) resolves through wrappers
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nested_optional_repeat_resolves_through() {
+    let mut g = Grammar::new("nested".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "item".to_string(),
+            pattern: TokenPattern::Regex(r"[a-z]+".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "container".to_string());
+    let content_field = FieldId(0);
+    g.fields.insert(content_field, "content".to_string());
+
+    // Optional(Repeat(Terminal))
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Optional(Box::new(Symbol::Repeat(Box::new(
+            Symbol::Terminal(tok_id),
+        ))))],
+        precedence: None,
+        associativity: None,
+        fields: vec![(content_field, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let container = find_node(&nodes, "container").expect("missing 'container'");
+    let types = &container["fields"]["content"]["types"];
+    // Should resolve through Optional → Repeat → Terminal("item")
+    assert_eq!(types[0]["type"].as_str(), Some("item"));
+    assert_eq!(types[0]["named"], true);
+}
+
+// ---------------------------------------------------------------------------
+// 34. Fragile tokens are still emitted as anonymous nodes
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fragile_tokens_emitted_as_anonymous() {
+    let mut g = Grammar::new("fragile".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "semicolon".to_string(),
+            pattern: TokenPattern::String(";".to_string()),
+            fragile: true,
+        },
+    );
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "stmt".to_string());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let semi = find_node(&nodes, ";").expect("missing ';'");
+    assert_eq!(
+        semi["named"], false,
+        "fragile string token should be anonymous"
+    );
 }
