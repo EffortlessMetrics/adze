@@ -3,6 +3,8 @@ name = "adze-tool"
 description = "The external tool for Adze that extracts grammars from Rust definitions"
 readme = "../README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-tool"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 license = "MIT OR Apache-2.0"
@@ -10,6 +12,12 @@ publish = true
 edition = "2024"
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
+include = [
+    "Cargo.toml",
+    "LICENSE*",
+    "README*",
+    "src/**"
+]
 
 [features]
 default = ["build_parsers", "serialization"]
