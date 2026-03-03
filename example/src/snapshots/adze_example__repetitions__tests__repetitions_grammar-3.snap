@@ -1,6 +1,5 @@
 ---
 source: src/repetitions.rs
-assertion_line: 77
 expression: "grammar::parse(\"1, 2\")"
 ---
 Err(
@@ -14,7 +13,7 @@ Err(
         },
         ParseError {
             reason: UnexpectedToken(
-                "_6",
+                "_2",
             ),
             start: 3,
             end: 3,

@@ -1,13 +1,12 @@
 ---
 source: src/repetitions.rs
-assertion_line: 90
 expression: "grammar3::parse(\"1,\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "_4",
+                "_7",
             ),
             start: 0,
             end: 0,

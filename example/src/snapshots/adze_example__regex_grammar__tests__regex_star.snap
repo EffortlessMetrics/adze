@@ -1,36 +1,29 @@
 ---
-source: src/repetitions.rs
-expression: "grammar3::parse(\"1,, 2\")"
+source: src/regex_grammar.rs
+expression: "grammar::parse(\"a*\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "_7",
+                "end",
             ),
             start: 0,
             end: 0,
         },
         ParseError {
             reason: UnexpectedToken(
-                ",",
+                "\"*\"",
             ),
             start: 1,
             end: 1,
         },
         ParseError {
             reason: UnexpectedToken(
-                ",",
+                "end",
             ),
             start: 2,
             end: 2,
-        },
-        ParseError {
-            reason: UnexpectedToken(
-                "_7",
-            ),
-            start: 4,
-            end: 4,
         },
     ],
 )

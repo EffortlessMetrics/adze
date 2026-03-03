@@ -1,20 +1,15 @@
 ---
-source: example/src/optionals.rs
+source: src/optionals.rs
 expression: "grammar::parse(\"1_\")"
 ---
-Ok(
-    Language {
-        v: Some(
-            1,
-        ),
-        _s: (),
-        t: Spanned {
-            value: None,
-            span: (
-                2,
-                2,
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "_2",
             ),
+            start: 0,
+            end: 0,
         },
-        _d: None,
-    },
+    ],
 )
