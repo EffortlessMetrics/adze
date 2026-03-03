@@ -70,7 +70,10 @@ fn first_set_single_terminal_rule() {
     let a = find_symbol(&g, "a");
 
     let first_s = ff.first(s).expect("FIRST(start) must exist");
-    assert!(first_s.contains(a.0 as usize), "FIRST(start) must contain 'a'");
+    assert!(
+        first_s.contains(a.0 as usize),
+        "FIRST(start) must contain 'a'"
+    );
 }
 
 #[test]
@@ -108,8 +111,14 @@ fn first_set_indirect_nonterminal() {
     let b = find_symbol(&g, "b");
 
     let first_s = ff.first(s).unwrap();
-    assert!(first_s.contains(a.0 as usize), "FIRST(start) must contain 'a'");
-    assert!(first_s.contains(b.0 as usize), "FIRST(start) must contain 'b'");
+    assert!(
+        first_s.contains(a.0 as usize),
+        "FIRST(start) must contain 'a'"
+    );
+    assert!(
+        first_s.contains(b.0 as usize),
+        "FIRST(start) must contain 'b'"
+    );
 }
 
 #[test]
@@ -127,7 +136,10 @@ fn first_set_left_recursive_grammar() {
     let n = find_symbol(&g, "n");
 
     let first_e = ff.first(e).unwrap();
-    assert!(first_e.contains(n.0 as usize), "FIRST(expr) must contain 'n'");
+    assert!(
+        first_e.contains(n.0 as usize),
+        "FIRST(expr) must contain 'n'"
+    );
 }
 
 #[test]
@@ -147,8 +159,14 @@ fn first_set_nullable_nonterminal() {
     let b = find_symbol(&g, "b");
 
     let first_s = ff.first(s).unwrap();
-    assert!(first_s.contains(a.0 as usize), "FIRST(start) must contain 'a'");
-    assert!(first_s.contains(b.0 as usize), "FIRST(start) must contain 'b' via nullable opt_a");
+    assert!(
+        first_s.contains(a.0 as usize),
+        "FIRST(start) must contain 'a'"
+    );
+    assert!(
+        first_s.contains(b.0 as usize),
+        "FIRST(start) must contain 'b' via nullable opt_a"
+    );
 }
 
 // ===========================================================================
@@ -166,7 +184,10 @@ fn follow_set_start_contains_eof() {
     let s = find_symbol(&g, "start");
 
     let follow_s = ff.follow(s).expect("FOLLOW(start) must exist");
-    assert!(follow_s.contains(0), "FOLLOW(start) must contain EOF (id 0)");
+    assert!(
+        follow_s.contains(0),
+        "FOLLOW(start) must contain EOF (id 0)"
+    );
 }
 
 #[test]
@@ -183,7 +204,10 @@ fn follow_set_nonterminal_before_terminal() {
     let b = find_symbol(&g, "b");
 
     let follow_pfx = ff.follow(pfx).unwrap();
-    assert!(follow_pfx.contains(b.0 as usize), "FOLLOW(prefix) must contain 'b'");
+    assert!(
+        follow_pfx.contains(b.0 as usize),
+        "FOLLOW(prefix) must contain 'b'"
+    );
 }
 
 #[test]
@@ -198,7 +222,10 @@ fn follow_propagation_from_lhs() {
     let inner = find_symbol(&g, "inner");
 
     let follow_inner = ff.follow(inner).unwrap();
-    assert!(follow_inner.contains(0), "FOLLOW(inner) must contain EOF via FOLLOW(start)");
+    assert!(
+        follow_inner.contains(0),
+        "FOLLOW(inner) must contain EOF via FOLLOW(start)"
+    );
 }
 
 #[test]
@@ -239,7 +266,10 @@ fn nullable_epsilon_rule() {
     let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
     let opt = find_symbol(&g, "opt");
 
-    assert!(ff.is_nullable(opt), "opt with ε production must be nullable");
+    assert!(
+        ff.is_nullable(opt),
+        "opt with ε production must be nullable"
+    );
 }
 
 #[test]
@@ -319,7 +349,11 @@ fn two_terminal_rule_more_states() {
         .start("start")
         .build();
     let (col, _) = build_collection(&mut g);
-    assert!(col.sets.len() >= 3, "start->ab needs ≥3 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 3,
+        "start->ab needs ≥3 states, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -347,7 +381,10 @@ fn collection_with_left_recursion() {
         .start("expr")
         .build();
     let (col, _) = build_collection(&mut g);
-    assert!(col.sets.len() >= 4, "left-recursive expr+term needs several states");
+    assert!(
+        col.sets.len() >= 4,
+        "left-recursive expr+term needs several states"
+    );
 }
 
 // ===========================================================================
@@ -362,7 +399,10 @@ fn initial_state_has_transitions() {
         .start("start")
         .build();
     let (col, _) = build_collection(&mut g);
-    assert!(transition_count(&col, StateId(0)) >= 1, "state 0 must have outgoing edges");
+    assert!(
+        transition_count(&col, StateId(0)) >= 1,
+        "state 0 must have outgoing edges"
+    );
 }
 
 #[test]
@@ -376,7 +416,12 @@ fn goto_table_references_valid_states() {
     let (col, _) = build_collection(&mut g);
     let max_id = col.sets.iter().map(|s| s.id).max().unwrap();
     for &tgt in col.goto_table.values() {
-        assert!(tgt.0 <= max_id.0, "goto target {} exceeds max state {}", tgt.0, max_id.0);
+        assert!(
+            tgt.0 <= max_id.0,
+            "goto target {} exceeds max state {}",
+            tgt.0,
+            max_id.0
+        );
     }
 }
 
@@ -416,7 +461,10 @@ fn closure_adds_items_for_nonterminal() {
 
     let state0 = &col.sets[0];
     let rule_ids: BTreeSet<_> = state0.items.iter().map(|item| item.rule_id).collect();
-    assert!(rule_ids.len() >= 2, "closure should add items from inner's rules");
+    assert!(
+        rule_ids.len() >= 2,
+        "closure should add items from inner's rules"
+    );
 }
 
 #[test]
@@ -459,7 +507,10 @@ fn augmented_grammar_produces_accept_action() {
             .iter()
             .any(|a| matches!(a, Action::Accept))
     });
-    assert!(has_accept, "augmented grammar must produce an Accept action");
+    assert!(
+        has_accept,
+        "augmented grammar must produce an Accept action"
+    );
 }
 
 #[test]
@@ -490,7 +541,11 @@ fn augmented_grammar_start_symbol_preserved() {
         .build();
     let table = build_table(&g);
     let s = find_symbol(&g, "start");
-    assert_eq!(table.start_symbol(), s, "start symbol must be the original start");
+    assert_eq!(
+        table.start_symbol(),
+        s,
+        "start symbol must be the original start"
+    );
 }
 
 #[test]
@@ -501,7 +556,11 @@ fn augmented_grammar_eof_not_zero() {
         .start("start")
         .build();
     let table = build_table(&g);
-    assert_ne!(table.eof(), SymbolId(0), "EOF should be a fresh symbol, not 0");
+    assert_ne!(
+        table.eof(),
+        SymbolId(0),
+        "EOF should be a fresh symbol, not 0"
+    );
 }
 
 // ===========================================================================
@@ -566,7 +625,11 @@ fn state_count_left_recursive() {
         .start("lst")
         .build();
     let table = build_table(&g);
-    assert!(table.state_count >= 3, "left-recursive lst needs ≥3 states, got {}", table.state_count);
+    assert!(
+        table.state_count >= 3,
+        "left-recursive lst needs ≥3 states, got {}",
+        table.state_count
+    );
 }
 
 // ===========================================================================
@@ -643,10 +706,14 @@ fn collection_has_reduce_items() {
         .build();
     let (col, _) = build_collection(&mut g);
 
-    let has_reduce = col.sets.iter().any(|set| {
-        set.items.iter().any(|item| item.is_reduce_item(&g))
-    });
-    assert!(has_reduce, "some state must have a reduce item for start->a");
+    let has_reduce = col
+        .sets
+        .iter()
+        .any(|set| set.items.iter().any(|item| item.is_reduce_item(&g)));
+    assert!(
+        has_reduce,
+        "some state must have a reduce item for start->a"
+    );
 }
 
 #[test]
@@ -659,7 +726,9 @@ fn collection_has_shift_items() {
     let (col, _) = build_collection(&mut g);
 
     let has_shift = col.sets.iter().any(|set| {
-        set.items.iter().any(|item| !item.is_reduce_item(&g) && item.next_symbol(&g).is_some())
+        set.items
+            .iter()
+            .any(|item| !item.is_reduce_item(&g) && item.next_symbol(&g).is_some())
     });
     assert!(has_shift, "some state must have a shift item");
 }
@@ -729,8 +798,14 @@ fn expr_grammar_follow_sets() {
 
     let follow_e = ff.follow(e).unwrap();
     assert!(follow_e.contains(0), "FOLLOW(expr) must contain EOF");
-    assert!(follow_e.contains(rparen.0 as usize), "FOLLOW(expr) must contain ')'");
-    assert!(follow_e.contains(plus.0 as usize), "FOLLOW(expr) must contain '+'");
+    assert!(
+        follow_e.contains(rparen.0 as usize),
+        "FOLLOW(expr) must contain ')'"
+    );
+    assert!(
+        follow_e.contains(plus.0 as usize),
+        "FOLLOW(expr) must contain '+'"
+    );
 }
 
 #[test]
@@ -772,7 +847,11 @@ fn collection_multiple_nonterminals() {
         .start("start")
         .build();
     let (col, _) = build_collection(&mut g);
-    assert!(col.sets.len() >= 3, "start->AB needs ≥3 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 3,
+        "start->AB needs ≥3 states, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -784,7 +863,11 @@ fn right_recursive_grammar() {
         .start("rlist")
         .build();
     let (col, _) = build_collection(&mut g);
-    assert!(col.sets.len() >= 3, "right-recursive rlist needs ≥3 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 3,
+        "right-recursive rlist needs ≥3 states, got {}",
+        col.sets.len()
+    );
 }
 
 // ===========================================================================
@@ -803,25 +886,38 @@ fn augmented_collection_has_more_states_or_equal() {
     let col_basic = ItemSetCollection::build_canonical_collection(&g, &ff);
 
     let original_start = g.start_symbol().unwrap();
-    let max_id = g.tokens.keys().chain(g.rule_names.keys()).map(|s| s.0).max().unwrap_or(0);
+    let max_id = g
+        .tokens
+        .keys()
+        .chain(g.rule_names.keys())
+        .map(|s| s.0)
+        .max()
+        .unwrap_or(0);
     let eof = SymbolId(max_id + 1);
     let aug_start = SymbolId(max_id + 2);
     let max_prod = g.all_rules().map(|r| r.production_id.0).max().unwrap_or(0);
 
     let mut aug_g = g.clone();
-    aug_g.rules.insert(aug_start, vec![Rule {
-        lhs: aug_start,
-        rhs: vec![Symbol::NonTerminal(original_start)],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(max_prod + 1),
-    }]);
+    aug_g.rules.insert(
+        aug_start,
+        vec![Rule {
+            lhs: aug_start,
+            rhs: vec![Symbol::NonTerminal(original_start)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(max_prod + 1),
+        }],
+    );
     aug_g.rule_names.insert(aug_start, "$start".to_string());
 
     let ff_aug = FirstFollowSets::compute(&aug_g).unwrap();
     let col_aug = ItemSetCollection::build_canonical_collection_augmented(
-        &aug_g, &ff_aug, aug_start, original_start, eof,
+        &aug_g,
+        &ff_aug,
+        aug_start,
+        original_start,
+        eof,
     );
 
     assert!(
@@ -844,7 +940,10 @@ fn epsilon_rule_builds_table() {
         .start("start")
         .build();
     let table = build_table(&g);
-    assert!(table.state_count >= 2, "grammar with ε rule should produce states");
+    assert!(
+        table.state_count >= 2,
+        "grammar with ε rule should produce states"
+    );
 }
 
 // ===========================================================================
@@ -877,7 +976,11 @@ fn lr1_automaton_has_correct_token_count() {
         .start("start")
         .build();
     let table = build_table(&g);
-    assert!(table.token_count >= 2, "should have ≥2 tokens, got {}", table.token_count);
+    assert!(
+        table.token_count >= 2,
+        "should have ≥2 tokens, got {}",
+        table.token_count
+    );
 }
 
 #[test]
@@ -910,7 +1013,10 @@ fn lr1_automaton_no_accept_on_non_eof() {
             .iter()
             .any(|act| matches!(act, Action::Accept))
     });
-    assert!(!has_accept_on_a, "Accept should only appear on EOF, not on terminal 'a'");
+    assert!(
+        !has_accept_on_a,
+        "Accept should only appear on EOF, not on terminal 'a'"
+    );
 }
 
 #[test]
@@ -962,7 +1068,11 @@ fn larger_grammar_with_many_rules() {
         .start("start")
         .build();
     let table = build_table(&g);
-    assert!(table.state_count >= 5, "larger grammar needs ≥5 states, got {}", table.state_count);
+    assert!(
+        table.state_count >= 5,
+        "larger grammar needs ≥5 states, got {}",
+        table.state_count
+    );
 }
 
 #[test]

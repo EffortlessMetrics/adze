@@ -7,7 +7,7 @@ use adze_glr_core::advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
 use adze_glr_core::conflict_inspection::{
-    classify_conflict, count_conflicts, ConflictType, ConflictSummary,
+    ConflictSummary, ConflictType, classify_conflict, count_conflicts,
 };
 use adze_glr_core::{
     Action, Conflict, ConflictResolver, ConflictType as CrConflictType, GotoIndexing, LexMode,
@@ -122,10 +122,7 @@ fn make_test_table(action_table: Vec<Vec<Vec<Action>>>) -> ParseTable {
 }
 
 /// Build an expression grammar: E → E op E | num
-fn expr_grammar(
-    prec: Option<PrecedenceKind>,
-    assoc: Option<Associativity>,
-) -> Grammar {
+fn expr_grammar(prec: Option<PrecedenceKind>, assoc: Option<Associativity>) -> Grammar {
     let mut g = Grammar::new("expr".to_string());
     let num = SymbolId(1);
     let op = SymbolId(2);

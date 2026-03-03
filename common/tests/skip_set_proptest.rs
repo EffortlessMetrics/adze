@@ -9,7 +9,7 @@ use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, Type};
+use syn::{Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -50,10 +50,7 @@ fn skip_set_of_size(n: usize) -> impl Strategy<Value = HashSet<&'static str>> {
 
 /// Large skip set: 4-7 elements including generic names.
 fn large_skip_set() -> impl Strategy<Value = HashSet<&'static str>> {
-    prop::collection::hash_set(
-        prop_oneof![wrapper_name(), generic_type_name()],
-        4..=7,
-    )
+    prop::collection::hash_set(prop_oneof![wrapper_name(), generic_type_name()], 4..=7)
 }
 
 // ---------------------------------------------------------------------------

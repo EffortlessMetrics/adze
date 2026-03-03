@@ -28,10 +28,12 @@ fn ident_strategy() -> impl Strategy<Value = String> {
 
 /// Simple leaf type names.
 fn leaf_type_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "bool", "char",
-        "String", "usize", "isize",
-    ][..])
+    prop::sample::select(
+        &[
+            "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "bool", "char",
+            "String", "usize", "isize",
+        ][..],
+    )
 }
 
 /// Container type names.

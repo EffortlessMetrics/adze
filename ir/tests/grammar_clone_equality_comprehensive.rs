@@ -167,7 +167,10 @@ fn test_clone_grammar_with_tokens() {
     let g = minimal_grammar();
     let cloned = g.clone();
     assert_eq!(g.tokens.len(), cloned.tokens.len());
-    assert_eq!(g.tokens[&SymbolId(1)].name, cloned.tokens[&SymbolId(1)].name);
+    assert_eq!(
+        g.tokens[&SymbolId(1)].name,
+        cloned.tokens[&SymbolId(1)].name
+    );
 }
 
 #[test]
@@ -460,7 +463,10 @@ fn test_clone_fully_populated_field_by_field() {
     assert_eq!(g.inline_rules, cloned.inline_rules);
     assert_eq!(g.alias_sequences, cloned.alias_sequences);
     assert_eq!(g.production_ids, cloned.production_ids);
-    assert_eq!(g.max_alias_sequence_length, cloned.max_alias_sequence_length);
+    assert_eq!(
+        g.max_alias_sequence_length,
+        cloned.max_alias_sequence_length
+    );
     assert_eq!(g.rule_names, cloned.rule_names);
 }
 

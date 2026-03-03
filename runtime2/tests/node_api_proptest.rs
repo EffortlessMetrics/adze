@@ -26,29 +26,20 @@ fn make_tree(symbol: u32, start: usize, end: usize, n: usize) -> Tree {
 
 /// Arbitrary tree (may have zero-length range or zero children).
 fn any_tree() -> impl Strategy<Value = Tree> {
-    (0u32..1000, 0usize..8000, 0usize..8000, 0usize..10).prop_map(
-        |(sym, a, b, n)| {
-            let (s, e) = if a <= b { (a, b) } else { (b, a) };
-            make_tree(sym, s, e, n)
-        },
-    )
+    (0u32..1000, 0usize..8000, 0usize..8000, 0usize..10).prop_map(|(sym, a, b, n)| {
+        let (s, e) = if a <= b { (a, b) } else { (b, a) };
+        make_tree(sym, s, e, n)
+    })
 }
 
 /// Tree guaranteed to have at least one child and a non-empty byte range.
 fn tree_with_kids() -> impl Strategy<Value = Tree> {
-    (0u32..1000, 0usize..4000, 1usize..4000, 1usize..10).prop_map(
-        |(sym, start, span, n)| make_tree(sym, start, start + span, n),
-    )
+    (0u32..1000, 0usize..4000, 1usize..4000, 1usize..10)
+        .prop_map(|(sym, start, span, n)| make_tree(sym, start, start + span, n))
 }
 
 /// Build a two-level tree: root -> children -> grandchildren.
-fn two_level_tree(
-    sym: u32,
-    start: usize,
-    end: usize,
-    n_children: usize,
-    n_grand: usize,
-) -> Tree {
+fn two_level_tree(sym: u32, start: usize, end: usize, n_children: usize, n_grand: usize) -> Tree {
     if n_children == 0 || end <= start {
         return Tree::new_for_testing(sym, start, end, vec![]);
     }
@@ -64,9 +55,8 @@ fn two_level_tree(
 }
 
 fn nested_tree() -> impl Strategy<Value = Tree> {
-    (0u32..500, 0usize..2000, 1usize..2000, 1usize..6, 0usize..4).prop_map(
-        |(sym, start, span, nc, ng)| two_level_tree(sym, start, start + span, nc, ng),
-    )
+    (0u32..500, 0usize..2000, 1usize..2000, 1usize..6, 0usize..4)
+        .prop_map(|(sym, start, span, nc, ng)| two_level_tree(sym, start, start + span, nc, ng))
 }
 
 // ===========================================================================

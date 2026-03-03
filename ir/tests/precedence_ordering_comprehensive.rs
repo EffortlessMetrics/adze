@@ -101,7 +101,11 @@ fn associativity_none_variant() {
 
 #[test]
 fn all_associativity_variants_are_distinct() {
-    let variants = [Associativity::Left, Associativity::Right, Associativity::None];
+    let variants = [
+        Associativity::Left,
+        Associativity::Right,
+        Associativity::None,
+    ];
     for i in 0..variants.len() {
         for j in 0..variants.len() {
             if i == j {
@@ -193,9 +197,21 @@ fn grammar_precedence_symbols_reference_tokens() {
 #[test]
 fn sort_precedences_by_level() {
     let mut precs = vec![
-        Precedence { level: 5, associativity: Associativity::Left, symbols: vec![] },
-        Precedence { level: 1, associativity: Associativity::Right, symbols: vec![] },
-        Precedence { level: 3, associativity: Associativity::None, symbols: vec![] },
+        Precedence {
+            level: 5,
+            associativity: Associativity::Left,
+            symbols: vec![],
+        },
+        Precedence {
+            level: 1,
+            associativity: Associativity::Right,
+            symbols: vec![],
+        },
+        Precedence {
+            level: 3,
+            associativity: Associativity::None,
+            symbols: vec![],
+        },
     ];
     precs.sort_by_key(|p| p.level);
     assert_eq!(precs[0].level, 1);
@@ -222,7 +238,11 @@ fn many_precedence_levels_ascending_order() {
 #[test]
 fn precedence_levels_with_mixed_associativity() {
     let mut g = Grammar::new("mixed".to_string());
-    let assocs = [Associativity::Left, Associativity::Right, Associativity::None];
+    let assocs = [
+        Associativity::Left,
+        Associativity::Right,
+        Associativity::None,
+    ];
     for (i, assoc) in assocs.iter().enumerate() {
         g.precedences.push(Precedence {
             level: (i + 1) as i16,
@@ -286,7 +306,10 @@ fn dynamic_precedence_negative_values() {
 #[test]
 fn conflict_resolution_by_precedence() {
     let cr = ConflictResolution::Precedence(PrecedenceKind::Static(2));
-    assert_eq!(cr, ConflictResolution::Precedence(PrecedenceKind::Static(2)));
+    assert_eq!(
+        cr,
+        ConflictResolution::Precedence(PrecedenceKind::Static(2))
+    );
 }
 
 #[test]
@@ -577,7 +600,10 @@ fn grammar_rules_reference_precedence_declarations() {
     let mul_rule = &rules[1];
     match (add_rule.precedence, mul_rule.precedence) {
         (Some(PrecedenceKind::Static(a)), Some(PrecedenceKind::Static(b))) => {
-            assert!(a < b, "addition should have lower precedence than multiplication");
+            assert!(
+                a < b,
+                "addition should have lower precedence than multiplication"
+            );
         }
         _ => panic!("expected static precedence on both rules"),
     }
@@ -613,7 +639,11 @@ fn precedence_kind_serde_roundtrip() {
 
 #[test]
 fn associativity_serde_roundtrip() {
-    for assoc in [Associativity::Left, Associativity::Right, Associativity::None] {
+    for assoc in [
+        Associativity::Left,
+        Associativity::Right,
+        Associativity::None,
+    ] {
         let json = serde_json::to_string(&assoc).unwrap();
         let restored: Associativity = serde_json::from_str(&json).unwrap();
         assert_eq!(assoc, restored);

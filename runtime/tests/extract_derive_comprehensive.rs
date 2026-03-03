@@ -257,10 +257,7 @@ fn trait_bound_i32_compiles() {
 
 #[test]
 fn trait_bound_option_compiles() {
-    fn accepts_extract_option<T: Extract<Option<String>>>(
-        _node: Option<&ParsedNode>,
-        _src: &[u8],
-    ) {
+    fn accepts_extract_option<T: Extract<Option<String>>>(_node: Option<&ParsedNode>, _src: &[u8]) {
     }
     accepts_extract_option::<Option<String>>(None, b"");
 }

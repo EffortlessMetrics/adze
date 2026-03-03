@@ -65,10 +65,7 @@ fn goto_construction_basic() {
 
 #[test]
 fn goto_construction_preserves_all_entries() {
-    let table = option_table(vec![
-        vec![Some(10), Some(20)],
-        vec![Some(30), Some(40)],
-    ]);
+    let table = option_table(vec![vec![Some(10), Some(20)], vec![Some(30), Some(40)]]);
     let compressed = compress_goto_table(&table);
     assert_eq!(compressed.entries.len(), 4);
     assert_eq!(decompress_goto(&compressed, 0, 0), Some(StateId(10)));
@@ -253,11 +250,7 @@ fn goto_dense_compressor_roundtrip() {
 
 #[test]
 fn goto_dense_row_offsets_monotonic() {
-    let table = dense_table(vec![
-        vec![1, 2, 3],
-        vec![4, 5, 6],
-        vec![7, 8, 9],
-    ]);
+    let table = dense_table(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]);
     let compressor = TableCompressor::new();
     let compressed = compressor.compress_goto_table_small(&table).unwrap();
     for i in 1..compressed.row_offsets.len() {
@@ -334,10 +327,15 @@ fn goto_rle_long_run() {
     let table = dense_table(vec![vec![5; 10]]);
     let compressor = TableCompressor::new();
     let compressed = compressor.compress_goto_table_small(&table).unwrap();
-    let has_rle = compressed
-        .data
-        .iter()
-        .any(|e| matches!(e, CompressedGotoEntry::RunLength { state: 5, count: 10 }));
+    let has_rle = compressed.data.iter().any(|e| {
+        matches!(
+            e,
+            CompressedGotoEntry::RunLength {
+                state: 5,
+                count: 10
+            }
+        )
+    });
     assert!(has_rle, "Expected RLE for 10 identical values");
     let expanded = expand_compressed(&compressed);
     assert_eq!(expanded[0], vec![5; 10]);
@@ -396,7 +394,10 @@ fn goto_rle_no_runs_all_distinct() {
         .data
         .iter()
         .all(|e| matches!(e, CompressedGotoEntry::Single(_)));
-    assert!(all_single, "All distinct values should produce Single entries");
+    assert!(
+        all_single,
+        "All distinct values should produce Single entries"
+    );
     assert_eq!(compressed.data.len(), 5);
 }
 
@@ -404,9 +405,9 @@ fn goto_rle_no_runs_all_distinct() {
 fn goto_rle_multiple_rows_independent() {
     // Each row's RLE is independent
     let table = dense_table(vec![
-        vec![1, 1, 1, 1],  // one RLE(1,4)
-        vec![2, 3, 4, 5],  // four Singles
-        vec![9, 9, 9, 9],  // one RLE(9,4)
+        vec![1, 1, 1, 1], // one RLE(1,4)
+        vec![2, 3, 4, 5], // four Singles
+        vec![9, 9, 9, 9], // one RLE(9,4)
     ]);
     let compressor = TableCompressor::new();
     let compressed = compressor.compress_goto_table_small(&table).unwrap();
@@ -488,19 +489,12 @@ fn goto_lookup_after_rle_roundtrip() {
 #[test]
 fn goto_row_offsets_sentinel() {
     // row_offsets should have len == n_rows + 1
-    let table = dense_table(vec![
-        vec![1, 2],
-        vec![3, 4],
-        vec![5, 6],
-    ]);
+    let table = dense_table(vec![vec![1, 2], vec![3, 4], vec![5, 6]]);
     let compressor = TableCompressor::new();
     let compressed = compressor.compress_goto_table_small(&table).unwrap();
     assert_eq!(compressed.row_offsets.len(), 4); // 3 rows + sentinel
     // Last sentinel must equal total entries
-    let total_expanded: usize = expand_compressed(&compressed)
-        .iter()
-        .map(|r| r.len())
-        .sum();
+    let total_expanded: usize = expand_compressed(&compressed).iter().map(|r| r.len()).sum();
     assert_eq!(total_expanded, 6);
 }
 
@@ -510,7 +504,9 @@ fn goto_compressor_default_matches_new() {
     let compressor_default = TableCompressor::default();
     let table = dense_table(vec![vec![1, 2, 3]]);
     let r1 = compressor_new.compress_goto_table_small(&table).unwrap();
-    let r2 = compressor_default.compress_goto_table_small(&table).unwrap();
+    let r2 = compressor_default
+        .compress_goto_table_small(&table)
+        .unwrap();
     let e1 = expand_compressed(&r1);
     let e2 = expand_compressed(&r2);
     assert_eq!(e1, e2);
@@ -552,8 +548,14 @@ fn goto_rle_boundary_exactly_two() {
     let compressor = TableCompressor::new();
     let compressed = compressor.compress_goto_table_small(&table).unwrap();
     assert_eq!(compressed.data.len(), 2);
-    assert!(matches!(compressed.data[0], CompressedGotoEntry::Single(42)));
-    assert!(matches!(compressed.data[1], CompressedGotoEntry::Single(42)));
+    assert!(matches!(
+        compressed.data[0],
+        CompressedGotoEntry::Single(42)
+    ));
+    assert!(matches!(
+        compressed.data[1],
+        CompressedGotoEntry::Single(42)
+    ));
 }
 
 #[test]

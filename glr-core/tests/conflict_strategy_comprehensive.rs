@@ -63,7 +63,11 @@ fn make_table(action_table: Vec<Vec<Vec<Action>>>) -> ParseTable {
 }
 
 fn prec_info(level: i16, assoc: Associativity) -> PrecedenceInfo {
-    PrecedenceInfo { level, associativity: assoc, is_fragile: false }
+    PrecedenceInfo {
+        level,
+        associativity: assoc,
+        is_fragile: false,
+    }
 }
 
 /// E → E op E | num with explicit prec/assoc on token declaration and rule.
@@ -77,38 +81,140 @@ fn expr_grammar_with_prec(
     let num = SymbolId(1);
     let op = SymbolId(2);
     let e = SymbolId(10);
-    g.tokens.insert(num, Token { name: "num".into(), pattern: TokenPattern::Regex(r"\d+".into()), fragile: false });
-    g.tokens.insert(op, Token { name: "op".into(), pattern: TokenPattern::String("+".into()), fragile: false });
+    g.tokens.insert(
+        num,
+        Token {
+            name: "num".into(),
+            pattern: TokenPattern::Regex(r"\d+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        op,
+        Token {
+            name: "op".into(),
+            pattern: TokenPattern::String("+".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(e, "E".into());
-    g.precedences.push(Precedence { level: token_level, associativity: token_assoc, symbols: vec![op] });
-    g.rules.insert(e, vec![
-        Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(op), Symbol::NonTerminal(e)], precedence: Some(PrecedenceKind::Static(rule_level)), associativity: Some(rule_assoc), production_id: ProductionId(0), fields: vec![] },
-        Rule { lhs: e, rhs: vec![Symbol::Terminal(num)], precedence: None, associativity: None, production_id: ProductionId(1), fields: vec![] },
-    ]);
+    g.precedences.push(Precedence {
+        level: token_level,
+        associativity: token_assoc,
+        symbols: vec![op],
+    });
+    g.rules.insert(
+        e,
+        vec![
+            Rule {
+                lhs: e,
+                rhs: vec![
+                    Symbol::NonTerminal(e),
+                    Symbol::Terminal(op),
+                    Symbol::NonTerminal(e),
+                ],
+                precedence: Some(PrecedenceKind::Static(rule_level)),
+                associativity: Some(rule_assoc),
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![Symbol::Terminal(num)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+        ],
+    );
     g
 }
 
 /// Two-operator grammar with explicit precedence declarations.
 fn two_op_grammar(
-    plus_level: i16, plus_assoc: Associativity,
-    star_level: i16, star_assoc: Associativity,
+    plus_level: i16,
+    plus_assoc: Associativity,
+    star_level: i16,
+    star_assoc: Associativity,
 ) -> Grammar {
     let mut g = Grammar::new("two_ops".into());
     let num = SymbolId(1);
     let plus = SymbolId(2);
     let star = SymbolId(3);
     let e = SymbolId(10);
-    g.tokens.insert(num, Token { name: "num".into(), pattern: TokenPattern::Regex(r"\d+".into()), fragile: false });
-    g.tokens.insert(plus, Token { name: "+".into(), pattern: TokenPattern::String("+".into()), fragile: false });
-    g.tokens.insert(star, Token { name: "*".into(), pattern: TokenPattern::String("*".into()), fragile: false });
+    g.tokens.insert(
+        num,
+        Token {
+            name: "num".into(),
+            pattern: TokenPattern::Regex(r"\d+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        plus,
+        Token {
+            name: "+".into(),
+            pattern: TokenPattern::String("+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        star,
+        Token {
+            name: "*".into(),
+            pattern: TokenPattern::String("*".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(e, "E".into());
-    g.precedences.push(Precedence { level: plus_level, associativity: plus_assoc, symbols: vec![plus] });
-    g.precedences.push(Precedence { level: star_level, associativity: star_assoc, symbols: vec![star] });
-    g.rules.insert(e, vec![
-        Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(plus), Symbol::NonTerminal(e)], precedence: Some(PrecedenceKind::Static(plus_level)), associativity: Some(plus_assoc), production_id: ProductionId(0), fields: vec![] },
-        Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(star), Symbol::NonTerminal(e)], precedence: Some(PrecedenceKind::Static(star_level)), associativity: Some(star_assoc), production_id: ProductionId(1), fields: vec![] },
-        Rule { lhs: e, rhs: vec![Symbol::Terminal(num)], precedence: None, associativity: None, production_id: ProductionId(2), fields: vec![] },
-    ]);
+    g.precedences.push(Precedence {
+        level: plus_level,
+        associativity: plus_assoc,
+        symbols: vec![plus],
+    });
+    g.precedences.push(Precedence {
+        level: star_level,
+        associativity: star_assoc,
+        symbols: vec![star],
+    });
+    g.rules.insert(
+        e,
+        vec![
+            Rule {
+                lhs: e,
+                rhs: vec![
+                    Symbol::NonTerminal(e),
+                    Symbol::Terminal(plus),
+                    Symbol::NonTerminal(e),
+                ],
+                precedence: Some(PrecedenceKind::Static(plus_level)),
+                associativity: Some(plus_assoc),
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![
+                    Symbol::NonTerminal(e),
+                    Symbol::Terminal(star),
+                    Symbol::NonTerminal(e),
+                ],
+                precedence: Some(PrecedenceKind::Static(star_level)),
+                associativity: Some(star_assoc),
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![Symbol::Terminal(num)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(2),
+                fields: vec![],
+            },
+        ],
+    );
     g
 }
 
@@ -119,7 +225,10 @@ fn two_op_grammar(
 #[test]
 fn prec_higher_shift_wins() {
     assert_eq!(
-        compare_precedences(Some(prec_info(5, Associativity::Left)), Some(prec_info(2, Associativity::Left))),
+        compare_precedences(
+            Some(prec_info(5, Associativity::Left)),
+            Some(prec_info(2, Associativity::Left))
+        ),
         PrecedenceComparison::PreferShift,
     );
 }
@@ -127,7 +236,10 @@ fn prec_higher_shift_wins() {
 #[test]
 fn prec_higher_reduce_wins() {
     assert_eq!(
-        compare_precedences(Some(prec_info(1, Associativity::Left)), Some(prec_info(4, Associativity::Left))),
+        compare_precedences(
+            Some(prec_info(1, Associativity::Left)),
+            Some(prec_info(4, Associativity::Left))
+        ),
         PrecedenceComparison::PreferReduce,
     );
 }
@@ -136,15 +248,24 @@ fn prec_higher_reduce_wins() {
 fn prec_equal_levels_defers_to_associativity() {
     // Left → reduce, Right → shift, None → error
     assert_eq!(
-        compare_precedences(Some(prec_info(3, Associativity::Left)), Some(prec_info(3, Associativity::Left))),
+        compare_precedences(
+            Some(prec_info(3, Associativity::Left)),
+            Some(prec_info(3, Associativity::Left))
+        ),
         PrecedenceComparison::PreferReduce,
     );
     assert_eq!(
-        compare_precedences(Some(prec_info(3, Associativity::Right)), Some(prec_info(3, Associativity::Right))),
+        compare_precedences(
+            Some(prec_info(3, Associativity::Right)),
+            Some(prec_info(3, Associativity::Right))
+        ),
         PrecedenceComparison::PreferShift,
     );
     assert_eq!(
-        compare_precedences(Some(prec_info(3, Associativity::Left)), Some(prec_info(3, Associativity::None))),
+        compare_precedences(
+            Some(prec_info(3, Associativity::Left)),
+            Some(prec_info(3, Associativity::None))
+        ),
         PrecedenceComparison::Error,
     );
 }
@@ -152,11 +273,17 @@ fn prec_equal_levels_defers_to_associativity() {
 #[test]
 fn prec_negative_levels_compare_correctly() {
     assert_eq!(
-        compare_precedences(Some(prec_info(-1, Associativity::Left)), Some(prec_info(-5, Associativity::Left))),
+        compare_precedences(
+            Some(prec_info(-1, Associativity::Left)),
+            Some(prec_info(-5, Associativity::Left))
+        ),
         PrecedenceComparison::PreferShift,
     );
     assert_eq!(
-        compare_precedences(Some(prec_info(-10, Associativity::Left)), Some(prec_info(-2, Associativity::Left))),
+        compare_precedences(
+            Some(prec_info(-10, Associativity::Left)),
+            Some(prec_info(-2, Associativity::Left))
+        ),
         PrecedenceComparison::PreferReduce,
     );
 }
@@ -169,11 +296,17 @@ fn prec_negative_levels_compare_correctly() {
 fn assoc_only_reduce_side_determines_outcome() {
     // When levels equal, only the *reduce* side's associativity matters.
     assert_eq!(
-        compare_precedences(Some(prec_info(2, Associativity::Right)), Some(prec_info(2, Associativity::Left))),
+        compare_precedences(
+            Some(prec_info(2, Associativity::Right)),
+            Some(prec_info(2, Associativity::Left))
+        ),
         PrecedenceComparison::PreferReduce,
     );
     assert_eq!(
-        compare_precedences(Some(prec_info(2, Associativity::Left)), Some(prec_info(2, Associativity::Right))),
+        compare_precedences(
+            Some(prec_info(2, Associativity::Left)),
+            Some(prec_info(2, Associativity::Right))
+        ),
         PrecedenceComparison::PreferShift,
     );
 }
@@ -181,7 +314,10 @@ fn assoc_only_reduce_side_determines_outcome() {
 #[test]
 fn assoc_none_on_reduce_side_yields_error() {
     assert_eq!(
-        compare_precedences(Some(prec_info(1, Associativity::Left)), Some(prec_info(1, Associativity::None))),
+        compare_precedences(
+            Some(prec_info(1, Associativity::Left)),
+            Some(prec_info(1, Associativity::None))
+        ),
         PrecedenceComparison::Error,
     );
 }
@@ -192,8 +328,14 @@ fn assoc_none_on_reduce_side_yields_error() {
 
 #[test]
 fn missing_prec_returns_none() {
-    assert_eq!(compare_precedences(None, Some(prec_info(1, Associativity::Left))), PrecedenceComparison::None);
-    assert_eq!(compare_precedences(Some(prec_info(1, Associativity::Left)), None), PrecedenceComparison::None);
+    assert_eq!(
+        compare_precedences(None, Some(prec_info(1, Associativity::Left))),
+        PrecedenceComparison::None
+    );
+    assert_eq!(
+        compare_precedences(Some(prec_info(1, Associativity::Left)), None),
+        PrecedenceComparison::None
+    );
     assert_eq!(compare_precedences(None, None), PrecedenceComparison::None);
 }
 
@@ -206,17 +348,26 @@ fn precedence_resolver_shift_reduce_decisions() {
     // Equal prec, left-assoc → reduce
     let g1 = expr_grammar_with_prec(2, Associativity::Left, 2, Associativity::Left);
     let r1 = PrecedenceResolver::new(&g1);
-    assert_eq!(r1.can_resolve_shift_reduce(SymbolId(2), SymbolId(10)), Some(PrecedenceDecision::PreferReduce));
+    assert_eq!(
+        r1.can_resolve_shift_reduce(SymbolId(2), SymbolId(10)),
+        Some(PrecedenceDecision::PreferReduce)
+    );
 
     // Higher token prec → shift
     let g2 = expr_grammar_with_prec(5, Associativity::Left, 1, Associativity::Left);
     let r2 = PrecedenceResolver::new(&g2);
-    assert_eq!(r2.can_resolve_shift_reduce(SymbolId(2), SymbolId(10)), Some(PrecedenceDecision::PreferShift));
+    assert_eq!(
+        r2.can_resolve_shift_reduce(SymbolId(2), SymbolId(10)),
+        Some(PrecedenceDecision::PreferShift)
+    );
 
     // Higher rule prec → reduce
     let g3 = expr_grammar_with_prec(1, Associativity::Left, 5, Associativity::Left);
     let r3 = PrecedenceResolver::new(&g3);
-    assert_eq!(r3.can_resolve_shift_reduce(SymbolId(2), SymbolId(10)), Some(PrecedenceDecision::PreferReduce));
+    assert_eq!(
+        r3.can_resolve_shift_reduce(SymbolId(2), SymbolId(10)),
+        Some(PrecedenceDecision::PreferReduce)
+    );
 }
 
 #[test]
@@ -243,8 +394,14 @@ fn precedence_resolver_none_assoc_returns_error() {
 fn precedence_resolver_unknown_symbols_return_none() {
     let g = expr_grammar_with_prec(1, Associativity::Left, 1, Associativity::Left);
     let resolver = PrecedenceResolver::new(&g);
-    assert_eq!(resolver.can_resolve_shift_reduce(SymbolId(99), SymbolId(10)), None);
-    assert_eq!(resolver.can_resolve_shift_reduce(SymbolId(2), SymbolId(99)), None);
+    assert_eq!(
+        resolver.can_resolve_shift_reduce(SymbolId(99), SymbolId(10)),
+        None
+    );
+    assert_eq!(
+        resolver.can_resolve_shift_reduce(SymbolId(2), SymbolId(99)),
+        None
+    );
 }
 
 // ===========================================================================
@@ -283,17 +440,55 @@ fn no_prec_grammar_preserves_shift_reduce_conflicts() {
     let num = SymbolId(1);
     let plus = SymbolId(2);
     let e = SymbolId(10);
-    g.tokens.insert(num, Token { name: "num".into(), pattern: TokenPattern::Regex(r"\d+".into()), fragile: false });
-    g.tokens.insert(plus, Token { name: "+".into(), pattern: TokenPattern::String("+".into()), fragile: false });
+    g.tokens.insert(
+        num,
+        Token {
+            name: "num".into(),
+            pattern: TokenPattern::Regex(r"\d+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        plus,
+        Token {
+            name: "+".into(),
+            pattern: TokenPattern::String("+".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(e, "E".into());
-    g.rules.insert(e, vec![
-        Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(plus), Symbol::NonTerminal(e)], precedence: None, associativity: None, production_id: ProductionId(0), fields: vec![] },
-        Rule { lhs: e, rhs: vec![Symbol::Terminal(num)], precedence: None, associativity: None, production_id: ProductionId(1), fields: vec![] },
-    ]);
+    g.rules.insert(
+        e,
+        vec![
+            Rule {
+                lhs: e,
+                rhs: vec![
+                    Symbol::NonTerminal(e),
+                    Symbol::Terminal(plus),
+                    Symbol::NonTerminal(e),
+                ],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![Symbol::Terminal(num)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+        ],
+    );
     let ff = FirstFollowSets::compute(&g).unwrap();
     let table = build_lr1_automaton(&g, &ff).unwrap();
     let summary = count_conflicts(&table);
-    assert!(summary.shift_reduce > 0, "grammar without precedence must have unresolved S/R conflicts");
+    assert!(
+        summary.shift_reduce > 0,
+        "grammar without precedence must have unresolved S/R conflicts"
+    );
 }
 
 #[test]
@@ -315,25 +510,44 @@ fn fork_action_holds_multiple_alternatives() {
 #[test]
 fn classify_conflict_shift_reduce() {
     let cell = vec![Action::Shift(StateId(3)), Action::Reduce(RuleId(1))];
-    assert_eq!(classify_conflict(&cell), InspectionConflictType::ShiftReduce);
+    assert_eq!(
+        classify_conflict(&cell),
+        InspectionConflictType::ShiftReduce
+    );
 }
 
 #[test]
 fn classify_conflict_reduce_reduce() {
     let cell = vec![Action::Reduce(RuleId(0)), Action::Reduce(RuleId(1))];
-    assert_eq!(classify_conflict(&cell), InspectionConflictType::ReduceReduce);
+    assert_eq!(
+        classify_conflict(&cell),
+        InspectionConflictType::ReduceReduce
+    );
 }
 
 #[test]
 fn classify_conflict_shift_plus_two_reduces() {
-    let cell = vec![Action::Shift(StateId(2)), Action::Reduce(RuleId(0)), Action::Reduce(RuleId(1))];
-    assert_eq!(classify_conflict(&cell), InspectionConflictType::ShiftReduce);
+    let cell = vec![
+        Action::Shift(StateId(2)),
+        Action::Reduce(RuleId(0)),
+        Action::Reduce(RuleId(1)),
+    ];
+    assert_eq!(
+        classify_conflict(&cell),
+        InspectionConflictType::ShiftReduce
+    );
 }
 
 #[test]
 fn classify_conflict_inside_fork() {
-    let cell = vec![Action::Fork(vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))])];
-    assert_eq!(classify_conflict(&cell), InspectionConflictType::ShiftReduce);
+    let cell = vec![Action::Fork(vec![
+        Action::Shift(StateId(1)),
+        Action::Reduce(RuleId(0)),
+    ])];
+    assert_eq!(
+        classify_conflict(&cell),
+        InspectionConflictType::ShiftReduce
+    );
 }
 
 #[test]
@@ -362,7 +576,10 @@ fn conflict_resolver_resolves_shift_reduce_via_precedence() {
     if had_conflicts {
         for conflict in &resolver.conflicts {
             if conflict.conflict_type == ConflictType::ShiftReduce {
-                assert!(conflict.actions.len() <= 2, "conflict should be resolved or wrapped in Fork");
+                assert!(
+                    conflict.actions.len() <= 2,
+                    "conflict should be resolved or wrapped in Fork"
+                );
             }
         }
     }
@@ -375,32 +592,79 @@ fn conflict_resolver_handles_reduce_reduce() {
     let s = SymbolId(10);
     let a_nt = SymbolId(11);
     let b_nt = SymbolId(12);
-    g.tokens.insert(a_tok, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    g.tokens.insert(
+        a_tok,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(s, "S".into());
     g.rule_names.insert(a_nt, "A".into());
     g.rule_names.insert(b_nt, "B".into());
-    g.rules.insert(s, vec![
-        Rule { lhs: s, rhs: vec![Symbol::NonTerminal(a_nt)], precedence: None, associativity: None, production_id: ProductionId(0), fields: vec![] },
-        Rule { lhs: s, rhs: vec![Symbol::NonTerminal(b_nt)], precedence: None, associativity: None, production_id: ProductionId(1), fields: vec![] },
-    ]);
-    g.rules.insert(a_nt, vec![
-        Rule { lhs: a_nt, rhs: vec![Symbol::Terminal(a_tok)], precedence: None, associativity: None, production_id: ProductionId(2), fields: vec![] },
-    ]);
-    g.rules.insert(b_nt, vec![
-        Rule { lhs: b_nt, rhs: vec![Symbol::Terminal(a_tok)], precedence: None, associativity: None, production_id: ProductionId(3), fields: vec![] },
-    ]);
+    g.rules.insert(
+        s,
+        vec![
+            Rule {
+                lhs: s,
+                rhs: vec![Symbol::NonTerminal(a_nt)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: s,
+                rhs: vec![Symbol::NonTerminal(b_nt)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+        ],
+    );
+    g.rules.insert(
+        a_nt,
+        vec![Rule {
+            lhs: a_nt,
+            rhs: vec![Symbol::Terminal(a_tok)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(2),
+            fields: vec![],
+        }],
+    );
+    g.rules.insert(
+        b_nt,
+        vec![Rule {
+            lhs: b_nt,
+            rhs: vec![Symbol::Terminal(a_tok)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(3),
+            fields: vec![],
+        }],
+    );
     let ff = FirstFollowSets::compute(&g).unwrap();
     let collection = adze_glr_core::ItemSetCollection::build_canonical_collection(&g, &ff);
     let mut resolver = ConflictResolver::detect_conflicts(&collection, &g, &ff);
     resolver.resolve_conflicts(&g);
     // Resolver should process all conflicts without panic.
-    let rr = resolver.conflicts.iter().filter(|c| c.conflict_type == ConflictType::ReduceReduce).count();
+    let rr = resolver
+        .conflicts
+        .iter()
+        .filter(|c| c.conflict_type == ConflictType::ReduceReduce)
+        .count();
     assert!(resolver.conflicts.len() >= rr);
 }
 
 #[test]
 fn precedence_takes_priority_over_default_fork() {
-    let result = compare_precedences(Some(prec_info(3, Associativity::Left)), Some(prec_info(1, Associativity::Left)));
+    let result = compare_precedences(
+        Some(prec_info(3, Associativity::Left)),
+        Some(prec_info(1, Associativity::Left)),
+    );
     assert_eq!(result, PrecedenceComparison::PreferShift);
 }
 
@@ -410,7 +674,10 @@ fn precedence_takes_priority_over_default_fork() {
 
 #[test]
 fn state_has_conflicts_detects_multi_action_cells() {
-    let table = make_table(vec![vec![vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))]]]);
+    let table = make_table(vec![vec![vec![
+        Action::Shift(StateId(1)),
+        Action::Reduce(RuleId(0)),
+    ]]]);
     assert!(state_has_conflicts(&table, StateId(0)));
 }
 
@@ -429,7 +696,10 @@ fn get_state_conflicts_returns_details() {
     ]);
     let conflicts = get_state_conflicts(&table, StateId(0));
     assert_eq!(conflicts.len(), 1);
-    assert_eq!(conflicts[0].conflict_type, InspectionConflictType::ShiftReduce);
+    assert_eq!(
+        conflicts[0].conflict_type,
+        InspectionConflictType::ShiftReduce
+    );
     let clean = get_state_conflicts(&table, StateId(1));
     assert!(clean.is_empty());
 }
@@ -480,7 +750,10 @@ fn analyzer_returns_consistent_stats() {
     let stats = analyzer.analyze_table(&table);
     assert_eq!(stats.shift_reduce_conflicts, 0);
     let stats2 = analyzer.get_stats().clone();
-    assert_eq!(stats.reduce_reduce_conflicts, stats2.reduce_reduce_conflicts);
+    assert_eq!(
+        stats.reduce_reduce_conflicts,
+        stats2.reduce_reduce_conflicts
+    );
 }
 
 // ===========================================================================

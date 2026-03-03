@@ -6,11 +6,13 @@
 //! `#[adze::grammar]`, etc.) are parsed, processed, and interact with the
 //! type-processing utilities provided by adze-common.
 
-use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
+use adze_common::{
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
+};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, Attribute, Item, Type};
+use syn::{Attribute, Item, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -25,10 +27,12 @@ fn ident_strategy() -> impl Strategy<Value = String> {
 }
 
 fn type_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "i32", "u32", "i64", "u64", "f32", "f64", "bool", "char",
-        "String", "usize", "isize", "u8", "i8",
-    ][..])
+    prop::sample::select(
+        &[
+            "i32", "u32", "i64", "u64", "f32", "f64", "bool", "char", "String", "usize", "isize",
+            "u8", "i8",
+        ][..],
+    )
 }
 
 fn container_name() -> impl Strategy<Value = &'static str> {
@@ -36,20 +40,31 @@ fn container_name() -> impl Strategy<Value = &'static str> {
 }
 
 fn adze_attr() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "leaf", "language", "grammar", "skip", "prec", "word",
-        "repeat", "extra", "delimited",
-    ][..])
+    prop::sample::select(
+        &[
+            "leaf",
+            "language",
+            "grammar",
+            "skip",
+            "prec",
+            "word",
+            "repeat",
+            "extra",
+            "delimited",
+        ][..],
+    )
 }
 
 fn non_adze_attr() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "#[derive(Debug)]",
-        "#[derive(Clone)]",
-        "#[allow(dead_code)]",
-        "#[cfg(test)]",
-        "#[doc = \"hello\"]",
-    ][..])
+    prop::sample::select(
+        &[
+            "#[derive(Debug)]",
+            "#[derive(Clone)]",
+            "#[allow(dead_code)]",
+            "#[cfg(test)]",
+            "#[doc = \"hello\"]",
+        ][..],
+    )
 }
 
 fn int_value() -> impl Strategy<Value = i64> {
@@ -69,7 +84,12 @@ fn capitalize(s: &str) -> String {
 }
 
 fn is_adze_attr(attr: &Attribute, segment: &str) -> bool {
-    let segs: Vec<_> = attr.path().segments.iter().map(|s| s.ident.to_string()).collect();
+    let segs: Vec<_> = attr
+        .path()
+        .segments
+        .iter()
+        .map(|s| s.ident.to_string())
+        .collect();
     segs == ["adze", segment]
 }
 
@@ -85,15 +105,27 @@ fn get_attrs(item: &Item) -> &[Attribute] {
 }
 
 fn count_adze(item: &Item, segment: &str) -> usize {
-    get_attrs(item).iter().filter(|a| is_adze_attr(a, segment)).count()
+    get_attrs(item)
+        .iter()
+        .filter(|a| is_adze_attr(a, segment))
+        .count()
 }
 
 fn collect_adze_names(item: &Item) -> Vec<String> {
     get_attrs(item)
         .iter()
         .filter_map(|a| {
-            let segs: Vec<_> = a.path().segments.iter().map(|s| s.ident.to_string()).collect();
-            if segs.len() == 2 && segs[0] == "adze" { Some(segs[1].clone()) } else { None }
+            let segs: Vec<_> = a
+                .path()
+                .segments
+                .iter()
+                .map(|s| s.ident.to_string())
+                .collect();
+            if segs.len() == 2 && segs[0] == "adze" {
+                Some(segs[1].clone())
+            } else {
+                None
+            }
         })
         .collect()
 }

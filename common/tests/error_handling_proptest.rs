@@ -25,10 +25,12 @@ fn ident_strategy() -> impl Strategy<Value = String> {
 
 /// Simple leaf type names.
 fn leaf_type_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64",
-        "f32", "f64", "bool", "char", "String", "usize", "isize",
-    ][..])
+    prop::sample::select(
+        &[
+            "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "bool", "char",
+            "String", "usize", "isize",
+        ][..],
+    )
 }
 
 /// Integer literal values.
@@ -38,19 +40,22 @@ fn int_value() -> impl Strategy<Value = i64> {
 
 /// Strings that are definitely not valid Rust identifiers.
 fn invalid_ident_start() -> impl Strategy<Value = String> {
-    prop::sample::select(&[
-        "123abc", "42", "0x1F", "-foo", "+bar", "!bang",
-        "3_trail", "999", "0", "00abc",
-    ][..])
+    prop::sample::select(
+        &[
+            "123abc", "42", "0x1F", "-foo", "+bar", "!bang", "3_trail", "999", "0", "00abc",
+        ][..],
+    )
     .prop_map(|s| s.to_string())
 }
 
 /// Strings that are definitely not valid as NameValueExpr.
 fn garbage_input() -> impl Strategy<Value = String> {
-    prop::sample::select(&[
-        "", "   ", "=", "= =", "===", ":::", ",,", ";;",
-        "{{}", "()", "[]", "->", "<>", "/**/", "//",
-    ][..])
+    prop::sample::select(
+        &[
+            "", "   ", "=", "= =", "===", ":::", ",,", ";;", "{{}", "()", "[]", "->", "<>", "/**/",
+            "//",
+        ][..],
+    )
     .prop_map(|s| s.to_string())
 }
 

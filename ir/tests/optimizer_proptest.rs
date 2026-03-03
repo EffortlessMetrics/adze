@@ -3,7 +3,7 @@
 //! Property-based tests for the grammar optimizer in adze-ir.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::optimizer::{optimize_grammar, GrammarOptimizer};
+use adze_ir::optimizer::{GrammarOptimizer, optimize_grammar};
 use adze_ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use proptest::prelude::*;
 use std::collections::HashSet;

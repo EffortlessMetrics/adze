@@ -186,8 +186,8 @@ fn grammar_ir_json_is_valid_json() {
     let _result = build_js(simple_grammar_js(), opts_with_artifacts(&dir));
     let ir_path = grammar_dir(dir.path(), "simple").join("grammar.ir.json");
     let content = fs::read_to_string(&ir_path).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&content)
-        .expect("grammar.ir.json should be valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&content).expect("grammar.ir.json should be valid JSON");
     assert!(parsed.is_object(), "grammar IR should be a JSON object");
 }
 
@@ -199,7 +199,11 @@ fn grammar_ir_json_contains_grammar_name() {
     let content = fs::read_to_string(&ir_path).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
     let name = parsed.get("name").and_then(|v| v.as_str());
-    assert_eq!(name, Some("simple"), "Grammar IR should contain the grammar name");
+    assert_eq!(
+        name,
+        Some("simple"),
+        "Grammar IR should contain the grammar name"
+    );
 }
 
 #[test]
@@ -208,8 +212,8 @@ fn node_types_json_is_valid_json_array() {
     let _result = build_js(simple_grammar_js(), opts_with_artifacts(&dir));
     let nt_path = grammar_dir(dir.path(), "simple").join("NODE_TYPES.json");
     let content = fs::read_to_string(&nt_path).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&content)
-        .expect("NODE_TYPES.json should be valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&content).expect("NODE_TYPES.json should be valid JSON");
     assert!(parsed.is_array(), "NODE_TYPES should be a JSON array");
 }
 
@@ -271,10 +275,7 @@ fn grammar_dir_naming_for_different_name() {
     let dir = TempDir::new().unwrap();
     let _result = build_js(alpha_grammar_js(), opts_with_artifacts(&dir));
     let expected = dir.path().join("grammar_alpha");
-    assert!(
-        expected.is_dir(),
-        "Directory should be named grammar_alpha"
-    );
+    assert!(expected.is_dir(), "Directory should be named grammar_alpha");
 }
 
 #[test]
@@ -329,8 +330,16 @@ fn two_grammars_each_have_ir_json() {
     let dir = TempDir::new().unwrap();
     let _r1 = build_js(simple_grammar_js(), opts_with_artifacts(&dir));
     let _r2 = build_js(alpha_grammar_js(), opts_with_artifacts(&dir));
-    assert!(grammar_dir(dir.path(), "simple").join("grammar.ir.json").exists());
-    assert!(grammar_dir(dir.path(), "alpha").join("grammar.ir.json").exists());
+    assert!(
+        grammar_dir(dir.path(), "simple")
+            .join("grammar.ir.json")
+            .exists()
+    );
+    assert!(
+        grammar_dir(dir.path(), "alpha")
+            .join("grammar.ir.json")
+            .exists()
+    );
 }
 
 #[test]
@@ -338,8 +347,16 @@ fn two_grammars_each_have_node_types() {
     let dir = TempDir::new().unwrap();
     let _r1 = build_js(simple_grammar_js(), opts_with_artifacts(&dir));
     let _r2 = build_js(alpha_grammar_js(), opts_with_artifacts(&dir));
-    assert!(grammar_dir(dir.path(), "simple").join("NODE_TYPES.json").exists());
-    assert!(grammar_dir(dir.path(), "alpha").join("NODE_TYPES.json").exists());
+    assert!(
+        grammar_dir(dir.path(), "simple")
+            .join("NODE_TYPES.json")
+            .exists()
+    );
+    assert!(
+        grammar_dir(dir.path(), "alpha")
+            .join("NODE_TYPES.json")
+            .exists()
+    );
 }
 
 #[test]
@@ -347,9 +364,13 @@ fn two_grammars_ir_contents_differ() {
     let dir = TempDir::new().unwrap();
     let _r1 = build_js(simple_grammar_js(), opts_with_artifacts(&dir));
     let _r2 = build_js(alpha_grammar_js(), opts_with_artifacts(&dir));
-    let ir1 = fs::read_to_string(grammar_dir(dir.path(), "simple").join("grammar.ir.json")).unwrap();
+    let ir1 =
+        fs::read_to_string(grammar_dir(dir.path(), "simple").join("grammar.ir.json")).unwrap();
     let ir2 = fs::read_to_string(grammar_dir(dir.path(), "alpha").join("grammar.ir.json")).unwrap();
-    assert_ne!(ir1, ir2, "Different grammars should produce different IR JSON");
+    assert_ne!(
+        ir1, ir2,
+        "Different grammars should produce different IR JSON"
+    );
 }
 
 // =========================================================================
@@ -531,7 +552,8 @@ fn json_build_creates_artifacts_when_enabled() {
         }
     });
     let opts = opts_with_artifacts(&dir);
-    let _result = build_parser_from_json(serde_json::to_string(&grammar_json).unwrap(), opts).unwrap();
+    let _result =
+        build_parser_from_json(serde_json::to_string(&grammar_json).unwrap(), opts).unwrap();
     let gdir = grammar_dir(dir.path(), "json_test");
     assert!(gdir.join("grammar.ir.json").exists());
     assert!(gdir.join("NODE_TYPES.json").exists());
@@ -548,9 +570,13 @@ fn json_build_no_artifacts_when_disabled() {
         }
     });
     let opts = opts_no_artifacts(&dir);
-    let _result = build_parser_from_json(serde_json::to_string(&grammar_json).unwrap(), opts).unwrap();
+    let _result =
+        build_parser_from_json(serde_json::to_string(&grammar_json).unwrap(), opts).unwrap();
     let ir_path = grammar_dir(dir.path(), "json_test2").join("grammar.ir.json");
-    assert!(!ir_path.exists(), "IR artifact should not be created when disabled");
+    assert!(
+        !ir_path.exists(),
+        "IR artifact should not be created when disabled"
+    );
 }
 
 // =========================================================================
@@ -589,5 +615,8 @@ fn build_result_node_types_matches_file() {
     // Both should parse to the same JSON value
     let from_result: serde_json::Value = serde_json::from_str(&result.node_types_json).unwrap();
     let from_file: serde_json::Value = serde_json::from_str(&file_content).unwrap();
-    assert_eq!(from_result, from_file, "NODE_TYPES from result and file should match");
+    assert_eq!(
+        from_result, from_file,
+        "NODE_TYPES from result and file should match"
+    );
 }

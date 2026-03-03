@@ -180,7 +180,10 @@ fn source_file_type_is_symbol() {
         }
         "#,
     );
-    assert_eq!(g["rules"]["source_file"]["type"].as_str().unwrap(), "SYMBOL");
+    assert_eq!(
+        g["rules"]["source_file"]["type"].as_str().unwrap(),
+        "SYMBOL"
+    );
 }
 
 #[test]
@@ -198,7 +201,11 @@ fn source_file_has_exactly_two_keys() {
         "#,
     );
     let sf = g["rules"]["source_file"].as_object().unwrap();
-    assert_eq!(sf.len(), 2, "source_file should have exactly 'type' and 'name'");
+    assert_eq!(
+        sf.len(),
+        2,
+        "source_file should have exactly 'type' and 'name'"
+    );
     assert!(sf.contains_key("type"));
     assert!(sf.contains_key("name"));
 }
@@ -568,9 +575,7 @@ fn extras_appear_in_extras_array_not_source_file() {
     );
     let extras = g["extras"].as_array().unwrap();
     assert!(!extras.is_empty(), "extras array should have entries");
-    let has_ws = extras
-        .iter()
-        .any(|e| e["name"].as_str() == Some("Ws"));
+    let has_ws = extras.iter().any(|e| e["name"].as_str() == Some("Ws"));
     assert!(has_ws, "Ws should be in extras array");
 }
 
@@ -698,10 +703,7 @@ fn source_file_survives_roundtrip_serialization() {
     );
     let json_str = serde_json::to_string(&g).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
-    assert_eq!(
-        parsed["rules"]["source_file"],
-        g["rules"]["source_file"],
-    );
+    assert_eq!(parsed["rules"]["source_file"], g["rules"]["source_file"],);
 }
 
 #[test]

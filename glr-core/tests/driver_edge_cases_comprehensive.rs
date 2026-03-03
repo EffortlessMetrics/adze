@@ -183,7 +183,10 @@ fn empty_token_stream_via_hand_crafted_table() {
     let table = minimal_single_token_table();
     let mut driver = Driver::new(&table);
     let result = driver.parse_tokens(std::iter::empty::<(u32, u32, u32)>());
-    assert!(result.is_err(), "hand-crafted table requires 'a', so empty must fail");
+    assert!(
+        result.is_err(),
+        "hand-crafted table requires 'a', so empty must fail"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -194,7 +197,9 @@ fn empty_token_stream_via_hand_crafted_table() {
 fn single_token_accepted_hand_crafted() {
     let table = minimal_single_token_table();
     let mut driver = Driver::new(&table);
-    let forest = driver.parse_tokens([(1, 0, 1)]).expect("single token should parse");
+    let forest = driver
+        .parse_tokens([(1, 0, 1)])
+        .expect("single token should parse");
     let view = forest.view();
     assert_eq!(view.roots().len(), 1);
     assert_eq!(view.span(view.roots()[0]).start, 0);
@@ -494,7 +499,9 @@ fn driver_reuse_after_failed_parse() {
     assert!(r1.is_err() || r1.is_ok()); // just must not panic
 
     // Second parse succeeds
-    let f2 = driver.parse_tokens([(1, 0, 1)]).expect("should recover after failure");
+    let f2 = driver
+        .parse_tokens([(1, 0, 1)])
+        .expect("should recover after failure");
     assert_eq!(f2.view().roots().len(), 1);
 }
 
@@ -506,7 +513,9 @@ fn driver_reuse_after_empty_input() {
     let r1 = driver.parse_tokens(std::iter::empty::<(u32, u32, u32)>());
     let _ = r1; // either error or ok
 
-    let f2 = driver.parse_tokens([(1, 0, 1)]).expect("second parse after empty");
+    let f2 = driver
+        .parse_tokens([(1, 0, 1)])
+        .expect("second parse after empty");
     assert_eq!(f2.view().roots().len(), 1);
 }
 
@@ -556,7 +565,9 @@ fn sequential_parses_alternating_success_failure() {
 
     for i in 0..6 {
         if i % 2 == 0 {
-            let f = driver.parse_tokens([(1, 0, 1)]).expect("even parse succeeds");
+            let f = driver
+                .parse_tokens([(1, 0, 1)])
+                .expect("even parse succeeds");
             assert_eq!(f.view().roots().len(), 1);
         } else {
             let _ = driver.parse_tokens(std::iter::empty::<(u32, u32, u32)>());

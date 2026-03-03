@@ -44,7 +44,10 @@ fn minimal_valid_grammar(name: &str) -> Grammar {
         .build()
 }
 
-fn has_error(result: &adze_ir::validation::ValidationResult, pred: impl Fn(&ValidationError) -> bool) -> bool {
+fn has_error(
+    result: &adze_ir::validation::ValidationResult,
+    pred: impl Fn(&ValidationError) -> bool,
+) -> bool {
     result.errors.iter().any(pred)
 }
 
@@ -90,7 +93,10 @@ fn test_03_empty_grammar_fails_validation() {
     let g = Grammar::new("empty".into());
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -327,7 +333,10 @@ fn test_16_epsilon_only_rule_not_empty_grammar() {
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
     // Should NOT be flagged as EmptyGrammar since it has a rule
-    assert!(!has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(!has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -411,7 +420,10 @@ fn test_22_external_token_conflict_error_message() {
     };
     let msg = format!("{err}");
     assert!(msg.contains("INDENT"), "got: {msg}");
-    assert!(msg.contains("conflict") || msg.contains("Conflict"), "got: {msg}");
+    assert!(
+        msg.contains("conflict") || msg.contains("Conflict"),
+        "got: {msg}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -439,7 +451,9 @@ fn test_24_undefined_inside_optional() {
     let mut g = Grammar::new("opt_undef".into());
     g.add_rule(make_rule(
         1,
-        vec![Symbol::Optional(Box::new(Symbol::NonTerminal(SymbolId(77))))],
+        vec![Symbol::Optional(Box::new(Symbol::NonTerminal(SymbolId(
+            77,
+        ))))],
         0,
     ));
     let mut v = GrammarValidator::new();

@@ -257,7 +257,13 @@ mod tree_edit_tests {
         let mut tree = make_tree(0, 10, vec![]);
         let edit = simple_edit(5, 3, 8);
         let result = tree.edit(&edit);
-        assert!(matches!(result, Err(EditError::InvalidRange { start: 5, old_end: 3 })));
+        assert!(matches!(
+            result,
+            Err(EditError::InvalidRange {
+                start: 5,
+                old_end: 3
+            })
+        ));
     }
 
     #[test]
@@ -265,12 +271,21 @@ mod tree_edit_tests {
         let mut tree = make_tree(0, 10, vec![]);
         let edit = simple_edit(5, 8, 3);
         let result = tree.edit(&edit);
-        assert!(matches!(result, Err(EditError::InvalidRange { start: 5, old_end: 3 })));
+        assert!(matches!(
+            result,
+            Err(EditError::InvalidRange {
+                start: 5,
+                old_end: 3
+            })
+        ));
     }
 
     #[test]
     fn edit_error_display_messages() {
-        let e1 = EditError::InvalidRange { start: 10, old_end: 5 };
+        let e1 = EditError::InvalidRange {
+            start: 10,
+            old_end: 5,
+        };
         assert!(format!("{}", e1).contains("Invalid edit range"));
         assert!(format!("{}", e1).contains("10"));
 
@@ -283,8 +298,10 @@ mod tree_edit_tests {
 
     #[test]
     fn edit_error_is_std_error() {
-        let e: Box<dyn std::error::Error> =
-            Box::new(EditError::InvalidRange { start: 0, old_end: 0 });
+        let e: Box<dyn std::error::Error> = Box::new(EditError::InvalidRange {
+            start: 0,
+            old_end: 0,
+        });
         // Just ensure it compiles and can be used as a trait object
         let _ = format!("{}", e);
     }
@@ -326,11 +343,7 @@ mod tree_edit_tests {
 
     #[test]
     fn edit_in_middle_replacement() {
-        let mut tree = make_tree(0, 20, vec![
-            leaf(1, 0, 5),
-            leaf(2, 5, 15),
-            leaf(3, 15, 20),
-        ]);
+        let mut tree = make_tree(0, 20, vec![leaf(1, 0, 5), leaf(2, 5, 15), leaf(3, 15, 20)]);
         // Replace bytes 5..10 (5 bytes) with 8 bytes → net +3
         tree.edit(&simple_edit(5, 10, 13)).unwrap();
         let root = tree.root_node();
@@ -353,11 +366,11 @@ mod tree_edit_tests {
 
     #[test]
     fn edit_shifts_nodes_after_edit_range() {
-        let mut tree = make_tree(0, 30, vec![
-            leaf(1, 0, 10),
-            leaf(2, 10, 20),
-            leaf(3, 20, 30),
-        ]);
+        let mut tree = make_tree(
+            0,
+            30,
+            vec![leaf(1, 0, 10), leaf(2, 10, 20), leaf(3, 20, 30)],
+        );
         // Insert 5 bytes in the first child's range
         tree.edit(&simple_edit(0, 5, 10)).unwrap();
 

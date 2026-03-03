@@ -49,7 +49,11 @@ proptest! {
 
 #[test]
 fn test_token_creation_all_zeros() {
-    let tok = NextToken { kind: 0, start: 0, end: 0 };
+    let tok = NextToken {
+        kind: 0,
+        start: 0,
+        end: 0,
+    };
     assert_eq!(tok.kind, 0);
     assert_eq!(tok.start, 0);
     assert_eq!(tok.end, 0);
@@ -57,7 +61,11 @@ fn test_token_creation_all_zeros() {
 
 #[test]
 fn test_token_creation_max_values() {
-    let tok = NextToken { kind: u32::MAX, start: u32::MAX, end: u32::MAX };
+    let tok = NextToken {
+        kind: u32::MAX,
+        start: u32::MAX,
+        end: u32::MAX,
+    };
     assert_eq!(tok.kind, u32::MAX);
     assert_eq!(tok.start, u32::MAX);
     assert_eq!(tok.end, u32::MAX);
@@ -253,7 +261,11 @@ proptest! {
 #[test]
 fn test_zero_length_token_at_boundaries() {
     for pos in [0u32, 1, u32::MAX / 2, u32::MAX - 1, u32::MAX] {
-        let tok = NextToken { kind: 0, start: pos, end: pos };
+        let tok = NextToken {
+            kind: 0,
+            start: pos,
+            end: pos,
+        };
         assert_eq!(tok.start, pos);
         assert_eq!(tok.end, pos);
     }

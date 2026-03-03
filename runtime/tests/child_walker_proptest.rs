@@ -52,33 +52,65 @@ fn make_node(
 
 fn leaf(symbol: u16, start: usize, end: usize) -> ParsedNode {
     make_node(
-        symbol, vec![], start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, true, None,
+        symbol,
+        vec![],
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        true,
+        None,
     )
 }
 
 fn anon_leaf(symbol: u16, start: usize, end: usize) -> ParsedNode {
     make_node(
-        symbol, vec![], start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, false, None,
+        symbol,
+        vec![],
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        false,
+        None,
     )
 }
 
 fn branch(symbol: u16, start: usize, end: usize, children: Vec<ParsedNode>) -> ParsedNode {
     make_node(
-        symbol, children, start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, true, None,
+        symbol,
+        children,
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        true,
+        None,
     )
 }
 
 fn field_leaf(symbol: u16, start: usize, end: usize, fid: u16) -> ParsedNode {
     make_node(
-        symbol, vec![], start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, true, Some(fid),
+        symbol,
+        vec![],
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        true,
+        Some(fid),
     )
 }
 

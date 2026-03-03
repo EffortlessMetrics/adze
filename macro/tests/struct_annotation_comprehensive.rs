@@ -101,7 +101,11 @@ fn struct_single_leaf_field_pattern() {
     };
     assert_eq!(s.fields.iter().count(), 1);
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
     assert_eq!(params[0].path.to_string(), "pattern");
 }
@@ -117,10 +121,18 @@ fn struct_leaf_text_literal_field() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
     assert_eq!(params[0].path.to_string(), "text");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), ";");
     } else {
         panic!("Expected string literal");
@@ -138,7 +150,11 @@ fn struct_leaf_with_transform() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
     let param_names: Vec<_> = params.iter().map(|p| p.path.to_string()).collect();
     assert!(param_names.contains(&"pattern".to_string()));
@@ -157,9 +173,11 @@ fn struct_skip_field_recognized() {
             visited: bool,
         }
     };
-    let skip_field = s.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "visited")
-    }).unwrap();
+    let skip_field = s
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "visited"))
+        .unwrap();
     assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
 }
 
@@ -175,10 +193,16 @@ fn struct_skip_field_has_default_expr() {
             counter: i32,
         }
     };
-    let skip_field = s.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "counter")
-    }).unwrap();
-    let attr = skip_field.attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let skip_field = s
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "counter"))
+        .unwrap();
+    let attr = skip_field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     let expr: syn::Expr = attr.parse_args().unwrap();
     assert_eq!(expr.to_token_stream().to_string(), "0");
 }
@@ -197,9 +221,7 @@ fn struct_mixed_leaf_and_skip_fields() {
             processed: bool,
         }
     };
-    let adze_fields: Vec<_> = s.fields.iter().map(|f| {
-        adze_attr_names(&f.attrs)
-    }).collect();
+    let adze_fields: Vec<_> = s.fields.iter().map(|f| adze_attr_names(&f.attrs)).collect();
     assert_eq!(adze_fields[0], vec!["leaf"]);
     assert_eq!(adze_fields[1], vec!["leaf"]);
     assert_eq!(adze_fields[2], vec!["skip"]);
@@ -259,7 +281,11 @@ fn struct_multiple_generic_fields() {
             body: Box<Block>,
         }
     };
-    let types: Vec<_> = s.fields.iter().map(|f| f.ty.to_token_stream().to_string()).collect();
+    let types: Vec<_> = s
+        .fields
+        .iter()
+        .map(|f| f.ty.to_token_stream().to_string())
+        .collect();
     assert_eq!(types[0], "Vec < Item >");
     assert_eq!(types[1], "Option < Identifier >");
     assert_eq!(types[2], "Box < Block >");
@@ -288,7 +314,11 @@ fn unit_struct_leaf_text_value() {
     let attr = s.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
     let params = leaf_params(attr);
     assert_eq!(params[0].path.to_string(), "text");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), "true");
     } else {
         panic!("Expected string literal");
@@ -386,7 +416,11 @@ fn struct_derive_attrs_preserved() {
     };
     assert_eq!(s.attrs.len(), 2);
     let derive_attr = s.attrs.iter().find(|a| {
-        a.path().segments.iter().next().is_some_and(|s| s.ident == "derive")
+        a.path()
+            .segments
+            .iter()
+            .next()
+            .is_some_and(|s| s.ident == "derive")
     });
     assert!(derive_attr.is_some());
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
@@ -405,9 +439,17 @@ fn struct_multiple_derive_and_adze_attrs() {
             name: String,
         }
     };
-    let derive_count = s.attrs.iter().filter(|a| {
-        a.path().segments.iter().next().is_some_and(|s| s.ident == "derive")
-    }).count();
+    let derive_count = s
+        .attrs
+        .iter()
+        .filter(|a| {
+            a.path()
+                .segments
+                .iter()
+                .next()
+                .is_some_and(|s| s.ident == "derive")
+        })
+        .count();
     assert_eq!(derive_count, 2);
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
 }
@@ -426,7 +468,9 @@ fn struct_field_names_preserved() {
             value: i32,
         }
     };
-    let names: Vec<_> = s.fields.iter()
+    let names: Vec<_> = s
+        .fields
+        .iter()
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
     assert_eq!(names, vec!["identifier", "_equals", "value"]);
@@ -446,7 +490,9 @@ fn struct_underscore_prefixed_fields() {
             _close: (),
         }
     };
-    let names: Vec<_> = s.fields.iter()
+    let names: Vec<_> = s
+        .fields
+        .iter()
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
     assert_eq!(names, vec!["_open", "content", "_close"]);
@@ -515,7 +561,9 @@ fn struct_cross_reference_fields() {
         }
     });
     let program = find_struct_in_mod(&m, "Program").unwrap();
-    let field_types: Vec<_> = program.fields.iter()
+    let field_types: Vec<_> = program
+        .fields
+        .iter()
         .map(|f| f.ty.to_token_stream().to_string())
         .collect();
     assert_eq!(field_types, vec!["Header", "Body"]);
@@ -571,7 +619,9 @@ fn struct_option_non_leaf_reference() {
         }
     });
     let lang = find_struct_in_mod(&m, "Language").unwrap();
-    let field_types: Vec<_> = lang.fields.iter()
+    let field_types: Vec<_> = lang
+        .fields
+        .iter()
         .map(|f| f.ty.to_token_stream().to_string())
         .collect();
     assert_eq!(field_types[0], "Option < i32 >");
@@ -594,7 +644,9 @@ fn struct_unit_typed_punctuation_fields() {
             _semi: (),
         }
     };
-    let unit_fields: Vec<_> = s.fields.iter()
+    let unit_fields: Vec<_> = s
+        .fields
+        .iter()
         .filter(|f| f.ty.to_token_stream().to_string() == "()")
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
@@ -681,10 +733,18 @@ fn struct_all_annotation_types_in_grammar() {
     let mut found_external = false;
     for item in items {
         if let Item::Struct(s) = item {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) { found_language = true; }
-            if s.attrs.iter().any(|a| is_adze_attr(a, "word")) { found_word = true; }
-            if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) { found_extra = true; }
-            if s.attrs.iter().any(|a| is_adze_attr(a, "external")) { found_external = true; }
+            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
+                found_language = true;
+            }
+            if s.attrs.iter().any(|a| is_adze_attr(a, "word")) {
+                found_word = true;
+            }
+            if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
+                found_extra = true;
+            }
+            if s.attrs.iter().any(|a| is_adze_attr(a, "external")) {
+                found_external = true;
+            }
         }
     }
     assert!(found_language);
@@ -722,10 +782,18 @@ fn struct_leaf_complex_regex_pattern() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
     assert_eq!(params[0].path.to_string(), "pattern");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert!(s.value().contains(r#"([^"\\]|\\.)*"#));
     } else {
         panic!("Expected string literal");

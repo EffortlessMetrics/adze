@@ -7,9 +7,9 @@
 //! error paths, tree structure preservation, depth/node-count accuracy,
 //! performance characteristics, and edge cases.
 
+use adze_runtime::Node;
 use adze_runtime::forest_converter::{ConversionError, DisambiguationStrategy, ForestConverter};
 use adze_runtime::glr_engine::{ForestNode, ForestNodeId, ParseForest};
-use adze_runtime::Node;
 
 use adze_glr_core::SymbolId;
 
@@ -252,8 +252,7 @@ fn dag_shaped_forest_shared_child() {
 fn conversion_completes_within_reasonable_time() {
     // Build a moderately large forest (500 leaf nodes + 1 root).
     let n = 500;
-    let mut entries: Vec<(usize, ForestNode)> =
-        (0..n).map(|i| leaf(i, 1, i..(i + 1))).collect();
+    let mut entries: Vec<(usize, ForestNode)> = (0..n).map(|i| leaf(i, 1, i..(i + 1))).collect();
     entries.push(internal(n, 2, (0..n).collect(), 0..n));
     let forest = build_forest(entries, vec![n]);
     let converter = ForestConverter::new(DisambiguationStrategy::First);
@@ -415,7 +414,10 @@ fn invalid_root_node_id_returns_error() {
     let converter = ForestConverter::new(DisambiguationStrategy::First);
 
     let err = converter.to_tree(&forest, b"").unwrap_err();
-    assert!(matches!(err, ConversionError::InvalidNodeId { node_id: 42 }));
+    assert!(matches!(
+        err,
+        ConversionError::InvalidNodeId { node_id: 42 }
+    ));
 }
 
 #[test]
@@ -424,7 +426,10 @@ fn invalid_child_reference_returns_error() {
     let converter = ForestConverter::new(DisambiguationStrategy::First);
 
     let err = converter.to_tree(&forest, b"x").unwrap_err();
-    assert!(matches!(err, ConversionError::InvalidNodeId { node_id: 999 }));
+    assert!(matches!(
+        err,
+        ConversionError::InvalidNodeId { node_id: 999 }
+    ));
     assert!(err.to_string().contains("999"));
 }
 
@@ -460,7 +465,10 @@ fn reject_ambiguity_reports_exact_root_count() {
 fn conversion_error_display_messages() {
     let cases: Vec<(ConversionError, &str)> = vec![
         (ConversionError::NoRoots, "Forest has no root nodes"),
-        (ConversionError::AmbiguousForest { count: 5 }, "5 valid parses"),
+        (
+            ConversionError::AmbiguousForest { count: 5 },
+            "5 valid parses",
+        ),
         (
             ConversionError::InvalidForest {
                 reason: "broken".to_string(),
@@ -468,7 +476,10 @@ fn conversion_error_display_messages() {
             "broken",
         ),
         (ConversionError::InvalidNodeId { node_id: 99 }, "99"),
-        (ConversionError::CycleDetected { node_id: 7 }, "Cycle detected"),
+        (
+            ConversionError::CycleDetected { node_id: 7 },
+            "Cycle detected",
+        ),
     ];
 
     for (err, expected_substr) in cases {
@@ -654,5 +665,3 @@ fn empty_input_still_produces_tree() {
     assert_eq!(tree.source_bytes(), Some(b"".as_slice()));
     assert_eq!(tree.root_node().byte_range(), 0..0);
 }
-
-

@@ -253,7 +253,10 @@ fn artifacts_mode_writes_node_types_file() {
     let dir = TempDir::new().unwrap();
     let _result = build_js(simple_grammar_js(), temp_opts_with_artifacts(&dir));
     let nt_path = dir.path().join("grammar_simple").join("NODE_TYPES.json");
-    assert!(nt_path.exists(), "NODE_TYPES.json should exist when emit_artifacts is true");
+    assert!(
+        nt_path.exists(),
+        "NODE_TYPES.json should exist when emit_artifacts is true"
+    );
     let content = fs::read_to_string(&nt_path).unwrap();
     let _: serde_json::Value = serde_json::from_str(&content).unwrap();
 }
@@ -263,7 +266,10 @@ fn artifacts_mode_writes_grammar_ir_file() {
     let dir = TempDir::new().unwrap();
     let _result = build_js(simple_grammar_js(), temp_opts_with_artifacts(&dir));
     let ir_path = dir.path().join("grammar_simple").join("grammar.ir.json");
-    assert!(ir_path.exists(), "grammar.ir.json should exist when emit_artifacts is true");
+    assert!(
+        ir_path.exists(),
+        "grammar.ir.json should exist when emit_artifacts is true"
+    );
     let content = fs::read_to_string(&ir_path).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
     assert!(parsed.is_object());
@@ -375,8 +381,14 @@ fn multi_rule_grammar_has_more_symbols() {
 fn build_stats_are_nonzero() {
     let dir = TempDir::new().unwrap();
     let result = build_js(simple_grammar_js(), temp_opts(&dir));
-    assert!(result.build_stats.state_count > 0, "state_count should be > 0");
-    assert!(result.build_stats.symbol_count > 0, "symbol_count should be > 0");
+    assert!(
+        result.build_stats.state_count > 0,
+        "state_count should be > 0"
+    );
+    assert!(
+        result.build_stats.symbol_count > 0,
+        "symbol_count should be > 0"
+    );
 }
 
 #[test]
@@ -428,8 +440,8 @@ fn node_types_json_is_valid_utf8() {
 fn written_parser_file_is_utf8() {
     let dir = TempDir::new().unwrap();
     let result = build_js(simple_grammar_js(), temp_opts(&dir));
-    let content = fs::read_to_string(&result.parser_path)
-        .expect("parser file should be readable as UTF-8");
+    let content =
+        fs::read_to_string(&result.parser_path).expect("parser file should be readable as UTF-8");
     assert!(!content.is_empty());
 }
 
@@ -498,7 +510,10 @@ fn grammar_name_deterministic_from_rust_source() {
     "#;
     let g1 = extract_one(src);
     let g2 = extract_one(src);
-    assert_eq!(g1, g2, "grammar JSON should be identical across extractions");
+    assert_eq!(
+        g1, g2,
+        "grammar JSON should be identical across extractions"
+    );
 }
 
 // =========================================================================
@@ -559,8 +574,14 @@ fn visualization_dot_output_for_sample_grammar() {
     let grammar = GrammarConverter::create_sample_grammar();
     let viz = GrammarVisualizer::new(grammar);
     let dot = viz.to_dot();
-    assert!(dot.starts_with("digraph"), "DOT output should start with 'digraph'");
-    assert!(dot.contains("->"), "DOT output should contain edge definitions");
+    assert!(
+        dot.starts_with("digraph"),
+        "DOT output should start with 'digraph'"
+    );
+    assert!(
+        dot.contains("->"),
+        "DOT output should contain edge definitions"
+    );
 }
 
 #[test]

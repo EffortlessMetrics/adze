@@ -365,9 +365,7 @@ fn stress_batch_filter_200_types() {
         .map(|i| {
             let name = syn::Ident::new(&format!("Inner{i}"), proc_macro2::Span::call_site());
             let ty: Type = parse_quote!(Box<#name>);
-            filter_inner_type(&ty, &skip)
-                .to_token_stream()
-                .to_string()
+            filter_inner_type(&ty, &skip).to_token_stream().to_string()
         })
         .collect();
     assert_eq!(results.len(), 200);
@@ -407,9 +405,7 @@ fn stress_batch_extract_200_types() {
 
 #[test]
 fn stress_large_skip_set() {
-    let wrappers: Vec<String> = (0..50)
-        .map(|i| format!("Wrapper{i}"))
-        .collect();
+    let wrappers: Vec<String> = (0..50).map(|i| format!("Wrapper{i}")).collect();
     let skip: HashSet<&str> = wrappers.iter().map(|s| s.as_str()).collect();
 
     // Only Wrapper0 is actually used as the outermost wrapper
@@ -519,10 +515,7 @@ fn stress_extract_then_wrap_then_filter_chain() {
     // Step 1: extract Option
     let (after_extract, extracted) = try_extract_inner_type(&ty, "Option", &extract_skip);
     assert!(extracted);
-    assert_eq!(
-        after_extract.to_token_stream().to_string(),
-        "Box < Leaf >"
-    );
+    assert_eq!(after_extract.to_token_stream().to_string(), "Box < Leaf >");
 
     // Step 2: filter Box
     let after_filter = filter_inner_type(&after_extract, &filter_skip);

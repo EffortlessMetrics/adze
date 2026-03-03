@@ -653,8 +653,8 @@ fn multiple_token_kinds_in_grammar() {
     assert_ne!(b, c);
     assert_ne!(a, c);
 
-    let forest = pipeline_parse(&mut grammar, &[(a, 0, 1), (b, 1, 2), (c, 2, 3)])
-        .expect("should parse");
+    let forest =
+        pipeline_parse(&mut grammar, &[(a, 0, 1), (b, 1, 2), (c, 2, 3)]).expect("should parse");
     let view = forest.view();
     assert_eq!(view.roots().len(), 1);
 }
@@ -740,8 +740,8 @@ fn forest_children_consistent_with_token_count() {
     let b = sym_id(&grammar, "b");
     let c = sym_id(&grammar, "c");
 
-    let forest = pipeline_parse(&mut grammar, &[(a, 0, 1), (b, 1, 2), (c, 2, 3)])
-        .expect("should parse");
+    let forest =
+        pipeline_parse(&mut grammar, &[(a, 0, 1), (b, 1, 2), (c, 2, 3)]).expect("should parse");
     let view = forest.view();
     let root = view.roots()[0];
     let children = view.best_children(root);

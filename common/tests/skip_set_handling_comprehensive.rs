@@ -229,10 +229,7 @@ fn mixed_skip_interleaved_skip_nonskip_extract_fails() {
     let ty: Type = parse_quote!(Box<HashMap<String, Vec<i32>>>);
     let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &s);
     assert!(!extracted);
-    assert_eq!(
-        ty_str(&inner),
-        "Box < HashMap < String , Vec < i32 > > >"
-    );
+    assert_eq!(ty_str(&inner), "Box < HashMap < String , Vec < i32 > > >");
 }
 
 // ===========================================================================
@@ -291,10 +288,7 @@ fn wrap_skip_box_nested_in_vec() {
     let s = skip(&["Vec", "Box"]);
     let ty: Type = parse_quote!(Vec<Box<u64>>);
     let wrapped = wrap_leaf_type(&ty, &s);
-    assert_eq!(
-        ty_str(&wrapped),
-        "Vec < Box < adze :: WithLeaf < u64 > > >"
-    );
+    assert_eq!(ty_str(&wrapped), "Vec < Box < adze :: WithLeaf < u64 > > >");
 }
 
 // ===========================================================================

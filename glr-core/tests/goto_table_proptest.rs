@@ -233,11 +233,10 @@ fn arb_goto_table() -> impl Strategy<Value = ParseTable> {
             ns..=ns,
         );
         let rules = prop::collection::vec(
-            ((nt as u16)..(nt + nnt) as u16, 0u16..=4)
-                .prop_map(|(lhs, rhs_len)| ParseRule {
-                    lhs: SymbolId(lhs),
-                    rhs_len,
-                }),
+            ((nt as u16)..(nt + nnt) as u16, 0u16..=4).prop_map(|(lhs, rhs_len)| ParseRule {
+                lhs: SymbolId(lhs),
+                rhs_len,
+            }),
             0..=6,
         );
         (Just(ns), Just(nt), Just(nnt), gotos, rules)
@@ -747,7 +746,10 @@ fn goto_indexing_is_nonterminal_map() {
     // build_lr1_automaton calls detect_goto_indexing; the default for
     // the standard pipeline is NonterminalMap.
     assert!(
-        matches!(pt.goto_indexing, GotoIndexing::NonterminalMap | GotoIndexing::DirectSymbolId),
+        matches!(
+            pt.goto_indexing,
+            GotoIndexing::NonterminalMap | GotoIndexing::DirectSymbolId
+        ),
         "unexpected goto_indexing: {:?}",
         pt.goto_indexing,
     );

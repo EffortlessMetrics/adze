@@ -162,7 +162,12 @@ fn child_count_leaf() {
 
 #[test]
 fn child_count_with_children() {
-    let tree = branch(0, 0, 15, vec![leaf(1, 0, 5), leaf(2, 5, 10), leaf(3, 10, 15)]);
+    let tree = branch(
+        0,
+        0,
+        15,
+        vec![leaf(1, 0, 5), leaf(2, 5, 10), leaf(3, 10, 15)],
+    );
     assert_eq!(tree.root_node().child_count(), 3);
 }
 
@@ -177,7 +182,12 @@ fn named_child_count_equals_child_count() {
 
 #[test]
 fn child_returns_correct_symbols() {
-    let tree = branch(0, 0, 9, vec![leaf(10, 0, 3), leaf(20, 3, 6), leaf(30, 6, 9)]);
+    let tree = branch(
+        0,
+        0,
+        9,
+        vec![leaf(10, 0, 3), leaf(20, 3, 6), leaf(30, 6, 9)],
+    );
     let root = tree.root_node();
     assert_eq!(root.child(0).unwrap().kind_id(), 10);
     assert_eq!(root.child(1).unwrap().kind_id(), 20);
@@ -338,7 +348,9 @@ fn deeply_nested_tree() {
 
 #[test]
 fn wide_tree_many_children() {
-    let children: Vec<Tree> = (0..50).map(|i| leaf(i + 1, i as usize, (i + 1) as usize)).collect();
+    let children: Vec<Tree> = (0..50)
+        .map(|i| leaf(i + 1, i as usize, (i + 1) as usize))
+        .collect();
     let tree = branch(0, 0, 50, children);
     let root = tree.root_node();
     assert_eq!(root.child_count(), 50);
@@ -468,9 +480,15 @@ fn stub_equivalent_to_empty_for_testing() {
     let stub = Tree::new_stub();
     let manual = Tree::new_for_testing(0, 0, 0, vec![]);
     assert_eq!(stub.root_node().kind_id(), manual.root_node().kind_id());
-    assert_eq!(stub.root_node().start_byte(), manual.root_node().start_byte());
+    assert_eq!(
+        stub.root_node().start_byte(),
+        manual.root_node().start_byte()
+    );
     assert_eq!(stub.root_node().end_byte(), manual.root_node().end_byte());
-    assert_eq!(stub.root_node().child_count(), manual.root_node().child_count());
+    assert_eq!(
+        stub.root_node().child_count(),
+        manual.root_node().child_count()
+    );
 }
 
 // ===== 22. Grandchild utf8_text =====
@@ -486,7 +504,13 @@ fn grandchild_utf8_text() {
             1,
             0,
             5,
-            vec![leaf(2, 0, 1), leaf(3, 1, 2), leaf(4, 2, 3), leaf(5, 3, 4), leaf(6, 4, 5)],
+            vec![
+                leaf(2, 0, 1),
+                leaf(3, 1, 2),
+                leaf(4, 2, 3),
+                leaf(5, 3, 4),
+                leaf(6, 4, 5),
+            ],
         )],
     );
     let inner = tree.root_node().child(0).unwrap();
@@ -642,12 +666,7 @@ fn utf8_text_multibyte_char_boundary() {
 #[test]
 fn adjacent_children_no_gaps() {
     let source = b"abcdef";
-    let tree = branch(
-        0,
-        0,
-        6,
-        vec![leaf(1, 0, 2), leaf(2, 2, 4), leaf(3, 4, 6)],
-    );
+    let tree = branch(0, 0, 6, vec![leaf(1, 0, 2), leaf(2, 2, 4), leaf(3, 4, 6)]);
     let root = tree.root_node();
     let mut reconstructed = String::new();
     for i in 0..root.child_count() {

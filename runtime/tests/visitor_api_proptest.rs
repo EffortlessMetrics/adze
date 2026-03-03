@@ -621,7 +621,10 @@ fn dfs_leave_not_called_on_stop() {
     let source = vec![b'x'; SOURCE_LEN];
     let tree = build_wide_tree(5, SOURCE_LEN);
 
-    struct StopTracker { enters: usize, leaves: usize }
+    struct StopTracker {
+        enters: usize,
+        leaves: usize,
+    }
     impl Visitor for StopTracker {
         fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction {
             self.enters += 1;
@@ -632,7 +635,10 @@ fn dfs_leave_not_called_on_stop() {
         }
     }
 
-    let mut v = StopTracker { enters: 0, leaves: 0 };
+    let mut v = StopTracker {
+        enters: 0,
+        leaves: 0,
+    };
     TreeWalker::new(&source).walk(&tree, &mut v);
     assert_eq!(v.enters, 1);
     assert_eq!(v.leaves, 0);
@@ -669,12 +675,12 @@ proptest! {
 #[test]
 fn error_nodes_trigger_visit_error() {
     let source = b"abcdefghij";
-    let tree = interior(
-        1,
-        vec![leaf(2, 0, 2), error_node(2, 5), leaf(3, 5, 8)],
-    );
+    let tree = interior(1, vec![leaf(2, 0, 2), error_node(2, 5), leaf(3, 5, 8)]);
 
-    struct ErrorTracker { entered: usize, errors: usize }
+    struct ErrorTracker {
+        entered: usize,
+        errors: usize,
+    }
     impl Visitor for ErrorTracker {
         fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction {
             self.entered += 1;
@@ -685,7 +691,10 @@ fn error_nodes_trigger_visit_error() {
         }
     }
 
-    let mut v = ErrorTracker { entered: 0, errors: 0 };
+    let mut v = ErrorTracker {
+        entered: 0,
+        errors: 0,
+    };
     TreeWalker::new(source).walk(&tree, &mut v);
     assert_eq!(v.errors, 1);
     // root + 2 non-error children = 3 entered
@@ -942,10 +951,7 @@ fn dfs_leaf_text_from_source() {
 #[test]
 fn transform_walker_handles_errors() {
     let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
-    let tree = interior(
-        1,
-        vec![leaf(2, 0, 3), error_node(4, 7), leaf(3, 8, 10)],
-    );
+    let tree = interior(1, vec![leaf(2, 0, 3), error_node(4, 7), leaf(3, 8, 10)]);
 
     struct ErrorCounter;
     impl TransformVisitor for ErrorCounter {
@@ -953,8 +959,12 @@ fn transform_walker_handles_errors() {
         fn transform_node(&mut self, _: &ParsedNode, children: Vec<usize>) -> usize {
             children.iter().sum()
         }
-        fn transform_leaf(&mut self, _: &ParsedNode, _: &str) -> usize { 0 }
-        fn transform_error(&mut self, _: &ParsedNode) -> usize { 1 }
+        fn transform_leaf(&mut self, _: &ParsedNode, _: &str) -> usize {
+            0
+        }
+        fn transform_error(&mut self, _: &ParsedNode) -> usize {
+            1
+        }
     }
 
     let mut ec = ErrorCounter;

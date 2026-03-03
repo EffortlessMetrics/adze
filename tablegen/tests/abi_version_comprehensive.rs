@@ -15,17 +15,17 @@ use adze_ir::{
     ExternalToken, FieldId, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token,
     TokenPattern,
 };
+use adze_tablegen::AbiLanguageBuilder;
+use adze_tablegen::LanguageBuilder;
 use adze_tablegen::abi::{
-    self, create_symbol_metadata, ExternalScanner, TSFieldId, TSLanguage, TSLexState,
-    TSParseAction, TSStateId, TSSymbol, TREE_SITTER_LANGUAGE_VERSION,
-    TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
+    self, ExternalScanner, TREE_SITTER_LANGUAGE_VERSION,
+    TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION, TSFieldId, TSLanguage, TSLexState, TSParseAction,
+    TSStateId, TSSymbol, create_symbol_metadata,
 };
 use adze_tablegen::compress::CompressedParseTable;
 use adze_tablegen::validation::{
     LanguageValidator, TSExternalScannerData, TSLanguage as ValidationTSLanguage, ValidationError,
 };
-use adze_tablegen::AbiLanguageBuilder;
-use adze_tablegen::LanguageBuilder;
 use std::collections::BTreeMap;
 
 // ---------------------------------------------------------------------------
@@ -298,7 +298,9 @@ fn different_grammars_same_abi_version_string() {
 fn language_builder_sets_version_to_15() {
     let (grammar, table) = minimal_grammar_and_table();
     let builder = LanguageBuilder::new(grammar, table);
-    let language = builder.generate_language().expect("should generate language");
+    let language = builder
+        .generate_language()
+        .expect("should generate language");
     assert_eq!(language.version, 15);
 }
 
@@ -306,7 +308,9 @@ fn language_builder_sets_version_to_15() {
 fn language_builder_version_matches_constant() {
     let (grammar, table) = minimal_grammar_and_table();
     let builder = LanguageBuilder::new(grammar, table);
-    let language = builder.generate_language().expect("should generate language");
+    let language = builder
+        .generate_language()
+        .expect("should generate language");
     assert_eq!(language.version, TREE_SITTER_LANGUAGE_VERSION);
 }
 
@@ -424,10 +428,11 @@ fn validator_rejects_version_u32_max() {
     let result = validator.validate();
     assert!(result.is_err());
     let errors = result.unwrap_err();
-    assert!(errors.iter().any(|e| matches!(
-        e,
-        ValidationError::InvalidVersion { expected: 15, .. }
-    )));
+    assert!(
+        errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::InvalidVersion { expected: 15, .. }))
+    );
 }
 
 #[test]

@@ -10,12 +10,7 @@ use adze_runtime::{Point, Tree};
 
 /// Build a tree with the given symbol, byte range, and number of leaf children.
 /// Children are assigned consecutive, non-overlapping byte sub-ranges.
-fn arb_tree(
-    symbol: u32,
-    start: usize,
-    end: usize,
-    num_children: usize,
-) -> Tree {
+fn arb_tree(symbol: u32, start: usize, end: usize, num_children: usize) -> Tree {
     if num_children == 0 || end <= start {
         return Tree::new_for_testing(symbol, start, end, vec![]);
     }
@@ -32,12 +27,10 @@ fn arb_tree(
 
 /// Strategy for a non-empty tree with random symbol, byte range, and children.
 fn arb_tree_strategy() -> impl Strategy<Value = Tree> {
-    (0u32..500, 0usize..10_000, 0usize..10_000, 0usize..8).prop_map(
-        |(sym, a, b, nchildren)| {
-            let (start, end) = if a <= b { (a, b) } else { (b, a) };
-            arb_tree(sym, start, end, nchildren)
-        },
-    )
+    (0u32..500, 0usize..10_000, 0usize..10_000, 0usize..8).prop_map(|(sym, a, b, nchildren)| {
+        let (start, end) = if a <= b { (a, b) } else { (b, a) };
+        arb_tree(sym, start, end, nchildren)
+    })
 }
 
 /// Strategy for a tree guaranteed to have start < end (non-empty byte range).

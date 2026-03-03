@@ -206,8 +206,7 @@ fn parse_three_token_arithmetic() {
         .build();
     let num = sym_id(&grammar, "NUM");
     let plus = sym_id(&grammar, "+");
-    let f = pipeline_parse(&mut grammar, &[(num, 0, 1), (plus, 1, 2), (num, 2, 3)])
-        .expect("1+2");
+    let f = pipeline_parse(&mut grammar, &[(num, 0, 1), (plus, 1, 2), (num, 2, 3)]).expect("1+2");
     let v = f.view();
     assert_eq!(v.span(v.roots()[0]).start, 0);
     assert_eq!(v.span(v.roots()[0]).end, 3);
@@ -639,11 +638,7 @@ fn right_recursive_grammar_parses() {
     let a = sym_id(&grammar, "a");
     let table = run_pipeline(&mut grammar);
     let mut driver = Driver::new(&table);
-    let result = driver.parse_tokens(
-        [(a.0 as u32, 0u32, 1), (a.0 as u32, 1, 2)]
-            .iter()
-            .copied(),
-    );
+    let result = driver.parse_tokens([(a.0 as u32, 0u32, 1), (a.0 as u32, 1, 2)].iter().copied());
     assert!(result.is_ok(), "right-recursive: {:?}", result.err());
 }
 

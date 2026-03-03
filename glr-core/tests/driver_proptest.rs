@@ -103,8 +103,14 @@ fn build_right_recursive_table() -> ParseTable {
     let a_nt = SymbolId(3);
     let rules = vec![
         ParseRule { lhs: s, rhs_len: 1 },
-        ParseRule { lhs: a_nt, rhs_len: 1 },
-        ParseRule { lhs: a_nt, rhs_len: 2 },
+        ParseRule {
+            lhs: a_nt,
+            rhs_len: 1,
+        },
+        ParseRule {
+            lhs: a_nt,
+            rhs_len: 2,
+        },
     ];
     let num_syms = 4;
     let num_states = 5;

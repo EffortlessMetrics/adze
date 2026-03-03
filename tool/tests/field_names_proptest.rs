@@ -35,7 +35,12 @@ fn extract(src: &str) -> Vec<Value> {
 /// Extract exactly one grammar.
 fn extract_one(src: &str) -> Value {
     let gs = extract(src);
-    assert_eq!(gs.len(), 1, "expected exactly one grammar, got {}", gs.len());
+    assert_eq!(
+        gs.len(),
+        1,
+        "expected exactly one grammar, got {}",
+        gs.len()
+    );
     gs.into_iter().next().unwrap()
 }
 
@@ -230,9 +235,7 @@ fn ir_grammar_no_fields(name: &str, n_rules: usize) -> Grammar {
 
     for i in 0..n_rules {
         let sid = SymbolId((i as u16) + 10);
-        grammar
-            .rule_names
-            .insert(sid, format!("rule{}", i));
+        grammar.rule_names.insert(sid, format!("rule{}", i));
         grammar.add_rule(Rule {
             lhs: sid,
             rhs: vec![Symbol::Terminal(tok_id)],
@@ -272,11 +275,45 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,8}".prop_filter("avoid keywords", |s| {
         !matches!(
             s.as_str(),
-            "type" | "fn" | "let" | "mut" | "ref" | "pub" | "mod" | "use" | "self" | "super"
-                | "crate" | "struct" | "enum" | "impl" | "trait" | "where" | "for" | "loop"
-                | "while" | "if" | "else" | "match" | "return" | "break" | "continue" | "as"
-                | "in" | "move" | "box" | "dyn" | "async" | "await" | "try" | "yield"
-                | "macro" | "const" | "static" | "unsafe" | "extern"
+            "type"
+                | "fn"
+                | "let"
+                | "mut"
+                | "ref"
+                | "pub"
+                | "mod"
+                | "use"
+                | "self"
+                | "super"
+                | "crate"
+                | "struct"
+                | "enum"
+                | "impl"
+                | "trait"
+                | "where"
+                | "for"
+                | "loop"
+                | "while"
+                | "if"
+                | "else"
+                | "match"
+                | "return"
+                | "break"
+                | "continue"
+                | "as"
+                | "in"
+                | "move"
+                | "box"
+                | "dyn"
+                | "async"
+                | "await"
+                | "try"
+                | "yield"
+                | "macro"
+                | "const"
+                | "static"
+                | "unsafe"
+                | "extern"
         )
     })
 }
@@ -871,7 +908,12 @@ fn single_field_count() {
     let src = struct_grammar_source("test", "Root", "value", r"[a-z]+");
     let grammar = extract_one(&src);
     let fields = field_names_in_rule(&grammar, "Root");
-    assert_eq!(fields.len(), 1, "Expected exactly 1 field, got {:?}", fields);
+    assert_eq!(
+        fields.len(),
+        1,
+        "Expected exactly 1 field, got {:?}",
+        fields
+    );
     assert_eq!(fields[0], "value");
 }
 

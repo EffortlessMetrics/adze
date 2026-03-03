@@ -99,7 +99,10 @@ fn source_file_is_always_first_rule() {
     );
     let rules = g["rules"].as_object().unwrap();
     let first_key = rules.keys().next().unwrap();
-    assert_eq!(first_key, "source_file", "source_file must be the first rule key");
+    assert_eq!(
+        first_key, "source_file",
+        "source_file must be the first rule key"
+    );
 }
 
 #[test]
@@ -184,7 +187,10 @@ fn enum_choice_members_are_correct_json_type() {
     let choice = &g["rules"]["Tok"];
     assert_eq!(choice["type"].as_str().unwrap(), "CHOICE");
     for member in choice["members"].as_array().unwrap() {
-        assert!(member.is_object(), "each CHOICE member must be a JSON object");
+        assert!(
+            member.is_object(),
+            "each CHOICE member must be a JSON object"
+        );
     }
 }
 
@@ -322,7 +328,10 @@ fn word_field_is_null_when_no_word_annotation() {
         }
         "#,
     );
-    assert!(g["word"].is_null(), "word should be null when no #[adze::word] is present");
+    assert!(
+        g["word"].is_null(),
+        "word should be null when no #[adze::word] is present"
+    );
 }
 
 #[test]
@@ -358,7 +367,10 @@ fn extras_empty_when_no_extra_structs() {
         "#,
     );
     let extras = g["extras"].as_array().unwrap();
-    assert!(extras.is_empty(), "extras should be empty when no #[adze::extra] structs");
+    assert!(
+        extras.is_empty(),
+        "extras should be empty when no #[adze::extra] structs"
+    );
 }
 
 #[test]
@@ -403,7 +415,9 @@ fn externals_present_when_external_struct_defined() {
     let externals = g.get("externals").expect("externals key should exist");
     let ext_arr = externals.as_array().unwrap();
     assert!(
-        ext_arr.iter().any(|e| e["name"].as_str() == Some("Newline")),
+        ext_arr
+            .iter()
+            .any(|e| e["name"].as_str() == Some("Newline")),
         "externals should contain Newline"
     );
 }
@@ -523,7 +537,10 @@ fn prec_left_wraps_content_with_correct_value() {
     let add = g["rules"].as_object().unwrap().get("Expr_Add").unwrap();
     assert_eq!(add["type"].as_str().unwrap(), "PREC_LEFT");
     assert_eq!(add["value"].as_u64().unwrap(), 3);
-    assert!(add["content"].is_object(), "PREC_LEFT should have a content field");
+    assert!(
+        add["content"].is_object(),
+        "PREC_LEFT should have a content field"
+    );
 }
 
 // ===========================================================================
@@ -545,7 +562,10 @@ fn rule_name_with_underscore_prefix() {
         "#,
     );
     let rules = g["rules"].as_object().unwrap();
-    assert!(rules.contains_key("_Internal"), "rule named _Internal should exist");
+    assert!(
+        rules.contains_key("_Internal"),
+        "rule named _Internal should exist"
+    );
     let sf = &g["rules"]["source_file"];
     assert_eq!(sf["name"].as_str().unwrap(), "_Internal");
 }
@@ -718,7 +738,10 @@ fn extra_struct_rule_and_extras_entry_both_present() {
     );
     // The extra struct should appear both as a rule and in extras list
     let rules = g["rules"].as_object().unwrap();
-    assert!(rules.contains_key("WS"), "extra struct should generate a rule");
+    assert!(
+        rules.contains_key("WS"),
+        "extra struct should generate a rule"
+    );
     let extras = g["extras"].as_array().unwrap();
     assert!(
         extras.iter().any(|e| e["name"].as_str() == Some("WS")),

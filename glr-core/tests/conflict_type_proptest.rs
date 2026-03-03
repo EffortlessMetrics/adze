@@ -16,7 +16,10 @@ use std::collections::HashSet;
 
 /// Generate a random `ConflictType`.
 fn arb_conflict_type() -> impl Strategy<Value = ConflictType> {
-    prop_oneof![Just(ConflictType::ShiftReduce), Just(ConflictType::ReduceReduce),]
+    prop_oneof![
+        Just(ConflictType::ShiftReduce),
+        Just(ConflictType::ReduceReduce),
+    ]
 }
 
 /// Generate a random `StateId`.
@@ -47,14 +50,18 @@ fn arb_actions() -> impl Strategy<Value = Vec<Action>> {
 
 /// Generate a random `Conflict`.
 fn arb_conflict() -> impl Strategy<Value = Conflict> {
-    (arb_state_id(), arb_symbol_id(), arb_actions(), arb_conflict_type()).prop_map(
-        |(state, symbol, actions, conflict_type)| Conflict {
+    (
+        arb_state_id(),
+        arb_symbol_id(),
+        arb_actions(),
+        arb_conflict_type(),
+    )
+        .prop_map(|(state, symbol, actions, conflict_type)| Conflict {
             state,
             symbol,
             actions,
             conflict_type,
-        },
-    )
+        })
 }
 
 /// Generate a `ConflictResolver` with random conflicts.

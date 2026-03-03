@@ -239,7 +239,10 @@ fn e2e_enum_grammar_has_multiple_rules() {
     .unwrap();
     let grammars = adze_tool::generate_grammars(&src).unwrap();
     let rules = grammars[0]["rules"].as_object().unwrap();
-    assert!(rules.len() >= 2, "enum grammar should produce multiple rules");
+    assert!(
+        rules.len() >= 2,
+        "enum grammar should produce multiple rules"
+    );
 }
 
 #[test]
@@ -502,10 +505,13 @@ module.exports = grammar({
     let entries: Vec<serde_json::Value> = serde_json::from_str(&r.node_types_json).unwrap();
     assert!(!entries.is_empty(), "NODE_TYPES must not be empty");
     // Verify at least one entry has named: true (the assignment rule)
-    let has_named = entries.iter().any(|e| {
-        e.get("named").and_then(|n| n.as_bool()).unwrap_or(false)
-    });
-    assert!(has_named, "NODE_TYPES should have named entries for field-bearing rules");
+    let has_named = entries
+        .iter()
+        .any(|e| e.get("named").and_then(|n| n.as_bool()).unwrap_or(false));
+    assert!(
+        has_named,
+        "NODE_TYPES should have named entries for field-bearing rules"
+    );
 }
 
 #[test]

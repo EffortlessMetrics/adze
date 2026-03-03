@@ -2,9 +2,7 @@
 
 //! Comprehensive tests for token patterns (string and regex) in adze-ir.
 
-use adze_ir::{
-    Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
-};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // ---------------------------------------------------------------------------
 // String token patterns
@@ -301,7 +299,10 @@ fn hidden_token_underscore_prefix() {
     let id = registry.get_id("_ws");
     assert!(id.is_some());
     let meta = registry.get_metadata(id.unwrap()).unwrap();
-    assert!(!meta.visible, "underscore-prefixed token should not be visible");
+    assert!(
+        !meta.visible,
+        "underscore-prefixed token should not be visible"
+    );
 }
 
 #[test]
@@ -531,4 +532,3 @@ fn token_pattern_ne_string_vs_regex_same_content() {
     let r = TokenPattern::Regex(r"\d+".into());
     assert_ne!(s, r, "String and Regex with identical content must differ");
 }
-

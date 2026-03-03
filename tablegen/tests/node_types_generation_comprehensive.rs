@@ -108,7 +108,8 @@ fn grammar_with_fields() -> Grammar {
     g.fields.insert(rhs_field, "right".to_string());
 
     let expr_id = SymbolId(2);
-    g.rule_names.insert(expr_id, "binary_expression".to_string());
+    g.rule_names
+        .insert(expr_id, "binary_expression".to_string());
     g.add_rule(Rule {
         lhs: expr_id,
         rhs: vec![
@@ -318,10 +319,7 @@ fn test_regex_token_is_named() {
 
     // The regex token "identifier" should NOT appear as an anonymous node.
     // Only string-literal tokens are emitted as anonymous.
-    let anon: Vec<_> = nodes
-        .iter()
-        .filter(|n| n["named"] == false)
-        .collect();
+    let anon: Vec<_> = nodes.iter().filter(|n| n["named"] == false).collect();
     // ";" is the only anonymous node.
     assert!(anon.iter().any(|n| n["type"] == ";"));
     // "identifier" should not be among anonymous nodes.
@@ -375,14 +373,8 @@ fn test_field_has_required_and_multiple() {
     let nodes = parse_node_types(&ntg.generate().unwrap());
     let expr = find_node(&nodes, "binary_expression").unwrap();
     let left = &expr["fields"]["left"];
-    assert!(
-        left.get("required").is_some(),
-        "field must have 'required'"
-    );
-    assert!(
-        left.get("multiple").is_some(),
-        "field must have 'multiple'"
-    );
+    assert!(left.get("required").is_some(), "field must have 'required'");
+    assert!(left.get("multiple").is_some(), "field must have 'multiple'");
 }
 
 #[test]
@@ -482,10 +474,7 @@ fn test_output_sorted_by_type_name() {
     let g = grammar_with_fields();
     let ntg = NodeTypesGenerator::new(&g);
     let nodes = parse_node_types(&ntg.generate().unwrap());
-    let names: Vec<&str> = nodes
-        .iter()
-        .map(|n| n["type"].as_str().unwrap())
-        .collect();
+    let names: Vec<&str> = nodes.iter().map(|n| n["type"].as_str().unwrap()).collect();
     let mut sorted = names.clone();
     sorted.sort();
     assert_eq!(names, sorted, "node types must be sorted alphabetically");
@@ -542,10 +531,7 @@ fn test_duplicate_string_tokens_handled() {
     let nodes = parse_node_types(&json);
     // Both anonymous entries may share the same type name "x"
     let xs: Vec<_> = nodes.iter().filter(|n| n["type"] == "x").collect();
-    assert!(
-        !xs.is_empty(),
-        "at least one anonymous node 'x' must exist"
-    );
+    assert!(!xs.is_empty(), "at least one anonymous node 'x' must exist");
 }
 
 #[test]

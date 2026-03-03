@@ -731,11 +731,10 @@ fn prec_on_variant_with_option_field() {
     let info = extract_prec_info(&e);
     assert_eq!(info[0], ("Conditional".into(), "prec_right".into(), 3));
     if let Fields::Unnamed(ref u) = e.variants[1].fields {
-        let opt_field = u.unnamed.iter().any(|f| {
-            f.ty.to_token_stream()
-                .to_string()
-                .starts_with("Option")
-        });
+        let opt_field = u
+            .unnamed
+            .iter()
+            .any(|f| f.ty.to_token_stream().to_string().starts_with("Option"));
         assert!(opt_field);
     }
 }
@@ -854,11 +853,9 @@ fn prec_named_variant_preserves_field_names() {
 fn prec_value_roundtrip() {
     let levels = [0, 1, 5, 10, 42, 100, 255, 999];
     for &level in &levels {
-        let tokens: TokenStream = format!(
-            "pub enum E {{ #[adze::prec_left({level})] V(i32), }}"
-        )
-        .parse()
-        .unwrap();
+        let tokens: TokenStream = format!("pub enum E {{ #[adze::prec_left({level})] V(i32), }}")
+            .parse()
+            .unwrap();
         let e: ItemEnum = syn::parse2(tokens).unwrap();
         let attr = e.variants[0]
             .attrs

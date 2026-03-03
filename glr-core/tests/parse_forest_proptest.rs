@@ -109,7 +109,8 @@ fn arb_symbol_id() -> impl Strategy<Value = SymbolId> {
 }
 
 fn arb_span(max_end: usize) -> impl Strategy<Value = (usize, usize)> {
-    (0..max_end).prop_flat_map(move |start| (Just(start), start..=max_end).prop_map(|(s, e)| (s, e)))
+    (0..max_end)
+        .prop_flat_map(move |start| (Just(start), start..=max_end).prop_map(|(s, e)| (s, e)))
 }
 
 fn arb_error_meta() -> impl Strategy<Value = ErrorMeta> {
@@ -310,7 +311,13 @@ fn compute_depth(forest: &ParseForest, node_id: usize) -> usize {
         Some(n) => n,
         None => return 0,
     };
-    let max_child_depth = node.alternatives.iter().flat_map(|alt| &alt.children).map(|&cid| compute_depth(forest, cid)).max().unwrap_or(0);
+    let max_child_depth = node
+        .alternatives
+        .iter()
+        .flat_map(|alt| &alt.children)
+        .map(|&cid| compute_depth(forest, cid))
+        .max()
+        .unwrap_or(0);
     1 + max_child_depth
 }
 

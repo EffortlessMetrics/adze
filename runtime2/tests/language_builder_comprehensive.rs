@@ -2,8 +2,8 @@
 
 //! Comprehensive tests for Language builder patterns in adze-runtime.
 
-use adze_runtime::language::{Language, SymbolMetadata};
 use adze_runtime::Token;
+use adze_runtime::language::{Language, SymbolMetadata};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -304,7 +304,12 @@ fn all_nonterminal_symbols() {
 
 #[test]
 fn mixed_symbol_metadata() {
-    let meta = vec![hidden_meta(), terminal_meta(), nonterminal_meta(), supertype_meta()];
+    let meta = vec![
+        hidden_meta(),
+        terminal_meta(),
+        nonterminal_meta(),
+        supertype_meta(),
+    ];
     let lang = Language::builder()
         .parse_table(leak_table())
         .symbol_metadata(meta)
@@ -575,8 +580,16 @@ fn error_variants_are_distinct() {
 #[test]
 fn with_static_tokens_sets_tokenizer() {
     let tokens = vec![
-        Token { kind: 1, start: 0, end: 1 },
-        Token { kind: 0, start: 1, end: 1 },
+        Token {
+            kind: 1,
+            start: 0,
+            end: 1,
+        },
+        Token {
+            kind: 0,
+            start: 1,
+            end: 1,
+        },
     ];
     let lang = Language::builder()
         .parse_table(leak_table())
@@ -599,7 +612,11 @@ fn with_static_tokens_replaces_existing_tokenizer() {
         .tokenizer(|_| Box::new(std::iter::empty()))
         .build()
         .unwrap()
-        .with_static_tokens(vec![Token { kind: 42, start: 0, end: 1 }]);
+        .with_static_tokens(vec![Token {
+            kind: 42,
+            start: 0,
+            end: 1,
+        }]);
     let tokenize = lang.tokenize.as_ref().unwrap();
     let result: Vec<_> = tokenize(b"x").collect();
     assert_eq!(result.len(), 1);

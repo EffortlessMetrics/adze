@@ -340,7 +340,10 @@ fn closure_expands_nonterminal_rules() {
     let before = set.items.len();
     set.closure(&grammar, &ff).unwrap();
 
-    assert!(set.items.len() > before, "closure should add items for A -> . a");
+    assert!(
+        set.items.len() > before,
+        "closure should add items for A -> . a"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -379,7 +382,10 @@ fn goto_produces_advanced_items() {
     let goto = set.goto(&Symbol::NonTerminal(SymbolId(11)), &grammar, &ff);
     for item in &goto.items {
         if item.rule_id == RuleId(0) {
-            assert!(item.position >= 1, "kernel items in goto must have advanced dot");
+            assert!(
+                item.position >= 1,
+                "kernel items in goto must have advanced dot"
+            );
         }
     }
 }
@@ -505,7 +511,11 @@ fn goto_table_targets_exist() {
 
     let valid: HashSet<_> = coll.sets.iter().map(|s| s.id).collect();
     for (_, &target) in &coll.goto_table {
-        assert!(valid.contains(&target), "target state {} not found", target.0);
+        assert!(
+            valid.contains(&target),
+            "target state {} not found",
+            target.0
+        );
     }
 }
 
@@ -678,8 +688,14 @@ fn two_alt_grammar_goto_both_alternatives() {
     let goto_a = set.goto(&Symbol::Terminal(SymbolId(1)), &grammar, &ff);
     let goto_b = set.goto(&Symbol::Terminal(SymbolId(2)), &grammar, &ff);
 
-    assert!(!goto_a.items.is_empty(), "goto over 'a' should be non-empty");
-    assert!(!goto_b.items.is_empty(), "goto over 'b' should be non-empty");
+    assert!(
+        !goto_a.items.is_empty(),
+        "goto over 'a' should be non-empty"
+    );
+    assert!(
+        !goto_b.items.is_empty(),
+        "goto over 'b' should be non-empty"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -751,7 +767,10 @@ fn goto_result_is_closed() {
     if !goto.items.is_empty() {
         let mut reclosed = goto.clone();
         reclosed.closure(&grammar, &ff).unwrap();
-        assert_eq!(goto.items, reclosed.items, "goto result should already be closed");
+        assert_eq!(
+            goto.items, reclosed.items,
+            "goto result should already be closed"
+        );
     }
 }
 
@@ -817,11 +836,7 @@ fn two_alt_canonical_no_dupes() {
 fn reduce_item_at_rhs_end_for_all_rules() {
     let grammar = grammar_left_recursive();
     for rule in grammar.all_rules() {
-        let item = LRItem::new(
-            RuleId(rule.production_id.0),
-            rule.rhs.len(),
-            SymbolId(0),
-        );
+        let item = LRItem::new(RuleId(rule.production_id.0), rule.rhs.len(), SymbolId(0));
         assert!(
             item.is_reduce_item(&grammar),
             "item at end of rule {} should be reduce",

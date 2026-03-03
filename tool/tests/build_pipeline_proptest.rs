@@ -25,8 +25,7 @@ struct TempFile(PathBuf);
 impl TempFile {
     fn new(source: &str) -> Self {
         let id = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir()
-            .join(format!("adze_bpp_{}_{}.rs", std::process::id(), id));
+        let path = std::env::temp_dir().join(format!("adze_bpp_{}_{}.rs", std::process::id(), id));
         std::fs::write(&path, source).expect("failed to write temp file");
         TempFile(path)
     }

@@ -23,10 +23,7 @@ fn expected_tokens_strategy() -> impl Strategy<Value = Vec<String>> {
 }
 
 fn context_strategy() -> impl Strategy<Value = String> {
-    prop_oneof![
-        Just(String::new()),
-        "[a-z ]{1,40}",
-    ]
+    prop_oneof![Just(String::new()), "[a-z ]{1,40}",]
 }
 
 fn span_error_reason_strategy() -> impl Strategy<Value = SpanErrorReason> {

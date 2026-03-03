@@ -177,7 +177,14 @@ fn edge_deeply_nested_field_types() {
         }
     });
     if let Item::Struct(s) = &module_items(&m)[0] {
-        let field_ty = s.fields.iter().next().unwrap().ty.to_token_stream().to_string();
+        let field_ty = s
+            .fields
+            .iter()
+            .next()
+            .unwrap()
+            .ty
+            .to_token_stream()
+            .to_string();
         assert!(field_ty.contains("Box"));
         assert!(field_ty.contains("Option"));
         assert!(field_ty.contains("Vec"));
@@ -363,8 +370,15 @@ fn edge_doc_comments_on_struct() {
         }
     });
     if let Item::Struct(s) = &module_items(&m)[0] {
-        let doc_attrs: Vec<_> = s.attrs.iter().filter(|a| a.path().is_ident("doc")).collect();
-        assert!(!doc_attrs.is_empty(), "doc comment should be preserved on struct");
+        let doc_attrs: Vec<_> = s
+            .attrs
+            .iter()
+            .filter(|a| a.path().is_ident("doc"))
+            .collect();
+        assert!(
+            !doc_attrs.is_empty(),
+            "doc comment should be preserved on struct"
+        );
         let field_docs: Vec<_> = s
             .fields
             .iter()
@@ -374,7 +388,10 @@ fn edge_doc_comments_on_struct() {
             .iter()
             .filter(|a| a.path().is_ident("doc"))
             .collect();
-        assert!(!field_docs.is_empty(), "doc comment should be preserved on field");
+        assert!(
+            !field_docs.is_empty(),
+            "doc comment should be preserved on field"
+        );
     } else {
         panic!("Expected struct");
     }
@@ -402,7 +419,11 @@ fn edge_doc_comments_on_enum_variants() {
         }
     });
     if let Item::Enum(e) = &module_items(&m)[0] {
-        let enum_docs: Vec<_> = e.attrs.iter().filter(|a| a.path().is_ident("doc")).collect();
+        let enum_docs: Vec<_> = e
+            .attrs
+            .iter()
+            .filter(|a| a.path().is_ident("doc"))
+            .collect();
         assert!(!enum_docs.is_empty(), "enum should have doc comment");
         for variant in &e.variants {
             let var_docs: Vec<_> = variant
@@ -436,8 +457,15 @@ fn edge_doc_comment_on_module() {
             }
         }
     });
-    let doc_attrs: Vec<_> = m.attrs.iter().filter(|a| a.path().is_ident("doc")).collect();
-    assert!(!doc_attrs.is_empty(), "module doc comment should be preserved");
+    let doc_attrs: Vec<_> = m
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("doc"))
+        .collect();
+    assert!(
+        !doc_attrs.is_empty(),
+        "module doc comment should be preserved"
+    );
     assert_eq!(extract_grammar_name(&m), Some("calc_doc".to_string()));
 }
 
@@ -865,7 +893,14 @@ fn edge_nested_vec_of_vec() {
         }
     });
     if let Item::Struct(s) = &module_items(&m)[0] {
-        let ty = s.fields.iter().next().unwrap().ty.to_token_stream().to_string();
+        let ty = s
+            .fields
+            .iter()
+            .next()
+            .unwrap()
+            .ty
+            .to_token_stream()
+            .to_string();
         assert!(ty.contains("Vec < Vec"));
     } else {
         panic!("Expected struct");
@@ -891,7 +926,14 @@ fn edge_option_box_option_nesting() {
         }
     });
     if let Item::Struct(s) = &module_items(&m)[0] {
-        let ty = s.fields.iter().next().unwrap().ty.to_token_stream().to_string();
+        let ty = s
+            .fields
+            .iter()
+            .next()
+            .unwrap()
+            .ty
+            .to_token_stream()
+            .to_string();
         assert!(ty.contains("Option < Box < Option"));
     } else {
         panic!("Expected struct");
@@ -1015,10 +1057,7 @@ fn edge_grammar_name_unicode() {
             }
         }
     });
-    assert_eq!(
-        extract_grammar_name(&m),
-        Some("grüße_日本語".to_string())
-    );
+    assert_eq!(extract_grammar_name(&m), Some("grüße_日本語".to_string()));
 }
 
 // ── 35. Language on enum, all other items are structs ────────────────────────

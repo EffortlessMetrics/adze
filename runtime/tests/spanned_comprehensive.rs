@@ -58,7 +58,7 @@ fn deref_returns_inner_i32() {
 #[test]
 fn deref_with_star_operator() {
     let s = mk(3.14_f64, 0, 4);
-    assert!((* s - 3.14).abs() < f64::EPSILON);
+    assert!((*s - 3.14).abs() < f64::EPSILON);
 }
 
 #[test]
@@ -248,7 +248,7 @@ fn spanned_bool() {
 #[test]
 fn spanned_f32() {
     let s = mk(2.5_f32, 0, 3);
-    assert!((* s - 2.5).abs() < f32::EPSILON);
+    assert!((*s - 2.5).abs() < f32::EPSILON);
 }
 
 #[test]

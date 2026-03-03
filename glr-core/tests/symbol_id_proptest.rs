@@ -7,9 +7,9 @@
 use adze_glr_core::{Action, GotoIndexing, ParseRule, ParseTable, SymbolMetadata};
 use adze_ir::{RuleId, StateId, SymbolId};
 use proptest::prelude::*;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
-use std::collections::hash_map::DefaultHasher;
 
 // ---------------------------------------------------------------------------
 // Strategies

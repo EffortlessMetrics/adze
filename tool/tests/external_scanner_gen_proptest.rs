@@ -35,7 +35,12 @@ fn extract(src: &str) -> Vec<Value> {
 /// Extract exactly one grammar.
 fn extract_one(src: &str) -> Value {
     let gs = extract(src);
-    assert_eq!(gs.len(), 1, "expected exactly one grammar, got {}", gs.len());
+    assert_eq!(
+        gs.len(),
+        1,
+        "expected exactly one grammar, got {}",
+        gs.len()
+    );
     gs.into_iter().next().unwrap()
 }
 

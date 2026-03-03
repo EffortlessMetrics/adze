@@ -9,8 +9,8 @@
 use adze_glr_core::ParseTable;
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{FieldId, Grammar};
-use adze_tablegen::language_gen::LanguageGenerator;
 use adze_tablegen::StaticLanguageGenerator;
+use adze_tablegen::language_gen::LanguageGenerator;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -94,7 +94,9 @@ fn grammar_with_extras() -> (Grammar, ParseTable) {
 
 /// Generate code string via `LanguageGenerator`.
 fn gen_lang(grammar: &Grammar, table: &ParseTable) -> String {
-    LanguageGenerator::new(grammar, table).generate().to_string()
+    LanguageGenerator::new(grammar, table)
+        .generate()
+        .to_string()
 }
 
 /// Generate code string via `StaticLanguageGenerator`.
@@ -147,7 +149,11 @@ fn language_gen_output_is_valid_token_stream() {
     let (g, t) = arithmetic_grammar();
     let code = gen_lang(&g, &t);
     let parsed: Result<proc_macro2::TokenStream, _> = code.parse();
-    assert!(parsed.is_ok(), "Output must be a valid TokenStream: {:?}", parsed.err());
+    assert!(
+        parsed.is_ok(),
+        "Output must be a valid TokenStream: {:?}",
+        parsed.err()
+    );
 }
 
 #[test]
@@ -155,7 +161,11 @@ fn static_gen_output_is_valid_token_stream() {
     let (g, t) = grammar_with_fields();
     let code = gen_static(g, t);
     let parsed: Result<proc_macro2::TokenStream, _> = code.parse();
-    assert!(parsed.is_ok(), "Output must be a valid TokenStream: {:?}", parsed.err());
+    assert!(
+        parsed.is_ok(),
+        "Output must be a valid TokenStream: {:?}",
+        parsed.err()
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -290,7 +300,11 @@ fn symbol_names_order_stable_across_runs() {
         let end = s[start..].find(';').map(|i| start + i)?;
         Some(s[start..end].to_string())
     };
-    assert_eq!(extract(&a), extract(&b), "SYMBOL_NAMES order must be stable");
+    assert_eq!(
+        extract(&a),
+        extract(&b),
+        "SYMBOL_NAMES order must be stable"
+    );
 }
 
 #[test]
@@ -462,7 +476,10 @@ fn language_gen_and_static_gen_both_deterministic_independently() {
     let (g4, t4) = arithmetic_grammar();
     let static_a = gen_static(g3, t3);
     let static_b = gen_static(g4, t4);
-    assert_eq!(static_a, static_b, "StaticLanguageGenerator must be deterministic");
+    assert_eq!(
+        static_a, static_b,
+        "StaticLanguageGenerator must be deterministic"
+    );
 }
 
 #[test]
@@ -480,5 +497,9 @@ fn sha256_of_output_stable() {
     let (g2, t2) = arithmetic_grammar();
     let a = gen_lang(&g1, &t1);
     let b = gen_lang(&g2, &t2);
-    assert_eq!(hash_str(&a), hash_str(&b), "Hash of generated code must be stable");
+    assert_eq!(
+        hash_str(&a),
+        hash_str(&b),
+        "Hash of generated code must be stable"
+    );
 }

@@ -702,10 +702,12 @@ fn enum_variant_repeat_delimited_prec() {
         }
     };
     // Verify prec on variant
-    assert!(e.variants[1]
-        .attrs
-        .iter()
-        .any(|a| is_adze_attr(a, "prec_left")));
+    assert!(
+        e.variants[1]
+            .attrs
+            .iter()
+            .any(|a| is_adze_attr(a, "prec_left"))
+    );
 
     // Verify repeat + delimited on Vec field
     if let Fields::Unnamed(ref u) = e.variants[1].fields {
@@ -813,10 +815,7 @@ fn repeat_on_enum_named_field_variant() {
             .iter()
             .find(|f| f.ident.as_ref().unwrap() == "stmts")
             .unwrap();
-        assert!(stmts_field
-            .attrs
-            .iter()
-            .any(|a| is_adze_attr(a, "repeat")));
+        assert!(stmts_field.attrs.iter().any(|a| is_adze_attr(a, "repeat")));
     } else {
         panic!("Expected named fields");
     }

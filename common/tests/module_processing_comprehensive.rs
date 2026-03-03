@@ -10,7 +10,7 @@ use std::collections::HashSet;
 
 use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use quote::ToTokens;
-use syn::{parse_str, Item, ItemMod, Type, Visibility};
+use syn::{Item, ItemMod, Type, Visibility, parse_str};
 
 // ---------------------------------------------------------------------------
 // Helpers

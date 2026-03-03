@@ -75,23 +75,25 @@ fn insertion_edit_strategy(max_pos: usize) -> impl Strategy<Value = InputEdit> {
 
 /// Strategy for a valid deletion edit within [0, max_pos].
 fn deletion_edit_strategy(max_pos: usize) -> impl Strategy<Value = InputEdit> {
-    (0..=max_pos).prop_flat_map(move |start| {
-        let max_old = max_pos.max(start);
-        (Just(start), start..=max_old)
-    }).prop_map(|(start, old_end)| {
-        make_edit(start, old_end, start)
-    })
+    (0..=max_pos)
+        .prop_flat_map(move |start| {
+            let max_old = max_pos.max(start);
+            (Just(start), start..=max_old)
+        })
+        .prop_map(|(start, old_end)| make_edit(start, old_end, start))
 }
 
 /// Strategy for a valid replacement edit within [0, max_pos].
 fn replacement_edit_strategy(max_pos: usize) -> impl Strategy<Value = InputEdit> {
-    (0..=max_pos).prop_flat_map(move |start| {
-        let max_old = max_pos.max(start);
-        (Just(start), start..=max_old, 1..=64usize)
-    }).prop_map(|(start, old_end, new_len)| {
-        let new_end = start.saturating_add(new_len);
-        make_edit(start, old_end, new_end)
-    })
+    (0..=max_pos)
+        .prop_flat_map(move |start| {
+            let max_old = max_pos.max(start);
+            (Just(start), start..=max_old, 1..=64usize)
+        })
+        .prop_map(|(start, old_end, new_len)| {
+            let new_end = start.saturating_add(new_len);
+            make_edit(start, old_end, new_end)
+        })
 }
 
 // =====================================================================
@@ -646,7 +648,10 @@ proptest! {
 
 #[test]
 fn edit_error_display_invalid_range() {
-    let err = EditError::InvalidRange { start: 10, old_end: 5 };
+    let err = EditError::InvalidRange {
+        start: 10,
+        old_end: 5,
+    };
     let msg = format!("{err}");
     assert!(msg.contains("10"));
     assert!(msg.contains("5"));

@@ -33,7 +33,12 @@ fn extract(src: &str) -> Vec<Value> {
 /// Extract exactly one grammar.
 fn extract_one(src: &str) -> Value {
     let gs = extract(src);
-    assert_eq!(gs.len(), 1, "expected exactly one grammar, got {}", gs.len());
+    assert_eq!(
+        gs.len(),
+        1,
+        "expected exactly one grammar, got {}",
+        gs.len()
+    );
     gs.into_iter().next().unwrap()
 }
 
@@ -115,11 +120,45 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,8}".prop_filter("avoid keywords", |s| {
         !matches!(
             s.as_str(),
-            "type" | "fn" | "let" | "mut" | "ref" | "pub" | "mod" | "use" | "self" | "super"
-                | "crate" | "struct" | "enum" | "impl" | "trait" | "where" | "for" | "loop"
-                | "while" | "if" | "else" | "match" | "return" | "break" | "continue" | "as"
-                | "in" | "move" | "box" | "dyn" | "async" | "await" | "try" | "yield"
-                | "macro" | "const" | "static" | "unsafe" | "extern"
+            "type"
+                | "fn"
+                | "let"
+                | "mut"
+                | "ref"
+                | "pub"
+                | "mod"
+                | "use"
+                | "self"
+                | "super"
+                | "crate"
+                | "struct"
+                | "enum"
+                | "impl"
+                | "trait"
+                | "where"
+                | "for"
+                | "loop"
+                | "while"
+                | "if"
+                | "else"
+                | "match"
+                | "return"
+                | "break"
+                | "continue"
+                | "as"
+                | "in"
+                | "move"
+                | "box"
+                | "dyn"
+                | "async"
+                | "await"
+                | "try"
+                | "yield"
+                | "macro"
+                | "const"
+                | "static"
+                | "unsafe"
+                | "extern"
         )
     })
 }

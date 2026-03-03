@@ -521,10 +521,7 @@ fn multiple_errors_parse_errors_different_reasons() {
         &errors[1].reason,
         ParseErrorReason::MissingToken(_)
     ));
-    assert!(matches!(
-        &errors[2].reason,
-        ParseErrorReason::FailedNode(_)
-    ));
+    assert!(matches!(&errors[2].reason, ParseErrorReason::FailedNode(_)));
 }
 
 #[test]
@@ -563,4 +560,3 @@ fn errors_collect_into_vec() {
         }
     }
 }
-

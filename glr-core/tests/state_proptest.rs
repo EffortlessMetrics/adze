@@ -127,7 +127,14 @@ fn arb_parse_table() -> impl Strategy<Value = ParseTable> {
                     .prop_map(|(lhs, rhs_len)| ParseRule { lhs, rhs_len }),
                 0..=4,
             );
-            (Just(num_s), Just(num_t), Just(num_nt), actions, gotos, rules)
+            (
+                Just(num_s),
+                Just(num_t),
+                Just(num_nt),
+                actions,
+                gotos,
+                rules,
+            )
         })
         .prop_map(|(ns, nt, nnt, a, g, r)| build_table(ns, nt, nnt, a, g, r))
 }

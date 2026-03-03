@@ -35,7 +35,10 @@ fn tree_clone_preserves_children_count() {
     let child2 = Tree::new_for_testing(2, 3, 6, vec![]);
     let tree = Tree::new_for_testing(0, 0, 6, vec![child1, child2]);
     let cloned = tree.clone();
-    assert_eq!(tree.root_node().child_count(), cloned.root_node().child_count());
+    assert_eq!(
+        tree.root_node().child_count(),
+        cloned.root_node().child_count()
+    );
     assert_eq!(cloned.root_node().child_count(), 2);
 }
 

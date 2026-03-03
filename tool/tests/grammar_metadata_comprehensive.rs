@@ -194,11 +194,11 @@ fn single_extra_collected() {
     );
     let extras = g["extras"].as_array().unwrap();
     assert!(!extras.is_empty(), "extras should not be empty");
-    let names: Vec<&str> = extras
-        .iter()
-        .filter_map(|e| e["name"].as_str())
-        .collect();
-    assert!(names.contains(&"Whitespace"), "extras should include Whitespace");
+    let names: Vec<&str> = extras.iter().filter_map(|e| e["name"].as_str()).collect();
+    assert!(
+        names.contains(&"Whitespace"),
+        "extras should include Whitespace"
+    );
 }
 
 #[test]
@@ -228,10 +228,7 @@ fn multiple_extras_collected() {
         "#,
     );
     let extras = g["extras"].as_array().unwrap();
-    let names: Vec<&str> = extras
-        .iter()
-        .filter_map(|e| e["name"].as_str())
-        .collect();
+    let names: Vec<&str> = extras.iter().filter_map(|e| e["name"].as_str()).collect();
     assert!(names.contains(&"Whitespace"));
     assert!(names.contains(&"LineComment"));
 }
@@ -251,7 +248,10 @@ fn no_extras_yields_empty_array() {
         "#,
     );
     let extras = g["extras"].as_array().unwrap();
-    assert!(extras.is_empty(), "extras should be empty when none declared");
+    assert!(
+        extras.is_empty(),
+        "extras should be empty when none declared"
+    );
 }
 
 #[test]
@@ -391,10 +391,7 @@ fn external_tokens_also_added_to_extras() {
     );
     // External tokens are added to extras list as well
     let extras = g["extras"].as_array().unwrap();
-    let extra_names: Vec<&str> = extras
-        .iter()
-        .filter_map(|e| e["name"].as_str())
-        .collect();
+    let extra_names: Vec<&str> = extras.iter().filter_map(|e| e["name"].as_str()).collect();
     assert!(
         extra_names.contains(&"Newline"),
         "external tokens should also appear in extras"
@@ -576,10 +573,7 @@ fn all_metadata_extras_include_both_extra_and_external() {
         "#,
     );
     let extras = g["extras"].as_array().unwrap();
-    let extra_names: Vec<&str> = extras
-        .iter()
-        .filter_map(|e| e["name"].as_str())
-        .collect();
+    let extra_names: Vec<&str> = extras.iter().filter_map(|e| e["name"].as_str()).collect();
     // Space declared as extra
     assert!(extra_names.contains(&"Space"));
     // Indent declared as external is also added to extras
@@ -646,7 +640,10 @@ fn source_file_rule_references_language_root() {
         "#,
     );
     let rules = g["rules"].as_object().unwrap();
-    assert!(rules.contains_key("source_file"), "rules must always contain source_file");
+    assert!(
+        rules.contains_key("source_file"),
+        "rules must always contain source_file"
+    );
     let source_file = &rules["source_file"];
     assert_eq!(source_file["type"].as_str().unwrap(), "SYMBOL");
     assert_eq!(source_file["name"].as_str().unwrap(), "Program");
@@ -812,7 +809,10 @@ fn leaf_pattern_generates_pattern_rule() {
     );
     let rules = g["rules"].as_object().unwrap();
     // Field-level rules are prefixed with parent struct name
-    assert!(rules.contains_key("Root_tok"), "pattern field should generate a named rule");
+    assert!(
+        rules.contains_key("Root_tok"),
+        "pattern field should generate a named rule"
+    );
     assert_eq!(rules["Root_tok"]["type"].as_str().unwrap(), "PATTERN");
     assert_eq!(rules["Root_tok"]["value"].as_str().unwrap(), "[a-z]+");
 }

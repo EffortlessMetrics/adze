@@ -67,7 +67,10 @@ fn multi_field_struct_each_field_wraps_independently() {
         parse_quote!(Block),
     ];
     let wrap_skip = skip(&[]);
-    let results: Vec<String> = fields.iter().map(|ty| ts(&wrap_leaf_type(ty, &wrap_skip))).collect();
+    let results: Vec<String> = fields
+        .iter()
+        .map(|ty| ts(&wrap_leaf_type(ty, &wrap_skip)))
+        .collect();
     assert_eq!(results[0], "adze :: WithLeaf < Keyword >");
     assert_eq!(results[1], "adze :: WithLeaf < Identifier >");
     assert_eq!(results[2], "adze :: WithLeaf < Block >");
@@ -81,7 +84,10 @@ fn multi_field_struct_mixed_leaf_and_container() {
         parse_quote!(Option<ReturnExpr>),
     ];
     let wrap_skip = skip(&["Vec", "Option"]);
-    let results: Vec<String> = fields.iter().map(|ty| ts(&wrap_leaf_type(ty, &wrap_skip))).collect();
+    let results: Vec<String> = fields
+        .iter()
+        .map(|ty| ts(&wrap_leaf_type(ty, &wrap_skip)))
+        .collect();
     assert_eq!(results[0], "adze :: WithLeaf < Token >");
     assert_eq!(results[1], "Vec < adze :: WithLeaf < Statement > >");
     assert_eq!(results[2], "Option < adze :: WithLeaf < ReturnExpr > >");
@@ -100,7 +106,10 @@ fn multi_field_sequence_order_preserved() {
     let wrap_skip = skip(&["Vec"]);
     let mut sequence = Vec::new();
     for i in 0..field_names.len() {
-        sequence.push((field_names[i], ts(&wrap_leaf_type(&field_types[i], &wrap_skip))));
+        sequence.push((
+            field_names[i],
+            ts(&wrap_leaf_type(&field_types[i], &wrap_skip)),
+        ));
     }
     assert_eq!(sequence[0].0, "kw");
     assert_eq!(sequence[1].0, "name");
@@ -335,8 +344,7 @@ fn precedence_param_parsed_from_field_then_params() {
 
 #[test]
 fn precedence_with_associativity_params() {
-    let parsed: FieldThenParams =
-        parse_quote!(BinOp, precedence = 3, associativity = "left");
+    let parsed: FieldThenParams = parse_quote!(BinOp, precedence = 3, associativity = "left");
     assert_eq!(parsed.params.len(), 2);
     assert_eq!(parsed.params[0].path.to_string(), "precedence");
     assert_eq!(parsed.params[1].path.to_string(), "associativity");

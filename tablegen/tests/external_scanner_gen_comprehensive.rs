@@ -110,10 +110,7 @@ fn one_token_v2_generates_token_count_constant() {
         code.contains("EXTERNAL_TOKEN_COUNT"),
         "single-token grammar must define EXTERNAL_TOKEN_COUNT"
     );
-    assert!(
-        code.contains("1usize"),
-        "EXTERNAL_TOKEN_COUNT should be 1"
-    );
+    assert!(code.contains("1usize"), "EXTERNAL_TOKEN_COUNT should be 1");
 }
 
 #[test]
@@ -239,10 +236,7 @@ fn v2_signature_states_is_static_slice() {
         code.contains("static EXTERNAL_SCANNER_STATES"),
         "states must be a static"
     );
-    assert!(
-        code.contains("& [bool]"),
-        "states must be a bool slice"
-    );
+    assert!(code.contains("& [bool]"), "states must be a bool slice");
 }
 
 #[test]
@@ -256,10 +250,7 @@ fn v2_signature_symbol_map_is_static_slice() {
         code.contains("static EXTERNAL_SCANNER_SYMBOL_MAP"),
         "symbol map must be a static"
     );
-    assert!(
-        code.contains("& [u16]"),
-        "symbol map must be a u16 slice"
-    );
+    assert!(code.contains("& [u16]"), "symbol map must be a u16 slice");
 }
 
 #[test]
@@ -293,10 +284,7 @@ fn v1_generated_code_embeds_all_token_ids() {
     let scanner = V1Generator::new(grammar_with_tokens(&tokens));
     let code = scanner.generate_scanner_interface().to_string();
     for id in &ids {
-        assert!(
-            code.contains(&id.to_string()),
-            "must embed token ID {id}"
-        );
+        assert!(code.contains(&id.to_string()), "must embed token ID {id}");
     }
 }
 
@@ -388,7 +376,11 @@ fn v2_flat_bitmap_bool_count_equals_states_times_tokens() {
     let content = &code[start..end];
     let true_count = content.matches("true").count();
     let false_count = content.matches("false").count();
-    assert_eq!(true_count + false_count, 12, "4 states × 3 tokens = 12 bools");
+    assert_eq!(
+        true_count + false_count,
+        12,
+        "4 states × 3 tokens = 12 bools"
+    );
 }
 
 #[test]
@@ -407,11 +399,7 @@ fn v2_empty_scanner_states_produces_zero_state_count() {
 fn v2_validity_reflects_parse_table_exactly() {
     let g = grammar_with_tokens(&[("INDENT", 10), ("DEDENT", 11)]);
     let mut pt = test_helpers::create_minimal_parse_table(g.clone());
-    pt.external_scanner_states = vec![
-        vec![true, false],
-        vec![false, true],
-        vec![true, true],
-    ];
+    pt.external_scanner_states = vec![vec![true, false], vec![false, true], vec![true, true]];
     let scanner = V2Generator::new(g, pt.clone());
     assert_eq!(scanner.compute_state_validity(), pt.external_scanner_states);
 }

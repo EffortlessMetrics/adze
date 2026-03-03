@@ -167,7 +167,10 @@ fn shift_and_multiple_reduces() {
         Action::Reduce(RuleId(0)),
         Action::Reduce(RuleId(2)),
     ];
-    let shift_count = cell.iter().filter(|a| matches!(a, Action::Shift(_))).count();
+    let shift_count = cell
+        .iter()
+        .filter(|a| matches!(a, Action::Shift(_)))
+        .count();
     let reduce_count = cell
         .iter()
         .filter(|a| matches!(a, Action::Reduce(_)))
@@ -202,9 +205,18 @@ fn parse_rule_lhs_and_rhs_len() {
 #[test]
 fn parse_rule_multiple_productions() {
     let rules = vec![
-        ParseRule { lhs: SymbolId(10), rhs_len: 1 }, // rule 0: S -> a
-        ParseRule { lhs: SymbolId(10), rhs_len: 3 }, // rule 1: S -> a b c
-        ParseRule { lhs: SymbolId(11), rhs_len: 2 }, // rule 2: E -> a b
+        ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 1,
+        }, // rule 0: S -> a
+        ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 3,
+        }, // rule 1: S -> a b c
+        ParseRule {
+            lhs: SymbolId(11),
+            rhs_len: 2,
+        }, // rule 2: E -> a b
     ];
     assert_eq!(rules.len(), 3);
     assert_eq!(rules[0].rhs_len, 1);
@@ -215,8 +227,14 @@ fn parse_rule_multiple_productions() {
 #[test]
 fn table_rule_lookup_by_rule_id() {
     let rules = vec![
-        ParseRule { lhs: SymbolId(10), rhs_len: 2 },
-        ParseRule { lhs: SymbolId(11), rhs_len: 4 },
+        ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 2,
+        },
+        ParseRule {
+            lhs: SymbolId(11),
+            rhs_len: 4,
+        },
     ];
     let mut sym_idx = BTreeMap::new();
     sym_idx.insert(SymbolId(0), 0);
@@ -234,8 +252,14 @@ fn table_rule_lookup_by_rule_id() {
 #[test]
 fn reduce_action_references_correct_rule() {
     let rules = vec![
-        ParseRule { lhs: SymbolId(10), rhs_len: 1 },
-        ParseRule { lhs: SymbolId(11), rhs_len: 3 },
+        ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 1,
+        },
+        ParseRule {
+            lhs: SymbolId(11),
+            rhs_len: 3,
+        },
     ];
     let action = Action::Reduce(RuleId(1));
     if let Action::Reduce(rid) = action {
@@ -248,25 +272,37 @@ fn reduce_action_references_correct_rule() {
 
 #[test]
 fn symbol_count_zero_for_epsilon() {
-    let rule = ParseRule { lhs: SymbolId(10), rhs_len: 0 };
+    let rule = ParseRule {
+        lhs: SymbolId(10),
+        rhs_len: 0,
+    };
     assert_eq!(rule.rhs_len, 0);
 }
 
 #[test]
 fn symbol_count_one() {
-    let rule = ParseRule { lhs: SymbolId(10), rhs_len: 1 };
+    let rule = ParseRule {
+        lhs: SymbolId(10),
+        rhs_len: 1,
+    };
     assert_eq!(rule.rhs_len, 1);
 }
 
 #[test]
 fn symbol_count_large() {
-    let rule = ParseRule { lhs: SymbolId(10), rhs_len: 100 };
+    let rule = ParseRule {
+        lhs: SymbolId(10),
+        rhs_len: 100,
+    };
     assert_eq!(rule.rhs_len, 100);
 }
 
 #[test]
 fn symbol_count_max() {
-    let rule = ParseRule { lhs: SymbolId(10), rhs_len: u16::MAX };
+    let rule = ParseRule {
+        lhs: SymbolId(10),
+        rhs_len: u16::MAX,
+    };
     assert_eq!(rule.rhs_len, u16::MAX);
 }
 
@@ -291,14 +327,13 @@ fn various_rhs_lengths_in_table() {
 
 #[test]
 fn epsilon_production_in_table() {
-    let rules = vec![ParseRule { lhs: SymbolId(10), rhs_len: 0 }];
+    let rules = vec![ParseRule {
+        lhs: SymbolId(10),
+        rhs_len: 0,
+    }];
     let mut sym_idx = BTreeMap::new();
     sym_idx.insert(SymbolId(1), 0);
-    let table = minimal_table(
-        vec![vec![vec![Action::Reduce(RuleId(0))]]],
-        rules,
-        sym_idx,
-    );
+    let table = minimal_table(vec![vec![vec![Action::Reduce(RuleId(0))]]], rules, sym_idx);
     let actions = table.actions(StateId(0), SymbolId(1));
     assert_eq!(actions.len(), 1);
     assert_eq!(actions[0], Action::Reduce(RuleId(0)));
@@ -309,8 +344,14 @@ fn epsilon_production_in_table() {
 #[test]
 fn epsilon_and_nonempty_productions_coexist() {
     let rules = vec![
-        ParseRule { lhs: SymbolId(10), rhs_len: 0 }, // epsilon
-        ParseRule { lhs: SymbolId(10), rhs_len: 2 }, // non-epsilon
+        ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 0,
+        }, // epsilon
+        ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 2,
+        }, // non-epsilon
     ];
     let mut sym_idx = BTreeMap::new();
     sym_idx.insert(SymbolId(1), 0);
@@ -328,8 +369,14 @@ fn epsilon_and_nonempty_productions_coexist() {
 #[test]
 fn multiple_epsilon_reduces_in_cell() {
     let rules = vec![
-        ParseRule { lhs: SymbolId(10), rhs_len: 0 },
-        ParseRule { lhs: SymbolId(11), rhs_len: 0 },
+        ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 0,
+        },
+        ParseRule {
+            lhs: SymbolId(11),
+            rhs_len: 0,
+        },
     ];
     let cell: ActionCell = vec![Action::Reduce(RuleId(0)), Action::Reduce(RuleId(1))];
     assert_eq!(cell.len(), 2);
@@ -371,7 +418,10 @@ fn reduce_not_equal_to_error() {
 fn reduce_debug_format() {
     let a = Action::Reduce(RuleId(42));
     let dbg = format!("{a:?}");
-    assert!(dbg.contains("Reduce"), "Debug should contain 'Reduce': {dbg}");
+    assert!(
+        dbg.contains("Reduce"),
+        "Debug should contain 'Reduce': {dbg}"
+    );
     assert!(dbg.contains("42"), "Debug should contain rule id 42: {dbg}");
 }
 
@@ -402,7 +452,10 @@ fn table_lookup_reduce_in_state_0() {
     sym_idx.insert(SymbolId(1), 0);
     let table = minimal_table(
         vec![vec![vec![Action::Reduce(RuleId(0))]]],
-        vec![ParseRule { lhs: SymbolId(10), rhs_len: 1 }],
+        vec![ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 1,
+        }],
         sym_idx,
     );
     let actions = table.actions(StateId(0), SymbolId(1));
@@ -424,7 +477,10 @@ fn table_lookup_unknown_symbol_returns_empty() {
     sym_idx.insert(SymbolId(1), 0);
     let table = minimal_table(
         vec![vec![vec![Action::Reduce(RuleId(0))]]],
-        vec![ParseRule { lhs: SymbolId(10), rhs_len: 1 }],
+        vec![ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 1,
+        }],
         sym_idx,
     );
     // SymbolId(99) not in symbol_to_index
@@ -438,7 +494,10 @@ fn table_lookup_out_of_bounds_state_returns_empty() {
     sym_idx.insert(SymbolId(1), 0);
     let table = minimal_table(
         vec![vec![vec![Action::Reduce(RuleId(0))]]],
-        vec![ParseRule { lhs: SymbolId(10), rhs_len: 1 }],
+        vec![ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 1,
+        }],
         sym_idx,
     );
     let actions = table.actions(StateId(999), SymbolId(1));
@@ -453,13 +512,22 @@ fn table_with_reduce_across_multiple_states() {
     let table = minimal_table(
         vec![
             // state 0: reduce by rule 0 on sym 1, shift on sym 2
-            vec![vec![Action::Reduce(RuleId(0))], vec![Action::Shift(StateId(1))]],
+            vec![
+                vec![Action::Reduce(RuleId(0))],
+                vec![Action::Shift(StateId(1))],
+            ],
             // state 1: reduce by rule 1 on sym 2
             vec![vec![], vec![Action::Reduce(RuleId(1))]],
         ],
         vec![
-            ParseRule { lhs: SymbolId(10), rhs_len: 1 },
-            ParseRule { lhs: SymbolId(11), rhs_len: 2 },
+            ParseRule {
+                lhs: SymbolId(10),
+                rhs_len: 1,
+            },
+            ParseRule {
+                lhs: SymbolId(11),
+                rhs_len: 2,
+            },
         ],
         sym_idx,
     );
@@ -482,7 +550,10 @@ fn table_glr_cell_with_shift_and_reduce() {
     let cell: ActionCell = vec![Action::Shift(StateId(2)), Action::Reduce(RuleId(0))];
     let table = minimal_table(
         vec![vec![cell]],
-        vec![ParseRule { lhs: SymbolId(10), rhs_len: 1 }],
+        vec![ParseRule {
+            lhs: SymbolId(10),
+            rhs_len: 1,
+        }],
         sym_idx,
     );
     let actions = table.actions(StateId(0), SymbolId(1));
@@ -499,8 +570,14 @@ fn table_glr_cell_with_multiple_reduces() {
     let table = minimal_table(
         vec![vec![cell]],
         vec![
-            ParseRule { lhs: SymbolId(10), rhs_len: 1 },
-            ParseRule { lhs: SymbolId(11), rhs_len: 3 },
+            ParseRule {
+                lhs: SymbolId(10),
+                rhs_len: 1,
+            },
+            ParseRule {
+                lhs: SymbolId(11),
+                rhs_len: 3,
+            },
         ],
         sym_idx,
     );
@@ -518,10 +595,7 @@ fn table_glr_cell_with_multiple_reduces() {
 
 #[test]
 fn fork_wrapping_reduces() {
-    let fork = Action::Fork(vec![
-        Action::Reduce(RuleId(0)),
-        Action::Reduce(RuleId(1)),
-    ]);
+    let fork = Action::Fork(vec![Action::Reduce(RuleId(0)), Action::Reduce(RuleId(1))]);
     if let Action::Fork(inner) = &fork {
         assert_eq!(inner.len(), 2);
         assert!(inner.iter().all(|a| matches!(a, Action::Reduce(_))));
@@ -532,10 +606,7 @@ fn fork_wrapping_reduces() {
 
 #[test]
 fn fork_wrapping_shift_and_reduce() {
-    let fork = Action::Fork(vec![
-        Action::Shift(StateId(5)),
-        Action::Reduce(RuleId(3)),
-    ]);
+    let fork = Action::Fork(vec![Action::Shift(StateId(5)), Action::Reduce(RuleId(3))]);
     if let Action::Fork(inner) = &fork {
         assert_eq!(inner.len(), 2);
         assert!(matches!(inner[0], Action::Shift(StateId(5))));

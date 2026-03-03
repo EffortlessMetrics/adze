@@ -238,7 +238,10 @@ fn terminal_string_token_in_lang_gen() {
     );
     let pt = make_lang_gen_table(&grammar, 2);
     let output = lang_gen_output(&grammar, &pt);
-    assert!(output.contains("semicolon"), "string token name must appear");
+    assert!(
+        output.contains("semicolon"),
+        "string token name must appear"
+    );
 }
 
 #[test]
@@ -389,7 +392,9 @@ fn ordering_eof_at_index_zero_lang_gen() {
     );
     let pt = make_lang_gen_table(&grammar, 2);
     let output = lang_gen_output(&grammar, &pt);
-    let idx = output.find("SYMBOL_NAMES").expect("SYMBOL_NAMES must exist");
+    let idx = output
+        .find("SYMBOL_NAMES")
+        .expect("SYMBOL_NAMES must exist");
     let snippet = &output[idx..idx + 300.min(output.len() - idx)];
     assert!(
         snippet.contains("\"end\""),
@@ -410,7 +415,9 @@ fn ordering_eof_first_byte_in_abi() {
     s2i.insert(SymbolId(1), 1);
     let output = abi_output(&grammar, s2i, SymbolId(0));
     // SYMBOL_NAME_0 should hold "end" → first byte 'e'=101
-    let sym0_pos = output.find("SYMBOL_NAME_0").expect("SYMBOL_NAME_0 must exist");
+    let sym0_pos = output
+        .find("SYMBOL_NAME_0")
+        .expect("SYMBOL_NAME_0 must exist");
     let after = &output[sym0_pos..];
     assert!(
         after[..200.min(after.len())].contains("101u8"),
@@ -654,7 +661,10 @@ fn large_table_50_tokens() {
         "SYMBOL_NAME_50 must exist for 50 tokens + EOF"
     );
     // Spot-check via bytes: "tok_1" starts with 't'=116
-    assert!(output.contains("116u8"), "byte for 't' in tok_N must appear");
+    assert!(
+        output.contains("116u8"),
+        "byte for 't' in tok_N must appear"
+    );
 }
 
 #[test]
@@ -667,9 +677,7 @@ fn large_table_100_symbols_mixed() {
             )
         })
         .collect();
-    let rules: Vec<Rule> = (51..=100)
-        .map(|i| simple_rule(i, vec![], i - 51))
-        .collect();
+    let rules: Vec<Rule> = (51..=100).map(|i| simple_rule(i, vec![], i - 51)).collect();
     let rule_names: Vec<(SymbolId, String)> = (51..=100)
         .map(|i| (SymbolId(i), format!("nt_{}", i)))
         .collect();
@@ -682,7 +690,9 @@ fn large_table_100_symbols_mixed() {
     // token_count = 51 (EOF + 50 terminals), so nonterminals start at index 51
     let mut pt = make_abi_table(&grammar, s2i, SymbolId(0));
     pt.token_count = 51;
-    let output = AbiLanguageBuilder::new(&grammar, &pt).generate().to_string();
+    let output = AbiLanguageBuilder::new(&grammar, &pt)
+        .generate()
+        .to_string();
     // Check last symbol name definition
     assert!(
         output.contains("SYMBOL_NAME_100"),

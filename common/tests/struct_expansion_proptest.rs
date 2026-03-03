@@ -6,11 +6,11 @@
 //! struct, multi field struct, struct with named fields, struct expansion
 //! determinism, struct with Option fields, and struct with Vec fields.
 
-use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type, FieldThenParams};
+use adze_common::{FieldThenParams, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, ItemStruct, Type};
+use syn::{ItemStruct, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -69,8 +69,7 @@ fn seq_rule_types(parsed: &ItemStruct, extract: &str, filter: &[&str]) -> Vec<St
         .fields
         .iter()
         .map(|f| {
-            let (inner, extracted) =
-                try_extract_inner_type(&f.ty, extract, &skip_set(&[]));
+            let (inner, extracted) = try_extract_inner_type(&f.ty, extract, &skip_set(&[]));
             let base = if extracted { inner } else { f.ty.clone() };
             let filtered = filter_inner_type(&base, &skip_set(filter));
             ty_str(&wrap_leaf_type(&filtered, &skip_set(&[])))

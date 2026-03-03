@@ -7,12 +7,12 @@
 //! and validity of expansion output as parseable Rust.
 
 use adze_common::{
-    filter_inner_type, try_extract_inner_type, wrap_leaf_type, FieldThenParams, NameValueExpr,
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, ItemEnum, ItemStruct, Type};
+use syn::{ItemEnum, ItemStruct, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies

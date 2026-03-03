@@ -89,11 +89,7 @@ fn make_empty_table(states: usize, terms: usize, nonterms: usize, externals: usi
 }
 
 /// Build a grammar with the given token and rule names.
-fn grammar_with(
-    name: &str,
-    token_names: &[String],
-    rule_names: &[String],
-) -> Grammar {
+fn grammar_with(name: &str, token_names: &[String], rule_names: &[String]) -> Grammar {
     let mut grammar = Grammar::new(name.to_string());
     for (i, tname) in token_names.iter().enumerate() {
         grammar.tokens.insert(

@@ -7,10 +7,7 @@ use proptest::prelude::*;
 
 /// Strategy for optional alias names.
 fn alias_entry_strategy() -> impl Strategy<Value = Option<String>> {
-    prop_oneof![
-        Just(None),
-        "[a-z][a-z0-9_]{0,15}".prop_map(Some),
-    ]
+    prop_oneof![Just(None), "[a-z][a-z0-9_]{0,15}".prop_map(Some),]
 }
 
 /// Strategy for a Vec of optional alias entries.

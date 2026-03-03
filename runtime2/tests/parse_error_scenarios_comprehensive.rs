@@ -4,8 +4,8 @@
 //!
 //! Tests various error construction, formatting, comparison, and recovery patterns.
 
-use adze_runtime::error::{ErrorLocation, ParseError, ParseErrorKind};
 use adze_runtime::Parser;
+use adze_runtime::error::{ErrorLocation, ParseError, ParseErrorKind};
 
 // ---------------------------------------------------------------------------
 // 1. Error kind construction
@@ -505,8 +505,5 @@ fn parser_default_has_no_timeout() {
 fn parser_set_timeout_does_not_error() {
     let mut parser = Parser::new();
     parser.set_timeout(std::time::Duration::from_secs(5));
-    assert_eq!(
-        parser.timeout(),
-        Some(std::time::Duration::from_secs(5))
-    );
+    assert_eq!(parser.timeout(), Some(std::time::Duration::from_secs(5)));
 }

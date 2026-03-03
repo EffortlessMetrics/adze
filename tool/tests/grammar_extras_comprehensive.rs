@@ -87,7 +87,10 @@ fn whitespace_extra_generates_rule() {
         "#,
     );
     let rules = g["rules"].as_object().unwrap();
-    assert!(rules.contains_key("Whitespace"), "Whitespace rule should exist");
+    assert!(
+        rules.contains_key("Whitespace"),
+        "Whitespace rule should exist"
+    );
 }
 
 #[test]
@@ -113,8 +116,14 @@ fn whitespace_extra_rule_contains_pattern() {
     // The extra struct generates a FIELD rule plus a sub-rule with the PATTERN.
     // Serialize all rules to confirm the pattern is present somewhere.
     let all_rules_str = serde_json::to_string(&g["rules"]).unwrap();
-    assert!(all_rules_str.contains("PATTERN"), "rules should contain a PATTERN");
-    assert!(all_rules_str.contains(r"\s"), "rules should contain \\s pattern");
+    assert!(
+        all_rules_str.contains("PATTERN"),
+        "rules should contain a PATTERN"
+    );
+    assert!(
+        all_rules_str.contains(r"\s"),
+        "rules should contain \\s pattern"
+    );
 }
 
 #[test]
@@ -323,7 +332,10 @@ fn extras_key_exists_in_grammar_json() {
         }
         "#,
     );
-    assert!(g.get("extras").is_some(), "grammar JSON should have 'extras' key");
+    assert!(
+        g.get("extras").is_some(),
+        "grammar JSON should have 'extras' key"
+    );
     assert!(g["extras"].is_array(), "'extras' should be an array");
 }
 
@@ -348,8 +360,14 @@ fn extras_entries_have_type_and_name() {
         "#,
     );
     for entry in extras_array(&g) {
-        assert!(entry.get("type").is_some(), "each extras entry should have 'type'");
-        assert!(entry.get("name").is_some(), "each extras entry should have 'name'");
+        assert!(
+            entry.get("type").is_some(),
+            "each extras entry should have 'type'"
+        );
+        assert!(
+            entry.get("name").is_some(),
+            "each extras entry should have 'name'"
+        );
     }
 }
 
@@ -433,7 +451,10 @@ fn regex_pattern_extra_preserved_in_rule() {
     );
     // The pattern lives in the sub-rule (e.g. Ws__ws); check all rules.
     let all_rules_str = serde_json::to_string(&g["rules"]).unwrap();
-    assert!(all_rules_str.contains(r"\s+"), "regex pattern should be preserved in the rules");
+    assert!(
+        all_rules_str.contains(r"\s+"),
+        "regex pattern should be preserved in the rules"
+    );
 }
 
 #[test]
@@ -458,7 +479,10 @@ fn complex_regex_pattern_extra() {
     );
     // PATTERN lives in sub-rule; check all rules.
     let all_rules_str = serde_json::to_string(&g["rules"]).unwrap();
-    assert!(all_rules_str.contains("PATTERN"), "complex regex extra should produce a PATTERN rule");
+    assert!(
+        all_rules_str.contains("PATTERN"),
+        "complex regex extra should produce a PATTERN rule"
+    );
 }
 
 #[test]
@@ -513,8 +537,14 @@ fn text_pattern_extra_preserved_in_rule() {
     );
     // STRING lives in the sub-rule (e.g. Semicolon__semi); check all rules.
     let all_rules_str = serde_json::to_string(&g["rules"]).unwrap();
-    assert!(all_rules_str.contains("STRING"), "text extra should produce a STRING rule");
-    assert!(all_rules_str.contains(";"), "text value should be preserved");
+    assert!(
+        all_rules_str.contains("STRING"),
+        "text extra should produce a STRING rule"
+    );
+    assert!(
+        all_rules_str.contains(";"),
+        "text value should be preserved"
+    );
 }
 
 #[test]
@@ -560,7 +590,10 @@ fn no_extras_produces_empty_extras_array() {
         "#,
     );
     let extras = extras_array(&g);
-    assert!(extras.is_empty(), "grammar without #[adze::extra] should have empty extras");
+    assert!(
+        extras.is_empty(),
+        "grammar without #[adze::extra] should have empty extras"
+    );
 }
 
 #[test]
@@ -577,7 +610,10 @@ fn no_extras_grammar_still_has_extras_key() {
         }
         "#,
     );
-    assert!(g.get("extras").is_some(), "even without extras the key should exist");
+    assert!(
+        g.get("extras").is_some(),
+        "even without extras the key should exist"
+    );
 }
 
 #[test]
@@ -600,7 +636,9 @@ fn no_extras_grammar_rules_unaffected() {
     // No extras-related rule names should be present
     let rule_names: Vec<&String> = rules.keys().collect();
     assert!(
-        !rule_names.iter().any(|n| n.contains("Whitespace") || n.contains("Comment")),
+        !rule_names
+            .iter()
+            .any(|n| n.contains("Whitespace") || n.contains("Comment")),
         "no extras rules should leak in"
     );
 }
@@ -632,7 +670,10 @@ fn extras_do_not_appear_as_regular_rule_references() {
     // source_file should reference Root, not Ws
     let source_file = &g["rules"]["source_file"];
     let sf_str = serde_json::to_string(source_file).unwrap();
-    assert!(!sf_str.contains("\"Ws\""), "source_file should not reference the extra");
+    assert!(
+        !sf_str.contains("\"Ws\""),
+        "source_file should not reference the extra"
+    );
 }
 
 #[test]
@@ -849,8 +890,14 @@ fn non_extra_struct_not_in_extras_array() {
         "#,
     );
     let names = extras_names(&g);
-    assert!(!names.contains(&"Child".to_string()), "non-extra struct should not be in extras");
-    assert!(!names.contains(&"Root".to_string()), "language root should not be in extras");
+    assert!(
+        !names.contains(&"Child".to_string()),
+        "non-extra struct should not be in extras"
+    );
+    assert!(
+        !names.contains(&"Root".to_string()),
+        "language root should not be in extras"
+    );
     assert!(names.contains(&"Ws".to_string()));
 }
 
@@ -934,7 +981,10 @@ fn extras_do_not_affect_word_field() {
         "#,
     );
     // word should be null when no #[adze::word] is present
-    assert!(g["word"].is_null(), "word field should not be set by extras");
+    assert!(
+        g["word"].is_null(),
+        "word field should not be set by extras"
+    );
 }
 
 #[test]

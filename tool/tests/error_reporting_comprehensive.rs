@@ -3,8 +3,8 @@
 //! Comprehensive tests for error reporting in adze-tool: error types, messages,
 //! propagation, formatting, collection, and recovery.
 
-use adze_tool::error::ToolError;
 use adze_tool::ToolResult;
+use adze_tool::error::ToolError;
 
 // ── 1. Error types and variants ─────────────────────────────────────────────
 
@@ -55,7 +55,10 @@ fn invalid_production_carries_details() {
     };
     let msg = err.to_string();
     assert!(msg.contains("empty RHS"), "missing details in: {msg}");
-    assert!(msg.contains("invalid production"), "missing prefix in: {msg}");
+    assert!(
+        msg.contains("invalid production"),
+        "missing prefix in: {msg}"
+    );
 }
 
 // ── 2. Error messages for different failures ────────────────────────────────
@@ -119,7 +122,10 @@ fn other_variant_preserves_arbitrary_text() {
 #[test]
 fn io_error_propagates_via_from() {
     fn simulate_io() -> ToolResult<()> {
-        Err(std::io::Error::new(std::io::ErrorKind::NotFound, "file not found"))?;
+        Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "file not found",
+        ))?;
         Ok(())
     }
     let err = simulate_io().unwrap_err();
@@ -172,7 +178,10 @@ fn tablegen_error_propagates_via_from() {
 #[test]
 fn syn_error_propagates_via_from() {
     fn syn_op() -> ToolResult<()> {
-        Err(syn::Error::new(proc_macro2::Span::call_site(), "unexpected token"))?;
+        Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "unexpected token",
+        ))?;
         Ok(())
     }
     let err = syn_op().unwrap_err();

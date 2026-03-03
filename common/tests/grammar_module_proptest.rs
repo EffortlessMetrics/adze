@@ -6,11 +6,11 @@
 //! grammar name derivation, and handling of various item types within
 //! modules annotated with `#[adze::grammar]`.
 
-use adze_common::{try_extract_inner_type, filter_inner_type, wrap_leaf_type, NameValueExpr};
+use adze_common::{NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, Attribute, Ident, Item, ItemMod, Type};
+use syn::{Attribute, Ident, Item, ItemMod, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -46,11 +46,7 @@ fn leaf_type_name() -> impl Strategy<Value = &'static str> {
 
 /// Type names usable for struct fields.
 fn field_type_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(
-        &[
-            "i32", "u32", "f64", "bool", "String", "usize", "u8", "i64",
-        ][..],
-    )
+    prop::sample::select(&["i32", "u32", "f64", "bool", "String", "usize", "u8", "i64"][..])
 }
 
 /// Item kind selector for module content generation.
@@ -64,13 +60,15 @@ enum ItemKind {
 }
 
 fn item_kind_strategy() -> impl Strategy<Value = ItemKind> {
-    prop::sample::select(&[
-        ItemKind::Struct,
-        ItemKind::Enum,
-        ItemKind::Fn,
-        ItemKind::Const,
-        ItemKind::TypeAlias,
-    ][..])
+    prop::sample::select(
+        &[
+            ItemKind::Struct,
+            ItemKind::Enum,
+            ItemKind::Fn,
+            ItemKind::Const,
+            ItemKind::TypeAlias,
+        ][..],
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -145,7 +143,10 @@ fn capitalize_first(s: &str) -> String {
 
 /// Derive a PascalCase grammar type name from a snake_case module name.
 fn derive_grammar_type_name(mod_name: &str) -> String {
-    mod_name.split('_').map(|part| capitalize_first(part)).collect()
+    mod_name
+        .split('_')
+        .map(|part| capitalize_first(part))
+        .collect()
 }
 
 // ---------------------------------------------------------------------------

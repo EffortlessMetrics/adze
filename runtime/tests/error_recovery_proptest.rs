@@ -2,8 +2,8 @@
 //! Property-based tests for the `adze::error_recovery` module.
 
 use adze::error_recovery::{
-    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
-    RecoveryAction, RecoveryStrategy,
+    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
+    RecoveryStrategy,
 };
 use adze_ir::SymbolId;
 use proptest::prelude::*;

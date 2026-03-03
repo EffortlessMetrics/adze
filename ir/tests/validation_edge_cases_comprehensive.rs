@@ -52,14 +52,20 @@ fn validate(g: &Grammar) -> ValidationResult {
 fn no_rules_empty_grammar_error() {
     let g = Grammar::new("empty".into());
     let r = validate(&g);
-    assert!(has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 #[test]
 fn default_grammar_reports_empty() {
     let g = Grammar::default();
     let r = validate(&g);
-    assert!(has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 #[test]
@@ -68,7 +74,10 @@ fn grammar_with_only_tokens_is_empty() {
     let (tid, tok) = make_token(1, "a", "a");
     g.tokens.insert(tid, tok);
     let r = validate(&g);
-    assert!(has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +92,10 @@ fn grammar_with_only_externals_is_empty() {
         symbol_id: SymbolId(50),
     });
     let r = validate(&g);
-    assert!(has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -443,7 +455,11 @@ fn valid_grammar_two_nonterminals() {
         .iter()
         .filter(|e| !matches!(e, ValidationError::CyclicRule { .. }))
         .collect();
-    assert!(real_errors.is_empty(), "unexpected errors: {:?}", real_errors);
+    assert!(
+        real_errors.is_empty(),
+        "unexpected errors: {:?}",
+        real_errors
+    );
 }
 
 #[test]

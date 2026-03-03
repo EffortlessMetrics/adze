@@ -114,7 +114,11 @@ fn language_attr_is_path_no_args() {
         #[adze::language]
         pub struct Root {}
     };
-    let lang_attr = s.attrs.iter().find(|a| is_adze_attr(a, "language")).unwrap();
+    let lang_attr = s
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "language"))
+        .unwrap();
     assert!(
         matches!(lang_attr.meta, syn::Meta::Path(_)),
         "Expected path-style attribute with no arguments"
@@ -129,7 +133,11 @@ fn language_attr_path_segments() {
         #[adze::language]
         pub struct Root {}
     };
-    let lang_attr = s.attrs.iter().find(|a| is_adze_attr(a, "language")).unwrap();
+    let lang_attr = s
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "language"))
+        .unwrap();
     let segs: Vec<_> = lang_attr.path().segments.iter().collect();
     assert_eq!(segs.len(), 2);
     assert_eq!(segs[0].ident.to_string(), "adze");
@@ -181,7 +189,11 @@ fn language_with_derives() {
             token: String,
         }
     };
-    let attr_names: Vec<_> = s.attrs.iter().map(|a| a.to_token_stream().to_string()).collect();
+    let attr_names: Vec<_> = s
+        .attrs
+        .iter()
+        .map(|a| a.to_token_stream().to_string())
+        .collect();
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
     // Derive is preserved alongside language
     assert!(attr_names.iter().any(|n| n.contains("derive")));
@@ -203,7 +215,10 @@ fn language_with_derives_on_enum() {
     };
     assert!(e.attrs.iter().any(|a| is_adze_attr(a, "language")));
     let derive_attr = e.attrs.iter().find(|a| a.path().is_ident("derive"));
-    assert!(derive_attr.is_some(), "derive attribute should be preserved");
+    assert!(
+        derive_attr.is_some(),
+        "derive attribute should be preserved"
+    );
 }
 
 // ── 9. Language with additional doc attributes ──────────────────────────────
@@ -220,7 +235,11 @@ fn language_with_doc_comments() {
     };
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
     // doc comment becomes a doc attribute
-    let doc_attrs: Vec<_> = s.attrs.iter().filter(|a| a.path().is_ident("doc")).collect();
+    let doc_attrs: Vec<_> = s
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("doc"))
+        .collect();
     assert!(!doc_attrs.is_empty(), "doc attribute should be preserved");
 }
 
@@ -702,10 +721,7 @@ fn language_type_name_preserved() {
             }
         }
     });
-    assert_eq!(
-        find_language_type(&m),
-        Some("MyCustomRootName".to_string())
-    );
+    assert_eq!(find_language_type(&m), Some("MyCustomRootName".to_string()));
 }
 
 // ── 35. Language enum with prec_right variant ───────────────────────────────

@@ -10,9 +10,7 @@
 //!   - Output is deterministic across multiple runs
 //!   - Simple and complex grammars produce correct NODE_TYPES
 
-use adze_ir::{
-    FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
-};
+use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use adze_tablegen::NodeTypesGenerator;
 use proptest::prelude::*;
 use serde_json::Value;
@@ -103,11 +101,7 @@ fn grammar_with_string_tokens(name: &str, literals: &[String]) -> Grammar {
 }
 
 /// Build a grammar with both named rules and string tokens.
-fn grammar_with_rules_and_tokens(
-    name: &str,
-    n_rules: usize,
-    n_string_tokens: usize,
-) -> Grammar {
+fn grammar_with_rules_and_tokens(name: &str, n_rules: usize, n_string_tokens: usize) -> Grammar {
     let mut grammar = Grammar::new(name.to_string());
 
     // String tokens start at id 0
@@ -138,9 +132,7 @@ fn grammar_with_rules_and_tokens(
     let base = (n_string_tokens + 1) as u16;
     for i in 0..n_rules {
         let sid = SymbolId(base + i as u16);
-        grammar
-            .rule_names
-            .insert(sid, format!("rule{}", i));
+        grammar.rule_names.insert(sid, format!("rule{}", i));
         grammar.add_rule(Rule {
             lhs: sid,
             rhs: vec![Symbol::Terminal(regex_tok)],
@@ -214,9 +206,7 @@ fn grammar_with_chain(name: &str, depth: usize) -> Grammar {
     );
     for i in 0..depth {
         let rule_id = SymbolId((i as u16) + 10);
-        grammar
-            .rule_names
-            .insert(rule_id, format!("chain{}", i));
+        grammar.rule_names.insert(rule_id, format!("chain{}", i));
         let rhs = if i == 0 {
             vec![Symbol::Terminal(tok)]
         } else {
@@ -791,9 +781,11 @@ fn optional_symbol_in_rhs() {
     let generator = NodeTypesGenerator::new(&grammar);
     let result = generator.generate().unwrap();
     let entries = parse_node_types(&result);
-    assert!(entries.iter().any(|e| {
-        e.get("type").and_then(|t| t.as_str()) == Some("maybe")
-    }));
+    assert!(
+        entries
+            .iter()
+            .any(|e| { e.get("type").and_then(|t| t.as_str()) == Some("maybe") })
+    );
 }
 
 /// A grammar with repeat symbol in RHS generates valid NODE_TYPES.
@@ -823,9 +815,11 @@ fn repeat_symbol_in_rhs() {
     let result = generator.generate().unwrap();
     assert!(serde_json::from_str::<Value>(&result).is_ok());
     let entries = parse_node_types(&result);
-    assert!(entries.iter().any(|e| {
-        e.get("type").and_then(|t| t.as_str()) == Some("many")
-    }));
+    assert!(
+        entries
+            .iter()
+            .any(|e| { e.get("type").and_then(|t| t.as_str()) == Some("many") })
+    );
 }
 
 /// A grammar with choice symbol generates valid output.
@@ -898,7 +892,9 @@ fn sequence_symbol_in_rhs() {
     let result = generator.generate().unwrap();
     assert!(serde_json::from_str::<Value>(&result).is_ok());
     let entries = parse_node_types(&result);
-    assert!(entries.iter().any(|e| {
-        e.get("type").and_then(|t| t.as_str()) == Some("pair")
-    }));
+    assert!(
+        entries
+            .iter()
+            .any(|e| { e.get("type").and_then(|t| t.as_str()) == Some("pair") })
+    );
 }

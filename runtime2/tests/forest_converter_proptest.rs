@@ -571,7 +571,10 @@ fn invalid_root_node_id_returns_error() {
     };
     let converter = ForestConverter::new(DisambiguationStrategy::First);
     let err = converter.to_tree(&forest, b"").unwrap_err();
-    assert!(matches!(err, ConversionError::InvalidNodeId { node_id: 42 }));
+    assert!(matches!(
+        err,
+        ConversionError::InvalidNodeId { node_id: 42 }
+    ));
 }
 
 #[test]
@@ -586,7 +589,10 @@ fn invalid_child_node_id_returns_error() {
     };
     let converter = ForestConverter::new(DisambiguationStrategy::First);
     let err = converter.to_tree(&forest, b"x").unwrap_err();
-    assert!(matches!(err, ConversionError::InvalidNodeId { node_id: 99 }));
+    assert!(matches!(
+        err,
+        ConversionError::InvalidNodeId { node_id: 99 }
+    ));
 }
 
 proptest! {
@@ -618,7 +624,10 @@ proptest! {
 
 #[test]
 fn conversion_error_no_roots_display() {
-    assert_eq!(ConversionError::NoRoots.to_string(), "Forest has no root nodes");
+    assert_eq!(
+        ConversionError::NoRoots.to_string(),
+        "Forest has no root nodes"
+    );
 }
 
 #[test]

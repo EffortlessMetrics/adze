@@ -246,10 +246,7 @@ fn integration_extract_through_skip_then_wrap_with_container() {
     assert_eq!(ty_str(&after_option), "Vec < Token >");
     // Now wrap preserving Vec
     let wrapped = wrap_leaf_type(&after_option, &skip(&["Vec"]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "Vec < adze :: WithLeaf < Token > >"
-    );
+    assert_eq!(ty_str(&wrapped), "Vec < adze :: WithLeaf < Token > >");
 }
 
 #[test]

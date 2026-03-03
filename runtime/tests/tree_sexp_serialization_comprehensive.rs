@@ -280,12 +280,7 @@ fn roundtrip_json_nested_tree() {
         "function",
         vec![
             leaf("name", "main", 0, 4),
-            branch(
-                "body",
-                vec![leaf("return_value", "0", 10, 11)],
-                5,
-                12,
-            ),
+            branch("body", vec![leaf("return_value", "0", 10, 11)], 5, 12),
         ],
         0,
         12,
@@ -360,12 +355,7 @@ fn sexp_large_deep_tree() {
 
 #[test]
 fn sexp_unicode_text_in_leaf() {
-    let tree = branch(
-        "program",
-        vec![leaf("string", "こんにちは", 0, 15)],
-        0,
-        15,
-    );
+    let tree = branch("program", vec![leaf("string", "こんにちは", 0, 15)], 0, 15);
     let sexp = node_to_sexp(&tree);
     assert!(sexp.contains("こんにちは"));
 }
@@ -380,12 +370,7 @@ fn sexp_unicode_emoji_in_leaf() {
 
 #[test]
 fn sexp_unicode_mixed_scripts() {
-    let tree = branch(
-        "program",
-        vec![leaf("text", "abc日本語def", 0, 15)],
-        0,
-        15,
-    );
+    let tree = branch("program", vec![leaf("text", "abc日本語def", 0, 15)], 0, 15);
     let sexp = node_to_sexp(&tree);
     assert!(sexp.contains("abc日本語def"));
 }
@@ -585,12 +570,7 @@ fn tree_serializer_chained_configuration() {
 
 #[test]
 fn sexp_node_with_quotes_in_text() {
-    let tree = branch(
-        "program",
-        vec![leaf("string", r#"say "hi""#, 0, 8)],
-        0,
-        8,
-    );
+    let tree = branch("program", vec![leaf("string", r#"say "hi""#, 0, 8)], 0, 8);
     let sexp = node_to_sexp(&tree);
     // Quotes inside text should be escaped
     assert!(sexp.contains("\\\"hi\\\""));

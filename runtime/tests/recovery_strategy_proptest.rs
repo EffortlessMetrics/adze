@@ -6,7 +6,7 @@
 //! round-trip conversion, and integration with `ErrorRecoveryState`.
 
 use adze::error_recovery::{
-    ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, ErrorNode,
+    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
 use proptest::prelude::*;

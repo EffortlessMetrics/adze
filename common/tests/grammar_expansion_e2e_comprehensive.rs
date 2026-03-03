@@ -124,8 +124,14 @@ fn enum_variants_as_choice_alternatives() {
         parse_quote!(CallExpr),
     ];
 
-    let leaves: Vec<String> = variant_types.iter().map(|ty| process_field(ty).leaf).collect();
-    assert_eq!(leaves, ["LiteralExpr", "BinaryExpr", "UnaryExpr", "CallExpr"]);
+    let leaves: Vec<String> = variant_types
+        .iter()
+        .map(|ty| process_field(ty).leaf)
+        .collect();
+    assert_eq!(
+        leaves,
+        ["LiteralExpr", "BinaryExpr", "UnaryExpr", "CallExpr"]
+    );
 }
 
 #[test]
@@ -191,10 +197,7 @@ fn nested_enum_inside_struct_field() {
         parse_quote!(Box<Expr>),
     ];
     // The Expr enum has these variants
-    let enum_variants: Vec<Type> = vec![
-        parse_quote!(Literal),
-        parse_quote!(Box<BinaryExpr>),
-    ];
+    let enum_variants: Vec<Type> = vec![parse_quote!(Literal), parse_quote!(Box<BinaryExpr>)];
 
     let sresults: Vec<FieldResult> = struct_fields.iter().map(process_field).collect();
     let eresults: Vec<FieldResult> = enum_variants.iter().map(process_field).collect();
@@ -363,12 +366,20 @@ fn comment_patterns_as_extras() {
     let line_comment: NameValueExpr = parse_quote!(pattern = "//[^\\n]*");
     let block_comment: NameValueExpr = parse_quote!(pattern = "/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/");
 
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &line_comment.expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &line_comment.expr
+    {
         assert!(s.value().starts_with("//"));
     } else {
         panic!("expected string literal");
     }
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &block_comment.expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &block_comment.expr
+    {
         assert!(s.value().starts_with("/\\*"));
     } else {
         panic!("expected string literal");
@@ -387,7 +398,11 @@ fn word_pattern_identifier_rule() {
     assert_eq!(r.leaf, "String");
     assert_eq!(r.wrapped, "adze :: WithLeaf < String >");
 
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &parsed.params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &parsed.params[0].expr
+    {
         assert!(s.value().contains("[a-zA-Z_]"));
     } else {
         panic!("expected string literal");
@@ -399,7 +414,11 @@ fn word_keyword_as_fixed_text() {
     let kw: NameValueExpr = parse_quote!(text = "fn");
     assert_eq!(kw.path.to_string(), "text");
 
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &kw.expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &kw.expr
+    {
         assert_eq!(s.value(), "fn");
     } else {
         panic!("expected string literal");
@@ -418,7 +437,11 @@ fn word_multiple_keywords_distinct() {
     let values: Vec<String> = keywords
         .iter()
         .map(|kw| {
-            if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &kw.expr {
+            if let syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(s),
+                ..
+            }) = &kw.expr
+            {
                 s.value()
             } else {
                 panic!("expected string literal")
@@ -523,7 +546,10 @@ fn full_grammar_module_wrapping_consistency() {
 
     // All should resolve to "Ident" as the leaf
     for i in 0..results.len() {
-        assert_eq!(results[i].leaf, "Ident", "type index {i} should have leaf Ident");
+        assert_eq!(
+            results[i].leaf, "Ident",
+            "type index {i} should have leaf Ident"
+        );
     }
 }
 
@@ -544,7 +570,11 @@ fn full_grammar_module_with_extras_and_prec() {
     let mul: FieldThenParams = parse_quote!(MulOp, precedence = 2);
 
     let extract_int = |nv: &NameValueExpr| -> i32 {
-        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Int(i), .. }) = &nv.expr {
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Int(i),
+            ..
+        }) = &nv.expr
+        {
             i.base10_parse().unwrap()
         } else {
             panic!("expected int literal")
@@ -552,7 +582,11 @@ fn full_grammar_module_with_extras_and_prec() {
     };
 
     let extract_str = |nv: &NameValueExpr| -> String {
-        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &nv.expr {
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = &nv.expr
+        {
             s.value()
         } else {
             panic!("expected string literal")
@@ -614,5 +648,9 @@ fn pipeline_batch_enum_all_variants_unique_leaves() {
 
     let leaves: Vec<String> = variants.iter().map(|ty| process_field(ty).leaf).collect();
     let unique: HashSet<&str> = leaves.iter().map(|s| s.as_str()).collect();
-    assert_eq!(unique.len(), leaves.len(), "all variant leaves must be unique");
+    assert_eq!(
+        unique.len(),
+        leaves.len(),
+        "all variant leaves must be unique"
+    );
 }

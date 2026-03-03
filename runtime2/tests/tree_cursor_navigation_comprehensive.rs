@@ -123,14 +123,24 @@ fn single_node_depth_stays_zero() {
 /// 0..15  15..30
 /// ```
 fn rich_tree() -> Tree {
-    Tree::new_for_testing(0, 0, 100, vec![
-        Tree::new_for_testing(1, 0, 30, vec![
-            Tree::new_for_testing(4, 0, 15, vec![]),
-            Tree::new_for_testing(5, 15, 30, vec![]),
-        ]),
-        Tree::new_for_testing(2, 30, 60, vec![]),
-        Tree::new_for_testing(3, 60, 100, vec![]),
-    ])
+    Tree::new_for_testing(
+        0,
+        0,
+        100,
+        vec![
+            Tree::new_for_testing(
+                1,
+                0,
+                30,
+                vec![
+                    Tree::new_for_testing(4, 0, 15, vec![]),
+                    Tree::new_for_testing(5, 15, 30, vec![]),
+                ],
+            ),
+            Tree::new_for_testing(2, 30, 60, vec![]),
+            Tree::new_for_testing(3, 60, 100, vec![]),
+        ],
+    )
 }
 
 /// Build a deep chain: root -> c0 -> c1 -> ... -> c(depth-1)

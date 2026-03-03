@@ -36,8 +36,8 @@
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
 use adze_ir::{
-    builder::GrammarBuilder, ExternalToken, FieldId, Grammar, ProductionId, Rule, StateId, Symbol,
-    SymbolId, Token, TokenPattern,
+    ExternalToken, FieldId, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token,
+    TokenPattern, builder::GrammarBuilder,
 };
 use adze_tablegen::language_gen::LanguageGenerator;
 use proptest::prelude::*;
@@ -128,7 +128,10 @@ fn gen_with_conflicts(n_states: usize, conflict_states: &[usize]) -> (Grammar, P
     for &s in conflict_states {
         if s < states && 1 < sym_count {
             // Shift/Reduce conflict on symbol index 1
-            actions[s][1] = vec![Action::Shift(StateId(1)), Action::Reduce(adze_ir::RuleId(0))];
+            actions[s][1] = vec![
+                Action::Shift(StateId(1)),
+                Action::Reduce(adze_ir::RuleId(0)),
+            ];
         }
     }
     let pt = make_parse_table(&grammar, states, actions);

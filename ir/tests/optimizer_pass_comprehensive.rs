@@ -157,8 +157,22 @@ fn dedup_string_tokens_same_pattern() {
     let t2 = SymbolId(2);
     let rule_sym = SymbolId(3);
 
-    grammar.tokens.insert(t1, Token { name: "eq1".into(), pattern: TokenPattern::String("=".into()), fragile: false });
-    grammar.tokens.insert(t2, Token { name: "eq2".into(), pattern: TokenPattern::String("=".into()), fragile: false });
+    grammar.tokens.insert(
+        t1,
+        Token {
+            name: "eq1".into(),
+            pattern: TokenPattern::String("=".into()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        t2,
+        Token {
+            name: "eq2".into(),
+            pattern: TokenPattern::String("=".into()),
+            fragile: false,
+        },
+    );
     grammar.rule_names.insert(rule_sym, "expr".to_string());
     grammar.add_rule(Rule {
         lhs: rule_sym,
@@ -171,7 +185,9 @@ fn dedup_string_tokens_same_pattern() {
 
     let (optimized, stats) = run_optimizer(grammar);
     assert!(stats.merged_tokens >= 1);
-    let eq_count = optimized.tokens.values()
+    let eq_count = optimized
+        .tokens
+        .values()
         .filter(|t| matches!(&t.pattern, TokenPattern::String(s) if s == "="))
         .count();
     assert_eq!(eq_count, 1);
@@ -184,8 +200,22 @@ fn dedup_regex_tokens_same_pattern() {
     let t2 = SymbolId(2);
     let rule_sym = SymbolId(3);
 
-    grammar.tokens.insert(t1, Token { name: "num_a".into(), pattern: TokenPattern::Regex(r"[0-9]+".into()), fragile: false });
-    grammar.tokens.insert(t2, Token { name: "num_b".into(), pattern: TokenPattern::Regex(r"[0-9]+".into()), fragile: false });
+    grammar.tokens.insert(
+        t1,
+        Token {
+            name: "num_a".into(),
+            pattern: TokenPattern::Regex(r"[0-9]+".into()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        t2,
+        Token {
+            name: "num_b".into(),
+            pattern: TokenPattern::Regex(r"[0-9]+".into()),
+            fragile: false,
+        },
+    );
     grammar.rule_names.insert(rule_sym, "expr".to_string());
     grammar.add_rule(Rule {
         lhs: rule_sym,
@@ -513,11 +543,14 @@ fn single_terminal_rule_grammar() {
 #[test]
 fn grammar_with_only_tokens_no_rules() {
     let mut grammar = Grammar::new("tokens_only".into());
-    grammar.tokens.insert(SymbolId(1), Token {
-        name: "A".into(),
-        pattern: TokenPattern::String("a".into()),
-        fragile: false,
-    });
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "A".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
 
     let (optimized, stats) = run_optimizer(grammar);
     // Token should be removed since no rule references it.
@@ -724,11 +757,14 @@ fn source_file_symbol_never_inlined() {
 
     grammar.rule_names.insert(sf, "source_file".to_string());
     grammar.rule_names.insert(inner, "inner".to_string());
-    grammar.tokens.insert(tok, Token {
-        name: "tok".into(),
-        pattern: TokenPattern::String("t".into()),
-        fragile: false,
-    });
+    grammar.tokens.insert(
+        tok,
+        Token {
+            name: "tok".into(),
+            pattern: TokenPattern::String("t".into()),
+            fragile: false,
+        },
+    );
 
     grammar.add_rule(Rule {
         lhs: sf,

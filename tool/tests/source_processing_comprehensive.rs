@@ -27,7 +27,12 @@ fn extract(src: &str) -> Vec<serde_json::Value> {
 /// Extract exactly one grammar.
 fn extract_one(src: &str) -> serde_json::Value {
     let gs = extract(src);
-    assert_eq!(gs.len(), 1, "expected exactly one grammar, got {}", gs.len());
+    assert_eq!(
+        gs.len(),
+        1,
+        "expected exactly one grammar, got {}",
+        gs.len()
+    );
     gs.into_iter().next().unwrap()
 }
 
@@ -261,8 +266,9 @@ fn comments_only_yields_empty() {
 
 #[test]
 fn file_that_does_not_exist_panics() {
-    let result =
-        std::panic::catch_unwind(|| adze_tool::generate_grammars(std::path::Path::new("/nonexistent/path/lib.rs")));
+    let result = std::panic::catch_unwind(|| {
+        adze_tool::generate_grammars(std::path::Path::new("/nonexistent/path/lib.rs"))
+    });
     assert!(result.is_err(), "missing file should panic");
 }
 
@@ -275,9 +281,12 @@ fn malformed_rust_source_is_error() {
     let result = std::panic::catch_unwind(|| adze_tool::generate_grammars(&path));
     // Either it returns an error or panics - both are acceptable
     match result {
-        Err(_) => {} // panicked - acceptable
+        Err(_) => {}     // panicked - acceptable
         Ok(Err(_)) => {} // returned error - acceptable
-        Ok(Ok(gs)) => assert!(gs.is_empty(), "malformed source should not produce grammars"),
+        Ok(Ok(gs)) => assert!(
+            gs.is_empty(),
+            "malformed source should not produce grammars"
+        ),
     }
 }
 

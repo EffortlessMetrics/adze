@@ -11,7 +11,7 @@ use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, Type};
+use syn::{Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -73,13 +73,19 @@ fn parse_ty(s: &str) -> Type {
 
 /// Build a struct source string with the given named fields and types.
 fn struct_source(name: &str, fields: &[(&str, &str)]) -> String {
-    let body: Vec<String> = fields.iter().map(|(n, t)| format!("    {n}: {t},")).collect();
+    let body: Vec<String> = fields
+        .iter()
+        .map(|(n, t)| format!("    {n}: {t},"))
+        .collect();
     format!("struct {name} {{\n{}\n}}", body.join("\n"))
 }
 
 /// Build an enum source string with tuple variants.
 fn enum_source(name: &str, variants: &[(&str, &str)]) -> String {
-    let body: Vec<String> = variants.iter().map(|(n, t)| format!("    {n}({t}),")).collect();
+    let body: Vec<String> = variants
+        .iter()
+        .map(|(n, t)| format!("    {n}({t}),"))
+        .collect();
     format!("enum {name} {{\n{}\n}}", body.join("\n"))
 }
 

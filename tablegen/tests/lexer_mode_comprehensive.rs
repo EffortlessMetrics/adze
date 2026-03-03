@@ -127,7 +127,10 @@ fn lex_modes_generated_per_state() {
 fn lex_mode_state_indices_are_sequential() {
     let pt = empty_table(4, 1, 1, 0);
     for i in 0..4 {
-        assert_eq!(pt.lex_modes[i].lex_state, 0, "default modes all use lex_state 0");
+        assert_eq!(
+            pt.lex_modes[i].lex_state, 0,
+            "default modes all use lex_state 0"
+        );
     }
 }
 
@@ -208,13 +211,20 @@ fn named_tokens_before_auto_generated() {
 #[test]
 fn keyword_has_word_boundary_guard() {
     let code = lexer_code(vec![(1, "kw_fn", TokenPattern::String("fn".into()))]);
-    assert!(code.contains("is_ascii_alphanumeric"), "word boundary check");
+    assert!(
+        code.contains("is_ascii_alphanumeric"),
+        "word boundary check"
+    );
 }
 
 #[test]
 fn identifier_pattern_emitted_after_keywords() {
     let code = lexer_code(vec![
-        (1, "ident", TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".into())),
+        (
+            1,
+            "ident",
+            TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".into()),
+        ),
         (2, "kw_for", TokenPattern::String("for".into())),
     ]);
     let pk = code.find("result_symbol = 2u16").unwrap();
@@ -225,7 +235,10 @@ fn identifier_pattern_emitted_after_keywords() {
 #[test]
 fn keyword_with_underscore_treated_as_keyword() {
     let code = lexer_code(vec![(1, "kw", TokenPattern::String("my_kw".into()))]);
-    assert!(code.contains("is_ascii_alphanumeric"), "underscore keyword gets boundary");
+    assert!(
+        code.contains("is_ascii_alphanumeric"),
+        "underscore keyword gets boundary"
+    );
 }
 
 #[test]
@@ -242,9 +255,18 @@ fn single_alpha_char_not_keyword() {
 #[test]
 fn parse_table_supports_distinct_lex_modes() {
     let modes = vec![
-        LexMode { lex_state: 0, external_lex_state: 0 },
-        LexMode { lex_state: 1, external_lex_state: 0 },
-        LexMode { lex_state: 2, external_lex_state: 1 },
+        LexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        },
+        LexMode {
+            lex_state: 1,
+            external_lex_state: 0,
+        },
+        LexMode {
+            lex_state: 2,
+            external_lex_state: 1,
+        },
     ];
     let pt = table_with_lex_modes(3, modes.clone());
     assert_eq!(pt.lex_modes, modes);
@@ -253,8 +275,14 @@ fn parse_table_supports_distinct_lex_modes() {
 #[test]
 fn lex_mode_accessor_returns_correct_mode() {
     let modes = vec![
-        LexMode { lex_state: 0, external_lex_state: 0 },
-        LexMode { lex_state: 1, external_lex_state: 5 },
+        LexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        },
+        LexMode {
+            lex_state: 1,
+            external_lex_state: 5,
+        },
     ];
     let pt = table_with_lex_modes(2, modes);
     assert_eq!(pt.lex_mode(StateId(1)).external_lex_state, 5);
@@ -263,9 +291,18 @@ fn lex_mode_accessor_returns_correct_mode() {
 #[test]
 fn multiple_modes_with_different_external_states() {
     let modes = vec![
-        LexMode { lex_state: 0, external_lex_state: 0 },
-        LexMode { lex_state: 1, external_lex_state: 1 },
-        LexMode { lex_state: 2, external_lex_state: 2 },
+        LexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        },
+        LexMode {
+            lex_state: 1,
+            external_lex_state: 1,
+        },
+        LexMode {
+            lex_state: 2,
+            external_lex_state: 2,
+        },
     ];
     let pt = table_with_lex_modes(3, modes);
     for i in 0..3 {
@@ -279,7 +316,10 @@ fn multiple_modes_with_different_external_states() {
 
 #[test]
 fn lex_mode_lookup_out_of_bounds_returns_default() {
-    let modes = vec![LexMode { lex_state: 0, external_lex_state: 0 }];
+    let modes = vec![LexMode {
+        lex_state: 0,
+        external_lex_state: 0,
+    }];
     let pt = table_with_lex_modes(1, modes);
     let m = pt.lex_mode(StateId(99));
     assert_eq!(m.lex_state, 0, "out-of-bounds defaults to state 0");
@@ -289,9 +329,18 @@ fn lex_mode_lookup_out_of_bounds_returns_default() {
 #[test]
 fn lex_mode_transitions_through_states() {
     let modes = vec![
-        LexMode { lex_state: 0, external_lex_state: 0 },
-        LexMode { lex_state: 1, external_lex_state: 0 },
-        LexMode { lex_state: 0, external_lex_state: 1 },
+        LexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        },
+        LexMode {
+            lex_state: 1,
+            external_lex_state: 0,
+        },
+        LexMode {
+            lex_state: 0,
+            external_lex_state: 1,
+        },
     ];
     let pt = table_with_lex_modes(3, modes);
     // Simulate state transitions
@@ -438,7 +487,11 @@ fn duplicate_string_patterns_deduplicated_in_mode() {
 #[test]
 fn mixed_mode_ordering_kw_str_regex_ident() {
     let code = lexer_code(vec![
-        (1, "ident", TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".into())),
+        (
+            1,
+            "ident",
+            TokenPattern::Regex(r"[a-zA-Z_][a-zA-Z0-9_]*".into()),
+        ),
         (2, "num", TokenPattern::Regex(r"\d+".into())),
         (3, "kw_if", TokenPattern::String("if".into())),
         (4, "semi", TokenPattern::String(";".into())),

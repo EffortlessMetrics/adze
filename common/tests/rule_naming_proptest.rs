@@ -11,7 +11,7 @@ use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::{HashMap, HashSet};
-use syn::{parse_str, Item, ItemEnum, ItemMod, ItemStruct, Type};
+use syn::{Item, ItemEnum, ItemMod, ItemStruct, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -57,7 +57,13 @@ fn rule_name_from_type_path(path: &str) -> String {
 fn sanitize_rule_name(name: &str) -> String {
     let replaced: String = name
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     // Collapse consecutive underscores
     let mut result = String::new();

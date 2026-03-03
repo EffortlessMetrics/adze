@@ -248,10 +248,7 @@ fn visit_qualified_path_extract_matches_last_segment() {
 #[test]
 fn visit_qualified_path_filter_matches_last_segment() {
     let ty: Type = parse_quote!(std::option::Option<u128>);
-    assert_eq!(
-        ty_str(&filter_inner_type(&ty, &skip(&["Option"]))),
-        "u128"
-    );
+    assert_eq!(ty_str(&filter_inner_type(&ty, &skip(&["Option"]))), "u128");
 }
 
 #[test]
@@ -358,7 +355,10 @@ fn visit_sequence_filter_with_shared_skip_set() {
     let expected = ["Leaf", "Leaf", "Vec < Leaf >", "Leaf"];
 
     for i in 0..types.len() {
-        assert_eq!(ty_str(&filter_inner_type(&types[i], &skip_set)), expected[i]);
+        assert_eq!(
+            ty_str(&filter_inner_type(&types[i], &skip_set)),
+            expected[i]
+        );
     }
 }
 

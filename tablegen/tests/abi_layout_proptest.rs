@@ -170,9 +170,19 @@ fn build_grammar_and_table(
 }
 
 /// Generate code string from grammar and table.
-fn gen_code(name: &str, terms: usize, nonterms: usize, fields: usize, externals: usize, states: usize) -> String {
-    let (grammar, table) = build_grammar_and_table(name, terms, nonterms, fields, externals, states);
-    AbiLanguageBuilder::new(&grammar, &table).generate().to_string()
+fn gen_code(
+    name: &str,
+    terms: usize,
+    nonterms: usize,
+    fields: usize,
+    externals: usize,
+    states: usize,
+) -> String {
+    let (grammar, table) =
+        build_grammar_and_table(name, terms, nonterms, fields, externals, states);
+    AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string()
 }
 
 // ---------------------------------------------------------------------------

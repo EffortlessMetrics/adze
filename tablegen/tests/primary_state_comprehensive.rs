@@ -211,7 +211,10 @@ fn single_state_has_primary_id_zero() {
     let (g, t) = build_grammar_and_table("single", 1, 1, 0, 1);
     let code = abi_code(&g, &t);
     let vals = parse_primary_state_values(&code);
-    assert!(!vals.is_empty(), "should have at least one primary state ID");
+    assert!(
+        !vals.is_empty(),
+        "should have at least one primary state ID"
+    );
     assert_eq!(vals[0], 0, "first primary state should be 0");
 }
 
@@ -299,10 +302,7 @@ fn default_primary_state_always_included() {
         let (g, t) = build_grammar_and_table("def", 1, 1, 0, states);
         let code = abi_code(&g, &t);
         let vals = parse_primary_state_values(&code);
-        assert!(
-            vals.contains(&0),
-            "state 0 missing with {states} states"
-        );
+        assert!(vals.contains(&0), "state 0 missing with {states} states");
     }
 }
 
@@ -413,7 +413,10 @@ fn count_unaffected_by_terminal_count() {
     let (g2, t2) = build_grammar_and_table("t5", 5, 1, 0, 3);
     let c1 = count_primary_state_entries(&abi_code(&g1, &t1));
     let c2 = count_primary_state_entries(&abi_code(&g2, &t2));
-    assert_eq!(c1, c2, "terminal count should not affect primary state count");
+    assert_eq!(
+        c1, c2,
+        "terminal count should not affect primary state count"
+    );
 }
 
 #[test]
@@ -422,7 +425,10 @@ fn count_unaffected_by_nonterminal_count() {
     let (g2, t2) = build_grammar_and_table("n4", 1, 4, 0, 4);
     let c1 = count_primary_state_entries(&abi_code(&g1, &t1));
     let c2 = count_primary_state_entries(&abi_code(&g2, &t2));
-    assert_eq!(c1, c2, "nonterminal count should not affect primary state count");
+    assert_eq!(
+        c1, c2,
+        "nonterminal count should not affect primary state count"
+    );
 }
 
 #[test]
@@ -431,7 +437,10 @@ fn count_unaffected_by_externals() {
     let (g2, t2) = build_grammar_and_table("e3", 1, 1, 3, 3);
     let c1 = count_primary_state_entries(&abi_code(&g1, &t1));
     let c2 = count_primary_state_entries(&abi_code(&g2, &t2));
-    assert_eq!(c1, c2, "external tokens should not affect primary state count");
+    assert_eq!(
+        c1, c2,
+        "external tokens should not affect primary state count"
+    );
 }
 
 #[test]
@@ -456,7 +465,10 @@ fn same_grammar_same_primary_states() {
     let code2 = abi_code(&g2, &t2);
     let body1 = extract_primary_state_body(&code1);
     let body2 = extract_primary_state_body(&code2);
-    assert_eq!(body1, body2, "identical grammars must produce identical primary state IDs");
+    assert_eq!(
+        body1, body2,
+        "identical grammars must produce identical primary state IDs"
+    );
 }
 
 #[test]
@@ -545,7 +557,10 @@ fn large_grammar_with_externals() {
     let (g, t) = build_grammar_and_table("large_ext", 10, 5, 4, 30);
     let code = abi_code(&g, &t);
     let count = count_primary_state_entries(&code);
-    assert_eq!(count, 30, "state count should be 30 regardless of externals");
+    assert_eq!(
+        count, 30,
+        "state count should be 30 regardless of externals"
+    );
 }
 
 #[test]
@@ -555,10 +570,7 @@ fn large_grammar_identity_property() {
     let vals = parse_primary_state_values(&code);
     // Identity: primary_state_ids[i] == i for all i
     for i in 0..vals.len() {
-        assert_eq!(
-            vals[i], i as u16,
-            "identity property violated at index {i}"
-        );
+        assert_eq!(vals[i], i as u16, "identity property violated at index {i}");
     }
 }
 
@@ -580,7 +592,10 @@ fn many_terminals_does_not_inflate_primary_states() {
     let (g, t) = build_grammar_and_table("many_tok", 50, 1, 0, 5);
     let code = abi_code(&g, &t);
     let count = count_primary_state_entries(&code);
-    assert_eq!(count, 5, "50 terminals should not increase primary state count beyond 5");
+    assert_eq!(
+        count, 5,
+        "50 terminals should not increase primary state count beyond 5"
+    );
 }
 
 #[test]
@@ -588,5 +603,8 @@ fn many_nonterminals_does_not_inflate_primary_states() {
     let (g, t) = build_grammar_and_table("many_nt", 1, 30, 0, 5);
     let code = abi_code(&g, &t);
     let count = count_primary_state_entries(&code);
-    assert_eq!(count, 5, "30 nonterminals should not increase primary state count beyond 5");
+    assert_eq!(
+        count, 5,
+        "30 nonterminals should not increase primary state count beyond 5"
+    );
 }

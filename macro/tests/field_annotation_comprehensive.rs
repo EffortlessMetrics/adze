@@ -9,7 +9,9 @@
 
 use std::collections::HashSet;
 
-use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
+use adze_common::{
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
+};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
@@ -82,7 +84,11 @@ fn field_leaf_text_pattern() {
     let params = leaf_params(attr);
     assert_eq!(params.len(), 1);
     assert_eq!(params[0].path.to_string(), "text");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), "+");
     } else {
         panic!("Expected string literal");
@@ -103,7 +109,11 @@ fn field_leaf_regex_pattern() {
     let attr = find_leaf_attr(&field.attrs);
     let params = leaf_params(attr);
     assert_eq!(params[0].path.to_string(), "pattern");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"[a-zA-Z_]\w*");
     } else {
         panic!("Expected string literal");
@@ -122,7 +132,11 @@ fn field_leaf_regex_complex_escapes() {
     };
     let field = s.fields.iter().next().unwrap();
     let params = leaf_params(find_leaf_attr(&field.attrs));
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert!(s.value().contains(r#"([^"\\]|\\.)*"#));
     } else {
         panic!("Expected string literal");
@@ -141,11 +155,17 @@ fn field_skip_bool_default() {
             visited: bool,
         }
     };
-    let skip_field = s.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "visited")
-    }).unwrap();
+    let skip_field = s
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "visited"))
+        .unwrap();
     assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
-    let attr = skip_field.attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = skip_field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     let expr: syn::Expr = attr.parse_args().unwrap();
     assert_eq!(expr.to_token_stream().to_string(), "false");
 }
@@ -162,10 +182,16 @@ fn field_skip_integer_default() {
             count: i32,
         }
     };
-    let skip_field = s.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "count")
-    }).unwrap();
-    let attr = skip_field.attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let skip_field = s
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "count"))
+        .unwrap();
+    let attr = skip_field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     let expr: syn::Expr = attr.parse_args().unwrap();
     assert_eq!(expr.to_token_stream().to_string(), "42");
 }
@@ -182,10 +208,16 @@ fn field_skip_string_default() {
             tag: String,
         }
     };
-    let skip_field = s.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "tag")
-    }).unwrap();
-    let attr = skip_field.attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let skip_field = s
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "tag"))
+        .unwrap();
+    let attr = skip_field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     let expr: syn::Expr = attr.parse_args().unwrap();
     assert_eq!(expr.to_token_stream().to_string(), "String :: new ()");
 }
@@ -278,7 +310,9 @@ fn field_ordering_preserved() {
             _semi: (),
         }
     };
-    let names: Vec<_> = s.fields.iter()
+    let names: Vec<_> = s
+        .fields
+        .iter()
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
     assert_eq!(names, vec!["name", "_eq", "value", "_semi"]);
@@ -322,7 +356,10 @@ fn field_transform_closure_basic() {
     };
     let attr = find_leaf_attr(&s.fields.iter().next().unwrap().attrs);
     let params = leaf_params(attr);
-    let transform = params.iter().find(|p| p.path.to_string() == "transform").unwrap();
+    let transform = params
+        .iter()
+        .find(|p| p.path.to_string() == "transform")
+        .unwrap();
     assert!(matches!(transform.expr, syn::Expr::Closure(_)));
 }
 
@@ -338,7 +375,10 @@ fn field_transform_closure_with_type_annotation() {
     };
     let attr = find_leaf_attr(&s.fields.iter().next().unwrap().attrs);
     let params = leaf_params(attr);
-    let transform = params.iter().find(|p| p.path.to_string() == "transform").unwrap();
+    let transform = params
+        .iter()
+        .find(|p| p.path.to_string() == "transform")
+        .unwrap();
     if let syn::Expr::Closure(c) = &transform.expr {
         assert_eq!(c.inputs.len(), 1);
         assert!(c.body.to_token_stream().to_string().contains("i32"));
@@ -362,7 +402,10 @@ fn field_transform_closure_block_body() {
     };
     let attr = find_leaf_attr(&s.fields.iter().next().unwrap().attrs);
     let params = leaf_params(attr);
-    let transform = params.iter().find(|p| p.path.to_string() == "transform").unwrap();
+    let transform = params
+        .iter()
+        .find(|p| p.path.to_string() == "transform")
+        .unwrap();
     assert!(matches!(transform.expr, syn::Expr::Closure(_)));
 }
 
@@ -427,7 +470,10 @@ fn field_required_vs_optional_type() {
     // _colon is () → required
     assert_eq!(fields[1].ty.to_token_stream().to_string(), "()");
     // typ is Option<TypeRef> → optional
-    assert_eq!(fields[2].ty.to_token_stream().to_string(), "Option < TypeRef >");
+    assert_eq!(
+        fields[2].ty.to_token_stream().to_string(),
+        "Option < TypeRef >"
+    );
 
     let skip = expansion_skip_set();
     let (_, is_opt) = try_extract_inner_type(&fields[2].ty, "Option", &skip);
@@ -496,12 +542,20 @@ fn field_delimited_inner_leaf_parsed() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let delim = field.attrs.iter().find(|a| is_adze_attr(a, "delimited")).unwrap();
+    let delim = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "delimited"))
+        .unwrap();
     let ftp: FieldThenParams = delim.parse_args().unwrap();
     assert_eq!(ftp.field.ty.to_token_stream().to_string(), "()");
     let inner_leaf = find_leaf_attr(&ftp.field.attrs);
     let params = leaf_params(inner_leaf);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), ";");
     } else {
         panic!("Expected string literal");
@@ -520,14 +574,22 @@ fn field_leaf_text_enum_unit_variant() {
             Fn,
         }
     };
-    let texts: Vec<String> = e.variants.iter().map(|v| {
-        let params = leaf_params(find_leaf_attr(&v.attrs));
-        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
-            s.value()
-        } else {
-            panic!("Expected string literal");
-        }
-    }).collect();
+    let texts: Vec<String> = e
+        .variants
+        .iter()
+        .map(|v| {
+            let params = leaf_params(find_leaf_attr(&v.attrs));
+            if let syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(s),
+                ..
+            }) = &params[0].expr
+            {
+                s.value()
+            } else {
+                panic!("Expected string literal");
+            }
+        })
+        .collect();
     assert_eq!(texts, vec!["let", "fn"]);
 }
 
@@ -613,7 +675,9 @@ fn field_unit_type_for_punctuation() {
             _close: (),
         }
     };
-    let unit_names: Vec<_> = s.fields.iter()
+    let unit_names: Vec<_> = s
+        .fields
+        .iter()
         .filter(|f| f.ty.to_token_stream().to_string() == "()")
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
@@ -636,7 +700,9 @@ fn field_underscore_prefix_convention() {
             value: String,
         }
     };
-    let underscore_fields: Vec<_> = s.fields.iter()
+    let underscore_fields: Vec<_> = s
+        .fields
+        .iter()
         .filter(|f| f.ident.as_ref().unwrap().to_string().starts_with('_'))
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
@@ -694,7 +760,9 @@ fn field_cross_struct_type_reference() {
         }
     });
     let program = find_struct_in_mod(&m, "Program").unwrap();
-    let field_types: Vec<_> = program.fields.iter()
+    let field_types: Vec<_> = program
+        .fields
+        .iter()
         .map(|f| f.ty.to_token_stream().to_string())
         .collect();
     assert_eq!(field_types[0], "Header");
@@ -714,11 +782,19 @@ fn field_repeat_non_empty_param() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "repeat")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "repeat"))
+        .unwrap();
     let params: Punctuated<NameValueExpr, Token![,]> =
         attr.parse_args_with(Punctuated::parse_terminated).unwrap();
     assert_eq!(params[0].path.to_string(), "non_empty");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Bool(b), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Bool(b),
+        ..
+    }) = &params[0].expr
+    {
         assert!(b.value);
     } else {
         panic!("Expected bool literal");
@@ -747,9 +823,8 @@ fn field_annotation_classification() {
             optional: Option<Trailer>,
         }
     };
-    let field_annotations: Vec<Vec<String>> = s.fields.iter()
-        .map(|f| adze_attr_names(&f.attrs))
-        .collect();
+    let field_annotations: Vec<Vec<String>> =
+        s.fields.iter().map(|f| adze_attr_names(&f.attrs)).collect();
     assert_eq!(field_annotations[0], vec!["leaf"]);
     assert_eq!(field_annotations[1], vec!["leaf"]);
     assert_eq!(field_annotations[2], vec!["skip"]);

@@ -173,8 +173,7 @@ fn extract_i32_from_middle_of_source() {
 
 #[test]
 fn extract_option_string_none_node() {
-    let result =
-        <Option<String> as Extract<Option<String>>>::extract(None, b"anything", 0, None);
+    let result = <Option<String> as Extract<Option<String>>>::extract(None, b"anything", 0, None);
     assert_eq!(result, None);
 }
 
@@ -182,8 +181,7 @@ fn extract_option_string_none_node() {
 fn extract_option_string_some_node() {
     let source = b"hi";
     let node = leaf(0, 2);
-    let result =
-        <Option<String> as Extract<Option<String>>>::extract(Some(&node), source, 0, None);
+    let result = <Option<String> as Extract<Option<String>>>::extract(Some(&node), source, 0, None);
     assert_eq!(result, Some("hi".to_string()));
 }
 
@@ -192,23 +190,19 @@ fn extract_option_i32_unparseable_gives_some_zero() {
     // Option wrapping: node is Some, but inner parse fails → Some(0)
     let source = b"xyz";
     let node = leaf(0, 3);
-    let result =
-        <Option<i32> as Extract<Option<i32>>>::extract(Some(&node), source, 0, None);
+    let result = <Option<i32> as Extract<Option<i32>>>::extract(Some(&node), source, 0, None);
     assert_eq!(result, Some(0));
 }
 
 #[test]
 fn extract_box_string_from_none() {
-    let result =
-        <Box<String> as Extract<Box<String>>>::extract(None, b"", 0, None);
+    let result = <Box<String> as Extract<Box<String>>>::extract(None, b"", 0, None);
     assert_eq!(*result, "");
 }
 
 #[test]
 fn extract_box_option_string_none_node() {
-    let result = <Box<Option<String>> as Extract<Box<Option<String>>>>::extract(
-        None, b"", 0, None,
-    );
+    let result = <Box<Option<String>> as Extract<Box<Option<String>>>>::extract(None, b"", 0, None);
     assert_eq!(*result, None);
 }
 
@@ -217,7 +211,10 @@ fn extract_box_option_string_some_node() {
     let source = b"boxed";
     let node = leaf(0, 5);
     let result = <Box<Option<String>> as Extract<Box<Option<String>>>>::extract(
-        Some(&node), source, 0, None,
+        Some(&node),
+        source,
+        0,
+        None,
     );
     assert_eq!(*result, Some("boxed".to_string()));
 }
@@ -226,17 +223,14 @@ fn extract_box_option_string_some_node() {
 fn extract_option_box_i32_some() {
     let source = b"7";
     let node = leaf(0, 1);
-    let result = <Option<Box<i32>> as Extract<Option<Box<i32>>>>::extract(
-        Some(&node), source, 0, None,
-    );
+    let result =
+        <Option<Box<i32>> as Extract<Option<Box<i32>>>>::extract(Some(&node), source, 0, None);
     assert_eq!(result, Some(Box::new(7)));
 }
 
 #[test]
 fn extract_option_box_i32_none() {
-    let result = <Option<Box<i32>> as Extract<Option<Box<i32>>>>::extract(
-        None, b"", 0, None,
-    );
+    let result = <Option<Box<i32>> as Extract<Option<Box<i32>>>>::extract(None, b"", 0, None);
     assert_eq!(result, None);
 }
 
@@ -250,16 +244,17 @@ fn extract_deeply_nested_boxes() {
     let source = b"deep";
     let node = leaf(0, 4);
     let result = <Box<Box<Box<String>>> as Extract<Box<Box<Box<String>>>>>::extract(
-        Some(&node), source, 0, None,
+        Some(&node),
+        source,
+        0,
+        None,
     );
     assert_eq!(***result, "deep");
 }
 
 #[test]
 fn extract_deeply_nested_boxes_none() {
-    let result = <Box<Box<Box<i32>>> as Extract<Box<Box<Box<i32>>>>>::extract(
-        None, b"", 0, None,
-    );
+    let result = <Box<Box<Box<i32>>> as Extract<Box<Box<Box<i32>>>>>::extract(None, b"", 0, None);
     assert_eq!(***result, 0);
 }
 
@@ -272,8 +267,7 @@ fn extract_vec_single_child() {
     let source = b"x";
     let child = leaf(0, 1);
     let parent = make_node(10, vec![child], 0, 1, true);
-    let result =
-        <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
+    let result = <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
     assert_eq!(result, vec!["x"]);
 }
 
@@ -281,8 +275,7 @@ fn extract_vec_single_child() {
 fn extract_vec_no_children() {
     let source = b"";
     let parent = make_node(10, vec![], 0, 0, true);
-    let result =
-        <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
+    let result = <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
     assert!(result.is_empty());
 }
 
@@ -294,7 +287,10 @@ fn extract_vec_of_option_string() {
     let child_b = leaf(1, 2);
     let parent = make_node(10, vec![child_a, child_b], 0, 2, true);
     let result = <Vec<Option<String>> as Extract<Vec<Option<String>>>>::extract(
-        Some(&parent), source, 0, None,
+        Some(&parent),
+        source,
+        0,
+        None,
     );
     assert_eq!(result, vec![Some("a".to_string()), Some("b".to_string())]);
 }
@@ -322,22 +318,15 @@ fn with_leaf_extract_with_transform() {
 fn with_leaf_extract_without_transform_panics() {
     let source = b"text";
     let node = leaf(0, 4);
-    let _: String = <WithLeaf<String> as Extract<String>>::extract(
-        Some(&node), source, 0, None,
-    );
+    let _: String = <WithLeaf<String> as Extract<String>>::extract(Some(&node), source, 0, None);
 }
 
 #[test]
 fn with_leaf_extract_from_none_with_transform() {
     let source = b"";
-    let transform: Box<dyn Fn(&str) -> String> =
-        Box::new(|s: &str| format!("got:{}", s));
-    let result = <WithLeaf<String> as Extract<String>>::extract(
-        None,
-        source,
-        0,
-        Some(transform.as_ref()),
-    );
+    let transform: Box<dyn Fn(&str) -> String> = Box::new(|s: &str| format!("got:{}", s));
+    let result =
+        <WithLeaf<String> as Extract<String>>::extract(None, source, 0, Some(transform.as_ref()));
     // None node → unwrap_or_default → empty string → transform applied
     assert_eq!(result, "got:");
 }
@@ -349,9 +338,7 @@ fn with_leaf_extract_from_none_with_transform() {
 #[test]
 fn spanned_extract_none_uses_last_idx() {
     let source = b"hello";
-    let result = <Spanned<String> as Extract<Spanned<String>>>::extract(
-        None, source, 3, None,
-    );
+    let result = <Spanned<String> as Extract<Spanned<String>>>::extract(None, source, 3, None);
     assert_eq!(result.value, "");
     assert_eq!(result.span, (3, 3));
 }
@@ -360,9 +347,8 @@ fn spanned_extract_none_uses_last_idx() {
 fn spanned_extract_zero_width_node() {
     let source = b"abc";
     let node = leaf(2, 2);
-    let result = <Spanned<String> as Extract<Spanned<String>>>::extract(
-        Some(&node), source, 0, None,
-    );
+    let result =
+        <Spanned<String> as Extract<Spanned<String>>>::extract(Some(&node), source, 0, None);
     assert_eq!(result.value, "");
     assert_eq!(result.span, (2, 2));
 }

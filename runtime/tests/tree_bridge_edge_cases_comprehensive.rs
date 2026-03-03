@@ -303,7 +303,10 @@ fn wide_tree_roundtrip_preserves_order() {
 
     assert_eq!(rt.alternatives[0].children.len(), 15);
     for i in 0..15 {
-        assert_eq!(rt.alternatives[0].children[i].symbol, SymbolId(50 + i as u16));
+        assert_eq!(
+            rt.alternatives[0].children[i].symbol,
+            SymbolId(50 + i as u16)
+        );
     }
 }
 

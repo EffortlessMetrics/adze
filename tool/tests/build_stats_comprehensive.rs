@@ -146,7 +146,10 @@ fn debug_format_contains_values() {
     let dbg = format!("{:?}", s);
     assert!(dbg.contains("7"), "debug should contain state_count value");
     assert!(dbg.contains("4"), "debug should contain symbol_count value");
-    assert!(dbg.contains("2"), "debug should contain conflict_cells value");
+    assert!(
+        dbg.contains("2"),
+        "debug should contain conflict_cells value"
+    );
 }
 
 #[test]
@@ -169,7 +172,10 @@ fn debug_format_zero_stats() {
 #[test]
 fn minimal_grammar_produces_nonzero_state_count() {
     let s = stats_for(minimal_grammar("min_state"));
-    assert!(s.state_count > 0, "even a trivial grammar needs at least one state");
+    assert!(
+        s.state_count > 0,
+        "even a trivial grammar needs at least one state"
+    );
 }
 
 #[test]
@@ -528,9 +534,7 @@ fn large_grammar_has_many_states() {
     for i in 0..20 {
         rules.push_str(&format!(",\n    r_{i}: $ => /tok{i}/"));
     }
-    let js = format!(
-        "module.exports = grammar({{ name: 'big', rules: {{ {rules} }} }});"
-    );
+    let js = format!("module.exports = grammar({{ name: 'big', rules: {{ {rules} }} }});");
     let r = build_js(&js);
     assert!(
         r.build_stats.state_count > 2,
@@ -552,9 +556,7 @@ fn large_grammar_has_many_symbols() {
     for i in 0..20 {
         rules.push_str(&format!(",\n    r_{i}: $ => /tok{i}/"));
     }
-    let js = format!(
-        "module.exports = grammar({{ name: 'bigsym', rules: {{ {rules} }} }});"
-    );
+    let js = format!("module.exports = grammar({{ name: 'bigsym', rules: {{ {rules} }} }});");
     let r = build_js(&js);
     // 20 tokens + 21 non-terminals (source + r_0..r_19) + EOF
     assert!(
@@ -579,9 +581,7 @@ fn large_grammar_scales_relative_to_small() {
     for i in 0..15 {
         rules.push_str(&format!(",\n    r_{i}: $ => /tok{i}/"));
     }
-    let js = format!(
-        "module.exports = grammar({{ name: 'scale_lg', rules: {{ {rules} }} }});"
-    );
+    let js = format!("module.exports = grammar({{ name: 'scale_lg', rules: {{ {rules} }} }});");
     let r_large = build_js(&js);
 
     assert!(
@@ -653,10 +653,7 @@ fn compressed_and_uncompressed_yield_same_stats() {
     // Stats come from the parse table before compression, so they should match
     assert_eq!(r1.build_stats.state_count, r2.build_stats.state_count);
     assert_eq!(r1.build_stats.symbol_count, r2.build_stats.symbol_count);
-    assert_eq!(
-        r1.build_stats.conflict_cells,
-        r2.build_stats.conflict_cells
-    );
+    assert_eq!(r1.build_stats.conflict_cells, r2.build_stats.conflict_cells);
 }
 
 // =========================================================================

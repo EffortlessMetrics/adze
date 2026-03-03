@@ -9,9 +9,11 @@
 use std::fs;
 use std::path::Path;
 
-use adze_tool::error::ToolError;
-use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js, build_parser_from_json};
 use adze_tool::ToolResult;
+use adze_tool::error::ToolError;
+use adze_tool::pure_rust_builder::{
+    BuildOptions, build_parser_from_grammar_js, build_parser_from_json,
+};
 use tempfile::TempDir;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -54,7 +56,10 @@ fn generate_grammars_missing_file_panics() {
     let result = std::panic::catch_unwind(|| {
         let _ = adze_tool::generate_grammars(Path::new("/tmp/nonexistent_adze_test_file.rs"));
     });
-    assert!(result.is_err(), "missing file should cause a panic from syn_inline_mod");
+    assert!(
+        result.is_err(),
+        "missing file should cause a panic from syn_inline_mod"
+    );
 }
 
 #[test]
@@ -92,7 +97,10 @@ fn build_parser_from_grammar_js_missing_file() {
 fn empty_source_file_yields_no_grammars() {
     let result = grammars_from_rust("");
     assert!(result.is_ok(), "empty file should not error");
-    assert!(result.unwrap().is_empty(), "empty file should yield no grammars");
+    assert!(
+        result.unwrap().is_empty(),
+        "empty file should yield no grammars"
+    );
 }
 
 #[test]
@@ -160,7 +168,10 @@ fn plain_module_no_grammar_attr() {
         "#,
     )
     .unwrap();
-    assert!(gs.is_empty(), "module without #[adze::grammar] should produce nothing");
+    assert!(
+        gs.is_empty(),
+        "module without #[adze::grammar] should produce nothing"
+    );
 }
 
 #[test]
@@ -212,13 +223,19 @@ module.exports = grammar({
 #[test]
 fn build_stats_state_count_positive() {
     let result = build_simple_grammar_js();
-    assert!(result.build_stats.state_count > 0, "state_count should be > 0");
+    assert!(
+        result.build_stats.state_count > 0,
+        "state_count should be > 0"
+    );
 }
 
 #[test]
 fn build_stats_symbol_count_positive() {
     let result = build_simple_grammar_js();
-    assert!(result.build_stats.symbol_count > 0, "symbol_count should be > 0");
+    assert!(
+        result.build_stats.symbol_count > 0,
+        "symbol_count should be > 0"
+    );
 }
 
 #[test]
@@ -226,7 +243,8 @@ fn build_stats_conflict_cells_non_negative() {
     let result = build_simple_grammar_js();
     // conflict_cells is usize, always >= 0; verify it's a reasonable number
     assert!(
-        result.build_stats.conflict_cells <= result.build_stats.state_count * result.build_stats.symbol_count,
+        result.build_stats.conflict_cells
+            <= result.build_stats.state_count * result.build_stats.symbol_count,
         "conflict_cells should not exceed total cells"
     );
 }
@@ -262,7 +280,10 @@ fn tool_error_struct_no_fields_names_struct() {
         name: "EmptyNode".into(),
     };
     let msg = err.to_string();
-    assert!(msg.contains("EmptyNode"), "error should name the struct, got: {msg}");
+    assert!(
+        msg.contains("EmptyNode"),
+        "error should name the struct, got: {msg}"
+    );
 }
 
 #[test]
@@ -290,10 +311,16 @@ fn tool_error_grammar_validation_includes_reason() {
 
 #[test]
 fn io_error_preserves_message() {
-    let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied to /secret");
+    let io_err = std::io::Error::new(
+        std::io::ErrorKind::PermissionDenied,
+        "access denied to /secret",
+    );
     let err: ToolError = io_err.into();
     let msg = err.to_string();
-    assert!(msg.contains("access denied"), "IO context should be preserved, got: {msg}");
+    assert!(
+        msg.contains("access denied"),
+        "IO context should be preserved, got: {msg}"
+    );
 }
 
 #[test]
@@ -334,16 +361,15 @@ fn collect_multiple_tool_errors() {
 #[test]
 fn error_chain_source_callable_on_wrapped_errors() {
     // Verify source() is callable on all wrapper variants via std::error::Error
-    let io_err: ToolError =
-        std::io::Error::new(std::io::ErrorKind::NotFound, "file.rs").into();
+    let io_err: ToolError = std::io::Error::new(std::io::ErrorKind::NotFound, "file.rs").into();
     let _ = std::error::Error::source(&io_err); // must compile and not panic
 
-    let json_err: ToolError =
-        serde_json::from_str::<serde_json::Value>("bad").unwrap_err().into();
+    let json_err: ToolError = serde_json::from_str::<serde_json::Value>("bad")
+        .unwrap_err()
+        .into();
     let _ = std::error::Error::source(&json_err);
 
-    let syn_err: ToolError =
-        syn::Error::new(proc_macro2::Span::call_site(), "oops").into();
+    let syn_err: ToolError = syn::Error::new(proc_macro2::Span::call_site(), "oops").into();
     let _ = std::error::Error::source(&syn_err);
 }
 
@@ -398,7 +424,10 @@ fn result_vec_can_accumulate_errors() {
 fn build_options_default_has_reasonable_values() {
     let opts = BuildOptions::default();
     assert!(!opts.out_dir.is_empty(), "out_dir should not be empty");
-    assert!(opts.compress_tables, "compress_tables should default to true");
+    assert!(
+        opts.compress_tables,
+        "compress_tables should default to true"
+    );
 }
 
 #[test]
@@ -422,8 +451,14 @@ fn build_options_debug_impl() {
         compress_tables: true,
     };
     let dbg = format!("{opts:?}");
-    assert!(dbg.contains("BuildOptions"), "Debug should include type name, got: {dbg}");
-    assert!(dbg.contains("/some/path"), "Debug should include out_dir, got: {dbg}");
+    assert!(
+        dbg.contains("BuildOptions"),
+        "Debug should include type name, got: {dbg}"
+    );
+    assert!(
+        dbg.contains("/some/path"),
+        "Debug should include out_dir, got: {dbg}"
+    );
 }
 
 #[test]
@@ -447,7 +482,10 @@ module.exports = grammar({
     };
     let result = build_parser_from_grammar_js(&path, opts).unwrap();
     // Parser file should exist
-    assert!(Path::new(&result.parser_path).exists(), "parser file should be written");
+    assert!(
+        Path::new(&result.parser_path).exists(),
+        "parser file should be written"
+    );
     // Artifact directory should be created
     let grammar_dir = dir.path().join("grammar_artifact_test");
     assert!(grammar_dir.exists(), "artifact directory should exist");

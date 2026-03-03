@@ -14,16 +14,13 @@ use std::path::PathBuf;
 // ---------------------------------------------------------------------------
 
 fn build_options_strategy() -> impl Strategy<Value = BuildOptions> {
-    (
-        "[a-zA-Z0-9/_\\-]{0,64}",
-        any::<bool>(),
-        any::<bool>(),
-    )
-        .prop_map(|(out_dir, emit_artifacts, compress_tables)| BuildOptions {
+    ("[a-zA-Z0-9/_\\-]{0,64}", any::<bool>(), any::<bool>()).prop_map(
+        |(out_dir, emit_artifacts, compress_tables)| BuildOptions {
             out_dir,
             emit_artifacts,
             compress_tables,
-        })
+        },
+    )
 }
 
 fn build_stats_strategy() -> impl Strategy<Value = BuildStats> {

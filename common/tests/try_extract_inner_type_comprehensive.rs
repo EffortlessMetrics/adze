@@ -159,8 +159,7 @@ fn skip_chain_arc_box_to_find_option() {
 #[test]
 fn skip_chain_three_levels_target_not_found() {
     let ty: Type = parse_quote!(Arc<Box<Rc<String>>>);
-    let (inner, extracted) =
-        try_extract_inner_type(&ty, "Option", &skip(&["Arc", "Box", "Rc"]));
+    let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip(&["Arc", "Box", "Rc"]));
     assert!(!extracted);
     assert_eq!(ty_str(&inner), "Arc < Box < Rc < String > > >");
 }

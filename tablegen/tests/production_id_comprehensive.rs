@@ -198,7 +198,11 @@ fn assignment_two_rules_same_lhs() {
     let table = empty_table(1, 1, 1, 0);
     let (mut g, start, t) = base_grammar("two_same", &table);
     g.add_rule(rule(start, vec![Symbol::Terminal(t)], 0));
-    g.add_rule(rule(start, vec![Symbol::Terminal(t), Symbol::Terminal(t)], 1));
+    g.add_rule(rule(
+        start,
+        vec![Symbol::Terminal(t), Symbol::Terminal(t)],
+        1,
+    ));
 
     let code = gen_code(&g, &table);
     let map = extract_production_id_map(&code);
@@ -222,7 +226,11 @@ fn assignment_rules_across_nonterminals() {
 
     g.add_rule(rule(start, vec![Symbol::NonTerminal(other)], 0));
     g.add_rule(rule(other, vec![Symbol::Terminal(t)], 1));
-    g.add_rule(rule(other, vec![Symbol::Terminal(t), Symbol::Terminal(t)], 2));
+    g.add_rule(rule(
+        other,
+        vec![Symbol::Terminal(t), Symbol::Terminal(t)],
+        2,
+    ));
 
     let code = gen_code(&g, &table);
     let map = extract_production_id_map(&code);
@@ -310,7 +318,11 @@ fn stability_deterministic_codegen() {
     let table = empty_table(1, 1, 1, 0);
     let (mut g, start, t) = base_grammar("stable", &table);
     g.add_rule(rule(start, vec![Symbol::Terminal(t)], 0));
-    g.add_rule(rule(start, vec![Symbol::Terminal(t), Symbol::Terminal(t)], 1));
+    g.add_rule(rule(
+        start,
+        vec![Symbol::Terminal(t), Symbol::Terminal(t)],
+        1,
+    ));
 
     let code1 = gen_code(&g, &table);
     let code2 = gen_code(&g, &table);
@@ -368,7 +380,11 @@ fn mapping_length_matches_rule_count() {
     let (mut g, start, t) = base_grammar("maplen", &table);
     g.add_rule(rule(start, vec![Symbol::Terminal(t)], 0));
     g.add_rule(rule(start, vec![], 1));
-    g.add_rule(rule(start, vec![Symbol::Terminal(t), Symbol::Terminal(t)], 2));
+    g.add_rule(rule(
+        start,
+        vec![Symbol::Terminal(t), Symbol::Terminal(t)],
+        2,
+    ));
 
     let count: usize = g.rules.values().map(|v| v.len()).sum();
     let code = gen_code(&g, &table);
@@ -382,7 +398,11 @@ fn mapping_count_is_max_plus_one() {
     let table = empty_table(1, 1, 1, 0);
     let (mut g, start, t) = base_grammar("maxp1", &table);
     g.add_rule(rule(start, vec![Symbol::Terminal(t)], 0));
-    g.add_rule(rule(start, vec![Symbol::Terminal(t), Symbol::Terminal(t)], 1));
+    g.add_rule(rule(
+        start,
+        vec![Symbol::Terminal(t), Symbol::Terminal(t)],
+        1,
+    ));
     g.add_rule(rule(start, vec![], 2));
 
     let code = gen_code(&g, &table);
@@ -410,17 +430,17 @@ fn mapping_identity_preserved() {
     let table = empty_table(1, 1, 1, 0);
     let (mut g, start, t) = base_grammar("identity", &table);
     for i in 0..5u16 {
-        g.add_rule(rule(
-            start,
-            vec![Symbol::Terminal(t); (i + 1) as usize],
-            i,
-        ));
+        g.add_rule(rule(start, vec![Symbol::Terminal(t); (i + 1) as usize], i));
     }
 
     let code = gen_code(&g, &table);
     let map = extract_production_id_map(&code);
     for i in 0..5 {
-        assert_eq!(map[i], i as u16, "slot {} should map to production {}", i, i);
+        assert_eq!(
+            map[i], i as u16,
+            "slot {} should map to production {}",
+            i, i
+        );
     }
 }
 
@@ -489,7 +509,11 @@ fn many_twenty_rules_single_nonterminal() {
     let table = empty_table(1, 1, 1, 0);
     let (mut g, start, t) = base_grammar("twenty", &table);
     for i in 0..20u16 {
-        g.add_rule(rule(start, vec![Symbol::Terminal(t); (i % 3 + 1) as usize], i));
+        g.add_rule(rule(
+            start,
+            vec![Symbol::Terminal(t); (i % 3 + 1) as usize],
+            i,
+        ));
     }
 
     let code = gen_code(&g, &table);
@@ -514,8 +538,7 @@ fn many_fifty_rules_five_nonterminals() {
     let mut prod_id = 0u16;
     for nt_offset in 0..5u16 {
         let nt = SymbolId(start.0 + nt_offset);
-        g.rule_names
-            .insert(nt, format!("nt_{}", nt_offset));
+        g.rule_names.insert(nt, format!("nt_{}", nt_offset));
         for j in 0..10u16 {
             let tok_sym = if j % 2 == 0 {
                 Symbol::Terminal(t1)
@@ -610,7 +633,11 @@ fn compressed_map_matches_uncompressed() {
     let table = empty_table(2, 1, 1, 0);
     let (mut g, start, t) = base_grammar("comp_match", &table);
     g.add_rule(rule(start, vec![Symbol::Terminal(t)], 0));
-    g.add_rule(rule(start, vec![Symbol::Terminal(t), Symbol::Terminal(t)], 1));
+    g.add_rule(rule(
+        start,
+        vec![Symbol::Terminal(t), Symbol::Terminal(t)],
+        1,
+    ));
 
     let code_plain = gen_code(&g, &table);
     let map_plain = extract_production_id_map(&code_plain);

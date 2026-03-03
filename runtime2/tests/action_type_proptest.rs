@@ -11,8 +11,10 @@ use adze_runtime::language::{Action, ParseTable};
 fn arb_action() -> impl Strategy<Value = Action> {
     prop_oneof![
         any::<u16>().prop_map(Action::Shift),
-        (any::<u16>(), any::<u8>())
-            .prop_map(|(symbol, child_count)| Action::Reduce { symbol, child_count }),
+        (any::<u16>(), any::<u8>()).prop_map(|(symbol, child_count)| Action::Reduce {
+            symbol,
+            child_count
+        }),
         Just(Action::Accept),
         Just(Action::Error),
     ]

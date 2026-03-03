@@ -7,8 +7,8 @@
 //! grammars, and large grammar automaton construction.
 
 use adze_glr_core::{Action, FirstFollowSets, StateId, SymbolId, build_lr1_automaton};
-use adze_ir::builder::GrammarBuilder;
 use adze_ir::Grammar;
+use adze_ir::builder::GrammarBuilder;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -270,9 +270,8 @@ fn error_cells_present_in_action_table() {
         .build();
     let table = build_table(&g);
     let has_error = table.action_table.iter().any(|row| {
-        row.iter().any(|cell| {
-            cell.is_empty() || cell.iter().any(|a| matches!(a, Action::Error))
-        })
+        row.iter()
+            .any(|cell| cell.is_empty() || cell.iter().any(|a| matches!(a, Action::Error)))
     });
     assert!(
         has_error,
@@ -321,7 +320,11 @@ fn ambiguous_expr_produces_fork() {
 
     let fork_count = count_fork_cells(&table);
     assert!(
-        fork_count > 0 || table.action_table.iter().any(|row| row.iter().any(|cell| cell.len() > 1)),
+        fork_count > 0
+            || table
+                .action_table
+                .iter()
+                .any(|row| row.iter().any(|cell| cell.len() > 1)),
         "ambiguous grammar should produce Fork or multi-action cells"
     );
 }
@@ -703,10 +706,7 @@ fn action_table_has_shift_and_reduce() {
 
     assert!(any_state_has_shift(&table, a), "must have shift on 'a'");
     assert!(any_state_has_shift(&table, b), "must have shift on 'b'");
-    assert!(
-        any_state_has_reduce(&table, eof),
-        "must have reduce on EOF"
-    );
+    assert!(any_state_has_reduce(&table, eof), "must have reduce on EOF");
 }
 
 // ===========================================================================

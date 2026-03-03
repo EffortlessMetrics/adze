@@ -12,7 +12,7 @@
 
 use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
 use adze_ir::{Grammar, StateId, SymbolId};
-use adze_tablegen::serializer::{serialize_language, SerializableLexState};
+use adze_tablegen::serializer::{SerializableLexState, serialize_language};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 
@@ -116,12 +116,8 @@ fn state_count_strategy() -> impl Strategy<Value = usize> {
 }
 
 fn lex_modes_for_states(max_states: usize) -> impl Strategy<Value = (usize, Vec<LexMode>)> {
-    (1usize..=max_states).prop_flat_map(|n| {
-        (
-            Just(n),
-            prop::collection::vec(lex_mode_strategy(), n..=n),
-        )
-    })
+    (1usize..=max_states)
+        .prop_flat_map(|n| (Just(n), prop::collection::vec(lex_mode_strategy(), n..=n)))
 }
 
 // ══════════════════════════════════════════════════════════════════════

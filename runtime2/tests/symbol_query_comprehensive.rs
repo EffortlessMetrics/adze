@@ -63,26 +63,22 @@ fn sample_language() -> Language {
         .version(15)
         .parse_table(leak_table())
         .symbol_names(vec![
-            "end".into(),           // 0 – hidden terminal (e.g. EOF)
-            "number".into(),        // 1 – visible terminal
-            "+".into(),             // 2 – hidden terminal (punctuation)
-            "expression".into(),    // 3 – visible nonterminal
-            "_statement".into(),    // 4 – hidden nonterminal
-            "declaration".into(),   // 5 – supertype
+            "end".into(),         // 0 – hidden terminal (e.g. EOF)
+            "number".into(),      // 1 – visible terminal
+            "+".into(),           // 2 – hidden terminal (punctuation)
+            "expression".into(),  // 3 – visible nonterminal
+            "_statement".into(),  // 4 – hidden nonterminal
+            "declaration".into(), // 5 – supertype
         ])
         .symbol_metadata(vec![
-            terminal_hidden(),      // 0
-            terminal_visible(),     // 1
-            terminal_hidden(),      // 2
-            nonterminal_visible(),  // 3
-            nonterminal_hidden(),   // 4
-            supertype_meta(),       // 5
+            terminal_hidden(),     // 0
+            terminal_visible(),    // 1
+            terminal_hidden(),     // 2
+            nonterminal_visible(), // 3
+            nonterminal_hidden(),  // 4
+            supertype_meta(),      // 5
         ])
-        .field_names(vec![
-            "left".into(),
-            "operator".into(),
-            "right".into(),
-        ])
+        .field_names(vec!["left".into(), "operator".into(), "right".into()])
         .build()
         .unwrap()
 }
@@ -373,7 +369,14 @@ fn symbol_for_name_on_empty_language() {
 #[test]
 fn all_symbol_names_roundtrip() {
     let lang = sample_language();
-    let expected = ["end", "number", "+", "expression", "_statement", "declaration"];
+    let expected = [
+        "end",
+        "number",
+        "+",
+        "expression",
+        "_statement",
+        "declaration",
+    ];
     for i in 0..expected.len() {
         assert_eq!(
             lang.symbol_name(i as u16),

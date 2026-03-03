@@ -78,12 +78,12 @@ fn rich_language() -> Language {
         15,
         vec!["END", "number", "+", "expression", "statement", "_type"],
         vec![
-            terminal_hidden(),      // 0: END – hidden terminal
-            terminal_visible(),     // 1: number – visible terminal
-            terminal_hidden(),      // 2: "+" – hidden terminal (punctuation)
-            nonterminal_visible(),  // 3: expression – visible non-terminal
-            nonterminal_hidden(),   // 4: statement – hidden non-terminal
-            supertype_meta(),       // 5: _type – supertype
+            terminal_hidden(),     // 0: END – hidden terminal
+            terminal_visible(),    // 1: number – visible terminal
+            terminal_hidden(),     // 2: "+" – hidden terminal (punctuation)
+            nonterminal_visible(), // 3: expression – visible non-terminal
+            nonterminal_hidden(),  // 4: statement – hidden non-terminal
+            supertype_meta(),      // 5: _type – supertype
         ],
         vec!["left", "right", "body"],
     )
@@ -156,9 +156,9 @@ fn symbol_name_all_ids_in_range() {
 #[test]
 fn is_terminal_returns_correct_values() {
     let lang = rich_language();
-    assert!(lang.is_terminal(0));  // END
-    assert!(lang.is_terminal(1));  // number
-    assert!(lang.is_terminal(2));  // +
+    assert!(lang.is_terminal(0)); // END
+    assert!(lang.is_terminal(1)); // number
+    assert!(lang.is_terminal(2)); // +
     assert!(!lang.is_terminal(3)); // expression (non-terminal)
     assert!(!lang.is_terminal(4)); // statement (non-terminal)
     assert!(!lang.is_terminal(5)); // _type (supertype, non-terminal)
@@ -168,11 +168,11 @@ fn is_terminal_returns_correct_values() {
 fn is_visible_returns_correct_values() {
     let lang = rich_language();
     assert!(!lang.is_visible(0)); // END – hidden
-    assert!(lang.is_visible(1));  // number – visible
+    assert!(lang.is_visible(1)); // number – visible
     assert!(!lang.is_visible(2)); // + – hidden
-    assert!(lang.is_visible(3));  // expression – visible
+    assert!(lang.is_visible(3)); // expression – visible
     assert!(!lang.is_visible(4)); // statement – hidden
-    assert!(lang.is_visible(5));  // _type – visible (supertype)
+    assert!(lang.is_visible(5)); // _type – visible (supertype)
 }
 
 #[test]

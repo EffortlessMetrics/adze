@@ -196,7 +196,9 @@ fn deep_tree_cursor_depth_method() {
 
 #[test]
 fn wide_tree_hundred_children() {
-    let children: Vec<Tree> = (0..100).map(|i| leaf(i + 1, i as usize, (i + 1) as usize)).collect();
+    let children: Vec<Tree> = (0..100)
+        .map(|i| leaf(i + 1, i as usize, (i + 1) as usize))
+        .collect();
     let tree = Tree::new_for_testing(0, 0, 100, children);
     assert_eq!(tree.root_node().child_count(), 100);
 }
@@ -204,7 +206,9 @@ fn wide_tree_hundred_children() {
 #[test]
 fn wide_tree_cursor_visits_all_siblings() {
     let n = 50;
-    let children: Vec<Tree> = (0..n).map(|i| leaf(i + 1, i as usize, (i + 1) as usize)).collect();
+    let children: Vec<Tree> = (0..n)
+        .map(|i| leaf(i + 1, i as usize, (i + 1) as usize))
+        .collect();
     let tree = Tree::new_for_testing(0, 0, n as usize, children);
     let mut cursor = TreeCursor::new(&tree);
     assert!(cursor.goto_first_child());
@@ -218,7 +222,9 @@ fn wide_tree_cursor_visits_all_siblings() {
 #[test]
 fn wide_tree_last_child_accessible() {
     let n = 80u32;
-    let children: Vec<Tree> = (0..n).map(|i| leaf(i + 1, i as usize, (i + 1) as usize)).collect();
+    let children: Vec<Tree> = (0..n)
+        .map(|i| leaf(i + 1, i as usize, (i + 1) as usize))
+        .collect();
     let tree = Tree::new_for_testing(0, 0, n as usize, children);
     let last = tree.root_node().child((n - 1) as usize).unwrap();
     assert_eq!(last.kind_id(), n as u16);
@@ -277,7 +283,9 @@ fn prev_sibling_returns_none_without_links() {
 
 #[test]
 fn cursor_sibling_navigation() {
-    let children: Vec<Tree> = (0..3).map(|i| leaf(10 + i, (i * 2) as usize, (i * 2 + 2) as usize)).collect();
+    let children: Vec<Tree> = (0..3)
+        .map(|i| leaf(10 + i, (i * 2) as usize, (i * 2 + 2) as usize))
+        .collect();
     let tree = Tree::new_for_testing(1, 0, 6, children);
     let mut cursor = TreeCursor::new(&tree);
     assert!(cursor.goto_first_child());

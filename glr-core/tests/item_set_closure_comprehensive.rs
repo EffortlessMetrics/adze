@@ -282,7 +282,10 @@ fn single_nonterminal_item_predicts() {
     assert!(set.items.len() >= 2, "closure should predict A's rules");
 
     // A -> • b should be present (production_id 1, position 0)
-    let has_a_prediction = set.items.iter().any(|i| i.rule_id == RuleId(1) && i.position == 0);
+    let has_a_prediction = set
+        .items
+        .iter()
+        .any(|i| i.rule_id == RuleId(1) && i.position == 0);
     assert!(has_a_prediction, "should contain A -> • b");
 }
 
@@ -300,7 +303,10 @@ fn epsilon_production_is_reduce_item() {
     set.add_item(eps_item.clone());
     set.closure(&g, &ff).unwrap();
 
-    assert!(eps_item.is_reduce_item(&g), "epsilon item should be a reduce item at position 0");
+    assert!(
+        eps_item.is_reduce_item(&g),
+        "epsilon item should be a reduce item at position 0"
+    );
 }
 
 #[test]
@@ -331,8 +337,14 @@ fn left_recursive_closure_terminates() {
     set.closure(&g, &ff).unwrap();
 
     // Should have predicted E -> • a as well
-    let has_base = set.items.iter().any(|i| i.rule_id == RuleId(1) && i.position == 0);
-    assert!(has_base, "left-recursive closure should predict base case E -> • a");
+    let has_base = set
+        .items
+        .iter()
+        .any(|i| i.rule_id == RuleId(1) && i.position == 0);
+    assert!(
+        has_base,
+        "left-recursive closure should predict base case E -> • a"
+    );
 }
 
 #[test]
@@ -345,7 +357,10 @@ fn left_recursive_closure_has_recursive_prediction() {
     set.closure(&g, &ff).unwrap();
 
     // E -> • E '+' a should also be re-predicted (same as kernel)
-    let has_recursive = set.items.iter().any(|i| i.rule_id == RuleId(0) && i.position == 0);
+    let has_recursive = set
+        .items
+        .iter()
+        .any(|i| i.rule_id == RuleId(0) && i.position == 0);
     assert!(has_recursive, "recursive prediction should appear");
 }
 
@@ -453,7 +468,10 @@ fn goto_on_unrelated_symbol_is_empty() {
 
     // Symbol b (id=99) does not appear in the grammar rhs at the dot
     let goto_set = set.goto(&Symbol::Terminal(SymbolId(99)), &g, &ff);
-    assert!(goto_set.items.is_empty(), "GOTO on unrelated symbol should be empty");
+    assert!(
+        goto_set.items.is_empty(),
+        "GOTO on unrelated symbol should be empty"
+    );
 }
 
 #[test]
@@ -534,7 +552,11 @@ fn lr_item_hash_consistent_with_eq() {
     };
 
     assert_eq!(a, b);
-    assert_eq!(hash_of(&a), hash_of(&b), "equal items must have equal hashes");
+    assert_eq!(
+        hash_of(&a),
+        hash_of(&b),
+        "equal items must have equal hashes"
+    );
 }
 
 #[test]
@@ -558,7 +580,10 @@ fn closure_is_idempotent_simple() {
     let after_first: BTreeSet<_> = set.items.clone();
 
     set.closure(&g, &ff).unwrap();
-    assert_eq!(set.items, after_first, "second closure should not change set");
+    assert_eq!(
+        set.items, after_first,
+        "second closure should not change set"
+    );
 }
 
 #[test]
@@ -787,7 +812,10 @@ fn reduce_item_at_end_of_rule() {
 fn non_reduce_item_at_start() {
     let g = simple_grammar();
     let item = LRItem::new(RuleId(0), 0, SymbolId(0));
-    assert!(!item.is_reduce_item(&g), "dot at start should not be reduce item");
+    assert!(
+        !item.is_reduce_item(&g),
+        "dot at start should not be reduce item"
+    );
 }
 
 // ---- next_symbol ----

@@ -6,8 +6,8 @@
 //! default value, ordering (manual), large values, and usage in
 //! `Spanned` context.
 
-use adze::pure_parser::Point;
 use adze::Spanned;
+use adze::pure_parser::Point;
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

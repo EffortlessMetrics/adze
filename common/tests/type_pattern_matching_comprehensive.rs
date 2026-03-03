@@ -82,10 +82,7 @@ fn extract_option_of_f64() {
 #[test]
 fn filter_option_in_skip_set_unwraps() {
     let ty: Type = parse_quote!(Option<Ident>);
-    assert_eq!(
-        ty_str(&filter_inner_type(&ty, &skip(&["Option"]))),
-        "Ident"
-    );
+    assert_eq!(ty_str(&filter_inner_type(&ty, &skip(&["Option"]))), "Ident");
 }
 
 #[test]
@@ -121,10 +118,7 @@ fn filter_box_in_skip_set_unwraps() {
 #[test]
 fn filter_nested_box_box_unwraps_both() {
     let ty: Type = parse_quote!(Box<Box<Inner>>);
-    assert_eq!(
-        ty_str(&filter_inner_type(&ty, &skip(&["Box"]))),
-        "Inner"
-    );
+    assert_eq!(ty_str(&filter_inner_type(&ty, &skip(&["Box"]))), "Inner");
 }
 
 #[test]
@@ -235,10 +229,7 @@ fn extract_qualified_vec_matches_last_segment() {
 #[test]
 fn filter_qualified_option_matches_last_segment() {
     let ty: Type = parse_quote!(std::option::Option<u64>);
-    assert_eq!(
-        ty_str(&filter_inner_type(&ty, &skip(&["Option"]))),
-        "u64"
-    );
+    assert_eq!(ty_str(&filter_inner_type(&ty, &skip(&["Option"]))), "u64");
 }
 
 #[test]

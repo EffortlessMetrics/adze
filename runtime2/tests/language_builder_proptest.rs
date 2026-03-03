@@ -4,8 +4,8 @@
 
 use proptest::prelude::*;
 
-use adze_runtime::language::{Language, SymbolMetadata};
 use adze_runtime::Token;
+use adze_runtime::language::{Language, SymbolMetadata};
 
 // ---------------------------------------------------------------------------
 // Strategies

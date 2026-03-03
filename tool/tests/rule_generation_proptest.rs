@@ -93,11 +93,45 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,8}".prop_filter("avoid keywords", |s| {
         !matches!(
             s.as_str(),
-            "type" | "fn" | "let" | "mut" | "ref" | "pub" | "mod" | "use" | "self" | "super"
-                | "crate" | "struct" | "enum" | "impl" | "trait" | "where" | "for" | "loop"
-                | "while" | "if" | "else" | "match" | "return" | "break" | "continue" | "as"
-                | "in" | "move" | "box" | "dyn" | "async" | "await" | "try" | "yield"
-                | "macro" | "const" | "static" | "unsafe" | "extern"
+            "type"
+                | "fn"
+                | "let"
+                | "mut"
+                | "ref"
+                | "pub"
+                | "mod"
+                | "use"
+                | "self"
+                | "super"
+                | "crate"
+                | "struct"
+                | "enum"
+                | "impl"
+                | "trait"
+                | "where"
+                | "for"
+                | "loop"
+                | "while"
+                | "if"
+                | "else"
+                | "match"
+                | "return"
+                | "break"
+                | "continue"
+                | "as"
+                | "in"
+                | "move"
+                | "box"
+                | "dyn"
+                | "async"
+                | "await"
+                | "try"
+                | "yield"
+                | "macro"
+                | "const"
+                | "static"
+                | "unsafe"
+                | "extern"
         )
     })
 }
@@ -144,14 +178,7 @@ fn struct_single_field_src(name: &str, ty: &str, field: &str, pattern: &str) -> 
     )
 }
 
-fn struct_two_field_src(
-    name: &str,
-    ty: &str,
-    f1: &str,
-    p1: &str,
-    f2: &str,
-    p2: &str,
-) -> String {
+fn struct_two_field_src(name: &str, ty: &str, f1: &str, p1: &str, f2: &str, p2: &str) -> String {
     format!(
         r##"
         #[adze::grammar("{name}")]

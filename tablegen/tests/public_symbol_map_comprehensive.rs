@@ -435,7 +435,11 @@ fn map_entries_monotonically_increase() {
     let mut prev = None;
     for entry in &entries {
         // Find the numeric portion before "usize" or "as"
-        let num_str: String = entry.trim().chars().take_while(|c| c.is_ascii_digit()).collect();
+        let num_str: String = entry
+            .trim()
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
         if let Ok(n) = num_str.parse::<usize>() {
             if let Some(p) = prev {
                 assert!(n >= p, "entries should be non-decreasing");
@@ -680,7 +684,10 @@ fn deterministic_ten_iterations() {
     let reference = extract_public_symbol_map_body(&abi_code(&g, &t));
     for _ in 0..10 {
         let current = extract_public_symbol_map_body(&abi_code(&g, &t));
-        assert_eq!(reference, current, "map must be stable across 10 iterations");
+        assert_eq!(
+            reference, current,
+            "map must be stable across 10 iterations"
+        );
     }
 }
 
@@ -708,7 +715,11 @@ fn map_identity_property() {
     let body = extract_public_symbol_map_body(&code).expect("map present");
     let entries: Vec<&str> = body.split(',').collect();
     for (i, entry) in entries.iter().enumerate() {
-        let num: String = entry.trim().chars().take_while(|c| c.is_ascii_digit()).collect();
+        let num: String = entry
+            .trim()
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
         let val: usize = num.parse().expect("should be a number");
         assert_eq!(val, i, "public_symbol_map[{i}] should be {i}, got {val}");
     }

@@ -108,10 +108,18 @@ fn extra_whitespace_regex_pattern() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
     assert_eq!(params[0].path.to_string(), "pattern");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"\s");
     } else {
         panic!("Expected string literal");
@@ -130,9 +138,17 @@ fn extra_multichar_whitespace_pattern() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"\s+");
     } else {
         panic!("Expected string literal");
@@ -152,9 +168,17 @@ fn extra_newline_pattern() {
     };
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"\n");
     } else {
         panic!("Expected string literal");
@@ -174,9 +198,17 @@ fn extra_single_line_comment_pattern() {
     };
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"//[^\n]*");
     } else {
         panic!("Expected string literal");
@@ -196,9 +228,17 @@ fn extra_hash_comment_pattern() {
     };
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"#[^\n]*");
     } else {
         panic!("Expected string literal");
@@ -217,9 +257,17 @@ fn extra_semicolon_comment_pattern() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r";[^\n]*");
     } else {
         panic!("Expected string literal");
@@ -253,13 +301,16 @@ fn multiple_extras_in_grammar() {
         }
     });
     let items = module_items(&m);
-    let extra_count = items.iter().filter(|i| {
-        if let Item::Struct(s) = i {
-            s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
-        } else {
-            false
-        }
-    }).count();
+    let extra_count = items
+        .iter()
+        .filter(|i| {
+            if let Item::Struct(s) = i {
+                s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
+            } else {
+                false
+            }
+        })
+        .count();
     assert_eq!(extra_count, 2);
 }
 
@@ -296,14 +347,17 @@ fn three_extras_whitespace_line_comment_block_comment() {
         }
     });
     let items = module_items(&m);
-    let extra_names: Vec<_> = items.iter().filter_map(|i| {
-        if let Item::Struct(s) = i {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
-                return Some(s.ident.to_string());
+    let extra_names: Vec<_> = items
+        .iter()
+        .filter_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
+                    return Some(s.ident.to_string());
+                }
             }
-        }
-        None
-    }).collect();
+            None
+        })
+        .collect();
     assert_eq!(extra_names.len(), 3);
     assert!(extra_names.contains(&"Whitespace".to_string()));
     assert!(extra_names.contains(&"LineComment".to_string()));
@@ -341,9 +395,15 @@ fn extra_with_word_and_language() {
     let mut found_extra = false;
     for item in items {
         if let Item::Struct(s) = item {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) { found_language = true; }
-            if s.attrs.iter().any(|a| is_adze_attr(a, "word")) { found_word = true; }
-            if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) { found_extra = true; }
+            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
+                found_language = true;
+            }
+            if s.attrs.iter().any(|a| is_adze_attr(a, "word")) {
+                found_word = true;
+            }
+            if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
+                found_extra = true;
+            }
         }
     }
     assert!(found_language);
@@ -529,7 +589,12 @@ fn extra_preserves_non_adze_attrs() {
     let adze_names = adze_attr_names(&s.attrs);
     assert_eq!(adze_names, vec!["extra"]);
     let derive_attr = s.attrs.iter().find(|a| {
-        a.path().segments.iter().next().map(|s| s.ident == "derive").unwrap_or(false)
+        a.path()
+            .segments
+            .iter()
+            .next()
+            .map(|s| s.ident == "derive")
+            .unwrap_or(false)
     });
     assert!(derive_attr.is_some());
 }
@@ -546,9 +611,17 @@ fn extra_tab_space_character_class() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"[ \t]+");
     } else {
         panic!("Expected string literal");
@@ -567,9 +640,17 @@ fn extra_crlf_pattern() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), r"\r?\n");
     } else {
         panic!("Expected string literal");
@@ -589,9 +670,17 @@ fn extra_with_empty_pattern() {
     };
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), "");
     } else {
         panic!("Expected string literal");
@@ -610,10 +699,18 @@ fn extra_with_leaf_text() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
     assert_eq!(params[0].path.to_string(), "text");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert_eq!(s.value(), " ");
     } else {
         panic!("Expected string literal");
@@ -716,22 +813,28 @@ fn extra_struct_distinct_from_language() {
         }
     });
     let items = module_items(&m);
-    let language_names: Vec<_> = items.iter().filter_map(|i| {
-        if let Item::Struct(s) = i {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                return Some(s.ident.to_string());
+    let language_names: Vec<_> = items
+        .iter()
+        .filter_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
+                    return Some(s.ident.to_string());
+                }
             }
-        }
-        None
-    }).collect();
-    let extra_names: Vec<_> = items.iter().filter_map(|i| {
-        if let Item::Struct(s) = i {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
-                return Some(s.ident.to_string());
+            None
+        })
+        .collect();
+    let extra_names: Vec<_> = items
+        .iter()
+        .filter_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
+                    return Some(s.ident.to_string());
+                }
             }
-        }
-        None
-    }).collect();
+            None
+        })
+        .collect();
     assert_eq!(language_names, vec!["Program"]);
     assert_eq!(extra_names, vec!["Whitespace"]);
 }
@@ -748,9 +851,17 @@ fn extra_complex_regex_alternation() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert!(s.value().contains('|'));
         assert!(s.value().contains(r"\s+"));
         assert!(s.value().contains(r"//[^\n]*"));
@@ -827,7 +938,15 @@ fn extra_attr_ordering_preserved() {
     assert_eq!(s.attrs.len(), 2);
     // Verify derive is first
     let first_attr = &s.attrs[0];
-    assert!(first_attr.path().segments.iter().next().map(|s| s.ident == "derive").unwrap_or(false));
+    assert!(
+        first_attr
+            .path()
+            .segments
+            .iter()
+            .next()
+            .map(|s| s.ident == "derive")
+            .unwrap_or(false)
+    );
 }
 
 // ── 34. Extra with Unicode whitespace pattern ───────────────────────────────
@@ -843,9 +962,17 @@ fn extra_unicode_whitespace_pattern() {
     };
     assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
     let params = leaf_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
         assert!(s.value().contains(r"\u{00A0}"));
     } else {
         panic!("Expected string literal");

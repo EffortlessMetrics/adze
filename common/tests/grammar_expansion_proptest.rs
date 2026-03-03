@@ -7,12 +7,12 @@
 //! determinism, and field preservation.
 
 use adze_common::{
-    filter_inner_type, try_extract_inner_type, wrap_leaf_type, FieldThenParams, NameValueExpr,
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_quote, parse_str, Item, ItemEnum, ItemMod, ItemStruct, Type};
+use syn::{Item, ItemEnum, ItemMod, ItemStruct, Type, parse_quote, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -65,10 +65,7 @@ fn build_struct(name: &str, fields: &[(&str, &str)]) -> String {
         .iter()
         .map(|(fname, ftype)| format!("    pub {fname}: {ftype},"))
         .collect();
-    format!(
-        "pub struct {name} {{\n{}\n}}",
-        field_strs.join("\n")
-    )
+    format!("pub struct {name} {{\n{}\n}}", field_strs.join("\n"))
 }
 
 /// Builds an enum source string with tuple variants.

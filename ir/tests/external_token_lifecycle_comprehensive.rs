@@ -6,8 +6,7 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
-    ExternalToken, Grammar, GrammarError, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
+    ExternalToken, Grammar, GrammarError, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 
 // ---------------------------------------------------------------------------
@@ -192,7 +191,10 @@ fn register_single_external() {
 #[test]
 fn register_multiple_externals() {
     let mut g = base_grammar();
-    for (i, name) in ["indent", "dedent", "newline", "string_content"].iter().enumerate() {
+    for (i, name) in ["indent", "dedent", "newline", "string_content"]
+        .iter()
+        .enumerate()
+    {
         g.externals.push(ext(name, 50 + i as u16));
     }
     assert_eq!(g.externals.len(), 4);
@@ -344,13 +346,18 @@ fn normalize_preserves_external_symbols_in_simple_rule() {
     g.externals.push(ext("indent", 50));
     g.add_rule(make_rule(
         10,
-        vec![Symbol::External(SymbolId(50)), Symbol::Terminal(SymbolId(1))],
+        vec![
+            Symbol::External(SymbolId(50)),
+            Symbol::Terminal(SymbolId(1)),
+        ],
     ));
 
     let rules = g.normalize();
-    let has_external = rules
-        .iter()
-        .any(|r| r.rhs.iter().any(|s| matches!(s, Symbol::External(SymbolId(50)))));
+    let has_external = rules.iter().any(|r| {
+        r.rhs
+            .iter()
+            .any(|s| matches!(s, Symbol::External(SymbolId(50))))
+    });
     assert!(has_external, "external symbol should survive normalization");
 }
 
@@ -365,10 +372,15 @@ fn normalize_expands_optional_around_external() {
 
     let rules = g.normalize();
     // After normalization, Optional(External(50)) becomes aux rule: aux -> External(50) | ε
-    assert!(rules.len() >= 3, "expected aux rules from Optional expansion");
-    let has_ext = rules
-        .iter()
-        .any(|r| r.rhs.iter().any(|s| matches!(s, Symbol::External(SymbolId(50)))));
+    assert!(
+        rules.len() >= 3,
+        "expected aux rules from Optional expansion"
+    );
+    let has_ext = rules.iter().any(|r| {
+        r.rhs
+            .iter()
+            .any(|s| matches!(s, Symbol::External(SymbolId(50))))
+    });
     assert!(has_ext, "external should appear in expanded aux rule");
 }
 
@@ -382,10 +394,15 @@ fn normalize_expands_repeat_around_external() {
     ));
 
     let rules = g.normalize();
-    let has_ext = rules
-        .iter()
-        .any(|r| r.rhs.iter().any(|s| matches!(s, Symbol::External(SymbolId(70)))));
-    assert!(has_ext, "external should appear in expanded Repeat aux rule");
+    let has_ext = rules.iter().any(|r| {
+        r.rhs
+            .iter()
+            .any(|s| matches!(s, Symbol::External(SymbolId(70))))
+    });
+    assert!(
+        has_ext,
+        "external should appear in expanded Repeat aux rule"
+    );
 }
 
 // ===========================================================================

@@ -39,8 +39,8 @@ fn arb_action_cell() -> impl Strategy<Value = ActionCell> {
 
 /// Generate a `SymbolMetadata`.
 fn arb_symbol_metadata(id: u16) -> impl Strategy<Value = adze_glr_core::SymbolMetadata> {
-    (any::<bool>(), any::<bool>(), any::<bool>())
-        .prop_map(move |(vis, named, term)| adze_glr_core::SymbolMetadata {
+    (any::<bool>(), any::<bool>(), any::<bool>()).prop_map(move |(vis, named, term)| {
+        adze_glr_core::SymbolMetadata {
             name: format!("sym_{id}"),
             is_visible: vis,
             is_named: named,
@@ -49,7 +49,8 @@ fn arb_symbol_metadata(id: u16) -> impl Strategy<Value = adze_glr_core::SymbolMe
             is_extra: false,
             is_fragile: false,
             symbol_id: SymbolId(id),
-        })
+        }
+    })
 }
 
 /// Build a well-formed `ParseTable` from generated dimensions and content.

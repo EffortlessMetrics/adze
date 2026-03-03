@@ -78,10 +78,8 @@ fn arb_grammar(
         let nt_count = nt_count.max(1);
         let nn_count = nn_count.max(1);
         // Generate 1..=3 productions per non-terminal
-        let prods = prop::collection::vec(
-            prop::collection::vec(arb_rhs(), 1..=3),
-            nn_count..=nn_count,
-        );
+        let prods =
+            prop::collection::vec(prop::collection::vec(arb_rhs(), 1..=3), nn_count..=nn_count);
         prods.prop_map(move |all_prods| {
             let mut g = Grammar::new("proptest".into());
             // Register terminals
@@ -103,19 +101,16 @@ fn arb_grammar(
                             Symbol::Terminal(id) if id.0 > (nt_count as u16).min(MAX_TERM) => {
                                 Symbol::Terminal(SymbolId(1)) // clamp
                             }
-                            Symbol::NonTerminal(id)
-                                if id.0 >= NT_BASE + all_prods.len() as u16 =>
-                            {
+                            Symbol::NonTerminal(id) if id.0 >= NT_BASE + all_prods.len() as u16 => {
                                 Symbol::NonTerminal(SymbolId(NT_BASE)) // clamp
                             }
                             other => other.clone(),
                         })
                         .collect();
-                    g.rules.entry(nt_id).or_default().push(rule(
-                        nt_id,
-                        filtered_rhs,
-                        prod_counter,
-                    ));
+                    g.rules
+                        .entry(nt_id)
+                        .or_default()
+                        .push(rule(nt_id, filtered_rhs, prod_counter));
                     prod_counter += 1;
                 }
             }

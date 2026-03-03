@@ -190,7 +190,12 @@ impl Tree {
     /// Create a tree for testing with the given symbol, byte range, and children.
     ///
     /// Each child `Tree` is flattened into a `TreeNode` subtree.
-    pub fn new_for_testing(symbol: u32, start_byte: usize, end_byte: usize, children: Vec<Tree>) -> Self {
+    pub fn new_for_testing(
+        symbol: u32,
+        start_byte: usize,
+        end_byte: usize,
+        children: Vec<Tree>,
+    ) -> Self {
         fn tree_to_node(t: Tree) -> TreeNode {
             let child_nodes = t.root.children.into_iter().collect();
             TreeNode {
@@ -439,7 +444,10 @@ impl<'tree> TreeCursor<'tree> {
 
     /// Get the current node the cursor is pointing at.
     pub fn node(&self) -> Node<'tree> {
-        let entry = self.stack.last().expect("cursor stack should never be empty");
+        let entry = self
+            .stack
+            .last()
+            .expect("cursor stack should never be empty");
         Node::new(entry.node, self.language)
     }
 

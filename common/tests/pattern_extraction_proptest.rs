@@ -27,16 +27,16 @@ fn ident_strategy() -> impl Strategy<Value = String> {
 
 /// Simple leaf type names for unnamed fields.
 fn type_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "i32", "u32", "i64", "u64", "f32", "f64", "bool", "char", "String", "usize",
-    ][..])
+    prop::sample::select(
+        &[
+            "i32", "u32", "i64", "u64", "f32", "f64", "bool", "char", "String", "usize",
+        ][..],
+    )
 }
 
 /// Printable ASCII characters safe inside a Rust string literal (no backslash, no quote).
 fn safe_pattern_char() -> impl Strategy<Value = char> {
-    prop::char::range(' ', '~').prop_filter("no backslash or quote", |c| {
-        *c != '\\' && *c != '"'
-    })
+    prop::char::range(' ', '~').prop_filter("no backslash or quote", |c| *c != '\\' && *c != '"')
 }
 
 /// Non-empty pattern strings made of safe chars.
@@ -47,27 +47,30 @@ fn safe_pattern_string(max_len: usize) -> impl Strategy<Value = String> {
 
 /// Simple regex-like patterns (safe subset).
 fn simple_regex_pattern() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        r"\d+",
-        r"\w+",
-        r"\s",
-        r"[a-z]+",
-        r"[A-Z][a-zA-Z0-9]*",
-        r"[0-9]+",
-        r"[-+*/]",
-        r"\d+\.\d+",
-        r"[_a-zA-Z][_a-zA-Z0-9]*",
-        r"0[xX][0-9a-fA-F]+",
-    ][..])
+    prop::sample::select(
+        &[
+            r"\d+",
+            r"\w+",
+            r"\s",
+            r"[a-z]+",
+            r"[A-Z][a-zA-Z0-9]*",
+            r"[0-9]+",
+            r"[-+*/]",
+            r"\d+\.\d+",
+            r"[_a-zA-Z][_a-zA-Z0-9]*",
+            r"0[xX][0-9a-fA-F]+",
+        ][..],
+    )
 }
 
 /// Special-character patterns that need careful handling.
 fn special_char_pattern() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "+", "-", "*", "/", "(", ")", "{", "}", "[", "]",
-        ".", ",", ";", ":", "!", "?", "@", "#", "$", "%",
-        "^", "&", "|", "~", "<", ">", "=",
-    ][..])
+    prop::sample::select(
+        &[
+            "+", "-", "*", "/", "(", ")", "{", "}", "[", "]", ".", ",", ";", ":", "!", "?", "@",
+            "#", "$", "%", "^", "&", "|", "~", "<", ">", "=",
+        ][..],
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -85,10 +88,7 @@ fn extract_str_value(expr: &Expr) -> Option<String> {
 }
 
 /// Find a `NameValueExpr` by key in parsed `FieldThenParams` params.
-fn find_param<'a>(
-    ftp: &'a FieldThenParams,
-    key: &str,
-) -> Option<&'a NameValueExpr> {
+fn find_param<'a>(ftp: &'a FieldThenParams, key: &str) -> Option<&'a NameValueExpr> {
     ftp.params.iter().find(|p| p.path == key)
 }
 

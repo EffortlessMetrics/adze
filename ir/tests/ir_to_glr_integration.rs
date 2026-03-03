@@ -188,9 +188,9 @@ fn multi_nt_goto_exists_for_nonterminals() {
     let (_ff, table) = full_pipeline(&g);
     // At least one GOTO entry should exist
     let has_goto = (0..table.state_count).any(|st| {
-        g.rules.keys().any(|&nt| {
-            table.goto(StateId(st as u16), nt).is_some()
-        })
+        g.rules
+            .keys()
+            .any(|&nt| table.goto(StateId(st as u16), nt).is_some())
     });
     assert!(has_goto, "GOTO table must have entries for nonterminals");
 }
@@ -211,7 +211,10 @@ fn multi_nt_rules_preserved() {
 fn arith_precedence_produces_table() {
     let g = arithmetic_grammar();
     let (_ff, table) = full_pipeline(&g);
-    assert!(table.state_count > 0, "arithmetic grammar should produce states");
+    assert!(
+        table.state_count > 0,
+        "arithmetic grammar should produce states"
+    );
 }
 
 #[test]
@@ -307,18 +310,38 @@ fn normalize_then_compute() {
     let tok_b = SymbolId(2);
     let s = SymbolId(10);
 
-    g.tokens.insert(tok_a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
-    g.tokens.insert(tok_b, Token { name: "b".into(), pattern: TokenPattern::String("b".into()), fragile: false });
+    g.tokens.insert(
+        tok_a,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        tok_b,
+        Token {
+            name: "b".into(),
+            pattern: TokenPattern::String("b".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(s, "S".into());
     // S → a? b  (uses Optional)
-    g.rules.insert(s, vec![Rule {
-        lhs: s,
-        rhs: vec![Symbol::Optional(Box::new(Symbol::Terminal(tok_a))), Symbol::Terminal(tok_b)],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(0),
-    }]);
+    g.rules.insert(
+        s,
+        vec![Rule {
+            lhs: s,
+            rhs: vec![
+                Symbol::Optional(Box::new(Symbol::Terminal(tok_a))),
+                Symbol::Terminal(tok_b),
+            ],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
 
     g.normalize();
 
@@ -326,7 +349,13 @@ fn normalize_then_compute() {
     for rule in g.all_rules() {
         for sym in &rule.rhs {
             assert!(
-                !matches!(sym, Symbol::Optional(_) | Symbol::Repeat(_) | Symbol::Choice(_) | Symbol::Sequence(_)),
+                !matches!(
+                    sym,
+                    Symbol::Optional(_)
+                        | Symbol::Repeat(_)
+                        | Symbol::Choice(_)
+                        | Symbol::Sequence(_)
+                ),
                 "complex symbols should be normalized away"
             );
         }
@@ -343,17 +372,27 @@ fn normalize_repeat_then_build_table() {
     let tok_a = SymbolId(1);
     let s = SymbolId(10);
 
-    g.tokens.insert(tok_a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    g.tokens.insert(
+        tok_a,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(s, "S".into());
     // S → a*  (zero-or-more)
-    g.rules.insert(s, vec![Rule {
-        lhs: s,
-        rhs: vec![Symbol::Repeat(Box::new(Symbol::Terminal(tok_a)))],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(0),
-    }]);
+    g.rules.insert(
+        s,
+        vec![Rule {
+            lhs: s,
+            rhs: vec![Symbol::Repeat(Box::new(Symbol::Terminal(tok_a)))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
 
     g.normalize();
 
@@ -368,16 +407,29 @@ fn compute_normalized_shortcut() {
     let tok_a = SymbolId(1);
     let s = SymbolId(10);
 
-    g.tokens.insert(tok_a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    g.tokens.insert(
+        tok_a,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(s, "S".into());
-    g.rules.insert(s, vec![Rule {
-        lhs: s,
-        rhs: vec![Symbol::Choice(vec![Symbol::Terminal(tok_a), Symbol::Epsilon])],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(0),
-    }]);
+    g.rules.insert(
+        s,
+        vec![Rule {
+            lhs: s,
+            rhs: vec![Symbol::Choice(vec![
+                Symbol::Terminal(tok_a),
+                Symbol::Epsilon,
+            ])],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
 
     // compute_normalized does normalize + compute in one step
     let ff = FirstFollowSets::compute_normalized(&mut g).expect("compute_normalized");
@@ -477,10 +529,16 @@ fn multi_rule_more_states_than_single() {
 fn builder_javascript_like_through_pipeline() {
     let g = GrammarBuilder::javascript_like();
     let (_ff, table) = full_pipeline(&g);
-    assert!(table.state_count > 0, "JS-like grammar should produce a table");
+    assert!(
+        table.state_count > 0,
+        "JS-like grammar should produce a table"
+    );
     let eof = table.eof();
     let has_accept = (0..table.state_count).any(|st| {
-        table.actions(StateId(st as u16), eof).iter().any(|a| matches!(a, Action::Accept))
+        table
+            .actions(StateId(st as u16), eof)
+            .iter()
+            .any(|a| matches!(a, Action::Accept))
     });
     assert!(has_accept, "JS-like grammar must have Accept");
 }
@@ -521,7 +579,10 @@ fn many_alternatives_grammar() {
     let (ff, table) = full_pipeline(&g);
     let start = g.start_symbol().unwrap();
     let first = ff.first(start).unwrap();
-    assert!(first.count_ones(..) >= 5, "FIRST(S) should contain all 5 terminals");
+    assert!(
+        first.count_ones(..) >= 5,
+        "FIRST(S) should contain all 5 terminals"
+    );
     assert!(table.state_count > 0);
 }
 
@@ -539,7 +600,10 @@ fn chain_grammar_a_to_b_to_c() {
     let start = g.start_symbol().unwrap();
     let first = ff.first(start).unwrap();
     // FIRST(S) should transitively include the terminal 'c'
-    assert!(first.count_ones(..) > 0, "FIRST(S) should include terminal c");
+    assert!(
+        first.count_ones(..) > 0,
+        "FIRST(S) should include terminal c"
+    );
     assert!(table.state_count > 0);
 }
 
@@ -553,7 +617,10 @@ fn right_assoc_precedence_grammar() {
         .start("expr")
         .build();
     let (_ff, table) = full_pipeline(&g);
-    assert!(table.state_count > 0, "right-assoc grammar should produce a table");
+    assert!(
+        table.state_count > 0,
+        "right-assoc grammar should produce a table"
+    );
 }
 
 #[test]

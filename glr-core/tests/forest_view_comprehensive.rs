@@ -9,8 +9,8 @@
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::forest_view::{ForestView, Span};
 use adze_glr_core::parse_forest::{
-    ErrorMeta, ForestAlternative, ForestNode, ParseError, ParseForest, ParseNode, ParseTree,
-    ERROR_SYMBOL,
+    ERROR_SYMBOL, ErrorMeta, ForestAlternative, ForestNode, ParseError, ParseForest, ParseNode,
+    ParseTree,
 };
 use adze_glr_core::{
     Driver, FirstFollowSets, Forest, GLRError, ParseTable, build_lr1_automaton, sanity_check_tables,
@@ -141,7 +141,9 @@ fn forest_node_is_complete_with_alternatives() {
         id: 1,
         symbol: SymbolId(2),
         span: (0, 3),
-        alternatives: vec![ForestAlternative { children: vec![10, 11] }],
+        alternatives: vec![ForestAlternative {
+            children: vec![10, 11],
+        }],
         error_meta: ErrorMeta::default(),
     };
     assert!(complete.is_complete());
@@ -163,8 +165,12 @@ fn forest_node_multiple_alternatives() {
         symbol: SymbolId(3),
         span: (0, 10),
         alternatives: vec![
-            ForestAlternative { children: vec![1, 2] },
-            ForestAlternative { children: vec![3, 4, 5] },
+            ForestAlternative {
+                children: vec![1, 2],
+            },
+            ForestAlternative {
+                children: vec![3, 4, 5],
+            },
         ],
         error_meta: ErrorMeta::default(),
     };
@@ -180,8 +186,14 @@ fn forest_node_clone() {
         id: 7,
         symbol: SymbolId(4),
         span: (2, 8),
-        alternatives: vec![ForestAlternative { children: vec![100] }],
-        error_meta: ErrorMeta { missing: true, is_error: false, cost: 3 },
+        alternatives: vec![ForestAlternative {
+            children: vec![100],
+        }],
+        error_meta: ErrorMeta {
+            missing: true,
+            is_error: false,
+            cost: 3,
+        },
     };
     let cloned = node.clone();
     assert_eq!(cloned.id, 7);
@@ -205,7 +217,11 @@ fn error_meta_default_is_clean() {
 
 #[test]
 fn error_meta_is_copy() {
-    let a = ErrorMeta { missing: true, is_error: false, cost: 5 };
+    let a = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 5,
+    };
     let b = a; // Copy
     assert_eq!(a.missing, b.missing);
     assert_eq!(a.is_error, b.is_error);
@@ -214,7 +230,11 @@ fn error_meta_is_copy() {
 
 #[test]
 fn error_meta_missing_terminal() {
-    let meta = ErrorMeta { missing: true, is_error: false, cost: 1 };
+    let meta = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 1,
+    };
     assert!(meta.missing);
     assert!(!meta.is_error);
     assert_eq!(meta.cost, 1);
@@ -222,7 +242,11 @@ fn error_meta_missing_terminal() {
 
 #[test]
 fn error_meta_error_chunk() {
-    let meta = ErrorMeta { missing: false, is_error: true, cost: 2 };
+    let meta = ErrorMeta {
+        missing: false,
+        is_error: true,
+        cost: 2,
+    };
     assert!(!meta.missing);
     assert!(meta.is_error);
     assert_eq!(meta.cost, 2);
@@ -230,7 +254,11 @@ fn error_meta_error_chunk() {
 
 #[test]
 fn error_meta_debug_format() {
-    let meta = ErrorMeta { missing: true, is_error: false, cost: 42 };
+    let meta = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 42,
+    };
     let dbg = format!("{meta:?}");
     assert!(dbg.contains("missing"));
     assert!(dbg.contains("true"));
@@ -371,7 +399,11 @@ fn debug_error_stats_with_missing_terminal() {
         symbol: SymbolId(1),
         span: (0, 0),
         alternatives: vec![ForestAlternative { children: vec![] }],
-        error_meta: ErrorMeta { missing: true, is_error: false, cost: 1 },
+        error_meta: ErrorMeta {
+            missing: true,
+            is_error: false,
+            cost: 1,
+        },
     };
     let mut nodes = HashMap::new();
     nodes.insert(0, node.clone());
@@ -513,7 +545,13 @@ fn longer_chain_has_single_root() {
     let plus = sym_id(&grammar, "PLUS");
     let forest = pipeline_parse(
         &mut grammar,
-        &[(num, 0, 1), (plus, 1, 2), (num, 2, 3), (plus, 3, 4), (num, 4, 5)],
+        &[
+            (num, 0, 1),
+            (plus, 1, 2),
+            (num, 2, 3),
+            (plus, 3, 4),
+            (num, 4, 5),
+        ],
     )
     .expect("chain parse");
     let view = forest.view();

@@ -35,10 +35,7 @@ fn has_transform_param(attr: &Attribute) -> bool {
 
 fn extract_transform_tokens(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params
-        .iter()
-        .find(|p| p.path == "transform")
-        .unwrap();
+    let nv = params.iter().find(|p| p.path == "transform").unwrap();
     nv.expr.to_token_stream().to_string()
 }
 

@@ -161,7 +161,11 @@ fn batch_process_arithmetic_grammar_fields() {
     for i in 0..field_types.len() {
         let (result, is_opt, _) = grammar_field_pipeline(&field_types[i]);
         assert_eq!(is_opt, expected_optional[i], "field {i} optional mismatch");
-        assert_eq!(ty_str(&result), expected_results[i], "field {i} type mismatch");
+        assert_eq!(
+            ty_str(&result),
+            expected_results[i],
+            "field {i} type mismatch"
+        );
     }
 }
 
@@ -201,7 +205,11 @@ fn batch_process_mixed_wrapper_fields() {
         let (result, is_opt, is_rep) = grammar_field_pipeline(&field_types[i]);
         assert_eq!(is_opt, expected_opt[i], "field {i} optional");
         assert_eq!(is_rep, expected_rep[i], "field {i} repeated");
-        assert_eq!(ty_str(&result), "adze :: WithLeaf < Node >", "field {i} result");
+        assert_eq!(
+            ty_str(&result),
+            "adze :: WithLeaf < Node >",
+            "field {i} result"
+        );
     }
 }
 
@@ -219,9 +227,24 @@ fn grammar_struct_if_statement_analysis() {
         expect_leaf: &'static str,
     }
     let fields = vec![
-        FieldInfo { ty: parse_quote!(Expr), expect_opt: false, expect_rep: false, expect_leaf: "Expr" },
-        FieldInfo { ty: parse_quote!(Vec<Statement>), expect_opt: false, expect_rep: true, expect_leaf: "Statement" },
-        FieldInfo { ty: parse_quote!(Option<Vec<Statement>>), expect_opt: true, expect_rep: true, expect_leaf: "Statement" },
+        FieldInfo {
+            ty: parse_quote!(Expr),
+            expect_opt: false,
+            expect_rep: false,
+            expect_leaf: "Expr",
+        },
+        FieldInfo {
+            ty: parse_quote!(Vec<Statement>),
+            expect_opt: false,
+            expect_rep: true,
+            expect_leaf: "Statement",
+        },
+        FieldInfo {
+            ty: parse_quote!(Option<Vec<Statement>>),
+            expect_opt: true,
+            expect_rep: true,
+            expect_leaf: "Statement",
+        },
     ];
 
     for (i, f) in fields.iter().enumerate() {
@@ -323,13 +346,13 @@ fn enum_variant_boxed_recursive() {
 fn enum_variant_all_patterns() {
     // Process multiple variant shapes through the full pipeline
     let variants: Vec<Type> = vec![
-        parse_quote!(i64),                  // Literal
-        parse_quote!(String),               // StringLit
-        parse_quote!(bool),                 // BoolLit
-        parse_quote!(Box<Expr>),            // Grouped
-        parse_quote!(Vec<Expr>),            // Array
-        parse_quote!(Option<Expr>),         // Maybe
-        parse_quote!(Option<Vec<Expr>>),    // OptionalList
+        parse_quote!(i64),               // Literal
+        parse_quote!(String),            // StringLit
+        parse_quote!(bool),              // BoolLit
+        parse_quote!(Box<Expr>),         // Grouped
+        parse_quote!(Vec<Expr>),         // Array
+        parse_quote!(Option<Expr>),      // Maybe
+        parse_quote!(Option<Vec<Expr>>), // OptionalList
     ];
 
     let (_, opt, rep) = grammar_field_pipeline(&variants[0]);
@@ -460,9 +483,9 @@ fn real_world_class_definition_fields() {
         .collect();
 
     assert_eq!(results[0], (false, false)); // name
-    assert_eq!(results[1], (true, false));  // superclass
-    assert_eq!(results[2], (false, true));  // members
-    assert_eq!(results[3], (true, true));   // decorators
+    assert_eq!(results[1], (true, false)); // superclass
+    assert_eq!(results[2], (false, true)); // members
+    assert_eq!(results[3], (true, true)); // decorators
 }
 
 #[test]

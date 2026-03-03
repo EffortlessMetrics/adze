@@ -43,7 +43,14 @@ fn record(
 #[test]
 fn error_at_start_byte_zero() {
     let mut state = make_state();
-    record(&mut state, 0, 1, vec![1, 2], Some(99), RecoveryStrategy::TokenDeletion);
+    record(
+        &mut state,
+        0,
+        1,
+        vec![1, 2],
+        Some(99),
+        RecoveryStrategy::TokenDeletion,
+    );
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].start_byte, 0);
@@ -53,7 +60,16 @@ fn error_at_start_byte_zero() {
 #[test]
 fn error_at_start_position_zero_zero() {
     let mut state = make_state();
-    state.record_error(0, 3, (0, 0), (0, 3), vec![10], Some(20), RecoveryStrategy::PanicMode, vec![20]);
+    state.record_error(
+        0,
+        3,
+        (0, 0),
+        (0, 3),
+        vec![10],
+        Some(20),
+        RecoveryStrategy::PanicMode,
+        vec![20],
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 0);
     assert_eq!(node.expected, vec![10]);
@@ -63,7 +79,14 @@ fn error_at_start_position_zero_zero() {
 #[test]
 fn error_at_start_with_no_actual_token() {
     let mut state = make_state();
-    record(&mut state, 0, 0, vec![5], None, RecoveryStrategy::TokenInsertion);
+    record(
+        &mut state,
+        0,
+        0,
+        vec![5],
+        None,
+        RecoveryStrategy::TokenInsertion,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 0);
     assert!(node.actual.is_none());
@@ -75,7 +98,14 @@ fn error_at_start_with_no_actual_token() {
 fn error_at_end_of_input() {
     let input_len = 100;
     let mut state = make_state();
-    record(&mut state, input_len, input_len, vec![1], None, RecoveryStrategy::TokenInsertion);
+    record(
+        &mut state,
+        input_len,
+        input_len,
+        vec![1],
+        None,
+        RecoveryStrategy::TokenInsertion,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, input_len);
     assert_eq!(node.end_byte, input_len);
@@ -84,7 +114,14 @@ fn error_at_end_of_input() {
 #[test]
 fn error_spanning_last_byte() {
     let mut state = make_state();
-    record(&mut state, 99, 100, vec![3, 4], Some(7), RecoveryStrategy::TokenDeletion);
+    record(
+        &mut state,
+        99,
+        100,
+        vec![3, 4],
+        Some(7),
+        RecoveryStrategy::TokenDeletion,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 99);
     assert_eq!(node.end_byte, 100);
@@ -95,7 +132,14 @@ fn error_spanning_last_byte() {
 #[test]
 fn error_in_middle_of_input() {
     let mut state = make_state();
-    record(&mut state, 50, 55, vec![1], Some(2), RecoveryStrategy::TokenSubstitution);
+    record(
+        &mut state,
+        50,
+        55,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::TokenSubstitution,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 50);
     assert_eq!(node.end_byte, 55);
@@ -106,7 +150,14 @@ fn error_in_middle_of_input() {
 fn error_in_middle_preserves_expected_list() {
     let mut state = make_state();
     let expected: Vec<u16> = (0..20).collect();
-    record(&mut state, 10, 15, expected.clone(), Some(99), RecoveryStrategy::PhraseLevel);
+    record(
+        &mut state,
+        10,
+        15,
+        expected.clone(),
+        Some(99),
+        RecoveryStrategy::PhraseLevel,
+    );
     assert_eq!(state.get_error_nodes()[0].expected, expected);
 }
 
@@ -116,7 +167,14 @@ fn error_in_middle_preserves_expected_list() {
 fn multiple_errors_at_same_position() {
     let mut state = make_state();
     for i in 0..5 {
-        record(&mut state, 10, 12, vec![i], Some(100), RecoveryStrategy::TokenDeletion);
+        record(
+            &mut state,
+            10,
+            12,
+            vec![i],
+            Some(100),
+            RecoveryStrategy::TokenDeletion,
+        );
     }
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 5);
@@ -153,7 +211,14 @@ fn multiple_errors_same_position_different_strategies() {
 fn error_spanning_entire_input() {
     let input_len = 500;
     let mut state = make_state();
-    record(&mut state, 0, input_len, vec![1, 2, 3], Some(99), RecoveryStrategy::PanicMode);
+    record(
+        &mut state,
+        0,
+        input_len,
+        vec![1, 2, 3],
+        Some(99),
+        RecoveryStrategy::PanicMode,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 0);
     assert_eq!(node.end_byte, input_len);
@@ -162,7 +227,14 @@ fn error_spanning_entire_input() {
 #[test]
 fn error_spanning_single_byte_input() {
     let mut state = make_state();
-    record(&mut state, 0, 1, vec![1], Some(2), RecoveryStrategy::TokenDeletion);
+    record(
+        &mut state,
+        0,
+        1,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::TokenDeletion,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 0);
     assert_eq!(node.end_byte, 1);
@@ -174,7 +246,14 @@ fn error_spanning_single_byte_input() {
 #[test]
 fn zero_length_error_at_start() {
     let mut state = make_state();
-    record(&mut state, 0, 0, vec![1], None, RecoveryStrategy::TokenInsertion);
+    record(
+        &mut state,
+        0,
+        0,
+        vec![1],
+        None,
+        RecoveryStrategy::TokenInsertion,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, node.end_byte);
     assert_eq!(node.start_byte, 0);
@@ -183,7 +262,14 @@ fn zero_length_error_at_start() {
 #[test]
 fn zero_length_error_in_middle() {
     let mut state = make_state();
-    record(&mut state, 42, 42, vec![10, 20], None, RecoveryStrategy::TokenInsertion);
+    record(
+        &mut state,
+        42,
+        42,
+        vec![10, 20],
+        None,
+        RecoveryStrategy::TokenInsertion,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 42);
     assert_eq!(node.end_byte, 42);
@@ -192,7 +278,14 @@ fn zero_length_error_in_middle() {
 #[test]
 fn zero_length_error_at_end() {
     let mut state = make_state();
-    record(&mut state, 1000, 1000, vec![1], None, RecoveryStrategy::PhraseLevel);
+    record(
+        &mut state,
+        1000,
+        1000,
+        vec![1],
+        None,
+        RecoveryStrategy::PhraseLevel,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.end_byte - node.start_byte, 0);
 }
@@ -203,7 +296,14 @@ fn zero_length_error_at_end() {
 fn error_with_u32_max_start_byte() {
     let big = u32::MAX as usize;
     let mut state = make_state();
-    record(&mut state, big, big + 1, vec![1], Some(2), RecoveryStrategy::PanicMode);
+    record(
+        &mut state,
+        big,
+        big + 1,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::PanicMode,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, big);
     assert_eq!(node.end_byte, big + 1);
@@ -213,7 +313,14 @@ fn error_with_u32_max_start_byte() {
 fn error_with_u32_max_end_byte() {
     let big = u32::MAX as usize;
     let mut state = make_state();
-    record(&mut state, big - 10, big, vec![1, 2], Some(3), RecoveryStrategy::TokenDeletion);
+    record(
+        &mut state,
+        big - 10,
+        big,
+        vec![1, 2],
+        Some(3),
+        RecoveryStrategy::TokenDeletion,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.end_byte, big);
     assert_eq!(node.end_byte - node.start_byte, 10);
@@ -223,7 +330,14 @@ fn error_with_u32_max_end_byte() {
 fn zero_length_error_at_u32_max() {
     let big = u32::MAX as usize;
     let mut state = make_state();
-    record(&mut state, big, big, vec![], None, RecoveryStrategy::PanicMode);
+    record(
+        &mut state,
+        big,
+        big,
+        vec![],
+        None,
+        RecoveryStrategy::PanicMode,
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, big);
     assert_eq!(node.end_byte, big);
@@ -234,8 +348,22 @@ fn zero_length_error_at_u32_max() {
 #[test]
 fn overlapping_error_spans_both_recorded() {
     let mut state = make_state();
-    record(&mut state, 5, 15, vec![1], Some(2), RecoveryStrategy::PanicMode);
-    record(&mut state, 10, 20, vec![3], Some(4), RecoveryStrategy::TokenDeletion);
+    record(
+        &mut state,
+        5,
+        15,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::PanicMode,
+    );
+    record(
+        &mut state,
+        10,
+        20,
+        vec![3],
+        Some(4),
+        RecoveryStrategy::TokenDeletion,
+    );
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 2);
     // Overlap region: 10..15
@@ -245,8 +373,22 @@ fn overlapping_error_spans_both_recorded() {
 #[test]
 fn nested_error_spans() {
     let mut state = make_state();
-    record(&mut state, 0, 100, vec![1], Some(2), RecoveryStrategy::PanicMode);
-    record(&mut state, 20, 50, vec![3], Some(4), RecoveryStrategy::TokenDeletion);
+    record(
+        &mut state,
+        0,
+        100,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::PanicMode,
+    );
+    record(
+        &mut state,
+        20,
+        50,
+        vec![3],
+        Some(4),
+        RecoveryStrategy::TokenDeletion,
+    );
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 2);
     // Inner error is fully contained in outer
@@ -257,8 +399,22 @@ fn nested_error_spans() {
 #[test]
 fn identical_error_spans() {
     let mut state = make_state();
-    record(&mut state, 10, 20, vec![1], Some(2), RecoveryStrategy::PanicMode);
-    record(&mut state, 10, 20, vec![3], Some(4), RecoveryStrategy::TokenInsertion);
+    record(
+        &mut state,
+        10,
+        20,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::PanicMode,
+    );
+    record(
+        &mut state,
+        10,
+        20,
+        vec![3],
+        Some(4),
+        RecoveryStrategy::TokenInsertion,
+    );
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 2);
     assert_eq!(nodes[0].start_byte, nodes[1].start_byte);
@@ -328,7 +484,14 @@ fn error_node_debug_format() {
 #[test]
 fn error_node_with_empty_expected() {
     let mut state = make_state();
-    record(&mut state, 5, 10, vec![], Some(1), RecoveryStrategy::PanicMode);
+    record(
+        &mut state,
+        5,
+        10,
+        vec![],
+        Some(1),
+        RecoveryStrategy::PanicMode,
+    );
     let node = &state.get_error_nodes()[0];
     assert!(node.expected.is_empty());
     assert_eq!(node.actual, Some(1));
@@ -339,9 +502,12 @@ fn error_node_with_many_skipped_tokens() {
     let mut state = make_state();
     let skipped: Vec<u16> = (0..100).collect();
     state.record_error(
-        0, 100,
-        (0, 0), (0, 100),
-        vec![1], Some(2),
+        0,
+        100,
+        (0, 0),
+        (0, 100),
+        vec![1],
+        Some(2),
         RecoveryStrategy::PanicMode,
         skipped.clone(),
     );

@@ -99,7 +99,9 @@ fn child_count_one() {
 
 #[test]
 fn child_count_many() {
-    let children: Vec<Tree> = (0..10).map(|i| leaf(i + 1, i as usize, (i + 1) as usize)).collect();
+    let children: Vec<Tree> = (0..10)
+        .map(|i| leaf(i + 1, i as usize, (i + 1) as usize))
+        .collect();
     let tree = Tree::new_for_testing(0, 0, 10, children);
     assert_eq!(tree.root_node().child_count(), 10);
 }

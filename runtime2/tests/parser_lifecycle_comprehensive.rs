@@ -78,9 +78,7 @@ fn set_language_overwrites_previous() {
     parser.set_language(stub_language()).unwrap();
     assert_eq!(parser.language().unwrap().symbol_names.len(), 1);
 
-    parser
-        .set_language(multi_symbol_test_language(3))
-        .unwrap();
+    parser.set_language(multi_symbol_test_language(3)).unwrap();
     assert_eq!(parser.language().unwrap().symbol_names.len(), 3);
 }
 
@@ -198,9 +196,7 @@ fn parser_reuse_after_language_change() {
     parser.set_language(stub_language()).unwrap();
 
     // Switch language
-    parser
-        .set_language(multi_symbol_test_language(4))
-        .unwrap();
+    parser.set_language(multi_symbol_test_language(4)).unwrap();
     assert_eq!(parser.language().unwrap().symbol_count, 4);
 }
 
@@ -208,9 +204,7 @@ fn parser_reuse_after_language_change() {
 fn parser_reuse_set_language_reset_cycle() {
     let mut parser = Parser::new();
     for i in 1..=5 {
-        parser
-            .set_language(multi_symbol_test_language(i))
-            .unwrap();
+        parser.set_language(multi_symbol_test_language(i)).unwrap();
         parser.reset();
         assert_eq!(parser.language().unwrap().symbol_count, i as u32);
     }
@@ -346,9 +340,7 @@ fn timeout_persists_across_language_changes() {
     parser.set_language(stub_language()).unwrap();
     assert_eq!(parser.timeout(), Some(Duration::from_secs(7)));
 
-    parser
-        .set_language(multi_symbol_test_language(2))
-        .unwrap();
+    parser.set_language(multi_symbol_test_language(2)).unwrap();
     assert_eq!(parser.timeout(), Some(Duration::from_secs(7)));
 }
 

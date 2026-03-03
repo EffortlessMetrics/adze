@@ -12,10 +12,10 @@ use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
 use adze_ir::{
     ExternalToken, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token, TokenPattern,
 };
+use adze_tablegen::StaticLanguageGenerator;
 use adze_tablegen::abi_builder::AbiLanguageBuilder;
 use adze_tablegen::language_gen::LanguageGenerator;
-use adze_tablegen::serializer::{serialize_language, SerializableLanguage};
-use adze_tablegen::StaticLanguageGenerator;
+use adze_tablegen::serializer::{SerializableLanguage, serialize_language};
 use std::collections::BTreeMap;
 
 // ---------------------------------------------------------------------------
@@ -211,12 +211,7 @@ fn serialized_named_rule_name() {
 
 #[test]
 fn serialized_unnamed_rule_fallback() {
-    let grammar = make_grammar(
-        "g",
-        vec![],
-        vec![simple_rule(5, vec![], 0)],
-        vec![],
-    );
+    let grammar = make_grammar("g", vec![], vec![simple_rule(5, vec![], 0)], vec![]);
     let pt = make_lang_gen_table(&grammar, 1, 2);
     let names = serialized_names(&grammar, &pt);
     assert!(names.contains(&"rule_5".to_string()));
@@ -404,12 +399,7 @@ fn lang_gen_empty_grammar_end_only() {
 
 #[test]
 fn abi_named_rule_name_bytes() {
-    let grammar = make_grammar(
-        "g",
-        vec![],
-        vec![],
-        vec![(SymbolId(3), "stmt".to_string())],
-    );
+    let grammar = make_grammar("g", vec![], vec![], vec![(SymbolId(3), "stmt".to_string())]);
     let mut s2i = BTreeMap::new();
     s2i.insert(SymbolId(0), 0);
     s2i.insert(SymbolId(3), 1);
@@ -621,10 +611,7 @@ fn serialized_multiple_rules_sorted_by_id() {
     let grammar = make_grammar(
         "g",
         vec![],
-        vec![
-            simple_rule(20, vec![], 0),
-            simple_rule(10, vec![], 1),
-        ],
+        vec![simple_rule(20, vec![], 0), simple_rule(10, vec![], 1)],
         vec![
             (SymbolId(20), "beta_rule".to_string()),
             (SymbolId(10), "alpha_rule".to_string()),
@@ -686,7 +673,10 @@ fn serialized_long_token_name() {
 fn serialized_many_symbols_all_present() {
     let mut tokens = vec![];
     for i in 1..=30u16 {
-        tokens.push((SymbolId(i), string_token(&format!("sym_{}", i), &format!("{}", i))));
+        tokens.push((
+            SymbolId(i),
+            string_token(&format!("sym_{}", i), &format!("{}", i)),
+        ));
     }
     let grammar = make_grammar("g", tokens, vec![], vec![]);
     let pt = make_lang_gen_table(&grammar, 1, 31);

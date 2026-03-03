@@ -190,11 +190,11 @@ fn re_tok() -> impl Strategy<Value = (String, String)> {
 
 type GMeta = (
     Grammar,
-    Vec<String>,       // visible
-    Vec<String>,       // hidden
+    Vec<String>,           // visible
+    Vec<String>,           // hidden
     Vec<(String, String)>, // str_toks
     Vec<(String, String)>, // re_toks
-    Vec<String>,       // fields
+    Vec<String>,           // fields
 );
 
 fn grammar_strat() -> impl Strategy<Value = GMeta> {
@@ -636,16 +636,22 @@ fn empty_grammar_valid_empty_array() {
 #[test]
 fn token_only_all_unnamed() {
     let mut g = Grammar::new("toks".into());
-    g.tokens.insert(SymbolId(0), Token {
-        name: "plus".into(),
-        pattern: TokenPattern::String("+".into()),
-        fragile: false,
-    });
-    g.tokens.insert(SymbolId(1), Token {
-        name: "minus".into(),
-        pattern: TokenPattern::String("-".into()),
-        fragile: false,
-    });
+    g.tokens.insert(
+        SymbolId(0),
+        Token {
+            name: "plus".into(),
+            pattern: TokenPattern::String("+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "minus".into(),
+            pattern: TokenPattern::String("-".into()),
+            fragile: false,
+        },
+    );
     let entries = generate_types(&g);
     for e in &entries {
         assert_eq!(e["named"].as_bool(), Some(false));

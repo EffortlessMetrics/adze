@@ -38,7 +38,16 @@ fn arb_metadata() -> impl Strategy<Value = SymbolMetadata> {
         arb_symbol_id(),
     )
         .prop_map(
-            |(name, is_visible, is_named, is_supertype, is_terminal, is_extra, is_fragile, symbol_id)| {
+            |(
+                name,
+                is_visible,
+                is_named,
+                is_supertype,
+                is_terminal,
+                is_extra,
+                is_fragile,
+                symbol_id,
+            )| {
                 SymbolMetadata {
                     name,
                     is_visible,

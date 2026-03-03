@@ -54,16 +54,18 @@ fn arb_metadata(id: u16) -> impl Strategy<Value = SymbolMetadata> {
         any::<bool>(),
         any::<bool>(),
     )
-        .prop_map(move |(vis, named, sup, term, extra, fragile)| SymbolMetadata {
-            name: format!("sym_{id}"),
-            is_visible: vis,
-            is_named: named,
-            is_supertype: sup,
-            is_terminal: term,
-            is_extra: extra,
-            is_fragile: fragile,
-            symbol_id: SymbolId(id),
-        })
+        .prop_map(
+            move |(vis, named, sup, term, extra, fragile)| SymbolMetadata {
+                name: format!("sym_{id}"),
+                is_visible: vis,
+                is_named: named,
+                is_supertype: sup,
+                is_terminal: term,
+                is_extra: extra,
+                is_fragile: fragile,
+                symbol_id: SymbolId(id),
+            },
+        )
 }
 
 /// Construct a well-formed `ParseTable` from dimensions and random contents.
@@ -128,10 +130,8 @@ fn make_table(
 fn arb_table() -> impl Strategy<Value = ParseTable> {
     (1usize..=6, 1usize..=4, 1usize..=8).prop_flat_map(|(nt, nnt, ns)| {
         let sc = nt + nnt;
-        let actions = prop::collection::vec(
-            prop::collection::vec(arb_action_cell(), sc..=sc),
-            ns..=ns,
-        );
+        let actions =
+            prop::collection::vec(prop::collection::vec(arb_action_cell(), sc..=sc), ns..=ns);
         let gotos = prop::collection::vec(
             prop::collection::vec(
                 prop_oneof![Just(SENTINEL), (0..ns as u16).prop_map(StateId)],

@@ -291,9 +291,7 @@ fn vec_field_default_wraps_reference_in_choice_for_empty() {
     );
     let choices = content["members"].as_array().unwrap();
     assert!(choices.iter().any(|c| c["type"].as_str() == Some("BLANK")));
-    assert!(choices
-        .iter()
-        .any(|c| c["type"].as_str() == Some("SYMBOL")));
+    assert!(choices.iter().any(|c| c["type"].as_str() == Some("SYMBOL")));
 }
 
 #[test]
@@ -341,10 +339,7 @@ fn vec_repeat1_content_contains_field_element() {
     // The content of REPEAT1 is a FIELD wrapping the element
     let inner = &contents["content"];
     assert_eq!(inner["type"].as_str().unwrap(), "FIELD");
-    assert_eq!(
-        inner["name"].as_str().unwrap(),
-        "Root_words_vec_element"
-    );
+    assert_eq!(inner["name"].as_str().unwrap(), "Root_words_vec_element");
 }
 
 // ---------------------------------------------------------------------------

@@ -6,11 +6,13 @@
 //! Option/Vec/Box wrapper handling, field ordering preservation,
 //! field name to rule name mapping, and processing determinism.
 
-use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
+use adze_common::{
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
+};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, Fields, Item, Type};
+use syn::{Fields, Item, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies

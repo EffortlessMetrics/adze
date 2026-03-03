@@ -7,8 +7,8 @@
 //! byte ranges, position tracking, error node detection, text extraction,
 //! and integration with parsing results.
 
-use adze::pure_parser::{ParsedNode, ParseResult, Point};
 use adze::Spanned;
+use adze::pure_parser::{ParseResult, ParsedNode, Point};
 use std::mem::MaybeUninit;
 
 // ---------------------------------------------------------------------------
@@ -57,45 +57,85 @@ fn make_node(
 /// Named leaf node on row 0.
 fn leaf(symbol: u16, start: usize, end: usize) -> ParsedNode {
     make_node(
-        symbol, vec![], start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, true, None,
+        symbol,
+        vec![],
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        true,
+        None,
     )
 }
 
 /// Anonymous (unnamed) leaf node on row 0.
 fn anon_leaf(symbol: u16, start: usize, end: usize) -> ParsedNode {
     make_node(
-        symbol, vec![], start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, false, None,
+        symbol,
+        vec![],
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        false,
+        None,
     )
 }
 
 /// Branch node with children.
 fn branch(symbol: u16, start: usize, end: usize, children: Vec<ParsedNode>) -> ParsedNode {
     make_node(
-        symbol, children, start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, true, None,
+        symbol,
+        children,
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        true,
+        None,
     )
 }
 
 /// Leaf with a field_id set.
 fn field_leaf(symbol: u16, start: usize, end: usize, fid: u16) -> ParsedNode {
     make_node(
-        symbol, vec![], start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, false, false, true, Some(fid),
+        symbol,
+        vec![],
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        false,
+        false,
+        true,
+        Some(fid),
     )
 }
 
 /// Error leaf.
 fn error_leaf(symbol: u16, start: usize, end: usize) -> ParsedNode {
     make_node(
-        symbol, vec![], start, end,
-        pt(0, start as u32), pt(0, end as u32),
-        false, true, false, true, None,
+        symbol,
+        vec![],
+        start,
+        end,
+        pt(0, start as u32),
+        pt(0, end as u32),
+        false,
+        true,
+        false,
+        true,
+        None,
     )
 }
 
@@ -111,7 +151,12 @@ fn construct_leaf_and_read_symbol() {
 
 #[test]
 fn construct_branch_and_read_children_count() {
-    let n = branch(10, 0, 10, vec![leaf(1, 0, 3), leaf(2, 3, 6), leaf(3, 6, 10)]);
+    let n = branch(
+        10,
+        0,
+        10,
+        vec![leaf(1, 0, 3), leaf(2, 3, 6), leaf(3, 6, 10)],
+    );
     assert_eq!(n.child_count(), 3);
 }
 
@@ -133,27 +178,39 @@ fn field_id_can_be_set() {
 
 #[test]
 fn spanned_deref_to_inner_value() {
-    let s = Spanned { value: 99, span: (0, 2) };
+    let s = Spanned {
+        value: 99,
+        span: (0, 2),
+    };
     assert_eq!(*s, 99);
 }
 
 #[test]
 fn spanned_indexes_source_str() {
     let source = "hello world";
-    let s = Spanned { value: (), span: (6, 11) };
+    let s = Spanned {
+        value: (),
+        span: (6, 11),
+    };
     assert_eq!(&source[s], "world");
 }
 
 #[test]
 fn spanned_empty_span_yields_empty_str() {
     let source = "abc";
-    let s = Spanned { value: (), span: (1, 1) };
+    let s = Spanned {
+        value: (),
+        span: (1, 1),
+    };
     assert_eq!(&source[s], "");
 }
 
 #[test]
 fn spanned_clone_preserves_span() {
-    let s = Spanned { value: "hi", span: (3, 7) };
+    let s = Spanned {
+        value: "hi",
+        span: (3, 7),
+    };
     let c = s.clone();
     assert_eq!(c.span, (3, 7));
     assert_eq!(c.value, "hi");
@@ -198,7 +255,7 @@ fn walker_goto_first_child_resets_index() {
     let mut w = n.walk();
     w.goto_first_child();
     w.goto_next_sibling(); // at child index 1
-    w.goto_first_child();  // reset to 0
+    w.goto_first_child(); // reset to 0
     assert_eq!(w.node().symbol(), 1);
 }
 
@@ -209,9 +266,9 @@ fn walker_goto_first_child_resets_index() {
 #[test]
 fn named_and_anonymous_children_mixed() {
     let children = vec![
-        leaf(1, 0, 1),       // named
-        anon_leaf(2, 1, 2),  // anonymous
-        leaf(3, 2, 3),       // named
+        leaf(1, 0, 1),      // named
+        anon_leaf(2, 1, 2), // anonymous
+        leaf(3, 2, 3),      // named
     ];
     let parent = branch(10, 0, 3, children);
 
@@ -316,9 +373,17 @@ fn byte_range_accessors() {
 #[test]
 fn point_accessors() {
     let n = make_node(
-        1, vec![], 0, 20,
-        pt(2, 5), pt(4, 10),
-        false, false, false, true, None,
+        1,
+        vec![],
+        0,
+        20,
+        pt(2, 5),
+        pt(4, 10),
+        false,
+        false,
+        false,
+        true,
+        None,
     );
     assert_eq!(n.start_point(), pt(2, 5));
     assert_eq!(n.end_point(), pt(4, 10));
@@ -327,9 +392,17 @@ fn point_accessors() {
 #[test]
 fn multiline_node_positions() {
     let n = make_node(
-        1, vec![], 0, 30,
-        pt(0, 0), pt(3, 8),
-        false, false, false, true, None,
+        1,
+        vec![],
+        0,
+        30,
+        pt(0, 0),
+        pt(3, 8),
+        false,
+        false,
+        false,
+        true,
+        None,
     );
     assert_eq!(n.start_point().row, 0);
     assert_eq!(n.end_point().row, 3);
@@ -378,19 +451,32 @@ fn has_error_deeply_nested() {
 
 #[test]
 fn has_error_clean_tree_returns_false() {
-    let root = branch(10, 0, 6, vec![
-        leaf(1, 0, 2),
-        branch(5, 2, 6, vec![leaf(2, 2, 4), leaf(3, 4, 6)]),
-    ]);
+    let root = branch(
+        10,
+        0,
+        6,
+        vec![
+            leaf(1, 0, 2),
+            branch(5, 2, 6, vec![leaf(2, 2, 4), leaf(3, 4, 6)]),
+        ],
+    );
     assert!(!root.has_error());
 }
 
 #[test]
 fn is_missing_flag() {
     let n = make_node(
-        1, vec![], 0, 0,
-        pt(0, 0), pt(0, 0),
-        false, false, true, true, None,
+        1,
+        vec![],
+        0,
+        0,
+        pt(0, 0),
+        pt(0, 0),
+        false,
+        false,
+        true,
+        true,
+        None,
     );
     assert!(n.is_missing());
     assert!(!n.is_error());
@@ -438,13 +524,18 @@ fn utf8_text_unicode_multibyte() {
 #[test]
 fn utf8_text_child_extraction() {
     let source = b"1+2*3";
-    let root = branch(10, 0, 5, vec![
-        leaf(1, 0, 1),
-        leaf(2, 1, 2),
-        leaf(3, 2, 3),
-        leaf(4, 3, 4),
-        leaf(5, 4, 5),
-    ]);
+    let root = branch(
+        10,
+        0,
+        5,
+        vec![
+            leaf(1, 0, 1),
+            leaf(2, 1, 2),
+            leaf(3, 2, 3),
+            leaf(4, 3, 4),
+            leaf(5, 4, 5),
+        ],
+    );
     assert_eq!(root.child(0).unwrap().utf8_text(source).unwrap(), "1");
     assert_eq!(root.child(1).unwrap().utf8_text(source).unwrap(), "+");
     assert_eq!(root.child(3).unwrap().utf8_text(source).unwrap(), "*");
@@ -478,9 +569,17 @@ fn parse_result_with_no_root() {
 #[test]
 fn clone_preserves_all_fields() {
     let n = make_node(
-        42, vec![leaf(1, 0, 2), leaf(2, 2, 4)], 0, 4,
-        pt(0, 0), pt(0, 4),
-        true, false, false, true, Some(7),
+        42,
+        vec![leaf(1, 0, 2), leaf(2, 2, 4)],
+        0,
+        4,
+        pt(0, 0),
+        pt(0, 4),
+        true,
+        false,
+        false,
+        true,
+        Some(7),
     );
     let c = n.clone();
     assert_eq!(c.symbol(), n.symbol());
@@ -499,9 +598,17 @@ fn clone_preserves_all_fields() {
 #[test]
 fn is_extra_flag_works() {
     let n = make_node(
-        1, vec![], 0, 1,
-        pt(0, 0), pt(0, 1),
-        true, false, false, true, None,
+        1,
+        vec![],
+        0,
+        1,
+        pt(0, 0),
+        pt(0, 1),
+        true,
+        false,
+        false,
+        true,
+        None,
     );
     assert!(n.is_extra());
 }

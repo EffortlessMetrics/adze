@@ -401,10 +401,7 @@ fn nested_option_is_rejected() {
         }
         "#,
     );
-    assert!(
-        result.is_err(),
-        "Option<Option<_>> should be rejected"
-    );
+    assert!(result.is_err(), "Option<Option<_>> should be rejected");
 }
 
 // ===========================================================================
@@ -565,10 +562,7 @@ fn multiple_word_rules_error() {
         }
         "#,
     );
-    assert!(
-        result.is_err(),
-        "multiple word rules should be rejected"
-    );
+    assert!(result.is_err(), "multiple word rules should be rejected");
 }
 
 #[test]

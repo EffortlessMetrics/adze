@@ -136,10 +136,7 @@ fn wrap_custom_type_not_in_skip() {
 fn wrap_option_string_skip_option() {
     let ty: Type = parse_quote!(Option<String>);
     let wrapped = wrap_leaf_type(&ty, &skip(&["Option"]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "Option < adze :: WithLeaf < String > >"
-    );
+    assert_eq!(ty_str(&wrapped), "Option < adze :: WithLeaf < String > >");
 }
 
 #[test]
@@ -154,10 +151,7 @@ fn wrap_option_not_in_skip_wraps_whole() {
     // When Option is NOT in skip set, the entire Option<T> is wrapped
     let ty: Type = parse_quote!(Option<String>);
     let wrapped = wrap_leaf_type(&ty, &skip(&[]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "adze :: WithLeaf < Option < String > >"
-    );
+    assert_eq!(ty_str(&wrapped), "adze :: WithLeaf < Option < String > >");
 }
 
 // ===========================================================================
@@ -168,10 +162,7 @@ fn wrap_option_not_in_skip_wraps_whole() {
 fn wrap_vec_string_skip_vec() {
     let ty: Type = parse_quote!(Vec<String>);
     let wrapped = wrap_leaf_type(&ty, &skip(&["Vec"]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "Vec < adze :: WithLeaf < String > >"
-    );
+    assert_eq!(ty_str(&wrapped), "Vec < adze :: WithLeaf < String > >");
 }
 
 #[test]
@@ -196,10 +187,7 @@ fn wrap_vec_not_in_skip_wraps_whole() {
 fn wrap_box_string_skip_box() {
     let ty: Type = parse_quote!(Box<String>);
     let wrapped = wrap_leaf_type(&ty, &skip(&["Box"]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "Box < adze :: WithLeaf < String > >"
-    );
+    assert_eq!(ty_str(&wrapped), "Box < adze :: WithLeaf < String > >");
 }
 
 #[test]
@@ -291,10 +279,7 @@ fn wrap_already_wrapped_type_wraps_again() {
 fn wrap_vec_twice_skip_vec() {
     let ty: Type = parse_quote!(Vec<String>);
     let once = wrap_leaf_type(&ty, &skip(&["Vec"]));
-    assert_eq!(
-        ty_str(&once),
-        "Vec < adze :: WithLeaf < String > >"
-    );
+    assert_eq!(ty_str(&once), "Vec < adze :: WithLeaf < String > >");
     // Second wrap: Vec is still skipped, inner is wrapped again
     let twice = wrap_leaf_type(&once, &skip(&["Vec"]));
     assert_eq!(
@@ -346,7 +331,12 @@ fn wrap_many_primitive_types() {
             i,
             s,
         );
-        assert!(s.ends_with('>'), "type at index {} missing closing: {}", i, s);
+        assert!(
+            s.ends_with('>'),
+            "type at index {} missing closing: {}",
+            i,
+            s
+        );
     }
 }
 
@@ -390,8 +380,5 @@ fn wrap_non_path_tuple_type() {
     // Tuple types are not Type::Path, so they get wrapped directly
     let ty: Type = parse_quote!((i32, String));
     let wrapped = wrap_leaf_type(&ty, &skip(&[]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "adze :: WithLeaf < (i32 , String) >"
-    );
+    assert_eq!(ty_str(&wrapped), "adze :: WithLeaf < (i32 , String) >");
 }

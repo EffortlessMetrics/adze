@@ -48,7 +48,10 @@ fn module_items(m: &ItemMod) -> &Vec<Item> {
 
 fn extract_leaf_pattern(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params.iter().find(|p| p.path.to_string() == "pattern").unwrap();
+    let nv = params
+        .iter()
+        .find(|p| p.path.to_string() == "pattern")
+        .unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..
@@ -62,7 +65,10 @@ fn extract_leaf_pattern(attr: &Attribute) -> String {
 
 fn extract_leaf_text(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params.iter().find(|p| p.path.to_string() == "text").unwrap();
+    let nv = params
+        .iter()
+        .find(|p| p.path.to_string() == "text")
+        .unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..

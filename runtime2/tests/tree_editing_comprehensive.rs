@@ -250,7 +250,8 @@ fn edit_stub_tree_with_zero_range_succeeds() {
     // Zero-length insertion at position 0 — the stub root (0..0) is considered
     // "before" the edit (end_byte <= start_byte), so it is not modified.
     let edit = make_edit(0, 0, 5);
-    tree.edit(&edit).expect("Zero-range edit on stub should succeed");
+    tree.edit(&edit)
+        .expect("Zero-range edit on stub should succeed");
     assert_eq!(tree.root_node().end_byte(), 0);
 }
 
@@ -260,7 +261,13 @@ fn edit_rejects_old_end_less_than_start() {
     let mut tree = Tree::new_stub();
     let edit = make_edit(10, 5, 15);
     let result = tree.edit(&edit);
-    assert!(matches!(result, Err(EditError::InvalidRange { start: 10, old_end: 5 })));
+    assert!(matches!(
+        result,
+        Err(EditError::InvalidRange {
+            start: 10,
+            old_end: 5
+        })
+    ));
 }
 
 #[cfg(feature = "incremental_glr")]
@@ -269,13 +276,22 @@ fn edit_rejects_new_end_less_than_start() {
     let mut tree = Tree::new_stub();
     let edit = make_edit(10, 15, 5);
     let result = tree.edit(&edit);
-    assert!(matches!(result, Err(EditError::InvalidRange { start: 10, old_end: 5 })));
+    assert!(matches!(
+        result,
+        Err(EditError::InvalidRange {
+            start: 10,
+            old_end: 5
+        })
+    ));
 }
 
 #[cfg(feature = "incremental_glr")]
 #[test]
 fn edit_error_display_messages() {
-    let invalid = EditError::InvalidRange { start: 3, old_end: 1 };
+    let invalid = EditError::InvalidRange {
+        start: 3,
+        old_end: 1,
+    };
     let msg = format!("{}", invalid);
     assert!(msg.contains("Invalid edit range"));
 

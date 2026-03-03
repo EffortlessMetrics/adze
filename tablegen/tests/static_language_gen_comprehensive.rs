@@ -410,7 +410,10 @@ fn large_grammar_generates_successfully() {
     let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
     let arr = parsed.as_array().unwrap();
     // 20 tokens + 15 rules + start rule => many entries
-    assert!(arr.len() >= 10, "large grammar should produce many node types");
+    assert!(
+        arr.len() >= 10,
+        "large grammar should produce many node types"
+    );
 }
 
 #[test]
@@ -473,9 +476,11 @@ fn grammar_with_supertypes_marks_subtypes_in_node_types() {
         .start("program")
         .build();
     // Mark expr as a supertype
-    let expr_id = *grammar.rules.keys().find(|id| {
-        grammar.rule_names.get(*id).map(|n| n.as_str()) == Some("expr")
-    }).unwrap();
+    let expr_id = *grammar
+        .rules
+        .keys()
+        .find(|id| grammar.rule_names.get(*id).map(|n| n.as_str()) == Some("expr"))
+        .unwrap();
     grammar.supertypes.push(expr_id);
 
     let generator = StaticLanguageGenerator::new(grammar, ParseTable::default());
@@ -549,11 +554,9 @@ fn node_types_is_deterministic() {
 fn determinism_across_medium_grammars() {
     let make = || {
         let (g, t) = medium_grammar_and_table();
-        (
-            StaticLanguageGenerator::new(g, t)
-                .generate_language_code()
-                .to_string(),
-        )
+        (StaticLanguageGenerator::new(g, t)
+            .generate_language_code()
+            .to_string(),)
     };
     let (a,) = make();
     let (b,) = make();

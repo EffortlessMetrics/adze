@@ -137,15 +137,14 @@ fn arb_source() -> impl Strategy<Value = String> {
 
 /// Strategy that produces trees with a mix of named and anonymous leaves.
 fn arb_mixed_tree(max_depth: u32, max_width: usize) -> impl Strategy<Value = ParsedNode> {
-    let base = (1u16..=10, 0..SOURCE_LEN - 1, proptest::bool::ANY).prop_map(
-        |(sym, start, named)| {
+    let base =
+        (1u16..=10, 0..SOURCE_LEN - 1, proptest::bool::ANY).prop_map(|(sym, start, named)| {
             if named {
                 leaf(sym, start, start + 1)
             } else {
                 anon_leaf(sym, start, start + 1)
             }
-        },
-    );
+        });
     base.prop_recursive(max_depth, 64, max_width as u32, move |inner| {
         (1u16..=10, proptest::collection::vec(inner, 1..=max_width))
             .prop_map(|(sym, children)| interior(sym, children))

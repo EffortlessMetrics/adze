@@ -8,8 +8,8 @@
 use adze_glr_core::Action;
 use adze_ir::{RuleId, StateId};
 use adze_tablegen::compression::{
-    compress_action_table, compress_goto_table, decompress_action, decompress_goto,
-    BitPackedActionTable,
+    BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
+    decompress_goto,
 };
 
 // ── BitPackedActionTable: encoding ──────────────────────────────────────────
@@ -38,10 +38,7 @@ fn bitpack_shift_only_table() {
 
 #[test]
 fn bitpack_reduce_only_table() {
-    let table = vec![vec![
-        Action::Reduce(RuleId(10)),
-        Action::Reduce(RuleId(20)),
-    ]];
+    let table = vec![vec![Action::Reduce(RuleId(10)), Action::Reduce(RuleId(20))]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Reduce(RuleId(10)));
     assert_eq!(packed.decompress(0, 1), Action::Reduce(RuleId(20)));
@@ -126,10 +123,7 @@ fn bitpack_state_id_zero() {
 fn bitpack_state_id_max_u16() {
     let table = vec![vec![Action::Shift(StateId(u16::MAX))]];
     let packed = BitPackedActionTable::from_table(&table);
-    assert_eq!(
-        packed.decompress(0, 0),
-        Action::Shift(StateId(u16::MAX))
-    );
+    assert_eq!(packed.decompress(0, 0), Action::Shift(StateId(u16::MAX)));
 }
 
 #[test]
@@ -144,10 +138,7 @@ fn bitpack_rule_id_max_u16() {
     // u16::MAX (65535) as u32 is 65535, not u32::MAX, so no Accept confusion
     let table = vec![vec![Action::Reduce(RuleId(u16::MAX))]];
     let packed = BitPackedActionTable::from_table(&table);
-    assert_eq!(
-        packed.decompress(0, 0),
-        Action::Reduce(RuleId(u16::MAX))
-    );
+    assert_eq!(packed.decompress(0, 0), Action::Reduce(RuleId(u16::MAX)));
 }
 
 // ── error mask spanning multiple u64 words ──────────────────────────────────

@@ -98,8 +98,7 @@ fn chain_grammar(depth: usize) -> Grammar {
             fields: vec![],
             production_id: ProductionId(i as u16),
         });
-        g.rule_names
-            .insert(lhs, format!("rule_{}", lhs.0));
+        g.rule_names.insert(lhs, format!("rule_{}", lhs.0));
     }
     g
 }
@@ -526,8 +525,16 @@ fn grammar_builder_deterministic() {
     for n in 1..=5 {
         let g1 = grammar_with_n_tokens(n);
         let g2 = grammar_with_n_tokens(n);
-        assert_eq!(g1.tokens.len(), g2.tokens.len(), "token count mismatch for n={n}");
-        assert_eq!(g1.rules.len(), g2.rules.len(), "rule count mismatch for n={n}");
+        assert_eq!(
+            g1.tokens.len(),
+            g2.tokens.len(),
+            "token count mismatch for n={n}"
+        );
+        assert_eq!(
+            g1.rules.len(),
+            g2.rules.len(),
+            "rule count mismatch for n={n}"
+        );
     }
 }
 
@@ -619,7 +626,9 @@ fn python_like_grammar_builds() {
     assert!(table.state_count >= 1);
     assert!(table.symbol_count > table.token_count);
     assert!(
-        all_actions(&table).iter().any(|a| matches!(a, Action::Accept)),
+        all_actions(&table)
+            .iter()
+            .any(|a| matches!(a, Action::Accept)),
         "Python-like grammar table must have Accept"
     );
 }
@@ -632,7 +641,9 @@ fn javascript_like_grammar_builds() {
     assert!(table.state_count >= 1);
     assert!(table.symbol_count > table.token_count);
     assert!(
-        all_actions(&table).iter().any(|a| matches!(a, Action::Accept)),
+        all_actions(&table)
+            .iter()
+            .any(|a| matches!(a, Action::Accept)),
         "JavaScript-like grammar table must have Accept"
     );
 }

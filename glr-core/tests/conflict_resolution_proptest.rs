@@ -7,7 +7,7 @@ use adze_glr_core::advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
 use adze_glr_core::conflict_inspection::{
-    classify_conflict, count_conflicts, ConflictType, ConflictSummary,
+    ConflictSummary, ConflictType, classify_conflict, count_conflicts,
 };
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::{
@@ -52,23 +52,55 @@ fn arb_prec_level() -> impl Strategy<Value = i16> {
 
 /// Build a simple expression grammar: E → E op E | num
 /// with configurable precedence/associativity on the binary rule.
-fn expr_grammar_one_op(
-    prec: Option<PrecedenceKind>,
-    assoc: Option<Associativity>,
-) -> Grammar {
+fn expr_grammar_one_op(prec: Option<PrecedenceKind>, assoc: Option<Associativity>) -> Grammar {
     let mut g = Grammar::new("expr_one_op".to_string());
     let num = SymbolId(1);
     let op = SymbolId(2);
     let e = SymbolId(10);
 
-    g.tokens.insert(num, Token { name: "num".into(), pattern: TokenPattern::Regex(r"\d+".into()), fragile: false });
-    g.tokens.insert(op, Token { name: "+".into(), pattern: TokenPattern::String("+".into()), fragile: false });
+    g.tokens.insert(
+        num,
+        Token {
+            name: "num".into(),
+            pattern: TokenPattern::Regex(r"\d+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        op,
+        Token {
+            name: "+".into(),
+            pattern: TokenPattern::String("+".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(e, "E".into());
 
-    g.rules.insert(e, vec![
-        Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(op), Symbol::NonTerminal(e)], precedence: prec, associativity: assoc, production_id: ProductionId(0), fields: vec![] },
-        Rule { lhs: e, rhs: vec![Symbol::Terminal(num)], precedence: None, associativity: None, production_id: ProductionId(1), fields: vec![] },
-    ]);
+    g.rules.insert(
+        e,
+        vec![
+            Rule {
+                lhs: e,
+                rhs: vec![
+                    Symbol::NonTerminal(e),
+                    Symbol::Terminal(op),
+                    Symbol::NonTerminal(e),
+                ],
+                precedence: prec,
+                associativity: assoc,
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![Symbol::Terminal(num)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+        ],
+    );
     g
 }
 
@@ -85,16 +117,69 @@ fn expr_grammar_two_ops(
     let times = SymbolId(3);
     let e = SymbolId(10);
 
-    g.tokens.insert(num, Token { name: "num".into(), pattern: TokenPattern::Regex(r"\d+".into()), fragile: false });
-    g.tokens.insert(plus, Token { name: "+".into(), pattern: TokenPattern::String("+".into()), fragile: false });
-    g.tokens.insert(times, Token { name: "*".into(), pattern: TokenPattern::String("*".into()), fragile: false });
+    g.tokens.insert(
+        num,
+        Token {
+            name: "num".into(),
+            pattern: TokenPattern::Regex(r"\d+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        plus,
+        Token {
+            name: "+".into(),
+            pattern: TokenPattern::String("+".into()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        times,
+        Token {
+            name: "*".into(),
+            pattern: TokenPattern::String("*".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(e, "E".into());
 
-    g.rules.insert(e, vec![
-        Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(plus), Symbol::NonTerminal(e)], precedence: plus_prec, associativity: plus_assoc, production_id: ProductionId(0), fields: vec![] },
-        Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(times), Symbol::NonTerminal(e)], precedence: times_prec, associativity: times_assoc, production_id: ProductionId(1), fields: vec![] },
-        Rule { lhs: e, rhs: vec![Symbol::Terminal(num)], precedence: None, associativity: None, production_id: ProductionId(2), fields: vec![] },
-    ]);
+    g.rules.insert(
+        e,
+        vec![
+            Rule {
+                lhs: e,
+                rhs: vec![
+                    Symbol::NonTerminal(e),
+                    Symbol::Terminal(plus),
+                    Symbol::NonTerminal(e),
+                ],
+                precedence: plus_prec,
+                associativity: plus_assoc,
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![
+                    Symbol::NonTerminal(e),
+                    Symbol::Terminal(times),
+                    Symbol::NonTerminal(e),
+                ],
+                precedence: times_prec,
+                associativity: times_assoc,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![Symbol::Terminal(num)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(2),
+                fields: vec![],
+            },
+        ],
+    );
     g
 }
 
@@ -106,21 +191,61 @@ fn rr_grammar() -> Grammar {
     let a_nt = SymbolId(11);
     let b_nt = SymbolId(12);
 
-    g.tokens.insert(a_tok, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    g.tokens.insert(
+        a_tok,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
     g.rule_names.insert(s, "S".into());
     g.rule_names.insert(a_nt, "A".into());
     g.rule_names.insert(b_nt, "B".into());
 
-    g.rules.insert(s, vec![
-        Rule { lhs: s, rhs: vec![Symbol::NonTerminal(a_nt)], precedence: None, associativity: None, production_id: ProductionId(0), fields: vec![] },
-        Rule { lhs: s, rhs: vec![Symbol::NonTerminal(b_nt)], precedence: None, associativity: None, production_id: ProductionId(1), fields: vec![] },
-    ]);
-    g.rules.insert(a_nt, vec![
-        Rule { lhs: a_nt, rhs: vec![Symbol::Terminal(a_tok)], precedence: None, associativity: None, production_id: ProductionId(2), fields: vec![] },
-    ]);
-    g.rules.insert(b_nt, vec![
-        Rule { lhs: b_nt, rhs: vec![Symbol::Terminal(a_tok)], precedence: None, associativity: None, production_id: ProductionId(3), fields: vec![] },
-    ]);
+    g.rules.insert(
+        s,
+        vec![
+            Rule {
+                lhs: s,
+                rhs: vec![Symbol::NonTerminal(a_nt)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: s,
+                rhs: vec![Symbol::NonTerminal(b_nt)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+        ],
+    );
+    g.rules.insert(
+        a_nt,
+        vec![Rule {
+            lhs: a_nt,
+            rhs: vec![Symbol::Terminal(a_tok)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(2),
+            fields: vec![],
+        }],
+    );
+    g.rules.insert(
+        b_nt,
+        vec![Rule {
+            lhs: b_nt,
+            rhs: vec![Symbol::Terminal(a_tok)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(3),
+            fields: vec![],
+        }],
+    );
     g
 }
 

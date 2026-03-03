@@ -10,7 +10,7 @@ use adze_common::{FieldThenParams, filter_inner_type, try_extract_inner_type, wr
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, Fields, Item, Type};
+use syn::{Fields, Item, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies

@@ -152,7 +152,11 @@ fn test_07_empty_grammar_fails() {
     let g = Grammar::new("empty".to_string());
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(r.errors.iter().any(|e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(
+        r.errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::EmptyGrammar))
+    );
 }
 
 #[test]
@@ -160,7 +164,11 @@ fn test_08_default_grammar_is_empty() {
     let g = Grammar::default();
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(r.errors.iter().any(|e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(
+        r.errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::EmptyGrammar))
+    );
 }
 
 proptest! {
@@ -297,10 +305,11 @@ fn test_17_undefined_nonterminal_detected() {
     });
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(r
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::UndefinedSymbol { symbol, .. } if *symbol == undef)));
+    assert!(
+        r.errors.iter().any(
+            |e| matches!(e, ValidationError::UndefinedSymbol { symbol, .. } if *symbol == undef)
+        )
+    );
 }
 
 #[test]
@@ -318,10 +327,11 @@ fn test_18_undefined_terminal_detected() {
     });
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(r
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::UndefinedSymbol { symbol, .. } if *symbol == undef)));
+    assert!(
+        r.errors.iter().any(
+            |e| matches!(e, ValidationError::UndefinedSymbol { symbol, .. } if *symbol == undef)
+        )
+    );
 }
 
 proptest! {
@@ -348,10 +358,11 @@ fn test_20_defined_token_not_flagged_undefined() {
     let g = minimal_valid_grammar("ok");
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(!r
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. })));
+    assert!(
+        !r.errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::UndefinedSymbol { .. }))
+    );
 }
 
 #[test]
@@ -369,10 +380,11 @@ fn test_21_nested_optional_undefined() {
     });
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(r
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::UndefinedSymbol { symbol, .. } if *symbol == undef)));
+    assert!(
+        r.errors.iter().any(
+            |e| matches!(e, ValidationError::UndefinedSymbol { symbol, .. } if *symbol == undef)
+        )
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -414,7 +426,10 @@ fn test_25_conflicting_precedence_message() {
         precedences: vec![1, 5],
     };
     let msg = format!("{err}");
-    assert!(msg.contains("conflicting") || msg.contains("Conflicting"), "got: {msg}");
+    assert!(
+        msg.contains("conflicting") || msg.contains("Conflicting"),
+        "got: {msg}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -477,10 +492,11 @@ fn test_29_mutually_recursive_non_productive() {
     });
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(r
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::NonProductiveSymbol { .. })));
+    assert!(
+        r.errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::NonProductiveSymbol { .. }))
+    );
 }
 
 #[test]
@@ -526,10 +542,11 @@ fn test_31_cyclic_rule_detected() {
     });
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);
-    assert!(r
-        .errors
-        .iter()
-        .any(|e| matches!(e, ValidationError::CyclicRule { .. })));
+    assert!(
+        r.errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::CyclicRule { .. }))
+    );
 }
 
 // ---------------------------------------------------------------------------

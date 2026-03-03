@@ -27,10 +27,12 @@ fn distinct_idents(max: usize) -> impl Strategy<Value = Vec<String>> {
 
 /// Simple type names suitable for unnamed fields.
 fn type_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "bool", "char",
-        "String", "usize", "isize",
-    ][..])
+    prop::sample::select(
+        &[
+            "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "bool", "char",
+            "String", "usize", "isize",
+        ][..],
+    )
 }
 
 /// Integer literal values in a readable range.

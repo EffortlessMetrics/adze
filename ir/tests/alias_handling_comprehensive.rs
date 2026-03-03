@@ -16,9 +16,7 @@ use indexmap::IndexMap;
 
 #[test]
 fn alias_sequence_construct_empty_aliases_vec() {
-    let seq = AliasSequence {
-        aliases: vec![],
-    };
+    let seq = AliasSequence { aliases: vec![] };
     assert!(seq.aliases.is_empty());
     assert_eq!(seq.aliases.len(), 0);
 }
@@ -116,11 +114,7 @@ fn multiple_alias_sequences_in_grammar() {
 #[test]
 fn same_alias_name_different_positions() {
     let seq = AliasSequence {
-        aliases: vec![
-            Some("ident".to_string()),
-            None,
-            Some("ident".to_string()),
-        ],
+        aliases: vec![Some("ident".to_string()), None, Some("ident".to_string())],
     };
     assert_eq!(seq.aliases[0], seq.aliases[2]);
     assert_ne!(seq.aliases[0], seq.aliases[1]);
@@ -161,7 +155,10 @@ fn multiple_rule_ids_map_to_same_production_id() {
         },
     );
 
-    assert_eq!(grammar.production_ids[&RuleId(0)], grammar.production_ids[&RuleId(1)]);
+    assert_eq!(
+        grammar.production_ids[&RuleId(0)],
+        grammar.production_ids[&RuleId(1)]
+    );
     let seq = &grammar.alias_sequences[&pid];
     assert_eq!(seq.aliases[0].as_deref(), Some("shared_alias"));
 }
@@ -328,7 +325,10 @@ fn grammar_alias_sequences_serde_roundtrip() {
 
     assert_eq!(grammar.alias_sequences, deser.alias_sequences);
     assert_eq!(grammar.production_ids, deser.production_ids);
-    assert_eq!(grammar.max_alias_sequence_length, deser.max_alias_sequence_length);
+    assert_eq!(
+        grammar.max_alias_sequence_length,
+        deser.max_alias_sequence_length
+    );
 }
 
 #[test]

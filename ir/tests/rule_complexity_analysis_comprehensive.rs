@@ -67,10 +67,7 @@ fn add_regex_token(g: &mut Grammar, id: u16, name: &str, pattern: &str) {
 /// Compute the nesting depth of a Symbol tree.
 fn symbol_depth(sym: &Symbol) -> usize {
     match sym {
-        Symbol::Terminal(_)
-        | Symbol::NonTerminal(_)
-        | Symbol::External(_)
-        | Symbol::Epsilon => 0,
+        Symbol::Terminal(_) | Symbol::NonTerminal(_) | Symbol::External(_) | Symbol::Epsilon => 0,
         Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
             1 + symbol_depth(inner)
         }
@@ -83,10 +80,7 @@ fn symbol_depth(sym: &Symbol) -> usize {
 /// Count total symbols (recursively) in a Symbol tree.
 fn symbol_count(sym: &Symbol) -> usize {
     match sym {
-        Symbol::Terminal(_)
-        | Symbol::NonTerminal(_)
-        | Symbol::External(_)
-        | Symbol::Epsilon => 1,
+        Symbol::Terminal(_) | Symbol::NonTerminal(_) | Symbol::External(_) | Symbol::Epsilon => 1,
         Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
             1 + symbol_count(inner)
         }
@@ -220,10 +214,7 @@ fn depth_nested_optional_repeat() {
 #[test]
 fn depth_choice_with_varying_children() {
     // Choice([Terminal, Optional(Terminal)])  →  depth max(0,1)+1 = 2
-    let s = Symbol::Choice(vec![
-        term(1),
-        Symbol::Optional(Box::new(term(2))),
-    ]);
+    let s = Symbol::Choice(vec![term(1), Symbol::Optional(Box::new(term(2)))]);
     assert_eq!(symbol_depth(&s), 2);
 }
 
@@ -498,7 +489,11 @@ fn grammar_size_max_rhs_length() {
     let mut g = Grammar::new("test".into());
     add_token(&mut g, 1, "t", "t");
     g.add_rule(rule_with_prod(10, vec![term(1)], 0));
-    g.add_rule(rule_with_prod(10, vec![term(1), term(1), term(1), term(1), term(1)], 1));
+    g.add_rule(rule_with_prod(
+        10,
+        vec![term(1), term(1), term(1), term(1), term(1)],
+        1,
+    ));
     g.add_rule(rule_with_prod(20, vec![term(1), term(1)], 2));
     let max_len = g.all_rules().map(|r| r.rhs.len()).max().unwrap_or(0);
     assert_eq!(max_len, 5);
@@ -576,5 +571,3 @@ fn optimizer_stats_on_simple_grammar() {
     assert_eq!(stats.optimized_left_recursion, 0);
     assert_eq!(stats.merged_tokens, 0);
 }
-
-

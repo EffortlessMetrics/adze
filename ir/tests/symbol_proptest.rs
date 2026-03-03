@@ -2,9 +2,7 @@
 
 //! Property-based tests for Symbol enum variants in adze-ir.
 
-use adze_ir::{
-    Associativity, FieldId, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
-};
+use adze_ir::{Associativity, FieldId, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId};
 use proptest::prelude::*;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};

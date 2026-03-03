@@ -2,9 +2,7 @@
 
 //! Property-based tests for `ErrorMeta` in adze-glr-core.
 
-use adze_glr_core::parse_forest::{
-    ErrorMeta, ForestAlternative, ForestNode, ERROR_SYMBOL,
-};
+use adze_glr_core::parse_forest::{ERROR_SYMBOL, ErrorMeta, ForestAlternative, ForestNode};
 use adze_ir::SymbolId;
 use proptest::prelude::*;
 
@@ -38,7 +36,11 @@ proptest! {
 fn creation_all_boolean_combos() {
     for missing in [false, true] {
         for is_error in [false, true] {
-            let meta = ErrorMeta { missing, is_error, cost: 42 };
+            let meta = ErrorMeta {
+                missing,
+                is_error,
+                cost: 42,
+            };
             assert_eq!(meta.missing, missing);
             assert_eq!(meta.is_error, is_error);
             assert_eq!(meta.cost, 42);
@@ -48,14 +50,22 @@ fn creation_all_boolean_combos() {
 
 #[test]
 fn creation_false_false() {
-    let m = ErrorMeta { missing: false, is_error: false, cost: 0 };
+    let m = ErrorMeta {
+        missing: false,
+        is_error: false,
+        cost: 0,
+    };
     assert!(!m.missing);
     assert!(!m.is_error);
 }
 
 #[test]
 fn creation_true_true() {
-    let m = ErrorMeta { missing: true, is_error: true, cost: 99 };
+    let m = ErrorMeta {
+        missing: true,
+        is_error: true,
+        cost: 99,
+    };
     assert!(m.missing);
     assert!(m.is_error);
     assert_eq!(m.cost, 99);
@@ -85,7 +95,11 @@ proptest! {
 
 #[test]
 fn copy_is_bitwise_identical() {
-    let orig = ErrorMeta { missing: true, is_error: false, cost: 1000 };
+    let orig = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 1000,
+    };
     let copied = orig;
     // After copy, both are usable (Copy trait).
     assert_eq!(orig.cost, copied.cost);
@@ -106,7 +120,11 @@ fn default_is_no_error() {
 #[test]
 fn default_matches_manual_zero() {
     let def = ErrorMeta::default();
-    let manual = ErrorMeta { missing: false, is_error: false, cost: 0 };
+    let manual = ErrorMeta {
+        missing: false,
+        is_error: false,
+        cost: 0,
+    };
     assert_eq!(def.missing, manual.missing);
     assert_eq!(def.is_error, manual.is_error);
     assert_eq!(def.cost, manual.cost);
@@ -164,20 +182,32 @@ proptest! {
 
 #[test]
 fn zero_cost() {
-    let meta = ErrorMeta { missing: false, is_error: false, cost: 0 };
+    let meta = ErrorMeta {
+        missing: false,
+        is_error: false,
+        cost: 0,
+    };
     assert_eq!(meta.cost, 0);
 }
 
 #[test]
 fn max_cost() {
-    let meta = ErrorMeta { missing: true, is_error: true, cost: u32::MAX };
+    let meta = ErrorMeta {
+        missing: true,
+        is_error: true,
+        cost: u32::MAX,
+    };
     assert_eq!(meta.cost, u32::MAX);
 }
 
 #[test]
 fn cost_boundary_values() {
     for cost in [0, 1, u32::MAX - 1, u32::MAX] {
-        let meta = ErrorMeta { missing: false, is_error: false, cost };
+        let meta = ErrorMeta {
+            missing: false,
+            is_error: false,
+            cost,
+        };
         assert_eq!(meta.cost, cost);
     }
 }
@@ -207,16 +237,32 @@ proptest! {
 
 #[test]
 fn comparison_different_flags() {
-    let a = ErrorMeta { missing: true, is_error: false, cost: 0 };
-    let b = ErrorMeta { missing: false, is_error: true, cost: 0 };
+    let a = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 0,
+    };
+    let b = ErrorMeta {
+        missing: false,
+        is_error: true,
+        cost: 0,
+    };
     assert_ne!(a.missing, b.missing);
     assert_ne!(a.is_error, b.is_error);
 }
 
 #[test]
 fn comparison_same_flags_different_cost() {
-    let a = ErrorMeta { missing: true, is_error: true, cost: 5 };
-    let b = ErrorMeta { missing: true, is_error: true, cost: 10 };
+    let a = ErrorMeta {
+        missing: true,
+        is_error: true,
+        cost: 5,
+    };
+    let b = ErrorMeta {
+        missing: true,
+        is_error: true,
+        cost: 10,
+    };
     assert_eq!(a.missing, b.missing);
     assert_eq!(a.is_error, b.is_error);
     assert_ne!(a.cost, b.cost);
@@ -242,7 +288,11 @@ proptest! {
 
 #[test]
 fn forest_node_error_symbol_with_meta() {
-    let meta = ErrorMeta { missing: false, is_error: true, cost: 1 };
+    let meta = ErrorMeta {
+        missing: false,
+        is_error: true,
+        cost: 1,
+    };
     let node = ForestNode {
         id: 42,
         symbol: ERROR_SYMBOL,
@@ -271,7 +321,11 @@ fn forest_node_default_meta_is_clean() {
 
 #[test]
 fn forest_node_missing_terminal_meta() {
-    let meta = ErrorMeta { missing: true, is_error: false, cost: 3 };
+    let meta = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 3,
+    };
     let node = ForestNode {
         id: 7,
         symbol: SymbolId(10),
@@ -286,8 +340,16 @@ fn forest_node_missing_terminal_meta() {
 
 #[test]
 fn multiple_forest_nodes_independent_meta() {
-    let meta_a = ErrorMeta { missing: true, is_error: false, cost: 2 };
-    let meta_b = ErrorMeta { missing: false, is_error: true, cost: 5 };
+    let meta_a = ErrorMeta {
+        missing: true,
+        is_error: false,
+        cost: 2,
+    };
+    let meta_b = ErrorMeta {
+        missing: false,
+        is_error: true,
+        cost: 5,
+    };
     let a = ForestNode {
         id: 0,
         symbol: SymbolId(1),

@@ -373,8 +373,7 @@ fn complex_grammar_contains_all_symbol_names() {
     let result = build_js(COMPLEX_GRAMMAR);
     // Symbol names are stored as byte arrays in generated code, so check
     // the NODE_TYPES JSON which contains them as readable strings.
-    let node_types: serde_json::Value =
-        serde_json::from_str(&result.node_types_json).unwrap();
+    let node_types: serde_json::Value = serde_json::from_str(&result.node_types_json).unwrap();
     let json_text = serde_json::to_string(&node_types).unwrap();
     for name in &["identifier", "number"] {
         assert!(
@@ -409,7 +408,12 @@ fn parser_code_structural_determinism() {
     assert_eq!(r1.build_stats.state_count, r2.build_stats.state_count);
     assert_eq!(r1.build_stats.symbol_count, r2.build_stats.symbol_count);
     // Both contain the same key elements
-    for keyword in &["LANGUAGE", "TSLanguage", "tree_sitter_simple", "extern \"C\""] {
+    for keyword in &[
+        "LANGUAGE",
+        "TSLanguage",
+        "tree_sitter_simple",
+        "extern \"C\"",
+    ] {
         assert!(r1.parser_code.contains(keyword));
         assert!(r2.parser_code.contains(keyword));
     }

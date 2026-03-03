@@ -6,8 +6,8 @@
 //! including error cases, whitespace handling, complex patterns, and round-trips.
 
 use adze_common::{FieldThenParams, NameValueExpr};
-use quote::{quote, ToTokens};
-use syn::{parse2, Expr};
+use quote::{ToTokens, quote};
+use syn::{Expr, parse2};
 
 // ---------------------------------------------------------------------------
 // NameValueExpr – various value types
@@ -204,8 +204,7 @@ fn ftp_single_param() {
 
 #[test]
 fn ftp_multiple_params() {
-    let ftp: FieldThenParams =
-        parse2(quote! { i32, min = 0, max = 100, step = 1 }).unwrap();
+    let ftp: FieldThenParams = parse2(quote! { i32, min = 0, max = 100, step = 1 }).unwrap();
     assert_eq!(ftp.params.len(), 3);
     let names: Vec<String> = ftp.params.iter().map(|p| p.path.to_string()).collect();
     assert_eq!(names, vec!["min", "max", "step"]);
@@ -213,8 +212,7 @@ fn ftp_multiple_params() {
 
 #[test]
 fn ftp_param_values_are_accessible() {
-    let ftp: FieldThenParams =
-        parse2(quote! { bool, default = true }).unwrap();
+    let ftp: FieldThenParams = parse2(quote! { bool, default = true }).unwrap();
     assert_eq!(ftp.params.len(), 1);
     assert!(matches!(ftp.params[0].expr, Expr::Lit(_)));
 }
@@ -272,7 +270,6 @@ fn ftp_field_type_preserved() {
 #[test]
 fn ftp_trailing_comma_in_params() {
     // Punctuated::parse_terminated allows trailing commas
-    let ftp: FieldThenParams =
-        parse2(quote! { u32, a = 1, b = 2, }).unwrap();
+    let ftp: FieldThenParams = parse2(quote! { u32, a = 1, b = 2, }).unwrap();
     assert_eq!(ftp.params.len(), 2);
 }

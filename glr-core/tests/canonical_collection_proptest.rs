@@ -39,8 +39,7 @@ fn rule(lhs: SymbolId, rhs: Vec<Symbol>, prod: u16) -> Rule {
 
 /// Build canonical collection from a mutable grammar.
 fn build(grammar: &mut Grammar) -> (ItemSetCollection, FirstFollowSets) {
-    let ff = FirstFollowSets::compute_normalized(grammar)
-        .expect("FIRST/FOLLOW should succeed");
+    let ff = FirstFollowSets::compute_normalized(grammar).expect("FIRST/FOLLOW should succeed");
     let col = ItemSetCollection::build_canonical_collection(grammar, &ff);
     (col, ff)
 }
@@ -52,8 +51,7 @@ fn build_augmented(
     original_start: SymbolId,
     eof: SymbolId,
 ) -> (ItemSetCollection, FirstFollowSets) {
-    let ff = FirstFollowSets::compute_normalized(grammar)
-        .expect("FIRST/FOLLOW should succeed");
+    let ff = FirstFollowSets::compute_normalized(grammar).expect("FIRST/FOLLOW should succeed");
     let col = ItemSetCollection::build_canonical_collection_augmented(
         grammar,
         &ff,
@@ -85,10 +83,7 @@ fn arb_small_grammar() -> impl Strategy<Value = Grammar> {
     (num_term, num_nt).prop_flat_map(|(nt, nn)| {
         let nt = nt.max(1);
         let nn = nn.max(1);
-        let prods = prop::collection::vec(
-            prop::collection::vec(arb_rhs(), 1..=3),
-            nn..=nn,
-        );
+        let prods = prop::collection::vec(prop::collection::vec(arb_rhs(), 1..=3), nn..=nn);
         prods.prop_map(move |all_prods| {
             let mut g = Grammar::new("proptest".into());
             for i in 1..=(nt as u16).min(MAX_TERM) {
@@ -111,11 +106,10 @@ fn arb_small_grammar() -> impl Strategy<Value = Grammar> {
                             other => other.clone(),
                         })
                         .collect();
-                    g.rules.entry(nt_id).or_default().push(rule(
-                        nt_id,
-                        filtered_rhs,
-                        prod_counter,
-                    ));
+                    g.rules
+                        .entry(nt_id)
+                        .or_default()
+                        .push(rule(nt_id, filtered_rhs, prod_counter));
                     prod_counter += 1;
                 }
             }
@@ -131,7 +125,10 @@ fn simple_grammar() -> Grammar {
     let s = SymbolId(NT_BASE);
     tok(&mut g, a, "a", "a");
     g.rule_names.insert(s, "S".into());
-    g.rules.entry(s).or_default().push(rule(s, vec![Symbol::Terminal(a)], 0));
+    g.rules
+        .entry(s)
+        .or_default()
+        .push(rule(s, vec![Symbol::Terminal(a)], 0));
     g
 }
 
@@ -146,10 +143,17 @@ fn left_recursive_grammar() -> Grammar {
     g.rule_names.insert(e, "E".into());
     g.rules.entry(e).or_default().push(rule(
         e,
-        vec![Symbol::NonTerminal(e), Symbol::Terminal(plus), Symbol::Terminal(a)],
+        vec![
+            Symbol::NonTerminal(e),
+            Symbol::Terminal(plus),
+            Symbol::Terminal(a),
+        ],
         0,
     ));
-    g.rules.entry(e).or_default().push(rule(e, vec![Symbol::Terminal(a)], 1));
+    g.rules
+        .entry(e)
+        .or_default()
+        .push(rule(e, vec![Symbol::Terminal(a)], 1));
     g
 }
 
@@ -164,10 +168,17 @@ fn right_recursive_grammar() -> Grammar {
     g.rule_names.insert(e, "E".into());
     g.rules.entry(e).or_default().push(rule(
         e,
-        vec![Symbol::Terminal(a), Symbol::Terminal(plus), Symbol::NonTerminal(e)],
+        vec![
+            Symbol::Terminal(a),
+            Symbol::Terminal(plus),
+            Symbol::NonTerminal(e),
+        ],
         0,
     ));
-    g.rules.entry(e).or_default().push(rule(e, vec![Symbol::Terminal(a)], 1));
+    g.rules
+        .entry(e)
+        .or_default()
+        .push(rule(e, vec![Symbol::Terminal(a)], 1));
     g
 }
 
@@ -187,7 +198,10 @@ fn two_nt_grammar() -> Grammar {
         vec![Symbol::NonTerminal(big_a), Symbol::Terminal(a)],
         0,
     ));
-    g.rules.entry(big_a).or_default().push(rule(big_a, vec![Symbol::Terminal(b)], 1));
+    g.rules
+        .entry(big_a)
+        .or_default()
+        .push(rule(big_a, vec![Symbol::Terminal(b)], 1));
     g
 }
 
@@ -202,12 +216,14 @@ fn augmented_grammar() -> (Grammar, SymbolId, SymbolId, SymbolId) {
     tok(&mut g, eof, "EOF", "$");
     g.rule_names.insert(s, "S".into());
     g.rule_names.insert(s_prime, "S_prime".into());
-    g.rules.entry(s).or_default().push(rule(s, vec![Symbol::Terminal(a)], 0));
-    g.rules.entry(s_prime).or_default().push(rule(
-        s_prime,
-        vec![Symbol::NonTerminal(s)],
-        1,
-    ));
+    g.rules
+        .entry(s)
+        .or_default()
+        .push(rule(s, vec![Symbol::Terminal(a)], 0));
+    g.rules
+        .entry(s_prime)
+        .or_default()
+        .push(rule(s_prime, vec![Symbol::NonTerminal(s)], 1));
     (g, s_prime, s, eof)
 }
 
@@ -255,7 +271,10 @@ fn augmented_initial_state_has_augmented_start_item() {
     let (mut g, s_prime, s, eof) = augmented_grammar();
     let (col, _) = build_augmented(&mut g, s_prime, s, eof);
 
-    assert!(!col.sets.is_empty(), "augmented collection must have states");
+    assert!(
+        !col.sets.is_empty(),
+        "augmented collection must have states"
+    );
     let initial = &col.sets[0];
     // The initial state should contain an item whose rule_id corresponds to S' → S
     let has_augmented = initial.items.iter().any(|item| {
@@ -265,7 +284,10 @@ fn augmented_initial_state_has_augmented_start_item() {
             false
         }
     });
-    assert!(has_augmented, "initial state must contain augmented start item");
+    assert!(
+        has_augmented,
+        "initial state must contain augmented start item"
+    );
 }
 
 #[test]
@@ -281,12 +303,20 @@ fn augmented_initial_item_lookahead_is_eof() {
     let (col, _) = build_augmented(&mut g, s_prime, s, eof);
 
     let initial = &col.sets[0];
-    let aug_items: Vec<_> = initial.items.iter().filter(|item| {
-        g.all_rules().any(|r| r.production_id.0 == item.rule_id.0 && r.lhs == s_prime)
-    }).collect();
+    let aug_items: Vec<_> = initial
+        .items
+        .iter()
+        .filter(|item| {
+            g.all_rules()
+                .any(|r| r.production_id.0 == item.rule_id.0 && r.lhs == s_prime)
+        })
+        .collect();
     assert!(!aug_items.is_empty());
     for item in &aug_items {
-        assert_eq!(item.lookahead, eof, "augmented start items should have EOF lookahead");
+        assert_eq!(
+            item.lookahead, eof,
+            "augmented start items should have EOF lookahead"
+        );
     }
 }
 
@@ -315,7 +345,6 @@ fn state_count_deterministic_simple() {
     assert_eq!(c1.sets.len(), c2.sets.len());
 }
 
-
 // ===========================================================================
 // 4. Collection with simple grammar
 // ===========================================================================
@@ -325,7 +354,11 @@ fn simple_grammar_at_least_two_states() {
     let mut g = simple_grammar();
     let (col, _) = build(&mut g);
     // S → a requires at least: initial state and state after shifting 'a'
-    assert!(col.sets.len() >= 2, "S→a needs ≥2 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 2,
+        "S→a needs ≥2 states, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -359,7 +392,11 @@ fn left_recursive_multiple_states() {
     let mut g = left_recursive_grammar();
     let (col, _) = build(&mut g);
     // E → E '+' a | a requires more states than the simple grammar
-    assert!(col.sets.len() >= 3, "left-recursive grammar needs ≥3 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 3,
+        "left-recursive grammar needs ≥3 states, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -378,7 +415,10 @@ fn left_recursive_has_self_referential_items() {
             }
         })
     });
-    assert!(has_self_ref, "left-recursive grammar must have self-referential items");
+    assert!(
+        has_self_ref,
+        "left-recursive grammar must have self-referential items"
+    );
 }
 
 #[test]
@@ -400,7 +440,11 @@ fn left_recursive_goto_targets_valid() {
 fn right_recursive_multiple_states() {
     let mut g = right_recursive_grammar();
     let (col, _) = build(&mut g);
-    assert!(col.sets.len() >= 3, "right-recursive grammar needs ≥3 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 3,
+        "right-recursive grammar needs ≥3 states, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -418,9 +462,11 @@ fn right_recursive_has_self_referential_items() {
             }
         })
     });
-    assert!(has_self_ref, "right-recursive grammar must have self-referential items");
+    assert!(
+        has_self_ref,
+        "right-recursive grammar must have self-referential items"
+    );
 }
-
 
 // ===========================================================================
 // 7. Collection closure correctness
@@ -440,7 +486,11 @@ fn closure_on_terminal_only_rule_no_expansion() {
     let before = set.items.len();
     set.closure(&g, &ff).unwrap();
     // Terminal-only rule: closure should not add new items
-    assert_eq!(set.items.len(), before, "closure on terminal-only items should not expand");
+    assert_eq!(
+        set.items.len(),
+        before,
+        "closure on terminal-only items should not expand"
+    );
 }
 
 #[test]
@@ -456,7 +506,10 @@ fn closure_on_nonterminal_expands() {
     }
     let before = set.items.len();
     set.closure(&g, &ff).unwrap();
-    assert!(set.items.len() > before, "closure on NT should add items for A → b");
+    assert!(
+        set.items.len() > before,
+        "closure on NT should add items for A → b"
+    );
 }
 
 #[test]
@@ -519,12 +572,18 @@ fn goto_on_terminal_produces_advanced_position() {
     set.closure(&g, &ff).unwrap();
 
     let goto_set = set.goto(&Symbol::Terminal(a), &g, &ff);
-    assert!(!goto_set.items.is_empty(), "goto on 'a' should produce items");
+    assert!(
+        !goto_set.items.is_empty(),
+        "goto on 'a' should produce items"
+    );
     // All items in the goto set should have position > 0
     for item in &goto_set.items {
         if let Some(r) = g.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
             if r.lhs == s {
-                assert!(item.position > 0, "goto items should have advanced dot position");
+                assert!(
+                    item.position > 0,
+                    "goto items should have advanced dot position"
+                );
             }
         }
     }
@@ -545,7 +604,10 @@ fn goto_on_absent_symbol_is_empty() {
 
     // Symbol 99 doesn't exist in the grammar
     let goto_set = set.goto(&Symbol::Terminal(SymbolId(99)), &g, &ff);
-    assert!(goto_set.items.is_empty(), "goto on absent symbol should be empty");
+    assert!(
+        goto_set.items.is_empty(),
+        "goto on absent symbol should be empty"
+    );
 }
 
 #[test]
@@ -637,7 +699,8 @@ fn two_nt_grammar_closure_includes_derived_items() {
     // Some state should reference the A → b rule
     let has_a_rule = col.sets.iter().any(|set| {
         set.items.iter().any(|item| {
-            g.all_rules().any(|r| r.production_id.0 == item.rule_id.0 && r.lhs == big_a)
+            g.all_rules()
+                .any(|r| r.production_id.0 == item.rule_id.0 && r.lhs == big_a)
         })
     });
     assert!(has_a_rule, "collection should contain items from A → b");
@@ -665,7 +728,10 @@ fn symbol_is_terminal_tracking() {
         assert!(is_term, "terminal 'a' should be marked as terminal");
     }
     if let Some(&is_term) = col.symbol_is_terminal.get(&big_a) {
-        assert!(!is_term, "non-terminal 'A' should not be marked as terminal");
+        assert!(
+            !is_term,
+            "non-terminal 'A' should not be marked as terminal"
+        );
     }
 }
 

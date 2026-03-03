@@ -80,9 +80,11 @@ fn skip_single_struct_field_recognized() {
             visited: bool,
         }
     };
-    let field = s.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "visited")
-    }).unwrap();
+    let field = s
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "visited"))
+        .unwrap();
     assert!(field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
 }
 
@@ -96,8 +98,15 @@ fn skip_bool_false_default() {
             flag: bool,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "false");
 }
 
@@ -111,8 +120,15 @@ fn skip_integer_literal_default() {
             count: i32,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "42");
 }
 
@@ -126,8 +142,15 @@ fn skip_typed_integer_default() {
             counter: u32,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "0u32");
 }
 
@@ -141,8 +164,15 @@ fn skip_usize_default() {
             idx: usize,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "0usize");
 }
 
@@ -156,8 +186,15 @@ fn skip_constructor_call_default() {
             label: String,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "String :: new ()");
 }
 
@@ -171,8 +208,15 @@ fn skip_vec_new_default() {
             items: Vec<i32>,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "Vec :: new ()");
 }
 
@@ -186,8 +230,15 @@ fn skip_none_default() {
             maybe: Option<i32>,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "None");
 }
 
@@ -207,7 +258,9 @@ fn skip_multiple_struct_fields() {
             memo: String,
         }
     };
-    let skip_fields: Vec<_> = s.fields.iter()
+    let skip_fields: Vec<_> = s
+        .fields
+        .iter()
         .filter(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
@@ -228,9 +281,8 @@ fn skip_mixed_with_leaf_field_order() {
             post_meta: bool,
         }
     };
-    let annotations: Vec<Vec<String>> = s.fields.iter()
-        .map(|f| adze_attr_names(&f.attrs))
-        .collect();
+    let annotations: Vec<Vec<String>> =
+        s.fields.iter().map(|f| adze_attr_names(&f.attrs)).collect();
     assert_eq!(annotations[0], vec!["skip"]);
     assert_eq!(annotations[1], vec!["leaf"]);
     assert_eq!(annotations[2], vec!["skip"]);
@@ -250,7 +302,9 @@ fn all_fields_skipped_struct() {
             c: String,
         }
     };
-    let non_skip: Vec<_> = s.fields.iter()
+    let non_skip: Vec<_> = s
+        .fields
+        .iter()
         .filter(|f| !f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
         .collect();
     assert!(non_skip.is_empty(), "all fields should be skip");
@@ -389,9 +443,11 @@ fn skip_enum_variant_named_field() {
     let variant = &e.variants[0];
     assert_eq!(variant.ident, "Literal");
     if let Fields::Named(ref named) = variant.fields {
-        let skip_field = named.named.iter().find(|f| {
-            f.ident.as_ref().is_some_and(|i| i == "cached")
-        }).unwrap();
+        let skip_field = named
+            .named
+            .iter()
+            .find(|f| f.ident.as_ref().is_some_and(|i| i == "cached"))
+            .unwrap();
         assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
     } else {
         panic!("Expected named fields");
@@ -439,7 +495,9 @@ fn skip_multiple_enum_variant_fields() {
     };
     let variant = &e.variants[0];
     if let Fields::Named(ref named) = variant.fields {
-        let skip_count = named.named.iter()
+        let skip_count = named
+            .named
+            .iter()
             .filter(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
             .count();
         assert_eq!(skip_count, 2);
@@ -464,9 +522,8 @@ fn skip_combined_with_leaf_different_fields() {
             evaluated: bool,
         }
     };
-    let annotations: Vec<Vec<String>> = s.fields.iter()
-        .map(|f| adze_attr_names(&f.attrs))
-        .collect();
+    let annotations: Vec<Vec<String>> =
+        s.fields.iter().map(|f| adze_attr_names(&f.attrs)).collect();
     assert_eq!(annotations[0], vec!["leaf"]);
     assert_eq!(annotations[1], vec!["leaf"]);
     assert_eq!(annotations[2], vec!["leaf"]);
@@ -490,9 +547,11 @@ fn skip_in_grammar_module_struct() {
         }
     });
     let root = find_struct_in_mod(&m, "Root").unwrap();
-    let skip_field = root.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "visited")
-    }).unwrap();
+    let skip_field = root
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "visited"))
+        .unwrap();
     assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
 }
 
@@ -517,9 +576,11 @@ fn skip_in_grammar_module_non_root_struct() {
         }
     });
     let child = find_struct_in_mod(&m, "Child").unwrap();
-    let skip_field = child.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "depth")
-    }).unwrap();
+    let skip_field = child
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "depth"))
+        .unwrap();
     assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
 }
 
@@ -544,9 +605,11 @@ fn skip_in_grammar_module_enum_variant() {
     let expr = find_enum_in_mod(&m, "Expr").unwrap();
     let variant = &expr.variants[0];
     if let Fields::Named(ref named) = variant.fields {
-        let skip_field = named.named.iter().find(|f| {
-            f.ident.as_ref().is_some_and(|i| i == "negated")
-        }).unwrap();
+        let skip_field = named
+            .named
+            .iter()
+            .find(|f| f.ident.as_ref().is_some_and(|i| i == "negated"))
+            .unwrap();
         assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
     } else {
         panic!("Expected named fields");
@@ -563,8 +626,15 @@ fn skip_bool_true_default() {
             active: bool,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "true");
 }
 
@@ -578,8 +648,15 @@ fn skip_negative_integer_default() {
             sentinel: i32,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "- 1");
 }
 
@@ -610,7 +687,9 @@ fn skip_field_name_preserved() {
             my_metadata_field: bool,
         }
     };
-    let names: Vec<_> = s.fields.iter()
+    let names: Vec<_> = s
+        .fields
+        .iter()
         .map(|f| f.ident.as_ref().unwrap().to_string())
         .collect();
     assert_eq!(names, vec!["token", "my_metadata_field"]);
@@ -626,8 +705,15 @@ fn skip_float_literal_default() {
             score: f64,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "0.0");
 }
 
@@ -641,8 +727,15 @@ fn skip_char_literal_default() {
             tag: char,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "'x'");
 }
 
@@ -664,10 +757,14 @@ fn skip_attr_count_in_mixed_struct() {
             e: Option<String>,
         }
     };
-    let skip_count = s.fields.iter()
+    let skip_count = s
+        .fields
+        .iter()
         .filter(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
         .count();
-    let leaf_count = s.fields.iter()
+    let leaf_count = s
+        .fields
+        .iter()
         .filter(|f| f.attrs.iter().any(|a| is_adze_attr(a, "leaf")))
         .count();
     assert_eq!(skip_count, 3);
@@ -687,13 +784,23 @@ fn skip_with_derive_on_struct() {
             checked: bool,
         }
     };
-    let derive_count = s.attrs.iter().filter(|a| {
-        a.path().segments.iter().next().is_some_and(|s| s.ident == "derive")
-    }).count();
+    let derive_count = s
+        .attrs
+        .iter()
+        .filter(|a| {
+            a.path()
+                .segments
+                .iter()
+                .next()
+                .is_some_and(|s| s.ident == "derive")
+        })
+        .count();
     assert_eq!(derive_count, 1);
-    let skip_field = s.fields.iter().find(|f| {
-        f.ident.as_ref().is_some_and(|i| i == "checked")
-    }).unwrap();
+    let skip_field = s
+        .fields
+        .iter()
+        .find(|f| f.ident.as_ref().is_some_and(|i| i == "checked"))
+        .unwrap();
     assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
 }
 
@@ -707,7 +814,14 @@ fn skip_default_trait_call() {
             data: Vec<u8>,
         }
     };
-    let attr = s.fields.iter().next().unwrap()
-        .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
     assert_eq!(skip_expr_str(attr), "Default :: default ()");
 }

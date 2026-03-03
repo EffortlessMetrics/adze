@@ -142,7 +142,10 @@ fn complex_expr_function_call() {
     let nve = parse_nve("init = default_value()");
     assert_eq!(nve.path.to_string(), "init");
     let tokens = nve.expr.to_token_stream().to_string();
-    assert!(tokens.contains("default_value"), "should contain fn name: {tokens}");
+    assert!(
+        tokens.contains("default_value"),
+        "should contain fn name: {tokens}"
+    );
 }
 
 #[test]
@@ -247,7 +250,10 @@ fn inequality_different_value() {
 fn debug_contains_struct_name() {
     let nve = parse_nve("x = 10");
     let dbg = format!("{nve:?}");
-    assert!(dbg.contains("NameValueExpr"), "Debug should contain type name: {dbg}");
+    assert!(
+        dbg.contains("NameValueExpr"),
+        "Debug should contain type name: {dbg}"
+    );
 }
 
 #[test]
@@ -261,7 +267,10 @@ fn debug_non_empty() {
 fn debug_contains_path_field() {
     let nve = parse_nve("myfield = 5");
     let dbg = format!("{nve:?}");
-    assert!(dbg.contains("path"), "Debug should contain field 'path': {dbg}");
+    assert!(
+        dbg.contains("path"),
+        "Debug should contain field 'path': {dbg}"
+    );
 }
 
 // ===========================================================================

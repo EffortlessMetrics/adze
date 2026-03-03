@@ -10,13 +10,13 @@
 
 mod common;
 
+use adze::Spanned;
 use adze::error_recovery::ErrorRecoveryConfig;
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
 use adze::glr_tree_bridge::{GLRTree, subtree_to_tree};
 use adze::pure_parser::{ParsedNode, Point};
 use adze::subtree::{ChildEdge, Subtree, SubtreeNode};
-use adze::Spanned;
 use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use proptest::prelude::*;
@@ -205,7 +205,9 @@ unsafe impl Send for SendNode {}
 unsafe impl Sync for SendNode {}
 
 impl SendNode {
-    fn inner(&self) -> &ParsedNode { &self.0 }
+    fn inner(&self) -> &ParsedNode {
+        &self.0
+    }
 }
 
 /// Build a ParsedNode without a language pointer (safe to clone across threads
@@ -219,8 +221,14 @@ fn make_parsed_node(symbol: u16, start: usize, end: usize) -> ParsedNode {
         std::ptr::addr_of_mut!((*ptr).children).write(vec![]);
         std::ptr::addr_of_mut!((*ptr).start_byte).write(start);
         std::ptr::addr_of_mut!((*ptr).end_byte).write(end);
-        std::ptr::addr_of_mut!((*ptr).start_point).write(Point { row: 0, column: start as u32 });
-        std::ptr::addr_of_mut!((*ptr).end_point).write(Point { row: 0, column: end as u32 });
+        std::ptr::addr_of_mut!((*ptr).start_point).write(Point {
+            row: 0,
+            column: start as u32,
+        });
+        std::ptr::addr_of_mut!((*ptr).end_point).write(Point {
+            row: 0,
+            column: end as u32,
+        });
         std::ptr::addr_of_mut!((*ptr).is_extra).write(false);
         std::ptr::addr_of_mut!((*ptr).is_error).write(false);
         std::ptr::addr_of_mut!((*ptr).is_missing).write(false);

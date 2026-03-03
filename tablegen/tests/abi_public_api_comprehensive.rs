@@ -184,10 +184,7 @@ fn builder_new_accepts_various_grammar_names() {
         let (g, t) = build_grammar_and_table(name, 1, 1, 0, 0, 1);
         let code = generate_code(&g, &t);
         let expected_fn = format!("tree_sitter_{name}");
-        assert!(
-            code.contains(&expected_fn),
-            "missing FFI fn for '{name}'"
-        );
+        assert!(code.contains(&expected_fn), "missing FFI fn for '{name}'");
     }
 }
 
@@ -451,28 +448,19 @@ fn encode_reduce_action() {
 #[test]
 fn encode_accept_action() {
     let c = TableCompressor::new();
-    assert_eq!(
-        c.encode_action_small(&Action::Accept).unwrap(),
-        0xFFFF
-    );
+    assert_eq!(c.encode_action_small(&Action::Accept).unwrap(), 0xFFFF);
 }
 
 #[test]
 fn encode_error_action() {
     let c = TableCompressor::new();
-    assert_eq!(
-        c.encode_action_small(&Action::Error).unwrap(),
-        0xFFFE
-    );
+    assert_eq!(c.encode_action_small(&Action::Error).unwrap(), 0xFFFE);
 }
 
 #[test]
 fn encode_recover_action() {
     let c = TableCompressor::new();
-    assert_eq!(
-        c.encode_action_small(&Action::Recover).unwrap(),
-        0xFFFD
-    );
+    assert_eq!(c.encode_action_small(&Action::Recover).unwrap(), 0xFFFD);
 }
 
 #[test]

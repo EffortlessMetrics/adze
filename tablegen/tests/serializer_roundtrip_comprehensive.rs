@@ -90,11 +90,7 @@ fn make_empty_table(states: usize, terms: usize, nonterms: usize, externals: usi
 }
 
 /// Build a simple grammar with the given number of tokens and rules.
-fn grammar_with_tokens_and_rules(
-    name: &str,
-    token_names: &[&str],
-    rule_names: &[&str],
-) -> Grammar {
+fn grammar_with_tokens_and_rules(name: &str, token_names: &[&str], rule_names: &[&str]) -> Grammar {
     let mut grammar = Grammar::new(name.to_string());
     for (i, tname) in token_names.iter().enumerate() {
         grammar.tokens.insert(
@@ -770,11 +766,7 @@ fn regex_token_is_named() {
     );
 
     // plus (string literal, visible) → named=false
-    let plus_idx = deser
-        .symbol_names
-        .iter()
-        .position(|n| n == "plus")
-        .unwrap();
+    let plus_idx = deser.symbol_names.iter().position(|n| n == "plus").unwrap();
     assert_eq!(
         deser.symbol_metadata[plus_idx] & 0x02,
         0,

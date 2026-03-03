@@ -7,7 +7,7 @@
 //! renumber_symbols) and verifies its invariants in isolation and in combination.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::optimizer::{optimize_grammar, GrammarOptimizer, OptimizationStats};
+use adze_ir::optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 use adze_ir::{
     Associativity, ExternalToken, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
     Token, TokenPattern,

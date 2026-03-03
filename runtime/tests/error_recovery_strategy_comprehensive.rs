@@ -3,7 +3,7 @@
 //! Comprehensive tests for error recovery strategies in the adze runtime.
 
 use adze::error_recovery::{
-    ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, ErrorNode,
+    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
 use adze_ir::SymbolId;
@@ -88,7 +88,10 @@ fn strategy_all_variants_are_distinct() {
     ];
     for i in 0..variants.len() {
         for j in (i + 1)..variants.len() {
-            assert_ne!(variants[i], variants[j], "variants {i} and {j} should differ");
+            assert_ne!(
+                variants[i], variants[j],
+                "variants {i} and {j} should differ"
+            );
         }
     }
 }
@@ -100,7 +103,10 @@ fn strategy_all_variants_are_distinct() {
 #[test]
 fn strategy_debug_format() {
     let dbg = format!("{:?}", RecoveryStrategy::PanicMode);
-    assert!(dbg.contains("PanicMode"), "Debug should contain variant name");
+    assert!(
+        dbg.contains("PanicMode"),
+        "Debug should contain variant name"
+    );
 }
 
 #[test]
@@ -155,7 +161,16 @@ fn record_error_with_no_actual_token() {
 #[test]
 fn record_error_preserves_positions() {
     let mut state = default_state();
-    state.record_error(5, 12, (1, 5), (1, 12), vec![7], Some(8), RecoveryStrategy::PanicMode, vec![]);
+    state.record_error(
+        5,
+        12,
+        (1, 5),
+        (1, 12),
+        vec![7],
+        Some(8),
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 5);
     assert_eq!(node.end_byte, 12);
@@ -220,12 +235,28 @@ fn get_error_nodes_returns_empty_initially() {
 #[test]
 fn get_error_nodes_returns_clone() {
     let mut state = default_state();
-    record(&mut state, 0, 1, vec![1], Some(2), RecoveryStrategy::PanicMode, vec![]);
+    record(
+        &mut state,
+        0,
+        1,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     let first = state.get_error_nodes();
     let second = state.get_error_nodes();
     assert_eq!(first.len(), second.len());
     // Adding more errors should not affect previously returned vectors.
-    record(&mut state, 2, 3, vec![3], Some(4), RecoveryStrategy::PanicMode, vec![]);
+    record(
+        &mut state,
+        2,
+        3,
+        vec![3],
+        Some(4),
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     assert_eq!(first.len(), 1);
     assert_eq!(state.get_error_nodes().len(), 2);
 }
@@ -234,7 +265,15 @@ fn get_error_nodes_returns_clone() {
 fn clear_errors_removes_all() {
     let mut state = default_state();
     for i in 0..3 {
-        record(&mut state, i, i + 1, vec![1], None, RecoveryStrategy::PanicMode, vec![]);
+        record(
+            &mut state,
+            i,
+            i + 1,
+            vec![1],
+            None,
+            RecoveryStrategy::PanicMode,
+            vec![],
+        );
     }
     assert_eq!(state.get_error_nodes().len(), 3);
     state.clear_errors();
@@ -248,7 +287,15 @@ fn clear_errors_removes_all() {
 #[test]
 fn record_error_with_empty_expected() {
     let mut state = default_state();
-    record(&mut state, 0, 1, vec![], Some(5), RecoveryStrategy::PanicMode, vec![]);
+    record(
+        &mut state,
+        0,
+        1,
+        vec![],
+        Some(5),
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 1);
     assert!(nodes[0].expected.is_empty());
@@ -258,7 +305,15 @@ fn record_error_with_empty_expected() {
 fn record_error_with_large_expected_set() {
     let mut state = default_state();
     let expected: Vec<u16> = (0..256).collect();
-    record(&mut state, 0, 10, expected.clone(), Some(999), RecoveryStrategy::PhraseLevel, vec![]);
+    record(
+        &mut state,
+        0,
+        10,
+        expected.clone(),
+        Some(999),
+        RecoveryStrategy::PhraseLevel,
+        vec![],
+    );
     assert_eq!(state.get_error_nodes()[0].expected, expected);
 }
 
@@ -269,7 +324,15 @@ fn record_error_with_large_expected_set() {
 #[test]
 fn record_error_zero_length_span() {
     let mut state = default_state();
-    record(&mut state, 42, 42, vec![1], None, RecoveryStrategy::TokenInsertion, vec![]);
+    record(
+        &mut state,
+        42,
+        42,
+        vec![1],
+        None,
+        RecoveryStrategy::TokenInsertion,
+        vec![],
+    );
     let node = &state.get_error_nodes()[0];
     assert_eq!(node.start_byte, 42);
     assert_eq!(node.end_byte, 42);
@@ -282,8 +345,24 @@ fn record_error_zero_length_span() {
 #[test]
 fn record_overlapping_errors() {
     let mut state = default_state();
-    record(&mut state, 0, 10, vec![1], Some(2), RecoveryStrategy::TokenDeletion, vec![]);
-    record(&mut state, 5, 15, vec![3], Some(4), RecoveryStrategy::TokenSubstitution, vec![]);
+    record(
+        &mut state,
+        0,
+        10,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::TokenDeletion,
+        vec![],
+    );
+    record(
+        &mut state,
+        5,
+        15,
+        vec![3],
+        Some(4),
+        RecoveryStrategy::TokenSubstitution,
+        vec![],
+    );
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 2);
     // The overlapping region [5,10) is covered by both.
@@ -314,7 +393,15 @@ fn record_error_with_skipped_tokens() {
 #[test]
 fn record_error_with_empty_skipped_tokens() {
     let mut state = default_state();
-    record(&mut state, 0, 1, vec![1], Some(2), RecoveryStrategy::TokenDeletion, vec![]);
+    record(
+        &mut state,
+        0,
+        1,
+        vec![1],
+        Some(2),
+        RecoveryStrategy::TokenDeletion,
+        vec![],
+    );
     assert!(state.get_error_nodes()[0].skipped_tokens.is_empty());
 }
 

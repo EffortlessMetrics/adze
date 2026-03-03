@@ -11,27 +11,30 @@ fn arb_gss_stats() -> impl Strategy<Value = GSSStats> {
         any::<usize>(),
         any::<usize>(),
     )
-        .prop_map(
-            |(nodes, heads, forks, merges, segments)| GSSStats {
-                total_nodes_created: nodes,
-                max_active_heads: heads,
-                total_forks: forks,
-                total_merges: merges,
-                shared_segments: segments,
-            },
-        )
-}
-
-fn arb_small_gss_stats() -> impl Strategy<Value = GSSStats> {
-    (0..10_000usize, 0..10_000usize, 0..10_000usize, 0..10_000usize, 0..10_000usize).prop_map(
-        |(nodes, heads, forks, merges, segments)| GSSStats {
+        .prop_map(|(nodes, heads, forks, merges, segments)| GSSStats {
             total_nodes_created: nodes,
             max_active_heads: heads,
             total_forks: forks,
             total_merges: merges,
             shared_segments: segments,
-        },
+        })
+}
+
+fn arb_small_gss_stats() -> impl Strategy<Value = GSSStats> {
+    (
+        0..10_000usize,
+        0..10_000usize,
+        0..10_000usize,
+        0..10_000usize,
+        0..10_000usize,
     )
+        .prop_map(|(nodes, heads, forks, merges, segments)| GSSStats {
+            total_nodes_created: nodes,
+            max_active_heads: heads,
+            total_forks: forks,
+            total_merges: merges,
+            shared_segments: segments,
+        })
 }
 
 // --- Creation tests ---
@@ -127,10 +130,7 @@ fn test_default_matches_explicit_zeros() {
         total_merges: 0,
         shared_segments: 0,
     };
-    assert_eq!(
-        format!("{:?}", def),
-        format!("{:?}", explicit),
-    );
+    assert_eq!(format!("{:?}", def), format!("{:?}", explicit),);
 }
 
 // --- Debug tests ---

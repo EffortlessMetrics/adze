@@ -451,7 +451,11 @@ fn dot_epsilon_transitions_skipped() {
     // Count edges: 5 non-epsilon symbols in the rule
     let edges: Vec<&str> = dot.lines().filter(|l| l.contains("->")).collect();
     // The rule has 6 symbols, 1 is Epsilon (skipped), so 5 edges
-    assert_eq!(edges.len(), 5, "Epsilon should be skipped, expected 5 edges");
+    assert_eq!(
+        edges.len(),
+        5,
+        "Epsilon should be skipped, expected 5 edges"
+    );
 }
 
 // ===========================================================================

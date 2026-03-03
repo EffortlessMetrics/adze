@@ -6,11 +6,13 @@
 //! same item, attribute argument parsing, nested attribute handling, round-trip
 //! attribute processing, and attribute ordering independence.
 
-use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
+use adze_common::{
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
+};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{parse_str, Attribute, Item, Type};
+use syn::{Attribute, Item, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -35,10 +37,12 @@ fn distinct_idents(max: usize) -> impl Strategy<Value = Vec<String>> {
 
 /// Simple leaf type names.
 fn leaf_type_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64",
-        "f32", "f64", "bool", "char", "String", "usize", "isize",
-    ][..])
+    prop::sample::select(
+        &[
+            "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "bool", "char",
+            "String", "usize", "isize",
+        ][..],
+    )
 }
 
 /// Container type names.
@@ -53,10 +57,19 @@ fn int_value() -> impl Strategy<Value = i64> {
 
 /// Known adze attribute names.
 fn adze_attr_name() -> impl Strategy<Value = &'static str> {
-    prop::sample::select(&[
-        "leaf", "skip", "prec", "word", "language", "grammar", "repeat",
-        "extra", "delimited",
-    ][..])
+    prop::sample::select(
+        &[
+            "leaf",
+            "skip",
+            "prec",
+            "word",
+            "language",
+            "grammar",
+            "repeat",
+            "extra",
+            "delimited",
+        ][..],
+    )
 }
 
 /// Item kind selector.
@@ -69,12 +82,14 @@ enum ItemKind {
 }
 
 fn item_kind_strategy() -> impl Strategy<Value = ItemKind> {
-    prop::sample::select(&[
-        ItemKind::Struct,
-        ItemKind::Enum,
-        ItemKind::Fn,
-        ItemKind::TypeAlias,
-    ][..])
+    prop::sample::select(
+        &[
+            ItemKind::Struct,
+            ItemKind::Enum,
+            ItemKind::Fn,
+            ItemKind::TypeAlias,
+        ][..],
+    )
 }
 
 // ---------------------------------------------------------------------------

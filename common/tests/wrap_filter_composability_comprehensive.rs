@@ -45,10 +45,7 @@ fn wrap_then_filter_vec_string() {
     // filter(Vec<adze::WithLeaf<String>>, skip=[Vec]) => adze::WithLeaf<String>
     let ty: Type = parse_quote!(Vec<String>);
     let wrapped = wrap_leaf_type(&ty, &skip(&["Vec"]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "Vec < adze :: WithLeaf < String > >"
-    );
+    assert_eq!(ty_str(&wrapped), "Vec < adze :: WithLeaf < String > >");
     let filtered = filter_inner_type(&wrapped, &skip(&["Vec"]));
     assert_eq!(ty_str(&filtered), "adze :: WithLeaf < String >");
 }
@@ -269,10 +266,7 @@ fn compose_option_vec_extract_then_wrap() {
     assert_eq!(ty_str(&inner), "Vec < String >");
     // Now wrap, skipping Vec
     let wrapped = wrap_leaf_type(&inner, &skip(&["Vec"]));
-    assert_eq!(
-        ty_str(&wrapped),
-        "Vec < adze :: WithLeaf < String > >"
-    );
+    assert_eq!(ty_str(&wrapped), "Vec < adze :: WithLeaf < String > >");
 }
 
 #[test]
@@ -300,10 +294,7 @@ fn compose_all_three_ops_pipeline() {
     assert!(extracted);
     assert_eq!(ty_str(&step2), "Vec < String >");
     let step3 = wrap_leaf_type(&step2, &skip(&["Vec"]));
-    assert_eq!(
-        ty_str(&step3),
-        "Vec < adze :: WithLeaf < String > >"
-    );
+    assert_eq!(ty_str(&step3), "Vec < adze :: WithLeaf < String > >");
 }
 
 // ===========================================================================

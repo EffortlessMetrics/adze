@@ -9,7 +9,9 @@
 
 use std::collections::HashSet;
 
-use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
+use adze_common::{
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
+};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
@@ -302,10 +304,18 @@ fn repeat_non_empty_true_extracted() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "repeat")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "repeat"))
+        .unwrap();
     let params = repeat_params(attr);
     assert_eq!(params[0].path.to_string(), "non_empty");
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Bool(b), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Bool(b),
+        ..
+    }) = &params[0].expr
+    {
         assert!(b.value);
     } else {
         panic!("Expected bool literal");
@@ -323,9 +333,17 @@ fn repeat_non_empty_false_extracted() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let attr = field.attrs.iter().find(|a| is_adze_attr(a, "repeat")).unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "repeat"))
+        .unwrap();
     let params = repeat_params(attr);
-    if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Bool(b), .. }) = &params[0].expr {
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Bool(b),
+        ..
+    }) = &params[0].expr
+    {
         assert!(!b.value);
     } else {
         panic!("Expected bool literal");
@@ -389,7 +407,12 @@ fn delimited_on_unnamed_enum_field() {
         }
     };
     if let Fields::Unnamed(ref u) = e.variants[0].fields {
-        assert!(u.unnamed[0].attrs.iter().any(|a| is_adze_attr(a, "delimited")));
+        assert!(
+            u.unnamed[0]
+                .attrs
+                .iter()
+                .any(|a| is_adze_attr(a, "delimited"))
+        );
     } else {
         panic!("Expected unnamed fields");
     }
@@ -494,7 +517,12 @@ fn repeat_combined_with_prec_left() {
             ),
         }
     };
-    assert!(e.variants[1].attrs.iter().any(|a| is_adze_attr(a, "prec_left")));
+    assert!(
+        e.variants[1]
+            .attrs
+            .iter()
+            .any(|a| is_adze_attr(a, "prec_left"))
+    );
     if let Fields::Unnamed(ref u) = e.variants[1].fields {
         let vec_field = &u.unnamed[2];
         assert!(vec_field.attrs.iter().any(|a| is_adze_attr(a, "delimited")));
@@ -587,7 +615,11 @@ fn enum_named_field_variant_with_delimited() {
         }
     };
     if let Fields::Named(ref n) = e.variants[0].fields {
-        let stmts = n.named.iter().find(|f| f.ident.as_ref().unwrap() == "stmts").unwrap();
+        let stmts = n
+            .named
+            .iter()
+            .find(|f| f.ident.as_ref().unwrap() == "stmts")
+            .unwrap();
         assert!(stmts.attrs.iter().any(|a| is_adze_attr(a, "delimited")));
         assert_eq!(extract_delim_text(stmts), ";");
     } else {
@@ -678,10 +710,14 @@ fn attr_count_repeat_delimited_is_two() {
         }
     };
     let field = s.fields.iter().next().unwrap();
-    let adze_count = field.attrs.iter().filter(|a| {
-        let segs: Vec<_> = a.path().segments.iter().collect();
-        segs.len() == 2 && segs[0].ident == "adze"
-    }).count();
+    let adze_count = field
+        .attrs
+        .iter()
+        .filter(|a| {
+            let segs: Vec<_> = a.path().segments.iter().collect();
+            segs.len() == 2 && segs[0].ident == "adze"
+        })
+        .count();
     assert_eq!(adze_count, 2);
 }
 
