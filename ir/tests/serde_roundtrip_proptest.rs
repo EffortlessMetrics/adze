@@ -2,9 +2,8 @@
 
 //! Property-based serde roundtrip tests for all IR types.
 //!
-//! Each test serializes a value to JSON, deserializes it back, and asserts
-//! the result equals the original. For types without `PartialEq` (e.g. `Grammar`),
-//! we compare `serde_json::Value` representations.
+//! Each test serializes a value to both JSON and bincode, deserializes back,
+//! and asserts the result equals the original.
 
 use adze_ir::{
     AliasSequence, Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId,
@@ -162,13 +161,29 @@ fn arb_alias_sequence() -> impl Strategy<Value = AliasSequence> {
     .prop_map(|aliases| AliasSequence { aliases })
 }
 
-/// Helper: roundtrip via JSON and compare `serde_json::Value` representations.
-fn assert_json_value_roundtrip<T: serde::Serialize + serde::de::DeserializeOwned>(val: &T) -> T {
-    let json = serde_json::to_string(val).expect("serialize");
-    let back: T = serde_json::from_str(&json).expect("deserialize");
+// ---------------------------------------------------------------------------
+// Roundtrip helpers
+// ---------------------------------------------------------------------------
+
+/// Roundtrip via JSON and compare `serde_json::Value` representations.
+fn assert_json_roundtrip<T: serde::Serialize + serde::de::DeserializeOwned>(val: &T) -> T {
+    let json = serde_json::to_string(val).expect("json serialize");
+    let back: T = serde_json::from_str(&json).expect("json deserialize");
     let v1 = serde_json::to_value(val).expect("to_value original");
     let v2 = serde_json::to_value(&back).expect("to_value roundtrip");
     assert_eq!(v1, v2, "JSON roundtrip mismatch");
+    back
+}
+
+/// Roundtrip via bincode and assert equality.
+fn assert_bincode_roundtrip<
+    T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + std::fmt::Debug,
+>(
+    val: &T,
+) -> T {
+    let bytes = bincode::serialize(val).expect("bincode serialize");
+    let back: T = bincode::deserialize(&bytes).expect("bincode deserialize");
+    assert_eq!(val, &back, "bincode roundtrip mismatch");
     back
 }
 
@@ -181,158 +196,186 @@ proptest! {
     #[test]
     fn roundtrip_symbol_id(id in 0u16..=u16::MAX) {
         let orig = SymbolId(id);
-        let back = assert_json_value_roundtrip(&orig);
-        prop_assert_eq!(orig, back);
+        let j = assert_json_roundtrip(&orig);
+        let b = assert_bincode_roundtrip(&orig);
+        prop_assert_eq!(orig, j);
+        prop_assert_eq!(orig, b);
     }
 
     // ---- RuleId ----
     #[test]
     fn roundtrip_rule_id(id in 0u16..=u16::MAX) {
         let orig = RuleId(id);
-        let back = assert_json_value_roundtrip(&orig);
-        prop_assert_eq!(orig, back);
+        let j = assert_json_roundtrip(&orig);
+        let b = assert_bincode_roundtrip(&orig);
+        prop_assert_eq!(orig, j);
+        prop_assert_eq!(orig, b);
     }
 
     // ---- StateId ----
     #[test]
     fn roundtrip_state_id(id in 0u16..=u16::MAX) {
         let orig = StateId(id);
-        let back = assert_json_value_roundtrip(&orig);
-        prop_assert_eq!(orig, back);
+        let j = assert_json_roundtrip(&orig);
+        let b = assert_bincode_roundtrip(&orig);
+        prop_assert_eq!(orig, j);
+        prop_assert_eq!(orig, b);
     }
 
     // ---- FieldId ----
     #[test]
     fn roundtrip_field_id(id in 0u16..=u16::MAX) {
         let orig = FieldId(id);
-        let back = assert_json_value_roundtrip(&orig);
-        prop_assert_eq!(orig, back);
+        let j = assert_json_roundtrip(&orig);
+        let b = assert_bincode_roundtrip(&orig);
+        prop_assert_eq!(orig, j);
+        prop_assert_eq!(orig, b);
     }
 
     // ---- ProductionId ----
     #[test]
     fn roundtrip_production_id(id in 0u16..=u16::MAX) {
         let orig = ProductionId(id);
-        let back = assert_json_value_roundtrip(&orig);
-        prop_assert_eq!(orig, back);
+        let j = assert_json_roundtrip(&orig);
+        let b = assert_bincode_roundtrip(&orig);
+        prop_assert_eq!(orig, j);
+        prop_assert_eq!(orig, b);
     }
 
     // ---- Associativity ----
     #[test]
     fn roundtrip_associativity(assoc in arb_associativity()) {
-        let back = assert_json_value_roundtrip(&assoc);
-        prop_assert_eq!(assoc, back);
+        let j = assert_json_roundtrip(&assoc);
+        let b = assert_bincode_roundtrip(&assoc);
+        prop_assert_eq!(assoc, j);
+        prop_assert_eq!(assoc, b);
     }
 
     // ---- PrecedenceKind ----
     #[test]
     fn roundtrip_precedence_kind(pk in arb_precedence_kind()) {
-        let back = assert_json_value_roundtrip(&pk);
-        prop_assert_eq!(pk, back);
+        let j = assert_json_roundtrip(&pk);
+        let b = assert_bincode_roundtrip(&pk);
+        prop_assert_eq!(pk, j);
+        prop_assert_eq!(pk, b);
     }
 
-    // ---- TokenPattern::String ----
-    #[test]
-    fn roundtrip_token_pattern_string(s in "[a-zA-Z0-9_]{1,20}") {
-        let orig = TokenPattern::String(s);
-        let back = assert_json_value_roundtrip(&orig);
-        prop_assert_eq!(orig, back);
-    }
-
-    // ---- TokenPattern::Regex ----
-    #[test]
-    fn roundtrip_token_pattern_regex(s in "[a-zA-Z0-9_.+*?]{1,20}") {
-        let orig = TokenPattern::Regex(s);
-        let back = assert_json_value_roundtrip(&orig);
-        prop_assert_eq!(orig, back);
-    }
-
-    // ---- TokenPattern (mixed) ----
+    // ---- TokenPattern ----
     #[test]
     fn roundtrip_token_pattern(pat in arb_token_pattern()) {
-        let back = assert_json_value_roundtrip(&pat);
-        prop_assert_eq!(pat, back);
+        let j = assert_json_roundtrip(&pat);
+        let b = assert_bincode_roundtrip(&pat);
+        prop_assert_eq!(&pat, &j);
+        prop_assert_eq!(&pat, &b);
     }
 
     // ---- Token ----
     #[test]
     fn roundtrip_token(tok in arb_token()) {
-        let back = assert_json_value_roundtrip(&tok);
-        prop_assert_eq!(tok, back);
+        let j = assert_json_roundtrip(&tok);
+        let b = assert_bincode_roundtrip(&tok);
+        prop_assert_eq!(&tok, &j);
+        prop_assert_eq!(&tok, &b);
     }
 
     // ---- Symbol leaf variants ----
     #[test]
     fn roundtrip_symbol_leaf(sym in arb_symbol_leaf()) {
-        let back = assert_json_value_roundtrip(&sym);
-        prop_assert_eq!(sym, back);
+        let j = assert_json_roundtrip(&sym);
+        let b = assert_bincode_roundtrip(&sym);
+        prop_assert_eq!(&sym, &j);
+        prop_assert_eq!(&sym, &b);
     }
 
     // ---- Symbol (recursive) ----
     #[test]
     fn roundtrip_symbol(sym in arb_symbol()) {
-        let back = assert_json_value_roundtrip(&sym);
-        prop_assert_eq!(sym, back);
+        let j = assert_json_roundtrip(&sym);
+        let b = assert_bincode_roundtrip(&sym);
+        prop_assert_eq!(&sym, &j);
+        prop_assert_eq!(&sym, &b);
     }
 
     // ---- Vec<Symbol> ----
     #[test]
     fn roundtrip_symbol_vec(syms in prop::collection::vec(arb_symbol(), 0..8)) {
-        let back: Vec<Symbol> = assert_json_value_roundtrip(&syms);
-        prop_assert_eq!(syms, back);
+        let j: Vec<Symbol> = assert_json_roundtrip(&syms);
+        let b: Vec<Symbol> = assert_bincode_roundtrip(&syms);
+        prop_assert_eq!(&syms, &j);
+        prop_assert_eq!(&syms, &b);
     }
 
     // ---- SymbolMetadata ----
     #[test]
     fn roundtrip_symbol_metadata(meta in arb_symbol_metadata()) {
-        let back = assert_json_value_roundtrip(&meta);
-        prop_assert_eq!(meta, back);
+        let j = assert_json_roundtrip(&meta);
+        let b = assert_bincode_roundtrip(&meta);
+        prop_assert_eq!(meta, j);
+        prop_assert_eq!(meta, b);
     }
 
     // ---- Rule ----
     #[test]
     fn roundtrip_rule(rule in arb_rule()) {
-        let back = assert_json_value_roundtrip(&rule);
-        prop_assert_eq!(rule, back);
+        let j = assert_json_roundtrip(&rule);
+        let b = assert_bincode_roundtrip(&rule);
+        prop_assert_eq!(&rule, &j);
+        prop_assert_eq!(&rule, &b);
     }
 
     // ---- ExternalToken ----
     #[test]
     fn roundtrip_external_token(et in arb_external_token()) {
-        // ExternalToken doesn't derive PartialEq, compare via JSON Value
-        assert_json_value_roundtrip(&et);
+        let j = assert_json_roundtrip(&et);
+        let b = assert_bincode_roundtrip(&et);
+        prop_assert_eq!(&et, &j);
+        prop_assert_eq!(&et, &b);
     }
 
     // ---- Precedence ----
     #[test]
     fn roundtrip_precedence(prec in arb_precedence()) {
-        assert_json_value_roundtrip(&prec);
+        let j = assert_json_roundtrip(&prec);
+        let b = assert_bincode_roundtrip(&prec);
+        prop_assert_eq!(&prec, &j);
+        prop_assert_eq!(&prec, &b);
     }
 
     // ---- ConflictResolution ----
     #[test]
     fn roundtrip_conflict_resolution(cr in arb_conflict_resolution()) {
-        let back = assert_json_value_roundtrip(&cr);
-        prop_assert_eq!(cr, back);
+        let j = assert_json_roundtrip(&cr);
+        let b = assert_bincode_roundtrip(&cr);
+        prop_assert_eq!(&cr, &j);
+        prop_assert_eq!(&cr, &b);
     }
 
     // ---- ConflictDeclaration ----
     #[test]
     fn roundtrip_conflict_declaration(cd in arb_conflict_declaration()) {
-        assert_json_value_roundtrip(&cd);
+        let j = assert_json_roundtrip(&cd);
+        let b = assert_bincode_roundtrip(&cd);
+        prop_assert_eq!(&cd, &j);
+        prop_assert_eq!(&cd, &b);
     }
 
     // ---- AliasSequence ----
     #[test]
     fn roundtrip_alias_sequence(seq in arb_alias_sequence()) {
-        assert_json_value_roundtrip(&seq);
+        let j = assert_json_roundtrip(&seq);
+        let b = assert_bincode_roundtrip(&seq);
+        prop_assert_eq!(&seq, &j);
+        prop_assert_eq!(&seq, &b);
     }
 
     // ---- Grammar (empty) ----
     #[test]
     fn roundtrip_grammar_empty(name in "[a-zA-Z][a-zA-Z0-9_]{0,15}") {
         let grammar = Grammar::new(name);
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with tokens ----
@@ -347,7 +390,10 @@ proptest! {
         for (id, tok) in toks {
             grammar.tokens.insert(id, tok);
         }
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with rules ----
@@ -360,7 +406,10 @@ proptest! {
         for rule in rules {
             grammar.add_rule(rule);
         }
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with precedences ----
@@ -371,7 +420,10 @@ proptest! {
     ) {
         let mut grammar = Grammar::new(name);
         grammar.precedences = precs;
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with conflicts ----
@@ -382,7 +434,10 @@ proptest! {
     ) {
         let mut grammar = Grammar::new(name);
         grammar.conflicts = conflicts;
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with externals ----
@@ -393,7 +448,10 @@ proptest! {
     ) {
         let mut grammar = Grammar::new(name);
         grammar.externals = exts;
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with alias sequences ----
@@ -408,7 +466,10 @@ proptest! {
         for (pid, seq) in seqs {
             grammar.alias_sequences.insert(pid, seq);
         }
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with fields (sorted for validity) ----
@@ -424,7 +485,10 @@ proptest! {
         for (i, fname) in sorted.into_iter().enumerate() {
             grammar.fields.insert(FieldId(i as u16), fname);
         }
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar with extras / supertypes / inline_rules ----
@@ -439,7 +503,10 @@ proptest! {
         grammar.extras = extras;
         grammar.supertypes = supertypes;
         grammar.inline_rules = inline_rules;
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Grammar full composite ----
@@ -462,7 +529,10 @@ proptest! {
         grammar.precedences = precs;
         grammar.externals = exts;
         grammar.extras = extras;
-        assert_json_value_roundtrip(&grammar);
+        let j = assert_json_roundtrip(&grammar);
+        let b = assert_bincode_roundtrip(&grammar);
+        prop_assert_eq!(&grammar, &j);
+        prop_assert_eq!(&grammar, &b);
     }
 
     // ---- Pretty vs compact JSON roundtrip ----
@@ -474,5 +544,40 @@ proptest! {
         let from_pretty: Symbol = serde_json::from_str(&pretty).unwrap();
         prop_assert_eq!(&from_compact, &from_pretty);
         prop_assert_eq!(&sym, &from_compact);
+    }
+
+    // ---- Bincode determinism: same input produces same bytes ----
+    #[test]
+    fn bincode_deterministic_symbol(sym in arb_symbol()) {
+        let bytes1 = bincode::serialize(&sym).unwrap();
+        let bytes2 = bincode::serialize(&sym).unwrap();
+        prop_assert_eq!(bytes1, bytes2);
+    }
+
+    // ---- Bincode determinism for Grammar ----
+    #[test]
+    fn bincode_deterministic_grammar(
+        name in "[a-zA-Z][a-zA-Z0-9_]{0,10}",
+        rules in prop::collection::vec(arb_rule(), 0..3),
+    ) {
+        let mut grammar = Grammar::new(name);
+        for rule in rules {
+            grammar.add_rule(rule);
+        }
+        let bytes1 = bincode::serialize(&grammar).unwrap();
+        let bytes2 = bincode::serialize(&grammar).unwrap();
+        prop_assert_eq!(bytes1, bytes2);
+    }
+
+    // ---- Cross-format: JSON and bincode produce equal values ----
+    #[test]
+    fn cross_format_rule(rule in arb_rule()) {
+        let from_json: Rule = serde_json::from_str(
+            &serde_json::to_string(&rule).unwrap()
+        ).unwrap();
+        let from_bincode: Rule = bincode::deserialize(
+            &bincode::serialize(&rule).unwrap()
+        ).unwrap();
+        prop_assert_eq!(&from_json, &from_bincode);
     }
 }

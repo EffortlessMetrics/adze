@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Comprehensive tests for ExternalScanner trait and related types.
 
 use adze_runtime::external_scanner::{ExternalScanner, ScanResult};

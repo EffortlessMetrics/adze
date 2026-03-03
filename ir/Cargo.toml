@@ -35,5 +35,6 @@ optimize = []
 strict_docs = []
 
 [dev-dependencies]
+bincode.workspace = true
 insta.workspace = true
 proptest.workspace = true
