@@ -34,4 +34,44 @@ mod tests {
         assert_eq!(caps.rayon_threads, 1);
         assert_eq!(caps.tokio_worker_threads, DEFAULT_TOKIO_WORKER_THREADS);
     }
+
+    #[test]
+    fn bootstrap_caps_preserves_nonzero_rayon_threads() {
+        let caps = bootstrap_caps(ConcurrencyCaps {
+            rayon_threads: 16,
+            tokio_worker_threads: 4,
+        });
+        assert_eq!(caps.rayon_threads, 16);
+    }
+
+    #[test]
+    fn bootstrap_caps_preserves_tokio_worker_threads_unchanged() {
+        for tokio in [0, 1, 5, 100] {
+            let caps = bootstrap_caps(ConcurrencyCaps {
+                rayon_threads: 2,
+                tokio_worker_threads: tokio,
+            });
+            assert_eq!(caps.tokio_worker_threads, tokio);
+        }
+    }
+
+    #[test]
+    fn bootstrap_caps_is_idempotent() {
+        let input = ConcurrencyCaps {
+            rayon_threads: 0,
+            tokio_worker_threads: 7,
+        };
+        let once = bootstrap_caps(input);
+        let twice = bootstrap_caps(once);
+        assert_eq!(once, twice);
+    }
+
+    #[test]
+    fn bootstrap_caps_one_thread_stays_one() {
+        let caps = bootstrap_caps(ConcurrencyCaps {
+            rayon_threads: 1,
+            tokio_worker_threads: 1,
+        });
+        assert_eq!(caps.rayon_threads, 1);
+    }
 }

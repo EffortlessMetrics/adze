@@ -75,4 +75,45 @@ mod tests {
         let output: Vec<i32> = bounded_parallel_map(Vec::<i32>::new(), 8, |value| value * 2);
         assert!(output.is_empty());
     }
+
+    #[test]
+    fn bounded_parallel_map_single_element() {
+        let result = bounded_parallel_map(vec![7], 4, |x| x + 1);
+        assert_eq!(result, vec![8]);
+    }
+
+    #[test]
+    fn bounded_parallel_map_concurrency_exceeds_items() {
+        let mut result = bounded_parallel_map(vec![1, 2, 3], 100, |x| x * 10);
+        result.sort_unstable();
+        assert_eq!(result, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn bounded_parallel_map_preserves_output_length() {
+        let input: Vec<i32> = (0..100).collect();
+        let result = bounded_parallel_map(input.clone(), 4, |x| x * 2);
+        assert_eq!(result.len(), input.len());
+    }
+
+    #[test]
+    fn bounded_parallel_map_with_concurrency_one() {
+        let mut result = bounded_parallel_map(vec![3, 1, 4, 1, 5], 1, |x| x * x);
+        result.sort_unstable();
+        assert_eq!(result, vec![1, 1, 9, 16, 25]);
+    }
+
+    #[test]
+    fn partition_plan_zero_concurrency_normalizes() {
+        let plan = ParallelPartitionPlan::for_item_count(10, 0);
+        assert!(plan.concurrency >= 1);
+        assert!(plan.chunk_size >= 1);
+    }
+
+    #[test]
+    fn partition_plan_empty_items_is_safe() {
+        let plan = ParallelPartitionPlan::for_item_count(0, 4);
+        assert!(plan.use_direct_parallel_iter);
+        assert!(plan.chunk_size >= 1);
+    }
 }
