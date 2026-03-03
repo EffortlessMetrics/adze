@@ -1,0 +1,12 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 5252463b2b7dd2c42b795877effaf55dcdb77374f5ef4dad1b7d07ae91c04e2e # shrinks to name = "aa"
+cc caa641b08ec050211c1665237ca019607f9b2866a846c990d10b57b59b3ed4cb # shrinks to name = "aa", word_name = "Aa", pat = "[a-zA-Z_]\\w*"
+cc 168d029e696b0a5bf4f563839a9882735b16ed0c6a750743683fe19179bafd3e # shrinks to name = "aa", word_name = "Aa", pat = "[a-zA-Z_]\\w*"
+cc 9aca97137112e7fd27c7f2572b7bd2e6128487b6026232d8ff85349cfd9f8b22 # shrinks to name = "a_", word_name = "Aa", pat = "[a-zA-Z_]\\w*"
+cc d82ed0fa2d40b57377bb5bc9338b01f1def8ef169be3dfb606223d966d7adcbc # shrinks to name = "a0", word_name = "Aa", pat = "[a-zA-Z_]\\w*"
+cc 4fa45e21708bcae0e0521c7fb6a749cb23b52d4d5b56823a43f6ca0eccec8637 # shrinks to name = "a_", word_name = "Aa", pat = "[a-zA-Z_]\\w*"
