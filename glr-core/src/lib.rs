@@ -97,6 +97,7 @@ pub mod forest_view;
 pub mod stack;
 /// Telemetry counters for tracking GLR parser operations.
 pub mod telemetry;
+/// Tree-sitter compatible lexer interface for GLR parsing.
 pub mod ts_lexer;
 
 /// ParseTable serialization for GLR mode
@@ -1070,7 +1071,9 @@ impl ItemSet {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ItemSetCollection {
+    /// All computed LR(1) item sets (parser states).
     pub sets: Vec<ItemSet>,
+    /// GOTO transitions: `(from_state, symbol) -> to_state`.
     pub goto_table: IndexMap<(StateId, SymbolId), StateId>,
     /// Track which symbols in goto_table are terminals (true) vs non-terminals (false)
     pub symbol_is_terminal: IndexMap<SymbolId, bool>,
@@ -1586,8 +1589,11 @@ pub struct ParseTable {
     pub action_table: Vec<Vec<ActionCell>>,
     /// GOTO table: indexed by `[state][nonterminal]` using nonterminal_to_index or direct ID
     pub goto_table: Vec<Vec<StateId>>,
+    /// Metadata (name, visibility, etc.) for each symbol in the grammar.
     pub symbol_metadata: Vec<SymbolMetadata>,
+    /// Total number of parser states.
     pub state_count: usize,
+    /// Total number of symbols (terminals + non-terminals).
     pub symbol_count: usize,
     /// Maps terminal symbols to ACTION table column indices
     pub symbol_to_index: BTreeMap<SymbolId, usize>,
@@ -1634,7 +1640,9 @@ pub struct ParseTable {
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ParseRule {
+    /// Left-hand side non-terminal symbol of the rule.
     pub lhs: SymbolId,
+    /// Number of symbols on the right-hand side.
     pub rhs_len: u16,
 }
 
@@ -2107,12 +2115,18 @@ impl ParseTable {
 #[non_exhaustive]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum Action {
+    /// Shift the current token and transition to the given state.
     Shift(StateId),
+    /// Reduce by the given grammar rule.
     Reduce(RuleId),
+    /// Accept the input (parsing complete).
     Accept,
+    /// No valid action (syntax error).
     Error,
-    Recover,           // Tree-sitter error recovery - insert missing node
-    Fork(Vec<Action>), // GLR fork point - multiple valid actions
+    /// Tree-sitter error recovery — insert missing node.
+    Recover,
+    /// GLR fork point — multiple valid actions to explore.
+    Fork(Vec<Action>),
 }
 
 /// Action cell that can hold multiple actions for GLR
@@ -2123,14 +2137,22 @@ pub type ActionCell = Vec<Action>;
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct SymbolMetadata {
+    /// Human-readable symbol name.
     pub name: String,
+    /// Whether the symbol is visible in the syntax tree.
     pub is_visible: bool,
+    /// Whether the symbol is a named node (vs anonymous).
     pub is_named: bool,
+    /// Whether the symbol is a supertype node.
     pub is_supertype: bool,
     // Additional fields required by API contracts
+    /// Whether the symbol is a terminal (leaf token).
     pub is_terminal: bool,
+    /// Whether the symbol is an extra (e.g., whitespace, comments).
     pub is_extra: bool,
+    /// Whether the symbol is fragile (invalidated by edits).
     pub is_fragile: bool,
+    /// Unique identifier for this symbol.
     pub symbol_id: SymbolId,
 }
 
@@ -2138,6 +2160,7 @@ pub struct SymbolMetadata {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct ConflictResolver {
+    /// All detected parse table conflicts.
     pub conflicts: Vec<Conflict>,
 }
 
@@ -2145,9 +2168,13 @@ pub struct ConflictResolver {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub struct Conflict {
+    /// Parser state where the conflict occurs.
     pub state: StateId,
+    /// Lookahead symbol that triggers the conflict.
     pub symbol: SymbolId,
+    /// Conflicting actions for this state/symbol pair.
     pub actions: Vec<Action>,
+    /// Classification of the conflict.
     pub conflict_type: ConflictType,
 }
 
@@ -2155,7 +2182,9 @@ pub struct Conflict {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum ConflictType {
+    /// Conflict between a shift action and a reduce action.
     ShiftReduce,
+    /// Conflict between two different reduce actions.
     ReduceReduce,
 }
 
@@ -2390,24 +2419,31 @@ impl ConflictResolver {
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum GLRError {
+    /// Error originating from grammar validation.
     #[error("Grammar error: {0}")]
     GrammarError(#[from] GrammarError),
 
+    /// Conflict resolution could not be completed.
     #[error("Conflict resolution failed: {0}")]
     ConflictResolution(String),
 
+    /// State machine construction failed.
     #[error("State machine generation failed: {0}")]
     StateMachine(String),
 
+    /// Parse table failed post-generation validation.
     #[error("Table validation failed: {0}")]
     TableValidation(TableError),
 
+    /// Grammar contains complex symbols that must be normalized first.
     #[error("Complex symbols must be normalized before {operation}")]
     ComplexSymbolsNotNormalized { operation: String },
 
+    /// A complex symbol was found where a simple one was expected.
     #[error("Expected {expected} symbol, found complex symbol")]
     ExpectedSimpleSymbol { expected: String },
 
+    /// A symbol is in an invalid state for the requested operation.
     #[error("Invalid symbol state during {operation}")]
     InvalidSymbolState { operation: String },
 }
@@ -2416,9 +2452,11 @@ pub enum GLRError {
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub enum TableError {
+    /// The EOF symbol ID collides with the built-in ERROR symbol.
     #[error("EOF symbol collides with ERROR")]
     EofIsError,
 
+    /// EOF symbol ID is too low; it must be a sentinel beyond all tokens.
     #[error(
         "EOF symbol must be >= token_count + external_token_count (EOF: {eof}, tokens: {token_count}, externals: {external_count})"
     )]
@@ -2428,9 +2466,11 @@ pub enum TableError {
         external_count: u32,
     },
 
+    /// The EOF symbol is not registered in the symbol-to-index mapping.
     #[error("EOF not present in symbol_to_index")]
     EofMissingFromIndex,
 
+    /// ACTION table EOF column has mismatched accept/reduce entries.
     #[error("EOF column parity mismatch at state {0}")]
     EofParityMismatch(u16),
 }
