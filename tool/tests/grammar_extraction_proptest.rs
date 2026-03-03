@@ -98,62 +98,44 @@ fn rule_names(grammar: &Value) -> Vec<String> {
 }
 
 // ===========================================================================
+// Keyword Checking
+// ===========================================================================
+
+/// Check if a string is a Rust keyword that would fail to parse as an identifier.
+fn is_rust_keyword(s: &str) -> bool {
+    matches!(
+        s,
+        // Keywords from the task specification
+        "as" | "async" | "await" | "break" | "const" | "continue" | "crate" | "dyn"
+            | "else" | "enum" | "extern" | "false" | "fn" | "for" | "if" | "impl"
+            | "in" | "let" | "loop" | "match" | "mod" | "move" | "mut" | "pub"
+            | "ref" | "return" | "self" | "Self" | "static" | "struct" | "super"
+            | "trait" | "true" | "type" | "unsafe" | "use" | "where" | "while"
+            | "yield" | "do"
+            // Reserved but not yet used keywords
+            | "abstract" | "become" | "box" | "final" | "macro" | "override"
+            | "priv" | "try" | "typeof" | "unsized" | "virtual"
+    )
+}
+
+// ===========================================================================
 // Strategies
 // ===========================================================================
 
 fn grammar_name_strategy() -> impl Strategy<Value = String> {
-    "[a-z][a-z0-9_]{0,10}".prop_filter("non-empty", |s| !s.is_empty())
+    "[a-z][a-z0-9_]{0,10}"
+        .prop_filter("non-empty", |s| !s.is_empty())
+        .prop_filter("not a keyword", |s| !is_rust_keyword(s))
 }
 
 fn type_name_strategy() -> impl Strategy<Value = String> {
-    "[A-Z][a-z]{1,8}".prop_filter("non-empty", |s| !s.is_empty())
+    "[A-Z][a-z]{1,8}"
+        .prop_filter("non-empty", |s| !s.is_empty())
+        .prop_filter("not a keyword", |s| !is_rust_keyword(s))
 }
 
 fn field_name_strategy() -> impl Strategy<Value = String> {
-    "[a-z][a-z0-9_]{0,8}".prop_filter("avoid keywords", |s| {
-        !matches!(
-            s.as_str(),
-            "type"
-                | "fn"
-                | "let"
-                | "mut"
-                | "ref"
-                | "pub"
-                | "mod"
-                | "use"
-                | "self"
-                | "super"
-                | "crate"
-                | "struct"
-                | "enum"
-                | "impl"
-                | "trait"
-                | "where"
-                | "for"
-                | "loop"
-                | "while"
-                | "if"
-                | "else"
-                | "match"
-                | "return"
-                | "break"
-                | "continue"
-                | "as"
-                | "in"
-                | "move"
-                | "box"
-                | "dyn"
-                | "async"
-                | "await"
-                | "try"
-                | "yield"
-                | "macro"
-                | "const"
-                | "static"
-                | "unsafe"
-                | "extern"
-        )
-    })
+    "[a-z][a-z0-9_]{0,8}".prop_filter("avoid keywords", |s| !is_rust_keyword(s))
 }
 
 fn safe_pattern_strategy() -> impl Strategy<Value = String> {

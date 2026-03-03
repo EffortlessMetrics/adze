@@ -400,3 +400,313 @@ fn expansion_consecutive_optional() {
     assert!(found2);
     assert_eq!(step2.to_token_stream().to_string(), "String");
 }
+
+// ---------------------------------------------------------------------------
+// 9. Very deep nesting without skip (6+ levels)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_deeply_nested_six_levels() {
+    let ty: Type = parse_quote!(Box<Arc<Rc<Vec<Option<String>>>>>);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    // Without skip, we can't navigate through the wrappers
+    let (result, found) = try_extract_inner_type(&ty, "Vec", &skip_over);
+    assert!(!found);
+    assert!(result.to_token_stream().to_string().contains("Box"));
+}
+
+// ---------------------------------------------------------------------------
+// 10. Type with underscore in name
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_type_with_underscores() {
+    let ty: Type = parse_quote!(My_Long_Type_Name<Inner_Type>);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (inner, found) = try_extract_inner_type(&ty, "My_Long_Type_Name", &skip_over);
+    assert!(found);
+    assert_eq!(inner.to_token_stream().to_string(), "Inner_Type");
+}
+
+// ---------------------------------------------------------------------------
+// 11. Qualified path with many segments (5+ segments)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_deeply_qualified_path() {
+    let ty: Type = parse_quote!(std::collections::hash::map::HashMap<String, i32>);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (inner, found) = try_extract_inner_type(&ty, "HashMap", &skip_over);
+    assert!(found);
+    assert_eq!(inner.to_token_stream().to_string(), "String");
+}
+
+// ---------------------------------------------------------------------------
+// 12. Never type (!) in context
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_never_type_in_option() {
+    let ty: Type = parse_quote!(Option<!>);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (inner, found) = try_extract_inner_type(&ty, "Option", &skip_over);
+    assert!(found);
+    assert_eq!(inner.to_token_stream().to_string(), "!");
+}
+
+// ---------------------------------------------------------------------------
+// 13. Wrap with Result type (two generic arguments)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_wrap_result_both_args() {
+    let ty: Type = parse_quote!(Result<String, Error>);
+    let skip_wrap: HashSet<&str> = ["Result"].into_iter().collect();
+
+    let wrapped = wrap_leaf_type(&ty, &skip_wrap);
+    let wrapped_str = wrapped.to_token_stream().to_string();
+
+    // Both args should be wrapped independently
+    assert!(wrapped_str.contains("adze :: WithLeaf"));
+    assert!(wrapped_str.contains("String"));
+    assert!(wrapped_str.contains("Error"));
+}
+
+// ---------------------------------------------------------------------------
+// 14. Filter then extract then wrap chain
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_complex_operation_chain() {
+    let ty: Type = parse_quote!(Box<Option<Vec<String>>>);
+    let filter_skip: HashSet<&str> = ["Box"].into_iter().collect();
+    let extract_skip: HashSet<&str> = HashSet::new();
+    let wrap_skip: HashSet<&str> = ["Vec"].into_iter().collect();
+
+    // Step 1: Filter
+    let filtered = filter_inner_type(&ty, &filter_skip);
+    assert_eq!(
+        filtered.to_token_stream().to_string(),
+        "Option < Vec < String > >"
+    );
+
+    // Step 2: Extract
+    let (extracted, found) = try_extract_inner_type(&filtered, "Option", &extract_skip);
+    assert!(found);
+    assert_eq!(extracted.to_token_stream().to_string(), "Vec < String >");
+
+    // Step 3: Wrap
+    let wrapped = wrap_leaf_type(&extracted, &wrap_skip);
+    assert_eq!(
+        wrapped.to_token_stream().to_string(),
+        "Vec < adze :: WithLeaf < String > >"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 15. Empty HashSet vs single-element HashSet comparison
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_empty_vs_single_element_skip_set() {
+    let ty: Type = parse_quote!(Box<String>);
+    let empty_skip: HashSet<&str> = HashSet::new();
+    let with_box_skip: HashSet<&str> = ["Box"].into_iter().collect();
+
+    // Empty skip set
+    let (result1, found1) = try_extract_inner_type(&ty, "Box", &empty_skip);
+    assert!(found1);
+
+    // With Box in skip set (should still find it at top level)
+    let (result2, found2) = try_extract_inner_type(&ty, "Box", &with_box_skip);
+    assert!(found2);
+
+    // Both should extract the same inner type
+    assert_eq!(
+        result1.to_token_stream().to_string(),
+        result2.to_token_stream().to_string()
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 16. Type name that is substring of skip types
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_substring_type_name() {
+    let ty: Type = parse_quote!(Box<Vec<String>>);
+    let skip_over: HashSet<&str> = ["BoxType", "Vector"].into_iter().collect();
+
+    // Box is not in the skip set (BoxType is different), so we can't extract Vec
+    let (result, found) = try_extract_inner_type(&ty, "Vec", &skip_over);
+    assert!(!found);
+    assert!(result.to_token_stream().to_string().contains("Box"));
+}
+
+// ---------------------------------------------------------------------------
+// 17. Slice type (non-path type)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_slice_type() {
+    let ty: Type = parse_quote!([u8]);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (returned, found) = try_extract_inner_type(&ty, "Vec", &skip_over);
+    assert!(!found);
+    assert_eq!(returned.to_token_stream().to_string(), "[u8]");
+}
+
+// ---------------------------------------------------------------------------
+// 18. Function pointer type (non-path)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_function_pointer_type() {
+    let ty: Type = parse_quote!(fn(i32) -> String);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (returned, found) = try_extract_inner_type(&ty, "Option", &skip_over);
+    assert!(!found);
+    // Function pointer should be returned unchanged
+    assert!(returned.to_token_stream().to_string().contains("fn"));
+}
+
+// ---------------------------------------------------------------------------
+// 19. Bare dyn trait type (non-path initially but may contain path)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_dyn_trait_type() {
+    let ty: Type = parse_quote!(dyn Trait);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (returned, found) = try_extract_inner_type(&ty, "Option", &skip_over);
+    assert!(!found);
+    assert!(returned.to_token_stream().to_string().contains("Trait"));
+}
+
+// ---------------------------------------------------------------------------
+// 20. Multiple generic params in container (HashMap<K, V>)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_multi_param_extract_gets_first() {
+    let ty: Type = parse_quote!(HashMap<String, i32>);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (inner, found) = try_extract_inner_type(&ty, "HashMap", &skip_over);
+    assert!(found);
+    // Implementation extracts first generic argument
+    assert_eq!(inner.to_token_stream().to_string(), "String");
+}
+
+// ---------------------------------------------------------------------------
+// 21. Wrap filter operation idempotency
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_wrap_then_filter_order_matters() {
+    let ty: Type = parse_quote!(Box<String>);
+    let filter_skip: HashSet<&str> = ["Box"].into_iter().collect();
+    let wrap_skip: HashSet<&str> = ["Vec"].into_iter().collect();
+
+    // Wrap then filter
+    let wrapped_first = wrap_leaf_type(&ty, &wrap_skip);
+    let then_filtered = filter_inner_type(&wrapped_first, &filter_skip);
+
+    // The result depends on the state after wrapping
+    assert!(
+        then_filtered
+            .to_token_stream()
+            .to_string()
+            .contains("WithLeaf")
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 22. Generic type with lifetime parameter
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_generic_with_lifetime() {
+    let ty: Type = parse_quote!(Vec<&'static str>);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (inner, found) = try_extract_inner_type(&ty, "Vec", &skip_over);
+    assert!(found);
+    assert!(inner.to_token_stream().to_string().contains("& 'static"));
+}
+
+// ---------------------------------------------------------------------------
+// 23. Trait object in generic
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_trait_object_in_generic() {
+    let ty: Type = parse_quote!(Vec<dyn Display>);
+    let skip_over: HashSet<&str> = HashSet::new();
+
+    let (inner, found) = try_extract_inner_type(&ty, "Vec", &skip_over);
+    assert!(found);
+    assert!(inner.to_token_stream().to_string().contains("Display"));
+}
+
+// ---------------------------------------------------------------------------
+// 24. Wrap multiple argument types preserves structure
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_wrap_three_arg_type() {
+    // Hypothetical type with 3 generics
+    let ty: Type = parse_quote!(MyType<String, i32, bool>);
+    let skip_wrap: HashSet<&str> = ["MyType"].into_iter().collect();
+
+    let wrapped = wrap_leaf_type(&ty, &skip_wrap);
+    let wrapped_str = wrapped.to_token_stream().to_string();
+
+    // All three should be individually wrapped
+    assert!(wrapped_str.contains("WithLeaf < String >"));
+    assert!(wrapped_str.contains("WithLeaf < i32 >"));
+    assert!(wrapped_str.contains("WithLeaf < bool >"));
+}
+
+// ---------------------------------------------------------------------------
+// 25. Large complex real-world-like type
+// ---------------------------------------------------------------------------
+
+#[test]
+fn expansion_complex_real_world_type() {
+    let ty: Type =
+        parse_quote!(Option<Vec<Box<Result<HashMap<String, Arc<Vec<Option<String>>>>, Error>>>>);
+    let skip_over: HashSet<&str> = ["Box", "Arc", "Option"].into_iter().collect();
+    let skip_wrap: HashSet<&str> = ["Vec", "Option"].into_iter().collect();
+
+    // Extract Option from outside
+    let (step1, found1) = try_extract_inner_type(&ty, "Option", &skip_over);
+    assert!(found1);
+    assert!(step1.to_token_stream().to_string().contains("Vec"));
+
+    // Extract Vec
+    let (step2, found2) = try_extract_inner_type(&step1, "Vec", &skip_over);
+    assert!(found2);
+    assert!(step2.to_token_stream().to_string().contains("Box"));
+
+    // Extract Result through Box
+    let (step3, found3) = try_extract_inner_type(&step2, "Result", &skip_over);
+    assert!(found3);
+    assert!(step3.to_token_stream().to_string().contains("HashMap"));
+
+    // Verify wrapping on this complex type doesn't panic
+    let wrapped = wrap_leaf_type(&ty, &skip_wrap);
+    assert!(
+        wrapped
+            .to_token_stream()
+            .to_string()
+            .contains("adze :: WithLeaf")
+    );
+}
