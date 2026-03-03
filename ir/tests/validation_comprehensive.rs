@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Comprehensive tests for grammar validation using GrammarBuilder.
 
 use adze_ir::builder::GrammarBuilder;
@@ -946,5 +947,478 @@ fn warning_display_inefficient_rule() {
     assert!(
         msg.contains("break it down"),
         "should include suggestion, got: {msg}"
+    );
+}
+
+// ── 29. Multiple validation errors reported simultaneously ──────────────────
+
+#[test]
+fn multiple_errors_reported_simultaneously() {
+    // Build a grammar with several issues at once:
+    // - Empty regex pattern
+    // - Non-productive symbol
+    // - Cyclic rule
+    let mut grammar = Grammar::new("multi_err".to_string());
+    let start = SymbolId(1);
+    let dead = SymbolId(2);
+    let tok = SymbolId(3);
+    let bad_tok = SymbolId(4);
+
+    grammar.tokens.insert(
+        tok,
+        Token {
+            name: "OK".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        bad_tok,
+        Token {
+            name: "BAD".to_string(),
+            pattern: TokenPattern::Regex(String::new()), // empty regex
+            fragile: false,
+        },
+    );
+
+    // start -> tok (valid)
+    grammar.add_rule(Rule {
+        lhs: start,
+        rhs: vec![Symbol::Terminal(tok)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    // dead -> dead (non-productive cycle)
+    grammar.add_rule(Rule {
+        lhs: dead,
+        rhs: vec![Symbol::NonTerminal(dead)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
+
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    let has_invalid_regex = result
+        .errors
+        .iter()
+        .any(|e| matches!(e, ValidationError::InvalidRegex { .. }));
+    let has_non_productive = result
+        .errors
+        .iter()
+        .any(|e| matches!(e, ValidationError::NonProductiveSymbol { .. }));
+
+    assert!(
+        has_invalid_regex,
+        "Should report InvalidRegex, got: {:?}",
+        result.errors
+    );
+    assert!(
+        has_non_productive,
+        "Should report NonProductiveSymbol, got: {:?}",
+        result.errors
+    );
+    assert!(
+        result.errors.len() >= 2,
+        "Should report at least 2 errors, got {}",
+        result.errors.len()
+    );
+}
+
+// ── 30. Grammar.validate() — missing start symbol (NoExplicitStartRule) ─────
+// Note: Grammar::validate() (on lib.rs) checks field ordering and symbol refs.
+// The GrammarValidator in validation.rs doesn't emit NoExplicitStartRule itself,
+// but we can test the variant exists and displays correctly.
+
+#[test]
+fn no_explicit_start_rule_display() {
+    let err = ValidationError::NoExplicitStartRule;
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("start rule"),
+        "NoExplicitStartRule should mention 'start rule', got: {msg}"
+    );
+}
+
+// ── 31. Grammar::validate() — unresolved symbol ─────────────────────────────
+
+#[test]
+fn grammar_validate_unresolved_symbol() {
+    let mut grammar = Grammar::new("unresolved".to_string());
+    let expr = SymbolId(1);
+    let missing = SymbolId(99);
+
+    grammar.add_rule(Rule {
+        lhs: expr,
+        rhs: vec![Symbol::NonTerminal(missing)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let result = grammar.validate();
+    assert!(
+        matches!(result, Err(GrammarError::UnresolvedSymbol(id)) if id == missing),
+        "Grammar::validate() should return UnresolvedSymbol, got: {:?}",
+        result
+    );
+}
+
+// ── 32. Grammar::validate() — valid grammar passes ──────────────────────────
+
+#[test]
+fn grammar_validate_valid_passes() {
+    let grammar = GrammarBuilder::new("ok")
+        .token("NUMBER", r"\d+")
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    assert!(
+        grammar.validate().is_ok(),
+        "Valid grammar should pass Grammar::validate()"
+    );
+}
+
+// ── 33. Grammar::validate() — invalid field ordering ────────────────────────
+
+#[test]
+fn grammar_validate_invalid_field_ordering() {
+    let mut grammar = GrammarBuilder::new("fields")
+        .token("A", "a")
+        .rule("s", vec!["A"])
+        .start("s")
+        .build();
+
+    // Insert fields in non-lexicographic order
+    grammar.fields.insert(FieldId(0), "zebra".to_string());
+    grammar.fields.insert(FieldId(1), "alpha".to_string());
+
+    let result = grammar.validate();
+    assert!(
+        matches!(result, Err(GrammarError::InvalidFieldOrdering)),
+        "Non-lexicographic field ordering should fail, got: {:?}",
+        result
+    );
+}
+
+// ── 34. Duplicate rule names (same LHS, multiple alternatives) ──────────────
+
+#[test]
+fn duplicate_rule_alternatives_are_valid() {
+    // Multiple rules with the same LHS are valid alternatives, not duplicates
+    let grammar = GrammarBuilder::new("alts")
+        .token("A", "a")
+        .token("B", "b")
+        .token("C", "c")
+        .rule("expr", vec!["A"])
+        .rule("expr", vec!["B"])
+        .rule("expr", vec!["C"])
+        .start("expr")
+        .build();
+
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    assert!(
+        result.errors.is_empty(),
+        "Multiple alternatives for same LHS should be valid, got: {:?}",
+        result.errors
+    );
+    assert_eq!(result.stats.total_rules, 3);
+}
+
+// ── 35. Validation after normalization ───────────────────────────────────────
+
+#[test]
+fn validation_after_normalization_optional() {
+    let mut grammar = Grammar::new("opt_norm".to_string());
+    let start = SymbolId(1);
+    let tok = SymbolId(2);
+
+    grammar.tokens.insert(
+        tok,
+        Token {
+            name: "X".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+
+    // start -> Optional(X)
+    grammar.add_rule(Rule {
+        lhs: start,
+        rhs: vec![Symbol::Optional(Box::new(Symbol::Terminal(tok)))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    // Normalize: should expand Optional into auxiliary rules
+    grammar.normalize();
+
+    // After normalization, grammar should have auxiliary rules and still validate
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    assert!(
+        result.stats.total_rules >= 2,
+        "Normalization should create auxiliary rules, got {} rules",
+        result.stats.total_rules
+    );
+}
+
+#[test]
+fn validation_after_normalization_repeat() {
+    let mut grammar = Grammar::new("rep_norm".to_string());
+    let start = SymbolId(1);
+    let tok = SymbolId(2);
+
+    grammar.tokens.insert(
+        tok,
+        Token {
+            name: "Y".to_string(),
+            pattern: TokenPattern::String("y".to_string()),
+            fragile: false,
+        },
+    );
+
+    // start -> Repeat(Y)
+    grammar.add_rule(Rule {
+        lhs: start,
+        rhs: vec![Symbol::Repeat(Box::new(Symbol::Terminal(tok)))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    grammar.normalize();
+
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    assert!(
+        result.stats.total_rules >= 2,
+        "Repeat normalization should create auxiliary rules"
+    );
+}
+
+#[test]
+fn validation_after_normalization_choice() {
+    let mut grammar = Grammar::new("choice_norm".to_string());
+    let start = SymbolId(1);
+    let tok_a = SymbolId(2);
+    let tok_b = SymbolId(3);
+
+    grammar.tokens.insert(
+        tok_a,
+        Token {
+            name: "A".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.tokens.insert(
+        tok_b,
+        Token {
+            name: "B".to_string(),
+            pattern: TokenPattern::String("b".to_string()),
+            fragile: false,
+        },
+    );
+
+    // start -> Choice(A, B)
+    grammar.add_rule(Rule {
+        lhs: start,
+        rhs: vec![Symbol::Choice(vec![
+            Symbol::Terminal(tok_a),
+            Symbol::Terminal(tok_b),
+        ])],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    grammar.normalize();
+
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    assert!(
+        result.stats.total_rules >= 2,
+        "Choice normalization should create auxiliary rules"
+    );
+}
+
+// ── 38. Edge case: single-token grammar ─────────────────────────────────────
+
+#[test]
+fn single_token_single_rule_grammar() {
+    let grammar = GrammarBuilder::new("minimal")
+        .token("X", "x")
+        .rule("root", vec!["X"])
+        .start("root")
+        .build();
+
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    assert!(result.errors.is_empty());
+    assert_eq!(result.stats.total_tokens, 1);
+    assert_eq!(result.stats.total_rules, 1);
+    assert_eq!(result.stats.max_rule_length, 1);
+}
+
+// ── 39. Edge case: many tokens and rules ────────────────────────────────────
+
+#[test]
+fn many_tokens_and_rules() {
+    let mut builder = GrammarBuilder::new("big");
+    for i in 0..20 {
+        builder = builder.token(&format!("T{i}"), &format!("t{i}"));
+    }
+    // Each rule uses a different token
+    for i in 0..20 {
+        builder = builder.rule("items", vec![&format!("T{i}")]);
+    }
+    let grammar = builder.start("items").build();
+
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    assert_eq!(result.stats.total_tokens, 20);
+    assert_eq!(result.stats.total_rules, 20);
+}
+
+// ── 40. Long rule triggers inefficiency warning ─────────────────────────────
+
+#[test]
+fn long_rule_inefficiency_warning() {
+    let mut grammar = Grammar::new("long".to_string());
+    let start = SymbolId(1);
+
+    // Create 12 tokens
+    let mut rhs = Vec::new();
+    for i in 0..12 {
+        let tok_id = SymbolId(10 + i);
+        grammar.tokens.insert(
+            tok_id,
+            Token {
+                name: format!("T{i}"),
+                pattern: TokenPattern::String(format!("t{i}")),
+                fragile: false,
+            },
+        );
+        rhs.push(Symbol::Terminal(tok_id));
+    }
+
+    grammar.add_rule(Rule {
+        lhs: start,
+        rhs,
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let mut validator = GrammarValidator::new();
+    let result = validator.validate(&grammar);
+
+    assert!(
+        result.warnings.iter().any(|w| matches!(
+            w,
+            ValidationWarning::InefficientRule { suggestion, .. }
+                if suggestion.contains("12 symbols")
+        )),
+        "Rule with >10 symbols should warn about inefficiency, got: {:?}",
+        result.warnings
+    );
+}
+
+// ── 41. External token conflict display ─────────────────────────────────────
+
+#[test]
+fn error_display_external_token_conflict() {
+    let err = ValidationError::ExternalTokenConflict {
+        token1: "INDENT".to_string(),
+        token2: "INDENT".to_string(),
+    };
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("INDENT"),
+        "should mention token name, got: {msg}"
+    );
+    assert!(
+        msg.contains("conflict"),
+        "should mention conflict, got: {msg}"
+    );
+}
+
+// ── 42. Warning display: duplicate token pattern ────────────────────────────
+
+#[test]
+fn warning_display_duplicate_token_pattern() {
+    let warn = ValidationWarning::DuplicateTokenPattern {
+        tokens: vec![SymbolId(1), SymbolId(2)],
+        pattern: "+".to_string(),
+    };
+    let msg = format!("{warn}");
+    assert!(msg.contains("+"), "should mention pattern, got: {msg}");
+}
+
+// ── 43. Warning display: missing field names ────────────────────────────────
+
+#[test]
+fn warning_display_missing_field_names() {
+    let warn = ValidationWarning::MissingFieldNames {
+        rule_symbol: SymbolId(5),
+    };
+    let msg = format!("{warn}");
+    assert!(
+        msg.contains("field"),
+        "should mention field names, got: {msg}"
+    );
+}
+
+// ── 44. Error display: conflicting precedence ───────────────────────────────
+
+#[test]
+fn error_display_conflicting_precedence() {
+    let err = ValidationError::ConflictingPrecedence {
+        symbol: SymbolId(1),
+        precedences: vec![1, 2],
+    };
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("conflicting"),
+        "should mention conflicting, got: {msg}"
+    );
+}
+
+// ── 45. Error display: unreachable symbol ───────────────────────────────────
+
+#[test]
+fn error_display_unreachable_symbol() {
+    let err = ValidationError::UnreachableSymbol {
+        symbol: SymbolId(10),
+        name: "orphan".to_string(),
+    };
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("orphan"),
+        "should mention symbol name, got: {msg}"
+    );
+    assert!(
+        msg.contains("unreachable"),
+        "should mention unreachable, got: {msg}"
     );
 }

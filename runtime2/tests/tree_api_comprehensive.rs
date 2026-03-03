@@ -1,9 +1,11 @@
 //! Comprehensive tests for the Tree, Node, and TreeCursor APIs.
 //!
-//! Covers: tree construction, root node access, language association,
-//! source bytes, cloning, node metadata, byte ranges, child access,
-//! text extraction, sibling/parent navigation, cursor traversal,
-//! cursor edge cases, debug formatting, and point utilities.
+//! Covers: tree construction via new_stub, root node properties, node traversal
+//! (child/parent/sibling), TreeCursor navigation, byte position tracking,
+//! clone/deep copy independence, kind/named/visible properties, debug
+//! formatting, edge cases (empty tree, single node), and node equality/comparison.
+
+#![allow(clippy::needless_range_loop)]
 
 #[cfg(feature = "glr-core")]
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
@@ -127,7 +129,7 @@ fn parse_ab(input: &str) -> Tree {
 }
 
 // ===========================================================================
-// Tree tests
+// 1. Tree construction via new_stub
 // ===========================================================================
 
 #[test]
@@ -148,57 +150,236 @@ fn stub_tree_has_no_source_bytes() {
     assert!(tree.source_bytes().is_none());
 }
 
+/// `root_node()` returns `Node` directly, not `Option<Node>`.
 #[test]
-fn stub_tree_root_node_kind_is_unknown() {
+fn stub_tree_root_node_returns_node_directly() {
+    let tree = Tree::new_stub();
+    // This compiles only because root_node() -> Node, not Option<Node>.
+    let _root = tree.root_node();
+    assert_eq!(_root.kind_id(), 0);
+}
+
+// ===========================================================================
+// 2. Root node properties
+// ===========================================================================
+
+#[test]
+fn stub_root_node_kind_is_unknown_without_language() {
     let tree = Tree::new_stub();
     assert_eq!(tree.root_node().kind(), "unknown");
 }
 
 #[test]
-fn stub_tree_clone_is_independent() {
+fn stub_root_node_kind_id_is_zero() {
     let tree = Tree::new_stub();
-    let cloned = tree.clone();
-    // Both trees should have same root_kind
-    assert_eq!(tree.root_kind(), cloned.root_kind());
-    // Modifying clone doesn't affect original (deep copy)
-    assert_eq!(
-        tree.root_node().start_byte(),
-        cloned.root_node().start_byte()
-    );
+    assert_eq!(tree.root_node().kind_id(), 0);
 }
 
 #[test]
-fn tree_debug_format_is_nonempty() {
+fn stub_root_node_byte_range_is_empty() {
     let tree = Tree::new_stub();
-    let debug = format!("{tree:?}");
-    assert!(debug.contains("Tree"));
+    let root = tree.root_node();
+    assert_eq!(root.start_byte(), 0);
+    assert_eq!(root.end_byte(), 0);
+    assert_eq!(root.byte_range(), 0..0);
 }
 
 #[cfg(feature = "glr-core")]
 #[test]
-fn parsed_tree_has_language() {
+fn parsed_root_kind_resolves_via_language() {
     let tree = parse_ab("ab");
-    assert!(tree.language().is_some());
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn parsed_tree_root_kind_is_start_symbol() {
-    let tree = parse_ab("ab");
-    // start symbol is id 3
+    assert_eq!(tree.root_node().kind(), "start");
     assert_eq!(tree.root_kind(), 3);
 }
 
+// ===========================================================================
+// 3. Node traversal (child, parent, sibling)
+// ===========================================================================
+
+#[test]
+fn stub_node_has_no_children() {
+    let tree = Tree::new_stub();
+    let root = tree.root_node();
+    assert_eq!(root.child_count(), 0);
+    assert!(root.child(0).is_none());
+}
+
+#[test]
+fn node_child_out_of_bounds_returns_none() {
+    let tree = Tree::new_stub();
+    assert!(tree.root_node().child(999).is_none());
+}
+
+#[test]
+fn node_parent_returns_none() {
+    let tree = Tree::new_stub();
+    assert!(tree.root_node().parent().is_none());
+}
+
+#[test]
+fn node_siblings_all_return_none() {
+    let tree = Tree::new_stub();
+    let root = tree.root_node();
+    assert!(root.next_sibling().is_none());
+    assert!(root.prev_sibling().is_none());
+    assert!(root.next_named_sibling().is_none());
+    assert!(root.prev_named_sibling().is_none());
+}
+
+#[test]
+fn node_child_by_field_name_returns_none() {
+    let tree = Tree::new_stub();
+    assert!(tree.root_node().child_by_field_name("name").is_none());
+}
+
 #[cfg(feature = "glr-core")]
 #[test]
-fn parsed_tree_clone_preserves_structure() {
+fn parsed_node_has_expected_children() {
     let tree = parse_ab("ab");
+    let root = tree.root_node();
+    // start -> a b gives at least 2 children
+    assert!(root.child_count() >= 2);
+
+    let first = root.child(0).unwrap();
+    assert_eq!(first.kind(), "a");
+    assert_eq!(first.kind_id(), 1);
+
+    let second = root.child(1).unwrap();
+    assert_eq!(second.kind(), "b");
+    assert_eq!(second.kind_id(), 2);
+}
+
+#[cfg(feature = "glr-core")]
+#[test]
+fn parsed_child_parent_returns_none() {
+    // Parent links are not stored — child.parent() always returns None.
+    let tree = parse_ab("ab");
+    let child = tree.root_node().child(0).unwrap();
+    assert!(child.parent().is_none());
+}
+
+// ===========================================================================
+// 4. TreeCursor navigation
+// ===========================================================================
+
+#[test]
+fn cursor_on_stub_tree_cannot_move() {
+    let tree = Tree::new_stub();
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(!cursor.goto_first_child());
+    assert!(!cursor.goto_next_sibling());
+    assert!(!cursor.goto_parent());
+}
+
+#[test]
+fn cursor_root_has_no_parent() {
+    let tree = Tree::new_stub();
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(!cursor.goto_parent());
+}
+
+#[test]
+fn cursor_root_has_no_sibling() {
+    let tree = Tree::new_stub();
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(!cursor.goto_next_sibling());
+}
+
+#[cfg(feature = "glr-core")]
+#[test]
+fn cursor_goto_first_child_and_back() {
+    let tree = parse_ab("ab");
+    let mut cursor = TreeCursor::new(&tree);
+
+    assert!(cursor.goto_first_child());
+    assert!(cursor.goto_parent());
+    // Back at root — root has no parent
+    assert!(!cursor.goto_parent());
+}
+
+#[cfg(feature = "glr-core")]
+#[test]
+fn cursor_sibling_traversal() {
+    let tree = parse_ab("ab");
+    let mut cursor = TreeCursor::new(&tree);
+
+    assert!(cursor.goto_first_child());
+    // At least one sibling should exist (token 'b')
+    assert!(cursor.goto_next_sibling());
+}
+
+#[cfg(feature = "glr-core")]
+#[test]
+fn cursor_full_depth_first_visits_all_nodes() {
+    let tree = parse_ab("ab");
+    let mut cursor = TreeCursor::new(&tree);
+    let mut visited = 0;
+
+    loop {
+        visited += 1;
+        if cursor.goto_first_child() {
+            continue;
+        }
+        if cursor.goto_next_sibling() {
+            continue;
+        }
+        loop {
+            if !cursor.goto_parent() {
+                assert!(visited >= 3); // root + at least 2 children
+                return;
+            }
+            if cursor.goto_next_sibling() {
+                break;
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 5. Byte position tracking
+// ===========================================================================
+
+#[test]
+fn node_byte_range_equals_start_to_end() {
+    let tree = Tree::new_stub();
+    let root = tree.root_node();
+    assert_eq!(root.byte_range(), root.start_byte()..root.end_byte());
+}
+
+#[test]
+fn node_positions_return_dummy_points() {
+    let tree = Tree::new_stub();
+    let root = tree.root_node();
+    assert_eq!(root.start_position(), Point::new(0, 0));
+    assert_eq!(root.end_position(), Point::new(0, 0));
+}
+
+#[cfg(feature = "glr-core")]
+#[test]
+fn parsed_children_have_contiguous_byte_ranges() {
+    let tree = parse_ab("ab");
+    let root = tree.root_node();
+    assert_eq!(root.start_byte(), 0);
+    assert_eq!(root.end_byte(), 2);
+
+    let first = root.child(0).unwrap();
+    assert_eq!(first.start_byte(), 0);
+    assert_eq!(first.end_byte(), 1);
+
+    let second = root.child(1).unwrap();
+    assert_eq!(second.start_byte(), 1);
+    assert_eq!(second.end_byte(), 2);
+}
+
+// ===========================================================================
+// 6. Clone / deep copy independence
+// ===========================================================================
+
+#[test]
+fn stub_clone_produces_equal_tree() {
+    let tree = Tree::new_stub();
     let cloned = tree.clone();
     assert_eq!(tree.root_kind(), cloned.root_kind());
-    assert_eq!(
-        tree.root_node().child_count(),
-        cloned.root_node().child_count()
-    );
     assert_eq!(
         tree.root_node().start_byte(),
         cloned.root_node().start_byte()
@@ -206,30 +387,45 @@ fn parsed_tree_clone_preserves_structure() {
     assert_eq!(tree.root_node().end_byte(), cloned.root_node().end_byte());
 }
 
-// ===========================================================================
-// Node metadata tests
-// ===========================================================================
-
+#[cfg(feature = "glr-core")]
 #[test]
-fn node_kind_id_matches_symbol() {
-    let tree = Tree::new_stub();
-    assert_eq!(tree.root_node().kind_id(), 0);
+fn parsed_clone_preserves_all_fields() {
+    let tree = parse_ab("ab");
+    let cloned = tree.clone();
+    assert_eq!(tree.root_kind(), cloned.root_kind());
+    assert_eq!(
+        tree.root_node().child_count(),
+        cloned.root_node().child_count()
+    );
+    assert_eq!(tree.root_node().end_byte(), cloned.root_node().end_byte());
+}
+
+#[cfg(feature = "glr-core")]
+#[test]
+fn cloned_tree_language_preserved() {
+    let tree = parse_ab("ab");
+    let cloned = tree.clone();
+    // Language should be cloned — kind() should still resolve.
+    assert_eq!(cloned.root_node().kind(), "start");
+    assert!(cloned.language().is_some());
 }
 
 #[test]
-fn node_byte_range_is_consistent() {
+fn node_is_copy_and_clone() {
     let tree = Tree::new_stub();
     let root = tree.root_node();
-    assert_eq!(root.byte_range(), root.start_byte()..root.end_byte());
+    let copied = root; // Copy
+    #[allow(clippy::clone_on_copy)]
+    let cloned = root.clone();
+    assert_eq!(root.kind_id(), copied.kind_id());
+    assert_eq!(root.kind_id(), cloned.kind_id());
+    assert_eq!(root.byte_range(), copied.byte_range());
+    assert_eq!(root.byte_range(), cloned.byte_range());
 }
 
-#[test]
-fn node_positions_return_dummy_point() {
-    let tree = Tree::new_stub();
-    let root = tree.root_node();
-    assert_eq!(root.start_position(), Point::new(0, 0));
-    assert_eq!(root.end_position(), Point::new(0, 0));
-}
+// ===========================================================================
+// 7. Kind / named / visible properties
+// ===========================================================================
 
 #[test]
 fn node_is_named_returns_true() {
@@ -250,45 +446,49 @@ fn node_is_error_returns_false() {
 }
 
 #[test]
-fn stub_node_has_no_children() {
+fn named_child_count_equals_child_count_on_stub() {
     let tree = Tree::new_stub();
     let root = tree.root_node();
-    assert_eq!(root.child_count(), 0);
-    assert_eq!(root.named_child_count(), 0);
-    assert!(root.child(0).is_none());
-    assert!(root.named_child(0).is_none());
+    assert_eq!(root.named_child_count(), root.child_count());
 }
 
+#[cfg(feature = "glr-core")]
 #[test]
-fn node_child_out_of_bounds_returns_none() {
-    let tree = Tree::new_stub();
-    assert!(tree.root_node().child(999).is_none());
-}
-
-#[test]
-fn node_parent_returns_none() {
-    let tree = Tree::new_stub();
-    assert!(tree.root_node().parent().is_none());
-}
-
-#[test]
-fn node_siblings_return_none() {
-    let tree = Tree::new_stub();
+fn named_child_count_equals_child_count_on_parsed() {
+    let tree = parse_ab("ab");
     let root = tree.root_node();
-    assert!(root.next_sibling().is_none());
-    assert!(root.prev_sibling().is_none());
-    assert!(root.next_named_sibling().is_none());
-    assert!(root.prev_named_sibling().is_none());
+    assert_eq!(root.named_child_count(), root.child_count());
 }
 
+#[cfg(feature = "glr-core")]
 #[test]
-fn node_child_by_field_name_returns_none() {
+fn named_child_matches_child_for_all_indices() {
+    let tree = parse_ab("ab");
+    let root = tree.root_node();
+    for i in 0..root.child_count() {
+        let c = root.child(i);
+        let n = root.named_child(i);
+        assert_eq!(c.is_some(), n.is_some());
+        if let (Some(c), Some(n)) = (c, n) {
+            assert_eq!(c.kind_id(), n.kind_id());
+            assert_eq!(c.byte_range(), n.byte_range());
+        }
+    }
+}
+
+// ===========================================================================
+// 8. Debug formatting
+// ===========================================================================
+
+#[test]
+fn tree_debug_contains_tree_keyword() {
     let tree = Tree::new_stub();
-    assert!(tree.root_node().child_by_field_name("name").is_none());
+    let debug = format!("{tree:?}");
+    assert!(debug.contains("Tree"));
 }
 
 #[test]
-fn node_debug_format() {
+fn node_debug_contains_kind_and_range() {
     let tree = Tree::new_stub();
     let debug = format!("{:?}", tree.root_node());
     assert!(debug.contains("Node"));
@@ -296,85 +496,30 @@ fn node_debug_format() {
     assert!(debug.contains("range"));
 }
 
+#[test]
+fn point_display_is_one_indexed() {
+    let p = Point::new(2, 7);
+    assert_eq!(format!("{p}"), "3:8");
+}
+
 // ===========================================================================
-// Node text extraction
+// 9. Edge cases (empty tree, single node, utf8 text)
 // ===========================================================================
 
 #[test]
-fn node_utf8_text_empty_source() {
+fn utf8_text_on_empty_stub() {
     let tree = Tree::new_stub();
     let root = tree.root_node();
-    // Stub has range 0..0, so extracting from empty source should work
-    let text = root.utf8_text(b"").unwrap();
-    assert_eq!(text, "");
+    // range 0..0 extracts empty slice from empty source
+    assert_eq!(root.utf8_text(b"").unwrap(), "");
 }
 
 #[cfg(feature = "glr-core")]
 #[test]
-fn node_utf8_text_from_source() {
-    let tree = parse_ab("ab");
-    let root = tree.root_node();
-    let text = root.utf8_text(b"ab").unwrap();
-    assert_eq!(text, "ab");
-}
-
-// ===========================================================================
-// Node child access (parsed tree with children)
-// ===========================================================================
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn parsed_node_has_children() {
-    let tree = parse_ab("ab");
-    let root = tree.root_node();
-    // start -> a b, so root should have 2 children
-    assert!(root.child_count() >= 2);
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn parsed_node_children_have_correct_kind() {
-    let tree = parse_ab("ab");
-    let root = tree.root_node();
-    assert_eq!(root.kind(), "start");
-
-    // Check children exist and have terminal kinds
-    if let Some(first_child) = root.child(0) {
-        assert_eq!(first_child.kind(), "a");
-        assert_eq!(first_child.kind_id(), 1);
-    }
-    if root.child_count() >= 2 {
-        let second_child = root.child(1).unwrap();
-        assert_eq!(second_child.kind(), "b");
-        assert_eq!(second_child.kind_id(), 2);
-    }
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn parsed_node_children_byte_ranges() {
-    let tree = parse_ab("ab");
-    let root = tree.root_node();
-    assert_eq!(root.start_byte(), 0);
-    assert_eq!(root.end_byte(), 2);
-
-    if let Some(first) = root.child(0) {
-        assert_eq!(first.start_byte(), 0);
-        assert_eq!(first.end_byte(), 1);
-    }
-    if let Some(second) = root.child(1) {
-        assert_eq!(second.start_byte(), 1);
-        assert_eq!(second.end_byte(), 2);
-    }
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn parsed_child_text_extraction() {
+fn utf8_text_on_parsed_children() {
     let tree = parse_ab("ab");
     let root = tree.root_node();
     let source = b"ab";
-
     if let Some(first) = root.child(0) {
         assert_eq!(first.utf8_text(source).unwrap(), "a");
     }
@@ -383,134 +528,18 @@ fn parsed_child_text_extraction() {
     }
 }
 
-#[cfg(feature = "glr-core")]
 #[test]
-fn parsed_named_child_count_matches_child_count() {
-    let tree = parse_ab("ab");
-    let root = tree.root_node();
-    // Phase 1: named_child_count == child_count
-    assert_eq!(root.named_child_count(), root.child_count());
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn parsed_named_child_matches_child() {
-    let tree = parse_ab("ab");
-    let root = tree.root_node();
-    // Phase 1: named_child(i) == child(i)
-    for i in 0..root.child_count() {
-        let child = root.child(i);
-        let named = root.named_child(i);
-        assert_eq!(child.is_some(), named.is_some());
-        if let (Some(c), Some(n)) = (child, named) {
-            assert_eq!(c.kind_id(), n.kind_id());
-            assert_eq!(c.byte_range(), n.byte_range());
-        }
-    }
+fn multiple_stubs_are_identical() {
+    let a = Tree::new_stub();
+    let b = Tree::new_stub();
+    assert_eq!(a.root_kind(), b.root_kind());
+    assert_eq!(a.root_node().kind(), b.root_node().kind());
+    assert_eq!(a.root_node().byte_range(), b.root_node().byte_range());
 }
 
 // ===========================================================================
-// Node is Copy
+// 10. Node equality and comparison
 // ===========================================================================
-
-#[test]
-fn node_is_copy() {
-    let tree = Tree::new_stub();
-    let root = tree.root_node();
-    let copy = root; // Node is Copy
-    assert_eq!(root.kind_id(), copy.kind_id());
-    assert_eq!(root.byte_range(), copy.byte_range());
-}
-
-// ===========================================================================
-// TreeCursor tests
-// ===========================================================================
-
-#[test]
-fn cursor_on_stub_tree() {
-    let tree = Tree::new_stub();
-    let mut cursor = TreeCursor::new(&tree);
-    // Stub tree has no children
-    assert!(!cursor.goto_first_child());
-    assert!(!cursor.goto_next_sibling());
-    assert!(!cursor.goto_parent());
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn cursor_goto_first_child_and_back() {
-    let tree = parse_ab("ab");
-    let mut cursor = TreeCursor::new(&tree);
-
-    // At root
-    assert!(cursor.goto_first_child());
-    // Now at first child
-    assert!(cursor.goto_parent());
-    // Back at root
-    assert!(!cursor.goto_parent()); // root has no parent
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn cursor_sibling_traversal() {
-    let tree = parse_ab("ab");
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Go to first child
-    assert!(cursor.goto_first_child());
-    // Go to next sibling
-    assert!(cursor.goto_next_sibling());
-    // No more siblings after the last child (may have EOF token too)
-    // Just verify we can traverse siblings without panic
-}
-
-#[cfg(feature = "glr-core")]
-#[test]
-fn cursor_full_depth_first_traversal() {
-    let tree = parse_ab("ab");
-    let mut cursor = TreeCursor::new(&tree);
-    let mut visited = 0;
-
-    // Simple depth-first: go as deep as possible, then try siblings, then parent
-    loop {
-        visited += 1;
-        if cursor.goto_first_child() {
-            continue;
-        }
-        if cursor.goto_next_sibling() {
-            continue;
-        }
-        // Backtrack until we find a sibling or reach root
-        loop {
-            if !cursor.goto_parent() {
-                // We're done — back at root with no more siblings
-                assert!(visited >= 3); // at least root + 2 children
-                return;
-            }
-            if cursor.goto_next_sibling() {
-                break;
-            }
-        }
-    }
-}
-
-#[test]
-fn cursor_root_has_no_sibling() {
-    let tree = Tree::new_stub();
-    let mut cursor = TreeCursor::new(&tree);
-    assert!(!cursor.goto_next_sibling());
-}
-
-// ===========================================================================
-// Point tests
-// ===========================================================================
-
-#[test]
-fn point_new_and_fields() {
-    let p = Point::new(5, 10);
-    assert_eq!(p.row, 5);
-    assert_eq!(p.column, 10);
-}
 
 #[test]
 fn point_equality() {
@@ -527,10 +556,10 @@ fn point_ordering() {
 }
 
 #[test]
-fn point_display() {
-    let p = Point::new(2, 7);
-    // Display is 1-indexed: row+1, column+1
-    assert_eq!(format!("{p}"), "3:8");
+fn point_new_and_fields() {
+    let p = Point::new(5, 10);
+    assert_eq!(p.row, 5);
+    assert_eq!(p.column, 10);
 }
 
 #[test]
@@ -541,6 +570,22 @@ fn point_clone_and_copy() {
     let p3 = p.clone();
     assert_eq!(p, p2);
     assert_eq!(p, p3);
+}
+
+#[test]
+fn node_copy_preserves_all_properties() {
+    let tree = Tree::new_stub();
+    let root = tree.root_node();
+    let copy = root;
+    assert_eq!(root.kind(), copy.kind());
+    assert_eq!(root.kind_id(), copy.kind_id());
+    assert_eq!(root.start_byte(), copy.start_byte());
+    assert_eq!(root.end_byte(), copy.end_byte());
+    assert_eq!(root.byte_range(), copy.byte_range());
+    assert_eq!(root.child_count(), copy.child_count());
+    assert_eq!(root.is_named(), copy.is_named());
+    assert_eq!(root.is_missing(), copy.is_missing());
+    assert_eq!(root.is_error(), copy.is_error());
 }
 
 // ===========================================================================
