@@ -442,3 +442,206 @@ proptest! {
         prop_assert_eq!(stats.total_nodes_created, target);
     }
 }
+
+// --- Determinism tests ---
+
+proptest! {
+    #[test]
+    fn test_determinism_same_sequence_same_result(
+        increments in prop::collection::vec(1..100usize, 1..20),
+    ) {
+        let build = |incs: &[usize]| -> GSSStats {
+            let mut stats = GSSStats::default();
+            for inc in incs {
+                stats.total_nodes_created += inc;
+                stats.total_forks += 1;
+                stats.total_merges += 1;
+                stats.shared_segments += inc;
+                stats.max_active_heads = stats.max_active_heads.max(*inc);
+            }
+            stats
+        };
+        let a = build(&increments);
+        let b = build(&increments);
+        prop_assert_eq!(a.total_nodes_created, b.total_nodes_created);
+        prop_assert_eq!(a.max_active_heads, b.max_active_heads);
+        prop_assert_eq!(a.total_forks, b.total_forks);
+        prop_assert_eq!(a.total_merges, b.total_merges);
+        prop_assert_eq!(a.shared_segments, b.shared_segments);
+    }
+
+    #[test]
+    fn test_determinism_debug_output_stable(stats in arb_gss_stats()) {
+        let d1 = format!("{:?}", stats);
+        let d2 = format!("{:?}", stats);
+        prop_assert_eq!(d1, d2);
+    }
+
+    #[test]
+    fn test_determinism_default_always_same(_dummy in 0..100u32) {
+        let a = GSSStats::default();
+        let b = GSSStats::default();
+        prop_assert_eq!(a.total_nodes_created, b.total_nodes_created);
+        prop_assert_eq!(a.max_active_heads, b.max_active_heads);
+        prop_assert_eq!(a.total_forks, b.total_forks);
+        prop_assert_eq!(a.total_merges, b.total_merges);
+        prop_assert_eq!(a.shared_segments, b.shared_segments);
+    }
+}
+
+// --- arena_bytes_allocated (shared_segments) tracking tests ---
+
+proptest! {
+    #[test]
+    fn test_shared_segments_incremental_tracking(
+        allocs in prop::collection::vec(1..500usize, 1..30),
+    ) {
+        let mut stats = GSSStats::default();
+        let mut total = 0usize;
+        for alloc in &allocs {
+            stats.shared_segments += alloc;
+            total += alloc;
+            prop_assert_eq!(stats.shared_segments, total);
+        }
+    }
+
+    #[test]
+    fn test_shared_segments_large_values(base in 1_000_000..10_000_000usize, extra in 1..1000usize) {
+        let mut stats = GSSStats::default();
+        stats.shared_segments = base;
+        stats.shared_segments += extra;
+        prop_assert_eq!(stats.shared_segments, base + extra);
+    }
+}
+
+// --- max_active_heads monotonic tracking ---
+
+proptest! {
+    #[test]
+    fn test_max_heads_monotonically_nondecreasing(
+        head_counts in prop::collection::vec(0..500usize, 2..30),
+    ) {
+        let mut stats = GSSStats::default();
+        for &count in &head_counts {
+            let prev = stats.max_active_heads;
+            stats.max_active_heads = stats.max_active_heads.max(count);
+            prop_assert!(stats.max_active_heads >= prev);
+        }
+    }
+
+    #[test]
+    fn test_max_heads_equals_sequence_max(
+        head_counts in prop::collection::vec(1..1000usize, 1..30),
+    ) {
+        let mut stats = GSSStats::default();
+        for &count in &head_counts {
+            stats.max_active_heads = stats.max_active_heads.max(count);
+        }
+        let expected_max = head_counts.iter().copied().max().unwrap();
+        prop_assert_eq!(stats.max_active_heads, expected_max);
+    }
+}
+
+// --- Cross-field accumulation independence ---
+
+proptest! {
+    #[test]
+    fn test_accumulate_order_independence(a in 1..500usize, b in 1..500usize) {
+        let mut s1 = GSSStats::default();
+        s1.total_nodes_created += a;
+        s1.total_forks += b;
+
+        let mut s2 = GSSStats::default();
+        s2.total_forks += b;
+        s2.total_nodes_created += a;
+
+        prop_assert_eq!(s1.total_nodes_created, s2.total_nodes_created);
+        prop_assert_eq!(s1.total_forks, s2.total_forks);
+        prop_assert_eq!(s1.total_merges, s2.total_merges);
+        prop_assert_eq!(s1.max_active_heads, s2.max_active_heads);
+        prop_assert_eq!(s1.shared_segments, s2.shared_segments);
+    }
+
+    #[test]
+    fn test_interleaved_accumulation(
+        nodes in prop::collection::vec(1..50usize, 1..10),
+        forks in prop::collection::vec(1..50usize, 1..10),
+        merges in prop::collection::vec(1..50usize, 1..10),
+    ) {
+        let mut stats = GSSStats::default();
+        let max_len = nodes.len().max(forks.len()).max(merges.len());
+        for i in 0..max_len {
+            if i < nodes.len() { stats.total_nodes_created += nodes[i]; }
+            if i < forks.len() { stats.total_forks += forks[i]; }
+            if i < merges.len() { stats.total_merges += merges[i]; }
+        }
+        prop_assert_eq!(stats.total_nodes_created, nodes.iter().sum::<usize>());
+        prop_assert_eq!(stats.total_forks, forks.iter().sum::<usize>());
+        prop_assert_eq!(stats.total_merges, merges.iter().sum::<usize>());
+    }
+}
+
+// --- total_nodes_created detailed tracking ---
+
+proptest! {
+    #[test]
+    fn test_nodes_created_sum_of_batch_increments(
+        batches in prop::collection::vec(prop::collection::vec(1..20usize, 1..5), 1..5),
+    ) {
+        let mut stats = GSSStats::default();
+        let mut expected = 0usize;
+        for batch in &batches {
+            for &inc in batch {
+                stats.total_nodes_created += inc;
+                expected += inc;
+            }
+        }
+        prop_assert_eq!(stats.total_nodes_created, expected);
+    }
+}
+
+// --- total_forks / total_merges ratio patterns ---
+
+proptest! {
+    #[test]
+    fn test_forks_and_merges_independent(
+        fork_count in 0..500usize,
+        merge_count in 0..500usize,
+    ) {
+        let mut stats = GSSStats::default();
+        for _ in 0..fork_count { stats.total_forks += 1; }
+        for _ in 0..merge_count { stats.total_merges += 1; }
+        prop_assert_eq!(stats.total_forks, fork_count);
+        prop_assert_eq!(stats.total_merges, merge_count);
+        // Other fields unaffected
+        prop_assert_eq!(stats.total_nodes_created, 0);
+        prop_assert_eq!(stats.max_active_heads, 0);
+        prop_assert_eq!(stats.shared_segments, 0);
+    }
+}
+
+// --- Overwrite behavior ---
+
+proptest! {
+    #[test]
+    fn test_overwrite_replaces_value(first in any::<usize>(), second in any::<usize>()) {
+        let mut stats = GSSStats::default();
+        stats.total_nodes_created = first;
+        prop_assert_eq!(stats.total_nodes_created, first);
+        stats.total_nodes_created = second;
+        prop_assert_eq!(stats.total_nodes_created, second);
+    }
+
+    #[test]
+    fn test_overwrite_max_heads_can_decrease_via_assignment(
+        high in 500..1000usize,
+        low in 0..500usize,
+    ) {
+        let mut stats = GSSStats::default();
+        stats.max_active_heads = high;
+        prop_assert_eq!(stats.max_active_heads, high);
+        // Direct assignment can decrease (unlike .max() pattern)
+        stats.max_active_heads = low;
+        prop_assert_eq!(stats.max_active_heads, low);
+    }
+}

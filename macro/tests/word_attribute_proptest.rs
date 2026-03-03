@@ -904,3 +904,922 @@ proptest! {
         }
     }
 }
+
+// ── 31. Word attr is always an outer attribute ──────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_attr_is_outer(idx in 0usize..=2) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct A { #[adze::leaf(pattern = r"\w+")] name: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word]
+                #[adze::language]
+                pub struct B { #[adze::leaf(pattern = r"\w+")] name: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[derive(Debug)]
+                #[adze::word]
+                pub struct C { #[adze::leaf(pattern = r"\w+")] name: String }
+            }).unwrap(),
+        };
+        let word_attr = s.attrs.iter().find(|a| is_adze_attr(a, "word")).unwrap();
+        prop_assert!(matches!(word_attr.style, syn::AttrStyle::Outer));
+    }
+}
+
+// ── 32. Word with doc comments preserved ────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_with_doc_comments(idx in 0usize..=1) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                /// This is the word token.
+                #[adze::word]
+                pub struct Ident {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                /// Doc after word attr.
+                pub struct Ident {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+            }).unwrap(),
+        };
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+        let has_doc = s.attrs.iter().any(|a| a.path().is_ident("doc"));
+        prop_assert!(has_doc);
+    }
+}
+
+// ── 33. Word struct alongside multiple keyword leaf variants ────────────────
+
+proptest! {
+    #[test]
+    fn word_with_multiple_keyword_variants(n in 2usize..=5) {
+        let keywords = ["if", "else", "while", "for", "return"];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("kw_grammar")]
+            mod grammar {
+                #[adze::language]
+                pub enum Token {
+                    Ident(Identifier),
+                    #[adze::leaf(text = "if")]
+                    If,
+                    #[adze::leaf(text = "else")]
+                    Else,
+                    #[adze::leaf(text = "while")]
+                    While,
+                    #[adze::leaf(text = "for")]
+                    For,
+                    #[adze::leaf(text = "return")]
+                    Return,
+                }
+
+                #[adze::word]
+                pub struct Identifier {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+            }
+        });
+        let items = module_items(&m);
+        let word_count = items.iter().filter(|i| {
+            if let Item::Struct(s) = i {
+                s.attrs.iter().any(|a| is_adze_attr(a, "word"))
+            } else { false }
+        }).count();
+        prop_assert_eq!(word_count, 1);
+
+        let token_enum = items.iter().find_map(|i| {
+            if let Item::Enum(e) = i { Some(e) } else { None }
+        }).unwrap();
+        // At least n keyword variants should be present
+        let leaf_variants = token_enum.variants.iter()
+            .filter(|v| v.attrs.iter().any(|a| is_adze_attr(a, "leaf")))
+            .count();
+        prop_assert!(leaf_variants >= n);
+    }
+}
+
+// ── 34. Word struct referenced as field type from language struct ────────────
+
+proptest! {
+    #[test]
+    fn word_referenced_from_language_field(idx in 0usize..=1) {
+        let m = match idx {
+            0 => parse_mod(quote::quote! {
+                #[adze::grammar("ref_test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Program {
+                        name: Identifier,
+                    }
+                    #[adze::word]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        name: String,
+                    }
+                }
+            }),
+            _ => parse_mod(quote::quote! {
+                #[adze::grammar("ref_test2")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Program {
+                        first: Identifier,
+                        second: Identifier,
+                    }
+                    #[adze::word]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        name: String,
+                    }
+                }
+            }),
+        };
+        let items = module_items(&m);
+        let word_struct = items.iter().find_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "word")) { Some(s) } else { None }
+            } else { None }
+        });
+        prop_assert!(word_struct.is_some());
+        prop_assert_eq!(word_struct.unwrap().ident.to_string(), "Identifier");
+    }
+}
+
+// ── 35. Word meta is not List or NameValue ──────────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_meta_is_never_list_or_namevalue(idx in 0usize..=2) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct A { name: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word]
+                struct B { name: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub(crate) struct C { name: String }
+            }).unwrap(),
+        };
+        let word_attr = s.attrs.iter().find(|a| is_adze_attr(a, "word")).unwrap();
+        prop_assert!(!matches!(word_attr.meta, syn::Meta::List(_)));
+        prop_assert!(!matches!(word_attr.meta, syn::Meta::NameValue(_)));
+    }
+}
+
+// ── 36. Word with various identifier naming conventions ─────────────────────
+
+proptest! {
+    #[test]
+    fn word_struct_naming_conventions(idx in 0usize..=3) {
+        let names = ["Ident", "MyIdentifier", "WordToken", "IdentifierNode"];
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word] pub struct Ident { #[adze::leaf(pattern = r"\w+")] v: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word] pub struct MyIdentifier { #[adze::leaf(pattern = r"\w+")] v: String }
+            }).unwrap(),
+            2 => syn::parse2(quote::quote! {
+                #[adze::word] pub struct WordToken { #[adze::leaf(pattern = r"\w+")] v: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word] pub struct IdentifierNode { #[adze::leaf(pattern = r"\w+")] v: String }
+            }).unwrap(),
+        };
+        prop_assert_eq!(s.ident.to_string(), names[idx]);
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+    }
+}
+
+// ── 37. Word with underscore-only pattern ───────────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_underscore_only_pattern(idx in 0usize..=1) {
+        let patterns = [r"_+", r"_{1,32}"];
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct Under { #[adze::leaf(pattern = r"_+")] name: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct Under { #[adze::leaf(pattern = r"_{1,32}")] name: String }
+            }).unwrap(),
+        };
+        let field = s.fields.iter().next().unwrap();
+        let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        let pat = extract_leaf_pattern(attr);
+        prop_assert_eq!(pat, patterns[idx]);
+    }
+}
+
+// ── 38. Word struct without any leaf attr (bare struct) ─────────────────────
+
+proptest! {
+    #[test]
+    fn word_without_leaf_attr(idx in 0usize..=1) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct BareWord { name: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct BareWord { value: u32 }
+            }).unwrap(),
+        };
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+        let has_leaf = s.fields.iter().any(|f| f.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+        prop_assert!(!has_leaf);
+    }
+}
+
+// ── 39. Word struct with leaf text instead of pattern ────────────────────────
+
+proptest! {
+    #[test]
+    fn word_with_leaf_text_only(idx in 0usize..=2) {
+        let texts = ["identifier", "ident", "ID"];
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                #[adze::leaf(text = "identifier")]
+                pub struct W;
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word]
+                #[adze::leaf(text = "ident")]
+                pub struct W;
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                #[adze::leaf(text = "ID")]
+                pub struct W;
+            }).unwrap(),
+        };
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+        let leaf = s.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        let text = extract_leaf_text(leaf);
+        prop_assert_eq!(text, texts[idx]);
+    }
+}
+
+// ── 40. Word attr position in attr list (first, middle, last) ───────────────
+
+proptest! {
+    #[test]
+    fn word_attr_position_in_list(idx in 0usize..=2) {
+        let s: ItemStruct = match idx {
+            // first
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                #[derive(Debug)]
+                #[adze::language]
+                pub struct A { name: String }
+            }).unwrap(),
+            // middle
+            1 => syn::parse2(quote::quote! {
+                #[derive(Debug)]
+                #[adze::word]
+                #[adze::language]
+                pub struct A { name: String }
+            }).unwrap(),
+            // last
+            _ => syn::parse2(quote::quote! {
+                #[derive(Debug)]
+                #[adze::language]
+                #[adze::word]
+                pub struct A { name: String }
+            }).unwrap(),
+        };
+        let word_pos = s.attrs.iter().position(|a| is_adze_attr(a, "word")).unwrap();
+        prop_assert_eq!(word_pos, idx);
+    }
+}
+
+// ── 41. Grammar with word struct and many non-word structs ──────────────────
+
+proptest! {
+    #[test]
+    fn word_among_many_non_word_structs(idx in 0usize..=1) {
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("big_grammar")]
+            mod grammar {
+                #[adze::language]
+                pub struct Program {
+                    expr: Expr,
+                }
+
+                pub struct Expr {
+                    ident: Identifier,
+                }
+
+                pub struct Number {
+                    #[adze::leaf(pattern = r"\d+")]
+                    value: String,
+                }
+
+                pub struct Operator {
+                    #[adze::leaf(text = "+")]
+                    _op: (),
+                }
+
+                #[adze::word]
+                pub struct Identifier {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+
+                #[adze::extra]
+                struct Whitespace {
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }
+            }
+        });
+        let items = module_items(&m);
+        let struct_count = items.iter().filter(|i| matches!(i, Item::Struct(_))).count();
+        prop_assert!(struct_count >= 4);
+        let word_count = items.iter().filter(|i| {
+            if let Item::Struct(s) = i {
+                s.attrs.iter().any(|a| is_adze_attr(a, "word"))
+            } else { false }
+        }).count();
+        prop_assert_eq!(word_count, 1);
+    }
+}
+
+// ── 42. Word position in module does not affect struct content ───────────────
+
+proptest! {
+    #[test]
+    fn word_position_in_module_irrelevant(idx in 0usize..=1) {
+        // word at beginning vs end of module items
+        let m = match idx {
+            0 => parse_mod(quote::quote! {
+                #[adze::grammar("pos_test")]
+                mod grammar {
+                    #[adze::word]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        name: String,
+                    }
+                    #[adze::language]
+                    pub struct Root { id: Identifier }
+                }
+            }),
+            _ => parse_mod(quote::quote! {
+                #[adze::grammar("pos_test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Root { id: Identifier }
+                    #[adze::word]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        name: String,
+                    }
+                }
+            }),
+        };
+        let items = module_items(&m);
+        let word_struct = items.iter().find_map(|i| {
+            if let Item::Struct(s) = i {
+                if s.attrs.iter().any(|a| is_adze_attr(a, "word")) { Some(s) } else { None }
+            } else { None }
+        }).unwrap();
+        prop_assert_eq!(word_struct.ident.to_string(), "Identifier");
+        prop_assert_eq!(word_struct.fields.iter().count(), 1);
+    }
+}
+
+// ── 43. Word alongside reserved keyword leaf text values ────────────────────
+
+proptest! {
+    #[test]
+    fn word_with_reserved_keyword_leaves(idx in 0usize..=4) {
+        let reserved = ["if", "else", "while", "for", "return"];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("reserved_test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Stmt {
+                    Ident(Identifier),
+                    #[adze::leaf(text = "if")]
+                    If,
+                    #[adze::leaf(text = "else")]
+                    Else,
+                    #[adze::leaf(text = "while")]
+                    While,
+                    #[adze::leaf(text = "for")]
+                    For,
+                    #[adze::leaf(text = "return")]
+                    Return,
+                }
+
+                #[adze::word]
+                pub struct Identifier {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+            }
+        });
+        let items = module_items(&m);
+        let stmt_enum = items.iter().find_map(|i| {
+            if let Item::Enum(e) = i { Some(e) } else { None }
+        }).unwrap();
+        // The keyword variant at `idx` should have the correct leaf text
+        let leaf_variants: Vec<_> = stmt_enum.variants.iter()
+            .filter(|v| v.attrs.iter().any(|a| is_adze_attr(a, "leaf")))
+            .collect();
+        prop_assert!(idx < leaf_variants.len());
+        let attr = leaf_variants[idx].attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        let text = extract_leaf_text(attr);
+        prop_assert_eq!(text, reserved[idx]);
+    }
+}
+
+// ── 44. Word struct generics are preserved ──────────────────────────────────
+
+#[test]
+fn word_struct_with_no_generics_has_empty_generics() {
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        #[adze::word]
+        pub struct Ident {
+            #[adze::leaf(pattern = r"\w+")]
+            name: String,
+        }
+    })
+    .unwrap();
+    assert!(s.generics.params.is_empty());
+    assert!(s.generics.where_clause.is_none());
+}
+
+// ── 45. Word attr does not duplicate on re-parse ────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_no_duplication_on_reparse(idx in 0usize..=2) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word] pub struct A { name: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word] #[adze::language] pub struct B { name: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[derive(Clone)] #[adze::word] pub struct C { name: String }
+            }).unwrap(),
+        };
+        // Re-parse from token stream
+        let tokens = s.to_token_stream();
+        let reparsed: ItemStruct = syn::parse2(tokens).unwrap();
+        let word_count = reparsed.attrs.iter().filter(|a| is_adze_attr(a, "word")).count();
+        prop_assert_eq!(word_count, 1);
+    }
+}
+
+// ── 46. Word expansion determinism across repeated parses ───────────────────
+
+proptest! {
+    #[test]
+    fn word_expansion_deterministic_repeated(idx in 0usize..=3) {
+        let patterns = [r"\w+", r"[a-zA-Z_]\w*", r"[a-z]+", r"\p{L}+"];
+        let make = |p: &str| -> String {
+            let pat = proc_macro2::Literal::string(p);
+            let s: ItemStruct = syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct Ident {
+                    #[adze::leaf(pattern = #pat)]
+                    name: String,
+                }
+            }).unwrap();
+            s.to_token_stream().to_string()
+        };
+        let first = make(patterns[idx]);
+        let second = make(patterns[idx]);
+        let third = make(patterns[idx]);
+        prop_assert_eq!(&first, &second);
+        prop_assert_eq!(&second, &third);
+    }
+}
+
+// ── 47. Word struct field name does not collide with struct name ─────────────
+
+proptest! {
+    #[test]
+    fn word_field_name_differs_from_struct_name(idx in 0usize..=2) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct Ident { #[adze::leaf(pattern = r"\w+")] value: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct Token { #[adze::leaf(pattern = r"\w+")] text: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct Word { #[adze::leaf(pattern = r"\w+")] content: String }
+            }).unwrap(),
+        };
+        let struct_name = s.ident.to_string();
+        for field in &s.fields {
+            if let Some(ref name) = field.ident {
+                prop_assert_ne!(name.to_string(), struct_name.to_lowercase());
+            }
+        }
+    }
+}
+
+// ── 48. Word module round-trip preserves grammar name ────────────────────────
+
+proptest! {
+    #[test]
+    fn word_module_grammar_name_roundtrip(idx in 0usize..=2) {
+        let names = ["alpha", "beta_lang", "my_grammar"];
+        let name = proc_macro2::Literal::string(names[idx]);
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#name)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root { id: Identifier }
+                #[adze::word]
+                pub struct Identifier {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                }
+            }
+        });
+        // Re-parse from token stream
+        let tokens = m.to_token_stream();
+        let reparsed: ItemMod = syn::parse2(tokens).unwrap();
+        let grammar_attr = reparsed.attrs.iter()
+            .find(|a| is_adze_attr(a, "grammar"))
+            .unwrap();
+        let ts = grammar_attr.meta.to_token_stream().to_string();
+        prop_assert!(ts.contains(names[idx]));
+    }
+}
+
+// ── 49. Word on enum with named fields variant ──────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_on_enum_with_named_fields(idx in 0usize..=1) {
+        let e: ItemEnum = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub enum TokenKind {
+                    Ident { #[adze::leaf(pattern = r"\w+")] name: String },
+                    #[adze::leaf(text = "+")] Plus,
+                }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub enum TokenKind {
+                    KeywordIf { #[adze::leaf(text = "if")] _kw: () },
+                    KeywordElse { #[adze::leaf(text = "else")] _kw: () },
+                }
+            }).unwrap(),
+        };
+        prop_assert!(e.attrs.iter().any(|a| is_adze_attr(a, "word")));
+        prop_assert!(e.variants.len() >= 2);
+    }
+}
+
+// ── 50. Word with both pattern and text fields in different fields ───────────
+
+#[test]
+fn word_struct_mixed_leaf_params() {
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        #[adze::word]
+        pub struct MixedToken {
+            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+            name: String,
+            #[adze::leaf(text = ":")]
+            _colon: (),
+        }
+    })
+    .unwrap();
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+    let fields: Vec<_> = s.fields.iter().collect();
+    assert_eq!(fields.len(), 2);
+    let first_leaf = fields[0]
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = leaf_params(first_leaf);
+    assert_eq!(params[0].path.to_string(), "pattern");
+    let second_leaf = fields[1]
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params2 = leaf_params(second_leaf);
+    assert_eq!(params2[0].path.to_string(), "text");
+}
+
+// ── 51. Word struct token stream equality is reflexive ──────────────────────
+
+proptest! {
+    #[test]
+    fn word_token_stream_reflexive(idx in 0usize..=2) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word] pub struct A { #[adze::leaf(pattern = r"\w+")] n: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word] pub struct B(#[adze::leaf(pattern = r"\w+")] String);
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word] #[adze::leaf(text = "x")] pub struct C;
+            }).unwrap(),
+        };
+        let ts1 = s.to_token_stream().to_string();
+        let ts2 = s.to_token_stream().to_string();
+        prop_assert_eq!(ts1, ts2);
+    }
+}
+
+// ── 52. Word module determinism with enum + keyword variants ────────────────
+
+proptest! {
+    #[test]
+    fn word_module_with_keywords_deterministic(idx in 0usize..=1) {
+        let make = || {
+            let m = parse_mod(quote::quote! {
+                #[adze::grammar("det_kw")]
+                mod grammar {
+                    #[adze::language]
+                    pub enum Expr {
+                        Ident(Identifier),
+                        #[adze::leaf(text = "true")]
+                        True,
+                        #[adze::leaf(text = "false")]
+                        False,
+                    }
+                    #[adze::word]
+                    pub struct Identifier {
+                        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                        name: String,
+                    }
+                }
+            });
+            m.to_token_stream().to_string()
+        };
+        let a = make();
+        let b = make();
+        prop_assert_eq!(a, b);
+    }
+}
+
+// ── 53. Word with Optional field type ───────────────────────────────────────
+
+#[test]
+fn word_struct_with_optional_field() {
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        #[adze::word]
+        pub struct Ident {
+            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+            name: Option<String>,
+        }
+    })
+    .unwrap();
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+    let field = s.fields.iter().next().unwrap();
+    let ty_str = field.ty.to_token_stream().to_string();
+    assert!(ty_str.contains("Option"));
+}
+
+// ── 54. Word with Vec field type ────────────────────────────────────────────
+
+#[test]
+fn word_struct_with_vec_field() {
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        #[adze::word]
+        pub struct MultiToken {
+            #[adze::leaf(pattern = r"\w+")]
+            parts: Vec<String>,
+        }
+    })
+    .unwrap();
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+    let field = s.fields.iter().next().unwrap();
+    let ty_str = field.ty.to_token_stream().to_string();
+    assert!(ty_str.contains("Vec"));
+}
+
+// ── 55. Word attr count in module is independent of module attr count ────────
+
+proptest! {
+    #[test]
+    fn word_count_independent_of_module_attrs(idx in 0usize..=2) {
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("count_test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root { ident: Identifier }
+
+                #[adze::word]
+                pub struct Identifier {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }
+
+                #[adze::extra]
+                struct Comment {
+                    #[adze::leaf(pattern = r"//[^\n]*")]
+                    _c: (),
+                }
+            }
+        });
+        let items = module_items(&m);
+        let word_count = items.iter().filter(|i| {
+            if let Item::Struct(s) = i {
+                s.attrs.iter().any(|a| is_adze_attr(a, "word"))
+            } else { false }
+        }).count();
+        let extra_count = items.iter().filter(|i| {
+            if let Item::Struct(s) = i {
+                s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
+            } else { false }
+        }).count();
+        prop_assert_eq!(word_count, 1);
+        prop_assert_eq!(extra_count, 2);
+    }
+}
+
+// ── 56. Word struct attrs are non-empty ─────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_struct_always_has_attrs(idx in 0usize..=2) {
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word] pub struct A { n: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word] #[derive(Debug)] pub struct B { n: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word] #[adze::language] #[derive(Clone)] pub struct C { n: String }
+            }).unwrap(),
+        };
+        prop_assert!(!s.attrs.is_empty());
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+    }
+}
+
+// ── 57. Word in grammar with prec_right and prec operators ──────────────────
+
+proptest! {
+    #[test]
+    fn word_with_mixed_precedence_operators(idx in 0usize..=1) {
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("prec_mix")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Ident(Identifier),
+                    Number(#[adze::leaf(pattern = r"\d+")] String),
+                    #[adze::prec_left(1)]
+                    Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+                    #[adze::prec_right(2)]
+                    Pow(Box<Expr>, #[adze::leaf(text = "**")] (), Box<Expr>),
+                    #[adze::prec(3)]
+                    Cmp(Box<Expr>, #[adze::leaf(text = "==")] (), Box<Expr>),
+                }
+                #[adze::word]
+                pub struct Identifier {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+            }
+        });
+        let items = module_items(&m);
+        let has_word = items.iter().any(|i| {
+            if let Item::Struct(s) = i {
+                s.attrs.iter().any(|a| is_adze_attr(a, "word"))
+            } else { false }
+        });
+        prop_assert!(has_word);
+        let enum_item = items.iter().find_map(|i| {
+            if let Item::Enum(e) = i { Some(e) } else { None }
+        }).unwrap();
+        prop_assert_eq!(enum_item.variants.len(), 5);
+    }
+}
+
+// ── 58. Word leaf pattern with anchors ──────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn word_pattern_with_anchors(idx in 0usize..=2) {
+        let patterns = [r"^[a-zA-Z_]\w*$", r"[a-zA-Z]\w*\b", r"\b\w+\b"];
+        let s: ItemStruct = match idx {
+            0 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct A { #[adze::leaf(pattern = r"^[a-zA-Z_]\w*$")] n: String }
+            }).unwrap(),
+            1 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct A { #[adze::leaf(pattern = r"[a-zA-Z]\w*\b")] n: String }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub struct A { #[adze::leaf(pattern = r"\b\w+\b")] n: String }
+            }).unwrap(),
+        };
+        let field = s.fields.iter().next().unwrap();
+        let attr = field.attrs.iter().find(|a| is_adze_attr(a, "leaf")).unwrap();
+        let pat = extract_leaf_pattern(attr);
+        prop_assert_eq!(pat, patterns[idx]);
+    }
+}
+
+// ── 59. Word struct with multiple skip fields ───────────────────────────────
+
+#[test]
+fn word_struct_with_multiple_skip_fields() {
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        #[adze::word]
+        pub struct RichIdent {
+            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+            name: String,
+            #[adze::skip(false)]
+            is_keyword: bool,
+            #[adze::skip(0u32)]
+            line_number: u32,
+        }
+    })
+    .unwrap();
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+    let skip_count = s
+        .fields
+        .iter()
+        .filter(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
+        .count();
+    assert_eq!(skip_count, 2);
+}
+
+// ── 60. Word enum variant count preserved after re-parse ────────────────────
+
+proptest! {
+    #[test]
+    fn word_enum_variant_count_after_reparse(n in 2usize..=4) {
+        let e: ItemEnum = match n {
+            2 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub enum TK {
+                    #[adze::leaf(text = "a")] A,
+                    #[adze::leaf(text = "b")] B,
+                }
+            }).unwrap(),
+            3 => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub enum TK {
+                    #[adze::leaf(text = "a")] A,
+                    #[adze::leaf(text = "b")] B,
+                    #[adze::leaf(text = "c")] C,
+                }
+            }).unwrap(),
+            _ => syn::parse2(quote::quote! {
+                #[adze::word]
+                pub enum TK {
+                    #[adze::leaf(text = "a")] A,
+                    #[adze::leaf(text = "b")] B,
+                    #[adze::leaf(text = "c")] C,
+                    #[adze::leaf(text = "d")] D,
+                }
+            }).unwrap(),
+        };
+        let tokens = e.to_token_stream();
+        let reparsed: ItemEnum = syn::parse2(tokens).unwrap();
+        prop_assert_eq!(reparsed.variants.len(), n);
+        prop_assert!(reparsed.attrs.iter().any(|a| is_adze_attr(a, "word")));
+    }
+}

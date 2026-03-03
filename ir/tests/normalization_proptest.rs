@@ -630,3 +630,58 @@ proptest! {
         prop_assert_eq!(&g.extras, &extras_before);
     }
 }
+
+// =========================================================================
+// 11. Determinism – two clones normalize identically
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn normalize_deterministic(sym in complex_symbol_strategy()) {
+        let base = grammar_with_complex_rhs(sym);
+        let mut g1 = base.clone();
+        let mut g2 = base;
+        g1.normalize();
+        g2.normalize();
+        prop_assert_eq!(g1.rules.len(), g2.rules.len());
+        prop_assert_eq!(total_rule_count(&g1), total_rule_count(&g2));
+        for (lhs, rules1) in &g1.rules {
+            let rules2 = g2.rules.get(lhs);
+            prop_assert!(rules2.is_some(), "LHS {lhs} missing in second normalize");
+            prop_assert_eq!(rules1.len(), rules2.unwrap().len());
+        }
+    }
+
+    #[test]
+    fn normalize_deterministic_deep(sym in deep_nested_strategy()) {
+        let base = grammar_with_complex_rhs(sym);
+        let mut g1 = base.clone();
+        let mut g2 = base;
+        g1.normalize();
+        g2.normalize();
+        prop_assert_eq!(g1.rules.len(), g2.rules.len());
+        prop_assert_eq!(total_rule_count(&g1), total_rule_count(&g2));
+        for (lhs, rules1) in &g1.rules {
+            let rules2 = g2.rules.get(lhs);
+            prop_assert!(rules2.is_some(), "LHS {lhs} missing in second normalize");
+            let rules2 = rules2.unwrap();
+            for i in 0..rules1.len() {
+                prop_assert_eq!(rules1[i].rhs.len(), rules2[i].rhs.len());
+            }
+        }
+    }
+
+    #[test]
+    fn normalize_rule_count_never_decreases(sym in complex_symbol_strategy()) {
+        let mut g = grammar_with_complex_rhs(sym);
+        let before = total_rule_count(&g);
+        g.normalize();
+        prop_assert!(
+            total_rule_count(&g) >= before,
+            "Normalize must never reduce rule count: before={before}, after={}",
+            total_rule_count(&g)
+        );
+    }
+}

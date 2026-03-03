@@ -474,3 +474,421 @@ proptest! {
         prop_assert_eq!(result, val);
     }
 }
+
+// =========================================================================
+// 12. Extract trait basics — additional primitive types
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(80))]
+
+    #[test]
+    fn extract_u16_roundtrip(val in 0u16..60000) {
+        let text = val.to_string();
+        let source = text.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let result: u16 = u16::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(result, val);
+    }
+
+    #[test]
+    fn extract_i16_roundtrip(val in -30000i16..30000) {
+        let text = val.to_string();
+        let source = text.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let result: i16 = i16::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(result, val);
+    }
+
+    #[test]
+    fn extract_usize_roundtrip(val in 0usize..100_000) {
+        let text = val.to_string();
+        let source = text.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let result: usize = usize::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(result, val);
+    }
+
+    #[test]
+    fn extract_f32_roundtrip(val in -500.0f32..500.0) {
+        let text = val.to_string();
+        let source = text.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let result: f32 = f32::extract(Some(&node), source, 0, None);
+        prop_assert!((result - val).abs() < 1e-4,
+            "expected {} but got {}", val, result);
+    }
+}
+
+// =========================================================================
+// 13. Extract from ParsedNode — error/missing/extra flags
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(50))]
+
+    #[test]
+    fn parsed_node_is_error_flag(_dummy in 0u8..1) {
+        let mut node = make_node(1, vec![], 0, 5, true);
+        node.is_error = true;
+        prop_assert!(node.is_error());
+        prop_assert!(node.has_error());
+    }
+
+    #[test]
+    fn parsed_node_is_missing_flag(_dummy in 0u8..1) {
+        let mut node = make_node(1, vec![], 0, 5, true);
+        node.is_missing = true;
+        prop_assert!(node.is_missing());
+    }
+
+    #[test]
+    fn parsed_node_is_extra_flag(_dummy in 0u8..1) {
+        let mut node = make_node(1, vec![], 0, 5, true);
+        node.is_extra = true;
+        prop_assert!(node.is_extra());
+    }
+
+    #[test]
+    fn parsed_node_symbol_accessor(sym in 0u16..1000) {
+        let node = make_node(sym, vec![], 0, 1, true);
+        prop_assert_eq!(node.symbol(), sym);
+    }
+}
+
+// =========================================================================
+// 14. Extract with child walker
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(50))]
+
+    #[test]
+    fn child_walker_traversal(n in 1usize..8) {
+        let children: Vec<ParsedNode> = (0..n).map(|i| leaf(2, i, i + 1)).collect();
+        let parent = branch(1, 0, n, children);
+        let mut walker = parent.walk();
+        prop_assert!(walker.goto_first_child());
+
+        let mut count = 1;
+        while walker.goto_next_sibling() {
+            count += 1;
+        }
+        prop_assert_eq!(count, n);
+    }
+
+    #[test]
+    fn child_walker_empty_node(_dummy in 0u8..1) {
+        let parent = branch(1, 0, 1, vec![]);
+        let mut walker = parent.walk();
+        prop_assert!(!walker.goto_first_child());
+    }
+
+    #[test]
+    fn child_walker_node_byte_ranges(n in 1usize..6) {
+        let children: Vec<ParsedNode> = (0..n).map(|i| leaf(2, i * 10, (i + 1) * 10)).collect();
+        let parent = branch(1, 0, n * 10, children);
+        let mut walker = parent.walk();
+        prop_assert!(walker.goto_first_child());
+
+        for i in 0..n {
+            let child = walker.node();
+            prop_assert_eq!(child.start_byte(), i * 10);
+            prop_assert_eq!(child.end_byte(), (i + 1) * 10);
+            if i + 1 < n {
+                prop_assert!(walker.goto_next_sibling());
+            }
+        }
+    }
+}
+
+// =========================================================================
+// 15. Extract preserves span information — nested Spanned types
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(80))]
+
+    #[test]
+    fn spanned_i32_preserves_span(val in 0i32..999) {
+        let text = val.to_string();
+        let source = text.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let result: Spanned<i32> =
+            <Spanned<i32> as Extract<Spanned<i32>>>::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(result.value, val);
+        prop_assert_eq!(result.span.0, 0);
+        prop_assert_eq!(result.span.1, source.len());
+    }
+
+    #[test]
+    fn spanned_offset_preserves_position(
+        prefix in "[a-z]{1,8}",
+        word in "[A-Z]{1,8}",
+    ) {
+        let combined = format!("{}{}", prefix, word);
+        let source = combined.as_bytes();
+        let start = prefix.len();
+        let end = combined.len();
+        let node = leaf(1, start, end);
+        let result: Spanned<String> =
+            <Spanned<String> as Extract<Spanned<String>>>::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(result.value, word);
+        prop_assert_eq!(result.span, (start, end));
+    }
+
+    #[test]
+    fn spanned_deref_gives_inner_value(s in "[a-z]{1,16}") {
+        let source = s.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let result: Spanned<String> =
+            <Spanned<String> as Extract<Spanned<String>>>::extract(Some(&node), source, 0, None);
+        // Deref should allow transparent access
+        let inner: &String = &*result;
+        prop_assert_eq!(inner, &s);
+    }
+}
+
+// =========================================================================
+// 16. Extract with optional fields — nested types
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(50))]
+
+    #[test]
+    fn extract_option_box_string(s in "[a-z]{1,16}") {
+        let source = s.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let some: Option<Box<String>> =
+            <Option<Box<String>> as Extract<Option<Box<String>>>>::extract(Some(&node), source, 0, None);
+        prop_assert!(some.is_some());
+        prop_assert_eq!(*some.unwrap(), s);
+
+        let none: Option<Box<String>> =
+            <Option<Box<String>> as Extract<Option<Box<String>>>>::extract(None, b"", 0, None);
+        prop_assert!(none.is_none());
+    }
+
+    #[test]
+    fn extract_option_u8(val in 0u8..255) {
+        let text = val.to_string();
+        let source = text.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let some: Option<u8> =
+            <Option<u8> as Extract<Option<u8>>>::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(some, Some(val));
+    }
+
+    #[test]
+    fn extract_option_none_chain(_dummy in 0u8..1) {
+        // Multiple None extractions should all return None consistently
+        let n1: Option<String> = <Option<String> as Extract<Option<String>>>::extract(None, b"", 0, None);
+        let n2: Option<i32> = <Option<i32> as Extract<Option<i32>>>::extract(None, b"", 0, None);
+        let n3: Option<f64> = <Option<f64> as Extract<Option<f64>>>::extract(None, b"", 0, None);
+        prop_assert!(n1.is_none());
+        prop_assert!(n2.is_none());
+        prop_assert!(n3.is_none());
+    }
+}
+
+// =========================================================================
+// 17. Extract with repeated fields — Vec edge cases
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(50))]
+
+    #[test]
+    fn extract_vec_preserves_order(
+        a in 0u32..100,
+        b in 100u32..200,
+        c in 200u32..300,
+    ) {
+        let a_s = a.to_string();
+        let b_s = b.to_string();
+        let c_s = c.to_string();
+        let combined = format!("{} {} {}", a_s, b_s, c_s);
+        let source = combined.as_bytes();
+
+        let a_end = a_s.len();
+        let b_start = a_end + 1;
+        let b_end = b_start + b_s.len();
+        let c_start = b_end + 1;
+        let c_end = c_start + c_s.len();
+
+        let child_a = leaf(2, 0, a_end);
+        let child_b = leaf(2, b_start, b_end);
+        let child_c = leaf(2, c_start, c_end);
+        let parent = branch(1, 0, c_end, vec![child_a, child_b, child_c]);
+
+        let result: Vec<String> =
+            <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
+        prop_assert_eq!(result.len(), 3);
+        prop_assert_eq!(&result[0], &a_s);
+        prop_assert_eq!(&result[1], &b_s);
+        prop_assert_eq!(&result[2], &c_s);
+    }
+
+    #[test]
+    fn extract_vec_deterministic(s in "[a-z]{1,8}") {
+        let source = s.as_bytes();
+        let child = leaf(2, 0, source.len());
+        let parent = branch(1, 0, source.len(), vec![child]);
+        let r1: Vec<String> =
+            <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
+
+        let child2 = leaf(2, 0, source.len());
+        let parent2 = branch(1, 0, source.len(), vec![child2]);
+        let r2: Vec<String> =
+            <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent2), source, 0, None);
+        prop_assert_eq!(r1, r2);
+    }
+}
+
+// =========================================================================
+// 18. Extract error handling — WithLeaf and edge cases
+// =========================================================================
+
+#[test]
+#[should_panic(expected = "Leaf extraction failed")]
+fn extract_with_leaf_panics_without_transform() {
+    let source = b"hello";
+    let node = leaf(1, 0, 5);
+    let _: i64 = <adze::WithLeaf<i64> as Extract<i64>>::extract(Some(&node), source, 0, None);
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(50))]
+
+    #[test]
+    fn extract_with_leaf_uses_transform(s in "[a-z]{1,16}") {
+        let source = s.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let transform: &dyn Fn(&str) -> usize = &|text: &str| text.len();
+        let result: usize =
+            <adze::WithLeaf<usize> as Extract<usize>>::extract(Some(&node), source, 0, Some(transform));
+        prop_assert_eq!(result, s.len());
+    }
+
+    #[test]
+    fn extract_i32_overflow_defaults(_dummy in 0u8..1) {
+        // A number too large for i32 should default to 0
+        let source = b"99999999999999999999";
+        let node = leaf(1, 0, source.len());
+        let result: i32 = i32::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(result, 0i32);
+    }
+
+    #[test]
+    fn extract_u8_overflow_defaults(_dummy in 0u8..1) {
+        let source = b"999";
+        let node = leaf(1, 0, source.len());
+        let result: u8 = u8::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(result, 0u8);
+    }
+}
+
+// =========================================================================
+// 19. Extract determinism — repeated calls, same results
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(80))]
+
+    #[test]
+    fn extract_vec_idempotent(a in "[a-z]{1,8}", b in "[a-z]{1,8}") {
+        let combined = format!("{} {}", a, b);
+        let source = combined.as_bytes();
+        let a_end = a.len();
+        let b_start = a.len() + 1;
+        let b_end = combined.len();
+
+        let run = || {
+            let child_a = leaf(2, 0, a_end);
+            let child_b = leaf(2, b_start, b_end);
+            let parent = branch(1, 0, b_end, vec![child_a, child_b]);
+            <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None)
+        };
+
+        let r1 = run();
+        let r2 = run();
+        prop_assert_eq!(r1, r2);
+    }
+
+    #[test]
+    fn extract_spanned_idempotent(s in "[a-z]{1,16}") {
+        let source = s.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let r1: Spanned<String> =
+            <Spanned<String> as Extract<Spanned<String>>>::extract(Some(&node), source, 0, None);
+        let r2: Spanned<String> =
+            <Spanned<String> as Extract<Spanned<String>>>::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(r1.value, r2.value);
+        prop_assert_eq!(r1.span, r2.span);
+    }
+
+    #[test]
+    fn extract_box_idempotent(val in -500i32..500) {
+        let text = val.to_string();
+        let source = text.as_bytes();
+        let node = leaf(1, 0, source.len());
+        let r1: Box<i32> =
+            <Box<i32> as Extract<Box<i32>>>::extract(Some(&node), source, 0, None);
+        let r2: Box<i32> =
+            <Box<i32> as Extract<Box<i32>>>::extract(Some(&node), source, 0, None);
+        prop_assert_eq!(r1, r2);
+    }
+
+    #[test]
+    fn extract_none_deterministic_across_types(_dummy in 0u8..1) {
+        // Extracting None from multiple types should always be deterministic
+        for _ in 0..10 {
+            prop_assert_eq!(String::extract(None, b"", 0, None), "");
+            prop_assert_eq!(i32::extract(None, b"", 0, None), 0);
+            prop_assert_eq!(bool::extract(None, b"", 0, None), false);
+        }
+    }
+}
+
+// =========================================================================
+// 20. ParsedNode nested tree structures
+// =========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(50))]
+
+    #[test]
+    fn parsed_node_nested_children(depth in 1usize..5) {
+        // Build a chain: root -> child -> child -> ... -> leaf
+        let mut current = leaf(10, 0, 1);
+        for d in (1..=depth).rev() {
+            current = branch(d as u16, 0, 1, vec![current]);
+        }
+        // Verify traversal to the deepest node
+        let mut node = &current;
+        for _ in 0..depth {
+            prop_assert_eq!(node.child_count(), 1);
+            node = node.child(0).unwrap();
+        }
+        prop_assert_eq!(node.symbol(), 10);
+        prop_assert_eq!(node.child_count(), 0);
+    }
+
+    #[test]
+    fn parsed_node_start_end_points(start in 0u32..100, len in 1u32..50) {
+        let end = start + len;
+        let node = make_node(1, vec![], start as usize, end as usize, true);
+        prop_assert_eq!(node.start_point().row, 0);
+        prop_assert_eq!(node.start_point().column, start);
+        prop_assert_eq!(node.end_point().row, 0);
+        prop_assert_eq!(node.end_point().column, end);
+    }
+
+    #[test]
+    fn parsed_node_field_id(fid in proptest::option::of(0u16..100)) {
+        let mut node = make_node(1, vec![], 0, 1, true);
+        node.field_id = fid;
+        prop_assert_eq!(node.field_id, fid);
+    }
+}

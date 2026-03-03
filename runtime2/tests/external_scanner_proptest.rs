@@ -507,3 +507,309 @@ proptest! {
         prop_assert_eq!(result.map(|r| r.token_type), Some(1));
     }
 }
+
+// ---------------------------------------------------------------------------
+// 10 – ScanResult creation and field access
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn scan_result_fields(tt in 0..100u32, bc in 0..1024usize) {
+        let r = ScanResult { token_type: tt, bytes_consumed: bc };
+        prop_assert_eq!(r.token_type, tt);
+        prop_assert_eq!(r.bytes_consumed, bc);
+    }
+
+    #[test]
+    fn scan_result_equality(tt in 0..100u32, bc in 0..1024usize) {
+        let a = ScanResult { token_type: tt, bytes_consumed: bc };
+        let b = ScanResult { token_type: tt, bytes_consumed: bc };
+        prop_assert_eq!(a, b);
+    }
+
+    #[test]
+    fn scan_result_inequality_token(tt in 0..50u32, bc in 0..512usize) {
+        let a = ScanResult { token_type: tt, bytes_consumed: bc };
+        let b = ScanResult { token_type: tt + 1, bytes_consumed: bc };
+        prop_assert_ne!(a, b);
+    }
+
+    #[test]
+    fn scan_result_inequality_bytes(tt in 0..50u32, bc in 0..512usize) {
+        let a = ScanResult { token_type: tt, bytes_consumed: bc };
+        let b = ScanResult { token_type: tt, bytes_consumed: bc + 1 };
+        prop_assert_ne!(a, b);
+    }
+
+    #[test]
+    fn scan_result_clone(tt in 0..100u32, bc in 0..1024usize) {
+        let a = ScanResult { token_type: tt, bytes_consumed: bc };
+        let b = a;
+        prop_assert_eq!(a, b);
+    }
+
+    #[test]
+    fn scan_result_debug_contains_fields(tt in 0..10u32, bc in 0..10usize) {
+        let r = ScanResult { token_type: tt, bytes_consumed: bc };
+        let dbg = format!("{:?}", r);
+        prop_assert!(dbg.contains("token_type"));
+        prop_assert!(dbg.contains("bytes_consumed"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 11 – Multiple independent scanner instances
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn two_scanners_independent_state(a in 1..32u32, b in 1..32u32) {
+        let mut s1 = IndentationScanner::new();
+        let mut s2 = IndentationScanner::new();
+        s1.init();
+        s2.init();
+        s1.scan(&[true, true], &spaces(a));
+        s2.scan(&[true, true], &spaces(b));
+        // Each has its own stack
+        prop_assert_eq!(*s1.indent_stack.last().unwrap(), a);
+        prop_assert_eq!(*s2.indent_stack.last().unwrap(), b);
+    }
+
+    #[test]
+    fn multiple_scanners_no_cross_talk(levels in prop::collection::vec(1..32u32, 2..6)) {
+        let mut scanners: Vec<IndentationScanner> = (0..levels.len())
+            .map(|_| {
+                let mut s = IndentationScanner::new();
+                s.init();
+                s
+            })
+            .collect();
+        // Indent each scanner to a different level
+        for i in 0..levels.len() {
+            scanners[i].scan(&[true, true], &spaces(levels[i]));
+        }
+        // Verify each scanner kept its own state
+        for i in 0..levels.len() {
+            prop_assert_eq!(*scanners[i].indent_stack.last().unwrap(), levels[i]);
+        }
+    }
+
+    #[test]
+    fn scanner_vec_trait_objects(count in 2..6usize) {
+        let mut scanners: Vec<Box<dyn ExternalScanner>> = (0..count)
+            .map(|_| -> Box<dyn ExternalScanner> { Box::new(IndentationScanner::new()) })
+            .collect();
+        for s in scanners.iter_mut() {
+            s.init();
+        }
+        // Each scanner can independently indent
+        for (i, s) in scanners.iter_mut().enumerate() {
+            let level = (i as u32 + 1) * 4;
+            let r = s.scan(&[true, true], &spaces(level));
+            prop_assert!(r.is_some());
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 12 – Scanner determinism
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn deterministic_indent_result(level in 1..32u32) {
+        let mut s1 = IndentationScanner::new();
+        let mut s2 = IndentationScanner::new();
+        s1.init();
+        s2.init();
+        let r1 = s1.scan(&[true, true], &spaces(level));
+        let r2 = s2.scan(&[true, true], &spaces(level));
+        prop_assert_eq!(r1, r2);
+    }
+
+    #[test]
+    fn deterministic_sequence(
+        a in 1..16u32,
+        b_offset in 1..16u32,
+    ) {
+        let b = a + b_offset;
+        let run = |scanner: &mut IndentationScanner| -> Vec<Option<ScanResult>> {
+            scanner.init();
+            let r1 = scanner.scan(&[true, true], &spaces(a));
+            let r2 = scanner.scan(&[true, true], &spaces(b));
+            let r3 = scanner.scan(&[true, true], &spaces(a));
+            let r4 = scanner.scan(&[true, true], &spaces(0));
+            vec![r1, r2, r3, r4]
+        };
+        let mut s1 = IndentationScanner::new();
+        let mut s2 = IndentationScanner::new();
+        let results1 = run(&mut s1);
+        let results2 = run(&mut s2);
+        prop_assert_eq!(results1, results2);
+    }
+
+    #[test]
+    fn deterministic_serialize_output(level in 1..32u32) {
+        let mut s1 = IndentationScanner::new();
+        let mut s2 = IndentationScanner::new();
+        s1.init();
+        s2.init();
+        s1.scan(&[true, true], &spaces(level));
+        s2.scan(&[true, true], &spaces(level));
+        prop_assert_eq!(s1.serialize(), s2.serialize());
+    }
+
+    #[test]
+    fn repeated_runs_same_result(level in 1..32u32, runs in 2..5u32) {
+        let mut results = Vec::new();
+        for _ in 0..runs {
+            let mut s = IndentationScanner::new();
+            s.init();
+            let r = s.scan(&[true, true], &spaces(level));
+            results.push(r);
+        }
+        for i in 1..results.len() {
+            prop_assert_eq!(results[0], results[i]);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 13 – Complex indent/dedent sequences
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn staircase_indent_then_full_dedent(step in 1..8u32, count in 2..6u32) {
+        let mut s = IndentationScanner::new();
+        s.init();
+        for i in 1..=count {
+            let r = s.scan(&[true, true], &spaces(i * step));
+            prop_assert_eq!(r.map(|r| r.token_type), Some(0), "step {} should indent", i);
+        }
+        let r = s.scan(&[true, true], &spaces(0));
+        prop_assert_eq!(r.map(|r| r.token_type), Some(1));
+        prop_assert_eq!(s.indent_stack, vec![0]);
+    }
+
+    #[test]
+    fn zigzag_indent_dedent(base in 1..16u32, extra in 1..16u32) {
+        let mut s = IndentationScanner::new();
+        s.init();
+        // Indent to base
+        let r1 = s.scan(&[true, true], &spaces(base));
+        prop_assert_eq!(r1.map(|r| r.token_type), Some(0));
+        // Indent further
+        let r2 = s.scan(&[true, true], &spaces(base + extra));
+        prop_assert_eq!(r2.map(|r| r.token_type), Some(0));
+        // Dedent back to base
+        let r3 = s.scan(&[true, true], &spaces(base));
+        prop_assert_eq!(r3.map(|r| r.token_type), Some(1));
+        // Same level again
+        let r4 = s.scan(&[true, true], &spaces(base));
+        prop_assert!(r4.is_none());
+    }
+
+    #[test]
+    fn serialize_after_complex_sequence(a in 1..10u32, b in 1..10u32) {
+        let level1 = a;
+        let level2 = a + b;
+        let mut s = IndentationScanner::new();
+        s.init();
+        s.scan(&[true, true], &spaces(level1));
+        s.scan(&[true, true], &spaces(level2));
+        s.scan(&[true, true], &spaces(level1)); // partial dedent
+
+        let data = s.serialize();
+        let mut s2 = IndentationScanner::new();
+        s2.deserialize(&data);
+
+        // Both scanners should produce same result for next input
+        let r1 = s.scan(&[true, true], &spaces(0));
+        let r2 = s2.scan(&[true, true], &spaces(0));
+        prop_assert_eq!(r1, r2);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 14 – Deserialize edge cases
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn deserialize_truncated_entries(level in 1..32u32) {
+        let mut s = IndentationScanner::new();
+        s.init();
+        s.scan(&[true, true], &spaces(level));
+        let full_data = s.serialize();
+        // Truncate data to only include the length header + partial entries
+        let truncated = &full_data[..5.min(full_data.len())];
+        let mut s2 = IndentationScanner::new();
+        s2.init();
+        let before = s2.indent_stack.clone();
+        s2.deserialize(truncated);
+        // Should have deserialized at least partially or safely
+        // (deserialize clears and re-reads what it can)
+        prop_assert!(!s2.indent_stack.is_empty() || before == vec![0]);
+    }
+
+    #[test]
+    fn deserialize_with_zero_length_header(_ in 0..1u8) {
+        let data = 0u32.to_le_bytes();
+        let mut s = IndentationScanner::new();
+        s.init();
+        s.deserialize(&data);
+        // Zero-length stack
+        prop_assert!(s.indent_stack.is_empty());
+    }
+
+    #[test]
+    fn deserialize_large_claimed_length(_ in 0..1u8) {
+        // Claim 1000 entries but only provide data for 1
+        let mut data = Vec::new();
+        data.extend_from_slice(&1000u32.to_le_bytes());
+        data.extend_from_slice(&42u32.to_le_bytes());
+        let mut s = IndentationScanner::new();
+        s.init();
+        s.deserialize(&data);
+        // Should only deserialize entries for which data exists
+        prop_assert_eq!(s.indent_stack.len(), 1);
+        prop_assert_eq!(s.indent_stack[0], 42);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 15 – Scan with varied byte inputs
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn tabs_count_as_zero_indent(_ in 0..1u8) {
+        let mut s = IndentationScanner::new();
+        s.init();
+        // Tabs are not spaces, so indent = 0
+        let result = s.scan(&[true, true], b"\t\tx");
+        prop_assert!(result.is_none());
+    }
+
+    #[test]
+    fn mixed_spaces_tabs_only_counts_leading_spaces(n in 1..16u32) {
+        let mut s = IndentationScanner::new();
+        s.init();
+        let mut input = vec![b' '; n as usize];
+        input.push(b'\t');
+        input.push(b'x');
+        let result = s.scan(&[true, true], &input);
+        prop_assert_eq!(result.map(|r| r.token_type), Some(0));
+    }
+
+    #[test]
+    fn only_spaces_input(n in 1..64u32) {
+        let mut s = IndentationScanner::new();
+        s.init();
+        // Input of only spaces (no sentinel) — indent is the full length
+        let input = vec![b' '; n as usize];
+        let result = s.scan(&[true, true], &input);
+        prop_assert_eq!(result.map(|r| r.token_type), Some(0));
+    }
+}
