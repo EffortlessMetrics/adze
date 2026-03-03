@@ -3,9 +3,18 @@
 // Properties verified:
 // 1. Compression is lossless (decompress(compress(table)) == table)
 // 2. Compressed size <= uncompressed size (row dedup never inflates)
-// 3. Row deduplication preserves action semantics
-// 4. Sparse representation handles all-zero rows correctly
-// 5. Offset computation is injective (no state overlap)
+// 3. State count is preserved through compression
+// 4. Symbol count is preserved through compression
+// 5. Empty table compresses to empty
+// 6. Single-state table roundtrips
+// 7. Identity compression (trivial tables compress to themselves)
+// 8. Large random tables don't panic
+// 9. All actions in compressed table match original (full cell)
+// 10. Compression is deterministic (same input → same output)
+// Additional:
+// - Row deduplication preserves action semantics
+// - Sparse representation handles all-zero rows correctly
+// - Offset computation is injective (no state overlap)
 
 use adze_glr_core::Action;
 use adze_ir::{RuleId, StateId};
@@ -374,5 +383,312 @@ proptest! {
                 }
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3. State count is preserved through compression
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn action_state_count_preserved(table in action_table_strategy(10, 6)) {
+        let compressed = compress_action_table(&table);
+        prop_assert_eq!(
+            compressed.state_to_row.len(),
+            table.len(),
+            "Compressed state count {} != original {}",
+            compressed.state_to_row.len(),
+            table.len()
+        );
+    }
+
+    #[test]
+    fn goto_state_count_preserved(table in goto_table_strategy(10, 6)) {
+        let compressed = compress_goto_table(&table);
+        // Every original cell must be recoverable
+        for (state, row) in table.iter().enumerate() {
+            for (symbol, &expected) in row.iter().enumerate() {
+                prop_assert_eq!(
+                    decompress_goto(&compressed, state, symbol),
+                    expected,
+                    "Goto state {} symbol {} lost", state, symbol
+                );
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 4. Symbol count is preserved through compression
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn action_symbol_count_preserved(table in action_table_strategy(8, 8)) {
+        let compressed = compress_action_table(&table);
+        if !table.is_empty() {
+            let expected_symbols = table[0].len();
+            for unique_row in &compressed.unique_rows {
+                prop_assert_eq!(
+                    unique_row.len(),
+                    expected_symbols,
+                    "Unique row symbol count {} != original {}",
+                    unique_row.len(),
+                    expected_symbols
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn goto_symbol_count_preserved(table in goto_table_strategy(8, 8)) {
+        let compressed = compress_goto_table(&table);
+        if !table.is_empty() {
+            let expected_symbols = table[0].len();
+            // Non-None entries must have symbol indices within range
+            for &(_, sym) in compressed.entries.keys() {
+                prop_assert!(
+                    sym < expected_symbols,
+                    "Goto entry symbol {} >= expected symbol count {}",
+                    sym,
+                    expected_symbols
+                );
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 5. Empty table compresses to empty
+// ---------------------------------------------------------------------------
+
+#[test]
+fn empty_action_table_compresses_to_empty() {
+    let table: Vec<Vec<Vec<Action>>> = vec![];
+    let compressed = compress_action_table(&table);
+    assert!(compressed.unique_rows.is_empty());
+    assert!(compressed.state_to_row.is_empty());
+}
+
+#[test]
+fn empty_goto_table_compresses_to_empty() {
+    let table: Vec<Vec<Option<StateId>>> = vec![];
+    let compressed = compress_goto_table(&table);
+    assert!(compressed.entries.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 6. Single-state table roundtrips
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn single_state_action_roundtrip(
+        row in prop::collection::vec(action_cell_strategy(), 1..=8)
+    ) {
+        let table = vec![row];
+        let compressed = compress_action_table(&table);
+
+        prop_assert_eq!(compressed.unique_rows.len(), 1);
+        prop_assert_eq!(compressed.state_to_row.len(), 1);
+
+        for (symbol, cell) in table[0].iter().enumerate() {
+            let expected = cell.first().cloned().unwrap_or(Action::Error);
+            prop_assert_eq!(
+                decompress_action(&compressed, 0, symbol),
+                expected,
+                "Single-state roundtrip failed at symbol {}", symbol
+            );
+        }
+    }
+
+    #[test]
+    fn single_state_goto_roundtrip(
+        row in prop::collection::vec(
+            prop_oneof![
+                3 => Just(None),
+                1 => (0u16..20).prop_map(|s| Some(StateId(s))),
+            ],
+            1..=8
+        )
+    ) {
+        let table = vec![row];
+        let compressed = compress_goto_table(&table);
+
+        for (symbol, &expected) in table[0].iter().enumerate() {
+            prop_assert_eq!(
+                decompress_goto(&compressed, 0, symbol),
+                expected,
+                "Single-state goto roundtrip failed at symbol {}", symbol
+            );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Identity compression (trivial tables compress to themselves)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn all_distinct_rows_yield_identity_mapping(
+        n_symbols in 1usize..=4,
+        n_states in 1usize..=6,
+    ) {
+        // Build a table where every row is unique (distinct shift targets)
+        let table: Vec<Vec<Vec<Action>>> = (0..n_states)
+            .map(|s| {
+                (0..n_symbols)
+                    .map(|sym| vec![Action::Shift(StateId((s * n_symbols + sym) as u16))])
+                    .collect()
+            })
+            .collect();
+
+        let compressed = compress_action_table(&table);
+
+        // All rows are unique so unique_rows.len() == state count
+        prop_assert_eq!(
+            compressed.unique_rows.len(),
+            n_states,
+            "All-distinct rows should not be deduplicated"
+        );
+
+        // state_to_row should be identity [0, 1, 2, ...]
+        for (i, &row_idx) in compressed.state_to_row.iter().enumerate() {
+            prop_assert_eq!(row_idx, i, "Identity mapping broken at state {}", i);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 8. Large random tables don't panic
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(16))]
+
+    #[test]
+    fn large_action_table_no_panic(table in action_table_strategy(64, 32)) {
+        let compressed = compress_action_table(&table);
+
+        // Basic structural invariant
+        prop_assert_eq!(compressed.state_to_row.len(), table.len());
+        prop_assert!(compressed.unique_rows.len() <= table.len());
+
+        // Spot-check a few cells
+        if !table.is_empty() && !table[0].is_empty() {
+            let _ = decompress_action(&compressed, 0, 0);
+            let last_state = table.len() - 1;
+            let last_sym = table[0].len() - 1;
+            let _ = decompress_action(&compressed, last_state, last_sym);
+        }
+    }
+
+    #[test]
+    fn large_goto_table_no_panic(table in goto_table_strategy(64, 32)) {
+        let compressed = compress_goto_table(&table);
+
+        let n_cols = if table.is_empty() { 0 } else { table[0].len() };
+        let total_cells = table.len() * n_cols;
+        prop_assert!(compressed.entries.len() <= total_cells);
+
+        // Spot-check corners
+        if !table.is_empty() && !table[0].is_empty() {
+            let _ = decompress_goto(&compressed, 0, 0);
+            let _ = decompress_goto(&compressed, table.len() - 1, table[0].len() - 1);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 9. All actions in compressed table match original (full cell comparison)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn all_compressed_cells_match_original(table in action_table_strategy(8, 8)) {
+        let compressed = compress_action_table(&table);
+
+        for (state, row) in table.iter().enumerate() {
+            let row_idx = compressed.state_to_row[state];
+            let compressed_row = &compressed.unique_rows[row_idx];
+
+            prop_assert_eq!(
+                compressed_row.len(),
+                row.len(),
+                "State {}: compressed row width {} != original {}",
+                state,
+                compressed_row.len(),
+                row.len()
+            );
+
+            for (symbol, cell) in row.iter().enumerate() {
+                prop_assert_eq!(
+                    &compressed_row[symbol],
+                    cell,
+                    "Full cell mismatch at state={}, symbol={}", state, symbol
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn all_goto_entries_match_original(table in goto_table_strategy(8, 8)) {
+        let compressed = compress_goto_table(&table);
+
+        for (state, row) in table.iter().enumerate() {
+            for (symbol, &expected) in row.iter().enumerate() {
+                let actual = decompress_goto(&compressed, state, symbol);
+                prop_assert_eq!(
+                    actual, expected,
+                    "Goto mismatch at state={}, symbol={}", state, symbol
+                );
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 10. Compression is deterministic (same input → same output)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn action_compression_is_deterministic(table in action_table_strategy(8, 8)) {
+        let c1 = compress_action_table(&table);
+        let c2 = compress_action_table(&table);
+
+        prop_assert_eq!(
+            c1.unique_rows, c2.unique_rows,
+            "Unique rows differ between two compressions of same input"
+        );
+        prop_assert_eq!(
+            c1.state_to_row, c2.state_to_row,
+            "state_to_row differs between two compressions of same input"
+        );
+    }
+
+    #[test]
+    fn goto_compression_is_deterministic(table in goto_table_strategy(8, 8)) {
+        let c1 = compress_goto_table(&table);
+        let c2 = compress_goto_table(&table);
+
+        prop_assert_eq!(
+            c1.entries, c2.entries,
+            "Goto entries differ between two compressions of same input"
+        );
     }
 }
