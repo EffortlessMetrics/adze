@@ -433,8 +433,8 @@ fn version_constant_is_15() {
 
 #[test]
 fn min_compatible_version_in_range() {
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION >= 13);
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION <= TREE_SITTER_LANGUAGE_VERSION);
+    const { assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION >= 13) };
+    const { assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION <= TREE_SITTER_LANGUAGE_VERSION) };
 }
 
 #[test]
