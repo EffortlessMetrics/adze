@@ -1,0 +1,5 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: output
+---
+production_id_count: 2

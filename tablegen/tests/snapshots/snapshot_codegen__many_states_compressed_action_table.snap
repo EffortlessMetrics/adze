@@ -1,0 +1,15 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: output
+---
+row_offsets: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+default_actions: [Error, Error, Error, Error, Error, Error, Error, Error]
+entries:
+  [0] symbol=1, action=Shift(StateId(1))
+  [1] symbol=2, action=Reduce(RuleId(0))
+  [2] symbol=2, action=Shift(StateId(3))
+  [3] symbol=3, action=Reduce(RuleId(1))
+  [4] symbol=3, action=Shift(StateId(5))
+  [5] symbol=4, action=Reduce(RuleId(2))
+  [6] symbol=4, action=Shift(StateId(7))
+  [7] symbol=5, action=Reduce(RuleId(3))

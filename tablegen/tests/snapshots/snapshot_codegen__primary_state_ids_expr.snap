@@ -1,0 +1,5 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: output
+---
+PRIMARY_STATE_IDS = &[TSStateId (0usize as u16) , TSStateId (1usize as u16) , TSStateId (2usize as u16) , TSStateId (3usize as u16) , TSStateId (4usize as u16)]

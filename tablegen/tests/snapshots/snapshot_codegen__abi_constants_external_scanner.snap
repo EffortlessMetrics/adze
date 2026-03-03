@@ -1,0 +1,9 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: output
+---
+version = 15u32
+symbol_count = 3usize
+token_count = 2u32
+external_token_count = EXTERNAL_TOKEN_COUNT
+state_count = 4u32

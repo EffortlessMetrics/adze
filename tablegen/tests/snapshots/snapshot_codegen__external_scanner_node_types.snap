@@ -10,10 +10,22 @@ expression: json
       "types": []
     },
     "named": true,
-    "type": "rule_3"
+    "type": "rule_6"
   },
   {
     "named": true,
-    "type": "number"
+    "type": "identifier"
+  },
+  {
+    "named": true,
+    "type": "INDENT"
+  },
+  {
+    "named": true,
+    "type": "DEDENT"
+  },
+  {
+    "named": true,
+    "type": "NEWLINE"
   }
 ]

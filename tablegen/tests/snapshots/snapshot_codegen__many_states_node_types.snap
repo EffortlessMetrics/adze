@@ -1,0 +1,51 @@
+---
+source: tablegen/tests/snapshot_codegen.rs
+expression: json
+---
+[
+  {
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": []
+    },
+    "named": true,
+    "type": "rule_7"
+  },
+  {
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": []
+    },
+    "named": true,
+    "type": "rule_8"
+  },
+  {
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": []
+    },
+    "named": true,
+    "type": "rule_9"
+  },
+  {
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": []
+    },
+    "named": true,
+    "type": "rule_10"
+  },
+  {
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": []
+    },
+    "named": true,
+    "type": "rule_6"
+  }
+]
