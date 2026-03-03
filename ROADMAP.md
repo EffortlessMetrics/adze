@@ -18,10 +18,11 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - **External Scanners**: Support for custom lexing (e.g. Python indentation).
 
 ## 🚀 Milestone 0.8.0: The Publishable Baseline (Current)
-- **Documentation Overhaul**: All docs updated to reflect Adze naming and 0.8.0 reality.
-- **Governance-as-Code**: Integrated policy enforcement for backend selection.
+- **Documentation Overhaul**: Docs updated to reflect Adze naming and 0.8.0 reality (in progress; some drift remains — see `FR-001`).
 - **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
-- **CI Hardening**: Stable "Supported Lane" ensuring core reliability.
+- **Workspace Structure**: 47 microcrates in `crates/`, benchmarks, fuzzing, golden-tests, and book scaffolding.
+- **CI Hardening**: "Supported Lane" defined but currently **red** due to runtime compile errors.
+- 🔴 **Runtime crate (`adze`) does not compile** — ~20 errors being fixed in parallel.
 
 ## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
 - **CLI Utility**: `adze` command for grammar validation, inspection, and debugging.

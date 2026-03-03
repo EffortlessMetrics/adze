@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-02-22
+**Last updated:** 2026-03-03
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -17,6 +17,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-005 | Macro | Leaf `transform` closures are captured but never executed | Type conversions (e.g. string to i32) fail silently | Open | [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74) |
 | FR-006 | Macro | `Extract` trait signature mismatch in `pure-rust` mode | Compilation errors (E0053, E0308) in user code | Resolved | - |
 | FR-007 | Runtime | Lexer state pointer layout mismatch in `pure-rust` mode | Runtime `UnexpectedToken("end")` errors | Resolved | - |
+| FR-008 | Tooling | `just` has permission issues on some systems | Commands fail with `/run/user/1000/just` errors | Open | - |
+| FR-009 | Dev loop | Workspace build is very slow (10+ min for full check) | Developers avoid full validation locally | Open | - |
+| FR-010 | Runtime | `runtime/src/pure_parser.rs` has parse errors | Blocks `cargo fmt` on entire workspace | Open | - |
 
 ---
 
@@ -86,6 +89,33 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Fix:** Update `macro/src/expansion.rs` to generate call sites for captured closures.
 **Status:** Open
 **Links:** [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74)
+
+### FR-008 - `just` Permission Issues
+
+**Area:** tooling
+**Symptom:** Running `just` commands fails with permission errors related to `/run/user/1000/just` on some Linux systems.
+**Expected:** `just` recipes execute without filesystem permission issues.
+**Actual:** Users see permission denied errors; workaround is to set `JUST_TMPDIR` or use `cargo` directly.
+**Fix:** Document workaround in DEVELOPER_GUIDE; consider switching to `cargo xtask` as primary entry point.
+**Status:** Open
+
+### FR-009 - Slow Workspace Build
+
+**Area:** dev loop
+**Symptom:** `cargo check --workspace` or `cargo build` takes 10+ minutes on standard hardware due to 47 microcrates in `crates/` plus the full core pipeline.
+**Expected:** Developers can iterate quickly on individual crates.
+**Actual:** Full workspace builds are prohibitively slow for local development.
+**Fix:** Use per-crate `cargo check -p <crate>` for iteration; consider workspace partitioning.
+**Status:** Open
+
+### FR-010 - `pure_parser.rs` Parse Errors
+
+**Area:** runtime
+**Symptom:** `runtime/src/pure_parser.rs` contains Rust parse errors that prevent `cargo fmt` from formatting the file (and potentially the entire workspace if fmt is run with `--all`).
+**Expected:** All `.rs` files parse cleanly.
+**Actual:** The file has syntax-level issues that must be fixed before formatting or compilation can succeed.
+**Fix:** Fix parse errors in `pure_parser.rs` as part of the runtime compile error remediation.
+**Status:** Open
 
 ---
 
