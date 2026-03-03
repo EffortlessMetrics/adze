@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-03-05
+**Last updated:** 2026-03-07
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -38,7 +38,9 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
-**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **1,416 tests passing, 0 failures.** Feature-combination matrix: 11/12 pass (1 expected failure). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`.
+**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **2,460+ tests across feature combinations, 0 failures in supported lane.** Feature-combination matrix: 11/12 pass (1 expected failure). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`.
+
+**Note:** Some `adze` runtime integration test files fail to compile due to references to removed/renamed APIs. These tests are outside the supported lane and tracked for cleanup before RC publish.
 
 ---
 
