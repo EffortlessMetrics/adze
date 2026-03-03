@@ -13,13 +13,31 @@ mod expansion;
 use expansion::*;
 
 #[proc_macro_attribute]
-/// Marks the top level AST node where parsing should start.
+/// Marks the top-level AST node where parsing should start.
 ///
-/// ## Example
+/// Exactly one type inside an [`macro@grammar`] module must carry this attribute.
+/// It can be applied to either a `struct` or an `enum`.
+///
+/// ## Examples
+///
+/// As a struct (single production):
 /// ```ignore
 /// #[adze::language]
-/// pub struct Code {
-///     ...
+/// pub struct Program {
+///     statements: Vec<Statement>,
+/// }
+/// ```
+///
+/// As an enum (multiple alternatives):
+/// ```ignore
+/// #[adze::language]
+/// pub enum Expr {
+///     Number(
+///         #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+///         i32
+///     ),
+///     #[adze::prec_left(1)]
+///     Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
 /// }
 /// ```
 pub fn language(
@@ -244,9 +262,39 @@ pub fn word(
     item
 }
 
-/// Mark a module to be analyzed for a Adze grammar. Takes a single, unnamed argument, which
+/// Mark a module to be analyzed for an Adze grammar. Takes a single, unnamed argument, which
 /// specifies the name of the grammar. This name must be unique across all Adze grammars within
 /// a compilation unit.
+///
+/// The module must contain exactly one type annotated with [`macro@language`] to serve as the
+/// parse entry point. Other types in the module define the remaining grammar rules.
+///
+/// ## Example
+/// ```ignore
+/// #[adze::grammar("arithmetic")]
+/// mod grammar {
+///     #[adze::language]
+///     pub enum Expr {
+///         Number(
+///             #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+///             i32
+///         ),
+///         #[adze::prec_left(1)]
+///         Add(
+///             Box<Expr>,
+///             #[adze::leaf(text = "+")]
+///             (),
+///             Box<Expr>,
+///         ),
+///     }
+///
+///     #[adze::extra]
+///     struct Whitespace {
+///         #[adze::leaf(pattern = r"\s")]
+///         _whitespace: (),
+///     }
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn grammar(
     attr: proc_macro::TokenStream,
