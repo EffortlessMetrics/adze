@@ -583,8 +583,35 @@ impl FirstFollowSets {
         }
     }
 
-    /// Compute FIRST/FOLLOW sets for the given grammar with automatic normalization
-    /// This method automatically normalizes complex symbols (Repeat, Choice, etc.) before computation
+    /// Compute FIRST/FOLLOW sets for the given grammar with automatic normalization.
+    ///
+    /// This method automatically normalizes complex symbols (Repeat, Choice, etc.) before computation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_glr_core::FirstFollowSets;
+    /// use adze_ir::*;
+    ///
+    /// // Build a tiny grammar: E → a | E '+' E
+    /// let mut grammar = Grammar::new("expr".into());
+    /// let a = SymbolId(1);
+    /// let plus = SymbolId(2);
+    /// let e = SymbolId(10);
+    ///
+    /// grammar.tokens.insert(a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    /// grammar.tokens.insert(plus, Token { name: "+".into(), pattern: TokenPattern::String("+".into()), fragile: false });
+    /// grammar.rule_names.insert(e, "E".into());
+    /// grammar.rules.insert(e, vec![
+    ///     Rule { lhs: e, rhs: vec![Symbol::Terminal(a)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(0) },
+    ///     Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::Terminal(plus), Symbol::NonTerminal(e)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(1) },
+    /// ]);
+    ///
+    /// let ff = FirstFollowSets::compute_normalized(&mut grammar).unwrap();
+    /// // 'a' (SymbolId 1) should be in FIRST(E)
+    /// assert!(ff.first(e).unwrap().contains(a.0 as usize));
+    /// ```
+    #[must_use = "computation result must be checked"]
     pub fn compute_normalized(grammar: &mut Grammar) -> Result<Self, GLRError> {
         // Normalize the grammar to convert complex symbols to simple rules
         grammar.normalize();
@@ -593,7 +620,29 @@ impl FirstFollowSets {
         Self::compute(grammar)
     }
 
-    /// Compute FIRST/FOLLOW sets for the given grammar
+    /// Compute FIRST/FOLLOW sets for the given grammar.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_glr_core::FirstFollowSets;
+    /// use adze_ir::*;
+    ///
+    /// let mut grammar = Grammar::new("simple".into());
+    /// let a = SymbolId(1);
+    /// let s = SymbolId(10);
+    ///
+    /// grammar.tokens.insert(a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    /// grammar.rule_names.insert(s, "S".into());
+    /// grammar.rules.insert(s, vec![
+    ///     Rule { lhs: s, rhs: vec![Symbol::Terminal(a)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(0) },
+    /// ]);
+    ///
+    /// let ff = FirstFollowSets::compute(&grammar).unwrap();
+    /// assert!(ff.first(s).unwrap().contains(a.0 as usize));
+    /// assert!(!ff.is_nullable(s));
+    /// ```
+    #[must_use = "computation result must be checked"]
     pub fn compute(grammar: &Grammar) -> Result<Self, GLRError> {
         // Clone and normalize the grammar if it contains complex symbols
         let normalized_grammar = {
@@ -773,6 +822,7 @@ impl FirstFollowSets {
     }
 
     /// Get FIRST set of a sequence of symbols
+    #[must_use = "computation result must be checked"]
     pub fn first_of_sequence(&self, symbols: &[Symbol]) -> Result<FixedBitSet, GLRError> {
         Self::first_of_sequence_static(symbols, &self.first, &self.nullable)
     }
@@ -1270,7 +1320,28 @@ impl ItemSetCollection {
         collection
     }
 
-    /// Build canonical collection of LR(1) item sets
+    /// Build canonical collection of LR(1) item sets.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_glr_core::{FirstFollowSets, ItemSetCollection};
+    /// use adze_ir::*;
+    ///
+    /// let mut grammar = Grammar::new("simple".into());
+    /// let a = SymbolId(1);
+    /// let s = SymbolId(10);
+    ///
+    /// grammar.tokens.insert(a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    /// grammar.rule_names.insert(s, "S".into());
+    /// grammar.rules.insert(s, vec![
+    ///     Rule { lhs: s, rhs: vec![Symbol::Terminal(a)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(0) },
+    /// ]);
+    ///
+    /// let ff = FirstFollowSets::compute(&grammar).unwrap();
+    /// let collection = ItemSetCollection::build_canonical_collection(&grammar, &ff);
+    /// assert!(!collection.sets.is_empty(), "should have at least one state");
+    /// ```
     pub fn build_canonical_collection(grammar: &Grammar, first_follow: &FirstFollowSets) -> Self {
         let mut collection = Self {
             sets: Vec::new(),
@@ -1708,7 +1779,33 @@ impl ParseTable {
         v
     }
 
-    /// Get actions for a state and symbol
+    /// Get actions for a state and symbol.
+    ///
+    /// Returns the slice of [`Action`]s for the given `(state, terminal)` pair.
+    /// Returns an empty slice when no actions exist.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_glr_core::{FirstFollowSets, build_lr1_automaton, Action};
+    /// use adze_ir::*;
+    ///
+    /// let mut grammar = Grammar::new("act".into());
+    /// let a = SymbolId(1);
+    /// let s = SymbolId(10);
+    /// grammar.tokens.insert(a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    /// grammar.rule_names.insert(s, "S".into());
+    /// grammar.rules.insert(s, vec![
+    ///     Rule { lhs: s, rhs: vec![Symbol::Terminal(a)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(0) },
+    /// ]);
+    ///
+    /// let ff = FirstFollowSets::compute(&grammar).unwrap();
+    /// let table = build_lr1_automaton(&grammar, &ff).unwrap();
+    ///
+    /// // Initial state should have a Shift on terminal 'a'
+    /// let actions = table.actions(table.initial_state, a);
+    /// assert!(actions.iter().any(|a| matches!(a, Action::Shift(_))));
+    /// ```
     #[inline]
     pub fn actions(&self, state: StateId, sym: SymbolId) -> &'_ [Action] {
         let s = state.0 as usize;
@@ -1721,7 +1818,33 @@ impl ParseTable {
         &self.action_table[s][col]
     }
 
-    /// Get goto state for a nonterminal
+    /// Get goto state for a nonterminal.
+    ///
+    /// Returns the target state after reducing to `nt` in the given `state`,
+    /// or `None` if no transition exists.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    /// use adze_ir::*;
+    ///
+    /// let mut grammar = Grammar::new("goto".into());
+    /// let a = SymbolId(1);
+    /// let s = SymbolId(10);
+    /// grammar.tokens.insert(a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    /// grammar.rule_names.insert(s, "S".into());
+    /// grammar.rules.insert(s, vec![
+    ///     Rule { lhs: s, rhs: vec![Symbol::Terminal(a)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(0) },
+    /// ]);
+    ///
+    /// let ff = FirstFollowSets::compute(&grammar).unwrap();
+    /// let table = build_lr1_automaton(&grammar, &ff).unwrap();
+    ///
+    /// // After shifting 'a' and reducing S→a, goto(0, S) should exist
+    /// let target = table.goto(table.initial_state, s);
+    /// assert!(target.is_some(), "goto(initial, S) should exist");
+    /// ```
     #[inline]
     pub fn goto(&self, state: StateId, nt: SymbolId) -> Option<StateId> {
         let s = state.0 as usize;
@@ -1805,6 +1928,7 @@ impl ParseTable {
     /// - EOF symbol is a proper sentinel (>= token_count + external_token_count)
     /// - EOF symbol is present in symbol_to_index mapping
     /// - EOF and END columns have matching action patterns (parity)
+    #[must_use = "validation result must be checked"]
     pub fn validate(&self) -> Result<(), TableError> {
         // Check EOF equals terminal_boundary exactly
         let terminal_boundary = self.token_count + self.external_token_count;
@@ -2036,7 +2160,33 @@ pub enum ConflictType {
 }
 
 impl ConflictResolver {
-    /// Detect conflicts in the parse table
+    /// Detect conflicts in the parse table.
+    ///
+    /// Scans every item set and reports shift/reduce or reduce/reduce conflicts.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use adze_glr_core::{ConflictResolver, ConflictType, FirstFollowSets, ItemSetCollection};
+    /// use adze_ir::*;
+    ///
+    /// // E → a | E E  (inherently ambiguous)
+    /// let mut grammar = Grammar::new("ambig".into());
+    /// let a = SymbolId(1);
+    /// let e = SymbolId(10);
+    /// grammar.tokens.insert(a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+    /// grammar.rule_names.insert(e, "E".into());
+    /// grammar.rules.insert(e, vec![
+    ///     Rule { lhs: e, rhs: vec![Symbol::Terminal(a)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(0) },
+    ///     Rule { lhs: e, rhs: vec![Symbol::NonTerminal(e), Symbol::NonTerminal(e)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(1) },
+    /// ]);
+    ///
+    /// let ff = FirstFollowSets::compute(&grammar).unwrap();
+    /// let collection = ItemSetCollection::build_canonical_collection(&grammar, &ff);
+    /// let resolver = ConflictResolver::detect_conflicts(&collection, &grammar, &ff);
+    /// // An ambiguous grammar like E → a | E E should have conflicts
+    /// assert!(!resolver.conflicts.is_empty(), "should detect conflicts");
+    /// ```
     pub fn detect_conflicts(
         item_sets: &ItemSetCollection,
         grammar: &Grammar,
@@ -2353,7 +2503,39 @@ fn action_sort_key(action: &Action) -> (u8, u16, u16, u16) {
     }
 }
 
-/// Build LR(1) automaton (parse table) from grammar
+/// Build LR(1) automaton (parse table) from grammar.
+///
+/// Constructs an augmented grammar, builds the canonical LR(1) collection,
+/// and fills the ACTION / GOTO tables.
+///
+/// # Examples
+///
+/// ```
+/// use adze_glr_core::{FirstFollowSets, build_lr1_automaton, Action};
+/// use adze_ir::*;
+///
+/// let mut grammar = Grammar::new("ab".into());
+/// let a = SymbolId(1);
+/// let s = SymbolId(10);
+///
+/// grammar.tokens.insert(a, Token { name: "a".into(), pattern: TokenPattern::String("a".into()), fragile: false });
+/// grammar.rule_names.insert(s, "S".into());
+/// grammar.rules.insert(s, vec![
+///     Rule { lhs: s, rhs: vec![Symbol::Terminal(a)], precedence: None, associativity: None, fields: vec![], production_id: ProductionId(0) },
+/// ]);
+///
+/// let ff = FirstFollowSets::compute(&grammar).unwrap();
+/// let table = build_lr1_automaton(&grammar, &ff).unwrap();
+///
+/// assert!(table.state_count > 0);
+/// assert_eq!(table.start_symbol(), s);
+/// // The table should contain an Accept action somewhere on EOF
+/// let eof = table.eof();
+/// let has_accept = (0..table.state_count).any(|st| {
+///     table.actions(StateId(st as u16), eof).iter().any(|a| matches!(a, Action::Accept))
+/// });
+/// assert!(has_accept, "table must have an Accept action");
+/// ```
 pub fn build_lr1_automaton(
     grammar: &Grammar,
     first_follow: &FirstFollowSets,
@@ -3072,6 +3254,7 @@ pub fn build_lr1_automaton(
 }
 
 /// Sanity check parse table for correctness
+#[must_use = "validation result must be checked"]
 pub fn sanity_check_tables(pt: &ParseTable) -> Result<(), String> {
     // 1) ACCEPT must exist on EOF in the state that has S'→S•.
     let eof_col = pt
