@@ -1363,55 +1363,52 @@ mod tests {
 
     #[test]
     fn test_generate_production_id_map_includes_first_slot() {
-        #[test]
-        fn test_generate_production_id_map_includes_first_slot() {
-            let mut grammar = Grammar::new("test".to_string());
+        let mut grammar = Grammar::new("test".to_string());
 
-            let start = SymbolId(1);
-            let t = SymbolId(2);
-            grammar.rule_names.insert(start, "start".to_string());
-            grammar.tokens.insert(
-                t,
-                Token {
-                    name: "t".to_string(),
-                    pattern: TokenPattern::String("t".to_string()),
-                    fragile: false,
-                },
-            );
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
 
-            grammar.add_rule(Rule {
-                lhs: start,
-                rhs: vec![Symbol::Terminal(t)],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(0),
-            });
-            grammar.add_rule(Rule {
-                lhs: start,
-                rhs: vec![Symbol::Terminal(t)],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(1),
-            });
-            grammar.add_rule(Rule {
-                lhs: start,
-                rhs: vec![Symbol::Terminal(t)],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(2),
-            });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(2),
+        });
 
-            let parse_table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
-            let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
-            let production_map = builder.generate_production_id_map();
+        let parse_table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
+        let production_map = builder.generate_production_id_map();
 
-            assert_eq!(production_map.len(), 3);
-            assert_eq!(production_map[0].to_string(), "0u16");
-            assert_eq!(production_map[1].to_string(), "1u16");
-            assert_eq!(production_map[2].to_string(), "2u16");
-        }
+        assert_eq!(production_map.len(), 3);
+        assert_eq!(production_map[0].to_string(), "0u16");
+        assert_eq!(production_map[1].to_string(), "1u16");
+        assert_eq!(production_map[2].to_string(), "2u16");
     }
 }

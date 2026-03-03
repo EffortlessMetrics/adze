@@ -1,5 +1,6 @@
 //! Public driver that runs the GLR engine and returns a trait-object forest.
 
+use crate::debug_trace;
 use crate::forest_view::{Forest, ForestView, Span};
 use crate::parse_forest::{ForestAlternative, ForestNode, ParseForest};
 use crate::{Action, ParseTable, RuleId, StateId, SymbolId};
@@ -630,19 +631,19 @@ impl<'t> Driver<'t> {
 
         let stacks = std::mem::take(&mut state.stacks);
         for mut stk in stacks {
-            let top = stk.top_state()?;
+            let _top = stk.top_state()?;
             debug_trace!(
                 "DEBUG: Processing stack with {} states, top state={}",
                 stk.states.len(),
-                top.0
+                _top.0
             );
 
             self.reduce_closure(&mut state, &mut stk, eof)?;
 
-            let top_after_reduce = stk.top_state()?;
+            let _top_after_reduce = stk.top_state()?;
             debug_trace!(
                 "DEBUG: After reduce_closure, checking actions for state {} on EOF",
-                top_after_reduce.0
+                _top_after_reduce.0
             );
 
             // Check if we have the start symbol on top of the stack

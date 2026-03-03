@@ -301,16 +301,16 @@ pub fn build_parser_for_crate(root_file: &Path, options: BuildOptions) -> Result
     let grammars = crate::generate_grammars(root_file)?;
 
     // Debug: write to file
-    if cfg!(debug_assertions) {
-        if let Ok(mut f) = std::fs::File::create("/tmp/adze_grammars.txt") {
-            writeln!(
-                f,
-                "Found {} grammars from {}",
-                grammars.len(),
-                root_file.display()
-            )
-            .ok();
-        }
+    if cfg!(debug_assertions)
+        && let Ok(mut f) = std::fs::File::create("/tmp/adze_grammars.txt")
+    {
+        writeln!(
+            f,
+            "Found {} grammars from {}",
+            grammars.len(),
+            root_file.display()
+        )
+        .ok();
     }
 
     for grammar_json in grammars {

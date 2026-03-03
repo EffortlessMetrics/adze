@@ -186,7 +186,7 @@ impl<T: Clone> StackPool<T> {
     /// ```
     #[must_use]
     pub fn stats(&self) -> PoolStats {
-        self.stats.borrow().clone()
+        *self.stats.borrow()
     }
 
     /// Reset statistics.

@@ -9,7 +9,8 @@
 #![allow(
     clippy::ptr_arg,
     clippy::explicit_counter_loop,
-    clippy::needless_range_loop
+    clippy::needless_range_loop,
+    clippy::unused_enumerate_index
 )]
 
 //! GLR parser generation algorithms for Adze
@@ -1117,13 +1118,13 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
-            let mut terminal_count = 0;
-            let mut non_terminal_count = 0;
+            let mut _terminal_count = 0;
+            let mut _non_terminal_count = 0;
             if i == 0 {
                 debug_trace!("\n=== State 0 Analysis ===");
                 debug_trace!("State 0 has {} items:", current_set.items.len());
             }
-            for (idx, item) in current_set.items.iter().enumerate() {
+            for (_idx, item) in current_set.items.iter().enumerate() {
                 if i == 0 {
                     // Print the item details
                     if let Some(rule) = grammar
@@ -1148,20 +1149,20 @@ impl ItemSetCollection {
                         if item.position == rule.rhs.len() {
                             item_str.push_str("• ");
                         }
-                        debug_trace!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
+                        debug_trace!("  Item {}: {} (rule_id={})", _idx, item_str, item.rule_id.0);
                     }
                 }
 
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
                         Symbol::Terminal(_id) => {
-                            terminal_count += 1;
+                            _terminal_count += 1;
                         }
                         Symbol::NonTerminal(_id) => {
-                            non_terminal_count += 1;
+                            _non_terminal_count += 1;
                         }
                         Symbol::External(_id) => {
-                            terminal_count += 1; // Count externals as terminals
+                            _terminal_count += 1; // Count externals as terminals
                         }
                         _ => {}
                     }
@@ -1175,12 +1176,12 @@ impl ItemSetCollection {
             if i == 0 {
                 debug_trace!("\nState 0 summary:");
                 debug_trace!("  Total symbols that can be shifted: {}", symbols.len());
-                debug_trace!("  Terminals: {}", terminal_count);
-                debug_trace!("  Non-terminals: {}", non_terminal_count);
+                debug_trace!("  Terminals: {}", _terminal_count);
+                debug_trace!("  Non-terminals: {}", _non_terminal_count);
                 debug_trace!("  Symbols: {:?}\n", symbols);
             }
 
-            // Debug: symbols.len(), terminal_count, non_terminal_count
+            // Debug: symbols.len(), _terminal_count, _non_terminal_count
             // Compute GOTO for each symbol
             for symbol in symbols {
                 let goto_set = current_set.goto(&symbol, grammar, first_follow);
@@ -1315,13 +1316,13 @@ impl ItemSetCollection {
 
             // Find all symbols that can be shifted from this state
             let mut symbols = BTreeSet::new();
-            let mut terminal_count = 0;
-            let mut non_terminal_count = 0;
+            let mut _terminal_count = 0;
+            let mut _non_terminal_count = 0;
             if i == 0 {
                 debug_trace!("\n=== State 0 Analysis ===");
                 debug_trace!("State 0 has {} items:", current_set.items.len());
             }
-            for (idx, item) in current_set.items.iter().enumerate() {
+            for (_idx, item) in current_set.items.iter().enumerate() {
                 if i == 0 {
                     // Print the item details
                     if let Some(rule) = grammar
@@ -1346,20 +1347,20 @@ impl ItemSetCollection {
                         if item.position == rule.rhs.len() {
                             item_str.push_str("• ");
                         }
-                        debug_trace!("  Item {}: {} (rule_id={})", idx, item_str, item.rule_id.0);
+                        debug_trace!("  Item {}: {} (rule_id={})", _idx, item_str, item.rule_id.0);
                     }
                 }
 
                 if let Some(symbol) = item.next_symbol(grammar) {
                     match symbol {
                         Symbol::Terminal(_id) => {
-                            terminal_count += 1;
+                            _terminal_count += 1;
                         }
                         Symbol::NonTerminal(_id) => {
-                            non_terminal_count += 1;
+                            _non_terminal_count += 1;
                         }
                         Symbol::External(_id) => {
-                            terminal_count += 1; // Count externals as terminals
+                            _terminal_count += 1; // Count externals as terminals
                         }
                         _ => {}
                     }
@@ -1373,12 +1374,12 @@ impl ItemSetCollection {
             if i == 0 {
                 debug_trace!("\nState 0 summary:");
                 debug_trace!("  Total symbols that can be shifted: {}", symbols.len());
-                debug_trace!("  Terminals: {}", terminal_count);
-                debug_trace!("  Non-terminals: {}", non_terminal_count);
+                debug_trace!("  Terminals: {}", _terminal_count);
+                debug_trace!("  Non-terminals: {}", _non_terminal_count);
                 debug_trace!("  Symbols: {:?}\n", symbols);
             }
 
-            // Debug: symbols.len(), terminal_count, non_terminal_count
+            // Debug: symbols.len(), _terminal_count, _non_terminal_count
             for item in &current_set.items {
                 if let Some(symbol) = item.next_symbol(grammar) {
                     let _symbol_id = match &symbol {
@@ -2589,8 +2590,8 @@ pub fn build_lr1_automaton(
         .filter(|((from, _), _)| from.0 == 0)
         .collect();
     debug_trace!("State 0 has {} goto entries", state0_gotos.len());
-    for ((_, symbol), to_state) in &state0_gotos {
-        debug_trace!("  Symbol {} -> State {}", symbol.0, to_state.0);
+    for ((_, _symbol), _to_state) in &state0_gotos {
+        debug_trace!("  Symbol {} -> State {}", _symbol.0, _to_state.0);
     }
 
     // First, add shift actions from goto table for terminals
