@@ -176,6 +176,7 @@ dependencies = [
  "adze-common-syntax-core",
  "insta",
  "proc-macro2",
+ "proptest",
  "quote",
  "serde_json",
  "syn 2.0.117",

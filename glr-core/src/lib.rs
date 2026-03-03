@@ -138,6 +138,8 @@ pub mod symbol_comparison;
 #[doc(hidden)]
 pub mod version_info;
 
+pub mod lib_v2;
+
 #[cfg(test)]
 /// Utilities for constructing test parse tables and grammars.
 pub mod test_helpers;
