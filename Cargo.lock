@@ -368,6 +368,7 @@ dependencies = [
  "indexmap",
  "insta",
  "postcard",
+ "proptest",
  "rayon",
  "rustc-hash 2.1.1",
  "serde",
