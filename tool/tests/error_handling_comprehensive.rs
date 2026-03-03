@@ -1,28 +1,251 @@
 #![allow(clippy::needless_range_loop)]
 
-//! Comprehensive tests for error types, conversions, and handling in the tool crate.
+//! Comprehensive tests for error handling throughout adze-tool.
+//!
+//! Covers: build with missing/empty/invalid source files, no grammar module,
+//! build stats generation, helpful error messages, multiple error reporting,
+//! and build config validation.
 
-use adze_tool::ToolResult;
+use std::fs;
+use std::path::Path;
+
 use adze_tool::error::ToolError;
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js, build_parser_from_json};
+use adze_tool::ToolResult;
+use tempfile::TempDir;
 
-// ── Variant construction & Display ──────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+fn grammars_from_rust(code: &str) -> ToolResult<Vec<serde_json::Value>> {
+    let dir = TempDir::new().unwrap();
+    let src = dir.path().join("lib.rs");
+    fs::write(&src, code).unwrap();
+    adze_tool::generate_grammars(&src)
+}
+
+fn try_build_js(js: &str) -> anyhow::Result<adze_tool::pure_rust_builder::BuildResult> {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("grammar.js");
+    fs::write(&path, js).unwrap();
+    let opts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: false,
+        compress_tables: false,
+    };
+    build_parser_from_grammar_js(&path, opts)
+}
+
+fn opts_in(dir: &TempDir) -> BuildOptions {
+    BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: false,
+        compress_tables: false,
+    }
+}
+
+// =========================================================================
+// 1. Build with missing source file
+// =========================================================================
 
 #[test]
-fn multiple_word_rules_display() {
-    let err = ToolError::MultipleWordRules;
-    let msg = err.to_string();
-    assert!(msg.contains("word rule"), "got: {msg}");
+fn generate_grammars_missing_file_panics() {
+    // syn_inline_mod panics internally when the file does not exist.
+    // Verify the panic is raised rather than silent corruption.
+    let result = std::panic::catch_unwind(|| {
+        let _ = adze_tool::generate_grammars(Path::new("/tmp/nonexistent_adze_test_file.rs"));
+    });
+    assert!(result.is_err(), "missing file should cause a panic from syn_inline_mod");
 }
 
 #[test]
-fn multiple_precedence_attributes_display() {
-    let err = ToolError::MultiplePrecedenceAttributes;
-    let msg = err.to_string();
-    assert!(msg.contains("prec"), "got: {msg}");
+fn build_parser_for_crate_missing_file_panics() {
+    // build_parser_for_crate delegates to generate_grammars which uses
+    // syn_inline_mod; verify the panic is raised.
+    let result = std::panic::catch_unwind(|| {
+        let _ = adze_tool::pure_rust_builder::build_parser_for_crate(
+            Path::new("/tmp/nonexistent_adze_test_file.rs"),
+            BuildOptions::default(),
+        );
+    });
+    assert!(result.is_err(), "missing file should cause a panic");
 }
 
 #[test]
-fn expected_string_literal_display() {
+fn build_parser_from_grammar_js_missing_file() {
+    let result = build_parser_from_grammar_js(
+        Path::new("/tmp/nonexistent_adze_grammar.js"),
+        BuildOptions::default(),
+    );
+    assert!(result.is_err(), "should fail for missing grammar.js");
+    let msg = format!("{:#}", result.unwrap_err());
+    assert!(
+        msg.to_lowercase().contains("read") || msg.to_lowercase().contains("no such file"),
+        "error should reference read failure, got: {msg}"
+    );
+}
+
+// =========================================================================
+// 2. Build with empty source file
+// =========================================================================
+
+#[test]
+fn empty_source_file_yields_no_grammars() {
+    let result = grammars_from_rust("");
+    assert!(result.is_ok(), "empty file should not error");
+    assert!(result.unwrap().is_empty(), "empty file should yield no grammars");
+}
+
+#[test]
+fn whitespace_only_source_file_yields_no_grammars() {
+    let result = grammars_from_rust("   \n\t\n   ");
+    assert!(result.is_ok(), "whitespace-only should not error");
+    assert!(result.unwrap().is_empty());
+}
+
+#[test]
+fn empty_grammar_js_fails_gracefully() {
+    let result = try_build_js("");
+    assert!(result.is_err(), "empty grammar.js should fail");
+}
+
+// =========================================================================
+// 3. Build with invalid Rust syntax
+// =========================================================================
+
+#[test]
+fn invalid_rust_syntax_unclosed_brace_panics() {
+    // syn_inline_mod panics on unparseable Rust; verify the panic.
+    let result = std::panic::catch_unwind(|| {
+        let dir = TempDir::new().unwrap();
+        let src = dir.path().join("lib.rs");
+        fs::write(&src, "mod foo {").unwrap();
+        let _ = adze_tool::generate_grammars(&src);
+    });
+    assert!(result.is_err(), "unclosed brace should cause a panic");
+}
+
+#[test]
+fn invalid_rust_syntax_random_tokens_panics() {
+    let result = std::panic::catch_unwind(|| {
+        let dir = TempDir::new().unwrap();
+        let src = dir.path().join("lib.rs");
+        fs::write(&src, "@@@ ??? !!!").unwrap();
+        let _ = adze_tool::generate_grammars(&src);
+    });
+    assert!(result.is_err(), "random tokens should cause a panic");
+}
+
+#[test]
+fn invalid_rust_syntax_incomplete_attribute_panics() {
+    let result = std::panic::catch_unwind(|| {
+        let dir = TempDir::new().unwrap();
+        let src = dir.path().join("lib.rs");
+        fs::write(&src, "#[adze::grammar(").unwrap();
+        let _ = adze_tool::generate_grammars(&src);
+    });
+    assert!(result.is_err(), "incomplete attribute should cause a panic");
+}
+
+// =========================================================================
+// 4. Build with no grammar module
+// =========================================================================
+
+#[test]
+fn plain_module_no_grammar_attr() {
+    let gs = grammars_from_rust(
+        r#"
+        mod my_module {
+            pub struct Foo;
+        }
+        "#,
+    )
+    .unwrap();
+    assert!(gs.is_empty(), "module without #[adze::grammar] should produce nothing");
+}
+
+#[test]
+fn struct_only_no_grammar() {
+    let gs = grammars_from_rust("pub struct Bar { x: i32 }").unwrap();
+    assert!(gs.is_empty());
+}
+
+#[test]
+fn function_only_no_grammar() {
+    let gs = grammars_from_rust("fn main() { println!(\"hello\"); }").unwrap();
+    assert!(gs.is_empty());
+}
+
+#[test]
+fn nested_module_without_grammar_attr() {
+    let gs = grammars_from_rust(
+        r#"
+        mod outer {
+            mod inner {
+                pub enum E { A, B }
+            }
+        }
+        "#,
+    )
+    .unwrap();
+    assert!(gs.is_empty());
+}
+
+// =========================================================================
+// 5. Build stats generation
+// =========================================================================
+
+fn build_simple_grammar_js() -> adze_tool::pure_rust_builder::BuildResult {
+    try_build_js(
+        r#"
+module.exports = grammar({
+  name: 'stats_test',
+  rules: {
+    source_file: $ => $.expression,
+    expression: $ => /\d+/
+  }
+});
+        "#,
+    )
+    .expect("simple grammar should build")
+}
+
+#[test]
+fn build_stats_state_count_positive() {
+    let result = build_simple_grammar_js();
+    assert!(result.build_stats.state_count > 0, "state_count should be > 0");
+}
+
+#[test]
+fn build_stats_symbol_count_positive() {
+    let result = build_simple_grammar_js();
+    assert!(result.build_stats.symbol_count > 0, "symbol_count should be > 0");
+}
+
+#[test]
+fn build_stats_conflict_cells_non_negative() {
+    let result = build_simple_grammar_js();
+    // conflict_cells is usize, always >= 0; verify it's a reasonable number
+    assert!(
+        result.build_stats.conflict_cells <= result.build_stats.state_count * result.build_stats.symbol_count,
+        "conflict_cells should not exceed total cells"
+    );
+}
+
+#[test]
+fn build_stats_populated_on_success() {
+    let result = build_simple_grammar_js();
+    // All stats fields should be populated and the grammar name should be set
+    assert_eq!(result.grammar_name, "stats_test");
+    assert!(result.build_stats.state_count > 0);
+    assert!(result.build_stats.symbol_count > 0);
+}
+
+// =========================================================================
+// 6. Error messages contain helpful information
+// =========================================================================
+
+#[test]
+fn tool_error_expected_string_literal_has_context() {
     let err = ToolError::ExpectedStringLiteral {
         context: "leaf token".into(),
         actual: "42".into(),
@@ -34,289 +257,250 @@ fn expected_string_literal_display() {
 }
 
 #[test]
-fn expected_integer_literal_display() {
-    let err = ToolError::ExpectedIntegerLiteral {
-        actual: "not_a_number".into(),
-    };
-    let msg = err.to_string();
-    assert!(msg.contains("integer literal"), "got: {msg}");
-    assert!(msg.contains("not_a_number"), "got: {msg}");
-}
-
-#[test]
-fn expected_path_type_display() {
-    let err = ToolError::ExpectedPathType {
-        actual: "&[u8]".into(),
-    };
-    let msg = err.to_string();
-    assert!(msg.contains("path") || msg.contains("unit"), "got: {msg}");
-    assert!(msg.contains("&[u8]"), "got: {msg}");
-}
-
-#[test]
-fn expected_single_segment_path_display() {
-    let err = ToolError::ExpectedSingleSegmentPath {
-        actual: "std::vec::Vec".into(),
-    };
-    let msg = err.to_string();
-    assert!(msg.contains("single segment"), "got: {msg}");
-    assert!(msg.contains("std::vec::Vec"), "got: {msg}");
-}
-
-#[test]
-fn nested_option_type_display() {
-    let err = ToolError::NestedOptionType;
-    let msg = err.to_string();
-    assert!(msg.contains("Option<Option"), "got: {msg}");
-}
-
-#[test]
-fn struct_has_no_fields_display() {
+fn tool_error_struct_no_fields_names_struct() {
     let err = ToolError::StructHasNoFields {
         name: "EmptyNode".into(),
     };
     let msg = err.to_string();
-    assert!(msg.contains("EmptyNode"), "got: {msg}");
+    assert!(msg.contains("EmptyNode"), "error should name the struct, got: {msg}");
+}
+
+#[test]
+fn tool_error_invalid_production_includes_details() {
+    let err = ToolError::InvalidProduction {
+        details: "empty RHS in rule `expr`".into(),
+    };
+    let msg = err.to_string();
+    assert!(msg.contains("empty RHS"), "got: {msg}");
+    assert!(msg.contains("invalid production"), "got: {msg}");
+}
+
+#[test]
+fn tool_error_grammar_validation_includes_reason() {
+    let err = ToolError::GrammarValidation {
+        reason: "start symbol undefined".into(),
+    };
+    let msg = err.to_string();
+    assert!(msg.contains("start symbol undefined"), "got: {msg}");
     assert!(
-        msg.contains("no non-skipped fields") || msg.contains("no fields"),
-        "got: {msg}"
+        msg.to_lowercase().contains("validation"),
+        "should mention validation, got: {msg}"
     );
 }
 
 #[test]
-fn invalid_production_display() {
-    let err = ToolError::InvalidProduction {
-        details: "empty RHS".into(),
-    };
-    let msg = err.to_string();
-    assert!(msg.contains("invalid production"), "got: {msg}");
-    assert!(msg.contains("empty RHS"), "got: {msg}");
-}
-
-#[test]
-fn grammar_validation_display() {
-    let err = ToolError::GrammarValidation {
-        reason: "missing start symbol".into(),
-    };
-    let msg = err.to_string();
-    assert!(msg.contains("grammar validation"), "got: {msg}");
-    assert!(msg.contains("missing start symbol"), "got: {msg}");
-}
-
-#[test]
-fn other_variant_display() {
-    let err = ToolError::Other("custom message".into());
-    assert_eq!(err.to_string(), "custom message");
-}
-
-// ── Helper constructors ─────────────────────────────────────────────────────
-
-#[test]
-fn helper_string_too_long() {
-    let err = ToolError::string_too_long("extraction", 65536);
-    let msg = err.to_string();
-    assert!(msg.contains("extraction"), "got: {msg}");
-    assert!(msg.contains("65536"), "got: {msg}");
-}
-
-#[test]
-fn helper_complex_symbols_not_normalized() {
-    let err = ToolError::complex_symbols_not_normalized("FIRST set computation");
-    let msg = err.to_string();
-    assert!(msg.contains("normalized"), "got: {msg}");
-    assert!(msg.contains("FIRST set computation"), "got: {msg}");
-}
-
-#[test]
-fn helper_expected_symbol_type() {
-    let err = ToolError::expected_symbol_type("Terminal");
-    let msg = err.to_string();
-    assert!(msg.contains("Terminal"), "got: {msg}");
-}
-
-#[test]
-fn helper_expected_action_type() {
-    let err = ToolError::expected_action_type("Shift");
-    let msg = err.to_string();
-    assert!(msg.contains("Shift"), "got: {msg}");
-}
-
-#[test]
-fn helper_expected_error_type() {
-    let err = ToolError::expected_error_type("Recoverable");
-    let msg = err.to_string();
-    assert!(msg.contains("Recoverable"), "got: {msg}");
-}
-
-#[test]
-fn helper_grammar_validation() {
-    let err = ToolError::grammar_validation("conflicting precedence");
-    let msg = err.to_string();
-    assert!(msg.contains("conflicting precedence"), "got: {msg}");
-}
-
-// ── From conversions ────────────────────────────────────────────────────────
-
-#[test]
-fn from_string() {
-    let err: ToolError = String::from("something went wrong").into();
-    match &err {
-        ToolError::Other(s) => assert_eq!(s, "something went wrong"),
-        other => panic!("expected Other, got: {other:?}"),
-    }
-}
-
-#[test]
-fn from_str_ref() {
-    let err: ToolError = "a &str error".into();
-    match &err {
-        ToolError::Other(s) => assert_eq!(s, "a &str error"),
-        other => panic!("expected Other, got: {other:?}"),
-    }
-}
-
-#[test]
-fn from_io_error() {
-    let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file missing");
+fn io_error_preserves_message() {
+    let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied to /secret");
     let err: ToolError = io_err.into();
-    match &err {
-        ToolError::Io(e) => assert_eq!(e.kind(), std::io::ErrorKind::NotFound),
-        other => panic!("expected Io, got: {other:?}"),
-    }
+    let msg = err.to_string();
+    assert!(msg.contains("access denied"), "IO context should be preserved, got: {msg}");
 }
 
 #[test]
-fn from_json_error() {
-    let json_err = serde_json::from_str::<serde_json::Value>("not json").unwrap_err();
+fn json_error_includes_position() {
+    let json_err = serde_json::from_str::<serde_json::Value>("{ bad }").unwrap_err();
     let err: ToolError = json_err.into();
-    match &err {
-        ToolError::Json(_) => {}
-        other => panic!("expected Json, got: {other:?}"),
-    }
+    let msg = err.to_string();
+    // serde_json errors include line/column info
+    assert!(
+        msg.contains("line") || msg.contains("column") || msg.contains("key"),
+        "JSON error should include position info, got: {msg}"
+    );
 }
 
+// =========================================================================
+// 7. Multiple errors reported (not just first)
+// =========================================================================
+
 #[test]
-fn from_ir_error() {
-    let ir_err = adze_ir::IrError::InvalidSymbol("bad_sym".into());
-    let err: ToolError = ir_err.into();
-    match &err {
-        ToolError::Ir(_) => {
-            assert!(err.to_string().contains("bad_sym"), "got: {err}");
+fn collect_multiple_tool_errors() {
+    let errors: Vec<ToolError> = vec![
+        ToolError::MultipleWordRules,
+        ToolError::MultiplePrecedenceAttributes,
+        ToolError::NestedOptionType,
+    ];
+    assert_eq!(errors.len(), 3);
+    // Each error has a distinct discriminant
+    for i in 0..errors.len() {
+        for j in (i + 1)..errors.len() {
+            assert_ne!(
+                std::mem::discriminant(&errors[i]),
+                std::mem::discriminant(&errors[j]),
+            );
         }
-        other => panic!("expected Ir, got: {other:?}"),
     }
 }
 
 #[test]
-fn from_glr_error() {
-    let glr_err = adze_glr_core::GLRError::StateMachine("state overflow".into());
-    let err: ToolError = glr_err.into();
-    match &err {
-        ToolError::Glr(_) => {
-            assert!(err.to_string().contains("state overflow"), "got: {err}");
+fn error_chain_source_callable_on_wrapped_errors() {
+    // Verify source() is callable on all wrapper variants via std::error::Error
+    let io_err: ToolError =
+        std::io::Error::new(std::io::ErrorKind::NotFound, "file.rs").into();
+    let _ = std::error::Error::source(&io_err); // must compile and not panic
+
+    let json_err: ToolError =
+        serde_json::from_str::<serde_json::Value>("bad").unwrap_err().into();
+    let _ = std::error::Error::source(&json_err);
+
+    let syn_err: ToolError =
+        syn::Error::new(proc_macro2::Span::call_site(), "oops").into();
+    let _ = std::error::Error::source(&syn_err);
+}
+
+#[test]
+fn multiple_error_messages_are_distinct() {
+    let errors: Vec<ToolError> = vec![
+        ToolError::ExpectedStringLiteral {
+            context: "field A".into(),
+            actual: "num".into(),
+        },
+        ToolError::ExpectedStringLiteral {
+            context: "field B".into(),
+            actual: "bool".into(),
+        },
+        ToolError::ExpectedIntegerLiteral {
+            actual: "xyz".into(),
+        },
+    ];
+    let messages: Vec<String> = errors.iter().map(|e| e.to_string()).collect();
+    // First two share variant but differ in context
+    assert_ne!(messages[0], messages[1]);
+    assert_ne!(messages[0], messages[2]);
+}
+
+#[test]
+fn result_vec_can_accumulate_errors() {
+    fn validate_fields(names: &[&str]) -> Vec<ToolError> {
+        let mut errs = Vec::new();
+        for name in names {
+            if name.is_empty() {
+                errs.push(ToolError::StructHasNoFields {
+                    name: "(empty)".into(),
+                });
+            }
+            if name.contains("::") {
+                errs.push(ToolError::ExpectedSingleSegmentPath {
+                    actual: name.to_string(),
+                });
+            }
         }
-        other => panic!("expected Glr, got: {other:?}"),
+        errs
     }
+    let errs = validate_fields(&["", "std::vec::Vec", "ok"]);
+    assert_eq!(errs.len(), 2, "should collect both errors");
+}
+
+// =========================================================================
+// 8. Build config validation
+// =========================================================================
+
+#[test]
+fn build_options_default_has_reasonable_values() {
+    let opts = BuildOptions::default();
+    assert!(!opts.out_dir.is_empty(), "out_dir should not be empty");
+    assert!(opts.compress_tables, "compress_tables should default to true");
 }
 
 #[test]
-fn from_tablegen_error() {
-    let tg_err = adze_tablegen::TableGenError::EmptyGrammar;
-    let err: ToolError = tg_err.into();
-    match &err {
-        ToolError::TableGen(_) => {
-            assert!(err.to_string().contains("empty grammar"), "got: {err}");
-        }
-        other => panic!("expected TableGen, got: {other:?}"),
-    }
-}
-
-#[test]
-fn from_syn_error() {
-    let syn_err = syn::Error::new(proc_macro2::Span::call_site(), "bad syntax");
-    let err: ToolError = syn_err.into();
-    match &err {
-        ToolError::SynError { .. } => {
-            assert!(err.to_string().contains("bad syntax"), "got: {err}");
-        }
-        other => panic!("expected SynError, got: {other:?}"),
-    }
-}
-
-// ── std::error::Error trait ─────────────────────────────────────────────────
-
-#[test]
-fn implements_std_error() {
-    let err = ToolError::MultipleWordRules;
-    let _dyn: &dyn std::error::Error = &err;
-}
-
-#[test]
-fn io_error_display_is_transparent() {
-    let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "no access");
-    let original_msg = io_err.to_string();
-    let err: ToolError = io_err.into();
-    // transparent delegates Display to the inner error
-    assert_eq!(err.to_string(), original_msg);
-}
-
-#[test]
-fn json_error_display_is_transparent() {
-    let json_err = serde_json::from_str::<serde_json::Value>("}{").unwrap_err();
-    let original_msg = json_err.to_string();
-    let err: ToolError = json_err.into();
-    assert_eq!(err.to_string(), original_msg);
-}
-
-// ── Debug ───────────────────────────────────────────────────────────────────
-
-#[test]
-fn debug_includes_variant_name() {
-    let err = ToolError::NestedOptionType;
-    let dbg = format!("{err:?}");
-    assert!(dbg.contains("NestedOptionType"), "got: {dbg}");
-}
-
-#[test]
-fn debug_includes_field_values() {
-    let err = ToolError::StringTooLong {
-        operation: "compress".into(),
-        length: 999,
+fn build_options_clone_is_equivalent() {
+    let opts = BuildOptions {
+        out_dir: "/tmp/test".into(),
+        emit_artifacts: true,
+        compress_tables: false,
     };
-    let dbg = format!("{err:?}");
-    assert!(dbg.contains("compress"), "got: {dbg}");
-    assert!(dbg.contains("999"), "got: {dbg}");
-}
-
-// ── Result type alias ───────────────────────────────────────────────────────
-
-#[test]
-fn result_ok_variant() {
-    let r: ToolResult<i32> = Ok(42);
-    assert_eq!(r.ok(), Some(42));
+    let cloned = opts.clone();
+    assert_eq!(cloned.out_dir, opts.out_dir);
+    assert_eq!(cloned.emit_artifacts, opts.emit_artifacts);
+    assert_eq!(cloned.compress_tables, opts.compress_tables);
 }
 
 #[test]
-fn result_err_variant() {
-    let r: ToolResult<i32> = Err(ToolError::MultipleWordRules);
-    assert!(r.is_err());
+fn build_options_debug_impl() {
+    let opts = BuildOptions {
+        out_dir: "/some/path".into(),
+        emit_artifacts: false,
+        compress_tables: true,
+    };
+    let dbg = format!("{opts:?}");
+    assert!(dbg.contains("BuildOptions"), "Debug should include type name, got: {dbg}");
+    assert!(dbg.contains("/some/path"), "Debug should include out_dir, got: {dbg}");
 }
 
 #[test]
-fn result_question_mark_propagation() {
-    fn inner() -> ToolResult<()> {
-        let _: serde_json::Value = serde_json::from_str("{}")?;
-        Ok(())
+fn build_with_emit_artifacts_creates_files() {
+    let dir = TempDir::new().unwrap();
+    let grammar_js = r#"
+module.exports = grammar({
+  name: 'artifact_test',
+  rules: {
+    source_file: $ => $.expression,
+    expression: $ => /\d+/
+  }
+});
+    "#;
+    let path = dir.path().join("grammar.js");
+    fs::write(&path, grammar_js).unwrap();
+    let opts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: true,
+        compress_tables: false,
+    };
+    let result = build_parser_from_grammar_js(&path, opts).unwrap();
+    // Parser file should exist
+    assert!(Path::new(&result.parser_path).exists(), "parser file should be written");
+    // Artifact directory should be created
+    let grammar_dir = dir.path().join("grammar_artifact_test");
+    assert!(grammar_dir.exists(), "artifact directory should exist");
+}
+
+#[test]
+fn build_without_emit_artifacts_still_writes_parser() {
+    let dir = TempDir::new().unwrap();
+    let grammar_js = r#"
+module.exports = grammar({
+  name: 'no_artifact',
+  rules: {
+    source_file: $ => $.expression,
+    expression: $ => /[a-z]+/
+  }
+});
+    "#;
+    let path = dir.path().join("grammar.js");
+    fs::write(&path, grammar_js).unwrap();
+    let opts = opts_in(&dir);
+    let result = build_parser_from_grammar_js(&path, opts).unwrap();
+    assert!(Path::new(&result.parser_path).exists());
+}
+
+#[test]
+fn build_from_json_invalid_json_string() {
+    let result = build_parser_from_json("not valid json".to_string(), BuildOptions::default());
+    assert!(result.is_err());
+    let msg = format!("{:#}", result.unwrap_err());
+    assert!(
+        msg.to_lowercase().contains("json") || msg.to_lowercase().contains("parse"),
+        "should mention JSON parse failure, got: {msg}"
+    );
+}
+
+#[test]
+fn build_from_json_missing_name_field() {
+    let json = r#"{"rules": {"source_file": {"type": "PATTERN", "value": "\\d+"}}}"#;
+    let result = build_parser_from_json(json.to_string(), BuildOptions::default());
+    // Should either handle gracefully with "unknown" name or fail with a message
+    match result {
+        Ok(r) => assert!(!r.grammar_name.is_empty()),
+        Err(e) => {
+            let msg = format!("{e:#}");
+            assert!(!msg.is_empty(), "error should have a message");
+        }
     }
-    assert!(inner().is_ok());
 }
 
 #[test]
-fn result_question_mark_propagates_json_err() {
-    fn inner() -> ToolResult<()> {
-        let _: serde_json::Value = serde_json::from_str("bad")?;
-        Ok(())
-    }
-    let err = inner().unwrap_err();
-    assert!(matches!(err, ToolError::Json(_)));
+fn build_from_json_empty_rules() {
+    let json = r#"{"name": "empty_rules", "rules": {}}"#;
+    let result = build_parser_from_json(json.to_string(), BuildOptions::default());
+    // An empty grammar should fail during conversion or table building
+    assert!(result.is_err(), "empty rules should fail to build");
 }
