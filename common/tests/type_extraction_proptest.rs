@@ -502,3 +502,381 @@ proptest! {
         prop_assert_eq!(ty_str(&f2), ty_str(&f3));
     }
 }
+
+// ---------------------------------------------------------------------------
+// Additional targeted tests (35–64)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+
+    // === Extract inner type from Option<T> ===
+
+    // 35. Option<T> extraction always succeeds for leaf T.
+    #[test]
+    fn extract_option_leaf(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Option<{inner}>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Option", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), inner);
+    }
+
+    // 36. Option<Container<T>> extraction yields Container<T>.
+    #[test]
+    fn extract_option_of_container(
+        wrapper in container_name(),
+        inner in leaf_type_name(),
+    ) {
+        let ty: Type = parse_str(&format!("Option<{wrapper}<{inner}>>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Option", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), format!("{wrapper} < {inner} >"));
+    }
+
+    // === Extract inner type from Vec<T> ===
+
+    // 37. Vec<T> extraction always succeeds for leaf T.
+    #[test]
+    fn extract_vec_leaf(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Vec<{inner}>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), inner);
+    }
+
+    // 38. Vec<Container<T>> extraction yields Container<T>.
+    #[test]
+    fn extract_vec_of_container(
+        wrapper in container_name(),
+        inner in leaf_type_name(),
+    ) {
+        let ty: Type = parse_str(&format!("Vec<{wrapper}<{inner}>>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), format!("{wrapper} < {inner} >"));
+    }
+
+    // === Extract inner type from Box<T> ===
+
+    // 39. Box<T> extraction always succeeds for leaf T.
+    #[test]
+    fn extract_box_leaf(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Box<{inner}>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Box", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), inner);
+    }
+
+    // 40. Box in skip set allows reaching Vec target inside.
+    #[test]
+    fn extract_box_skip_to_vec(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Box<Vec<{inner}>>")).unwrap();
+        let skip: HashSet<&str> = ["Box"].into_iter().collect();
+        let (result, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), inner);
+    }
+
+    // === Nested containers (Option<Vec<T>>) ===
+
+    // 41. Option<Vec<T>> — extract Option yields Vec<T>.
+    #[test]
+    fn extract_option_vec_gets_vec(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Option<Vec<{inner}>>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Option", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), format!("Vec < {inner} >"));
+    }
+
+    // 42. Vec<Option<T>> — extract Vec yields Option<T>.
+    #[test]
+    fn extract_vec_option_gets_option(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Vec<Option<{inner}>>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), format!("Option < {inner} >"));
+    }
+
+    // 43. Option<Vec<T>> — skip Option, extract Vec yields T.
+    #[test]
+    fn extract_option_skip_to_vec(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Option<Vec<{inner}>>")).unwrap();
+        let skip: HashSet<&str> = ["Option"].into_iter().collect();
+        let (result, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), inner);
+    }
+
+    // 44. Box<Option<Vec<T>>> — skip Box+Option, extract Vec yields T.
+    #[test]
+    fn extract_triple_nested_skip_two(inner in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("Box<Option<Vec<{inner}>>>")).unwrap();
+        let skip: HashSet<&str> = ["Box", "Option"].into_iter().collect();
+        let (result, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), inner);
+    }
+
+    // === Plain types pass through unchanged ===
+
+    // 45. Primitive types always pass through extract unchanged.
+    #[test]
+    fn extract_plain_primitive_passthrough(
+        leaf in leaf_type_name(),
+        target in container_name(),
+    ) {
+        let ty: Type = parse_str(leaf).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, target, &skip);
+        prop_assert!(!extracted);
+        prop_assert_eq!(ty_str(&result), leaf);
+    }
+
+    // 46. Plain types pass through filter unchanged with any skip set.
+    #[test]
+    fn filter_plain_type_passthrough(
+        leaf in leaf_type_name(),
+        skip in skip_set_strategy(),
+    ) {
+        let ty: Type = parse_str(leaf).unwrap();
+        let filtered = filter_inner_type(&ty, &skip);
+        prop_assert_eq!(ty_str(&filtered), leaf);
+    }
+
+    // 47. Tuple types pass through extract, filter, and wrap without panic.
+    #[test]
+    fn all_functions_on_tuple(
+        a in leaf_type_name(),
+        b in leaf_type_name(),
+        target in container_name(),
+        skip in skip_set_strategy(),
+    ) {
+        let ty: Type = parse_str(&format!("({a}, {b})")).unwrap();
+        let (_, ext) = try_extract_inner_type(&ty, target, &skip);
+        prop_assert!(!ext);
+        let filt = filter_inner_type(&ty, &skip);
+        prop_assert_eq!(ty_str(&filt), ty_str(&ty));
+        let w = wrap_leaf_type(&ty, &skip);
+        prop_assert!(ty_str(&w).contains("adze :: WithLeaf"));
+    }
+
+    // === Complex generic types ===
+
+    // 48. Container wrapping another container: inner container returned intact.
+    #[test]
+    fn extract_returns_inner_container_intact(
+        outer in container_name(),
+        inner_c in container_name(),
+        leaf in leaf_type_name(),
+    ) {
+        let ty: Type = parse_str(&format!("{outer}<{inner_c}<{leaf}>>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, outer, &skip);
+        prop_assert!(extracted);
+        prop_assert_eq!(ty_str(&result), format!("{inner_c} < {leaf} >"));
+    }
+
+    // 49. filter strips all matching skip layers from nested containers.
+    #[test]
+    fn filter_strips_multiple_matching_layers(
+        container in container_name(),
+        leaf in leaf_type_name(),
+    ) {
+        let ty: Type = parse_str(&format!("{container}<{container}<{leaf}>>")).unwrap();
+        let skip: HashSet<&str> = [container].into_iter().collect();
+        let filtered = filter_inner_type(&ty, &skip);
+        prop_assert_eq!(ty_str(&filtered), leaf);
+    }
+
+    // 50. wrap with two-level skip set wraps only the innermost leaf.
+    #[test]
+    fn wrap_two_level_skip(
+        c1 in container_name(),
+        c2 in container_name(),
+        leaf in leaf_type_name(),
+    ) {
+        let skip: HashSet<&str> = [c1, c2].into_iter().collect();
+        let ty: Type = parse_str(&format!("{c1}<{c2}<{leaf}>>")).unwrap();
+        let s = ty_str(&wrap_leaf_type(&ty, &skip));
+        let wl_count = s.matches("WithLeaf").count();
+        prop_assert!(wl_count == 1, "expected 1 WithLeaf, got {} in: {}", wl_count, s);
+    }
+
+    // === Reference types handling ===
+
+    // 51. &T — extraction never succeeds on reference types.
+    #[test]
+    fn extract_ref_never_succeeds(
+        leaf in leaf_type_name(),
+        target in container_name(),
+    ) {
+        let ty: Type = parse_str(&format!("& {leaf}")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (_, extracted) = try_extract_inner_type(&ty, target, &skip);
+        prop_assert!(!extracted);
+    }
+
+    // 52. &mut T — extraction never succeeds on mutable references.
+    #[test]
+    fn extract_ref_mut_never_succeeds(
+        leaf in leaf_type_name(),
+        target in container_name(),
+    ) {
+        let ty: Type = parse_str(&format!("& mut {leaf}")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (_, extracted) = try_extract_inner_type(&ty, target, &skip);
+        prop_assert!(!extracted);
+    }
+
+    // 53. &T — filter on reference returns identical type.
+    #[test]
+    fn filter_ref_identity(leaf in leaf_type_name(), skip in skip_set_strategy()) {
+        let ty: Type = parse_str(&format!("& {leaf}")).unwrap();
+        let filtered = filter_inner_type(&ty, &skip);
+        prop_assert_eq!(ty_str(&filtered), ty_str(&ty));
+    }
+
+    // 54. &mut T — filter on mutable reference returns identical type.
+    #[test]
+    fn filter_ref_mut_identity(leaf in leaf_type_name(), skip in skip_set_strategy()) {
+        let ty: Type = parse_str(&format!("& mut {leaf}")).unwrap();
+        let filtered = filter_inner_type(&ty, &skip);
+        prop_assert_eq!(ty_str(&filtered), ty_str(&ty));
+    }
+
+    // 55. Reference types are wrapped entirely by wrap_leaf_type.
+    #[test]
+    fn wrap_ref_wraps_entirely(leaf in leaf_type_name()) {
+        let ty: Type = parse_str(&format!("& {leaf}")).unwrap();
+        let s = ty_str(&wrap_leaf_type(&ty, &HashSet::new()));
+        prop_assert!(s.starts_with("adze :: WithLeaf"), "expected full wrap: {s}");
+    }
+
+    // === Type extraction determinism ===
+
+    // 56. Five repeated extractions produce identical results.
+    #[test]
+    fn extract_five_times_deterministic(
+        container in container_name(),
+        inner in leaf_type_name(),
+    ) {
+        let ty: Type = parse_str(&format!("{container}<{inner}>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let results: Vec<_> = (0..5)
+            .map(|_| {
+                let (r, e) = try_extract_inner_type(&ty, container, &skip);
+                (ty_str(&r), e)
+            })
+            .collect();
+        for i in 1..results.len() {
+            prop_assert_eq!(&results[0], &results[i]);
+        }
+    }
+
+    // 57. Five repeated filters produce identical results.
+    #[test]
+    fn filter_five_times_deterministic(
+        ty_s in type_string_strategy(),
+        skip in skip_set_strategy(),
+    ) {
+        let ty: Type = parse_str(&ty_s).unwrap();
+        let results: Vec<_> = (0..5)
+            .map(|_| ty_str(&filter_inner_type(&ty, &skip)))
+            .collect();
+        for i in 1..results.len() {
+            prop_assert_eq!(&results[0], &results[i]);
+        }
+    }
+
+    // 58. Five repeated wraps produce identical results.
+    #[test]
+    fn wrap_five_times_deterministic(
+        ty_s in type_string_strategy(),
+        skip in skip_set_strategy(),
+    ) {
+        let ty: Type = parse_str(&ty_s).unwrap();
+        let results: Vec<_> = (0..5)
+            .map(|_| ty_str(&wrap_leaf_type(&ty, &skip)))
+            .collect();
+        for i in 1..results.len() {
+            prop_assert_eq!(&results[0], &results[i]);
+        }
+    }
+
+    // === Additional composition and edge-case properties ===
+
+    // 59. When container is both target and in skip set, target match wins (peels one layer).
+    #[test]
+    fn extract_target_priority_over_skip(
+        container in container_name(),
+        inner in leaf_type_name(),
+    ) {
+        let ty: Type = parse_str(&format!("{container}<{container}<{inner}>>")).unwrap();
+        let skip: HashSet<&str> = [container].into_iter().collect();
+        let (result, extracted) = try_extract_inner_type(&ty, container, &skip);
+        prop_assert!(extracted);
+        // Target match wins over skip — only one layer peeled
+        prop_assert_eq!(ty_str(&result), format!("{container} < {inner} >"));
+    }
+
+    // 60. filter_inner_type on a leaf type is always identity regardless of skip set.
+    #[test]
+    fn filter_leaf_always_identity(leaf in leaf_type_name(), skip in skip_set_strategy()) {
+        let ty: Type = parse_str(leaf).unwrap();
+        let filtered = filter_inner_type(&ty, &skip);
+        prop_assert_eq!(ty_str(&filtered), leaf);
+    }
+
+    // 61. Wrapping then stringifying always contains exactly one "adze :: WithLeaf" for leaves.
+    #[test]
+    fn wrap_leaf_exactly_one_with_leaf(leaf in leaf_type_name()) {
+        let ty: Type = parse_str(leaf).unwrap();
+        let s = ty_str(&wrap_leaf_type(&ty, &HashSet::new()));
+        let count = s.matches("WithLeaf").count();
+        prop_assert!(count == 1, "expected 1 WithLeaf, got {} in: {}", count, s);
+    }
+
+    // 62. extract(Container<T>, Container) then filter(T, {}) is identity on inner T.
+    #[test]
+    fn extract_then_filter_empty_is_inner(
+        container in container_name(),
+        inner in leaf_type_name(),
+    ) {
+        let ty: Type = parse_str(&format!("{container}<{inner}>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (extracted, ok) = try_extract_inner_type(&ty, container, &skip);
+        prop_assert!(ok);
+        let filtered = filter_inner_type(&extracted, &skip);
+        prop_assert_eq!(ty_str(&filtered), inner);
+    }
+
+    // 63. Filtered output never grows longer than the original.
+    #[test]
+    fn filter_never_grows(ty_s in type_string_strategy(), skip in skip_set_strategy()) {
+        let ty: Type = parse_str(&ty_s).unwrap();
+        let orig_len = ty_str(&ty).len();
+        let filt_len = ty_str(&filter_inner_type(&ty, &skip)).len();
+        prop_assert!(filt_len <= orig_len, "filter grew: {} > {}", filt_len, orig_len);
+    }
+
+    // 64. Extracting from a non-matching single-segment path is always no-op.
+    #[test]
+    fn extract_non_matching_segment_noop(
+        container in container_name(),
+        inner in leaf_type_name(),
+    ) {
+        prop_assume!(container != "Rc");
+        let ty: Type = parse_str(&format!("{container}<{inner}>")).unwrap();
+        let skip: HashSet<&str> = HashSet::new();
+        let (result, extracted) = try_extract_inner_type(&ty, "Rc", &skip);
+        prop_assert!(!extracted);
+        prop_assert_eq!(ty_str(&result), ty_str(&ty));
+    }
+}

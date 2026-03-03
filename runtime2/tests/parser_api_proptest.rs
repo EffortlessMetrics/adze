@@ -477,6 +477,420 @@ fn make_language_with_version(version: u32) -> Language {
         .unwrap()
 }
 
+// ---------------------------------------------------------------------------
+// 14 – Tree::new_for_testing
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn new_for_testing_preserves_symbol_and_range(
+        sym in 0u32..100,
+        start in 0usize..1000,
+        len in 0usize..500,
+    ) {
+        let end = start + len;
+        let tree = Tree::new_for_testing(sym, start, end, vec![]);
+        prop_assert_eq!(tree.root_kind(), sym);
+        prop_assert_eq!(tree.root_node().start_byte(), start);
+        prop_assert_eq!(tree.root_node().end_byte(), end);
+        prop_assert_eq!(tree.root_node().child_count(), 0);
+    }
+
+    #[test]
+    fn new_for_testing_with_children(child_count in 1usize..8) {
+        let children: Vec<Tree> = (0..child_count)
+            .map(|i| Tree::new_for_testing(i as u32 + 1, i * 10, (i + 1) * 10, vec![]))
+            .collect();
+        let tree = Tree::new_for_testing(0, 0, child_count * 10, children);
+        prop_assert_eq!(tree.root_node().child_count(), child_count);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 15 – Node byte_range and kind_id
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn node_byte_range_matches_start_end(
+        start in 0usize..1000,
+        len in 0usize..500,
+    ) {
+        let end = start + len;
+        let tree = Tree::new_for_testing(42, start, end, vec![]);
+        let root = tree.root_node();
+        prop_assert_eq!(root.byte_range(), start..end);
+        prop_assert_eq!(root.start_byte(), start);
+        prop_assert_eq!(root.end_byte(), end);
+    }
+
+    #[test]
+    fn node_kind_id_matches_symbol(sym in 0u32..65535) {
+        let tree = Tree::new_for_testing(sym, 0, 0, vec![]);
+        prop_assert_eq!(tree.root_node().kind_id(), sym as u16);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 16 – Node child access
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn node_child_in_bounds(child_count in 1usize..10) {
+        let children: Vec<Tree> = (0..child_count)
+            .map(|i| Tree::new_for_testing(i as u32 + 1, i, i + 1, vec![]))
+            .collect();
+        let tree = Tree::new_for_testing(0, 0, child_count, children);
+        let root = tree.root_node();
+        for i in 0..child_count {
+            let child = root.child(i);
+            prop_assert!(child.is_some());
+            prop_assert_eq!(child.unwrap().kind_id(), (i as u16) + 1);
+        }
+    }
+
+    #[test]
+    fn node_child_out_of_bounds_returns_none(child_count in 0usize..5) {
+        let children: Vec<Tree> = (0..child_count)
+            .map(|i| Tree::new_for_testing(i as u32, 0, 0, vec![]))
+            .collect();
+        let tree = Tree::new_for_testing(0, 0, 0, children);
+        prop_assert!(tree.root_node().child(child_count).is_none());
+        prop_assert!(tree.root_node().child(child_count + 100).is_none());
+    }
+
+    #[test]
+    fn named_child_same_as_child(idx in 0usize..5) {
+        let children: Vec<Tree> = (0..5)
+            .map(|i| Tree::new_for_testing(i as u32, 0, 0, vec![]))
+            .collect();
+        let tree = Tree::new_for_testing(0, 0, 0, children);
+        let root = tree.root_node();
+        let c = root.child(idx);
+        let nc = root.named_child(idx);
+        prop_assert_eq!(c.map(|n| n.kind_id()), nc.map(|n| n.kind_id()));
+    }
+
+    #[test]
+    fn named_child_count_equals_child_count(count in 0usize..8) {
+        let children: Vec<Tree> = (0..count)
+            .map(|i| Tree::new_for_testing(i as u32, 0, 0, vec![]))
+            .collect();
+        let tree = Tree::new_for_testing(0, 0, 0, children);
+        prop_assert_eq!(tree.root_node().named_child_count(), tree.root_node().child_count());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 17 – Node status flags
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    #[test]
+    fn node_is_named_always_true(_ in 0..1u8) {
+        let tree = Tree::new_for_testing(0, 0, 10, vec![]);
+        prop_assert!(tree.root_node().is_named());
+    }
+
+    #[test]
+    fn node_is_missing_always_false(_ in 0..1u8) {
+        let tree = Tree::new_for_testing(0, 0, 10, vec![]);
+        prop_assert!(!tree.root_node().is_missing());
+    }
+
+    #[test]
+    fn node_is_error_always_false(_ in 0..1u8) {
+        let tree = Tree::new_for_testing(0, 0, 10, vec![]);
+        prop_assert!(!tree.root_node().is_error());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 18 – Node navigation stubs (parent/sibling return None)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    #[test]
+    fn node_parent_returns_none(_ in 0..1u8) {
+        let tree = Tree::new_for_testing(0, 0, 10, vec![
+            Tree::new_for_testing(1, 0, 5, vec![]),
+        ]);
+        prop_assert!(tree.root_node().parent().is_none());
+        prop_assert!(tree.root_node().child(0).unwrap().parent().is_none());
+    }
+
+    #[test]
+    fn node_sibling_accessors_return_none(_ in 0..1u8) {
+        let tree = Tree::new_for_testing(0, 0, 10, vec![
+            Tree::new_for_testing(1, 0, 5, vec![]),
+            Tree::new_for_testing(2, 5, 10, vec![]),
+        ]);
+        let child = tree.root_node().child(0).unwrap();
+        prop_assert!(child.next_sibling().is_none());
+        prop_assert!(child.prev_sibling().is_none());
+        prop_assert!(child.next_named_sibling().is_none());
+        prop_assert!(child.prev_named_sibling().is_none());
+    }
+
+    #[test]
+    fn node_child_by_field_name_returns_none(_ in 0..1u8) {
+        let tree = Tree::new_for_testing(0, 0, 10, vec![]);
+        prop_assert!(tree.root_node().child_by_field_name("anything").is_none());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 19 – Node.utf8_text
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn utf8_text_extracts_correct_slice(s in "[a-z]{1,50}") {
+        let bytes = s.as_bytes();
+        let tree = Tree::new_for_testing(0, 0, bytes.len(), vec![]);
+        let text = tree.root_node().utf8_text(bytes).unwrap();
+        prop_assert_eq!(text, s.as_str());
+    }
+
+    #[test]
+    fn utf8_text_partial_range(
+        prefix in "[a-z]{1,10}",
+        middle in "[a-z]{1,10}",
+        suffix in "[a-z]{1,10}",
+    ) {
+        let full = format!("{}{}{}", prefix, middle, suffix);
+        let start = prefix.len();
+        let end = prefix.len() + middle.len();
+        let tree = Tree::new_for_testing(0, start, end, vec![]);
+        let text = tree.root_node().utf8_text(full.as_bytes()).unwrap();
+        prop_assert_eq!(text, middle.as_str());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 20 – Node.start_position / end_position (stub)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    #[test]
+    fn start_end_position_are_zero(_ in 0..1u8) {
+        use adze_runtime::Point;
+        let tree = Tree::new_for_testing(0, 10, 20, vec![]);
+        let root = tree.root_node();
+        prop_assert_eq!(root.start_position(), Point::new(0, 0));
+        prop_assert_eq!(root.end_position(), Point::new(0, 0));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 21 – Point ordering and Display
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn point_new_roundtrip(row in 0usize..1000, col in 0usize..1000) {
+        use adze_runtime::Point;
+        let p = Point::new(row, col);
+        prop_assert_eq!(p.row, row);
+        prop_assert_eq!(p.column, col);
+    }
+
+    #[test]
+    fn point_display_is_one_indexed(row in 0usize..100, col in 0usize..100) {
+        use adze_runtime::Point;
+        let p = Point::new(row, col);
+        let display = format!("{}", p);
+        prop_assert_eq!(display, format!("{}:{}", row + 1, col + 1));
+    }
+
+    #[test]
+    fn point_ordering_row_then_col(
+        r1 in 0usize..100, c1 in 0usize..100,
+        r2 in 0usize..100, c2 in 0usize..100,
+    ) {
+        use adze_runtime::Point;
+        let p1 = Point::new(r1, c1);
+        let p2 = Point::new(r2, c2);
+        let expected = (r1, c1).cmp(&(r2, c2));
+        prop_assert_eq!(p1.cmp(&p2), expected);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 22 – ParseError constructors and Display
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    #[test]
+    fn parse_error_no_language_display(_ in 0..1u8) {
+        use adze_runtime::ParseError;
+        let err = ParseError::no_language();
+        let msg = err.to_string();
+        prop_assert!(msg.contains("no language"));
+    }
+
+    #[test]
+    fn parse_error_timeout_display(_ in 0..1u8) {
+        use adze_runtime::ParseError;
+        let err = ParseError::timeout();
+        let msg = err.to_string();
+        prop_assert!(msg.contains("timeout"));
+    }
+
+    #[test]
+    fn parse_error_with_msg_display(s in "[a-z ]{1,50}") {
+        use adze_runtime::ParseError;
+        let err = ParseError::with_msg(&s);
+        prop_assert_eq!(err.to_string(), s);
+    }
+
+    #[test]
+    fn parse_error_syntax_error_has_location(
+        offset in 0usize..1000,
+        line in 1usize..100,
+        col in 1usize..100,
+    ) {
+        use adze_runtime::error::{ErrorLocation, ParseError};
+        let loc = ErrorLocation { byte_offset: offset, line, column: col };
+        let err = ParseError::syntax_error("bad token", loc.clone());
+        prop_assert!(err.location.is_some());
+        prop_assert_eq!(err.location.unwrap(), loc);
+    }
+
+    #[test]
+    fn parse_error_with_location_attaches(
+        offset in 0usize..1000,
+        line in 1usize..100,
+        col in 1usize..100,
+    ) {
+        use adze_runtime::error::{ErrorLocation, ParseError};
+        let loc = ErrorLocation { byte_offset: offset, line, column: col };
+        let err = ParseError::no_language().with_location(loc.clone());
+        prop_assert_eq!(err.location.unwrap(), loc);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 23 – ErrorLocation Display
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn error_location_display(line in 1usize..1000, col in 1usize..1000) {
+        use adze_runtime::error::ErrorLocation;
+        let loc = ErrorLocation { byte_offset: 0, line, column: col };
+        prop_assert_eq!(format!("{}", loc), format!("{}:{}", line, col));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 24 – Language.symbol_for_name
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn symbol_for_name_finds_existing(count in 2usize..10) {
+        let lang = multi_symbol_test_language(count);
+        // All symbols in multi_symbol_test_language are visible
+        for i in 0..count {
+            let result = lang.symbol_for_name(&format!("symbol_{}", i), true);
+            prop_assert_eq!(result, Some(i as u16));
+        }
+    }
+
+    #[test]
+    fn symbol_for_name_returns_none_for_missing(_ in 0..1u8) {
+        let lang = multi_symbol_test_language(3);
+        prop_assert!(lang.symbol_for_name("nonexistent", true).is_none());
+    }
+
+    #[test]
+    fn symbol_for_name_respects_is_named(count in 2usize..10) {
+        let lang = multi_symbol_test_language(count);
+        // All metadata is visible=true, so is_named=false should return None
+        for i in 0..count {
+            let result = lang.symbol_for_name(&format!("symbol_{}", i), false);
+            prop_assert!(result.is_none());
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 25 – Parser set_language validation
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    #[test]
+    fn set_language_rejects_empty_metadata(_ in 0..1u8) {
+        let table = leak_empty_parse_table();
+        let lang = Language {
+            version: 1,
+            symbol_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            parse_table: Some(table),
+            tokenize: Some(Box::new(|_: &[u8]| -> Box<dyn Iterator<Item = adze_runtime::Token>> {
+                Box::new(std::iter::empty())
+            })),
+            symbol_names: vec![],
+            symbol_metadata: vec![],
+            field_names: vec![],
+            #[cfg(feature = "external_scanners")]
+            external_scanner: None,
+        };
+        let mut parser = Parser::new();
+        let result = parser.set_language(lang);
+        prop_assert!(result.is_err());
+        prop_assert!(result.unwrap_err().to_string().contains("no symbol metadata"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 26 – Node Debug impl
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    #[test]
+    fn node_debug_contains_kind_and_range(
+        start in 0usize..100,
+        len in 0usize..100,
+    ) {
+        let end = start + len;
+        let tree = Tree::new_for_testing(0, start, end, vec![]);
+        let dbg = format!("{:?}", tree.root_node());
+        prop_assert!(dbg.contains("Node"));
+        prop_assert!(dbg.contains("kind"));
+        prop_assert!(dbg.contains("range"));
+    }
+}
+
 fn make_language_with_fields(field_names: Vec<String>) -> Language {
     let table = leak_empty_parse_table();
     Language::builder()

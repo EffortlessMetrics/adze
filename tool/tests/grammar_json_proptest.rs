@@ -748,3 +748,661 @@ proptest! {
         );
     }
 }
+
+// ===========================================================================
+// 10. SEQ type for multi-field structs
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn multi_field_struct_produces_seq_type(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        f1 in field_name_strategy(),
+    ) {
+        let f2 = format!("{f1}_b");
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {f1}: String,
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub {f2}: String,
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        prop_assert_eq!(rule["type"].as_str().unwrap(), "SEQ", "multi-field struct must produce SEQ");
+    }
+
+    #[test]
+    fn seq_members_count_matches_field_count(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        f1 in field_name_strategy(),
+    ) {
+        let f2 = format!("{f1}_b");
+        let f3 = format!("{f1}_c");
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {f1}: String,
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub {f2}: String,
+                    #[adze::leaf(text = ";")]
+                    pub {f3}: (),
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        let members = rule["members"].as_array().unwrap();
+        prop_assert_eq!(members.len(), 3, "SEQ must have one member per field");
+    }
+
+    #[test]
+    fn single_field_struct_produces_field_type(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, &field, r"[a-z]+");
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        prop_assert_eq!(rule["type"].as_str().unwrap(), "FIELD", "single-field struct must produce FIELD");
+        prop_assert_eq!(rule["name"].as_str().unwrap(), field.as_str());
+    }
+}
+
+// ===========================================================================
+// 11. STRING type for text leaves
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn text_leaf_generates_string_type(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        tok in text_token_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::leaf(text = "{tok}")]
+                    pub op: String,
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let leaf_rule = rules.get(&format!("{type_name}_op")).unwrap();
+        prop_assert_eq!(leaf_rule["type"].as_str().unwrap(), "STRING");
+    }
+
+    #[test]
+    fn text_leaf_value_matches_input(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        tok in text_token_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::leaf(text = "{tok}")]
+                    pub op: String,
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let leaf_rule = rules.get(&format!("{type_name}_op")).unwrap();
+        prop_assert_eq!(leaf_rule["value"].as_str().unwrap(), tok.as_str());
+    }
+}
+
+// ===========================================================================
+// 12. PATTERN type for pattern leaves
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn pattern_leaf_generates_pattern_type(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, "val", &pattern);
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let leaf_rule = rules.get(&format!("{type_name}_val")).unwrap();
+        prop_assert_eq!(leaf_rule["type"].as_str().unwrap(), "PATTERN");
+    }
+
+    #[test]
+    fn pattern_leaf_value_matches_input(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, "val", &pattern);
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let leaf_rule = rules.get(&format!("{type_name}_val")).unwrap();
+        prop_assert_eq!(leaf_rule["value"].as_str().unwrap(), pattern.as_str());
+    }
+}
+
+// ===========================================================================
+// 13. REPEAT1 for Vec fields
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn vec_field_generates_repeat1_contents_rule(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        child in type_name_strategy(),
+    ) {
+        let child_name = if child == type_name { format!("{}Item", child) } else { child };
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    pub items: Vec<{child_name}>,
+                }}
+
+                pub struct {child_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+
+                #[adze::extra]
+                struct Whitespace {{
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let contents_key = format!("{type_name}_items_vec_contents");
+        prop_assert!(
+            rules.contains_key(&contents_key),
+            "Vec field must generate {}_items_vec_contents rule, got keys: {:?}",
+            type_name, rules.keys().collect::<Vec<_>>()
+        );
+        let contents = &rules[&contents_key];
+        prop_assert_eq!(contents["type"].as_str().unwrap(), "REPEAT1");
+    }
+
+    #[test]
+    fn repeat_non_empty_uses_repeat1(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        child in type_name_strategy(),
+    ) {
+        let child_name = if child == type_name { format!("{}Item", child) } else { child };
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::repeat(non_empty = true)]
+                    pub items: Vec<{child_name}>,
+                }}
+
+                pub struct {child_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+
+                #[adze::extra]
+                struct Whitespace {{
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let contents_key = format!("{type_name}_items_vec_contents");
+        prop_assert!(rules.contains_key(&contents_key));
+        prop_assert_eq!(rules[&contents_key]["type"].as_str().unwrap(), "REPEAT1");
+    }
+}
+
+// ===========================================================================
+// 14. Option field wrapping
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn option_field_generates_choice_with_blank(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        f1 in field_name_strategy(),
+    ) {
+        let f2 = format!("{f1}_opt");
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {f1}: String,
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub {f2}: Option<String>,
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        prop_assert_eq!(rule["type"].as_str().unwrap(), "SEQ");
+        let members = rule["members"].as_array().unwrap();
+        // The optional (second) member should be CHOICE with a BLANK
+        let opt_member = &members[1];
+        prop_assert_eq!(opt_member["type"].as_str().unwrap(), "CHOICE");
+        let choices = opt_member["members"].as_array().unwrap();
+        prop_assert!(
+            choices.iter().any(|c| c["type"].as_str() == Some("BLANK")),
+            "Option field must have a BLANK alternative in CHOICE"
+        );
+    }
+}
+
+// ===========================================================================
+// 15. CHOICE member structure for enums
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn enum_choice_member_count_equals_variant_count(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {type_name} {{
+                    Alpha(#[adze::leaf(pattern = r"[a-z]+")] String),
+                    Digit(#[adze::leaf(pattern = r"\d+")] String),
+                    Hex(#[adze::leaf(pattern = r"[0-9a-f]+")] String),
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        prop_assert_eq!(rule["type"].as_str().unwrap(), "CHOICE");
+        let members = rule["members"].as_array().unwrap();
+        prop_assert_eq!(members.len(), 3, "CHOICE must have one member per variant");
+    }
+
+    #[test]
+    fn enum_choice_members_reference_variant_rules(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {type_name} {{
+                    Alpha(#[adze::leaf(pattern = r"[a-z]+")] String),
+                    Digit(#[adze::leaf(pattern = r"\d+")] String),
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        let members = rule["members"].as_array().unwrap();
+        // Each member should be a SYMBOL referencing a variant rule
+        for member in members {
+            prop_assert!(
+                member["type"].as_str().is_some(),
+                "each CHOICE member must have a type"
+            );
+        }
+    }
+
+    #[test]
+    fn enum_multi_field_variant_rules_exist_in_rules_object(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+    ) {
+        // Multi-field (struct) variants get their own named rules
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {type_name} {{
+                    #[adze::prec_left(1)]
+                    Add {{
+                        lhs: Box<{type_name}>,
+                        #[adze::leaf(text = "+")]
+                        op: (),
+                        rhs: Box<{type_name}>,
+                    }},
+                    Num(
+                        #[adze::leaf(pattern = r"\d+")]
+                        String
+                    ),
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let add_key = format!("{type_name}_Add");
+        prop_assert!(
+            rules.contains_key(&add_key),
+            "multi-field variant rule {} must exist in rules, got: {:?}",
+            add_key, rules.keys().collect::<Vec<_>>()
+        );
+    }
+}
+
+// ===========================================================================
+// 16. Determinism with complex structures
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn deterministic_with_child_struct(
+        name in grammar_name_strategy(),
+        root in type_name_strategy(),
+        child in type_name_strategy(),
+        f1 in field_name_strategy(),
+        f2 in field_name_strategy(),
+    ) {
+        let child_name = if child == root { format!("{}Child", child) } else { child };
+        let f2_name = if f2 == f1 { format!("{}_b", f2) } else { f2 };
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {root} {{
+                    pub {f1}: {child_name},
+                }}
+
+                pub struct {child_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {f2_name}: String,
+                }}
+            }}
+            "##,
+        );
+        let g1 = serde_json::to_string(&extract_one(&src)).unwrap();
+        let g2 = serde_json::to_string(&extract_one(&src)).unwrap();
+        prop_assert_eq!(g1, g2, "complex grammar serialization must be deterministic");
+    }
+
+    #[test]
+    fn deterministic_with_optional_and_vec(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        child in type_name_strategy(),
+    ) {
+        let child_name = if child == type_name { format!("{}Item", child) } else { child };
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub name: Option<String>,
+                    pub items: Vec<{child_name}>,
+                }}
+
+                pub struct {child_name} {{
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub val: String,
+                }}
+
+                #[adze::extra]
+                struct Whitespace {{
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }}
+            }}
+            "##,
+        );
+        let g1 = serde_json::to_string(&extract_one(&src)).unwrap();
+        let g2 = serde_json::to_string(&extract_one(&src)).unwrap();
+        prop_assert_eq!(g1, g2);
+    }
+}
+
+// ===========================================================================
+// 17. Additional structural invariants
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn name_field_is_always_string(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, &field, r"[a-z]+");
+        let grammar = extract_one(&src);
+        prop_assert!(grammar["name"].is_string(), "'name' must be a JSON string");
+    }
+
+    #[test]
+    fn all_rules_are_json_objects(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        field in field_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, &field, &pattern);
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        for (key, val) in rules {
+            prop_assert!(val.is_object(), "rule '{}' must be a JSON object", key);
+        }
+    }
+
+    #[test]
+    fn all_rules_have_type_field(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        field in field_name_strategy(),
+        pattern in safe_pattern_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, &field, &pattern);
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        for (key, val) in rules {
+            prop_assert!(
+                val.get("type").is_some(),
+                "rule '{}' must have a 'type' field", key
+            );
+        }
+    }
+
+    #[test]
+    fn source_file_is_always_symbol_type(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, &field, r"[a-z]+");
+        let grammar = extract_one(&src);
+        let sf = &grammar["rules"]["source_file"];
+        prop_assert_eq!(sf["type"].as_str().unwrap(), "SYMBOL");
+    }
+
+    #[test]
+    fn field_rule_has_content_key(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_grammar_source(&name, &type_name, &field, r"[a-z]+");
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        // Single-field struct produces FIELD node
+        prop_assert_eq!(rule["type"].as_str().unwrap(), "FIELD");
+        prop_assert!(rule.get("content").is_some(), "FIELD rule must have 'content'");
+    }
+
+    #[test]
+    fn seq_members_all_have_type(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        f1 in field_name_strategy(),
+    ) {
+        let f2 = format!("{f1}_b");
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {type_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {f1}: String,
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub {f2}: String,
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rule = &grammar["rules"][&type_name];
+        let members = rule["members"].as_array().unwrap();
+        for (i, m) in members.iter().enumerate() {
+            prop_assert!(
+                m.get("type").is_some(),
+                "SEQ member at index {} must have a 'type' field", i
+            );
+        }
+    }
+
+    #[test]
+    fn child_struct_appears_in_rules(
+        name in grammar_name_strategy(),
+        root in type_name_strategy(),
+        child in type_name_strategy(),
+        f1 in field_name_strategy(),
+        f2 in field_name_strategy(),
+    ) {
+        let child_name = if child == root { format!("{}Child", child) } else { child };
+        let f2_name = if f2 == f1 { format!("{}_b", f2) } else { f2 };
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {root} {{
+                    pub {f1}: {child_name},
+                }}
+
+                pub struct {child_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {f2_name}: String,
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        prop_assert!(
+            rules.contains_key(&child_name),
+            "child struct '{}' must appear in rules", child_name
+        );
+    }
+}
+
+// ===========================================================================
+// 18. PREC_LEFT type for precedence annotations
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn prec_left_generates_prec_left_type(
+        name in grammar_name_strategy(),
+        type_name in type_name_strategy(),
+        prec in 1u32..10,
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {type_name} {{
+                    Num(
+                        #[adze::leaf(pattern = r"\d+")]
+                        String
+                    ),
+                    #[adze::prec_left({prec})]
+                    Add(
+                        Box<{type_name}>,
+                        #[adze::leaf(text = "+")]
+                        (),
+                        Box<{type_name}>,
+                    ),
+                }}
+            }}
+            "##,
+        );
+        let grammar = extract_one(&src);
+        let rules = grammar["rules"].as_object().unwrap();
+        let add_key = format!("{type_name}_Add");
+        let add_rule = rules.get(&add_key).unwrap();
+        prop_assert_eq!(add_rule["type"].as_str().unwrap(), "PREC_LEFT");
+        prop_assert_eq!(add_rule["value"].as_u64().unwrap(), prec as u64);
+        prop_assert!(add_rule.get("content").is_some(), "PREC_LEFT must have content");
+    }
+}

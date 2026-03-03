@@ -971,3 +971,596 @@ fn transform_walker_handles_errors() {
     let errors = TransformWalker::new(source).walk(&tree, &mut ec);
     assert_eq!(errors, 1);
 }
+
+// ===========================================================================
+// Additional tests (36–60)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 36. Determinism — DFS walk twice yields identical enter order
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn dfs_deterministic_enter_order(
+        source in arb_source(),
+        tree in arb_tree(4, 4),
+    ) {
+        struct SymCollector(Vec<u16>);
+        impl Visitor for SymCollector {
+            fn enter_node(&mut self, node: &ParsedNode) -> VisitorAction {
+                self.0.push(node.symbol);
+                VisitorAction::Continue
+            }
+        }
+
+        let src = source.as_bytes();
+        let mut a = SymCollector(Vec::new());
+        TreeWalker::new(src).walk(&tree, &mut a);
+        let mut b = SymCollector(Vec::new());
+        TreeWalker::new(src).walk(&tree, &mut b);
+        prop_assert_eq!(a.0, b.0, "Two DFS walks must produce identical order");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 37. Determinism — BFS walk twice yields identical enter order
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn bfs_deterministic_enter_order(
+        source in arb_source(),
+        tree in arb_tree(4, 4),
+    ) {
+        struct SymCollector(Vec<u16>);
+        impl Visitor for SymCollector {
+            fn enter_node(&mut self, node: &ParsedNode) -> VisitorAction {
+                self.0.push(node.symbol);
+                VisitorAction::Continue
+            }
+        }
+
+        let src = source.as_bytes();
+        let mut a = SymCollector(Vec::new());
+        BreadthFirstWalker::new(src).walk(&tree, &mut a);
+        let mut b = SymCollector(Vec::new());
+        BreadthFirstWalker::new(src).walk(&tree, &mut b);
+        prop_assert_eq!(a.0, b.0, "Two BFS walks must produce identical order");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 38. Pre-order enter precedes post-order leave for every node
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn preorder_enter_before_postorder_leave(
+        source in arb_source(),
+        tree in arb_tree(3, 3),
+    ) {
+        #[derive(Debug, Clone, PartialEq)]
+        enum Event { Enter(u16), Leave(u16) }
+
+        struct EventLog(Vec<Event>);
+        impl Visitor for EventLog {
+            fn enter_node(&mut self, node: &ParsedNode) -> VisitorAction {
+                self.0.push(Event::Enter(node.symbol));
+                VisitorAction::Continue
+            }
+            fn leave_node(&mut self, node: &ParsedNode) {
+                self.0.push(Event::Leave(node.symbol));
+            }
+        }
+
+        let mut v = EventLog(Vec::new());
+        TreeWalker::new(source.as_bytes()).walk(&tree, &mut v);
+
+        // For each Enter(sym), a matching Leave(sym) must appear later
+        let mut stack: Vec<u16> = Vec::new();
+        for ev in &v.0 {
+            match ev {
+                Event::Enter(s) => stack.push(*s),
+                Event::Leave(s) => {
+                    let top = stack.pop();
+                    prop_assert_eq!(top, Some(*s), "Leave must match most recent Enter");
+                }
+            }
+        }
+        prop_assert!(stack.is_empty(), "All Enter events must have matching Leave");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 39. DFS post-order (leave) sequence reverses enter for a chain
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn dfs_leave_reverses_enter_on_chain(depth in 2usize..=20) {
+        let source = vec![b'x'; SOURCE_LEN];
+        let tree = build_deep_tree(depth, SOURCE_LEN);
+
+        struct OrderLog { enter_stack: Vec<usize>, leaves: Vec<usize>, id: usize }
+        impl Visitor for OrderLog {
+            fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction {
+                self.enter_stack.push(self.id);
+                self.id += 1;
+                VisitorAction::Continue
+            }
+            fn leave_node(&mut self, _: &ParsedNode) {
+                if let Some(entered_id) = self.enter_stack.pop() {
+                    self.leaves.push(entered_id);
+                }
+            }
+        }
+
+        let mut v = OrderLog { enter_stack: Vec::new(), leaves: Vec::new(), id: 0 };
+        TreeWalker::new(&source).walk(&tree, &mut v);
+        // On a chain, leaves are visited deepest-first, so IDs descend
+        for i in 0..v.leaves.len().saturating_sub(1) {
+            prop_assert!(v.leaves[i] > v.leaves[i + 1],
+                "Leave order must be deepest-first on a chain");
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 40. SearchVisitor match-all yields same count as StatsVisitor total_nodes
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn search_match_all_equals_stats_total(
+        source in arb_source(),
+        tree in arb_tree(3, 3),
+    ) {
+        let src = source.as_bytes();
+        let mut search = SearchVisitor::new(|_: &ParsedNode| true);
+        TreeWalker::new(src).walk(&tree, &mut search);
+
+        let mut stats = StatsVisitor::default();
+        TreeWalker::new(src).walk(&tree, &mut stats);
+
+        prop_assert_eq!(search.matches.len(), stats.total_nodes);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 41. SearchVisitor empty predicate yields zero matches
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn search_match_none_is_empty(
+        source in arb_source(),
+        tree in arb_tree(3, 3),
+    ) {
+        let mut search = SearchVisitor::new(|_: &ParsedNode| false);
+        TreeWalker::new(source.as_bytes()).walk(&tree, &mut search);
+        prop_assert!(search.matches.is_empty());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 42. StatsVisitor collects correct node kinds
+// ---------------------------------------------------------------------------
+#[test]
+fn stats_collects_correct_kinds() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    // root(1) -> [a(2), b(3), c(2)]
+    let tree = interior(1, vec![leaf(2, 0, 2), leaf(3, 2, 4), leaf(2, 4, 6)]);
+
+    let mut stats = StatsVisitor::default();
+    TreeWalker::new(source).walk(&tree, &mut stats);
+
+    // Kind strings come from node.kind() which returns symbol id for pure-rust nodes
+    // The root plus children are visited
+    assert_eq!(stats.total_nodes, 4);
+    let total_from_counts: usize = stats.node_counts.values().sum();
+    assert_eq!(total_from_counts, 4);
+}
+
+// ---------------------------------------------------------------------------
+// 43. PrettyPrintVisitor output contains [named] for named nodes
+// ---------------------------------------------------------------------------
+#[test]
+fn pretty_print_contains_named_marker() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree = leaf(1, 0, 3);
+
+    let mut pp = PrettyPrintVisitor::new();
+    TreeWalker::new(source).walk(&tree, &mut pp);
+    assert!(
+        pp.output().contains("[named]"),
+        "Output should contain [named] for named nodes: {}",
+        pp.output()
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 44. PrettyPrintVisitor indentation increases with depth
+// ---------------------------------------------------------------------------
+#[test]
+fn pretty_print_indentation_increases() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    // root -> child -> grandchild (leaf)
+    let tree = interior(1, vec![interior(2, vec![leaf(3, 0, 3)])]);
+
+    let mut pp = PrettyPrintVisitor::new();
+    TreeWalker::new(source).walk(&tree, &mut pp);
+    let lines: Vec<&str> = pp.output().lines().collect();
+    // First line: no indent (root), subsequent lines get more indent
+    assert!(
+        lines.len() >= 3,
+        "Expected at least 3 lines, got {}",
+        lines.len()
+    );
+    let indent_0 = lines[0].len() - lines[0].trim_start().len();
+    let indent_1 = lines[1].len() - lines[1].trim_start().len();
+    assert!(
+        indent_1 > indent_0,
+        "Child indent ({indent_1}) should exceed root ({indent_0})"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 45. TransformWalker computes tree depth bottom-up
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn transform_walker_computes_depth(depth in 1usize..=20) {
+        let source = vec![b'x'; SOURCE_LEN];
+        let tree = build_deep_tree(depth, SOURCE_LEN);
+
+        struct DepthCalc;
+        impl TransformVisitor for DepthCalc {
+            type Output = usize;
+            fn transform_node(&mut self, _: &ParsedNode, children: Vec<usize>) -> usize {
+                1 + children.into_iter().max().unwrap_or(0)
+            }
+            fn transform_leaf(&mut self, _: &ParsedNode, _: &str) -> usize { 1 }
+            fn transform_error(&mut self, _: &ParsedNode) -> usize { 0 }
+        }
+
+        let mut calc = DepthCalc;
+        let computed = TransformWalker::new(&source).walk(&tree, &mut calc);
+        prop_assert_eq!(computed, depth);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 46. TransformWalker leaf text matches source bytes
+// ---------------------------------------------------------------------------
+#[test]
+fn transform_walker_leaf_text() {
+    let source = b"hello world padding padding padding padding padding padding pad";
+    let tree = leaf(1, 0, 5);
+
+    struct TextGrabber;
+    impl TransformVisitor for TextGrabber {
+        type Output = String;
+        fn transform_node(&mut self, _: &ParsedNode, children: Vec<String>) -> String {
+            children.join(", ")
+        }
+        fn transform_leaf(&mut self, _: &ParsedNode, text: &str) -> String {
+            text.to_string()
+        }
+        fn transform_error(&mut self, _: &ParsedNode) -> String {
+            "ERROR".to_string()
+        }
+    }
+
+    let mut tg = TextGrabber;
+    let result = TransformWalker::new(source).walk(&tree, &mut tg);
+    assert_eq!(result, "hello");
+}
+
+// ---------------------------------------------------------------------------
+// 47. SearchVisitor collects non-empty results for match-all
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn search_match_all_nonempty_on_nonempty_tree(
+        source in arb_source(),
+        tree in arb_tree(3, 3),
+    ) {
+        let src = source.as_bytes();
+        let mut search = SearchVisitor::new(|_: &ParsedNode| true);
+        TreeWalker::new(src).walk(&tree, &mut search);
+
+        let non_error = count_non_error_nodes(&tree);
+        prop_assert_eq!(search.matches.len(), non_error,
+            "match-all should find every non-error node");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 48. DFS does not call visit_leaf for interior nodes
+// ---------------------------------------------------------------------------
+#[test]
+fn dfs_no_leaf_callback_for_interior() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree = interior(1, vec![leaf(2, 0, 3), leaf(3, 3, 6)]);
+
+    struct LeafKindTracker(Vec<u16>);
+    impl Visitor for LeafKindTracker {
+        fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction {
+            VisitorAction::Continue
+        }
+        fn visit_leaf(&mut self, node: &ParsedNode, _: &str) {
+            self.0.push(node.symbol);
+        }
+    }
+
+    let mut v = LeafKindTracker(Vec::new());
+    TreeWalker::new(source).walk(&tree, &mut v);
+    // Only leaf symbols (2, 3) should appear, NOT root (1)
+    assert!(
+        !v.0.contains(&1),
+        "Interior node should not trigger visit_leaf"
+    );
+    assert_eq!(v.0.len(), 2);
+}
+
+// ---------------------------------------------------------------------------
+// 49. VisitorAction derives: Debug, Clone, Copy, PartialEq, Eq
+// ---------------------------------------------------------------------------
+#[test]
+fn visitor_action_derives() {
+    let a = VisitorAction::Continue;
+    let b = a; // Copy
+    let c = a.clone(); // Clone
+    assert_eq!(b, c); // PartialEq + Eq
+    let _ = format!("{:?}", a); // Debug
+}
+
+// ---------------------------------------------------------------------------
+// 50. TreeWalker can be reused for multiple walks
+// ---------------------------------------------------------------------------
+#[test]
+fn tree_walker_reusable() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree_a = leaf(1, 0, 3);
+    let tree_b = interior(2, vec![leaf(3, 0, 2), leaf(4, 2, 4)]);
+    let walker = TreeWalker::new(source);
+
+    let mut stats_a = StatsVisitor::default();
+    walker.walk(&tree_a, &mut stats_a);
+    assert_eq!(stats_a.total_nodes, 1);
+
+    let mut stats_b = StatsVisitor::default();
+    walker.walk(&tree_b, &mut stats_b);
+    assert_eq!(stats_b.total_nodes, 3);
+}
+
+// ---------------------------------------------------------------------------
+// 51. BreadthFirstWalker can be reused for multiple walks
+// ---------------------------------------------------------------------------
+#[test]
+fn bfs_walker_reusable() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree_a = leaf(1, 0, 3);
+    let tree_b = interior(2, vec![leaf(3, 0, 2), leaf(4, 2, 4)]);
+    let walker = BreadthFirstWalker::new(source);
+
+    let mut stats_a = StatsVisitor::default();
+    walker.walk(&tree_a, &mut stats_a);
+    assert_eq!(stats_a.total_nodes, 1);
+
+    let mut stats_b = StatsVisitor::default();
+    walker.walk(&tree_b, &mut stats_b);
+    assert_eq!(stats_b.total_nodes, 3);
+}
+
+// ---------------------------------------------------------------------------
+// 52. DFS on tree with only error children — root entered, errors reported
+// ---------------------------------------------------------------------------
+#[test]
+fn dfs_tree_with_only_error_children() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree = interior(1, vec![error_node(0, 2), error_node(3, 5)]);
+
+    struct Tracker {
+        entered: usize,
+        errors: usize,
+    }
+    impl Visitor for Tracker {
+        fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction {
+            self.entered += 1;
+            VisitorAction::Continue
+        }
+        fn visit_error(&mut self, _: &ParsedNode) {
+            self.errors += 1;
+        }
+    }
+
+    let mut v = Tracker {
+        entered: 0,
+        errors: 0,
+    };
+    TreeWalker::new(source).walk(&tree, &mut v);
+    assert_eq!(v.entered, 1, "Only root should be entered");
+    assert_eq!(v.errors, 2, "Both error children should be reported");
+}
+
+// ---------------------------------------------------------------------------
+// 53. BFS on tree with errors — errors trigger visit_error not enter_node
+// ---------------------------------------------------------------------------
+#[test]
+fn bfs_error_nodes_not_entered() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree = interior(1, vec![leaf(2, 0, 2), error_node(3, 5), leaf(3, 6, 8)]);
+
+    struct Tracker {
+        entered: usize,
+        errors: usize,
+    }
+    impl Visitor for Tracker {
+        fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction {
+            self.entered += 1;
+            VisitorAction::Continue
+        }
+        fn visit_error(&mut self, _: &ParsedNode) {
+            self.errors += 1;
+        }
+    }
+
+    let mut v = Tracker {
+        entered: 0,
+        errors: 0,
+    };
+    BreadthFirstWalker::new(source).walk(&tree, &mut v);
+    assert_eq!(v.entered, 3, "Root + 2 non-error children entered");
+    assert_eq!(v.errors, 1, "One error node reported");
+}
+
+// ---------------------------------------------------------------------------
+// 54. DFS with mixed skip and continue at alternating depths
+// ---------------------------------------------------------------------------
+#[test]
+fn dfs_alternating_skip_continue() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    // root(1) -> [a(2) -> [c(4), d(5)], b(3)]
+    let tree = interior(
+        1,
+        vec![
+            interior(2, vec![leaf(4, 0, 2), leaf(5, 2, 4)]),
+            leaf(3, 4, 6),
+        ],
+    );
+
+    // Skip at depth 2 (children of root's children)
+    struct SkipDepth2 {
+        depth: usize,
+        entered: Vec<u16>,
+    }
+    impl Visitor for SkipDepth2 {
+        fn enter_node(&mut self, node: &ParsedNode) -> VisitorAction {
+            self.depth += 1;
+            self.entered.push(node.symbol);
+            if self.depth == 2 {
+                VisitorAction::SkipChildren
+            } else {
+                VisitorAction::Continue
+            }
+        }
+        fn leave_node(&mut self, _: &ParsedNode) {
+            self.depth -= 1;
+        }
+    }
+
+    let mut v = SkipDepth2 {
+        depth: 0,
+        entered: Vec::new(),
+    };
+    TreeWalker::new(source).walk(&tree, &mut v);
+    // Should enter: root(1), a(2) [skip], b(3)
+    assert_eq!(v.entered, vec![1, 2, 3]);
+}
+
+// ---------------------------------------------------------------------------
+// 55. StatsVisitor fresh instance gives clean state
+// ---------------------------------------------------------------------------
+#[test]
+fn stats_visitor_fresh_state() {
+    let stats = StatsVisitor::default();
+    assert_eq!(stats.total_nodes, 0);
+    assert_eq!(stats.leaf_nodes, 0);
+    assert_eq!(stats.error_nodes, 0);
+    assert_eq!(stats.max_depth, 0);
+    assert!(stats.node_counts.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 56. PrettyPrintVisitor::new identical to Default
+// ---------------------------------------------------------------------------
+#[test]
+fn pretty_print_new_eq_default() {
+    let a = PrettyPrintVisitor::new();
+    let b = PrettyPrintVisitor::default();
+    assert_eq!(a.output(), b.output());
+    assert_eq!(a.output(), "");
+}
+
+// ---------------------------------------------------------------------------
+// 57. DFS and BFS agree on leaf counts
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn dfs_bfs_same_leaf_count(
+        source in arb_source(),
+        tree in arb_tree(3, 3),
+    ) {
+        struct LC(usize);
+        impl Visitor for LC {
+            fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction { VisitorAction::Continue }
+            fn visit_leaf(&mut self, _: &ParsedNode, _: &str) { self.0 += 1; }
+        }
+
+        let src = source.as_bytes();
+        let mut dfs_lc = LC(0);
+        TreeWalker::new(src).walk(&tree, &mut dfs_lc);
+        let mut bfs_lc = LC(0);
+        BreadthFirstWalker::new(src).walk(&tree, &mut bfs_lc);
+        prop_assert_eq!(dfs_lc.0, bfs_lc.0, "DFS and BFS must find same number of leaves");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 58. SearchVisitor accumulates across walk (not reset)
+// ---------------------------------------------------------------------------
+#[test]
+fn search_visitor_accumulates() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree = leaf(1, 0, 3);
+    let mut search = SearchVisitor::new(|_: &ParsedNode| true);
+    TreeWalker::new(source).walk(&tree, &mut search);
+    assert_eq!(search.matches.len(), 1);
+    // Walk again — should accumulate
+    TreeWalker::new(source).walk(&tree, &mut search);
+    assert_eq!(search.matches.len(), 2);
+}
+
+// ---------------------------------------------------------------------------
+// 59. DFS determinism: StatsVisitor node_counts identical across runs
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn dfs_deterministic_stats(
+        source in arb_source(),
+        tree in arb_tree(3, 3),
+    ) {
+        let src = source.as_bytes();
+        let mut s1 = StatsVisitor::default();
+        TreeWalker::new(src).walk(&tree, &mut s1);
+        let mut s2 = StatsVisitor::default();
+        TreeWalker::new(src).walk(&tree, &mut s2);
+
+        prop_assert_eq!(s1.total_nodes, s2.total_nodes);
+        prop_assert_eq!(s1.leaf_nodes, s2.leaf_nodes);
+        prop_assert_eq!(s1.error_nodes, s2.error_nodes);
+        prop_assert_eq!(s1.max_depth, s2.max_depth);
+        for (k, v) in &s1.node_counts {
+            prop_assert_eq!(s2.node_counts.get(k), Some(v));
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 60. BFS does not call leave_node
+// ---------------------------------------------------------------------------
+#[test]
+fn bfs_does_not_call_leave_node() {
+    let source = b"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcd";
+    let tree = interior(1, vec![leaf(2, 0, 3), leaf(3, 3, 6)]);
+
+    struct LeaveCounter(usize);
+    impl Visitor for LeaveCounter {
+        fn enter_node(&mut self, _: &ParsedNode) -> VisitorAction {
+            VisitorAction::Continue
+        }
+        fn leave_node(&mut self, _: &ParsedNode) {
+            self.0 += 1;
+        }
+    }
+
+    let mut v = LeaveCounter(0);
+    BreadthFirstWalker::new(source).walk(&tree, &mut v);
+    assert_eq!(v.0, 0, "BFS walker does not call leave_node");
+}
