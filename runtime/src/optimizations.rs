@@ -88,6 +88,8 @@ pub mod simd {
     /// Find the next newline character using SIMD
     #[target_feature(enable = "sse2")]
     pub unsafe fn find_newline_simd_impl(data: &[u8]) -> Option<usize> {
+        // SAFETY: Caller guarantees SSE2 is available (enforced by #[target_feature]).
+        // All pointer arithmetic stays within `data`'s bounds (guarded by `i + 16 <= len`).
         unsafe {
             let newline = _mm_set1_epi8(b'\n' as i8);
             let len = data.len();
@@ -121,6 +123,7 @@ pub mod simd {
     /// Safe wrapper for find_newline
     pub fn find_newline_simd(data: &[u8]) -> Option<usize> {
         if is_x86_feature_detected!("sse2") {
+            // SAFETY: SSE2 feature check passed; target_feature precondition satisfied.
             unsafe { find_newline_simd_impl(data) }
         } else {
             data.iter().position(|&b| b == b'\n')
@@ -130,6 +133,8 @@ pub mod simd {
     /// Count whitespace characters using SIMD
     #[target_feature(enable = "sse2")]
     pub unsafe fn count_whitespace_simd_impl(data: &[u8]) -> usize {
+        // SAFETY: Caller guarantees SSE2 is available. Pointer arithmetic bounded
+        // by `i + 16 <= data.len()`.
         unsafe {
             let space = _mm_set1_epi8(b' ' as i8);
             let tab = _mm_set1_epi8(b'\t' as i8);
@@ -172,6 +177,7 @@ pub mod simd {
     /// Safe wrapper for count_whitespace
     pub fn count_whitespace_simd(data: &[u8]) -> usize {
         if is_x86_feature_detected!("sse2") {
+            // SAFETY: SSE2 feature check passed; target_feature precondition satisfied.
             unsafe { count_whitespace_simd_impl(data) }
         } else {
             data.iter()
@@ -187,6 +193,8 @@ pub mod simd {
             return false;
         }
 
+        // SAFETY: Caller guarantees SSE2 is available. Both slices have equal length.
+        // Pointer arithmetic bounded by `i + 16 <= a.len()`.
         unsafe {
             let mut i = 0;
 
@@ -213,6 +221,7 @@ pub mod simd {
     /// Safe wrapper for compare_bytes
     pub fn compare_bytes_simd(a: &[u8], b: &[u8]) -> bool {
         if is_x86_feature_detected!("sse2") {
+            // SAFETY: SSE2 feature check passed; target_feature precondition satisfied.
             unsafe { compare_bytes_simd_impl(a, b) }
         } else {
             a == b

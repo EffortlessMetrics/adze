@@ -21,7 +21,13 @@ impl ScannerWrapper {
     }
 
     /// Create a C scanner wrapper from FFI data
+    ///
+    /// # Safety
+    /// `data` must point to valid `TSExternalScannerData` with correctly
+    /// initialized function pointers and state.
     pub unsafe fn new_c(data: &TSExternalScannerData) -> Option<Self> {
+        // SAFETY: Caller guarantees `data` contains valid FFI function pointers.
+        // `CExternalScanner::new` performs its own validation.
         unsafe { CExternalScanner::new(data) }
             .map(|scanner| ScannerWrapper::C(ScannerGuard(Box::new(scanner))))
     }

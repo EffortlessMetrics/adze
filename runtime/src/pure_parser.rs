@@ -912,6 +912,8 @@ impl Parser {
 
     /// Check if a symbol is marked as hidden (starts with _)
     fn is_hidden_symbol(&self, language: &TSLanguage, symbol: TSSymbol) -> bool {
+        // SAFETY: `symbol_metadata` points to a static array of `symbol_count`
+        // entries. `symbol` is bounds-checked before dereferencing.
         unsafe {
             if symbol < language.symbol_count as u16 {
                 let metadata_ptr = language.symbol_metadata;
@@ -933,6 +935,8 @@ impl Parser {
 
     /// Check if a symbol is marked as extra (e.g., whitespace)
     fn is_extra_symbol(&self, language: &TSLanguage, symbol: TSSymbol) -> bool {
+        // SAFETY: Same invariants as `is_hidden_symbol` — static metadata array
+        // with bounds check on `symbol`.
         unsafe {
             if symbol < language.symbol_count as u16 {
                 let metadata_ptr = language.symbol_metadata;
@@ -967,6 +971,8 @@ impl Parser {
     /// Debug helper: dump a parse table row
     #[allow(dead_code)]
     fn dump_row(&self, language: &TSLanguage, state: u16) {
+        // SAFETY: Reads from static parse table arrays. All accesses are bounded
+        // by `large_state_count`, `symbol_count`, and `state_count`.
         unsafe {
             let large_state_count = language.large_state_count as usize;
             let token_count = language.token_count as u16;
@@ -1014,6 +1020,9 @@ impl Parser {
         // "DEBUG get_goto: state={}, col_idx={}, token_count={}, symbol_count={}",
         // state, symbol, language.token_count, language.symbol_count
         // );
+        // SAFETY: All pointer reads into `parse_table`, `small_parse_table`, and
+        // `small_parse_table_map` are guarded by bounds checks against
+        // `state_count`, `symbol_count`, and `large_state_count`.
         unsafe {
             // Check bounds
             if state >= language.state_count as u16 || symbol >= language.symbol_count as u16 {
@@ -1121,6 +1130,9 @@ impl Parser {
         }
 
         // Look up action in parse table
+        // SAFETY: All pointer reads into `parse_table`, `small_parse_table`, and
+        // `small_parse_table_map` are guarded by bounds checks on `state` and
+        // `symbol` against `state_count` and `symbol_count`.
         unsafe {
             // Check bounds
             if state >= language.state_count as u16 || symbol >= language.symbol_count as u16 {
@@ -1232,6 +1244,8 @@ impl Parser {
     /// Get the LHS symbol index for a production from the production_lhs_index array
     #[inline]
     fn lhs_index_of(&self, language: &TSLanguage, production_index: u16) -> u16 {
+        // SAFETY: Caller ensures `production_index < production_id_count`.
+        // `production_lhs_index` is a static array of at least that many entries.
         unsafe { *language.production_lhs_index.add(production_index as usize) }
     }
 
@@ -1258,6 +1272,9 @@ impl Parser {
             }
         }
 
+        // SAFETY: `production_id_map`, `parse_actions`, and `production_lhs_index`
+        // are static arrays from TSLanguage. All accesses are guarded by
+        // `production_id_count` bounds checks.
         unsafe {
             // Tree-sitter uses 1-based production IDs in the parse table
             // We need to subtract 1 and then use production_id_map
@@ -1475,6 +1492,8 @@ impl Parser {
     /// Get production ID for field mappings
     #[allow(dead_code)]
     fn get_production_id(&self, language: &TSLanguage, action_index: u16) -> u16 {
+        // SAFETY: `production_id_map` is a static array of `production_id_count`
+        // entries. `action_index` is bounds-checked before access.
         unsafe {
             if action_index < language.production_id_count as u16 {
                 *language.production_id_map.add(action_index as usize)
@@ -1513,6 +1532,8 @@ impl Parser {
                 expected.push(symbol);
                 // Debug: print symbol names for expected symbols
                 if state == 0 {
+                    // SAFETY: `symbol_names` is a static array of `symbol_count`
+                    // C-string entries. `symbol` is bounds-checked before indexing.
                     unsafe {
                         let symbol_names = std::slice::from_raw_parts(
                             language.symbol_names,
@@ -1586,6 +1607,8 @@ fn subtree_to_node(subtree: Subtree, language: Option<*const TSLanguage>) -> Par
 
     // Determine if the node is named based on symbol metadata
     let is_named = if let Some(lang_ptr) = language {
+        // SAFETY: `lang_ptr` comes from a valid `TSLanguage` that outlives the
+        // parse result. `symbol_metadata` is bounds-checked via `symbol_count`.
         unsafe {
             let lang = &*lang_ptr;
             if subtree.symbol < lang.symbol_count as u16 {
@@ -1711,6 +1734,9 @@ impl ParsedNode {
     /// Get node kind (symbol name)
     pub fn kind(&self) -> &str {
         if let Some(language) = self.language {
+            // SAFETY: `language` is a valid pointer to a TSLanguage that outlives
+            // this node. `symbol_names` is a static array of `symbol_count` C
+            // strings. `self.symbol` is bounds-checked before indexing.
             unsafe {
                 let language = &*language;
                 if self.symbol < language.symbol_count as u16 {
@@ -1799,16 +1825,23 @@ impl<'a> ExternalLexer<'a> {
         }
     }
 
+    // The following `unsafe extern "C"` functions implement the Tree-sitter
+    // lexer callback ABI. Each receives a `TsLexer*` whose `data` field points
+    // to a valid `ExternalLexer` allocated by the caller. All pointer
+    // dereferences are guarded by null checks.
+
     unsafe extern "C" fn lookahead(lexer: *mut crate::lex::TsLexer) -> u32 {
         if lexer.is_null() {
             return 0;
         }
 
+        // SAFETY: `lexer` is non-null (checked above).
         let data = unsafe { (*lexer).data };
         if data.is_null() {
             return 0;
         }
 
+        // SAFETY: `data` was set to point to a valid `ExternalLexer` by the caller.
         let ext_lexer = unsafe { &*(data as *const ExternalLexer) };
         ext_lexer
             .input
@@ -1823,11 +1856,14 @@ impl<'a> ExternalLexer<'a> {
             return;
         }
 
+        // SAFETY: `lexer` is non-null (checked above).
         let data = unsafe { (*lexer).data };
         if data.is_null() {
             return;
         }
 
+        // SAFETY: `data` points to a valid `ExternalLexer`. Mutable reference
+        // is safe because no other references exist during this callback.
         let ext_lexer = unsafe { &mut *(data as *mut ExternalLexer) };
         if ext_lexer.position < ext_lexer.input.len() {
             let byte = ext_lexer.input[ext_lexer.position];
@@ -1861,11 +1897,13 @@ impl<'a> ExternalLexer<'a> {
             return;
         }
 
+        // SAFETY: `lexer` is non-null (checked above).
         let data = unsafe { (*lexer).data };
         if data.is_null() {
             return;
         }
 
+        // SAFETY: `data` points to a valid `ExternalLexer`.
         let ext_lexer = unsafe { &mut *(data as *mut ExternalLexer) };
         ext_lexer.token_end = ext_lexer.position;
     }
@@ -1876,6 +1914,7 @@ impl<'a> ExternalLexer<'a> {
         if lexer.is_null() {
             return 0;
         }
+        // SAFETY: `lexer` is non-null. `data` points to a valid `ExternalLexer`.
         let data = unsafe { (*lexer).data };
         if data.is_null() {
             return 0;
@@ -1889,6 +1928,7 @@ impl<'a> ExternalLexer<'a> {
         if lexer.is_null() {
             return false;
         }
+        // SAFETY: `lexer` is non-null. `data` points to a valid `ExternalLexer`.
         let data = unsafe { (*lexer).data };
         if data.is_null() {
             return false;
@@ -1902,6 +1942,7 @@ impl<'a> ExternalLexer<'a> {
         if lexer.is_null() {
             return true;
         }
+        // SAFETY: `lexer` is non-null. `data` points to a valid `ExternalLexer`.
         let data = unsafe { (*lexer).data };
         if data.is_null() {
             return true;

@@ -69,6 +69,8 @@ impl<'a> TreeCursor<'a> {
         let child = &self.children[self.current_index];
         let field_id = child.field_id?;
         let lang_ptr = self.node.language?;
+        // SAFETY: `lang_ptr` is obtained from a valid `ParsedNode` whose lifetime
+        // outlives this iterator. The field_id is bounds-checked below.
         unsafe {
             let lang = &*lang_ptr;
             if field_id >= lang.field_count as u16 {
@@ -312,6 +314,9 @@ fn parse_with_pure_parser<T: Extract<T>>(
             .map(|e| {
                 // Get symbol name from language if available
                 let symbol_name = if (e.found as usize) < lang.symbol_count as usize {
+                    // SAFETY: `e.found` is bounds-checked above against `symbol_count`.
+                    // `symbol_names` and `public_symbol_map` point to static language
+                    // tables that live for the entire parse.
                     unsafe {
                         let public_symbol = if !lang.public_symbol_map.is_null() {
                             *lang.public_symbol_map.add(e.found as usize)
@@ -461,12 +466,16 @@ fn convert_parse_node_v4_to_pure(
         }
 
         let symbol_names =
+            // SAFETY: `symbol` is bounds-checked above and `symbol_names` is not null.
+            // The pointer refers to a static array of `symbol_count` entries.
             unsafe { std::slice::from_raw_parts(lang.symbol_names, lang.symbol_count as usize) };
         let name_ptr = symbol_names[symbol as usize];
         if name_ptr.is_null() {
             return false;
         }
 
+        // SAFETY: `name_ptr` was just null-checked. It points to a static NUL-
+        // terminated C string from the language tables.
         let name = unsafe { std::ffi::CStr::from_ptr(name_ptr as *const i8).to_str() }.ok();
         matches!(name, Some("ERROR"))
     };
@@ -479,7 +488,8 @@ fn convert_parse_node_v4_to_pure(
         .collect();
 
     // Read symbol metadata from TSLanguage
-    // Safety: runtime guarantees symbol < symbol_count when building nodes
+    // SAFETY: `symbol_metadata` is a static array of `symbol_count` entries.
+    // `node.symbol.0` is bounds-checked before dereferencing.
     let (is_named, is_extra) = unsafe {
         if !lang.symbol_metadata.is_null() && (node.symbol.0 as u32) < lang.symbol_count {
             let metadata = *lang.symbol_metadata.add(node.symbol.0 as usize);
@@ -609,6 +619,8 @@ mod tests {
 
     #[repr(transparent)]
     struct FieldNames([*const u8; 2]);
+    // SAFETY: The pointers refer to static byte string literals (`b"value\0"` and
+    // `b"name\0"`) that are immutable and valid for the lifetime of the program.
     unsafe impl Sync for FieldNames {}
 
     static FIELD_NAMES: FieldNames =

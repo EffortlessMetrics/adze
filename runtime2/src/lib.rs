@@ -22,6 +22,7 @@
 //! ```
 
 #![warn(missing_docs)]
+#![forbid(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod error;
