@@ -288,7 +288,7 @@ fn parse_table_sharing() {
 
                 // Each thread independently parses using a clone of the shared table
                 let input = format!("{}", i + 1);
-                let tree = parse_input(&g, &*t, &input);
+                let tree = parse_input(&g, &t, &input);
                 assert!(
                     tree.node.symbol_id.0 > 0 || !tree.children.is_empty(),
                     "parsed tree should have valid structure"

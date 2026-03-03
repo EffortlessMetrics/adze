@@ -59,8 +59,8 @@ fn abi_version_constants() {
         TREE_SITTER_LANGUAGE_VERSION, TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
     };
     assert_eq!(TREE_SITTER_LANGUAGE_VERSION, 15);
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION <= 15);
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION >= 13);
+    const { assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION <= 15) };
+    const { assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION >= 13) };
 }
 
 // ---------------------------------------------------------------------------

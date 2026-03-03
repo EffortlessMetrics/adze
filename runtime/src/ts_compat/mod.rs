@@ -414,9 +414,11 @@ mod tests {
     }
 
     fn accept_on_eof_language() -> Arc<Language> {
-        let mut parse_table = ParseTable::default();
-        parse_table.symbol_to_index = BTreeMap::from([(SymbolId(0), 0)]);
-        parse_table.action_table = vec![vec![vec![Action::Accept]]];
+        let parse_table = ParseTable {
+            symbol_to_index: BTreeMap::from([(SymbolId(0), 0)]),
+            action_table: vec![vec![vec![Action::Accept]]],
+            ..Default::default()
+        };
 
         Arc::new(Language::new(
             "ts_compat_accept_on_eof",
