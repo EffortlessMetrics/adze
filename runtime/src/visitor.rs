@@ -1,4 +1,20 @@
-//! Visitor utilities for traversing parsed trees.
+//! Visitor utilities for traversing parsed syntax trees.
+//!
+//! This module provides the [`Visitor`](crate::visitor::Visitor) trait for
+//! depth-first traversal and several ready-made walkers and visitors:
+//!
+//! - [`TreeWalker`](crate::visitor::TreeWalker) — depth-first traversal
+//! - [`BreadthFirstWalker`](crate::visitor::BreadthFirstWalker) — breadth-first
+//!   (level-order) traversal
+//! - [`TransformWalker`](crate::visitor::TransformWalker) /
+//!   [`TransformVisitor`](crate::visitor::TransformVisitor) — bottom-up tree
+//!   transformation
+//! - [`StatsVisitor`](crate::visitor::StatsVisitor) — collects node counts and
+//!   tree depth
+//! - [`SearchVisitor`](crate::visitor::SearchVisitor) — finds nodes matching a
+//!   predicate
+//! - [`PrettyPrintVisitor`](crate::visitor::PrettyPrintVisitor) — produces an
+//!   indented text representation
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 // Parse tree visitor API for Adze
@@ -11,46 +27,73 @@ use crate::tree_sitter::Node;
 
 use std::collections::VecDeque;
 
-/// Visitor trait for traversing parse trees
+/// Trait for visiting nodes in a parse tree.
+///
+/// Implement one or more of the provided methods to react to specific node
+/// types during traversal. All methods have default no-op implementations so
+/// you only need to override the ones you care about.
+///
+/// # Traversal control
+///
+/// [`enter_node`](Self::enter_node) returns a [`VisitorAction`] that controls
+/// whether traversal continues into children, skips them, or stops entirely.
 pub trait Visitor {
-    /// Called when entering a node
+    /// Called when a node is first entered during traversal.
+    ///
+    /// Return [`VisitorAction::Continue`] to visit children,
+    /// [`VisitorAction::SkipChildren`] to skip them, or
+    /// [`VisitorAction::Stop`] to halt the walk.
     fn enter_node(&mut self, _node: &Node) -> VisitorAction {
         VisitorAction::Continue
     }
 
-    /// Called when leaving a node
+    /// Called after all of a node's children have been visited.
     fn leave_node(&mut self, _node: &Node) {
         // Default: do nothing
     }
 
-    /// Called for leaf nodes (tokens)
+    /// Called for leaf nodes (nodes with no children). `text` is the source
+    /// text spanned by the node.
     fn visit_leaf(&mut self, _node: &Node, _text: &str) {
         // Default: do nothing
     }
 
-    /// Called for error nodes
+    /// Called for nodes that represent parse errors.
     fn visit_error(&mut self, _node: &Node) {
         // Default: do nothing
     }
 }
 
-/// Action to take after visiting a node
+/// Controls how traversal proceeds after visiting a node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VisitorAction {
-    /// Continue traversing children
+    /// Continue traversal into this node's children.
     Continue,
-    /// Skip children of this node
+    /// Skip this node's children but continue with its siblings.
     SkipChildren,
-    /// Stop traversal entirely
+    /// Stop the entire traversal immediately.
     Stop,
 }
 
-/// Depth-first tree walker
+/// Walks a parse tree in depth-first (pre-order) fashion, invoking a
+/// [`Visitor`] at each node.
+///
+/// # Examples
+///
+/// ```ignore
+/// use adze::visitor::{TreeWalker, StatsVisitor};
+///
+/// let walker = TreeWalker::new(source.as_bytes());
+/// let mut stats = StatsVisitor::default();
+/// walker.walk(&root_node, &mut stats);
+/// println!("Total nodes: {}", stats.total_nodes);
+/// ```
 pub struct TreeWalker<'a> {
     source: &'a [u8],
 }
 
 impl<'a> TreeWalker<'a> {
+    /// Creates a new depth-first walker for the given source bytes.
     pub fn new(source: &'a [u8]) -> Self {
         Self { source }
     }
@@ -156,12 +199,14 @@ impl<'a> TreeWalker<'a> {
     }
 }
 
-/// Breadth-first tree walker
+/// Walks a parse tree in breadth-first (level-order) fashion, invoking a
+/// [`Visitor`] at each node.
 pub struct BreadthFirstWalker<'a> {
     source: &'a [u8],
 }
 
 impl<'a> BreadthFirstWalker<'a> {
+    /// Creates a new breadth-first walker for the given source bytes.
     pub fn new(source: &'a [u8]) -> Self {
         Self { source }
     }
@@ -244,13 +289,23 @@ impl<'a> BreadthFirstWalker<'a> {
     }
 }
 
-/// Visitor that collects statistics about the parse tree
+/// A [`Visitor`] that collects statistics about the parse tree.
+///
+/// After a walk, inspect [`total_nodes`](Self::total_nodes),
+/// [`leaf_nodes`](Self::leaf_nodes), [`error_nodes`](Self::error_nodes),
+/// [`max_depth`](Self::max_depth), and per-kind counts in
+/// [`node_counts`](Self::node_counts).
 #[derive(Debug, Default)]
 pub struct StatsVisitor {
+    /// Total number of nodes visited.
     pub total_nodes: usize,
+    /// Number of leaf (childless) nodes.
     pub leaf_nodes: usize,
+    /// Number of error nodes.
     pub error_nodes: usize,
+    /// Maximum depth reached during traversal.
     pub max_depth: usize,
+    /// Per-kind node counts.
     pub node_counts: std::collections::HashMap<String, usize>,
     current_depth: usize,
 }
@@ -280,16 +335,21 @@ impl Visitor for StatsVisitor {
     }
 }
 
-/// Visitor that searches for specific node types
+/// A [`Visitor`] that records nodes matching a user-supplied predicate.
+///
+/// After the walk, matching nodes are stored in [`matches`](Self::matches) as
+/// `(start_byte, end_byte, kind)` tuples.
 pub struct SearchVisitor<F> {
     predicate: F,
-    pub matches: Vec<(usize, usize, String)>, // (start, end, kind)
+    /// Matched nodes as `(start_byte, end_byte, kind)` tuples.
+    pub matches: Vec<(usize, usize, String)>,
 }
 
 impl<F> SearchVisitor<F>
 where
     F: Fn(&Node) -> bool,
 {
+    /// Creates a new search visitor with the given predicate.
     pub fn new(predicate: F) -> Self {
         Self {
             predicate,
@@ -311,7 +371,11 @@ where
     }
 }
 
-/// Visitor that pretty-prints the tree structure
+/// A [`Visitor`] that produces an indented, human-readable representation of
+/// the parse tree.
+///
+/// After the walk, call [`output`](Self::output) to retrieve the formatted
+/// string.
 pub struct PrettyPrintVisitor {
     indent: usize,
     output: String,
@@ -324,6 +388,7 @@ impl Default for PrettyPrintVisitor {
 }
 
 impl PrettyPrintVisitor {
+    /// Creates a new pretty-print visitor with no accumulated output.
     pub fn new() -> Self {
         Self {
             indent: 0,
@@ -331,6 +396,7 @@ impl PrettyPrintVisitor {
         }
     }
 
+    /// Returns the accumulated pretty-printed output.
     pub fn output(&self) -> &str {
         &self.output
     }
@@ -374,26 +440,32 @@ impl Visitor for PrettyPrintVisitor {
     }
 }
 
-/// Transform visitor that can modify nodes during traversal
+/// Trait for bottom-up tree transformations.
+///
+/// Unlike [`Visitor`], a `TransformVisitor` produces a value at every node.
+/// Children are transformed first and their results are passed to
+/// [`transform_node`](Self::transform_node).
 pub trait TransformVisitor {
+    /// The type produced by each node transformation.
     type Output;
 
-    /// Transform a node
+    /// Transforms an interior node given its already-transformed children.
     fn transform_node(&mut self, node: &Node, children: Vec<Self::Output>) -> Self::Output;
 
-    /// Transform a leaf node
+    /// Transforms a leaf node (no children).
     fn transform_leaf(&mut self, node: &Node, text: &str) -> Self::Output;
 
-    /// Transform an error node
+    /// Transforms an error node.
     fn transform_error(&mut self, node: &Node) -> Self::Output;
 }
 
-/// Walker that applies transformations
+/// Applies a [`TransformVisitor`] to a parse tree in post-order.
 pub struct TransformWalker<'a> {
     source: &'a [u8],
 }
 
 impl<'a> TransformWalker<'a> {
+    /// Creates a new transform walker for the given source bytes.
     pub fn new(source: &'a [u8]) -> Self {
         Self { source }
     }
