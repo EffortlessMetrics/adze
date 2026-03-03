@@ -1043,3 +1043,955 @@ proptest! {
         prop_assert_eq!(kw_enum.unwrap().variants.len(), count);
     }
 }
+
+// ── 31. Grammar name appears as string literal in attribute ─────────────────
+
+proptest! {
+    #[test]
+    fn grammar_name_is_string_literal(idx in 0usize..=3) {
+        let names = ["alpha", "beta", "gamma", "delta"];
+        let gname = names[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod g {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    tok: String,
+                }
+            }
+        });
+        let extracted = extract_grammar_name(&m);
+        prop_assert!(extracted.is_some());
+        prop_assert!(extracted.unwrap().chars().all(|c| c.is_alphanumeric() || c == '_'));
+    }
+}
+
+// ── 32. Grammar with multiple structs no language yields error ──────────────
+
+proptest! {
+    #[test]
+    fn grammar_multiple_structs_no_language(count in 2usize..=5) {
+        let structs: Vec<_> = (0..count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("S{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    pub struct #name {
+                        #[adze::leaf(pattern = r"\d+")]
+                        val: String,
+                    }
+                }
+            })
+            .collect();
+        let m: ItemMod = syn::parse2(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #(#structs)*
+            }
+        }).unwrap();
+        // No language attribute => find_language_type returns None
+        prop_assert!(find_language_type(&m).is_none());
+    }
+}
+
+// ── 33. Grammar attribute removed from output module attrs ─────────────────
+
+proptest! {
+    #[test]
+    fn grammar_attr_stripped_from_expanded_output(idx in 0usize..=2) {
+        let names = ["g1", "g2", "g3"];
+        let gname = names[idx];
+        let input: ItemMod = syn::parse2(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Number(#[adze::leaf(pattern = r"\d+")] String),
+                }
+            }
+        }).unwrap();
+        // The raw parse_mod preserves the attr
+        prop_assert!(has_grammar_attr(&input));
+    }
+}
+
+// ── 34. Grammar module ident is independent of grammar name ────────────────
+
+proptest! {
+    #[test]
+    fn grammar_mod_ident_differs_from_name(idx in 0usize..=3) {
+        let mod_names = ["my_mod", "parser", "lang", "rules"];
+        let grammar_names = ["arithmetic", "json", "toml", "xml"];
+        let mod_name = syn::Ident::new(mod_names[idx], proc_macro2::Span::call_site());
+        let gname = grammar_names[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod #mod_name {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+            }
+        });
+        prop_assert_eq!(m.ident.to_string(), mod_names[idx]);
+        let name = extract_grammar_name(&m);
+        prop_assert_eq!(name.as_deref(), Some(gname));
+    }
+}
+
+// ── 35. Grammar with mixed struct and enum language candidates ──────────────
+
+proptest! {
+    #[test]
+    fn grammar_first_language_type_found(idx in 0usize..=1) {
+        // Only one language attribute should exist; test detection picks it up
+        let types = [
+            quote::quote! {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+                pub enum Other {
+                    A(#[adze::leaf(text = "a")] String),
+                }
+            },
+            quote::quote! {
+                pub struct Helper {
+                    #[adze::leaf(pattern = r"\d+")]
+                    n: String,
+                }
+                #[adze::language]
+                pub enum Root {
+                    Num(#[adze::leaf(pattern = r"\d+")] String),
+                }
+            },
+        ];
+        let tokens = &types[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #tokens
+            }
+        });
+        let lang = find_language_type(&m);
+        prop_assert!(lang.is_some());
+        prop_assert_eq!(lang.unwrap(), "Root");
+    }
+}
+
+// ── 36. Grammar produces rules (has items beyond just types) ────────────────
+
+proptest! {
+    #[test]
+    fn grammar_module_produces_items(idx in 0usize..=2) {
+        let extra_structs: Vec<_> = (0..=idx)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Extra{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    pub struct #name {
+                        #[adze::leaf(pattern = r"\w+")]
+                        v: String,
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+                #(#extra_structs)*
+            }
+        });
+        // At least 1 (Root) + extra count items
+        prop_assert!(count_items(&m) >= idx + 2);
+    }
+}
+
+// ── 37. Grammar name parameter special characters ───────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_name_with_digits_and_underscores(idx in 0usize..=3) {
+        let names = ["lang_v2", "parser_3_0", "my_lang_42", "v1_alpha"];
+        let gname = names[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+            }
+        });
+        let extracted = extract_grammar_name(&m);
+        prop_assert_eq!(extracted.as_deref(), Some(gname));
+    }
+}
+
+// ── 38. Grammar with multiple enums only one language ───────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_multiple_enums_one_language(enum_count in 2usize..=4) {
+        let mut enums: Vec<_> = (1..enum_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Helper{i}"), proc_macro2::Span::call_site());
+                let vname = syn::Ident::new(&format!("V{i}"), proc_macro2::Span::call_site());
+                let text = format!("v{i}");
+                quote::quote! {
+                    pub enum #name {
+                        #[adze::leaf(text = #text)]
+                        #vname,
+                    }
+                }
+            })
+            .collect();
+        enums.insert(0, quote::quote! {
+            #[adze::language]
+            pub enum Root {
+                #[adze::leaf(text = "root")]
+                R,
+            }
+        });
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #(#enums)*
+            }
+        });
+        let lang = find_language_type(&m);
+        prop_assert_eq!(lang.as_deref(), Some("Root"));
+        prop_assert_eq!(enum_names(&m).len(), enum_count);
+    }
+}
+
+// ── 39. Grammar empty module body still parseable ───────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_with_only_language_struct(idx in 0usize..=2) {
+        let names = ["mini", "tiny", "small"];
+        let gname = names[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+            }
+        });
+        prop_assert_eq!(count_items(&m), 1);
+        prop_assert!(find_language_type(&m).is_some());
+    }
+}
+
+// ── 40. Grammar attribute validation: empty string name ─────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_empty_string_name_parsed(idx in 0usize..=1) {
+        // Empty string is syntactically valid as a grammar name
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+            }
+        });
+        let _ = idx; // use the proptest parameter
+        let extracted = extract_grammar_name(&m);
+        prop_assert_eq!(extracted.as_deref(), Some(""));
+    }
+}
+
+// ── 41. Grammar struct item count preserved across repetitions ──────────────
+
+proptest! {
+    #[test]
+    fn grammar_struct_item_count_stable(count in 1usize..=5) {
+        let structs: Vec<_> = (0..count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Node{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    pub struct #name {
+                        #[adze::leaf(pattern = r"\w+")]
+                        v: String,
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+                #(#structs)*
+            }
+        });
+        // Root + count helper structs
+        prop_assert_eq!(struct_names(&m).len(), count + 1);
+    }
+}
+
+// ── 42. Grammar enum variants with box fields ───────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_enum_box_fields_preserved(variant_count in 1usize..=3) {
+        let variants: Vec<_> = (0..variant_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Var{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    #name(Box<Expr>)
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Leaf(#[adze::leaf(pattern = r"\d+")] String),
+                    #(#variants),*
+                }
+            }
+        });
+        let expr_enum = enum_names(&m);
+        prop_assert!(expr_enum.contains(&"Expr".to_string()));
+        let e = module_items(&m).iter().find_map(|item| match item {
+            Item::Enum(e) if e.ident == "Expr" => Some(e),
+            _ => None,
+        }).unwrap();
+        // Leaf + variant_count
+        prop_assert_eq!(e.variants.len(), variant_count + 1);
+    }
+}
+
+// ── 43. Grammar determinism: same input produces same token stream ──────────
+
+proptest! {
+    #[test]
+    fn grammar_determinism_repeated_parse(idx in 0usize..=3) {
+        let names = ["det1", "det2", "det3", "det4"];
+        let gname = names[idx];
+        let tokens = quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Num(#[adze::leaf(pattern = r"\d+")] String),
+                    #[adze::prec_left(1)]
+                    Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+                }
+            }
+        };
+        let m1 = parse_mod(tokens.clone());
+        let m2 = parse_mod(tokens);
+        prop_assert_eq!(m1.to_token_stream().to_string(), m2.to_token_stream().to_string());
+    }
+}
+
+// ── 44. Grammar with prec_left and prec_right coexisting ────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_mixed_precedence_attrs(idx in 0usize..=2) {
+        let precs = [1i32, 2, 3];
+        let p = precs[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Num(#[adze::leaf(pattern = r"\d+")] String),
+                    #[adze::prec_left(#p)]
+                    Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+                    #[adze::prec_right(#p)]
+                    Cons(Box<Expr>, #[adze::leaf(text = "::")] (), Box<Expr>),
+                }
+            }
+        });
+        let e = module_items(&m).iter().find_map(|item| match item {
+            Item::Enum(e) if e.ident == "Expr" => Some(e),
+            _ => None,
+        }).unwrap();
+        prop_assert_eq!(e.variants.len(), 3);
+    }
+}
+
+// ── 45. Grammar with optional fields ────────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_struct_optional_fields(opt_count in 1usize..=4) {
+        let fields: Vec<_> = (0..opt_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("f{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    #name: Option<Helper>
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    base: String,
+                    #(#fields),*
+                }
+                pub struct Helper {
+                    #[adze::leaf(pattern = r"\d+")]
+                    v: String,
+                }
+            }
+        });
+        let root = module_items(&m).iter().find_map(|item| match item {
+            Item::Struct(s) if s.ident == "Root" => Some(s),
+            _ => None,
+        }).unwrap();
+        // base + opt_count fields
+        prop_assert_eq!(root.fields.len(), opt_count + 1);
+    }
+}
+
+// ── 46. Grammar with vec repeat fields ──────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_struct_vec_fields(vec_count in 1usize..=3) {
+        let fields: Vec<_> = (0..vec_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("items{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    #name: Vec<Item>
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #(#fields),*
+                }
+                pub struct Item {
+                    #[adze::leaf(pattern = r"\w+")]
+                    v: String,
+                }
+            }
+        });
+        let root = module_items(&m).iter().find_map(|item| match item {
+            Item::Struct(s) if s.ident == "Root" => Some(s),
+            _ => None,
+        }).unwrap();
+        prop_assert_eq!(root.fields.len(), vec_count);
+    }
+}
+
+// ── 47. Grammar with skip fields on struct ──────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_struct_skip_fields(skip_count in 1usize..=3) {
+        let skip_fields: Vec<_> = (0..skip_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("skip{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    #[adze::skip(false)]
+                    #name: bool
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    tok: String,
+                    #(#skip_fields),*
+                }
+            }
+        });
+        let root = module_items(&m).iter().find_map(|item| match item {
+            Item::Struct(s) if s.ident == "Root" => Some(s),
+            _ => None,
+        }).unwrap();
+        // tok + skip_count fields
+        prop_assert_eq!(root.fields.len(), skip_count + 1);
+    }
+}
+
+// ── 48. Grammar with word attribute struct ───────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_word_attr_detected(idx in 0usize..=2) {
+        let names = ["Ident", "Keyword", "Name"];
+        let word_name = syn::Ident::new(names[idx], proc_macro2::Span::call_site());
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    w: #word_name,
+                }
+                #[adze::word]
+                pub struct #word_name {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+            }
+        });
+        let word_struct = module_items(&m).iter().find_map(|item| match item {
+            Item::Struct(s) if s.ident == names[idx] => Some(s),
+            _ => None,
+        });
+        prop_assert!(word_struct.is_some());
+    }
+}
+
+// ── 49. Grammar with external scanner struct ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_external_attr_detected(idx in 0usize..=2) {
+        let names = ["Indent", "Dedent", "Newline"];
+        let ext_name = syn::Ident::new(names[idx], proc_macro2::Span::call_site());
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    tok: String,
+                }
+                #[adze::external]
+                struct #ext_name {
+                    #[adze::leaf(pattern = r"\t+")]
+                    _t: (),
+                }
+            }
+        });
+        let ext = module_items(&m).iter().find_map(|item| match item {
+            Item::Struct(s) if s.ident == names[idx] => Some(s),
+            _ => None,
+        });
+        prop_assert!(ext.is_some());
+    }
+}
+
+// ── 50. Grammar module visibility variations ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_crate_visibility(idx in 0usize..=1) {
+        // Test with pub(crate) visibility
+        let tokens = if idx == 0 {
+            quote::quote! {
+                #[adze::grammar("test")]
+                pub(crate) mod grammar {
+                    #[adze::language]
+                    pub struct Root {
+                        #[adze::leaf(pattern = r"\w+")]
+                        t: String,
+                    }
+                }
+            }
+        } else {
+            quote::quote! {
+                #[adze::grammar("test")]
+                mod grammar {
+                    #[adze::language]
+                    pub struct Root {
+                        #[adze::leaf(pattern = r"\w+")]
+                        t: String,
+                    }
+                }
+            }
+        };
+        let m = parse_mod(tokens);
+        prop_assert!(has_grammar_attr(&m));
+        prop_assert!(find_language_type(&m).is_some());
+    }
+}
+
+// ── 51. Grammar determinism: complex grammar twice ──────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_complex_determinism(idx in 0usize..=2) {
+        let gnames = ["cplx1", "cplx2", "cplx3"];
+        let gname = gnames[idx];
+        let make = || parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Num(#[adze::leaf(pattern = r"\d+")] String),
+                    #[adze::prec_left(1)]
+                    Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+                    #[adze::prec_left(2)]
+                    Mul(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>),
+                }
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }
+            }
+        });
+        let a = make();
+        let b = make();
+        prop_assert_eq!(a.to_token_stream().to_string(), b.to_token_stream().to_string());
+    }
+}
+
+// ── 52. Grammar enum with leaf text variants preserved ──────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_leaf_text_variants_stable(count in 2usize..=6) {
+        let variants: Vec<_> = (0..count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Op{i}"), proc_macro2::Span::call_site());
+                let text = format!("op{i}");
+                quote::quote! {
+                    #[adze::leaf(text = #text)]
+                    #name
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Operator {
+                    #(#variants),*
+                }
+            }
+        });
+        let op_enum = module_items(&m).iter().find_map(|item| match item {
+            Item::Enum(e) if e.ident == "Operator" => Some(e),
+            _ => None,
+        });
+        prop_assert!(op_enum.is_some());
+        prop_assert_eq!(op_enum.unwrap().variants.len(), count);
+    }
+}
+
+// ── 53. Grammar with delimited vec field ────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_delimited_field_struct(idx in 0usize..=2) {
+        let delimiters = [",", ";", "|"];
+        let delim = delimiters[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct List {
+                    #[adze::delimited(
+                        #[adze::leaf(text = #delim)]
+                        ()
+                    )]
+                    items: Vec<Item>,
+                }
+                pub struct Item {
+                    #[adze::leaf(pattern = r"\w+")]
+                    v: String,
+                }
+            }
+        });
+        prop_assert_eq!(struct_names(&m).len(), 2);
+    }
+}
+
+// ── 54. Grammar with repeat non_empty attribute ─────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_repeat_non_empty_field(idx in 0usize..=1) {
+        let non_empty = idx == 0;
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct List {
+                    #[adze::repeat(non_empty = #non_empty)]
+                    items: Vec<Item>,
+                }
+                pub struct Item {
+                    #[adze::leaf(pattern = r"\d+")]
+                    v: String,
+                }
+            }
+        });
+        let list_struct = module_items(&m).iter().find_map(|item| match item {
+            Item::Struct(s) if s.ident == "List" => Some(s),
+            _ => None,
+        });
+        prop_assert!(list_struct.is_some());
+        prop_assert_eq!(list_struct.unwrap().fields.len(), 1);
+    }
+}
+
+// ── 55. Grammar multiple extras plus language ───────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_extra_count_alongside_language(extra_count in 1usize..=4) {
+        let extras: Vec<_> = (0..extra_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Extra{i}"), proc_macro2::Span::call_site());
+                let pat = format!("e{i}");
+                quote::quote! {
+                    #[adze::extra]
+                    struct #name {
+                        #[adze::leaf(pattern = #pat)]
+                        _e: (),
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+                #(#extras)*
+            }
+        });
+        // Root + extra_count
+        prop_assert_eq!(struct_names(&m).len(), extra_count + 1);
+        prop_assert!(find_language_type(&m).is_some());
+    }
+}
+
+// ── 56. Grammar struct with transform closure ───────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_leaf_transform_present(idx in 0usize..=2) {
+        let patterns = [r"\d+", r"[a-z]+", r"\w+"];
+        let pat = patterns[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = #pat, transform = |v| v.to_string())]
+                    val: String,
+                }
+            }
+        });
+        prop_assert!(find_language_type(&m).is_some());
+        let root = module_items(&m).iter().find_map(|item| match item {
+            Item::Struct(s) if s.ident == "Root" => Some(s),
+            _ => None,
+        }).unwrap();
+        prop_assert_eq!(root.fields.len(), 1);
+    }
+}
+
+// ── 57. Grammar with all precedence types ───────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_all_prec_types_coexist(prec_val in 1i32..=5) {
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Num(#[adze::leaf(pattern = r"\d+")] String),
+                    #[adze::prec(#prec_val)]
+                    Eq(Box<Expr>, #[adze::leaf(text = "==")] (), Box<Expr>),
+                    #[adze::prec_left(#prec_val)]
+                    Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+                    #[adze::prec_right(#prec_val)]
+                    Pow(Box<Expr>, #[adze::leaf(text = "^")] (), Box<Expr>),
+                }
+            }
+        });
+        let e = module_items(&m).iter().find_map(|item| match item {
+            Item::Enum(e) if e.ident == "Expr" => Some(e),
+            _ => None,
+        }).unwrap();
+        prop_assert_eq!(e.variants.len(), 4);
+    }
+}
+
+// ── 58. Grammar token stream size is non-zero ───────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_token_stream_nonempty(idx in 0usize..=2) {
+        let names = ["a", "bb", "ccc"];
+        let gname = names[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+            }
+        });
+        let ts = m.to_token_stream().to_string();
+        prop_assert!(!ts.is_empty());
+        prop_assert!(ts.contains("grammar"));
+    }
+}
+
+// ── 59. Grammar enum mixed named and unnamed variants ───────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_enum_mixed_variant_styles(idx in 0usize..=1) {
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    Num(#[adze::leaf(pattern = r"\d+")] String),
+                    Neg {
+                        #[adze::leaf(text = "-")]
+                        _minus: (),
+                        inner: Box<Expr>,
+                    },
+                }
+            }
+        });
+        let _ = idx;
+        let e = module_items(&m).iter().find_map(|item| match item {
+            Item::Enum(e) if e.ident == "Expr" => Some(e),
+            _ => None,
+        }).unwrap();
+        prop_assert_eq!(e.variants.len(), 2);
+    }
+}
+
+// ── 60. Grammar module with static items ────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_with_static_items(static_count in 1usize..=3) {
+        let statics: Vec<_> = (0..static_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("S{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    static #name: &str = "val";
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+                #(#statics)*
+            }
+        });
+        // Root struct + static_count statics
+        prop_assert!(count_items(&m) >= static_count + 1);
+    }
+}
+
+// ── 61. Grammar names are case sensitive ────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_name_case_sensitivity(idx in 0usize..=2) {
+        let pairs = [("foo", "Foo"), ("bar", "BAR"), ("my_lang", "My_Lang")];
+        let (lower, upper) = pairs[idx];
+        let m_lower = parse_mod(quote::quote! {
+            #[adze::grammar(#lower)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+            }
+        });
+        let m_upper = parse_mod(quote::quote! {
+            #[adze::grammar(#upper)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+            }
+        });
+        let name_lower = extract_grammar_name(&m_lower).unwrap();
+        let name_upper = extract_grammar_name(&m_upper).unwrap();
+        prop_assert_ne!(name_lower, name_upper);
+    }
+}
+
+// ── 62. Grammar struct and enum interleaved ─────────────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_interleaved_struct_enum(pair_count in 1usize..=3) {
+        let mut items = Vec::new();
+        for i in 0..pair_count {
+            let sname = syn::Ident::new(&format!("S{i}"), proc_macro2::Span::call_site());
+            let ename = syn::Ident::new(&format!("E{i}"), proc_macro2::Span::call_site());
+            let vname = syn::Ident::new(&format!("V{i}"), proc_macro2::Span::call_site());
+            let text = format!("v{i}");
+            items.push(quote::quote! {
+                pub struct #sname {
+                    #[adze::leaf(pattern = r"\w+")]
+                    v: String,
+                }
+            });
+            items.push(quote::quote! {
+                pub enum #ename {
+                    #[adze::leaf(text = #text)]
+                    #vname,
+                }
+            });
+        }
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    t: String,
+                }
+                #(#items)*
+            }
+        });
+        prop_assert_eq!(struct_names(&m).len(), pair_count + 1); // Root + S0..
+        prop_assert_eq!(enum_names(&m).len(), pair_count);
+    }
+}

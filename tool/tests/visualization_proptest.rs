@@ -689,3 +689,137 @@ proptest! {
         prop_assert!(text.contains("GLR"), "Text should show GLR resolution");
     }
 }
+
+// ---- 10. Enum-type (multiple-alternative) grammar visualization ----
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    /// Enum-style grammar (one LHS with many Choice alternatives) renders all variants in text.
+    #[test]
+    fn enum_choice_variants_in_text(variant_count in 2..=5usize) {
+        let mut grammar = Grammar::new("enum_lang".to_string());
+        // Create tokens for each variant
+        let mut tok_ids = Vec::new();
+        for i in 0..variant_count {
+            let id = SymbolId((i + 1) as u16);
+            grammar.tokens.insert(id, Token {
+                name: format!("VAR{}", i),
+                pattern: TokenPattern::String(format!("v{}", i)),
+                fragile: false,
+            });
+            tok_ids.push(id);
+        }
+        // Single rule with a Choice symbol containing all variants
+        let rule_id = SymbolId(100);
+        let choices: Vec<Symbol> = tok_ids.iter().map(|id| Symbol::Terminal(*id)).collect();
+        grammar.rules.entry(rule_id).or_default().push(Rule {
+            lhs: rule_id,
+            rhs: vec![Symbol::Choice(choices)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        let viz = GrammarVisualizer::new(grammar);
+        let text = viz.to_text();
+        // All variant tokens should appear in the choice notation
+        for i in 0..variant_count {
+            prop_assert!(text.contains(&format!("VAR{}", i)),
+                "Variant VAR{} missing from text output", i);
+        }
+        // Choice uses pipe separator in text
+        prop_assert!(text.contains("|"), "Choice should use | separator in text");
+    }
+
+    /// Enum-style grammar with separate alternative rules (one per variant) lists each rule.
+    #[test]
+    fn enum_separate_alternatives_in_text(variant_count in 2..=5usize) {
+        let mut grammar = Grammar::new("enum_sep".to_string());
+        for i in 0..variant_count {
+            let id = SymbolId((i + 1) as u16);
+            grammar.tokens.insert(id, Token {
+                name: format!("KIND{}", i),
+                pattern: TokenPattern::String(format!("k{}", i)),
+                fragile: false,
+            });
+        }
+        let rule_id = SymbolId(50);
+        for i in 0..variant_count {
+            grammar.rules.entry(rule_id).or_default().push(Rule {
+                lhs: rule_id,
+                rhs: vec![Symbol::Terminal(SymbolId((i + 1) as u16))],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(i as u16),
+            });
+        }
+        let viz = GrammarVisualizer::new(grammar);
+        let text = viz.to_text();
+        let arrow_count = text.matches("::=").count();
+        prop_assert_eq!(arrow_count, variant_count,
+            "Expected {} rule lines for enum alternatives, got {}", variant_count, arrow_count);
+    }
+
+    /// Enum-style DOT output has edges for each variant.
+    #[test]
+    fn enum_dot_has_edges_per_variant(variant_count in 2..=5usize) {
+        let mut grammar = Grammar::new("enum_dot".to_string());
+        for i in 0..variant_count {
+            let id = SymbolId((i + 1) as u16);
+            grammar.tokens.insert(id, Token {
+                name: format!("E{}", i),
+                pattern: TokenPattern::String(format!("e{}", i)),
+                fragile: false,
+            });
+        }
+        let rule_id = SymbolId(50);
+        for i in 0..variant_count {
+            grammar.rules.entry(rule_id).or_default().push(Rule {
+                lhs: rule_id,
+                rhs: vec![Symbol::Terminal(SymbolId((i + 1) as u16))],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(i as u16),
+            });
+        }
+        let viz = GrammarVisualizer::new(grammar);
+        let dot = viz.to_dot();
+        let edge_count = count_dot_edges(&dot);
+        prop_assert_eq!(edge_count, variant_count,
+            "Enum with {} variants should have {} edges, got {}", variant_count, variant_count, edge_count);
+    }
+
+    /// Enum-style grammar SVG renders all variant names.
+    #[test]
+    fn enum_svg_renders_variant_names(variant_count in 2..=4usize) {
+        let mut grammar = Grammar::new("enum_svg".to_string());
+        for i in 0..variant_count {
+            let id = SymbolId((i + 1) as u16);
+            grammar.tokens.insert(id, Token {
+                name: format!("SV{}", i),
+                pattern: TokenPattern::String(format!("s{}", i)),
+                fragile: false,
+            });
+        }
+        let rule_id = SymbolId(50);
+        for i in 0..variant_count {
+            grammar.rules.entry(rule_id).or_default().push(Rule {
+                lhs: rule_id,
+                rhs: vec![Symbol::Terminal(SymbolId((i + 1) as u16))],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(i as u16),
+            });
+        }
+        let viz = GrammarVisualizer::new(grammar);
+        let svg = viz.to_railroad_svg();
+        for i in 0..variant_count {
+            prop_assert!(svg.contains(&format!("SV{}", i)),
+                "SVG should contain variant name SV{}", i);
+        }
+    }
+}

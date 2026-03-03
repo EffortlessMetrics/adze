@@ -644,3 +644,552 @@ proptest! {
         prop_assert_eq!(iter_names, idx_names);
     }
 }
+
+// ===========================================================================
+// Additional tests (36–63)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 36. Default ParseTable has zero state_count and symbol_count
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn default_table_counts_are_zero(_dummy in 0..1u8) {
+        let table = ParseTable::default();
+        prop_assert_eq!(table.state_count, 0);
+        prop_assert_eq!(table.symbol_count, 0);
+        prop_assert_eq!(table.token_count, 0);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 37. Manually constructed terminal metadata has is_terminal true
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn terminal_metadata_flag_is_true(name in arb_symbol_name(), id in arb_symbol_id()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
+            is_terminal: true,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: id,
+        };
+        prop_assert!(m.is_terminal);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 38. Manually constructed non-terminal metadata has is_terminal false
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn nonterminal_metadata_flag_is_false(name in arb_symbol_name(), id in arb_symbol_id()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: id,
+        };
+        prop_assert!(!m.is_terminal);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 39. is_visible true metadata stays visible after clone
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn visible_metadata_stays_visible_after_clone(name in arb_symbol_name()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: true,
+            is_named: false,
+            is_supertype: false,
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(42),
+        };
+        let c = m.clone();
+        prop_assert!(c.is_visible);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 40. is_visible false metadata stays invisible after clone
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn invisible_metadata_stays_invisible_after_clone(name in arb_symbol_name()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: false,
+            is_named: false,
+            is_supertype: false,
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(42),
+        };
+        let c = m.clone();
+        prop_assert!(!c.is_visible);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 41. is_supertype true metadata preserved through clone
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn supertype_preserved_through_clone(name in arb_symbol_name()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: true,
+            is_named: true,
+            is_supertype: true,
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(7),
+        };
+        prop_assert!(m.clone().is_supertype);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 42. is_supertype false metadata preserved through clone
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn non_supertype_preserved_through_clone(name in arb_symbol_name()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
+            is_terminal: true,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(8),
+        };
+        prop_assert!(!m.clone().is_supertype);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 43. Terminal and non-terminal have distinct is_terminal values
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn terminal_vs_nonterminal_distinct(name in arb_symbol_name()) {
+        let term = SymbolMetadata {
+            name: name.clone(),
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
+            is_terminal: true,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(1),
+        };
+        let nonterm = SymbolMetadata {
+            name,
+            is_visible: true,
+            is_named: true,
+            is_supertype: false,
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: SymbolId(2),
+        };
+        prop_assert_ne!(term.is_terminal, nonterm.is_terminal);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 44. ParseTable::is_terminal based on token_count boundary
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn parse_table_is_terminal_boundary(token_count in 1usize..20, extra in 0usize..5) {
+        let mut table = ParseTable::default();
+        table.token_count = token_count;
+        table.external_token_count = extra;
+        let boundary = token_count + extra;
+        // Symbols below boundary are terminals
+        for i in 0..boundary {
+            prop_assert!(table.is_terminal(SymbolId(i as u16)));
+        }
+        // Symbols at or above boundary are non-terminals
+        prop_assert!(!table.is_terminal(SymbolId(boundary as u16)));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 45. ParseTable metadata can be replaced entirely
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn parse_table_metadata_replacement(
+        v1 in arb_metadata_vec(5),
+        v2 in arb_metadata_vec(8),
+    ) {
+        let mut table = ParseTable::default();
+        table.symbol_metadata = v1;
+        let old_len = table.symbol_metadata.len();
+        table.symbol_metadata = v2.clone();
+        prop_assert_eq!(table.symbol_metadata.len(), v2.len());
+        prop_assert!(table.symbol_metadata.len() != old_len || v2.len() == old_len);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 46. Metadata fields are independent (toggling one doesn't affect others)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn field_independence(m in arb_metadata()) {
+        let mut modified = m.clone();
+        let orig_visible = m.is_visible;
+        let orig_named = m.is_named;
+        let orig_supertype = m.is_supertype;
+
+        modified.is_terminal = !modified.is_terminal;
+        // Other fields remain unchanged
+        prop_assert_eq!(modified.is_visible, orig_visible);
+        prop_assert_eq!(modified.is_named, orig_named);
+        prop_assert_eq!(modified.is_supertype, orig_supertype);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 47. Debug output reflects actual is_terminal value
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn debug_reflects_is_terminal_value(m in arb_metadata()) {
+        let dbg = format!("{:?}", m);
+        let expected = format!("is_terminal: {}", m.is_terminal);
+        prop_assert!(dbg.contains(&expected),
+            "Debug should contain '{}', got: {}", expected, dbg);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 48. Debug output reflects actual is_visible value
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn debug_reflects_is_visible_value(m in arb_metadata()) {
+        let dbg = format!("{:?}", m);
+        let expected = format!("is_visible: {}", m.is_visible);
+        prop_assert!(dbg.contains(&expected),
+            "Debug should contain '{}', got: {}", expected, dbg);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 49. Debug output reflects actual is_supertype value
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn debug_reflects_is_supertype_value(m in arb_metadata()) {
+        let dbg = format!("{:?}", m);
+        let expected = format!("is_supertype: {}", m.is_supertype);
+        prop_assert!(dbg.contains(&expected),
+            "Debug should contain '{}', got: {}", expected, dbg);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 50. Collection: visible terminals are a subset of terminals
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn visible_terminals_subset_of_terminals(v in arb_metadata_vec(15)) {
+        let visible_terms = v.iter().filter(|m| m.is_visible && m.is_terminal).count();
+        let all_terms = v.iter().filter(|m| m.is_terminal).count();
+        prop_assert!(visible_terms <= all_terms);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 51. Collection: supertype non-terminals are a subset of non-terminals
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn supertype_nonterms_subset_of_nonterms(v in arb_metadata_vec(15)) {
+        let super_nt = v.iter().filter(|m| m.is_supertype && !m.is_terminal).count();
+        let all_nt = v.iter().filter(|m| !m.is_terminal).count();
+        prop_assert!(super_nt <= all_nt);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 52. Metadata with all flags true is valid
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn all_flags_true_is_valid(name in arb_symbol_name(), id in arb_symbol_id()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: true,
+            is_named: true,
+            is_supertype: true,
+            is_terminal: true,
+            is_extra: true,
+            is_fragile: true,
+            symbol_id: id,
+        };
+        let c = m.clone();
+        prop_assert!(c.is_visible);
+        prop_assert!(c.is_named);
+        prop_assert!(c.is_supertype);
+        prop_assert!(c.is_terminal);
+        prop_assert!(c.is_extra);
+        prop_assert!(c.is_fragile);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 53. Metadata with all flags false is valid
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn all_flags_false_is_valid(name in arb_symbol_name(), id in arb_symbol_id()) {
+        let m = SymbolMetadata {
+            name,
+            is_visible: false,
+            is_named: false,
+            is_supertype: false,
+            is_terminal: false,
+            is_extra: false,
+            is_fragile: false,
+            symbol_id: id,
+        };
+        let c = m.clone();
+        prop_assert!(!c.is_visible);
+        prop_assert!(!c.is_named);
+        prop_assert!(!c.is_supertype);
+        prop_assert!(!c.is_terminal);
+        prop_assert!(!c.is_extra);
+        prop_assert!(!c.is_fragile);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 54. ParseTable metadata lookup by index matches insertion order
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn parse_table_metadata_order_preserved(v in arb_metadata_vec(12)) {
+        let mut table = ParseTable::default();
+        table.symbol_metadata = v.clone();
+        for i in 0..v.len() {
+            prop_assert_eq!(&table.symbol_metadata[i].name, &v[i].name);
+            prop_assert_eq!(table.symbol_metadata[i].is_terminal, v[i].is_terminal);
+            prop_assert_eq!(table.symbol_metadata[i].is_visible, v[i].is_visible);
+            prop_assert_eq!(table.symbol_metadata[i].is_supertype, v[i].is_supertype);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 55. Determinism: constructing identical metadata yields identical Debug
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn identical_construction_yields_identical_debug(
+        name in arb_symbol_name(),
+        vis in any::<bool>(),
+        named in any::<bool>(),
+        sup in any::<bool>(),
+        term in any::<bool>(),
+        extra in any::<bool>(),
+        frag in any::<bool>(),
+        id in arb_symbol_id(),
+    ) {
+        let m1 = SymbolMetadata {
+            name: name.clone(),
+            is_visible: vis,
+            is_named: named,
+            is_supertype: sup,
+            is_terminal: term,
+            is_extra: extra,
+            is_fragile: frag,
+            symbol_id: id,
+        };
+        let m2 = SymbolMetadata {
+            name,
+            is_visible: vis,
+            is_named: named,
+            is_supertype: sup,
+            is_terminal: term,
+            is_extra: extra,
+            is_fragile: frag,
+            symbol_id: id,
+        };
+        prop_assert_eq!(format!("{:?}", m1), format!("{:?}", m2));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 56. Collection: map to (id, is_terminal) pairs preserves data
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn map_to_id_terminal_pairs(v in arb_metadata_vec(10)) {
+        let pairs: Vec<(SymbolId, bool)> = v.iter().map(|m| (m.symbol_id, m.is_terminal)).collect();
+        prop_assert_eq!(pairs.len(), v.len());
+        for i in 0..v.len() {
+            prop_assert_eq!(pairs[i].0, v[i].symbol_id);
+            prop_assert_eq!(pairs[i].1, v[i].is_terminal);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 57. Collection: counting fragile symbols <= total
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn fragile_count_lte_total(v in arb_metadata_vec(20)) {
+        let fragile = v.iter().filter(|m| m.is_fragile).count();
+        prop_assert!(fragile <= v.len());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 58. ParseTable metadata survives multiple mutations
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn parse_table_metadata_survives_mutations(v in arb_metadata_vec(6)) {
+        let mut table = ParseTable::default();
+        table.symbol_metadata = v.clone();
+        // Mutate state_count and symbol_count, metadata should be unaffected
+        table.state_count = 99;
+        table.symbol_count = 999;
+        prop_assert_eq!(table.symbol_metadata.len(), v.len());
+        for i in 0..v.len() {
+            prop_assert_eq!(&table.symbol_metadata[i].name, &v[i].name);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 59. Collection: windows of 2 have consecutive symbol_ids
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn windows_have_consecutive_ids(v in arb_metadata_vec(10)) {
+        // arb_metadata_vec assigns sequential IDs
+        for window in v.windows(2) {
+            prop_assert_eq!(window[1].symbol_id.0, window[0].symbol_id.0 + 1);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 60. Metadata name with unicode is valid
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn unicode_name_is_valid(id in arb_symbol_id()) {
+        let names = vec!["αβγ", "日本語", "émoji🎉", "über"];
+        for name in names {
+            let m = SymbolMetadata {
+                name: name.to_string(),
+                is_visible: true,
+                is_named: true,
+                is_supertype: false,
+                is_terminal: true,
+                is_extra: false,
+                is_fragile: false,
+                symbol_id: id,
+            };
+            let dbg = format!("{:?}", m);
+            prop_assert!(!dbg.is_empty());
+            prop_assert_eq!(&m.clone().name, name);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 61. ParseTable default has empty action_table and goto_table
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn default_table_tables_empty(_dummy in 0..1u8) {
+        let table = ParseTable::default();
+        prop_assert!(table.action_table.is_empty());
+        prop_assert!(table.goto_table.is_empty());
+        prop_assert!(table.symbol_to_index.is_empty());
+        prop_assert!(table.index_to_symbol.is_empty());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 62. Determinism: sorting metadata vec by name is stable and repeatable
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn sort_by_name_deterministic(v in arb_metadata_vec(10)) {
+        let mut s1 = v.clone();
+        let mut s2 = v.clone();
+        s1.sort_by(|a, b| a.name.cmp(&b.name));
+        s2.sort_by(|a, b| a.name.cmp(&b.name));
+        for i in 0..s1.len() {
+            prop_assert_eq!(&s1[i].name, &s2[i].name);
+            prop_assert_eq!(s1[i].symbol_id, s2[i].symbol_id);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 63. Collection: extra terminals are a subset of all extras
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn extra_terminals_subset_of_extras(v in arb_metadata_vec(15)) {
+        let extra_terms = v.iter().filter(|m| m.is_extra && m.is_terminal).count();
+        let all_extras = v.iter().filter(|m| m.is_extra).count();
+        prop_assert!(extra_terms <= all_extras);
+    }
+}

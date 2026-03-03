@@ -657,4 +657,462 @@ proptest! {
         // validate() should succeed – externals exist but aren't referenced
         prop_assert!(g.validate().is_ok());
     }
+
+    // -----------------------------------------------------------------------
+    // 36. Construction: empty name
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_empty_name_construction(id in arb_symbol_id()) {
+        let et = ExternalToken { name: String::new(), symbol_id: id };
+        prop_assert!(et.name.is_empty());
+        prop_assert_eq!(et.symbol_id, id);
+    }
+
+    // -----------------------------------------------------------------------
+    // 37. Construction: zero symbol ID
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_zero_symbol_id(name in arb_name()) {
+        let et = ExternalToken { name: name.clone(), symbol_id: SymbolId(0) };
+        prop_assert_eq!(et.symbol_id.0, 0);
+        prop_assert_eq!(&et.name, &name);
+    }
+
+    // -----------------------------------------------------------------------
+    // 38. PartialEq: reflexivity
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_eq_reflexive(et in arb_external_token()) {
+        prop_assert_eq!(&et, &et);
+    }
+
+    // -----------------------------------------------------------------------
+    // 39. PartialEq: symmetry
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_eq_symmetric(et in arb_external_token()) {
+        let other = et.clone();
+        prop_assert_eq!(&et, &other);
+        prop_assert_eq!(&other, &et);
+    }
+
+    // -----------------------------------------------------------------------
+    // 40. PartialEq: transitivity
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_eq_transitive(et in arb_external_token()) {
+        let b = et.clone();
+        let c = b.clone();
+        prop_assert_eq!(&et, &b);
+        prop_assert_eq!(&b, &c);
+        prop_assert_eq!(&et, &c);
+    }
+
+    // -----------------------------------------------------------------------
+    // 41. PartialEq: different name, same ID → not equal
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_ne_different_name(id in arb_symbol_id()) {
+        let a = ExternalToken { name: "alpha".into(), symbol_id: id };
+        let b = ExternalToken { name: "beta".into(), symbol_id: id };
+        prop_assert_ne!(&a, &b);
+    }
+
+    // -----------------------------------------------------------------------
+    // 42. PartialEq: same name, different ID → not equal
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_ne_different_id(name in arb_name(), a in 0u16..250, b in 250u16..500) {
+        let ea = ExternalToken { name: name.clone(), symbol_id: SymbolId(a) };
+        let eb = ExternalToken { name: name.clone(), symbol_id: SymbolId(b) };
+        prop_assert_ne!(&ea, &eb);
+    }
+
+    // -----------------------------------------------------------------------
+    // 43. Serialization: bincode roundtrip
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_bincode_roundtrip(et in arb_external_token()) {
+        let bytes = bincode::serialize(&et).unwrap();
+        let back: ExternalToken = bincode::deserialize(&bytes).unwrap();
+        prop_assert_eq!(&back, &et);
+    }
+
+    // -----------------------------------------------------------------------
+    // 44. Serialization: Vec<ExternalToken> roundtrip
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_vec_json_roundtrip(
+        tokens in prop::collection::vec(arb_external_token(), 0..10)
+    ) {
+        let json = serde_json::to_string(&tokens).unwrap();
+        let back: Vec<ExternalToken> = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(back.len(), tokens.len());
+        for i in 0..tokens.len() {
+            prop_assert_eq!(&back[i], &tokens[i]);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 45. Serialization: deserialization from hand-crafted JSON
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_from_manual_json(id in 0u16..500, name in arb_name()) {
+        let json = format!(r#"{{"name":"{}","symbol_id":{}}}"#, name, id);
+        let et: ExternalToken = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(&et.name, &name);
+        prop_assert_eq!(et.symbol_id.0, id);
+    }
+
+    // -----------------------------------------------------------------------
+    // 46. Determinism: repeated serialization produces identical output
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn ext_serialization_deterministic(et in arb_external_token()) {
+        let json1 = serde_json::to_string(&et).unwrap();
+        let json2 = serde_json::to_string(&et).unwrap();
+        prop_assert_eq!(&json1, &json2);
+    }
+
+    // -----------------------------------------------------------------------
+    // 47. Determinism: repeated grammar build with externals produces same IDs
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn builder_deterministic_ids(n in 1usize..6) {
+        let names: Vec<String> = (0..n).map(|i| format!("ext{i}")).collect();
+        let build = || {
+            let mut b = GrammarBuilder::new("test").token("ID", "[a-z]+");
+            for name in &names {
+                b = b.external(name);
+            }
+            b.rule("start", vec!["ID"]).start("start").build()
+        };
+        let g1 = build();
+        let g2 = build();
+        for i in 0..n {
+            prop_assert_eq!(g1.externals[i].symbol_id, g2.externals[i].symbol_id);
+            prop_assert_eq!(&g1.externals[i].name, &g2.externals[i].name);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 48. Determinism: grammar JSON serialization is deterministic
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn grammar_serde_deterministic_with_externals(n in 1usize..5) {
+        let externals: Vec<ExternalToken> = (0..n)
+            .map(|i| ExternalToken {
+                name: format!("ext{i}"),
+                symbol_id: SymbolId(100 + i as u16),
+            })
+            .collect();
+        let g = grammar_with_externals(externals);
+        let json1 = serde_json::to_string(&g).unwrap();
+        let json2 = serde_json::to_string(&g).unwrap();
+        prop_assert_eq!(&json1, &json2);
+    }
+
+    // -----------------------------------------------------------------------
+    // 49. Multiple externals: duplicate symbol IDs are preserved
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn grammar_allows_duplicate_external_ids(id in 100u16..500) {
+        let mut g = grammar_with_externals(vec![]);
+        g.externals.push(ExternalToken { name: "a".into(), symbol_id: SymbolId(id) });
+        g.externals.push(ExternalToken { name: "b".into(), symbol_id: SymbolId(id) });
+        prop_assert_eq!(g.externals.len(), 2);
+        prop_assert_eq!(g.externals[0].symbol_id, g.externals[1].symbol_id);
+    }
+
+    // -----------------------------------------------------------------------
+    // 50. Symbol IDs: external IDs don't collide with builder token IDs
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn builder_external_ids_not_collide_with_tokens(n in 1usize..5) {
+        let mut b = GrammarBuilder::new("test");
+        for i in 0..n {
+            b = b.token(&format!("TOK{i}"), &format!("t{i}"));
+        }
+        b = b.external("scanner");
+        let g = b.rule("start", vec!["TOK0"]).start("start").build();
+        let tok_ids: std::collections::HashSet<_> = g.tokens.keys().collect();
+        for ext in &g.externals {
+            prop_assert!(!tok_ids.contains(&ext.symbol_id), "external ID collides with token");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 51. Grammar default: empty externals
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn grammar_default_has_empty_externals(_dummy in 0..1u8) {
+        let g = Grammar::default();
+        prop_assert!(g.externals.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // 52. Grammar new: empty externals
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn grammar_new_has_empty_externals(name in "[a-z]{1,10}") {
+        let g = Grammar::new(name);
+        prop_assert!(g.externals.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // 53. Validation: nested Symbol::External in Choice
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn validate_external_in_choice(ext_id_raw in 100u16..400) {
+        let ext_id = SymbolId(ext_id_raw);
+        let tok_id = SymbolId(1);
+        let mut g = Grammar::new("test".into());
+        g.tokens.insert(tok_id, Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        });
+        g.externals.push(ExternalToken {
+            name: "ext".into(),
+            symbol_id: ext_id,
+        });
+        g.rules.insert(
+            SymbolId(0),
+            vec![Rule {
+                lhs: SymbolId(0),
+                rhs: vec![Symbol::Choice(vec![
+                    Symbol::Terminal(tok_id),
+                    Symbol::External(ext_id),
+                ])],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(0),
+            }],
+        );
+        prop_assert!(g.validate().is_ok());
+    }
+
+    // -----------------------------------------------------------------------
+    // 54. Validation: nested Symbol::External in Sequence
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn validate_external_in_sequence(ext_id_raw in 100u16..400) {
+        let ext_id = SymbolId(ext_id_raw);
+        let tok_id = SymbolId(1);
+        let mut g = Grammar::new("test".into());
+        g.tokens.insert(tok_id, Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        });
+        g.externals.push(ExternalToken {
+            name: "ext".into(),
+            symbol_id: ext_id,
+        });
+        g.rules.insert(
+            SymbolId(0),
+            vec![Rule {
+                lhs: SymbolId(0),
+                rhs: vec![Symbol::Sequence(vec![
+                    Symbol::Terminal(tok_id),
+                    Symbol::External(ext_id),
+                ])],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(0),
+            }],
+        );
+        prop_assert!(g.validate().is_ok());
+    }
+
+    // -----------------------------------------------------------------------
+    // 55. Validation: Symbol::External inside Optional
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn validate_external_in_optional(ext_id_raw in 100u16..400) {
+        let ext_id = SymbolId(ext_id_raw);
+        let tok_id = SymbolId(1);
+        let mut g = Grammar::new("test".into());
+        g.tokens.insert(tok_id, Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        });
+        g.externals.push(ExternalToken {
+            name: "ext".into(),
+            symbol_id: ext_id,
+        });
+        g.rules.insert(
+            SymbolId(0),
+            vec![Rule {
+                lhs: SymbolId(0),
+                rhs: vec![
+                    Symbol::Terminal(tok_id),
+                    Symbol::Optional(Box::new(Symbol::External(ext_id))),
+                ],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(0),
+            }],
+        );
+        prop_assert!(g.validate().is_ok());
+    }
+
+    // -----------------------------------------------------------------------
+    // 56. Validation: Symbol::External inside Repeat
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn validate_external_in_repeat(ext_id_raw in 100u16..400) {
+        let ext_id = SymbolId(ext_id_raw);
+        let tok_id = SymbolId(1);
+        let mut g = Grammar::new("test".into());
+        g.tokens.insert(tok_id, Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        });
+        g.externals.push(ExternalToken {
+            name: "ext".into(),
+            symbol_id: ext_id,
+        });
+        g.rules.insert(
+            SymbolId(0),
+            vec![Rule {
+                lhs: SymbolId(0),
+                rhs: vec![
+                    Symbol::Terminal(tok_id),
+                    Symbol::Repeat(Box::new(Symbol::External(ext_id))),
+                ],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(0),
+            }],
+        );
+        prop_assert!(g.validate().is_ok());
+    }
+
+    // -----------------------------------------------------------------------
+    // 57. Validation: Symbol::External inside RepeatOne
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn validate_external_in_repeat_one(ext_id_raw in 100u16..400) {
+        let ext_id = SymbolId(ext_id_raw);
+        let tok_id = SymbolId(1);
+        let mut g = Grammar::new("test".into());
+        g.tokens.insert(tok_id, Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        });
+        g.externals.push(ExternalToken {
+            name: "ext".into(),
+            symbol_id: ext_id,
+        });
+        g.rules.insert(
+            SymbolId(0),
+            vec![Rule {
+                lhs: SymbolId(0),
+                rhs: vec![
+                    Symbol::Terminal(tok_id),
+                    Symbol::RepeatOne(Box::new(Symbol::External(ext_id))),
+                ],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(0),
+            }],
+        );
+        prop_assert!(g.validate().is_ok());
+    }
+
+    // -----------------------------------------------------------------------
+    // 58. Validation: unregistered external in nested position fails
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn validate_unregistered_external_in_optional_fails(id in 600u16..1000) {
+        let tok_id = SymbolId(1);
+        let mut g = Grammar::new("test".into());
+        g.tokens.insert(tok_id, Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        });
+        g.rules.insert(
+            SymbolId(0),
+            vec![Rule {
+                lhs: SymbolId(0),
+                rhs: vec![Symbol::Optional(Box::new(Symbol::External(SymbolId(id))))],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(0),
+            }],
+        );
+        prop_assert!(g.validate().is_err());
+    }
+
+    // -----------------------------------------------------------------------
+    // 59. Multiple externals: symbol IDs are all distinct from builder
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn builder_multiple_externals_all_distinct(n in 2usize..10) {
+        let mut b = GrammarBuilder::new("test").token("ID", "[a-z]+");
+        for i in 0..n {
+            b = b.external(&format!("ext{i}"));
+        }
+        let g = b.rule("start", vec!["ID"]).start("start").build();
+        let mut ids: Vec<u16> = g.externals.iter().map(|e| e.symbol_id.0).collect();
+        ids.sort();
+        ids.dedup();
+        prop_assert_eq!(ids.len(), n, "all external IDs must be distinct");
+    }
+
+    // -----------------------------------------------------------------------
+    // 60. Determinism: registry build is deterministic
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn registry_build_deterministic(n in 1usize..5) {
+        let names: Vec<String> = (0..n).map(|i| format!("ext{i}")).collect();
+        let build_reg = || {
+            let mut b = GrammarBuilder::new("test").token("ID", "[a-z]+");
+            for name in &names {
+                b = b.external(name);
+            }
+            let mut g = b.rule("start", vec!["ID"]).start("start").build();
+            let reg = g.get_or_build_registry();
+            reg.iter().map(|(n, m)| (n.to_string(), m.id)).collect::<Vec<_>>()
+        };
+        let r1 = build_reg();
+        let r2 = build_reg();
+        prop_assert_eq!(r1, r2, "registry must be deterministic across builds");
+    }
 }
