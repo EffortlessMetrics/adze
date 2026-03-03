@@ -397,4 +397,223 @@ proptest! {
         let cloned = cd.clone();
         prop_assert_eq!(&cd, &cloned);
     }
+
+    // 34. Precedence determinism: constructing twice with same inputs yields equal values
+    #[test]
+    fn precedence_deterministic_construction(
+        level in any::<i16>(),
+        a in arb_associativity(),
+        syms in arb_symbol_ids(5),
+    ) {
+        let p1 = Precedence { level, associativity: a, symbols: syms.clone() };
+        let p2 = Precedence { level, associativity: a, symbols: syms };
+        prop_assert_eq!(&p1, &p2);
+        // Serializations must also be identical (determinism)
+        let j1 = serde_json::to_string(&p1).unwrap();
+        let j2 = serde_json::to_string(&p2).unwrap();
+        prop_assert_eq!(j1, j2);
+    }
+
+    // 35. Precedence equality is transitive
+    #[test]
+    fn precedence_eq_transitive(p in arb_precedence()) {
+        let q = p.clone();
+        let r = q.clone();
+        prop_assert_eq!(&p, &q);
+        prop_assert_eq!(&q, &r);
+        prop_assert_eq!(&p, &r);
+    }
+
+    // 36. Associativity Copy semantics: copied value equals original
+    #[test]
+    fn associativity_copy_semantics(a in arb_associativity()) {
+        let b = a; // Copy
+        let c = a; // Copy again
+        prop_assert_eq!(a, b);
+        prop_assert_eq!(a, c);
+    }
+
+    // 37. PrecedenceKind Clone preserves value
+    #[test]
+    fn prec_kind_clone_eq(pk in arb_precedence_kind()) {
+        let cloned = pk;
+        prop_assert_eq!(pk, cloned);
+    }
+
+    // 38. PrecedenceKind Debug is non-empty and contains variant name
+    #[test]
+    fn prec_kind_debug_contains_variant(pk in arb_precedence_kind()) {
+        let dbg = format!("{pk:?}");
+        prop_assert!(!dbg.is_empty());
+        match pk {
+            PrecedenceKind::Static(_) => prop_assert!(dbg.contains("Static")),
+            PrecedenceKind::Dynamic(_) => prop_assert!(dbg.contains("Dynamic")),
+        }
+    }
+
+    // 39. Precedence debug contains the level value
+    #[test]
+    fn precedence_debug_contains_level(level in -500i16..500) {
+        let p = Precedence { level, associativity: Associativity::Left, symbols: vec![] };
+        let dbg = format!("{p:?}");
+        prop_assert!(dbg.contains(&level.to_string()));
+    }
+
+    // 40. Multiple precedence levels in grammar: each level is retrievable
+    #[test]
+    fn grammar_multiple_prec_levels_accessible(
+        levels in prop::collection::vec(-100i16..100, 2..=5),
+    ) {
+        let precs: Vec<Precedence> = levels
+            .iter()
+            .enumerate()
+            .map(|(i, &lv)| Precedence {
+                level: lv,
+                associativity: Associativity::Left,
+                symbols: vec![SymbolId((i as u16) + 10)],
+            })
+            .collect();
+        let g = grammar_with_precedences("multi", precs.clone());
+        for (i, expected) in precs.iter().enumerate() {
+            prop_assert_eq!(&g.precedences[i], expected);
+        }
+    }
+
+    // 41. Precedence bincode serde roundtrip
+    #[test]
+    fn precedence_bincode_roundtrip(p in arb_precedence()) {
+        let bytes = bincode::serialize(&p).unwrap();
+        let back: Precedence = bincode::deserialize(&bytes).unwrap();
+        prop_assert_eq!(&p, &back);
+    }
+
+    // 42. Associativity bincode serde roundtrip
+    #[test]
+    fn associativity_bincode_roundtrip(a in arb_associativity()) {
+        let bytes = bincode::serialize(&a).unwrap();
+        let back: Associativity = bincode::deserialize(&bytes).unwrap();
+        prop_assert_eq!(a, back);
+    }
+
+    // 43. PrecedenceKind bincode roundtrip
+    #[test]
+    fn prec_kind_bincode_roundtrip(pk in arb_precedence_kind()) {
+        let bytes = bincode::serialize(&pk).unwrap();
+        let back: PrecedenceKind = bincode::deserialize(&bytes).unwrap();
+        prop_assert_eq!(pk, back);
+    }
+
+    // 44. Precedence with max/min i16 levels works correctly
+    #[test]
+    fn precedence_extreme_levels(selector in 0u8..4) {
+        let level = match selector {
+            0 => i16::MIN,
+            1 => i16::MAX,
+            2 => 0i16,
+            _ => -1i16,
+        };
+        let p = Precedence { level, associativity: Associativity::None, symbols: vec![] };
+        let json = serde_json::to_string(&p).unwrap();
+        let back: Precedence = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(p.level, back.level);
+    }
+
+    // 45. PrecedenceKind different values within same variant are unequal
+    #[test]
+    fn prec_kind_different_values_ne(a in any::<i16>(), b in any::<i16>()) {
+        prop_assume!(a != b);
+        prop_assert_ne!(PrecedenceKind::Static(a), PrecedenceKind::Static(b));
+        prop_assert_ne!(PrecedenceKind::Dynamic(a), PrecedenceKind::Dynamic(b));
+    }
+
+    // 46. Precedence symbols order matters for equality
+    #[test]
+    fn precedence_symbol_order_matters(
+        level in any::<i16>(),
+        a in arb_associativity(),
+        s1 in 1u16..100,
+        s2 in 101u16..200,
+    ) {
+        let p1 = Precedence { level, associativity: a, symbols: vec![SymbolId(s1), SymbolId(s2)] };
+        let p2 = Precedence { level, associativity: a, symbols: vec![SymbolId(s2), SymbolId(s1)] };
+        prop_assert_ne!(&p1, &p2);
+    }
+
+    // 47. ConflictResolution GLR variant does not interfere with Precedence variant
+    #[test]
+    fn conflict_resolution_variants_distinct(pk in arb_precedence_kind()) {
+        let res_prec = ConflictResolution::Precedence(pk);
+        let res_glr = ConflictResolution::GLR;
+        prop_assert_ne!(&res_prec, &res_glr);
+    }
+
+    // 48. ConflictResolution Associativity variant roundtrips all three kinds
+    #[test]
+    fn conflict_resolution_assoc_variant_roundtrip(a in arb_associativity()) {
+        let res = ConflictResolution::Associativity(a);
+        let json = serde_json::to_string(&res).unwrap();
+        let back: ConflictResolution = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(&res, &back);
+    }
+
+    // 49. Precedence determinism: JSON output is byte-identical across repeated serializations
+    #[test]
+    fn precedence_json_deterministic(p in arb_precedence()) {
+        let j1 = serde_json::to_string(&p).unwrap();
+        let j2 = serde_json::to_string(&p).unwrap();
+        let j3 = serde_json::to_string(&p).unwrap();
+        prop_assert_eq!(&j1, &j2);
+        prop_assert_eq!(&j2, &j3);
+    }
+
+    // 50. Grammar precedences survive clone
+    #[test]
+    fn grammar_prec_clone_preserves(precs in prop::collection::vec(arb_precedence(), 0..=3)) {
+        let g = grammar_with_precedences("clone_test", precs);
+        let g2 = g.clone();
+        prop_assert_eq!(&g.precedences, &g2.precedences);
+    }
+
+    // 51. Rule with None precedence and Some associativity are independent
+    #[test]
+    fn rule_independent_prec_assoc(a in arb_associativity()) {
+        let r = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![Symbol::Terminal(SymbolId(2))],
+            precedence: Option::None,
+            associativity: Some(a),
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        prop_assert!(r.precedence.is_none());
+        prop_assert_eq!(r.associativity, Some(a));
+    }
+
+    // 52. Rule with Some precedence and None associativity are independent
+    #[test]
+    fn rule_prec_without_assoc(pk in arb_precedence_kind()) {
+        let r = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![Symbol::Terminal(SymbolId(2))],
+            precedence: Some(pk),
+            associativity: Option::None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        prop_assert_eq!(r.precedence, Some(pk));
+        prop_assert!(r.associativity.is_none());
+    }
+
+    // 53. Precedence with large symbol list roundtrips
+    #[test]
+    fn precedence_large_symbols_roundtrip(
+        level in any::<i16>(),
+        a in arb_associativity(),
+        syms in prop::collection::vec(arb_symbol_id(), 10..=20),
+    ) {
+        let p = Precedence { level, associativity: a, symbols: syms };
+        let json = serde_json::to_string(&p).unwrap();
+        let back: Precedence = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(&p, &back);
+    }
 }

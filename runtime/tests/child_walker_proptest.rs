@@ -857,7 +857,141 @@ proptest! {
 }
 
 // ===================================================================
-// 30. Walker with all fields set: combined flags round-trip
+// 30. Walker partial traversal: stop midway, prefix matches
+// ===================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn walker_partial_traversal_prefix(
+        syms in prop::collection::vec(1u16..500, 3..=15),
+        stop_at in 1usize..=14,
+    ) {
+        let stop = stop_at.min(syms.len() - 1);
+        let kids: Vec<ParsedNode> = syms.iter().enumerate()
+            .map(|(i, &s)| leaf(s, i, i + 1))
+            .collect();
+        let parent = branch(999, 0, kids.len(), kids);
+
+        let mut walker = parent.walk();
+        let mut collected = Vec::new();
+        if walker.goto_first_child() {
+            collected.push(walker.node().symbol());
+            for _ in 1..stop {
+                if !walker.goto_next_sibling() { break; }
+                collected.push(walker.node().symbol());
+            }
+        }
+        prop_assert_eq!(&collected[..], &syms[..collected.len()]);
+    }
+}
+
+// ===================================================================
+// 31. Walker recursive descent: nested walkers collect all descendants
+// ===================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+
+    #[test]
+    fn walker_recursive_descent_all_descendants(
+        depth in 1usize..=4,
+        sym_base in 1u16..100,
+    ) {
+        // Build a chain: each level has one child branch wrapping a leaf
+        let mut current = leaf(sym_base + depth as u16, 0, 1);
+        for d in (0..depth).rev() {
+            current = branch(sym_base + d as u16, 0, 1, vec![current]);
+        }
+
+        // Walk each level and verify it has exactly one child
+        let mut node = &current;
+        for d in 0..depth {
+            let mut walker = node.walk();
+            prop_assert!(walker.goto_first_child());
+            prop_assert_eq!(walker.node().symbol(), sym_base + d as u16 + 1);
+            prop_assert!(!walker.goto_next_sibling());
+            node = &node.children()[0];
+        }
+        // Deepest node is a leaf
+        let mut walker = node.walk();
+        prop_assert!(!walker.goto_first_child());
+    }
+}
+
+// ===================================================================
+// 32. goto_first_child is idempotent: repeated calls return same child
+// ===================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn goto_first_child_idempotent(syms in prop::collection::vec(1u16..500, 1..=10)) {
+        let kids: Vec<ParsedNode> = syms.iter().enumerate()
+            .map(|(i, &s)| leaf(s, i, i + 1))
+            .collect();
+        let parent = branch(999, 0, kids.len(), kids);
+
+        let mut walker = parent.walk();
+        for _ in 0..5 {
+            prop_assert!(walker.goto_first_child());
+            prop_assert_eq!(walker.node().symbol(), syms[0]);
+            prop_assert_eq!(walker.node().start_byte(), 0);
+        }
+    }
+}
+
+// ===================================================================
+// 33. Walker with all-anonymous children: none are named
+// ===================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn walker_all_anonymous_children(count in 1usize..=12) {
+        let kids: Vec<ParsedNode> = (0..count)
+            .map(|i| anon_leaf(i as u16 + 1, i, i + 1))
+            .collect();
+        let parent = branch(999, 0, count, kids);
+
+        let mut walker = parent.walk();
+        if walker.goto_first_child() {
+            prop_assert!(!walker.node().is_named());
+            while walker.goto_next_sibling() {
+                prop_assert!(!walker.node().is_named());
+            }
+        }
+    }
+}
+
+// ===================================================================
+// 34. Walker symbol matches child(i).symbol for each index
+// ===================================================================
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(200))]
+
+    #[test]
+    fn walker_symbol_matches_indexed_child(syms in prop::collection::vec(1u16..500, 1..=15)) {
+        let kids: Vec<ParsedNode> = syms.iter().enumerate()
+            .map(|(i, &s)| leaf(s, i, i + 1))
+            .collect();
+        let parent = branch(999, 0, kids.len(), kids);
+
+        let mut walker = parent.walk();
+        if walker.goto_first_child() {
+            let mut idx = 0;
+            prop_assert_eq!(walker.node().symbol(), parent.child(idx).unwrap().symbol());
+            idx += 1;
+            while walker.goto_next_sibling() {
+                prop_assert_eq!(walker.node().symbol(), parent.child(idx).unwrap().symbol());
+                idx += 1;
+            }
+            prop_assert_eq!(idx, parent.child_count());
+        }
+    }
+}
+
+// ===================================================================
+// 35. Walker with all fields set: combined flags round-trip
 // ===================================================================
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]

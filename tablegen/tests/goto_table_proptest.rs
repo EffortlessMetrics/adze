@@ -499,3 +499,163 @@ proptest! {
             "RLE entries {} > original entries {}", compressed.data.len(), total_orig);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8. Goto table default entries — states with uniform targets
+// ═══════════════════════════════════════════════════════════════════════════
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    /// When every cell in a sparse row targets the same state, all lookups return it.
+    #[test]
+    fn sparse_uniform_row_default_target(n_syms in 2usize..20, target in 0u16..500) {
+        let row: Vec<Option<u16>> = vec![Some(target); n_syms];
+        let table = option_table(vec![row]);
+        let compressed = compress_goto_table(&table);
+
+        for sym in 0..n_syms {
+            prop_assert_eq!(
+                decompress_goto(&compressed, 0, sym),
+                Some(StateId(target)),
+                "Uniform row lookup failed at symbol {}", sym
+            );
+        }
+        prop_assert_eq!(compressed.entries.len(), n_syms);
+    }
+
+    /// Sparse table where half the columns share one target and half share another.
+    #[test]
+    fn sparse_two_default_groups(n_syms in 4usize..20, t1 in 0u16..250, t2 in 250u16..500) {
+        let half = n_syms / 2;
+        let mut row = vec![Some(t1); half];
+        row.extend(vec![Some(t2); n_syms - half]);
+        let table = option_table(vec![row.clone()]);
+        let compressed = compress_goto_table(&table);
+
+        for sym in 0..half {
+            prop_assert_eq!(decompress_goto(&compressed, 0, sym), Some(StateId(t1)));
+        }
+        for sym in half..n_syms {
+            prop_assert_eq!(decompress_goto(&compressed, 0, sym), Some(StateId(t2)));
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 9. Goto table empty grammar — zero-dimension edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn sparse_empty_table_no_states() {
+    let table: Vec<Vec<Option<StateId>>> = vec![];
+    let compressed = compress_goto_table(&table);
+    assert_eq!(compressed.entries.len(), 0);
+    assert_eq!(decompress_goto(&compressed, 0, 0), None);
+}
+
+#[test]
+fn dense_empty_table_no_states() {
+    let table: Vec<Vec<StateId>> = vec![];
+    let compressor = TableCompressor::new();
+    let compressed = compressor.compress_goto_table_small(&table).unwrap();
+    assert_eq!(compressed.row_offsets.len(), 1); // sentinel only
+    assert!(compressed.data.is_empty());
+}
+
+#[test]
+fn sparse_single_cell_some() {
+    let table = option_table(vec![vec![Some(42)]]);
+    let compressed = compress_goto_table(&table);
+    assert_eq!(decompress_goto(&compressed, 0, 0), Some(StateId(42)));
+    assert_eq!(compressed.entries.len(), 1);
+}
+
+#[test]
+fn sparse_single_cell_none() {
+    let table = option_table(vec![vec![None]]);
+    let compressed = compress_goto_table(&table);
+    assert_eq!(decompress_goto(&compressed, 0, 0), None);
+    assert_eq!(compressed.entries.len(), 0);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 10. Goto table roundtrip — mixed patterns & boundary values
+// ═══════════════════════════════════════════════════════════════════════════
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    /// Alternating values compress and expand correctly.
+    #[test]
+    fn alternating_values_roundtrip(a in 0u16..250, b in 250u16..500, half_len in 2usize..30) {
+        let row: Vec<u16> = (0..half_len * 2).map(|i| if i % 2 == 0 { a } else { b }).collect();
+        let table = dense_table(vec![row.clone()]);
+        let compressor = TableCompressor::new();
+        let compressed = compressor.compress_goto_table_small(&table).unwrap();
+        let expanded = expand_compressed(&compressed);
+        prop_assert_eq!(&expanded[0], &row);
+    }
+
+    /// Maximum u16 state values survive roundtrip through sparse compression.
+    #[test]
+    fn boundary_u16_sparse_roundtrip(val in (u16::MAX - 100)..=u16::MAX) {
+        let raw = vec![vec![Some(val), None, Some(val)]];
+        let table = option_table(raw);
+        let compressed = compress_goto_table(&table);
+        prop_assert_eq!(decompress_goto(&compressed, 0, 0), Some(StateId(val)));
+        prop_assert_eq!(decompress_goto(&compressed, 0, 1), None);
+        prop_assert_eq!(decompress_goto(&compressed, 0, 2), Some(StateId(val)));
+    }
+
+    /// Maximum u16 state values survive roundtrip through RLE compression.
+    #[test]
+    fn boundary_u16_dense_roundtrip(val in (u16::MAX - 100)..=u16::MAX, len in 3usize..20) {
+        let row = vec![val; len];
+        let table = dense_table(vec![row.clone()]);
+        let compressor = TableCompressor::new();
+        let compressed = compressor.compress_goto_table_small(&table).unwrap();
+        let expanded = expand_compressed(&compressed);
+        prop_assert_eq!(&expanded[0], &row);
+    }
+
+    /// Fully-populated sparse table roundtrips correctly (no None cells).
+    #[test]
+    fn fully_populated_sparse_roundtrip(
+        n_states in 1usize..8,
+        n_syms in 1usize..8,
+    ) {
+        let raw: Vec<Vec<Option<u16>>> = (0..n_states)
+            .map(|s| (0..n_syms).map(|sym| Some((s * n_syms + sym) as u16)).collect())
+            .collect();
+        let table = option_table(raw.clone());
+        let compressed = compress_goto_table(&table);
+
+        for s in 0..n_states {
+            for sym in 0..n_syms {
+                let expected = Some(StateId((s * n_syms + sym) as u16));
+                prop_assert_eq!(decompress_goto(&compressed, s, sym), expected);
+            }
+        }
+        prop_assert_eq!(compressed.entries.len(), n_states * n_syms);
+    }
+
+    /// Multi-row table with mixed run/single patterns roundtrips through RLE.
+    #[test]
+    fn mixed_multirow_rle_roundtrip(
+        run_val in 0u16..500,
+        run_len in 3usize..15,
+        tail_len in 1usize..5,
+    ) {
+        let mut row1: Vec<u16> = vec![run_val; run_len];
+        row1.extend((0..tail_len as u16).map(|i| run_val.wrapping_add(i + 1)));
+        let row2: Vec<u16> = (0..row1.len() as u16).collect();
+        let raw = vec![row1.clone(), row2.clone()];
+        let table = dense_table(raw.clone());
+        let compressor = TableCompressor::new();
+        let compressed = compressor.compress_goto_table_small(&table).unwrap();
+        let expanded = expand_compressed(&compressed);
+        prop_assert_eq!(&expanded[0], &raw[0]);
+        prop_assert_eq!(&expanded[1], &raw[1]);
+    }
+}
