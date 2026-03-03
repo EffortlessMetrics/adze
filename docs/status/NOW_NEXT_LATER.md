@@ -1,19 +1,22 @@
 # Now / Next / Later
 
-**Last updated:** 2026-03-05
+**Last updated:** 2026-03-06
+**Status:** **Release Candidate** — 0.8.0-rc quality
 
 Adze status and rolling execution plan. For paper cuts and pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md).
 
 ---
 
-## Done (Wave 6)
+## Done (Waves 1–10)
+
+> 10 waves of parallel agent work, 75+ commits driving the 0.8.0 release to RC quality.
 
 ### ✅ CI Gate Green
 - [x] All supported crates compile: `adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-common`, `adze-macro`, `adze-tool`.
 - [x] `cargo check --workspace` passes (full workspace compiles).
-- [x] `cargo fmt --all -- --check` passes.
-- [x] `cargo clippy` clean on supported crates.
-- [x] `cargo test` passes — **1,416 tests, 0 failures**.
+- [x] `cargo fmt --all -- --check` passes — **fmt clean** across all supported crates.
+- [x] `cargo clippy` clean on supported crates — **clippy clean**.
+- [x] `cargo test` passes — **1,700+ tests, 0 failures**.
 - [x] `cargo doc` builds for supported crates — **0 rustdoc warnings** across supported crates.
 
 ### ✅ Safety Audit
@@ -21,7 +24,7 @@ Adze status and rolling execution plan. For paper cuts and pain points, see [`do
 - [x] SAFETY comments on all `unsafe` blocks in `glr-core` and `tablegen`.
 
 ### ✅ Testing Buildout
-- [x] 1,416 tests across the workspace (property, integration, snapshot, GLR-core, fuzzing).
+- [x] **1,700+ tests** across the workspace (property, integration, snapshot, GLR-core, fuzzing).
 - [x] Property-based tests in `tablegen/tests/property_tests.rs`.
 - [x] Integration tests in `runtime/tests/` (30+ test files covering API contracts, end-to-end, edge cases, concurrency).
 - [x] Integration tests in `common/tests/` (`expansion_tests.rs`, `parsing_tests.rs`).
@@ -47,15 +50,17 @@ Adze status and rolling execution plan. For paper cuts and pain points, see [`do
 - [x] Crate-level `//!` doc comments on all supported crates.
 - [x] `cargo doc` builds cleanly — 0 warnings across supported crates.
 - [x] Doctests pass for `glr-core` (serialization) and `ir` (builder).
-- [x] Book: 4 new chapters added.
+- [x] Book: **6+ chapters** covering grammar design, GLR parsing, external scanners, and more.
 
 ### ✅ Infrastructure
 - [x] Fuzzing targets set up (20 targets in `fuzz/fuzz_targets/`).
 - [x] CI workflow with feature matrix job for crate × feature-flag combinations.
+- [x] CI with cross-platform advisory jobs (macOS/Windows).
 - [x] Cargo.toml metadata fixed for publish readiness across workspace.
+- [x] Publish order documented for crates.io release.
 - [x] READMEs added to `crates/` microcrates.
 - [x] Concurrency caps in CI (RUST_TEST_THREADS=2, RAYON_NUM_THREADS=4).
-- [x] Cross-platform: Linux verified, macOS/Windows CI being added.
+- [x] Cross-platform: Linux verified, macOS/Windows CI advisory jobs in place.
 
 ### ✅ Workspace Polish
 - [x] Cargo.toml metadata polish across workspace crates.
@@ -74,7 +79,7 @@ Adze status and rolling execution plan. For paper cuts and pain points, see [`do
 
 ## Now
 
-### 📦 Publish to crates.io
+### 📦 Publish to crates.io (RC gate)
 - [ ] Perform a clean `cargo package` dry-run for all core crates.
 - [ ] Standardize feature-flag names across the workspace (`glr`, `simd`, etc).
 - [ ] Publish initial release of core crates: `adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`.

@@ -2,21 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] — 0.8.0-dev Release Candidate
+## [Unreleased] — 0.8.0 Release Candidate
 
-**Focus**: Test infrastructure, quality hardening, documentation, and security audit.
+**Focus**: Test infrastructure, quality hardening, documentation, security audit, and RC readiness.
+
+**Summary**: 10 waves of parallel agent work, 75+ commits. 1,700+ tests passing with 0 failures.
+All supported crates are fmt clean, clippy clean, and fully tested. WASM verified, security clean.
 
 ### Added
-- **1400+ tests** across all supported crates, covering unit, integration, and end-to-end scenarios
+- **1,700+ tests** across all supported crates, covering unit, integration, snapshot, property-based, and end-to-end scenarios
 - **BDD scenario tests** for runtime crate using declarative test patterns
 - **Property-based testing** with `proptest` for grammar and parser invariants
 - **Mutation testing** setup with `cargo-mutants` for test-quality verification
 - **Feature combination verification** script to validate all feature-flag permutations
 - **Benchmark baselines** with `criterion` for parser and table-generation performance
-- **5+ fuzz targets** covering parser inputs, grammar construction, and serialization
+- **20 fuzz targets** covering parser inputs, grammar construction, serialization, external scanners, stack pool, and concurrency
 - **Golden test expansion** — additional reference grammars and hash-verified parse trees
 - **Cross-crate integration tests** validating the full IR → GLR → tablegen → runtime pipeline
-- **Book chapters**: parsing guide, external scanners, and API reference
+- **Book with 6+ chapters**: grammar design, GLR parsing, external scanners, API reference, and more
+- **Cross-platform CI advisory jobs** for macOS and Windows alongside Linux verification
+- **Publish order documentation** for crates.io release sequence
 - **`.editorconfig` and VS Code settings** for consistent contributor experience
 - **Security audit** with `cargo-audit` — 0 known vulnerabilities
 
@@ -32,6 +37,7 @@ All notable changes to this project will be documented in this file.
 - **Workspace dependencies centralized** — 9 common deps lifted to `[workspace.dependencies]`
 - **`cargo-deny` configuration** updated with current advisory database
 - **CI workflow enhanced** with feature matrix covering default, `glr-core`, `incremental`, and `all-features`
+- **Concurrency caps** standardized across CI and local testing (RUST_TEST_THREADS=2, RAYON_NUM_THREADS=4)
 
 ### Security
 - **SAFETY comments** added to all `unsafe` blocks per Rust best practices

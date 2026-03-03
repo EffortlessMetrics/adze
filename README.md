@@ -57,8 +57,12 @@ adze-tool = "0.8"
 Create a `build.rs` in your project root:
 
 ```rust
+use std::path::PathBuf;
+
 fn main() {
-    adze_tool::build_parsers(&std::path::PathBuf::from("src/main.rs"));
+    // Point this at the file containing your `#[adze::grammar(...)]` module.
+    // Use `src/main.rs` for binary crates, or `src/lib.rs` for library crates.
+    adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
 }
 ```
 

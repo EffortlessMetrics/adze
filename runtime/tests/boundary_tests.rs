@@ -159,7 +159,10 @@ fn empty_string_number_add_grammar() {
     let g = number_add_grammar();
     let mut parser = build_parser(&g);
     let result = parse_input(&mut parser, &g, "");
-    assert!(result.is_err(), "empty input must not parse as an expression");
+    assert!(
+        result.is_err(),
+        "empty input must not parse as an expression"
+    );
 }
 
 #[test]
@@ -167,7 +170,10 @@ fn empty_string_paren_grammar() {
     let g = paren_grammar();
     let mut parser = build_parser(&g);
     let result = parse_input(&mut parser, &g, "");
-    assert!(result.is_err(), "empty input must not parse with paren grammar");
+    assert!(
+        result.is_err(),
+        "empty input must not parse with paren grammar"
+    );
 }
 
 #[test]
@@ -218,7 +224,12 @@ fn single_digit_parses() {
     for ch in '0'..='9' {
         let input = ch.to_string();
         let result = parse_input(&mut parser, &g, &input);
-        assert!(result.is_ok(), "single digit '{}' should parse: {:?}", ch, result);
+        assert!(
+            result.is_ok(),
+            "single digit '{}' should parse: {:?}",
+            ch,
+            result
+        );
     }
 }
 
@@ -270,7 +281,11 @@ fn very_long_single_token_parses() {
     let big = "1".repeat(50_000);
     let mut parser = build_parser(&g);
     let result = parse_input(&mut parser, &g, &big);
-    assert!(result.is_ok(), "long number literal should parse: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "long number literal should parse: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -284,7 +299,11 @@ fn many_tokens_in_sequence() {
         input.push_str(&i.to_string());
     }
     let result = parse_input(&mut parser, &g, &input);
-    assert!(result.is_ok(), "1000-element chain should parse: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "1000-element chain should parse: {:?}",
+        result
+    );
 }
 
 // ===========================================================================
@@ -298,7 +317,11 @@ fn nesting_depth_100() {
     let depth = 100;
     let input = "(".repeat(depth) + "1" + &")".repeat(depth);
     let result = parse_input(&mut parser, &g, &input);
-    assert!(result.is_ok(), "depth-100 nesting should parse: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "depth-100 nesting should parse: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -326,7 +349,10 @@ fn unbalanced_deep_close_parens_rejects() {
     let mut parser = build_parser(&g);
     let input = "1".to_string() + &")".repeat(100);
     let result = parse_input(&mut parser, &g, &input);
-    assert!(result.is_err(), "unbalanced deep close parens should reject");
+    assert!(
+        result.is_err(),
+        "unbalanced deep close parens should reject"
+    );
 }
 
 // ===========================================================================
@@ -344,7 +370,11 @@ fn many_additions_produce_many_nodes() {
         input.push_str(&i.to_string());
     }
     let result = parse_input(&mut parser, &g, &input);
-    assert!(result.is_ok(), "500-addition chain should parse: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "500-addition chain should parse: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -354,7 +384,11 @@ fn many_nested_parens_produce_many_nodes() {
     let depth = 80;
     let input = "(".repeat(depth) + "1" + &")".repeat(depth);
     let result = parse_input(&mut parser, &g, &input);
-    assert!(result.is_ok(), "depth-80 paren nesting should parse: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "depth-80 paren nesting should parse: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -370,7 +404,11 @@ fn alternating_single_digits_produces_many_tokens() {
     }
     let mut parser = build_parser(&g);
     let result = parse_input(&mut parser, &g, &input);
-    assert!(result.is_ok(), "200 single-digit additions should parse: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "200 single-digit additions should parse: {:?}",
+        result
+    );
 }
 
 // ===========================================================================
@@ -587,8 +625,7 @@ fn grammar_with_chained_nonterminals() {
     let chain_len = 20;
     for i in 0..chain_len {
         let nt = SymbolId(100 + i);
-        g.rule_names
-            .insert(nt, format!("nt_{}", i));
+        g.rule_names.insert(nt, format!("nt_{}", i));
         if i == chain_len - 1 {
             // Last NT → terminal
             g.rules.entry(nt).or_default().push(Rule {
@@ -684,7 +721,11 @@ fn parse_table_with_shift_reduce_in_same_cell() {
     // Verify the table was built, then parse an ambiguous expression.
     let mut parser = GLRParser::new(table, g.clone());
     let result = parse_input(&mut parser, &g, "1+2+3");
-    assert!(result.is_ok(), "ambiguous expression should parse: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "ambiguous expression should parse: {:?}",
+        result
+    );
 }
 
 // ===========================================================================
