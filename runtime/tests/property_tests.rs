@@ -10,9 +10,7 @@
 
 mod common;
 
-use adze::pure_parser::{
-    ExternalScanner, ParsedNode, Parser, Point, TSLanguage, TSParseAction,
-};
+use adze::pure_parser::{ExternalScanner, ParsedNode, Parser, Point, TSLanguage, TSParseAction};
 use adze::visitor::{TreeWalker, Visitor, VisitorAction};
 use proptest::prelude::*;
 use std::ptr;
