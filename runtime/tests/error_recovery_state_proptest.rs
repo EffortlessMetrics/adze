@@ -442,4 +442,186 @@ proptest! {
         prop_assert_eq!(node.recovery, RecoveryStrategy::IndentationRecovery);
         prop_assert_eq!(node.start_position.1, indent_col);
     }
+
+    // 36. clear_errors then re-record produces fresh list
+    #[test]
+    fn test_clear_then_rerecord(n in 1usize..20) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        for i in 0..n {
+            state.record_error(i, i + 1, (0, 0), (0, 1), vec![], None, RecoveryStrategy::PanicMode, vec![]);
+        }
+        state.clear_errors();
+        state.record_error(999, 1000, (0, 0), (0, 1), vec![42], Some(7), RecoveryStrategy::TokenDeletion, vec![]);
+        let nodes = state.get_error_nodes();
+        prop_assert_eq!(nodes.len(), 1);
+        prop_assert_eq!(nodes[0].start_byte, 999);
+        prop_assert_eq!(nodes[0].recovery, RecoveryStrategy::TokenDeletion);
+    }
+
+    // 37. Multiple clears leave state empty
+    #[test]
+    fn test_repeated_clears(rounds in 1usize..5) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        for _ in 0..rounds {
+            state.record_error(0, 1, (0, 0), (0, 1), vec![], None, RecoveryStrategy::PanicMode, vec![]);
+            state.clear_errors();
+        }
+        prop_assert!(state.get_error_nodes().is_empty());
+    }
+
+    // 38. Skipped tokens length matches across multiple errors
+    #[test]
+    fn test_skipped_tokens_lengths(
+        skipped_lists in prop::collection::vec(arb_skipped_tokens(), 2..10),
+    ) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        for (i, sk) in skipped_lists.iter().enumerate() {
+            state.record_error(i, i + 1, (0, 0), (0, 1), vec![], None, RecoveryStrategy::PanicMode, sk.clone());
+        }
+        let nodes = state.get_error_nodes();
+        for i in 0..skipped_lists.len() {
+            prop_assert_eq!(nodes[i].skipped_tokens.len(), skipped_lists[i].len());
+        }
+    }
+
+    // 39. Byte spans with large values near usize boundaries
+    #[test]
+    fn test_large_byte_offsets(base in (usize::MAX / 2)..(usize::MAX - 1000)) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        state.record_error(base, base + 100, (0, 0), (0, 0), vec![], None, RecoveryStrategy::PanicMode, vec![]);
+        let node = &state.get_error_nodes()[0];
+        prop_assert_eq!(node.start_byte, base);
+        prop_assert_eq!(node.end_byte, base + 100);
+    }
+
+    // 40. All seven strategy variants are distinct
+    #[test]
+    fn test_all_strategies_distinct(_ in 0u8..1) {
+        let all = [
+            RecoveryStrategy::PanicMode,
+            RecoveryStrategy::TokenInsertion,
+            RecoveryStrategy::TokenDeletion,
+            RecoveryStrategy::TokenSubstitution,
+            RecoveryStrategy::PhraseLevel,
+            RecoveryStrategy::ScopeRecovery,
+            RecoveryStrategy::IndentationRecovery,
+        ];
+        for i in 0..all.len() {
+            for j in (i + 1)..all.len() {
+                prop_assert_ne!(all[i], all[j]);
+            }
+        }
+    }
+
+    // 41. Actual token u16::MIN preserved
+    #[test]
+    fn test_actual_token_min(_ in 0u8..1) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        state.record_error(0, 1, (0, 0), (0, 1), vec![0], Some(0), RecoveryStrategy::PanicMode, vec![0]);
+        let node = &state.get_error_nodes()[0];
+        prop_assert_eq!(node.actual, Some(0u16));
+        prop_assert_eq!(&node.expected, &vec![0u16]);
+        prop_assert_eq!(&node.skipped_tokens, &vec![0u16]);
+    }
+
+    // 42. Empty skipped tokens across batch of errors
+    #[test]
+    fn test_batch_empty_skipped(n in 1usize..30) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        for i in 0..n {
+            state.record_error(i, i + 1, (0, 0), (0, 1), vec![], None, RecoveryStrategy::PanicMode, vec![]);
+        }
+        let nodes = state.get_error_nodes();
+        for i in 0..n {
+            prop_assert!(nodes[i].skipped_tokens.is_empty());
+        }
+    }
+
+    // 43. Config builder with phrase_recovery disabled
+    #[test]
+    fn test_builder_disable_phrase_recovery(_ in 0u8..1) {
+        let config = ErrorRecoveryConfigBuilder::new()
+            .enable_phrase_recovery(false)
+            .build();
+        let state = ErrorRecoveryState::new(config);
+        prop_assert!(state.get_error_nodes().is_empty());
+    }
+
+    // 44. Same position different expected tokens
+    #[test]
+    fn test_same_pos_different_expected(
+        exp_a in arb_expected(),
+        exp_b in arb_expected(),
+    ) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        state.record_error(0, 5, (0, 0), (0, 5), exp_a.clone(), Some(1), RecoveryStrategy::PanicMode, vec![]);
+        state.record_error(0, 5, (0, 0), (0, 5), exp_b.clone(), Some(1), RecoveryStrategy::PanicMode, vec![]);
+        let nodes = state.get_error_nodes();
+        prop_assert_eq!(nodes.len(), 2);
+        prop_assert_eq!(&nodes[0].expected, &exp_a);
+        prop_assert_eq!(&nodes[1].expected, &exp_b);
+    }
+
+    // 45. add_recent_token does not affect error nodes
+    #[test]
+    fn test_add_recent_token_no_side_effect(tok in 0u16..1000) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        state.add_recent_token(tok);
+        prop_assert!(state.get_error_nodes().is_empty());
+    }
+
+    // 46. push_scope / pop_scope do not affect error nodes
+    #[test]
+    fn test_scope_ops_no_error_side_effect(_ in 0u8..1) {
+        let mut cfg = ErrorRecoveryConfig::default();
+        cfg.scope_delimiters = vec![(40, 41)]; // '(' / ')'
+        let mut state = ErrorRecoveryState::new(cfg);
+        state.push_scope(40);
+        state.pop_scope(41);
+        prop_assert!(state.get_error_nodes().is_empty());
+    }
+
+    // 47. reset_consecutive_errors does not clear error nodes
+    #[test]
+    fn test_reset_consecutive_does_not_clear(n in 1usize..10) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        for i in 0..n {
+            state.record_error(i, i + 1, (0, 0), (0, 1), vec![], None, RecoveryStrategy::PanicMode, vec![]);
+        }
+        state.reset_consecutive_errors();
+        prop_assert_eq!(state.get_error_nodes().len(), n);
+    }
+
+    // 48. Duplicate token values in expected list preserved
+    #[test]
+    fn test_duplicate_expected_tokens(tok in 0u16..500, count in 2usize..20) {
+        let expected: Vec<u16> = vec![tok; count];
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        state.record_error(0, 1, (0, 0), (0, 1), expected.clone(), None, RecoveryStrategy::PanicMode, vec![]);
+        prop_assert_eq!(&state.get_error_nodes()[0].expected, &expected);
+    }
+
+    // 49. Duplicate token values in skipped list preserved
+    #[test]
+    fn test_duplicate_skipped_tokens(tok in 0u16..500, count in 2usize..20) {
+        let skipped: Vec<u16> = vec![tok; count];
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        state.record_error(0, 1, (0, 0), (0, 1), vec![], None, RecoveryStrategy::PanicMode, skipped.clone());
+        prop_assert_eq!(&state.get_error_nodes()[0].skipped_tokens, &skipped);
+    }
+
+    // 50. End byte can equal start byte (zero-width) in batch
+    #[test]
+    fn test_zero_width_batch(positions in prop::collection::vec(0usize..50_000, 3..15)) {
+        let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
+        for &pos in &positions {
+            state.record_error(pos, pos, (0, pos), (0, pos), vec![], None, RecoveryStrategy::TokenInsertion, vec![]);
+        }
+        let nodes = state.get_error_nodes();
+        prop_assert_eq!(nodes.len(), positions.len());
+        for (i, &pos) in positions.iter().enumerate() {
+            prop_assert_eq!(nodes[i].start_byte, nodes[i].end_byte);
+            prop_assert_eq!(nodes[i].start_byte, pos);
+        }
+    }
 }

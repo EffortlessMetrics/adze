@@ -678,3 +678,83 @@ proptest! {
         prop_assert_eq!(reported, navigated);
     }
 }
+
+// ===========================================================================
+// 34 – Full DFS traversal visits every node exactly once
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn full_dfs_visits_all_nodes(tree in arb_flat_tree()) {
+        // Count nodes via child() API
+        fn count_nodes(tree: &Tree) -> usize {
+            fn walk(node: adze_runtime::node::Node<'_>) -> usize {
+                let mut n = 1;
+                for i in 0..node.child_count() {
+                    n += walk(node.child(i).unwrap());
+                }
+                n
+            }
+            walk(tree.root_node())
+        }
+        let expected = count_nodes(&tree);
+
+        // Count nodes via cursor DFS
+        let mut cursor = TreeCursor::new(&tree);
+        let mut visited = 0usize;
+        let mut reached_end = false;
+        loop {
+            visited += 1;
+            // Try deeper first
+            if cursor.goto_first_child() {
+                continue;
+            }
+            // Try next sibling
+            if cursor.goto_next_sibling() {
+                continue;
+            }
+            // Backtrack until we find a sibling or exhaust the tree
+            loop {
+                if !cursor.goto_parent() {
+                    reached_end = true;
+                    break;
+                }
+                if cursor.goto_next_sibling() {
+                    break;
+                }
+            }
+            if reached_end {
+                break;
+            }
+        }
+        prop_assert_eq!(visited, expected);
+    }
+}
+
+// ===========================================================================
+// 35 – Tree::root_node() returns Node directly with correct construction data
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(128))]
+
+    #[test]
+    fn root_node_returns_node_with_construction_data(
+        sym in 0u32..500,
+        start in 0usize..5_000,
+        span in 1usize..5_000,
+        n_children in 0usize..6,
+    ) {
+        let end = start + span;
+        let tree = flat_tree(sym, start, end, n_children);
+
+        // root_node() returns Node directly (not Option)
+        let root = tree.root_node();
+        prop_assert_eq!(root.kind_id(), sym as u16);
+        prop_assert_eq!(root.start_byte(), start);
+        prop_assert_eq!(root.end_byte(), end);
+        prop_assert_eq!(root.child_count(), n_children);
+    }
+}

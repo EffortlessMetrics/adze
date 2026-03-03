@@ -654,3 +654,407 @@ proptest! {
         }
     }
 }
+
+// ===========================================================================
+// 9. NameValueExpr parsing — direct tests for key=value pairs
+// ===========================================================================
+
+#[test]
+fn name_value_expr_string_literal() {
+    let nve: NameValueExpr = syn::parse_str("key = \"hello\"").unwrap();
+    assert_eq!(nve.path.to_string(), "key");
+}
+
+#[test]
+fn name_value_expr_integer_literal() {
+    let nve: NameValueExpr = syn::parse_str("precedence = 42").unwrap();
+    assert_eq!(nve.path.to_string(), "precedence");
+}
+
+#[test]
+fn name_value_expr_bool_literal() {
+    let nve: NameValueExpr = syn::parse_str("enabled = true").unwrap();
+    assert_eq!(nve.path.to_string(), "enabled");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 36. NameValueExpr parses with arbitrary integer values
+    #[test]
+    fn name_value_expr_arbitrary_int(val in 0i64..1000) {
+        let src = format!("param = {val}");
+        let nve: NameValueExpr = syn::parse_str(&src).unwrap();
+        prop_assert_eq!(nve.path.to_string(), "param");
+    }
+}
+
+// ===========================================================================
+// 10. FieldThenParams edge cases
+// ===========================================================================
+
+#[test]
+fn field_then_params_no_params() {
+    let ftp: FieldThenParams = syn::parse_str("i32").unwrap();
+    assert!(ftp.comma.is_none());
+    assert!(ftp.params.is_empty());
+}
+
+#[test]
+fn field_then_params_three_params() {
+    let ftp: FieldThenParams = syn::parse_str("String, a = 1, b = 2, c = 3").unwrap();
+    assert_eq!(ftp.params.len(), 3);
+    assert_eq!(ftp.params[0].path.to_string(), "a");
+    assert_eq!(ftp.params[1].path.to_string(), "b");
+    assert_eq!(ftp.params[2].path.to_string(), "c");
+}
+
+#[test]
+fn field_then_params_container_type() {
+    let ftp: FieldThenParams = syn::parse_str("Vec<String>, separator = \",\"").unwrap();
+    assert_eq!(ftp.params.len(), 1);
+    let ty_str = ftp.field.ty.to_token_stream().to_string();
+    assert!(ty_str.contains("Vec"));
+}
+
+// ===========================================================================
+// 11. Non-path type handling — references, tuples, arrays
+// ===========================================================================
+
+#[test]
+fn extract_reference_type_not_extracted() {
+    let ty: Type = parse_str("&u32").unwrap();
+    let (_, extracted) = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+    assert!(!extracted);
+}
+
+#[test]
+fn extract_tuple_type_not_extracted() {
+    let ty: Type = parse_str("(i32, u32)").unwrap();
+    let (_, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&[]));
+    assert!(!extracted);
+}
+
+#[test]
+fn filter_reference_type_unchanged() {
+    let ty: Type = parse_str("&str").unwrap();
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "& str");
+}
+
+#[test]
+fn wrap_tuple_type_wraps_entirely() {
+    let ty: Type = parse_str("(i32, u64)").unwrap();
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert!(type_to_string(&wrapped).starts_with("adze :: WithLeaf"));
+}
+
+// ===========================================================================
+// 12. Idempotency properties
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 37. filter_inner_type is idempotent
+    #[test]
+    fn filter_idempotent(
+        wrapper in skip_name(),
+        inner in leaf_type(),
+    ) {
+        let ty: Type = parse_str(&format!("{wrapper}<{inner}>")).unwrap();
+        let wrapper_arr = [wrapper];
+        let skip = skip_set(&wrapper_arr);
+        let once = filter_inner_type(&ty, &skip);
+        let twice = filter_inner_type(&once, &skip);
+        prop_assert_eq!(type_to_string(&once), type_to_string(&twice));
+    }
+
+    // 38. wrap_leaf_type on already-wrapped type adds another layer
+    #[test]
+    fn wrap_double_wraps(inner in leaf_type()) {
+        let ty: Type = parse_str(inner).unwrap();
+        let skip = skip_set(&[]);
+        let once = wrap_leaf_type(&ty, &skip);
+        let twice = wrap_leaf_type(&once, &skip);
+        // Second wrap should add another adze::WithLeaf layer
+        let twice_str = type_to_string(&twice);
+        prop_assert!(twice_str.starts_with("adze :: WithLeaf < adze :: WithLeaf"));
+    }
+
+    // 39. filter on plain leaf type (no wrapper) is identity
+    #[test]
+    fn filter_plain_type_identity(inner in leaf_type()) {
+        let ty: Type = parse_str(inner).unwrap();
+        let filtered = filter_inner_type(&ty, &skip_set(&["Box", "Arc"]));
+        prop_assert_eq!(type_to_string(&filtered), inner);
+    }
+
+    // 40. extract on plain type returns original unchanged
+    #[test]
+    fn extract_plain_type_unchanged(inner in leaf_type()) {
+        let ty: Type = parse_str(inner).unwrap();
+        let (result, extracted) = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+        prop_assert!(!extracted);
+        prop_assert_eq!(type_to_string(&result), inner);
+    }
+}
+
+// ===========================================================================
+// 13. Multiple items in a grammar module
+// ===========================================================================
+
+#[test]
+fn multiple_structs_in_grammar_module() {
+    let body = r#"
+    pub struct Foo { pub x: i32, }
+    pub struct Bar { pub y: String, }
+    pub struct Baz { pub z: bool, }
+"#;
+    let src = build_grammar_module("test_grammar", "test_mod", body);
+    let parsed: ItemMod = parse_str(&src).unwrap();
+    let items = &parsed.content.unwrap().1;
+    assert_eq!(items.len(), 3);
+    for item in items {
+        assert!(matches!(item, Item::Struct(_)));
+    }
+}
+
+#[test]
+fn mixed_structs_and_enums_in_grammar_module() {
+    let body = r#"
+    pub struct Expr { pub val: i32, }
+    pub enum Op { Add, Sub, Mul, }
+    pub struct Program { pub name: String, }
+"#;
+    let src = build_grammar_module("lang", "lang_mod", body);
+    let parsed: ItemMod = parse_str(&src).unwrap();
+    let items = &parsed.content.unwrap().1;
+    assert_eq!(items.len(), 3);
+    assert!(matches!(&items[0], Item::Struct(_)));
+    assert!(matches!(&items[1], Item::Enum(_)));
+    assert!(matches!(&items[2], Item::Struct(_)));
+}
+
+#[test]
+fn multiple_enums_variant_counts_preserved() {
+    let body = r#"
+    pub enum A { X, Y, }
+    pub enum B { P, Q, R, S, }
+"#;
+    let src = build_grammar_module("g", "m", body);
+    let parsed: ItemMod = parse_str(&src).unwrap();
+    let items = &parsed.content.unwrap().1;
+    if let Item::Enum(e) = &items[0] {
+        assert_eq!(e.variants.len(), 2);
+    }
+    if let Item::Enum(e) = &items[1] {
+        assert_eq!(e.variants.len(), 4);
+    }
+}
+
+// ===========================================================================
+// 14. Empty skip set behavior
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 41. Empty skip set means container is NOT stripped by filter
+    #[test]
+    fn empty_skip_filter_preserves_container(
+        ctr in container(),
+        inner in leaf_type(),
+    ) {
+        let ty: Type = parse_str(&format!("{ctr}<{inner}>")).unwrap();
+        let filtered = filter_inner_type(&ty, &skip_set(&[]));
+        let s = type_to_string(&filtered);
+        prop_assert!(s.contains(ctr));
+    }
+
+    // 42. Empty skip set means container is NOT skipped by extract
+    #[test]
+    fn empty_skip_extract_does_not_skip(
+        inner in leaf_type(),
+    ) {
+        let ty: Type = parse_str(&format!("Box<Option<{inner}>>")).unwrap();
+        let (_, extracted) = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+        // Box is not in skip set, so it won't look inside Box for Option
+        prop_assert!(!extracted);
+    }
+
+    // 43. Empty skip set means wrap wraps everything including containers
+    #[test]
+    fn empty_skip_wrap_wraps_containers(
+        ctr in container(),
+        inner in leaf_type(),
+    ) {
+        let ty: Type = parse_str(&format!("{ctr}<{inner}>")).unwrap();
+        let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+        let s = type_to_string(&wrapped);
+        prop_assert!(s.starts_with("adze :: WithLeaf"));
+    }
+}
+
+// ===========================================================================
+// 15. Cross-function composition properties
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 44. extract then wrap yields WithLeaf<inner>
+    #[test]
+    fn extract_then_wrap(
+        ctr in container(),
+        inner in leaf_type(),
+    ) {
+        let ty: Type = parse_str(&format!("{ctr}<{inner}>")).unwrap();
+        let (extracted, ok) = try_extract_inner_type(&ty, ctr, &skip_set(&[]));
+        prop_assert!(ok);
+        let wrapped = wrap_leaf_type(&extracted, &skip_set(&[]));
+        prop_assert_eq!(type_to_string(&wrapped), format!("adze :: WithLeaf < {inner} >"));
+    }
+
+    // 45. filter then extract: stripping skip wrapper exposes container for extraction
+    #[test]
+    fn filter_then_extract(inner in leaf_type()) {
+        let ty: Type = parse_str(&format!("Box<Vec<{inner}>>")).unwrap();
+        let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+        let (extracted, ok) = try_extract_inner_type(&filtered, "Vec", &skip_set(&[]));
+        prop_assert!(ok);
+        prop_assert_eq!(type_to_string(&extracted), inner);
+    }
+
+    // 46. extract Vec then wrap with Vec in skip set preserves Vec structure
+    #[test]
+    fn wrap_preserves_vec_structure(inner in leaf_type()) {
+        let ty: Type = parse_str(&format!("Vec<{inner}>")).unwrap();
+        let wrapped = wrap_leaf_type(&ty, &skip_set(&["Vec"]));
+        let expected = format!("Vec < adze :: WithLeaf < {inner} > >");
+        prop_assert_eq!(type_to_string(&wrapped), expected);
+    }
+
+    // 47. wrap with Option in skip set wraps inner but preserves Option
+    #[test]
+    fn wrap_preserves_option_structure(inner in leaf_type()) {
+        let ty: Type = parse_str(&format!("Option<{inner}>")).unwrap();
+        let wrapped = wrap_leaf_type(&ty, &skip_set(&["Option"]));
+        let expected = format!("Option < adze :: WithLeaf < {inner} > >");
+        prop_assert_eq!(type_to_string(&wrapped), expected);
+    }
+
+    // 48. filter with multiple wrappers strips all of them
+    #[test]
+    fn filter_multiple_wrappers_strips_all(inner in leaf_type()) {
+        let ty: Type = parse_str(&format!("Arc<Box<{inner}>>")).unwrap();
+        let filtered = filter_inner_type(&ty, &skip_set(&["Arc", "Box"]));
+        prop_assert_eq!(type_to_string(&filtered), inner);
+    }
+}
+
+// ===========================================================================
+// 16. Struct/Enum expansion edge cases
+// ===========================================================================
+
+#[test]
+fn struct_with_all_container_field_types() {
+    let src = r#"pub struct Mixed {
+        pub plain: i32,
+        pub optional: Option<String>,
+        pub repeated: Vec<u8>,
+        pub boxed: Box<bool>,
+    }"#;
+    let parsed: ItemStruct = parse_str(src).unwrap();
+    assert_eq!(parsed.fields.len(), 4);
+    let names: Vec<String> = parsed
+        .fields
+        .iter()
+        .map(|f| f.ident.as_ref().unwrap().to_string())
+        .collect();
+    assert_eq!(names, vec!["plain", "optional", "repeated", "boxed"]);
+}
+
+#[test]
+fn enum_with_struct_variants() {
+    let src = r#"pub enum Expr {
+        Lit { value: i32, },
+        Binary { left: i32, right: i32, },
+    }"#;
+    let parsed: ItemEnum = parse_str(src).unwrap();
+    assert_eq!(parsed.variants.len(), 2);
+    assert_eq!(parsed.variants[0].fields.len(), 1);
+    assert_eq!(parsed.variants[1].fields.len(), 2);
+}
+
+#[test]
+fn enum_mixed_variant_kinds() {
+    let src = r#"pub enum Token {
+        Eof,
+        Ident(String),
+        Pair { a: i32, b: i32, },
+    }"#;
+    let parsed: ItemEnum = parse_str(src).unwrap();
+    assert_eq!(parsed.variants.len(), 3);
+    assert_eq!(parsed.variants[0].fields.len(), 0); // unit
+    assert_eq!(parsed.variants[1].fields.len(), 1); // tuple
+    assert_eq!(parsed.variants[2].fields.len(), 2); // struct
+}
+
+// ===========================================================================
+// 17. Expansion determinism on complex types
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 49. FieldThenParams parsing is deterministic
+    #[test]
+    fn determinism_field_then_params(ty in leaf_type()) {
+        let src = format!("{ty}, key = 1");
+        let a: FieldThenParams = syn::parse_str(&src).unwrap();
+        let b: FieldThenParams = syn::parse_str(&src).unwrap();
+        prop_assert_eq!(a.params.len(), b.params.len());
+        prop_assert_eq!(a.params[0].path.to_string(), b.params[0].path.to_string());
+    }
+
+    // 50. NameValueExpr parsing is deterministic
+    #[test]
+    fn determinism_name_value_expr(val in 0i32..1000) {
+        let src = format!("key = {val}");
+        let a: NameValueExpr = syn::parse_str(&src).unwrap();
+        let b: NameValueExpr = syn::parse_str(&src).unwrap();
+        prop_assert_eq!(a.path.to_string(), b.path.to_string());
+    }
+
+    // 51. Grammar module parsing is deterministic
+    #[test]
+    fn determinism_grammar_module(
+        name in pascal_ident(),
+        ty in leaf_type(),
+    ) {
+        let body = format!("    pub struct {name} {{ pub v: {ty}, }}");
+        let src = build_grammar_module("g", "m", &body);
+        let a: ItemMod = parse_str(&src).unwrap();
+        let b: ItemMod = parse_str(&src).unwrap();
+        let items_a = &a.content.unwrap().1;
+        let items_b = &b.content.unwrap().1;
+        prop_assert_eq!(items_a.len(), items_b.len());
+    }
+
+    // 52. Nested container extraction is deterministic across wrapper types
+    #[test]
+    fn determinism_nested_extract(
+        wrapper in skip_name(),
+        ctr in container(),
+        inner in leaf_type(),
+    ) {
+        let ty: Type = parse_str(&format!("{wrapper}<{ctr}<{inner}>>")).unwrap();
+        let wrapper_arr = [wrapper];
+        let skip = skip_set(&wrapper_arr);
+        let (r1, e1) = try_extract_inner_type(&ty, ctr, &skip);
+        let (r2, e2) = try_extract_inner_type(&ty, ctr, &skip);
+        prop_assert_eq!(e1, e2);
+        prop_assert_eq!(type_to_string(&r1), type_to_string(&r2));
+    }
+}

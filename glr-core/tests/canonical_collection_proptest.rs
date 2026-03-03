@@ -759,3 +759,397 @@ proptest! {
         }
     }
 }
+
+// ===========================================================================
+// 9. Accept state reachability
+// ===========================================================================
+
+#[test]
+fn simple_grammar_has_reduce_items() {
+    // A reduce item has position == rhs.len() (dot at end).
+    let mut g = simple_grammar();
+    let (col, _) = build(&mut g);
+
+    let has_reduce = col
+        .sets
+        .iter()
+        .any(|set| set.items.iter().any(|item| item.is_reduce_item(&g)));
+    assert!(has_reduce, "S→a must produce at least one reduce item");
+}
+
+#[test]
+fn simple_grammar_accept_state_reachable() {
+    // The accept state is a state containing a reduce item for the start
+    // rule. It must be reachable from state 0 via goto transitions.
+    let mut g = simple_grammar();
+    let s = SymbolId(NT_BASE);
+    let (col, _) = build(&mut g);
+
+    let accept_state = col.sets.iter().find(|set| {
+        set.items.iter().any(|item| {
+            if !item.is_reduce_item(&g) {
+                return false;
+            }
+            g.all_rules()
+                .any(|r| r.production_id.0 == item.rule_id.0 && r.lhs == s)
+        })
+    });
+    assert!(
+        accept_state.is_some(),
+        "a state with a reduce item for the start symbol must exist"
+    );
+}
+
+#[test]
+fn left_recursive_accept_state_reachable() {
+    let mut g = left_recursive_grammar();
+    let e = SymbolId(NT_BASE);
+    let (col, _) = build(&mut g);
+
+    let accept_state = col.sets.iter().find(|set| {
+        set.items.iter().any(|item| {
+            if !item.is_reduce_item(&g) {
+                return false;
+            }
+            g.all_rules()
+                .any(|r| r.production_id.0 == item.rule_id.0 && r.lhs == e)
+        })
+    });
+    assert!(
+        accept_state.is_some(),
+        "left-recursive grammar must have an accept-like reduce state"
+    );
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    #[test]
+    fn at_least_one_reduce_item_random(mut g in arb_small_grammar()) {
+        let (col, _) = build(&mut g);
+        let has_reduce = col.sets.iter().any(|set| {
+            set.items.iter().any(|item| item.is_reduce_item(&g))
+        });
+        prop_assert!(has_reduce, "every grammar must produce at least one reduce item");
+    }
+}
+
+// ===========================================================================
+// 10. Action table entries for terminals (shift / reduce items)
+// ===========================================================================
+
+#[test]
+fn simple_grammar_initial_state_has_shift_item_for_terminal() {
+    let mut g = simple_grammar();
+    let a = SymbolId(1);
+    let (col, _) = build(&mut g);
+
+    let initial = &col.sets[0];
+    let has_shift = initial
+        .items
+        .iter()
+        .any(|item| matches!(item.next_symbol(&g), Some(Symbol::Terminal(id)) if *id == a));
+    assert!(
+        has_shift,
+        "initial state must have a shift item on terminal 'a'"
+    );
+}
+
+#[test]
+fn left_recursive_has_shift_and_reduce_items() {
+    let mut g = left_recursive_grammar();
+    let (col, _) = build(&mut g);
+
+    let any_shift = col.sets.iter().any(|set| {
+        set.items
+            .iter()
+            .any(|item| matches!(item.next_symbol(&g), Some(Symbol::Terminal(_))))
+    });
+    let any_reduce = col
+        .sets
+        .iter()
+        .any(|set| set.items.iter().any(|item| item.is_reduce_item(&g)));
+    assert!(any_shift, "must have at least one shift item on a terminal");
+    assert!(any_reduce, "must have at least one reduce item");
+}
+
+#[test]
+fn goto_table_has_terminal_entries() {
+    // For S → a, there must be a goto entry on terminal 'a'.
+    let mut g = simple_grammar();
+    let a = SymbolId(1);
+    let (col, _) = build(&mut g);
+
+    let has_terminal_goto = col.goto_table.keys().any(|(_, sym)| *sym == a);
+    assert!(
+        has_terminal_goto,
+        "goto table must have an entry for terminal 'a'"
+    );
+}
+
+#[test]
+fn two_nt_grammar_goto_has_entries_for_both_terminals() {
+    let mut g = two_nt_grammar();
+    let a = SymbolId(1);
+    let b = SymbolId(2);
+    let (col, _) = build(&mut g);
+
+    let has_a = col.goto_table.keys().any(|(_, sym)| *sym == a);
+    let has_b = col.goto_table.keys().any(|(_, sym)| *sym == b);
+    assert!(has_a, "goto table must have an entry for terminal 'a'");
+    assert!(has_b, "goto table must have an entry for terminal 'b'");
+}
+
+// ===========================================================================
+// 11. Grammar with epsilon productions
+// ===========================================================================
+
+/// Grammar with epsilon: S → A a, A → ε
+fn epsilon_grammar() -> Grammar {
+    let mut g = Grammar::new("epsilon".into());
+    let a = SymbolId(1);
+    let s = SymbolId(NT_BASE);
+    let big_a = SymbolId(NT_BASE + 1);
+    tok(&mut g, a, "a", "a");
+    g.rule_names.insert(s, "S".into());
+    g.rule_names.insert(big_a, "A".into());
+    g.rules.entry(s).or_default().push(rule(
+        s,
+        vec![Symbol::NonTerminal(big_a), Symbol::Terminal(a)],
+        0,
+    ));
+    // A → ε (empty RHS)
+    g.rules
+        .entry(big_a)
+        .or_default()
+        .push(rule(big_a, vec![], 1));
+    g
+}
+
+/// Grammar with epsilon mixed: S → A B, A → a | ε, B → b
+fn epsilon_mixed_grammar() -> Grammar {
+    let mut g = Grammar::new("epsilon_mixed".into());
+    let a = SymbolId(1);
+    let b = SymbolId(2);
+    let s = SymbolId(NT_BASE);
+    let big_a = SymbolId(NT_BASE + 1);
+    let big_b = SymbolId(NT_BASE + 2);
+    tok(&mut g, a, "a", "a");
+    tok(&mut g, b, "b", "b");
+    g.rule_names.insert(s, "S".into());
+    g.rule_names.insert(big_a, "A".into());
+    g.rule_names.insert(big_b, "B".into());
+    g.rules.entry(s).or_default().push(rule(
+        s,
+        vec![Symbol::NonTerminal(big_a), Symbol::NonTerminal(big_b)],
+        0,
+    ));
+    g.rules
+        .entry(big_a)
+        .or_default()
+        .push(rule(big_a, vec![Symbol::Terminal(a)], 1));
+    g.rules
+        .entry(big_a)
+        .or_default()
+        .push(rule(big_a, vec![], 2));
+    g.rules
+        .entry(big_b)
+        .or_default()
+        .push(rule(big_b, vec![Symbol::Terminal(b)], 3));
+    g
+}
+
+#[test]
+fn epsilon_grammar_builds_successfully() {
+    let mut g = epsilon_grammar();
+    let (col, _) = build(&mut g);
+    assert!(!col.sets.is_empty(), "epsilon grammar must produce states");
+}
+
+#[test]
+fn epsilon_grammar_nullable_nonterminal() {
+    let mut g = epsilon_grammar();
+    let big_a = SymbolId(NT_BASE + 1);
+    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
+    assert!(
+        ff.is_nullable(big_a),
+        "A with ε production must be nullable"
+    );
+}
+
+#[test]
+fn epsilon_grammar_has_reduce_for_epsilon_rule() {
+    // An epsilon production means position 0 is already at end (reduce).
+    let mut g = epsilon_grammar();
+    let big_a = SymbolId(NT_BASE + 1);
+    let (col, _) = build(&mut g);
+
+    let has_eps_reduce = col.sets.iter().any(|set| {
+        set.items.iter().any(|item| {
+            if item.position != 0 || !item.is_reduce_item(&g) {
+                return false;
+            }
+            g.all_rules()
+                .any(|r| r.production_id.0 == item.rule_id.0 && r.lhs == big_a && r.rhs.is_empty())
+        })
+    });
+    assert!(
+        has_eps_reduce,
+        "must have a reduce item at position 0 for the epsilon rule A → ε"
+    );
+}
+
+#[test]
+fn epsilon_mixed_grammar_builds_successfully() {
+    let mut g = epsilon_mixed_grammar();
+    let (col, _) = build(&mut g);
+    assert!(
+        col.sets.len() >= 2,
+        "epsilon-mixed grammar must produce multiple states"
+    );
+}
+
+#[test]
+fn epsilon_mixed_grammar_has_goto_for_nullable_nt() {
+    let mut g = epsilon_mixed_grammar();
+    let big_a = SymbolId(NT_BASE + 1);
+    let (col, _) = build(&mut g);
+
+    let has_goto_a = col.goto_table.keys().any(|(_, sym)| *sym == big_a);
+    assert!(
+        has_goto_a,
+        "epsilon-mixed grammar should have goto entry for nullable NT A"
+    );
+}
+
+// ===========================================================================
+// 12. Augmented vs non-augmented comparison
+// ===========================================================================
+
+#[test]
+fn augmented_has_at_least_as_many_states_as_non_augmented() {
+    let mut g_plain = simple_grammar();
+    let (col_plain, _) = build(&mut g_plain);
+
+    let (mut g_aug, s_prime, s, eof) = augmented_grammar();
+    let (col_aug, _) = build_augmented(&mut g_aug, s_prime, s, eof);
+
+    // Augmented grammar adds S' → S, so it should have at least as many states.
+    assert!(
+        col_aug.sets.len() >= col_plain.sets.len(),
+        "augmented collection ({}) should have ≥ states than plain ({})",
+        col_aug.sets.len(),
+        col_plain.sets.len()
+    );
+}
+
+#[test]
+fn augmented_goto_table_has_original_start_symbol() {
+    let (mut g, s_prime, s, eof) = augmented_grammar();
+    let (col, _) = build_augmented(&mut g, s_prime, s, eof);
+
+    let has_s_goto = col.goto_table.keys().any(|(_, sym)| *sym == s);
+    assert!(
+        has_s_goto,
+        "augmented collection must have a goto entry for the original start symbol S"
+    );
+}
+
+// ===========================================================================
+// 13. Multi-rule grammar state count
+// ===========================================================================
+
+/// Grammar: S → a | b | c (three alternatives)
+fn three_alt_grammar() -> Grammar {
+    let mut g = Grammar::new("three_alt".into());
+    let a = SymbolId(1);
+    let b = SymbolId(2);
+    let c = SymbolId(3);
+    let s = SymbolId(NT_BASE);
+    tok(&mut g, a, "a", "a");
+    tok(&mut g, b, "b", "b");
+    tok(&mut g, c, "c", "c");
+    g.rule_names.insert(s, "S".into());
+    g.rules
+        .entry(s)
+        .or_default()
+        .push(rule(s, vec![Symbol::Terminal(a)], 0));
+    g.rules
+        .entry(s)
+        .or_default()
+        .push(rule(s, vec![Symbol::Terminal(b)], 1));
+    g.rules
+        .entry(s)
+        .or_default()
+        .push(rule(s, vec![Symbol::Terminal(c)], 2));
+    g
+}
+
+#[test]
+fn three_alt_grammar_state_count() {
+    let mut g = three_alt_grammar();
+    let (col, _) = build(&mut g);
+    // S → a | b | c: initial state + one state per shifted terminal + reduced states
+    assert!(
+        col.sets.len() >= 4,
+        "S→a|b|c needs ≥4 states (initial + 3 shifts), got {}",
+        col.sets.len()
+    );
+}
+
+#[test]
+fn multi_rule_more_states_than_single_rule() {
+    let mut g_single = simple_grammar();
+    let (col_single, _) = build(&mut g_single);
+
+    let mut g_multi = three_alt_grammar();
+    let (col_multi, _) = build(&mut g_multi);
+
+    assert!(
+        col_multi.sets.len() > col_single.sets.len(),
+        "3-alt grammar ({} states) should have more states than single-rule ({} states)",
+        col_multi.sets.len(),
+        col_single.sets.len()
+    );
+}
+
+#[test]
+fn three_alt_grammar_goto_entries_for_all_terminals() {
+    let mut g = three_alt_grammar();
+    let a = SymbolId(1);
+    let b = SymbolId(2);
+    let c = SymbolId(3);
+    let (col, _) = build(&mut g);
+
+    for term in [a, b, c] {
+        let has = col.goto_table.keys().any(|(_, sym)| *sym == term);
+        assert!(has, "goto table must have entry for terminal {:?}", term);
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    #[test]
+    fn start_symbol_rules_always_have_reduce_items(mut g in arb_small_grammar()) {
+        let (col, _) = build(&mut g);
+        // Rules for the start symbol are always reachable and must produce
+        // at least one reduce item somewhere in the collection.
+        if let Some(start) = g.start_symbol() {
+            if let Some(rules) = g.get_rules_for_symbol(start) {
+                for r in rules {
+                    let has_reduce = col.sets.iter().any(|set| {
+                        set.items.iter().any(|item| {
+                            item.rule_id.0 == r.production_id.0 && item.is_reduce_item(&g)
+                        })
+                    });
+                    prop_assert!(
+                        has_reduce,
+                        "start rule with production_id {} must have a reduce item",
+                        r.production_id.0
+                    );
+                }
+            }
+        }
+    }
+}

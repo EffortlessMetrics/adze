@@ -502,3 +502,94 @@ proptest! {
         prop_assert_eq!(reg.get_name(SymbolId(0)), Some("end"));
     }
 }
+
+// ---------------------------------------------------------------------------
+// 31. Stress: registry handles hundreds of symbols without collision
+// ---------------------------------------------------------------------------
+#[test]
+fn stress_many_symbols() {
+    let mut reg = SymbolRegistry::new();
+    let meta = SymbolMetadata {
+        visible: true,
+        named: true,
+        hidden: false,
+        terminal: false,
+    };
+    let mut ids = HashSet::new();
+    ids.insert(SymbolId(0)); // EOF
+    for i in 0..500 {
+        let name = format!("sym_{i}");
+        let id = reg.register(&name, meta);
+        assert!(ids.insert(id), "collision at symbol {i}");
+    }
+    assert_eq!(reg.len(), 501); // 500 + EOF
+    for i in 0..500 {
+        let name = format!("sym_{i}");
+        assert!(reg.get_id(&name).is_some(), "missing {name}");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 32. Monotonic increase: each successive ID is strictly greater
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn ids_monotonically_increase(names in arb_unique_names(20)) {
+        let mut reg = SymbolRegistry::new();
+        let meta = SymbolMetadata { visible: true, named: false, hidden: false, terminal: true };
+        let mut prev = SymbolId(0); // EOF
+        for name in &names {
+            let id = reg.register(name, meta);
+            prop_assert!(id.0 > prev.0, "id {id:?} not greater than {prev:?}");
+            prev = id;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 33. Default trait produces same registry as new()
+// ---------------------------------------------------------------------------
+#[test]
+fn default_equals_new() {
+    let from_new = SymbolRegistry::new();
+    let from_default = SymbolRegistry::default();
+    assert_eq!(from_new, from_default);
+    assert_eq!(from_new.len(), from_default.len());
+    assert_eq!(from_new.get_id("end"), from_default.get_id("end"));
+}
+
+// ---------------------------------------------------------------------------
+// 34. PartialEq is reflexive: registry equals itself
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn partial_eq_reflexive(names in arb_unique_names(10)) {
+        let mut reg = SymbolRegistry::new();
+        let meta = SymbolMetadata { visible: true, named: true, hidden: false, terminal: false };
+        for name in &names {
+            reg.register(name, meta);
+        }
+        prop_assert_eq!(&reg, &reg);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 35. Iter preserves insertion order of symbols
+// ---------------------------------------------------------------------------
+proptest! {
+    #[test]
+    fn iter_preserves_insertion_order(names in arb_unique_names(10)) {
+        let mut reg = SymbolRegistry::new();
+        let meta = SymbolMetadata { visible: true, named: true, hidden: false, terminal: false };
+        let mut ordered = vec![String::from("end")];
+        for name in &names {
+            reg.register(name, meta);
+            ordered.push(name.clone());
+        }
+        let iter_names: Vec<&str> = reg.iter().map(|(n, _)| n).collect();
+        prop_assert_eq!(iter_names.len(), ordered.len());
+        for i in 0..iter_names.len() {
+            prop_assert_eq!(iter_names[i], ordered[i].as_str());
+        }
+    }
+}

@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc a8436c12b467023a9d98c4774c30cae54a84e71b66c433b2f98900d2ea422ab2 # shrinks to mut g = Grammar { name: "proptest", rules: {SymbolId(10): [Rule { lhs: SymbolId(10), rhs: [Terminal(SymbolId(1))], precedence: None, associativity: None, fields: [], production_id: ProductionId(0) }], SymbolId(11): [Rule { lhs: SymbolId(11), rhs: [Terminal(SymbolId(1))], precedence: None, associativity: None, fields: [], production_id: ProductionId(1) }]}, tokens: {SymbolId(1): Token { name: "t1", pattern: String("t1"), fragile: false }}, precedences: [], conflicts: [], externals: [], extras: [], fields: {}, supertypes: [], inline_rules: [], alias_sequences: {}, production_ids: {}, max_alias_sequence_length: 0, rule_names: {SymbolId(10): "N0", SymbolId(11): "N1"}, symbol_registry: None }
