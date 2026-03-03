@@ -37,6 +37,10 @@ harness = false
 name = "arena_vs_box_allocation"
 harness = false
 
+[[bench]]
+name = "core_baselines"
+harness = false
+
 [dependencies]
 adze = { path = "../runtime", features = ["pure-rust"] }
 adze-example = { path = "../example" }
