@@ -8,16 +8,13 @@ targets = [
     { triple = "x86_64-pc-windows-msvc" },
     { triple = "wasm32-unknown-unknown" },
 ]
+all-features = true
 
 [advisories]
 version = 2
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-yanked = "warn"
-ignore = [
-    # Add specific advisory IDs to ignore if needed
-    # Example: "RUSTSEC-2020-0001",
-]
+yanked = "deny"
 
 [licenses]
 version = 2
@@ -30,12 +27,13 @@ allow = [
     "ISC",
     "Unicode-3.0",
     "CC0-1.0",
-    "MPL-2.0", # for some Mozilla crates
+    "MPL-2.0",
 ]
-confidence-threshold = 0.8
-exceptions = [
-    # Example: { allow = ["LicenseRef-UFL-1.0"], name = "ring" },
-]
+confidence-threshold = 0.93
+# NOTE: Any license NOT in the allow list above is automatically denied.
+# This means copyleft licenses (GPL, AGPL, LGPL, SSPL, etc.) are blocked.
+
+exceptions = []
 
 [[licenses.clarify]]
 name = "ring"
@@ -45,32 +43,35 @@ license-files = [
 ]
 
 [bans]
-multiple-versions = "warn"
-wildcards = "allow"
+multiple-versions = "deny"
+wildcards = "allow" # all workspace crates are publish = false with path deps
 highlight = "all"
 workspace-default-features = "allow"
 external-default-features = "allow"
 
-# Deny specific crates
 deny = [
-    # Example of crates to ban:
-    # { name = "openssl", reason = "Use rustls instead" },
+    { name = "openssl", reason = "use rustls for TLS" },
+    { name = "openssl-sys", reason = "use rustls for TLS" },
 ]
 
-# Skip certain crates when checking for duplicates
+# Known duplicate versions from transitive dependencies
 skip = [
-    { name = "bitflags", reason = "axum/lsp-types use v1, newer crates use v2" },
+    { crate = "bitflags@1", reason = "axum/lsp-types use v1, newer crates use v2" },
+    { crate = "getrandom@0.3", reason = "transitive dep version split (rand ecosystem migration)" },
+    { crate = "socket2@0.5", reason = "transitive dep version split (tokio/hyper migration)" },
+    { crate = "syn@1", reason = "tree-sitter 0.20 uses syn 1, rest uses syn 2" },
+    { crate = "thiserror@1", reason = "tree-sitter 0.20 uses thiserror 1, rest uses thiserror 2" },
+    { crate = "thiserror-impl@1", reason = "pulled in by thiserror 1.x" },
+    { crate = "tree-sitter@0.20", reason = "legacy tree-sitter-c2rust backend" },
 ]
 
-# Skip entire tree of certain crates
+# Skip entire dependency trees for platform-specific crates with many versions
 skip-tree = [
-    # Example: { name = "windows-sys" },
+    { crate = "windows-sys", reason = "transitive Windows platform crate with multiple versions" },
 ]
 
 [sources]
-unknown-registry = "warn"
-unknown-git = "warn"
+unknown-registry = "deny"
+unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-allow-git = [
-    # Add any private git dependencies here if needed
-]
+allow-git = []
