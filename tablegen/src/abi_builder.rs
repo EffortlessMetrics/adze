@@ -1411,4 +1411,260 @@ mod tests {
         assert_eq!(production_map[1].to_string(), "1u16");
         assert_eq!(production_map[2].to_string(), "2u16");
     }
+
+    // --- ABI compatibility tests (correctness-tablegen-compat) ---
+
+    /// Single-production grammar yields a map of length 1.
+    #[test]
+    fn test_production_id_map_single_production() {
+        let mut grammar = Grammar::new("single".to_string());
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let map = builder.generate_production_id_map();
+
+        assert_eq!(map.len(), 1, "single production → map length 1");
+        assert_eq!(map[0].to_string(), "0u16");
+    }
+
+    /// EOF symbol metadata must be visible=true, named=false (Tree-sitter convention).
+    #[test]
+    fn test_eof_metadata_visible_unnamed() {
+        let mut grammar = Grammar::new("eof_meta".to_string());
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "tok".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let metadata = builder.generate_symbol_metadata();
+
+        assert_eq!(
+            metadata.len(),
+            table.symbol_count,
+            "metadata length must equal symbol_count"
+        );
+
+        // EOF metadata: visible=true(0x01), named=false → 0x01
+        let eof_idx = table.symbol_to_index[&table.eof_symbol];
+        assert_eq!(
+            metadata[eof_idx].to_string(),
+            "1u8",
+            "EOF metadata must be 0x01 (visible, not named)"
+        );
+    }
+
+    /// Metadata length matches parse table symbol_count exactly.
+    #[test]
+    fn test_symbol_metadata_length_matches_symbol_count() {
+        let mut grammar = Grammar::new("meta_len".to_string());
+        let start = SymbolId(1);
+        let t1 = SymbolId(2);
+        let t2 = SymbolId(3);
+        grammar.rule_names.insert(start, "start".to_string());
+        for (id, name) in [(t1, "a"), (t2, "b")] {
+            grammar.tokens.insert(
+                id,
+                Token {
+                    name: name.to_string(),
+                    pattern: TokenPattern::String(name.to_string()),
+                    fragile: false,
+                },
+            );
+        }
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t1), Symbol::Terminal(t2)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 2, terms: 2, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let metadata = builder.generate_symbol_metadata();
+
+        assert_eq!(metadata.len(), table.symbol_count);
+    }
+
+    /// calculate_counts must reflect parse table dimensions.
+    #[test]
+    fn test_calculate_counts_matches_table_dimensions() {
+        let mut grammar = Grammar::new("counts".to_string());
+        let start = SymbolId(1);
+        let t = SymbolId(2);
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.fields.insert(FieldId(0), "val".to_string());
+
+        let table = crate::empty_table!(states: 5, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let counts = builder.calculate_counts();
+
+        assert_eq!(counts.symbol_count as usize, table.symbol_count);
+        assert_eq!(counts.state_count as usize, table.state_count);
+        assert_eq!(counts.token_count as usize, table.token_count);
+        assert_eq!(counts.field_count, 1);
+        assert_eq!(
+            counts.external_token_count as usize,
+            table.external_token_count
+        );
+    }
+
+    /// generate() produces code with the correct ABI version.
+    #[test]
+    fn test_generate_contains_abi_version_15() {
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        // Use the table's start_symbol as the rule LHS to match non-terminal region.
+        let start = table.start_symbol;
+        let t = SymbolId(1); // terminal column
+
+        let mut grammar = Grammar::new("ver".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let code = builder.generate().to_string();
+
+        assert!(
+            code.contains("TREE_SITTER_LANGUAGE_VERSION"),
+            "generated code must reference TREE_SITTER_LANGUAGE_VERSION"
+        );
+    }
+
+    /// Encode/decode roundtrip for Shift, Reduce, Accept, Error through
+    /// the AbiLanguageBuilder's encode_action method.
+    #[test]
+    fn test_encode_action_roundtrip() {
+        let grammar = Grammar::new("enc".to_string());
+        let table = crate::empty_table!(states: 1, terms: 0, nonterms: 0);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+
+        // Shift
+        let enc = builder
+            .encode_action(&Action::Shift(adze_ir::StateId(42)))
+            .unwrap();
+        assert_eq!(enc, 42, "Shift(42) → 42");
+
+        // Reduce (1-based in Tree-sitter)
+        let enc = builder.encode_action(&Action::Reduce(RuleId(3))).unwrap();
+        assert_eq!(enc, 0x8000 | 4, "Reduce(3) → 0x8004");
+
+        // Accept
+        let enc = builder.encode_action(&Action::Accept).unwrap();
+        assert_eq!(enc, 0xFFFF, "Accept → 0xFFFF");
+
+        // Error
+        let enc = builder.encode_action(&Action::Error).unwrap();
+        assert_eq!(enc, 0, "Error → 0");
+    }
+
+    /// Production LHS index entries must all reference non-terminal columns.
+    #[test]
+    fn test_production_lhs_index_nonterminal_columns() {
+        let table = crate::empty_table!(states: 2, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1); // terminal column
+
+        let mut grammar = Grammar::new("lhs".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let table = crate::empty_table!(states: 2, terms: 1, nonterms: 1);
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let lhs_index = builder.generate_production_lhs_index();
+
+        // Every LHS must be ≥ token_count (non-terminal region)
+        for (i, token) in lhs_index.iter().enumerate() {
+            let val: u16 = token.to_string().trim_end_matches("u16").parse().unwrap();
+            assert!(
+                val as usize >= table.token_count,
+                "production_lhs_index[{}] = {} must be >= token_count {}",
+                i,
+                val,
+                table.token_count
+            );
+        }
+    }
 }
