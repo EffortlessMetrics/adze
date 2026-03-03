@@ -1019,3 +1019,768 @@ proptest! {
         }
     }
 }
+
+// ── 36. Skip expansion determinism — repeated parse yields identical output ─
+
+proptest! {
+    #[test]
+    fn skip_expansion_deterministic(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let mk = || -> String {
+            let s: ItemStruct = syn::parse2(quote::quote! {
+                pub struct N {
+                    #[adze::skip(#def_tokens)]
+                    f: bool,
+                    #[adze::leaf(pattern = r"\d+")]
+                    v: String,
+                }
+            }).unwrap();
+            s.to_token_stream().to_string()
+        };
+        prop_assert_eq!(mk(), mk());
+        prop_assert_eq!(mk(), mk());
+    }
+}
+
+// ── 37. Skip with doc comment on the field ──────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_with_doc_comment_preserved(idx in 0usize..=2) {
+        let defaults = ["false", "0", "true"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                /// This field is metadata
+                #[adze::skip(#def_tokens)]
+                meta: bool,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let has_doc = field.attrs.iter().any(|a| a.path().is_ident("doc"));
+        let has_skip = field.attrs.iter().any(|a| is_adze_attr(a, "skip"));
+        prop_assert!(has_doc);
+        prop_assert!(has_skip);
+    }
+}
+
+// ── 38. Skip with cfg attribute on sibling field ────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_coexists_with_cfg_attrs(idx in 0usize..=2) {
+        let defaults = ["false", "0", "true"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[cfg(test)]
+                #[adze::leaf(pattern = r"\d+")]
+                value: String,
+                #[adze::skip(#def_tokens)]
+                meta: bool,
+            }
+        }).unwrap();
+        let skip_field = s.fields.iter().find(|f|
+            f.ident.as_ref().is_some_and(|i| i == "meta")
+        ).unwrap();
+        prop_assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+        let value_field = s.fields.iter().find(|f|
+            f.ident.as_ref().is_some_and(|i| i == "value")
+        ).unwrap();
+        let has_cfg = value_field.attrs.iter().any(|a| a.path().is_ident("cfg"));
+        prop_assert!(has_cfg);
+    }
+}
+
+// ── 39. Skip attr path is exactly adze::skip ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_attr_path_is_adze_skip(idx in 0usize..=3) {
+        let defaults = ["false", "0", "None", "true"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#def_tokens)]
+                f: bool,
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        let path_str = attr.path().to_token_stream().to_string();
+        prop_assert_eq!(path_str, "adze :: skip");
+    }
+}
+
+// ── 40. Skip does not carry repeat annotation ───────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_field_has_no_repeat(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#def_tokens)]
+                f: bool,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        prop_assert!(!field.attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+    }
+}
+
+// ── 41. Skip with repeat annotation on sibling field ────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_coexists_with_repeat_sibling(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::repeat(non_empty = true)]
+                items: Vec<String>,
+                #[adze::skip(#def_tokens)]
+                meta: bool,
+            }
+        }).unwrap();
+        let repeat_field = s.fields.iter().find(|f|
+            f.ident.as_ref().is_some_and(|i| i == "items")
+        ).unwrap();
+        let skip_field = s.fields.iter().find(|f|
+            f.ident.as_ref().is_some_and(|i| i == "meta")
+        ).unwrap();
+        prop_assert!(repeat_field.attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+        prop_assert!(skip_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+    }
+}
+
+// ── 42. Skip with string literal default expression ─────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_string_literal_default(idx in 0usize..=3) {
+        let strings = ["\"hello\"", "\"\"", "\"test data\"", "\"42\""];
+        let str_tokens: proc_macro2::TokenStream = strings[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#str_tokens)]
+                label: String,
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        prop_assert_eq!(skip_expr_str(attr), strings[idx]);
+    }
+}
+
+// ── 43. Skip field total attr count is exactly one adze attr ────────────────
+
+proptest! {
+    #[test]
+    fn skip_field_exactly_one_adze_attr(idx in 0usize..=3) {
+        let defaults = ["false", "0", "true", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#def_tokens)]
+                meta: bool,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let adze_count = field.attrs.iter()
+            .filter(|a| {
+                let segs: Vec<_> = a.path().segments.iter().collect();
+                segs.len() == 2 && segs[0].ident == "adze"
+            })
+            .count();
+        prop_assert_eq!(adze_count, 1);
+    }
+}
+
+// ── 44. Skip on first field of struct ───────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_on_first_field(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#def_tokens)]
+                first: bool,
+                #[adze::leaf(pattern = r"\w+")]
+                second: String,
+            }
+        }).unwrap();
+        let first = s.fields.iter().next().unwrap();
+        prop_assert!(first.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+        prop_assert_eq!(first.ident.as_ref().unwrap().to_string(), "first");
+    }
+}
+
+// ── 45. Skip on last field of struct ────────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_on_last_field(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::leaf(pattern = r"\w+")]
+                first: String,
+                #[adze::skip(#def_tokens)]
+                last: bool,
+            }
+        }).unwrap();
+        let last = s.fields.iter().last().unwrap();
+        prop_assert!(last.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+        prop_assert_eq!(last.ident.as_ref().unwrap().to_string(), "last");
+    }
+}
+
+// ── 46. Skip with HashMap default expression ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_hashmap_default(idx in 0usize..=1) {
+        let exprs = ["std::collections::HashMap::new()", "Default::default()"];
+        let expected = ["std :: collections :: HashMap :: new ()", "Default :: default ()"];
+        let expr_tokens: proc_macro2::TokenStream = exprs[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#expr_tokens)]
+                map: std::collections::HashMap<String, i32>,
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        prop_assert_eq!(skip_expr_str(attr), expected[idx]);
+    }
+}
+
+// ── 47. Skip with tuple expression default ──────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_tuple_default(idx in 0usize..=2) {
+        let exprs = ["(0, false)", "(1, 2, 3)", "(true, 0)"];
+        let expected = ["(0 , false)", "(1 , 2 , 3)", "(true , 0)"];
+        let expr_tokens: proc_macro2::TokenStream = exprs[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#expr_tokens)]
+                pair: (i32, bool),
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        prop_assert_eq!(skip_expr_str(attr), expected[idx]);
+    }
+}
+
+// ── 48. Skip with array expression default ──────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_array_default(idx in 0usize..=2) {
+        let exprs = ["[0; 3]", "[1, 2, 3]", "[false; 2]"];
+        let expected = ["[0 ; 3]", "[1 , 2 , 3]", "[false ; 2]"];
+        let expr_tokens: proc_macro2::TokenStream = exprs[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#expr_tokens)]
+                arr: [i32; 3],
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        prop_assert_eq!(skip_expr_str(attr), expected[idx]);
+    }
+}
+
+// ── 49. Skip enum variant with only skip fields ─────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_only_fields_in_enum_variant(n_fields in 1usize..=4) {
+        let field_tokens: Vec<proc_macro2::TokenStream> = (0..n_fields)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("f{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    #[adze::skip(false)]
+                    #name: bool,
+                }
+            })
+            .collect();
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum E {
+                AllSkipped {
+                    #(#field_tokens)*
+                },
+            }
+        }).unwrap();
+        if let Fields::Named(ref named) = e.variants[0].fields {
+            let total = named.named.len();
+            let skip_count = named.named.iter()
+                .filter(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
+                .count();
+            prop_assert_eq!(total, n_fields);
+            prop_assert_eq!(skip_count, n_fields);
+        } else {
+            prop_assert!(false, "Expected named fields");
+        }
+    }
+}
+
+// ── 50. Skip preserves non-adze attributes ──────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_preserves_non_adze_attrs(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[allow(dead_code)]
+                #[adze::skip(#def_tokens)]
+                meta: bool,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let has_allow = field.attrs.iter().any(|a| a.path().is_ident("allow"));
+        let has_skip = field.attrs.iter().any(|a| is_adze_attr(a, "skip"));
+        prop_assert!(has_allow);
+        prop_assert!(has_skip);
+        prop_assert_eq!(field.attrs.len(), 2);
+    }
+}
+
+// ── 51. Skip with delimited annotation on sibling ───────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_coexists_with_delimited_sibling(idx in 0usize..=2) {
+        let defaults = ["false", "0", "true"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::delimited(
+                        #[adze::leaf(text = ",")]
+                        ()
+                    )]
+                    items: Vec<Item>,
+                    #[adze::skip(#def_tokens)]
+                    count: i32,
+                }
+                pub struct Item {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                }
+            }
+        });
+        let root = find_struct_in_mod(&m, "Root").unwrap();
+        let has_delimited = root.fields.iter().any(|f|
+            f.attrs.iter().any(|a| is_adze_attr(a, "delimited"))
+        );
+        let has_skip = root.fields.iter().any(|f|
+            f.attrs.iter().any(|a| is_adze_attr(a, "skip"))
+        );
+        prop_assert!(has_delimited);
+        prop_assert!(has_skip);
+    }
+}
+
+// ── 52. Skip with multiple different default exprs in same struct ───────────
+
+proptest! {
+    #[test]
+    fn skip_different_defaults_same_struct(idx in 0usize..=2) {
+        let pairs = [
+            ("false", "0"),
+            ("None", "true"),
+            ("0", "String::new()"),
+        ];
+        let (d1, d2) = pairs[idx];
+        let d1_tokens: proc_macro2::TokenStream = d1.parse().unwrap();
+        let d2_tokens: proc_macro2::TokenStream = d2.parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#d1_tokens)]
+                a: bool,
+                #[adze::skip(#d2_tokens)]
+                b: i32,
+            }
+        }).unwrap();
+        let fields: Vec<_> = s.fields.iter().collect();
+        let a_skip = fields[0].attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        let b_skip = fields[1].attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        let a_str = skip_expr_str(a_skip);
+        let b_str = skip_expr_str(b_skip);
+        prop_assert_ne!(a_str, b_str);
+    }
+}
+
+// ── 53. Skip round-trip through quote/parse is stable ───────────────────────
+
+proptest! {
+    #[test]
+    fn skip_quote_parse_roundtrip_stable(idx in 0usize..=3) {
+        let defaults = ["false", "42", "None", "true"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let original: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#def_tokens)]
+                f: bool,
+            }
+        }).unwrap();
+        let tokens = original.to_token_stream();
+        let reparsed: ItemStruct = syn::parse2(tokens).unwrap();
+        let orig_str = original.to_token_stream().to_string();
+        let re_str = reparsed.to_token_stream().to_string();
+        prop_assert_eq!(orig_str, re_str);
+    }
+}
+
+// ── 54. Skip with prec_right on sibling enum variant ────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_with_prec_right(prec in 1i32..=5) {
+        let lit = proc_macro2::Literal::i32_unsuffixed(prec);
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Expr {
+                #[adze::prec_right(#lit)]
+                Assign {
+                    #[adze::leaf(pattern = r"\w+")]
+                    lhs: String,
+                    #[adze::leaf(text = "=")]
+                    _eq: (),
+                    #[adze::leaf(pattern = r"\w+")]
+                    rhs: String,
+                },
+                Meta {
+                    #[adze::skip(false)]
+                    flag: bool,
+                },
+            }
+        }).unwrap();
+        let assign = &e.variants[0];
+        prop_assert!(assign.attrs.iter().any(|a| is_adze_attr(a, "prec_right")));
+        let meta = &e.variants[1];
+        if let Fields::Named(ref named) = meta.fields {
+            prop_assert!(named.named[0].attrs.iter().any(|a| is_adze_attr(a, "skip")));
+        } else {
+            prop_assert!(false, "Expected named fields");
+        }
+    }
+}
+
+// ── 55. Skip with boolean expression default ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_boolean_expression(idx in 0usize..=2) {
+        let exprs = ["1 > 0", "true && false", "!true"];
+        let expr_tokens: proc_macro2::TokenStream = exprs[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#expr_tokens)]
+                flag: bool,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        let attr = field.attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        // Expression should parse successfully
+        let _expr = skip_expr_str(attr);
+        prop_assert!(field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+    }
+}
+
+// ── 56. Skip attr args are non-empty ────────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_attr_args_nonempty(idx in 0usize..=4) {
+        let defaults = ["false", "0", "None", "true", "42"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#def_tokens)]
+                f: bool,
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        if let syn::Meta::List(ref list) = attr.meta {
+            prop_assert!(!list.tokens.is_empty());
+        } else {
+            prop_assert!(false, "Expected Meta::List");
+        }
+    }
+}
+
+// ── 57. Skip on Optional<T> sibling without skip ────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_with_optional_sibling(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                maybe: Option<String>,
+                #[adze::skip(#def_tokens)]
+                meta: bool,
+            }
+        }).unwrap();
+        let maybe_field = s.fields.iter().find(|f|
+            f.ident.as_ref().is_some_and(|i| i == "maybe")
+        ).unwrap();
+        let meta_field = s.fields.iter().find(|f|
+            f.ident.as_ref().is_some_and(|i| i == "meta")
+        ).unwrap();
+        // Optional field should have no skip
+        prop_assert!(!maybe_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+        // Meta field should have skip
+        prop_assert!(meta_field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+    }
+}
+
+// ── 58. Skip on Option<T> field with Some default ───────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_option_some_default(idx in 0usize..=2) {
+        let exprs = ["Some(0)", "Some(false)", "Some(true)"];
+        let expected = ["Some (0)", "Some (false)", "Some (true)"];
+        let expr_tokens: proc_macro2::TokenStream = exprs[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#expr_tokens)]
+                maybe: Option<i32>,
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        prop_assert_eq!(skip_expr_str(attr), expected[idx]);
+    }
+}
+
+// ── 59. Skip in module with multiple structs ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_in_multiple_structs_in_module(n_skip_structs in 1usize..=3) {
+        let struct_tokens: Vec<proc_macro2::TokenStream> = (0..n_skip_structs)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Node{i}"), proc_macro2::Span::call_site());
+                let field_name = syn::Ident::new(&format!("meta_{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    pub struct #name {
+                        #[adze::leaf(pattern = r"\w+")]
+                        value: String,
+                        #[adze::skip(false)]
+                        #field_name: bool,
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                }
+                #(#struct_tokens)*
+            }
+        });
+        for i in 0..n_skip_structs {
+            let name = format!("Node{i}");
+            let s = find_struct_in_mod(&m, &name).unwrap();
+            prop_assert!(s.fields.iter().any(|f|
+                f.attrs.iter().any(|a| is_adze_attr(a, "skip"))
+            ));
+        }
+    }
+}
+
+// ── 60. Skip field does not have delimited annotation ───────────────────────
+
+proptest! {
+    #[test]
+    fn skip_field_has_no_delimited(idx in 0usize..=2) {
+        let defaults = ["false", "0", "None"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#def_tokens)]
+                f: bool,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        prop_assert!(!field.attrs.iter().any(|a| is_adze_attr(a, "delimited")));
+        prop_assert!(!field.attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+        prop_assert!(!field.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+    }
+}
+
+// ── 61. Skip with closure expression default ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_closure_default(idx in 0usize..=1) {
+        let exprs = ["|| false", "|| 0"];
+        let expr_tokens: proc_macro2::TokenStream = exprs[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#expr_tokens)]
+                gen: fn() -> bool,
+            }
+        }).unwrap();
+        let field = s.fields.iter().next().unwrap();
+        prop_assert!(field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+    }
+}
+
+// ── 62. Skip on enum with mixed variant types ───────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_mixed_variant_types(idx in 0usize..=1) {
+        let defaults = ["false", "0"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            pub enum Mixed {
+                Unit,
+                Tuple(#[adze::leaf(pattern = r"\d+")] String),
+                Named {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                    #[adze::skip(#def_tokens)]
+                    meta: bool,
+                },
+            }
+        }).unwrap();
+        prop_assert_eq!(e.variants.len(), 3);
+        // Only Named variant should have skip
+        let named = &e.variants[2];
+        if let Fields::Named(ref fields) = named.fields {
+            prop_assert!(fields.named.iter().any(|f|
+                f.attrs.iter().any(|a| is_adze_attr(a, "skip"))
+            ));
+        } else {
+            prop_assert!(false, "Expected named fields");
+        }
+        // Unit and Tuple should have no skip
+        if let Fields::Unit = e.variants[0].fields {
+            // ok
+        } else {
+            prop_assert!(false, "Expected unit variant");
+        }
+    }
+}
+
+// ── 63. Skip field ordering with interleaved skip and non-skip ──────────────
+
+proptest! {
+    #[test]
+    fn skip_interleaved_fields_ordering(n in 2usize..=4) {
+        // Create alternating leaf/skip fields
+        let field_tokens: Vec<proc_macro2::TokenStream> = (0..n * 2)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("f{i}"), proc_macro2::Span::call_site());
+                if i % 2 == 0 {
+                    quote::quote! {
+                        #[adze::leaf(pattern = r"\w+")]
+                        #name: String,
+                    }
+                } else {
+                    quote::quote! {
+                        #[adze::skip(false)]
+                        #name: bool,
+                    }
+                }
+            })
+            .collect();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #(#field_tokens)*
+            }
+        }).unwrap();
+        let fields: Vec<_> = s.fields.iter().collect();
+        for i in 0..(n * 2) {
+            let has_skip = fields[i].attrs.iter().any(|a| is_adze_attr(a, "skip"));
+            let has_leaf = fields[i].attrs.iter().any(|a| is_adze_attr(a, "leaf"));
+            if i % 2 == 0 {
+                prop_assert!(has_leaf, "Even field {} should be leaf", i);
+                prop_assert!(!has_skip, "Even field {} should not be skip", i);
+            } else {
+                prop_assert!(has_skip, "Odd field {} should be skip", i);
+                prop_assert!(!has_leaf, "Odd field {} should not be leaf", i);
+            }
+        }
+    }
+}
+
+// ── 64. Skip with external annotation on sibling struct ─────────────────────
+
+proptest! {
+    #[test]
+    fn skip_coexists_with_external(idx in 0usize..=1) {
+        let defaults = ["false", "0"];
+        let def_tokens: proc_macro2::TokenStream = defaults[idx].parse().unwrap();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                    #[adze::skip(#def_tokens)]
+                    meta: bool,
+                }
+                #[adze::external]
+                struct IndentToken;
+            }
+        });
+        let root = find_struct_in_mod(&m, "Root").unwrap();
+        prop_assert!(root.fields.iter().any(|f|
+            f.attrs.iter().any(|a| is_adze_attr(a, "skip"))
+        ));
+        let has_external = module_items(&m).iter().any(|i| {
+            if let Item::Struct(s) = i {
+                s.attrs.iter().any(|a| is_adze_attr(a, "external"))
+            } else { false }
+        });
+        prop_assert!(has_external);
+    }
+}
+
+// ── 65. Skip with Box type field ────────────────────────────────────────────
+
+proptest! {
+    #[test]
+    fn skip_box_type_default(idx in 0usize..=1) {
+        let exprs = ["Box::new(0)", "Box::new(false)"];
+        let expected = ["Box :: new (0)", "Box :: new (false)"];
+        let expr_tokens: proc_macro2::TokenStream = exprs[idx].parse().unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            pub struct N {
+                #[adze::skip(#expr_tokens)]
+                boxed: Box<i32>,
+            }
+        }).unwrap();
+        let attr = s.fields.iter().next().unwrap()
+            .attrs.iter().find(|a| is_adze_attr(a, "skip")).unwrap();
+        prop_assert_eq!(skip_expr_str(attr), expected[idx]);
+    }
+}

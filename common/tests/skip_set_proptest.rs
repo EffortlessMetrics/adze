@@ -479,4 +479,79 @@ proptest! {
         let filtered_len = ty_str(&filter_inner_type(&ty, &skip)).len();
         prop_assert!(filtered_len <= orig_len, "{filtered_len} > {orig_len}");
     }
+
+    // ===== 9. Wrap determinism =====
+
+    /// Large skip set: wrap is deterministic across repeated calls.
+    #[test]
+    fn large_skip_wrap_deterministic(
+        container in wrapper_name(),
+        leaf in leaf_name(),
+        skip in large_skip_set(),
+    ) {
+        let ty = parse_ty(&format!("{container}<{leaf}>"));
+        let w1 = ty_str(&wrap_leaf_type(&ty, &skip));
+        let w2 = ty_str(&wrap_leaf_type(&ty, &skip));
+        prop_assert_eq!(w1, w2);
+    }
+
+    // ===== 10. Option/Vec as skip for extraction =====
+
+    /// Option in skip set: extract through Option to reach Vec target.
+    #[test]
+    fn option_skip_extract_to_vec(leaf in leaf_name()) {
+        let skip: HashSet<&str> = ["Option"].into_iter().collect();
+        let ty = parse_ty(&format!("Option<Vec<{leaf}>>"));
+        let (result, ok) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(ok);
+        prop_assert_eq!(ty_str(&result), leaf);
+    }
+
+    /// Vec in skip set: extract through Vec to reach Box target.
+    #[test]
+    fn vec_skip_extract_to_box(leaf in leaf_name()) {
+        let skip: HashSet<&str> = ["Vec"].into_iter().collect();
+        let ty = parse_ty(&format!("Vec<Box<{leaf}>>"));
+        let (result, ok) = try_extract_inner_type(&ty, "Box", &skip);
+        prop_assert!(ok);
+        prop_assert_eq!(ty_str(&result), leaf);
+    }
+
+    // ===== 11. Filter-then-wrap composition =====
+
+    /// Filtering then wrapping always produces parseable output.
+    #[test]
+    fn filter_then_wrap_parseable(
+        container in wrapper_name(),
+        leaf in leaf_name(),
+        skip in skip_set_of_size(2),
+    ) {
+        let ty = parse_ty(&format!("{container}<{leaf}>"));
+        let filtered = filter_inner_type(&ty, &skip);
+        let wrapped = ty_str(&wrap_leaf_type(&filtered, &skip));
+        prop_assert!(parse_str::<Type>(&wrapped).is_ok(), "unparseable: {wrapped}");
+    }
+
+    // ===== 12. Skip set with target overlap =====
+
+    /// When target is also in skip set, direct match still extracts.
+    #[test]
+    fn target_in_skip_still_extracts(leaf in leaf_name()) {
+        let skip: HashSet<&str> = ["Vec", "Option"].into_iter().collect();
+        let ty = parse_ty(&format!("Vec<{leaf}>"));
+        let (result, ok) = try_extract_inner_type(&ty, "Vec", &skip);
+        prop_assert!(ok);
+        prop_assert_eq!(ty_str(&result), leaf);
+    }
+
+    /// Wrap never produces empty output string.
+    #[test]
+    fn wrap_output_nonempty(
+        leaf in leaf_name(),
+        skip in skip_set_of_size(3),
+    ) {
+        let ty = parse_ty(leaf);
+        let wrapped = ty_str(&wrap_leaf_type(&ty, &skip));
+        prop_assert!(!wrapped.is_empty());
+    }
 }

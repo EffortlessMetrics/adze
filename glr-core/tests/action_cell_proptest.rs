@@ -638,3 +638,541 @@ proptest! {
         prop_assert_eq!(reduce_count, 2);
     }
 }
+
+// ===========================================================================
+// Additional tests — added by agent-317
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 38. Shift with boundary state values
+// ---------------------------------------------------------------------------
+
+#[test]
+fn shift_boundary_states() {
+    let min_shift = Action::Shift(StateId(0));
+    let max_shift = Action::Shift(StateId(u16::MAX));
+    assert_ne!(min_shift, max_shift);
+    assert_eq!(min_shift, Action::Shift(StateId(0)));
+    assert_eq!(max_shift, Action::Shift(StateId(u16::MAX)));
+}
+
+// ---------------------------------------------------------------------------
+// 39. Reduce with boundary rule values
+// ---------------------------------------------------------------------------
+
+#[test]
+fn reduce_boundary_rules() {
+    let min_reduce = Action::Reduce(RuleId(0));
+    let max_reduce = Action::Reduce(RuleId(u16::MAX));
+    assert_ne!(min_reduce, max_reduce);
+    assert_eq!(min_reduce, Action::Reduce(RuleId(0)));
+    assert_eq!(max_reduce, Action::Reduce(RuleId(u16::MAX)));
+}
+
+// ---------------------------------------------------------------------------
+// 40. Debug output for Shift contains the state number
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn debug_shift_contains_state_number(s in 0u16..10000) {
+        let action = Action::Shift(StateId(s));
+        let dbg = format!("{:?}", action);
+        prop_assert!(dbg.contains(&s.to_string()), "Debug {:?} should contain state {}", dbg, s);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 41. Debug output for Reduce contains the rule number
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn debug_reduce_contains_rule_number(r in 0u16..10000) {
+        let action = Action::Reduce(RuleId(r));
+        let dbg = format!("{:?}", action);
+        prop_assert!(dbg.contains(&r.to_string()), "Debug {:?} should contain rule {}", dbg, r);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 42. Fork with single child is distinct from the child itself
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn fork_single_child_ne_child(action in leaf_action()) {
+        let fork = Action::Fork(vec![action.clone()]);
+        prop_assert_ne!(fork, action, "Fork([x]) must not equal x");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 43. ActionCell retain filters correctly
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_retain_shifts_only(cell in arb_action_cell()) {
+        let mut shifts_only = cell.clone();
+        shifts_only.retain(|a| matches!(a, Action::Shift(_)));
+        for a in &shifts_only {
+            prop_assert!(matches!(a, Action::Shift(_)));
+        }
+        prop_assert!(shifts_only.len() <= cell.len());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 44. ActionCell retain reduces correctly
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_retain_reduces_only(cell in arb_action_cell()) {
+        let mut reduces_only = cell.clone();
+        reduces_only.retain(|a| matches!(a, Action::Reduce(_)));
+        for a in &reduces_only {
+            prop_assert!(matches!(a, Action::Reduce(_)));
+        }
+        prop_assert!(reduces_only.len() <= cell.len());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 45. ActionCell split: shifts + reduces + others = original length
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_partition_complete(cell in arb_action_cell()) {
+        let shifts = cell.iter().filter(|a| matches!(a, Action::Shift(_))).count();
+        let reduces = cell.iter().filter(|a| matches!(a, Action::Reduce(_))).count();
+        let accepts = cell.iter().filter(|a| matches!(a, Action::Accept)).count();
+        let errors = cell.iter().filter(|a| matches!(a, Action::Error)).count();
+        let recovers = cell.iter().filter(|a| matches!(a, Action::Recover)).count();
+        let forks = cell.iter().filter(|a| matches!(a, Action::Fork(_))).count();
+        prop_assert_eq!(shifts + reduces + accepts + errors + recovers + forks, cell.len());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 46. Serde JSON: Shift roundtrip preserves state value
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn serde_json_shift_preserves_state(s in 0u16..=u16::MAX) {
+        let action = Action::Shift(StateId(s));
+        let json = serde_json::to_string(&action).unwrap();
+        let decoded: Action = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(action, decoded);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 47. Serde JSON: Reduce roundtrip preserves rule value
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn serde_json_reduce_preserves_rule(r in 0u16..=u16::MAX) {
+        let action = Action::Reduce(RuleId(r));
+        let json = serde_json::to_string(&action).unwrap();
+        let decoded: Action = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(action, decoded);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 48. ActionCell iter position matches index
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_iter_position_consistency(cell in arb_action_cell()) {
+        for (i, action) in cell.iter().enumerate() {
+            prop_assert_eq!(action, &cell[i]);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 49. ActionCell reverse then reverse is identity
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_reverse_reverse_identity(cell in arb_action_cell()) {
+        let mut reversed = cell.clone();
+        reversed.reverse();
+        reversed.reverse();
+        prop_assert_eq!(cell, reversed);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 50. ActionCell drain empties the cell
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_drain_empties(cell in arb_action_cell()) {
+        let original_len = cell.len();
+        let mut cell = cell;
+        let drained: Vec<Action> = cell.drain(..).collect();
+        prop_assert!(cell.is_empty());
+        prop_assert_eq!(drained.len(), original_len);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 51. Shift(0) is not Error (distinct semantics)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn shift_zero_ne_error() {
+    assert_ne!(Action::Shift(StateId(0)), Action::Error);
+    assert_ne!(Action::Shift(StateId(0)), Action::Accept);
+    assert_ne!(Action::Shift(StateId(0)), Action::Recover);
+}
+
+// ---------------------------------------------------------------------------
+// 52. Reduce(0) is not Error (distinct semantics)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn reduce_zero_ne_error() {
+    assert_ne!(Action::Reduce(RuleId(0)), Action::Error);
+    assert_ne!(Action::Reduce(RuleId(0)), Action::Accept);
+    assert_ne!(Action::Reduce(RuleId(0)), Action::Recover);
+}
+
+// ---------------------------------------------------------------------------
+// 53. Fork of all same actions has one unique element
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn fork_all_same_has_one_unique(action in leaf_action(), n in 2usize..=6) {
+        let children: Vec<Action> = vec![action.clone(); n];
+        let fork = Action::Fork(children);
+        if let Action::Fork(inner) = &fork {
+            let unique: HashSet<_> = inner.iter().collect();
+            prop_assert_eq!(unique.len(), 1);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 54. ActionCell determinism: single Shift means no Reduce
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn deterministic_shift_cell(s in 0u16..=u16::MAX) {
+        let cell: Vec<Action> = vec![Action::Shift(StateId(s))];
+        let has_reduce = cell.iter().any(|a| matches!(a, Action::Reduce(_)));
+        prop_assert!(!has_reduce, "Deterministic shift cell must have no reduces");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 55. ActionCell determinism: single Reduce means no Shift
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn deterministic_reduce_cell(r in 0u16..=u16::MAX) {
+        let cell: Vec<Action> = vec![Action::Reduce(RuleId(r))];
+        let has_shift = cell.iter().any(|a| matches!(a, Action::Shift(_)));
+        prop_assert!(!has_shift, "Deterministic reduce cell must have no shifts");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 56. ActionCell pop removes last element
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_pop_removes_last(cell in prop::collection::vec(arb_action(), 1..=8)) {
+        let mut cell = cell;
+        let last = cell.last().cloned().unwrap();
+        let popped = cell.pop().unwrap();
+        prop_assert_eq!(popped, last);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 57. ActionCell truncate reduces length
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_truncate_reduces_len(cell in prop::collection::vec(arb_action(), 2..=10), cut in 0usize..=1) {
+        let original_len = cell.len();
+        let mut cell = cell;
+        cell.truncate(cut);
+        prop_assert!(cell.len() <= cut);
+        prop_assert!(cell.len() <= original_len);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 58. Recover action clones correctly
+// ---------------------------------------------------------------------------
+
+#[test]
+fn recover_clone_eq() {
+    let r = Action::Recover;
+    let cloned = r.clone();
+    assert_eq!(r, cloned);
+    assert_eq!(format!("{:?}", r), format!("{:?}", cloned));
+}
+
+// ---------------------------------------------------------------------------
+// 59. Fork nesting: Fork(Fork(x)) has depth 2
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fork_nesting_depth_two() {
+    let inner = Action::Fork(vec![Action::Accept]);
+    let outer = Action::Fork(vec![inner.clone()]);
+    assert_ne!(inner, outer);
+
+    fn depth(a: &Action) -> usize {
+        match a {
+            Action::Fork(ch) => 1 + ch.iter().map(|c| depth(c)).max().unwrap_or(0),
+            _ => 0,
+        }
+    }
+    assert_eq!(depth(&outer), 2);
+}
+
+// ---------------------------------------------------------------------------
+// 60. Hash determinism: same action hashes identically across calls
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn hash_deterministic(action in arb_action()) {
+        use std::hash::{Hash, Hasher};
+        use std::collections::hash_map::DefaultHasher;
+
+        let mut h1 = DefaultHasher::new();
+        action.hash(&mut h1);
+        let hash1 = h1.finish();
+
+        let mut h2 = DefaultHasher::new();
+        action.hash(&mut h2);
+        let hash2 = h2.finish();
+
+        prop_assert_eq!(hash1, hash2, "Same action must hash identically");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 61. ActionCell from_iter roundtrip
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_from_iter_roundtrip(cell in arb_action_cell()) {
+        let collected: Vec<Action> = cell.iter().cloned().collect();
+        prop_assert_eq!(&cell, &collected);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 62. ActionCell split_at preserves total length
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_split_preserves_total(cell in prop::collection::vec(arb_action(), 1..=8)) {
+        let mid = cell.len() / 2;
+        let (left, right) = cell.split_at(mid);
+        prop_assert_eq!(left.len() + right.len(), cell.len());
+        // Recombine
+        let mut recombined = left.to_vec();
+        recombined.extend_from_slice(right);
+        prop_assert_eq!(cell, recombined);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 63. Three-way shift-reduce-accept conflict cell
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn three_way_conflict_cell(s in 0u16..1000, r in 0u16..1000) {
+        let cell: Vec<Action> = vec![
+            Action::Shift(StateId(s)),
+            Action::Reduce(RuleId(r)),
+            Action::Accept,
+        ];
+        prop_assert_eq!(cell.len(), 3);
+        prop_assert!(cell.iter().any(|a| matches!(a, Action::Shift(_))));
+        prop_assert!(cell.iter().any(|a| matches!(a, Action::Reduce(_))));
+        prop_assert!(cell.iter().any(|a| matches!(a, Action::Accept)));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 64. ActionCell windows produces overlapping pairs
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_windows_pairs(cell in prop::collection::vec(arb_action(), 2..=8)) {
+        let pairs: Vec<_> = cell.windows(2).collect();
+        prop_assert_eq!(pairs.len(), cell.len() - 1);
+        for (i, window) in pairs.iter().enumerate() {
+            prop_assert_eq!(&window[0], &cell[i]);
+            prop_assert_eq!(&window[1], &cell[i + 1]);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 65. ActionCell into_iter then collect roundtrip
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_into_iter_collect_roundtrip(cell in arb_action_cell()) {
+        let original = cell.clone();
+        let collected: Vec<Action> = cell.into_iter().collect();
+        prop_assert_eq!(original, collected);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 66. Fork equality is structural
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fork_structural_equality() {
+    let a = Action::Fork(vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(2))]);
+    let b = Action::Fork(vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(2))]);
+    let c = Action::Fork(vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(3))]);
+    assert_eq!(a, b);
+    assert_ne!(a, c);
+}
+
+// ---------------------------------------------------------------------------
+// 67. All six variants are mutually distinguishable
+// ---------------------------------------------------------------------------
+
+#[test]
+fn all_variants_distinguishable() {
+    let variants: Vec<Action> = vec![
+        Action::Shift(StateId(0)),
+        Action::Reduce(RuleId(0)),
+        Action::Accept,
+        Action::Error,
+        Action::Recover,
+        Action::Fork(vec![]),
+    ];
+    for i in 0..variants.len() {
+        for j in 0..variants.len() {
+            if i == j {
+                assert_eq!(variants[i], variants[j]);
+            } else {
+                assert_ne!(
+                    variants[i], variants[j],
+                    "variant {} and {} should differ",
+                    i, j
+                );
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 68. ActionCell with_capacity does not affect content
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_with_capacity_content(actions in prop::collection::vec(leaf_action(), 0..=6)) {
+        let mut cell: Vec<Action> = Vec::with_capacity(100);
+        for a in &actions {
+            cell.push(a.clone());
+        }
+        prop_assert_eq!(cell, actions);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 69. Serde JSON: Error variant serializes/deserializes distinctly
+// ---------------------------------------------------------------------------
+
+#[test]
+fn serde_json_error_distinct() {
+    let error_json = serde_json::to_string(&Action::Error).unwrap();
+    let accept_json = serde_json::to_string(&Action::Accept).unwrap();
+    let recover_json = serde_json::to_string(&Action::Recover).unwrap();
+    assert_ne!(error_json, accept_json);
+    assert_ne!(error_json, recover_json);
+    assert_ne!(accept_json, recover_json);
+
+    let error: Action = serde_json::from_str(&error_json).unwrap();
+    assert_eq!(error, Action::Error);
+}
+
+// ---------------------------------------------------------------------------
+// 70. ActionCell filter_map extracts shift states
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_filter_map_shift_states(cell in arb_action_cell()) {
+        let shift_states: Vec<StateId> = cell
+            .iter()
+            .filter_map(|a| match a {
+                Action::Shift(s) => Some(*s),
+                _ => None,
+            })
+            .collect();
+        let shift_count = cell.iter().filter(|a| matches!(a, Action::Shift(_))).count();
+        prop_assert_eq!(shift_states.len(), shift_count);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 71. ActionCell filter_map extracts reduce rule ids
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_filter_map_reduce_rules(cell in arb_action_cell()) {
+        let rule_ids: Vec<RuleId> = cell
+            .iter()
+            .filter_map(|a| match a {
+                Action::Reduce(r) => Some(*r),
+                _ => None,
+            })
+            .collect();
+        let reduce_count = cell.iter().filter(|a| matches!(a, Action::Reduce(_))).count();
+        prop_assert_eq!(rule_ids.len(), reduce_count);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 72. ActionCell is deterministic iff it has at most one action
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_determinism_check(cell in arb_action_cell()) {
+        let is_deterministic = cell.len() <= 1;
+        if is_deterministic {
+            prop_assert!(cell.len() <= 1);
+        } else {
+            prop_assert!(cell.len() > 1, "Non-deterministic cell must have >1 actions");
+        }
+    }
+}
