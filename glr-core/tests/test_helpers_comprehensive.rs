@@ -80,9 +80,12 @@ fn table_with_direct_goto(
     eof: SymbolId,
 ) -> ParseTable {
     let mut table = minimal_table(terminals, actions, eof);
+    let max_symbol = goto_rows.iter().map(|row| row.len()).max().unwrap_or(0);
+    table.nonterminal_to_index = (0..max_symbol)
+        .map(|symbol| (SymbolId(symbol as u16), symbol))
+        .collect();
     table.goto_table = goto_rows;
-    table.goto_indexing = GotoIndexing::DirectSymbolId;
-    table
+    table.remap_goto_to_direct_symbol_id()
 }
 
 // ===== 1. actions_for — basic retrieval =====================================
