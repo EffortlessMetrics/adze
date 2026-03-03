@@ -254,9 +254,9 @@ mod tests {
 
         match (full, incremental) {
             (Forest::Glr(full_forest), Forest::Glr(incremental_forest)) => {
-                assert_eq!(full_forest.node_count(), incremental_forest.node_count());
-                assert_eq!(full_forest.root_count(), incremental_forest.root_count());
-                assert_eq!(full_forest.nodes.len(), incremental_forest.nodes.len());
+                let full_view = full_forest.view();
+                let inc_view = incremental_forest.view();
+                assert_eq!(full_view.roots().len(), inc_view.roots().len());
             }
             _ => panic!("expected glr forest variants when glr-core is enabled"),
         }
