@@ -10,9 +10,7 @@
 //! All tests exercise the public API only.
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
-use adze_ir::{
-    ExternalToken, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token, TokenPattern,
-};
+use adze_ir::{ExternalToken, Grammar, ProductionId, Rule, StateId, SymbolId, Token, TokenPattern};
 use adze_tablegen::language_gen::LanguageGenerator;
 use adze_tablegen::{AbiLanguageBuilder, LanguageBuilder};
 use std::collections::BTreeMap;

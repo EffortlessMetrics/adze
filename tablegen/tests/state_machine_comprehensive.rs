@@ -5,7 +5,7 @@
 //! schema encoding/decoding, validation, and state-transition invariants.
 
 use adze_glr_core::Action;
-use adze_ir::{RuleId, StateId, SymbolId};
+use adze_ir::{RuleId, StateId};
 use adze_tablegen::compress::{
     CompressedActionEntry, CompressedGotoEntry, CompressedParseTable, TableCompressor,
 };
@@ -492,7 +492,6 @@ fn validation_error_variants_constructible() {
 
 #[test]
 fn validator_rejects_wrong_version() {
-    use adze_tablegen::validation::TSLanguage;
     let tables = CompressedParseTable::new_for_testing(1, 1);
     let lang = unsafe { make_dummy_language(14, 1, 1) };
     let validator = LanguageValidator::new(&lang, &tables);

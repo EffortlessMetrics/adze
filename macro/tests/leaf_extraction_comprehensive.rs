@@ -12,8 +12,7 @@ use std::collections::HashSet;
 use adze_common::{
     FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::ToTokens;
 use syn::punctuated::Punctuated;
 use syn::{Attribute, Fields, ItemEnum, ItemStruct, Token, Type, parse_quote};
 
@@ -137,8 +136,12 @@ fn leaf_transform_closure_with_turbofish() {
 
 #[test]
 fn leaf_transform_closure_complex_body() {
-    let nv: NameValueExpr =
-        parse_quote!(transform = |v| { let n: u32 = v.parse().unwrap(); n * 2 });
+    let nv: NameValueExpr = parse_quote!(
+        transform = |v| {
+            let n: u32 = v.parse().unwrap();
+            n * 2
+        }
+    );
     assert_eq!(nv.path.to_string(), "transform");
     assert!(matches!(nv.expr, syn::Expr::Closure(_)));
 }

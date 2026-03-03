@@ -12,7 +12,7 @@ use adze_common::{FieldThenParams, NameValueExpr, try_extract_inner_type, wrap_l
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
-use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct, Token, Type, parse_quote};
+use syn::{Attribute, Fields, Item, ItemMod, ItemStruct, Token, Type, parse_quote};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -321,11 +321,11 @@ fn module_attrs_separate_adze_from_others() {
         .attrs
         .iter()
         .filter(|a| {
-            !a.path()
+            a.path()
                 .segments
                 .iter()
                 .next()
-                .is_some_and(|s| s.ident == "adze")
+                .is_none_or(|s| s.ident != "adze")
         })
         .collect();
     assert_eq!(adze_attrs.len(), 1);

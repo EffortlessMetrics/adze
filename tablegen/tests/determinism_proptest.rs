@@ -38,11 +38,11 @@ use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     ExternalToken, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
+use adze_tablegen::StaticLanguageGenerator;
 use adze_tablegen::compress::TableCompressor;
 use adze_tablegen::generate::LanguageBuilder;
 use adze_tablegen::node_types::NodeTypesGenerator;
 use adze_tablegen::serializer::serialize_language;
-use adze_tablegen::StaticLanguageGenerator;
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ proptest! {
     // 1. Same Grammar → same compressed action table
     #[test]
     fn compressed_action_table_deterministic(token_count in 1usize..5) {
-        let grammar = grammar_with_tokens(token_count);
+        let _grammar = grammar_with_tokens(token_count);
         let table = ParseTable::default();
 
         let compressor = TableCompressor::new();
@@ -261,7 +261,7 @@ proptest! {
     // 2. Same Grammar → same compressed goto table
     #[test]
     fn compressed_goto_table_deterministic(token_count in 1usize..5) {
-        let grammar = grammar_with_tokens(token_count);
+        let _grammar = grammar_with_tokens(token_count);
         let table = ParseTable::default();
 
         let compressor = TableCompressor::new();
@@ -274,7 +274,7 @@ proptest! {
     // 3. Same Grammar → same compressed default actions
     #[test]
     fn compressed_default_actions_deterministic(token_count in 1usize..6) {
-        let grammar = grammar_with_tokens(token_count);
+        let _grammar = grammar_with_tokens(token_count);
         let table = ParseTable::default();
 
         let c = TableCompressor::new();
@@ -295,7 +295,7 @@ proptest! {
     // 4. Same Grammar → same compressed row offsets
     #[test]
     fn compressed_row_offsets_deterministic(token_count in 1usize..6) {
-        let grammar = grammar_with_tokens(token_count);
+        let _grammar = grammar_with_tokens(token_count);
         let table = ParseTable::default();
 
         let c = TableCompressor::new();
@@ -523,7 +523,7 @@ proptest! {
     // 18. Compressed action table ordering is stable
     #[test]
     fn compressed_action_ordering_stable(token_count in 1usize..5) {
-        let g = grammar_with_tokens(token_count);
+        let _g = grammar_with_tokens(token_count);
         let t = ParseTable::default();
 
         let c = TableCompressor::new();
@@ -548,7 +548,7 @@ proptest! {
     // 19. Compressed goto table ordering is stable
     #[test]
     fn compressed_goto_ordering_stable(token_count in 1usize..5) {
-        let g = grammar_with_tokens(token_count);
+        let _g = grammar_with_tokens(token_count);
         let t = ParseTable::default();
 
         let c = TableCompressor::new();

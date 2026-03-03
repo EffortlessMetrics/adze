@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{AliasSequence, Grammar, ProductionId, SymbolId, Token, TokenPattern};
+use adze_ir::{AliasSequence, Grammar, ProductionId, SymbolId};
 use adze_tablegen::generate::LanguageBuilder;
 use adze_tablegen::serializer::{SerializableLanguage, serialize_language};
 
@@ -83,14 +83,6 @@ fn make_empty_table(states: usize, terms: usize, nonterms: usize, externals: usi
         field_map: BTreeMap::new(),
         grammar: Grammar::default(),
         goto_indexing: GotoIndexing::NonterminalMap,
-    }
-}
-
-fn make_token(name: &str, pattern: &str) -> Token {
-    Token {
-        name: name.to_string(),
-        pattern: TokenPattern::String(pattern.to_string()),
-        fragile: false,
     }
 }
 
@@ -222,11 +214,13 @@ fn parse_table_default_empty_alias_sequences() {
 /// ParseTable alias_sequences can hold Vec<Vec<Option<SymbolId>>>.
 #[test]
 fn parse_table_alias_sequences_populated() {
-    let mut pt = ParseTable::default();
-    pt.alias_sequences = vec![
-        vec![None, Some(SymbolId(5))],
-        vec![Some(SymbolId(1)), None, Some(SymbolId(2))],
-    ];
+    let pt = ParseTable {
+        alias_sequences: vec![
+            vec![None, Some(SymbolId(5))],
+            vec![Some(SymbolId(1)), None, Some(SymbolId(2))],
+        ],
+        ..ParseTable::default()
+    };
 
     assert_eq!(pt.alias_sequences.len(), 2);
     assert_eq!(pt.alias_sequences[0].len(), 2);
@@ -238,8 +232,10 @@ fn parse_table_alias_sequences_populated() {
 /// ParseTable alias_sequences with all None entries.
 #[test]
 fn parse_table_alias_sequences_all_none() {
-    let mut pt = ParseTable::default();
-    pt.alias_sequences = vec![vec![None; 5]];
+    let pt = ParseTable {
+        alias_sequences: vec![vec![None; 5]],
+        ..ParseTable::default()
+    };
 
     assert_eq!(pt.alias_sequences.len(), 1);
     assert!(pt.alias_sequences[0].iter().all(|a| a.is_none()));
