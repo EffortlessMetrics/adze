@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use adze_glr_core::test_helpers::test::{
     actions_for, goto_for, has_accept_on_eof, reduce_rules, shift_destinations,
 };
-use adze_glr_core::{Action, GotoIndexing, ParseRule, ParseTable, SymbolMetadata};
+use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 // ---------------------------------------------------------------------------
@@ -21,7 +21,7 @@ fn minimal_table(terminals: &[SymbolId], actions: Vec<Vec<Action>>, eof: SymbolI
     let state_count = actions.len();
     let symbol_count = terminals.len();
 
-    ParseTable {
+    let mut table = ParseTable {
         action_table: actions
             .into_iter()
             .map(|row| row.into_iter().map(|a| vec![a]).collect())
@@ -35,7 +35,6 @@ fn minimal_table(terminals: &[SymbolId], actions: Vec<Vec<Action>>, eof: SymbolI
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: GotoIndexing::NonterminalMap,
         eof_symbol: eof,
         start_symbol: SymbolId(0),
         grammar: Grammar::new("test".to_string()),
@@ -49,7 +48,10 @@ fn minimal_table(terminals: &[SymbolId], actions: Vec<Vec<Action>>, eof: SymbolI
         alias_sequences: vec![],
         field_names: vec![],
         field_map: BTreeMap::new(),
-    }
+        ..ParseTable::default()
+    };
+    table.nonterminal_to_index = BTreeMap::new();
+    table.remap_goto_to_nonterminal_map()
 }
 
 /// Build a table with goto entries using NonterminalMap indexing.
@@ -68,8 +70,7 @@ fn table_with_goto(
         .collect();
     table.nonterminal_to_index = nt_map;
     table.goto_table = goto_rows;
-    table.goto_indexing = GotoIndexing::NonterminalMap;
-    table
+    table.remap_goto_to_nonterminal_map()
 }
 
 /// Build a table with goto entries using DirectSymbolId indexing.

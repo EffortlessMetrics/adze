@@ -565,7 +565,7 @@ fn error_meta_clone_equals_copy() {
         is_error: true,
         cost: 99,
     };
-    let cloned = meta.clone();
+    let cloned = meta;
     assert_eq!(cloned.cost, meta.cost);
     assert_eq!(cloned.is_error, meta.is_error);
 }

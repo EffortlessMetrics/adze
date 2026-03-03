@@ -1,4 +1,4 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(clippy::needless_range_loop, unused_imports)]
 
 //! Comprehensive lexer/tokenizer integration tests for the GLR core.
 //!

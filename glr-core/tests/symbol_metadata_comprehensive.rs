@@ -1,4 +1,8 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    clippy::too_many_arguments,
+    clippy::vec_init_then_push
+)]
 
 //! Comprehensive tests for SymbolMetadata handling in adze-glr-core.
 

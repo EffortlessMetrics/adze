@@ -1,4 +1,8 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    clippy::vec_init_then_push,
+    clippy::useless_vec
+)]
 
 use adze_glr_core::{Action, ActionCell, RuleId, StateId};
 use std::collections::{HashMap, HashSet};
@@ -119,9 +123,7 @@ fn action_cell_single_action() {
 
 #[test]
 fn action_cell_push() {
-    let mut cell: ActionCell = vec![];
-    cell.push(Action::Accept);
-    cell.push(Action::Error);
+    let cell: ActionCell = vec![Action::Accept, Action::Error];
     assert_eq!(cell.len(), 2);
 }
 

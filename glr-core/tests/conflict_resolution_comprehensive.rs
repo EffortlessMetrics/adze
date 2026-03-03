@@ -1,4 +1,4 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(clippy::needless_range_loop, unused_imports, clippy::clone_on_copy)]
 
 //! Comprehensive conflict resolution tests for GLR core.
 //!
@@ -96,7 +96,7 @@ fn expr_one_op(prec: Option<PrecedenceKind>, assoc: Option<Associativity>) -> Gr
                     Symbol::Terminal(op),
                     Symbol::NonTerminal(e),
                 ],
-                precedence: prec.clone(),
+                precedence: prec,
                 associativity: assoc,
                 production_id: ProductionId(0),
                 fields: vec![],

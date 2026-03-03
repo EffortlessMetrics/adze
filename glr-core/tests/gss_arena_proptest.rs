@@ -1,9 +1,9 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(clippy::needless_range_loop, unused_imports, unused_variables)]
 //! Property-based tests for the arena-allocated GSS implementation.
 //!
 //! Run with: cargo test -p adze-glr-core --test gss_arena_proptest
 
-use adze_glr_core::gss_arena::{ArenaGSS, ArenaGSSManager, ArenaGSSStats, ArenaStackNode};
+use adze_glr_core::gss_arena::{ArenaGSS, ArenaGSSManager, ArenaGSSStats};
 use adze_ir::{StateId, SymbolId};
 use proptest::prelude::*;
 use typed_arena::Arena;
@@ -411,7 +411,7 @@ proptest! {
         s1 in state_id_strategy(),
         s2 in state_id_strategy(),
         pushes1 in prop::collection::vec(state_id_strategy(), 1..5),
-        pushes2 in prop::collection::vec(state_id_strategy(), 1..5),
+        _pushes2 in prop::collection::vec(state_id_strategy(), 1..5),
     ) {
         let mgr = ArenaGSSManager::new();
 

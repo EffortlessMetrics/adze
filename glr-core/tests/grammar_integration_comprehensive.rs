@@ -642,7 +642,7 @@ fn excess_tokens_fail() {
         .build();
 
     let table = run_pipeline(&mut g).expect("grammar");
-    let a = sym(&g, "a");
+    let _a = sym(&g, "a");
 
     // Grammar accepts exactly one "a", but we feed two - second token has no shift
     // after reduction and accept. The driver accepts after the first token, so

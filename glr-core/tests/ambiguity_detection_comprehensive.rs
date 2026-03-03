@@ -1,4 +1,4 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(clippy::needless_range_loop, clippy::redundant_closure, unused_imports)]
 
 //! Comprehensive tests for ambiguity detection and GLR multi-path handling.
 //!
@@ -12,10 +12,7 @@ use adze_glr_core::conflict_inspection::{
 };
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{
-    Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
-};
+use adze_ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -62,23 +59,6 @@ fn count_cells_with_shift_reduce(table: &adze_glr_core::ParseTable) -> usize {
                 if has_shift && has_reduce {
                     count += 1;
                 }
-            }
-        }
-    }
-    count
-}
-
-/// Count how many cells have multiple Reduce actions (reduce/reduce conflicts).
-fn count_cells_with_reduce_reduce(table: &adze_glr_core::ParseTable) -> usize {
-    let mut count = 0;
-    for state in &table.action_table {
-        for cell in state {
-            let reduces: Vec<_> = cell
-                .iter()
-                .filter(|a| matches!(a, Action::Reduce(_)))
-                .collect();
-            if reduces.len() > 1 {
-                count += 1;
             }
         }
     }
@@ -342,10 +322,7 @@ fn test_concat_ambiguity() {
         .build();
 
     let table = build_table(&grammar);
-    assert!(
-        has_any_conflict(&table),
-        "E → E E is inherently ambiguous"
-    );
+    assert!(has_any_conflict(&table), "E → E E is inherently ambiguous");
 }
 
 #[test]
@@ -1376,7 +1353,7 @@ fn test_deeply_nested_grammar_builds() {
         },
     );
 
-    let ids: Vec<SymbolId> = (10..15).map(|i| SymbolId(i)).collect();
+    let ids: Vec<SymbolId> = (10..15).map(SymbolId).collect();
     let names = ["A", "B", "C", "D", "E"];
     for (i, &id) in ids.iter().enumerate() {
         grammar.rule_names.insert(id, names[i].into());

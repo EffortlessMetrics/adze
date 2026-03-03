@@ -7,10 +7,7 @@
 //!
 //! Run with: `cargo test -p adze-glr-core --test table_builder_proptest`
 
-use adze_glr_core::{
-    Action, ConflictResolver, FirstFollowSets, ItemSetCollection, build_lr1_automaton,
-    sanity_check_tables,
-};
+use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton, sanity_check_tables};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
 use proptest::prelude::*;

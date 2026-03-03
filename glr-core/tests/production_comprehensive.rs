@@ -159,7 +159,7 @@ fn rules_count_at_least_user_rules() {
     let table = build_table(&g);
     // Original grammar has 1 rule (start → a)
     assert!(
-        table.rules.len() >= 1,
+        !table.rules.is_empty(),
         "should have at least the user rule, got {}",
         table.rules.len()
     );
