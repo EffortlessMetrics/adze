@@ -1,707 +1,1051 @@
-//! Property-based tests for the grammar extraction pipeline.
+#![allow(clippy::needless_range_loop)]
+
+//! Property-based tests for grammar extraction from Rust code in adze-tool.
 //!
-//! Tests invariants of `Grammar`, `GrammarConverter`, `GrammarVisualizer`,
-//! and `GrammarValidator` using `proptest`.
+//! Tests the `generate_grammars` public API which parses annotated Rust source
+//! files and produces Tree-sitter JSON grammar values. Covers:
+//!   - Extract grammar from simple struct
+//!   - Extract grammar from enum
+//!   - Extract grammar from nested types
+//!   - Grammar JSON output format
+//!   - Grammar with multiple rules
+//!   - Grammar extraction determinism
+//!   - Empty grammar handling
 
-use adze_ir::validation::GrammarValidator;
-use adze_ir::{
-    Associativity, ExternalToken, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, Symbol,
-    SymbolId, Token, TokenPattern,
-};
-use adze_tool::{GrammarConverter, GrammarVisualizer};
 use proptest::prelude::*;
+use serde_json::Value;
+use std::fs;
+use tempfile::TempDir;
 
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// Helpers
+// ===========================================================================
+
+fn extract(src: &str) -> Vec<Value> {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("lib.rs");
+    fs::write(&path, src).unwrap();
+    adze_tool::generate_grammars(&path).unwrap()
+}
+
+fn try_extract(src: &str) -> adze_tool::ToolResult<Vec<Value>> {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("lib.rs");
+    fs::write(&path, src).unwrap();
+    adze_tool::generate_grammars(&path)
+}
+
+fn extract_one(src: &str) -> Value {
+    let gs = extract(src);
+    assert_eq!(gs.len(), 1, "expected 1 grammar, got {}", gs.len());
+    gs.into_iter().next().unwrap()
+}
+
+/// Recursively collect every JSON node with a given "type" and return
+/// the associated "value" strings.
+fn collect_typed_values(val: &Value, type_name: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    match val {
+        Value::Object(map) => {
+            if map.get("type").and_then(|v| v.as_str()) == Some(type_name) {
+                if let Some(v) = map.get("value").and_then(|v| v.as_str()) {
+                    out.push(v.to_string());
+                }
+            }
+            for v in map.values() {
+                out.extend(collect_typed_values(v, type_name));
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr {
+                out.extend(collect_typed_values(v, type_name));
+            }
+        }
+        _ => {}
+    }
+    out
+}
+
+/// Recursively collect "name" values from FIELD nodes.
+fn collect_field_names(val: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    match val {
+        Value::Object(map) => {
+            if map.get("type").and_then(|v| v.as_str()) == Some("FIELD") {
+                if let Some(n) = map.get("name").and_then(|v| v.as_str()) {
+                    out.push(n.to_string());
+                }
+            }
+            for v in map.values() {
+                out.extend(collect_field_names(v));
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr {
+                out.extend(collect_field_names(v));
+            }
+        }
+        _ => {}
+    }
+    out
+}
+
+fn rule_names(grammar: &Value) -> Vec<String> {
+    grammar["rules"]
+        .as_object()
+        .map(|m| m.keys().cloned().collect())
+        .unwrap_or_default()
+}
+
+// ===========================================================================
 // Strategies
-// ---------------------------------------------------------------------------
+// ===========================================================================
 
-/// Generate a valid grammar name (non-empty, identifier-like).
 fn grammar_name_strategy() -> impl Strategy<Value = String> {
-    "[a-z][a-z0-9_]{0,15}"
+    "[a-z][a-z0-9_]{0,10}".prop_filter("non-empty", |s| !s.is_empty())
 }
 
-/// Generate a `SymbolId` in a small range.
-fn symbol_id_strategy() -> impl Strategy<Value = SymbolId> {
-    (1u16..100).prop_map(SymbolId)
+fn type_name_strategy() -> impl Strategy<Value = String> {
+    "[A-Z][a-z]{1,8}".prop_filter("non-empty", |s| !s.is_empty())
 }
 
-/// Generate a `TokenPattern`.
-fn token_pattern_strategy() -> impl Strategy<Value = TokenPattern> {
+fn field_name_strategy() -> impl Strategy<Value = String> {
+    "[a-z][a-z0-9_]{0,8}".prop_filter("avoid keywords", |s| {
+        !matches!(
+            s.as_str(),
+            "type" | "fn" | "let" | "mut" | "ref" | "pub" | "mod" | "use" | "self" | "super"
+                | "crate" | "struct" | "enum" | "impl" | "trait" | "where" | "for" | "loop"
+                | "while" | "if" | "else" | "match" | "return" | "break" | "continue" | "as"
+                | "in" | "move" | "box" | "dyn" | "async" | "await" | "try" | "yield"
+                | "macro" | "const" | "static" | "unsafe" | "extern"
+        )
+    })
+}
+
+fn safe_pattern_strategy() -> impl Strategy<Value = String> {
     prop_oneof![
-        "[a-zA-Z0-9+\\-*/]{1,10}".prop_map(TokenPattern::String),
-        prop_oneof![
-            Just(r"[a-z]+".to_string()),
-            Just(r"\d+".to_string()),
-            Just(r"[a-zA-Z_][a-zA-Z0-9_]*".to_string()),
-        ]
-        .prop_map(TokenPattern::Regex),
+        Just(r"[a-z]+".to_string()),
+        Just(r"\d+".to_string()),
+        Just(r"[a-zA-Z_][a-zA-Z0-9_]*".to_string()),
+        Just(r"[0-9]+".to_string()),
+        Just(r"[a-f0-9]+".to_string()),
     ]
 }
 
-/// Generate a `Token`.
-fn token_strategy() -> impl Strategy<Value = (String, TokenPattern, bool)> {
-    (
-        "[a-z][a-z0-9_]{0,10}",
-        token_pattern_strategy(),
-        any::<bool>(),
+fn text_token_strategy() -> impl Strategy<Value = String> {
+    prop_oneof![
+        Just("+".to_string()),
+        Just("-".to_string()),
+        Just("*".to_string()),
+        Just("=".to_string()),
+        Just(";".to_string()),
+        Just(",".to_string()),
+    ]
+}
+
+fn struct_source(name: &str, ty: &str, field: &str, pattern: &str) -> String {
+    format!(
+        r##"
+        #[adze::grammar("{name}")]
+        mod grammar {{
+            #[adze::language]
+            pub struct {ty} {{
+                #[adze::leaf(pattern = r"{pattern}")]
+                pub {field}: String,
+            }}
+        }}
+        "##,
     )
 }
 
-/// Generate a leaf `Symbol` (no recursion).
-fn leaf_symbol_strategy() -> impl Strategy<Value = Symbol> {
-    prop_oneof![
-        symbol_id_strategy().prop_map(Symbol::Terminal),
-        symbol_id_strategy().prop_map(Symbol::NonTerminal),
-        Just(Symbol::Epsilon),
-    ]
-}
-
-/// Generate an `Associativity`.
-fn assoc_strategy() -> impl Strategy<Value = Associativity> {
-    prop_oneof![
-        Just(Associativity::Left),
-        Just(Associativity::Right),
-        Just(Associativity::None),
-    ]
-}
-
-/// Generate a `PrecedenceKind`.
-fn prec_kind_strategy() -> impl Strategy<Value = PrecedenceKind> {
-    prop_oneof![
-        (-10i16..10).prop_map(PrecedenceKind::Static),
-        (-10i16..10).prop_map(PrecedenceKind::Dynamic),
-    ]
-}
-
-/// Build a self-consistent `Grammar` with the given name and token/rule counts.
-fn grammar_strategy() -> impl Strategy<Value = Grammar> {
-    (
-        grammar_name_strategy(),
-        prop::collection::vec(token_strategy(), 1..=5),
-        prop::collection::vec(
-            (
-                prop::option::of(prec_kind_strategy()),
-                prop::option::of(assoc_strategy()),
-            ),
-            1..=4,
-        ),
+fn enum_source(name: &str, ty: &str, pattern: &str) -> String {
+    format!(
+        r##"
+        #[adze::grammar("{name}")]
+        mod grammar {{
+            #[adze::language]
+            pub enum {ty} {{
+                Leaf(
+                    #[adze::leaf(pattern = r"{pattern}")]
+                    String
+                ),
+            }}
+        }}
+        "##,
     )
-        .prop_map(|(name, tokens, rule_attrs)| {
-            let mut grammar = Grammar::new(name);
-
-            // Insert tokens with sequential IDs starting at 1.
-            let mut token_ids = Vec::new();
-            for (i, (tok_name, pattern, fragile)) in tokens.into_iter().enumerate() {
-                let id = SymbolId((i + 1) as u16);
-                token_ids.push(id);
-                grammar.tokens.insert(
-                    id,
-                    Token {
-                        name: tok_name,
-                        pattern,
-                        fragile,
-                    },
-                );
-            }
-
-            // Create a non-terminal symbol above all tokens.
-            let nt_id = SymbolId((token_ids.len() + 1) as u16);
-            grammar.rule_names.insert(nt_id, "start".to_string());
-
-            // Add one rule per attribute set, each referencing a random token.
-            for (prod_idx, (prec, assoc)) in rule_attrs.into_iter().enumerate() {
-                let tok = token_ids[prod_idx % token_ids.len()];
-                grammar.rules.entry(nt_id).or_default().push(Rule {
-                    lhs: nt_id,
-                    rhs: vec![Symbol::Terminal(tok)],
-                    precedence: prec,
-                    associativity: assoc,
-                    fields: vec![],
-                    production_id: ProductionId(prod_idx as u16),
-                });
-            }
-
-            grammar
-        })
 }
 
-// ---------------------------------------------------------------------------
-// 1. Grammar name preserved through new()
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// 1. Simple struct: extraction succeeds
+// ===========================================================================
+
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(100))]
+    #![proptest_config(ProptestConfig::with_cases(20))]
 
     #[test]
-    fn grammar_name_preserved_through_new(name in grammar_name_strategy()) {
-        let g = Grammar::new(name.clone());
-        prop_assert_eq!(&g.name, &name);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 2. add_rule preserves LHS grouping
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(80))]
-
-    #[test]
-    fn add_rule_groups_by_lhs(lhs_id in 1u16..50, count in 1usize..=6) {
-        let mut g = Grammar::new("test".into());
-        let lhs = SymbolId(lhs_id);
-        // Also register token so validation can pass later
-        g.tokens.insert(SymbolId(100), Token {
-            name: "tok".into(),
-            pattern: TokenPattern::String("x".into()),
-            fragile: false,
-        });
-        for i in 0..count {
-            g.add_rule(Rule {
-                lhs,
-                rhs: vec![Symbol::Terminal(SymbolId(100))],
-                precedence: None,
-                associativity: None,
-                fields: vec![],
-                production_id: ProductionId(i as u16),
-            });
-        }
-        let rules = g.get_rules_for_symbol(lhs).unwrap();
-        prop_assert_eq!(rules.len(), count);
-        for r in rules {
-            prop_assert_eq!(r.lhs, lhs);
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 3. all_rules yields correct total count
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(60))]
-
-    #[test]
-    fn all_rules_count_matches(g in grammar_strategy()) {
-        let expected: usize = g.rules.values().map(|rs| rs.len()).sum();
-        prop_assert_eq!(g.all_rules().count(), expected);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 4. Token patterns are never empty in generated grammars
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(80))]
-
-    #[test]
-    fn tokens_have_nonempty_patterns(g in grammar_strategy()) {
-        for (_, token) in &g.tokens {
-            match &token.pattern {
-                TokenPattern::String(s) => prop_assert!(!s.is_empty()),
-                TokenPattern::Regex(r) => prop_assert!(!r.is_empty()),
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 5. check_empty_terminals accepts valid grammars
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(80))]
-
-    #[test]
-    fn check_empty_terminals_accepts_valid(g in grammar_strategy()) {
-        // Our strategy never generates empty patterns, so this should pass.
-        prop_assert!(g.check_empty_terminals().is_ok());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 6. check_empty_terminals detects empty string tokens
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn check_empty_terminals_rejects_empty_string(name in grammar_name_strategy()) {
-        let mut g = Grammar::new(name);
-        g.tokens.insert(SymbolId(1), Token {
-            name: "empty".into(),
-            pattern: TokenPattern::String(String::new()),
-            fragile: false,
-        });
-        prop_assert!(g.check_empty_terminals().is_err());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 7. check_empty_terminals detects empty regex tokens
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn check_empty_terminals_rejects_empty_regex(name in grammar_name_strategy()) {
-        let mut g = Grammar::new(name);
-        g.tokens.insert(SymbolId(1), Token {
-            name: "empty_re".into(),
-            pattern: TokenPattern::Regex(String::new()),
-            fragile: false,
-        });
-        prop_assert!(g.check_empty_terminals().is_err());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 8. Normalize eliminates Optional symbols
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn normalize_eliminates_optional(tok_id in 1u16..50) {
-        let mut g = Grammar::new("norm_test".into());
-        let tok = SymbolId(tok_id);
-        let nt = SymbolId(tok_id + 100);
-        g.tokens.insert(tok, Token {
-            name: "t".into(),
-            pattern: TokenPattern::String("a".into()),
-            fragile: false,
-        });
-        g.add_rule(Rule {
-            lhs: nt,
-            rhs: vec![Symbol::Optional(Box::new(Symbol::Terminal(tok)))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-        g.normalize();
-        // After normalization no rule RHS should contain Optional.
-        for rule in g.all_rules() {
-            for sym in &rule.rhs {
-                prop_assert!(!matches!(sym, Symbol::Optional(_)));
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 9. Normalize eliminates Repeat symbols
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn normalize_eliminates_repeat(tok_id in 1u16..50) {
-        let mut g = Grammar::new("norm_test".into());
-        let tok = SymbolId(tok_id);
-        let nt = SymbolId(tok_id + 100);
-        g.tokens.insert(tok, Token {
-            name: "t".into(),
-            pattern: TokenPattern::String("a".into()),
-            fragile: false,
-        });
-        g.add_rule(Rule {
-            lhs: nt,
-            rhs: vec![Symbol::Repeat(Box::new(Symbol::Terminal(tok)))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-        g.normalize();
-        for rule in g.all_rules() {
-            for sym in &rule.rhs {
-                prop_assert!(!matches!(sym, Symbol::Repeat(_)));
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 10. Normalize eliminates Choice symbols
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn normalize_eliminates_choice(tok_a in 1u16..50, tok_b in 51u16..100) {
-        let mut g = Grammar::new("norm_test".into());
-        let a = SymbolId(tok_a);
-        let b = SymbolId(tok_b);
-        let nt = SymbolId(200);
-        g.tokens.insert(a, Token {
-            name: "a".into(),
-            pattern: TokenPattern::String("a".into()),
-            fragile: false,
-        });
-        g.tokens.insert(b, Token {
-            name: "b".into(),
-            pattern: TokenPattern::String("b".into()),
-            fragile: false,
-        });
-        g.add_rule(Rule {
-            lhs: nt,
-            rhs: vec![Symbol::Choice(vec![Symbol::Terminal(a), Symbol::Terminal(b)])],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-        g.normalize();
-        for rule in g.all_rules() {
-            for sym in &rule.rhs {
-                prop_assert!(!matches!(sym, Symbol::Choice(_)));
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 11. Normalize eliminates Sequence symbols
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn normalize_eliminates_sequence(tok_a in 1u16..50, tok_b in 51u16..100) {
-        let mut g = Grammar::new("norm_test".into());
-        let a = SymbolId(tok_a);
-        let b = SymbolId(tok_b);
-        let nt = SymbolId(200);
-        g.tokens.insert(a, Token {
-            name: "a".into(),
-            pattern: TokenPattern::String("a".into()),
-            fragile: false,
-        });
-        g.tokens.insert(b, Token {
-            name: "b".into(),
-            pattern: TokenPattern::String("b".into()),
-            fragile: false,
-        });
-        g.add_rule(Rule {
-            lhs: nt,
-            rhs: vec![Symbol::Sequence(vec![Symbol::Terminal(a), Symbol::Terminal(b)])],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-        g.normalize();
-        for rule in g.all_rules() {
-            for sym in &rule.rhs {
-                prop_assert!(!matches!(sym, Symbol::Sequence(_)));
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 12. Normalize preserves grammar name
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(60))]
-
-    #[test]
-    fn normalize_preserves_grammar_name(g in grammar_strategy()) {
-        let name = g.name.clone();
-        let mut g2 = g;
-        g2.normalize();
-        prop_assert_eq!(&g2.name, &name);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 13. Normalize preserves token set
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(60))]
-
-    #[test]
-    fn normalize_preserves_tokens(g in grammar_strategy()) {
-        let token_ids: Vec<_> = g.tokens.keys().copied().collect();
-        let mut g2 = g;
-        g2.normalize();
-        for id in &token_ids {
-            prop_assert!(g2.tokens.contains_key(id));
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 14. GrammarConverter sample grammar is self-consistent
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(10))]
-
-    #[test]
-    fn sample_grammar_has_nonempty_rules(_dummy in 0..1i32) {
-        let g = GrammarConverter::create_sample_grammar();
-        prop_assert!(g.all_rules().count() > 0);
-        prop_assert!(!g.tokens.is_empty());
-        prop_assert_eq!(&g.name, "sample");
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 15. GrammarConverter sample grammar passes empty-terminal check
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(10))]
-
-    #[test]
-    fn sample_grammar_passes_empty_check(_dummy in 0..1i32) {
-        let g = GrammarConverter::create_sample_grammar();
-        prop_assert!(g.check_empty_terminals().is_ok());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 16. build_registry produces correct terminal count
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(60))]
-
-    #[test]
-    fn build_registry_registers_tokens(g in grammar_strategy()) {
-        let registry = g.build_registry();
-        // Every token should be registered.
-        for (_, token) in &g.tokens {
-            let id = registry.get_id(&token.name);
-            prop_assert!(id.is_some(), "Token '{}' not in registry", token.name);
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 17. build_registry terminals are marked as terminal
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(60))]
-
-    #[test]
-    fn registry_terminals_flagged(g in grammar_strategy()) {
-        let registry = g.build_registry();
-        for (_, token) in &g.tokens {
-            if let Some(id) = registry.get_id(&token.name) {
-                let meta = registry.get_metadata(id).unwrap();
-                prop_assert!(meta.terminal,
-                    "Token '{}' should be terminal", token.name);
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 18. Visualizer DOT output is non-empty for any grammar
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
-
-    #[test]
-    fn visualizer_dot_nonempty(g in grammar_strategy()) {
-        let viz = GrammarVisualizer::new(g);
-        let dot = viz.to_dot();
-        prop_assert!(!dot.is_empty());
-        prop_assert!(dot.contains("digraph"));
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 19. Visualizer text output is non-empty
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
-
-    #[test]
-    fn visualizer_text_nonempty(g in grammar_strategy()) {
-        let viz = GrammarVisualizer::new(g);
-        let text = viz.to_text();
-        prop_assert!(!text.is_empty());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 20. Visualizer dependency graph is non-empty
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
-
-    #[test]
-    fn visualizer_dep_graph_nonempty(g in grammar_strategy()) {
-        let viz = GrammarVisualizer::new(g);
-        let deps = viz.dependency_graph();
-        prop_assert!(!deps.is_empty());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 21. GrammarValidator stats match grammar shape
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn validator_stats_match(g in grammar_strategy()) {
-        let mut validator = GrammarValidator::new();
-        let result = validator.validate(&g);
-        prop_assert_eq!(result.stats.total_tokens, g.tokens.len());
-        prop_assert_eq!(result.stats.total_rules, g.all_rules().count());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 22. find_symbol_by_name roundtrips with rule_names
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(60))]
-
-    #[test]
-    fn find_symbol_by_name_roundtrips(g in grammar_strategy()) {
-        for (id, name) in &g.rule_names {
-            let found = g.find_symbol_by_name(name);
-            prop_assert_eq!(found, Some(*id));
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 23. Symbol ordering is deterministic (Ord impl)
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(100))]
-
-    #[test]
-    fn symbol_ord_deterministic(a in leaf_symbol_strategy(), b in leaf_symbol_strategy()) {
-        let cmp1 = a.cmp(&b);
-        let cmp2 = a.cmp(&b);
-        prop_assert_eq!(cmp1, cmp2);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 24. Normalize is idempotent (running twice has same effect)
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
-
-    #[test]
-    fn normalize_idempotent(g in grammar_strategy()) {
-        let mut g1 = g.clone();
-        g1.normalize();
-        let rules_after_first: Vec<_> = g1.all_rules().cloned().collect();
-
-        let mut g2 = g;
-        g2.normalize();
-        g2.normalize();
-        let rules_after_second: Vec<_> = g2.all_rules().cloned().collect();
-
-        prop_assert_eq!(rules_after_first.len(), rules_after_second.len());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 25. Externals survive normalize
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
-
-    #[test]
-    fn normalize_preserves_externals(
+    fn struct_extraction_succeeds(
         name in grammar_name_strategy(),
-        ext_name in "[a-z]{2,6}",
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+        pat in safe_pattern_strategy(),
     ) {
-        let mut g = Grammar::new(name);
-        g.externals.push(ExternalToken {
-            name: ext_name.clone(),
-            symbol_id: SymbolId(999),
-        });
-        // Add a trivial rule so normalize has something to process.
-        g.tokens.insert(SymbolId(1), Token {
-            name: "t".into(),
-            pattern: TokenPattern::String("x".into()),
-            fragile: false,
-        });
-        g.add_rule(Rule {
-            lhs: SymbolId(2),
-            rhs: vec![Symbol::Terminal(SymbolId(1))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-        g.normalize();
-        prop_assert_eq!(g.externals.len(), 1);
-        prop_assert_eq!(&g.externals[0].name, &ext_name);
+        let src = struct_source(&name, &ty, &field, &pat);
+        let gs = extract(&src);
+        prop_assert_eq!(gs.len(), 1);
     }
 }
 
-// ---------------------------------------------------------------------------
-// 26. Grammar validate rejects dangling symbol references
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// 2. Simple struct: grammar name matches attribute
+// ===========================================================================
+
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
+    #![proptest_config(ProptestConfig::with_cases(20))]
 
     #[test]
-    fn validate_rejects_dangling_refs(bad_id in 200u16..300) {
-        let mut g = Grammar::new("dangling".into());
-        // Rule references a terminal that does not exist.
-        g.add_rule(Rule {
-            lhs: SymbolId(1),
-            rhs: vec![Symbol::Terminal(SymbolId(bad_id))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-        prop_assert!(g.validate().is_err());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 27. Grammar validate accepts self-consistent grammar
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(50))]
-
-    #[test]
-    fn validate_accepts_consistent(g in grammar_strategy()) {
-        // Our grammar_strategy builds consistent grammars.
-        prop_assert!(g.validate().is_ok());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 28. Fields with lexicographic ordering pass validate
-// ---------------------------------------------------------------------------
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
-
-    #[test]
-    fn validate_accepts_sorted_fields(
-        a in "[a-c][a-z]{0,4}",
-        b in "[d-f][a-z]{0,4}",
+    fn struct_grammar_name_matches(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
     ) {
-        let mut g = Grammar::new("fields_test".into());
-        g.tokens.insert(SymbolId(1), Token {
-            name: "t".into(),
-            pattern: TokenPattern::String("x".into()),
-            fragile: false,
-        });
-        g.add_rule(Rule {
-            lhs: SymbolId(2),
-            rhs: vec![Symbol::Terminal(SymbolId(1))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-        // Insert fields in sorted order.
-        let mut names = vec![a, b];
-        names.sort();
-        for (i, name) in names.into_iter().enumerate() {
-            g.fields.insert(FieldId(i as u16), name);
+        let src = struct_source(&name, &ty, &field, r"[a-z]+");
+        let g = extract_one(&src);
+        prop_assert_eq!(g["name"].as_str().unwrap(), name.as_str());
+    }
+}
+
+// ===========================================================================
+// 3. Simple struct: root type appears in source_file rule
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn struct_source_file_references_root(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"\d+");
+        let g = extract_one(&src);
+        let sf = &g["rules"]["source_file"];
+        prop_assert_eq!(sf["type"].as_str().unwrap(), "SYMBOL");
+        prop_assert_eq!(sf["name"].as_str().unwrap(), ty.as_str());
+    }
+}
+
+// ===========================================================================
+// 4. Simple struct: field name preserved as FIELD in JSON
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn struct_field_name_preserved(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"[a-z]+");
+        let g = extract_one(&src);
+        let fields = collect_field_names(&g["rules"][&ty]);
+        prop_assert!(
+            fields.contains(&field),
+            "field '{}' not found in FIELD nodes: {:?}", field, fields
+        );
+    }
+}
+
+// ===========================================================================
+// 5. Simple struct: pattern value preserved in PATTERN node
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn struct_pattern_preserved(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+        pat in safe_pattern_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, &pat);
+        let g = extract_one(&src);
+        let patterns = collect_typed_values(&g, "PATTERN");
+        prop_assert!(
+            patterns.contains(&pat),
+            "pattern '{}' not in PATTERN nodes: {:?}", pat, patterns
+        );
+    }
+}
+
+// ===========================================================================
+// 6. Enum: extraction produces CHOICE rule for root type
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn enum_produces_choice_rule(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let src = enum_source(&name, &ty, r"\d+");
+        let g = extract_one(&src);
+        let enum_rule = &g["rules"][&ty];
+        prop_assert_eq!(
+            enum_rule["type"].as_str().unwrap(), "CHOICE",
+            "enum root must be CHOICE"
+        );
+    }
+}
+
+// ===========================================================================
+// 7. Enum: grammar name matches attribute
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn enum_grammar_name_matches(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let src = enum_source(&name, &ty, r"[a-z]+");
+        let g = extract_one(&src);
+        prop_assert_eq!(g["name"].as_str().unwrap(), name.as_str());
+    }
+}
+
+// ===========================================================================
+// 8. Enum: two-variant enum has 2 CHOICE members
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn enum_two_variants_two_members(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {ty} {{
+                    Alpha(#[adze::leaf(pattern = r"[a-z]+")] String),
+                    Digit(#[adze::leaf(pattern = r"\d+")] String),
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let members = g["rules"][&ty]["members"].as_array().unwrap();
+        prop_assert_eq!(members.len(), 2);
+    }
+}
+
+// ===========================================================================
+// 9. Enum: single-variant enum still produces CHOICE
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn enum_single_variant_is_choice(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let src = enum_source(&name, &ty, r"\d+");
+        let g = extract_one(&src);
+        let enum_rule = &g["rules"][&ty];
+        prop_assert_eq!(enum_rule["type"].as_str().unwrap(), "CHOICE");
+        prop_assert!(enum_rule["members"].as_array().unwrap().len() >= 1);
+    }
+}
+
+// ===========================================================================
+// 10. Enum: recursive Box<Self> reference produces SYMBOL
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn enum_recursive_ref(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {ty} {{
+                    Num(#[adze::leaf(pattern = r"\d+")] String),
+                    Neg(
+                        #[adze::leaf(text = "-")]
+                        (),
+                        Box<{ty}>
+                    ),
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let json_str = serde_json::to_string(&g).unwrap();
+        // The recursive reference should produce a SYMBOL node pointing at the enum
+        prop_assert!(
+            json_str.contains(&format!(r#""name":"{}""#, ty))
+                || json_str.contains(&format!(r#""name": "{}""#, ty)),
+            "recursive SYMBOL reference to '{}' not found", ty
+        );
+    }
+}
+
+// ===========================================================================
+// 11. Nested types: struct referencing child struct creates both rules
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn nested_struct_creates_both_rules(
+        name in grammar_name_strategy(),
+        root in type_name_strategy(),
+        child in type_name_strategy(),
+        f1 in field_name_strategy(),
+        f2 in field_name_strategy(),
+    ) {
+        let child_name = if child == root { format!("{}Child", child) } else { child };
+        let f2_name = if f2 == f1 { format!("{}_b", f2) } else { f2 };
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {root} {{
+                    pub {f1}: {child_name},
+                }}
+                pub struct {child_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {f2_name}: String,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let names = rule_names(&g);
+        prop_assert!(names.contains(&root), "root '{}' not in rules", root);
+        prop_assert!(names.contains(&child_name), "child '{}' not in rules", child_name);
+    }
+}
+
+// ===========================================================================
+// 12. Nested types: enum referencing child struct
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn nested_enum_with_child_struct(
+        name in grammar_name_strategy(),
+        root in type_name_strategy(),
+        child in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let child_name = if child == root { format!("{}Item", child) } else { child };
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {root} {{
+                    Wrapped({child_name}),
+                    Lit(#[adze::leaf(pattern = r"\d+")] String),
+                }}
+                pub struct {child_name} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {field}: String,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let names = rule_names(&g);
+        prop_assert!(names.contains(&root));
+        prop_assert!(names.contains(&child_name));
+    }
+}
+
+// ===========================================================================
+// 13. Nested types: three-level nesting produces all rules
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn three_level_nesting(name in grammar_name_strategy()) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct Root {{
+                    pub mid: Middle,
+                }}
+                pub struct Middle {{
+                    pub leaf: Leaf,
+                }}
+                pub struct Leaf {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let names = rule_names(&g);
+        prop_assert!(names.contains(&"Root".to_string()));
+        prop_assert!(names.contains(&"Middle".to_string()));
+        prop_assert!(names.contains(&"Leaf".to_string()));
+    }
+}
+
+// ===========================================================================
+// 14. Nested types: multiple children all present in rules
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn multiple_children_all_present(name in grammar_name_strategy()) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct Root {{
+                    pub a: ChildA,
+                    pub b: ChildB,
+                }}
+                pub struct ChildA {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+                pub struct ChildB {{
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub num: String,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let names = rule_names(&g);
+        for expected in &["Root", "ChildA", "ChildB"] {
+            prop_assert!(
+                names.contains(&expected.to_string()),
+                "'{}' not in rules: {:?}", expected, names
+            );
         }
-        prop_assert!(g.validate().is_ok());
+    }
+}
+
+// ===========================================================================
+// 15. JSON format: "name" key is a string
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn json_name_is_string(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"[a-z]+");
+        let g = extract_one(&src);
+        prop_assert!(g["name"].is_string());
+    }
+}
+
+// ===========================================================================
+// 16. JSON format: "rules" key is an object
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn json_rules_is_object(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"\d+");
+        let g = extract_one(&src);
+        prop_assert!(g["rules"].is_object(), "'rules' must be an object");
+    }
+}
+
+// ===========================================================================
+// 17. JSON format: "extras" key is always an array
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn json_extras_is_array(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"[a-z]+");
+        let g = extract_one(&src);
+        prop_assert!(g.get("extras").is_some(), "'extras' key must exist");
+        prop_assert!(g["extras"].is_array(), "'extras' must be an array");
+    }
+}
+
+// ===========================================================================
+// 18. JSON format: "word" key is present
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn json_word_key_present(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"[a-z]+");
+        let g = extract_one(&src);
+        prop_assert!(g.get("word").is_some(), "'word' key must be present");
+    }
+}
+
+// ===========================================================================
+// 19. JSON format: source_file always first rule key
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn json_source_file_is_first_rule(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"[a-z]+");
+        let g = extract_one(&src);
+        let first_key = g["rules"].as_object().unwrap().keys().next().unwrap();
+        prop_assert_eq!(first_key, "source_file");
+    }
+}
+
+// ===========================================================================
+// 20. JSON format: all rule keys are non-empty strings
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn json_rule_keys_nonempty(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+        pat in safe_pattern_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, &pat);
+        let g = extract_one(&src);
+        for key in rule_names(&g) {
+            prop_assert!(!key.is_empty(), "rule key must be non-empty");
+        }
+    }
+}
+
+// ===========================================================================
+// 21. Multiple rules: struct + extra produces extras entry
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn struct_with_extra_has_extras(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {ty} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub {field}: String,
+                }}
+                #[adze::extra]
+                struct Whitespace {{
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let extras = g["extras"].as_array().unwrap();
+        prop_assert!(!extras.is_empty(), "extras should contain whitespace entry");
+    }
+}
+
+// ===========================================================================
+// 22. Multiple rules: enum + sibling struct
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn enum_with_sibling_struct(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let child = format!("{}Num", ty);
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub enum {ty} {{
+                    Wrapped({child}),
+                    Lit(#[adze::leaf(pattern = r"[a-z]+")] String),
+                }}
+                pub struct {child} {{
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub val: String,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let names = rule_names(&g);
+        prop_assert!(names.contains(&ty));
+        prop_assert!(names.contains(&child));
+        prop_assert!(names.contains(&"source_file".to_string()));
+    }
+}
+
+// ===========================================================================
+// 23. Multiple rules: rule count scales with type count
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn rule_count_scales(name in grammar_name_strategy()) {
+        let src_one = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct Root {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+            }}
+            "##,
+        );
+        let src_two = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct Root {{
+                    pub child: Child,
+                }}
+                pub struct Child {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+            }}
+            "##,
+        );
+        let g1 = extract_one(&src_one);
+        let g2 = extract_one(&src_two);
+        let count1 = g1["rules"].as_object().unwrap().len();
+        let count2 = g2["rules"].as_object().unwrap().len();
+        prop_assert!(
+            count2 > count1,
+            "adding a child type should increase rule count: {} vs {}", count1, count2
+        );
+    }
+}
+
+// ===========================================================================
+// 24. Multiple rules: struct with text token produces STRING node
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn struct_text_token_produces_string(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        tok in text_token_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {ty} {{
+                    #[adze::leaf(text = "{tok}")]
+                    pub op: (),
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let strings = collect_typed_values(&g, "STRING");
+        prop_assert!(
+            strings.contains(&tok),
+            "text token '{}' not found in STRING nodes: {:?}", tok, strings
+        );
+    }
+}
+
+// ===========================================================================
+// 25. Determinism: same struct source extracts identically
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn deterministic_struct_extraction(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+        pat in safe_pattern_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, &pat);
+        let a = extract_one(&src);
+        let b = extract_one(&src);
+        prop_assert_eq!(&a, &b, "extraction must be deterministic");
+    }
+}
+
+// ===========================================================================
+// 26. Determinism: same enum source extracts identically
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn deterministic_enum_extraction(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        pat in safe_pattern_strategy(),
+    ) {
+        let src = enum_source(&name, &ty, &pat);
+        let a = extract_one(&src);
+        let b = extract_one(&src);
+        prop_assert_eq!(&a, &b);
+    }
+}
+
+// ===========================================================================
+// 27. Determinism: serialized JSON bytes match across runs
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn deterministic_json_bytes(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, r"[a-z]+");
+        let s1 = serde_json::to_string(&extract_one(&src)).unwrap();
+        let s2 = serde_json::to_string(&extract_one(&src)).unwrap();
+        prop_assert_eq!(s1, s2, "serialized JSON must be byte-identical");
+    }
+}
+
+// ===========================================================================
+// 28. Determinism: nested grammar extraction is stable
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn deterministic_nested_extraction(name in grammar_name_strategy()) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct Root {{
+                    pub mid: Middle,
+                }}
+                pub struct Middle {{
+                    pub leaf: Leaf,
+                }}
+                pub struct Leaf {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+            }}
+            "##,
+        );
+        let a = extract_one(&src);
+        let b = extract_one(&src);
+        prop_assert_eq!(&a, &b);
+    }
+}
+
+// ===========================================================================
+// 29. Empty grammar: no grammar attribute yields empty list
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn no_grammar_attr_yields_empty(_dummy in 0..1i32) {
+        let src = r#"
+            mod not_a_grammar {
+                pub struct Foo {
+                    pub x: i32,
+                }
+            }
+        "#;
+        let gs = extract(src);
+        prop_assert_eq!(gs.len(), 0, "no #[adze::grammar] should yield 0 grammars");
+    }
+}
+
+// ===========================================================================
+// 30. Empty grammar: file with no modules yields empty list
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn empty_file_yields_empty(_dummy in 0..1i32) {
+        let gs = extract("// empty file\n");
+        prop_assert_eq!(gs.len(), 0);
+    }
+}
+
+// ===========================================================================
+// 31. Empty grammar: minimal struct (single field) succeeds
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn minimal_struct_succeeds(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {ty} {{
+                    #[adze::leaf(pattern = r"[a-z]+")]
+                    pub val: String,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        prop_assert!(g["rules"].as_object().unwrap().len() >= 2);
+    }
+}
+
+// ===========================================================================
+// 32. PATTERN tokens are never empty strings
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(15))]
+
+    #[test]
+    fn pattern_tokens_never_empty(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+        field in field_name_strategy(),
+        pat in safe_pattern_strategy(),
+    ) {
+        let src = struct_source(&name, &ty, &field, &pat);
+        let g = extract_one(&src);
+        let patterns = collect_typed_values(&g, "PATTERN");
+        for p in &patterns {
+            prop_assert!(!p.is_empty(), "PATTERN must not be empty");
+        }
+    }
+}
+
+// ===========================================================================
+// 33. Enum with Optional field
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+
+    #[test]
+    fn enum_optional_field_extracts(
+        name in grammar_name_strategy(),
+        ty in type_name_strategy(),
+    ) {
+        let src = format!(
+            r##"
+            #[adze::grammar("{name}")]
+            mod grammar {{
+                #[adze::language]
+                pub struct {ty} {{
+                    #[adze::leaf(pattern = r"\d+")]
+                    pub val: Option<String>,
+                }}
+            }}
+            "##,
+        );
+        let g = extract_one(&src);
+        let names = rule_names(&g);
+        prop_assert!(names.contains(&"source_file".to_string()));
+        prop_assert!(names.contains(&ty));
     }
 }
