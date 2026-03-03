@@ -29,8 +29,13 @@ struct Backing<'a> {
     tok_len: usize,
 }
 
-// SAFETY: All extern fns below only touch `Backing` via `data`.
+// SAFETY: `lex` is a valid pointer to a `TsLexer` whose `data` field points to a
+// live `Backing` allocated in `TsLexFnAdapter::new`. The `Backing` lifetime is tied
+// to the adapter, which outlives every call through these function pointers.
 unsafe extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
+    // SAFETY: Caller (Tree-sitter C ABI) guarantees `lex` is the same pointer we
+    // provided. `data` was set to a valid `&mut Backing` in `TsLexFnAdapter::new`
+    // and remains valid for the adapter's lifetime. We take only a shared reference.
     unsafe {
         let st = &*((*lex).data as *const Backing);
         if st.pos < st.input.len() {
@@ -42,6 +47,9 @@ unsafe extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
 }
 
 unsafe extern "C" fn advance(lex: *mut TsLexer, skip: bool) {
+    // SAFETY: Same invariant as `lookahead` — `lex.data` points to a live `Backing`.
+    // We take a mutable reference; Tree-sitter guarantees no concurrent calls to
+    // lexer callbacks on the same `TsLexer`.
     unsafe {
         let st = &mut *((*lex).data as *mut Backing);
         if !skip && st.pos < st.input.len() {
@@ -56,6 +64,8 @@ unsafe extern "C" fn advance(lex: *mut TsLexer, skip: bool) {
 }
 
 unsafe extern "C" fn mark_end(lex: *mut TsLexer) {
+    // SAFETY: Same invariant as `advance` — `lex.data` is a valid `&mut Backing`
+    // with no aliasing references during this call.
     unsafe {
         let st = &mut *((*lex).data as *mut Backing);
         st.mark = st.pos;
@@ -132,7 +142,11 @@ impl<'a> TsLexFnAdapter<'a> {
         // Update the data pointer to ensure it's pointing to our backing
         self.ts.data = &mut self.backing as *mut _ as *mut c_void;
 
-        // Call the language lexer
+        // SAFETY: `lang_lex` is a Tree-sitter-generated C function pointer provided at
+        // construction. We pass `&mut self.ts` cast to `*mut c_void` as Tree-sitter's
+        // ABI expects. The `TsLexer` and its `Backing` data pointer are valid for the
+        // duration of this call. The function may invoke `lookahead`, `advance`, and
+        // `mark_end` callbacks which only access `Backing` through the data pointer.
         let ok = unsafe { (self.lang_lex)(&mut self.ts as *mut _ as *mut c_void, self.state_tag) };
 
         if ok && self.ts.result_symbol != u16::MAX {
