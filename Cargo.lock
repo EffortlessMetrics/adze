@@ -709,6 +709,7 @@ dependencies = [
  "insta",
  "prettyplease",
  "proc-macro2",
+ "proptest",
  "quote",
  "regex",
  "serde",

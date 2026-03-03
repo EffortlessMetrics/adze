@@ -63,3 +63,4 @@ path = "src/bin/adze.rs"
 
 [dev-dependencies]
 insta.workspace = true
+proptest.workspace = true
