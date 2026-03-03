@@ -1,4 +1,6 @@
 // Grammar optimization passes for Adze
+//! Grammar optimization passes that simplify and normalize rules.
+
 // This module implements various optimizations to improve parser performance
 
 #[cfg(test)]

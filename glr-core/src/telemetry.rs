@@ -1,3 +1,5 @@
+//! Low-overhead telemetry counters for GLR parser performance monitoring.
+
 /// Low-overhead telemetry for GLR parser performance monitoring
 ///
 /// This module provides atomic counters for tracking fork, merge, and reduce
@@ -136,39 +138,50 @@ impl std::fmt::Display for TelemetryStats {
     }
 }
 
-// No-op implementation when telemetry is disabled
+/// No-op telemetry when the `glr_telemetry` feature is disabled.
 #[cfg(not(feature = "glr_telemetry"))]
 #[derive(Default)]
 pub struct Telemetry;
 
 #[cfg(not(feature = "glr_telemetry"))]
 impl Telemetry {
+    /// Creates a no-op telemetry instance.
     #[inline(always)]
     pub fn new() -> Self {
         Self
     }
+    /// No-op: increment fork counter.
     #[inline(always)]
     pub fn inc_fork(&self) {}
+    /// No-op: increment fork counter by n.
     #[inline(always)]
     pub fn inc_fork_by(&self, _n: u64) {}
+    /// No-op: increment merge counter.
     #[inline(always)]
     pub fn inc_merge(&self) {}
+    /// No-op: increment reduce counter.
     #[inline(always)]
     pub fn inc_reduce(&self) {}
+    /// No-op: increment shift counter.
     #[inline(always)]
     pub fn inc_shift(&self) {}
+    /// No-op: update max stacks.
     #[inline(always)]
     pub fn update_max_stacks(&self, _current: u64) {}
+    /// No-op: increment total stacks counter.
     #[inline(always)]
     pub fn inc_total_stacks(&self) {}
 
+    /// Returns an empty stats placeholder.
     pub fn stats(&self) -> TelemetryStats {
         TelemetryStats
     }
 
+    /// No-op: reset counters.
     pub fn reset(&self) {}
 }
 
+/// Empty telemetry stats placeholder when telemetry is disabled.
 #[cfg(not(feature = "glr_telemetry"))]
 #[derive(Debug, Clone, Copy)]
 pub struct TelemetryStats;

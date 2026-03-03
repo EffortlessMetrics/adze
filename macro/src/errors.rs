@@ -1,3 +1,5 @@
+//! Error collection helpers for procedural macro expansion.
+
 use std::marker::PhantomData;
 
 /// An iterator that maps [`Result`]s to their [`Ok`] values

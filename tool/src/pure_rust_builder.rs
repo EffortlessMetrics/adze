@@ -1,4 +1,6 @@
 // Pure-Rust parser builder that uses the new IR and GLR infrastructure
+//! Pure-Rust parser builder bypassing C code generation.
+
 // This module replaces the old Tree-sitter C generation with pure Rust code
 
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};

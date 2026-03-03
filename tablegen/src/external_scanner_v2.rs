@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Enhanced external scanner generator with state-based validity.
+
 // Enhanced external scanner generator with state-based validity computation
 use adze_glr_core::ParseTable;
 use adze_ir::{ExternalToken, Grammar, SymbolId};

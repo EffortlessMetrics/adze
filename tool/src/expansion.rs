@@ -1,3 +1,5 @@
+//! Grammar expansion from annotated Rust types to Tree-sitter JSON.
+
 use std::collections::HashSet;
 
 use adze_common::*;

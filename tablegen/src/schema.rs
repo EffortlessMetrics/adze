@@ -1,9 +1,8 @@
-/// Parse Table Schema Validation
-/// Purpose: Ensure parse tables conform to the encoding contract
-/// Related: runtime/pure_parser.rs decode_action(), tablegen/compress.rs
-///
-/// This module provides schema validation to prevent encoding/decoding mismatches
-/// between table generation and runtime parsing.
+//! Parse table schema validation ensuring encoding contract compliance.
+//!
+//! This module provides schema validation to prevent encoding/decoding mismatches
+//! between table generation and runtime parsing.
+
 use adze_glr_core::{Action, ParseTable, StateId};
 use adze_ir::RuleId;
 use std::collections::HashSet;

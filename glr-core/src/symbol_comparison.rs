@@ -1,4 +1,6 @@
 // Lexicographic symbol comparison for Tree-sitter conflict resolution
+//! Lexicographic symbol comparison as a tie-breaker for conflict resolution.
+
 // This implements the final tie-breaker when all other comparisons are equal
 
 use crate::CompareResult;

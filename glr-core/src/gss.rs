@@ -1,4 +1,6 @@
 // Graph-Structured Stack (GSS) for efficient GLR parsing
+//! Graph-Structured Stack (GSS) for efficient GLR fork/merge.
+
 // This implementation uses shared stack segments to avoid unnecessary copying during forking
 
 use crate::{StateId, SymbolId};

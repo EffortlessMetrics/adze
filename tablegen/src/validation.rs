@@ -1,5 +1,7 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
+//! Tree-sitter ABI validation and FFI struct definitions.
+
 use crate::compress::CompressedParseTable;
 
 /// Validates that a generated Language struct meets Tree-sitter ABI requirements
@@ -41,35 +43,50 @@ pub struct TSLanguage {
     pub primary_state_ids: *const TSStateId,
 }
 
+/// Parse table action entry matching Tree-sitter's C layout.
 #[repr(C)]
 pub struct TSParseActionEntry {
+    /// Packed action value.
     pub action: u32,
 }
 
+/// Describes a slice into the field-map entries table.
 #[repr(C)]
 pub struct TSFieldMapSlice {
+    /// Start index into the field-map entries array.
     pub start: u16,
+    /// Number of entries in this slice.
     pub length: u16,
 }
 
+/// A single field-mapping from a production to its child.
 #[repr(C)]
 pub struct TSFieldMapEntry {
+    /// Field identifier.
     pub field_id: u16,
+    /// Index of the child node this field maps to.
     pub child_index: u8,
+    /// Whether this mapping is inherited from a parent rule.
     pub inherited: bool,
 }
 
+/// Metadata for a grammar symbol (visibility and naming).
 #[repr(C)]
 pub struct TSSymbolMetadata {
+    /// Whether the symbol is visible in the concrete syntax tree.
     pub visible: bool,
+    /// Whether the symbol is a named node.
     pub named: bool,
 }
 
+/// Lexer mode configuration.
 #[repr(C)]
 pub struct TSLexMode {
+    /// Lexer mode identifier.
     pub lex_mode_id: u8,
 }
 
+/// External scanner function pointers and data.
 #[repr(C)]
 pub struct TSExternalScannerData {
     pub states: *const bool,
@@ -82,6 +99,7 @@ pub struct TSExternalScannerData {
     pub deserialize: Option<unsafe extern "C" fn(*mut std::ffi::c_void, *const u8, u32)>,
 }
 
+/// FFI-compatible lexer interface matching Tree-sitter's C layout.
 #[repr(C)]
 pub struct TSLexer {
     pub lookahead: i32,
@@ -93,7 +111,9 @@ pub struct TSLexer {
     pub eof: Option<unsafe extern "C" fn(*mut TSLexer) -> bool>,
 }
 
+/// Symbol identifier type (unsigned 16-bit).
 pub type TSSymbol = u16;
+/// State identifier type (unsigned 16-bit).
 pub type TSStateId = u16;
 
 /// Validation errors that can occur when checking Language structs

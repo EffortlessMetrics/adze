@@ -1,5 +1,7 @@
 // Conflict visualization and debugging tools for GLR parsing
 
+//! Human-readable visualization and debugging tools for parse conflicts.
+
 use crate::{Action, Conflict, ConflictType, ItemSet, ItemSetCollection, LRItem, RuleId, SymbolId};
 use adze_ir::{Grammar, Symbol};
 use std::fmt::Write;

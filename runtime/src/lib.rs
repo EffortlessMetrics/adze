@@ -38,6 +38,7 @@ pub use ffi::TSSymbol;
 /// Type alias for symbol identifiers.
 pub type SymbolId = TSSymbol;
 
+/// Parser backend selection, feature profiles, and governance utilities.
 pub use parser_selection::{
     ParserBackend, ParserFeatureProfile, bdd_progress_report_for_current_profile,
     bdd_status_line_for_current_profile, current_backend_for, parser_feature_profile_for_runtime,
@@ -47,6 +48,7 @@ pub use parser_selection::{
 // Stable re-exports for core functionality
 // Note: ts_compat is already declared below as a module, not a re-export
 
+/// GLR incremental parsing types (requires `pure-rust` feature).
 #[cfg(feature = "pure-rust")]
 pub use glr_incremental::{Edit, GLRToken, IncrementalGLRParser};
 
@@ -163,8 +165,10 @@ mod simd_lexer_v2;
 pub mod ts_compat;
 
 // Re-export IR and GLR core for ts-compat language construction
+/// Tree-sitter compatibility: re-exported GLR core.
 #[cfg(feature = "ts-compat")]
 pub use adze_glr_core;
+/// Tree-sitter compatibility: re-exported IR types.
 #[cfg(feature = "ts-compat")]
 pub use adze_ir;
 // TODO: Update parallel_parser for new Parser API

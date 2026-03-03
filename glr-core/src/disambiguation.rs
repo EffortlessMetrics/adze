@@ -1,3 +1,5 @@
+//! Disambiguation of parse forests into single parse trees.
+
 use crate::parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree};
 
 impl ParseForest {

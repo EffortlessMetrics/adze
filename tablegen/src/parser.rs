@@ -1,23 +1,34 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Pure-Rust parser implementation using compressed parse tables.
+
 // Pure-Rust parser implementation using compressed tables
 // This implements Tree-sitter's parsing algorithm with GLR support
 
 use crate::abi::*;
 
+/// A parser state consisting of the current state ID and lookahead symbol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ParseState {
+    /// Current parser state index.
     pub state: u16,
+    /// Current lookahead token symbol.
     pub lookahead: u16,
 }
 
+/// A node in the parse tree produced by the compressed table parser.
 #[derive(Debug, Clone)]
 pub struct ParseNode {
+    /// Symbol ID of this node.
     pub symbol: u16,
+    /// Child nodes.
     pub children: Vec<ParseNode>,
+    /// Byte offset where this node starts.
     pub start_byte: usize,
+    /// Byte offset where this node ends.
     pub end_byte: usize,
 }
 
+/// A parser that drives parsing using compressed parse tables.
 pub struct Parser {
     language: &'static TSLanguage,
     stack: Vec<ParseState>,

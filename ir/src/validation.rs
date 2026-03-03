@@ -1,4 +1,6 @@
 // Grammar validation and diagnostics for Adze
+//! Grammar validation checking for undefined, unreachable, and non-productive symbols.
+
 // This module provides comprehensive validation and diagnostic capabilities
 
 use crate::{FieldId, Grammar, Symbol, SymbolId};

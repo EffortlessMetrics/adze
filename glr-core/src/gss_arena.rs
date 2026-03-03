@@ -1,4 +1,6 @@
 // Arena-based GSS implementation for high-performance GLR parsing
+//! Arena-allocated GSS implementation for high-performance parsing.
+
 // This version uses an arena allocator to minimize allocation overhead
 
 use crate::{StateId, SymbolId};
@@ -193,6 +195,7 @@ impl Default for ArenaGSSManager {
 }
 
 impl ArenaGSSManager {
+    /// Creates a new arena-based GSS manager.
     pub fn new() -> Self {
         Self {
             arena: Arena::new(),

@@ -1,4 +1,6 @@
 // Tree-sitter ABI 15 compatibility layer
+//! Tree-sitter ABI v15 type definitions and constants.
+
 // This module ensures our generated structures match Tree-sitter's ABI exactly
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 

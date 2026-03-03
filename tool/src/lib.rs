@@ -12,23 +12,34 @@ mod expansion;
 use expansion::*;
 
 mod grammar_converter;
+/// Re-exported grammar format converter.
 pub use grammar_converter::GrammarConverter;
 
+/// Grammar and parse tree visualization tools.
 pub mod visualization;
+/// Re-exported grammar visualizer.
 pub use visualization::GrammarVisualizer;
 
+/// JavaScript grammar.js parsing and conversion.
 pub mod grammar_js;
+/// Re-exported grammar.js converter and parser.
 pub use grammar_js::{GrammarJsConverter, parse_grammar_js};
 
+/// Pure-Rust parser builder bypassing C code generation.
 pub mod pure_rust_builder;
+/// Re-exported builder types and entry points.
 pub use pure_rust_builder::{
     BuildOptions, BuildResult, build_parser, build_parser_for_crate, build_parser_from_grammar_js,
 };
 
+/// Command-line interface for the adze build tool.
 pub mod cli;
+/// Build system integration for external scanners.
 pub mod scanner_build;
 
+/// Error types for the build tool.
 pub mod error;
+/// Re-exported error types.
 pub use error::{Result as ToolResult, ToolError};
 
 // Use tree-sitter-generate's version for compatibility

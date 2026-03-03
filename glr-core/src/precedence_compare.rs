@@ -1,4 +1,6 @@
 // Tree-sitter compatible precedence comparison logic
+//! Tree-sitter compatible precedence comparison logic.
+
 // Direct port of precedence comparison from Tree-sitter's C implementation
 
 use adze_ir::{Associativity, Grammar, PrecedenceKind, RuleId, Symbol, SymbolId};

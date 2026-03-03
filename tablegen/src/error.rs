@@ -1,3 +1,5 @@
+//! Error types for table generation and compression.
+
 /// Errors produced by table generation and compression.
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]

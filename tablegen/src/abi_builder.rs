@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Builder for ABI-compatible Tree-sitter Language structures.
+
 // ABI-compatible language builder for Tree-sitter
 // This module generates static Language structures that match Tree-sitter's C ABI exactly
 

@@ -49,19 +49,25 @@ pub use helpers::{collect_token_indices, eof_accepts_or_reduces};
 
 // Re-export key types
 pub use abi_builder::AbiLanguageBuilder;
+/// Compressed table types and compressor.
 pub use compress::{
     ActionEntry, CompressedActionEntry, CompressedActionTable, CompressedGotoEntry,
     CompressedGotoTable, CompressedParseTable, CompressedTables, GotoEntry, TableCompressor,
 };
+/// External scanner code generator.
 pub use external_scanner::ExternalScannerGenerator;
+/// High-level language builder.
 pub use generate::LanguageBuilder;
+/// NODE_TYPES metadata generator.
 pub use node_types::NodeTypesGenerator;
 #[cfg(feature = "serialization")]
+/// Binary `.parsetable` file format writer and types.
 pub use parsetable_writer::{
     FORMAT_VERSION, FeatureFlags, GenerationInfo, GovernanceMetadata, GrammarInfo, MAGIC_NUMBER,
     METADATA_SCHEMA_VERSION, ParserFeatureProfileSnapshot, ParsetableError, ParsetableMetadata,
     ParsetableWriter, TableStatistics,
 };
+/// ABI language validator and validation error types.
 pub use validation::{LanguageValidator, ValidationError};
 
 // use indexmap::IndexMap; // Currently unused

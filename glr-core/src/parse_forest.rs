@@ -1,3 +1,5 @@
+//! Shared packed parse forest (SPPF) for representing ambiguous parses.
+
 use crate::{Grammar, SymbolId};
 use std::collections::HashMap;
 
@@ -116,6 +118,7 @@ pub struct ForestAlternative {
 }
 
 impl ForestNode {
+    /// Returns `true` if this node has at least one complete alternative.
     pub fn is_complete(&self) -> bool {
         // A node is complete if it has at least one alternative
         !self.alternatives.is_empty()

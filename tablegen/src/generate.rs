@@ -1,3 +1,5 @@
+//! High-level language builder producing validated Language structures.
+
 use crate::compress::CompressedParseTable;
 use crate::validation::TSLanguage;
 use adze_glr_core::ParseTable;

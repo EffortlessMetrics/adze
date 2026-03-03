@@ -1,4 +1,6 @@
 // Improved parse table building with proper conflict handling
+//! Improved LR(1) automaton construction with proper conflict handling.
+
 use crate::{
     Action, FirstFollowSets, GLRError, ItemSetCollection, ParseTable, RuleId, StateId, SymbolId,
     SymbolMetadata,

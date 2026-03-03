@@ -12,20 +12,24 @@ use std::fmt;
 
 /// Error types and Result alias for IR operations.
 pub mod error;
+/// Error types for grammar IR operations.
 pub use error::{IrError, Result as IrResult};
 
 /// Grammar optimization utilities
 pub mod optimizer;
+/// Grammar optimization utilities and statistics.
 pub use optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 
 /// Grammar validation utilities
 pub mod validation;
+/// Grammar validation types and results.
 pub use validation::{GrammarValidator, ValidationError, ValidationResult, ValidationWarning};
 
 /// Debug macros for development
 pub mod debug_macros;
 /// Symbol registry for managing grammar symbols
 pub mod symbol_registry;
+/// Symbol registry for deterministic ID assignment.
 pub use symbol_registry::{SymbolInfo, SymbolRegistry};
 /// Builder API for programmatically constructing grammars
 pub mod builder;

@@ -1,3 +1,5 @@
+//! Shared helper functions for parse table analysis.
+
 use adze_glr_core::{Action, ParseTable};
 use adze_ir::Grammar;
 

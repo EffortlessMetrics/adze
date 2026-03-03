@@ -1,3 +1,5 @@
+//! Grammar macro expansion from annotated Rust types to parser code.
+
 use std::collections::HashSet;
 
 use crate::errors::IteratorExt as _;
@@ -15,6 +17,7 @@ fn is_sitter_attr(attr: &Attribute) -> bool {
         .unwrap_or(false)
 }
 
+/// Distinguishes between function parameters and struct fields during expansion.
 pub enum ParamOrField {
     Param(Expr),
     Field(FieldValue),
@@ -220,6 +223,7 @@ fn gen_struct_or_variant(
     )
 }
 
+/// Expands an annotated Rust module into grammar definitions and parser code.
 pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
     let grammar_name_str = input
         .attrs

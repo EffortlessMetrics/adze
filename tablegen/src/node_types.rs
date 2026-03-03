@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! NODE_TYPES JSON metadata generation for Tree-sitter grammars.
+
 use adze_ir::{Grammar, Symbol, TokenPattern};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

@@ -58,6 +58,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// Error types and Result alias for GLR operations.
 pub mod error;
+/// Convenience result alias for GLR operations.
 pub use error::Result as GlrResult;
 
 /// Back-compat alias: prefer `GlrError`; `GLRError` remains for now.
@@ -67,6 +68,7 @@ pub use GLRError as GlrError;
 pub mod conflict_inspection;
 
 // Re-export key types from adze-ir for API consumers
+/// Re-exported IR types used throughout GLR construction.
 pub use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 /// Stable imports for downstream users during 0.8.0-dev.
@@ -422,7 +424,9 @@ fn decide_reduce_reduce(a: u16, b: u16, prec: &PrecTables) -> u16 {
 }
 
 // Public API exports
+/// The main GLR parser driver.
 pub use driver::Driver;
+/// Core parse forest types and views.
 pub use forest_view::{Forest, ForestView, Span};
 
 /// Internal performance counters (diagnostics only).
@@ -431,11 +435,16 @@ pub use forest_view::{Forest, ForestView, Span};
 pub mod perf {
     use std::sync::atomic::{AtomicU64, Ordering};
 
+    /// Snapshot of performance counter values.
     #[derive(Clone, Debug, Default)]
     pub struct Counters {
+        /// Number of shift operations.
         pub shifts: u64,
+        /// Number of reduce operations.
         pub reductions: u64,
+        /// Number of parser forks.
         pub forks: u64,
+        /// Number of stack merges.
         pub merges: u64,
     }
 
@@ -444,26 +453,31 @@ pub mod perf {
     static FORKS: AtomicU64 = AtomicU64::new(0);
     static MERGES: AtomicU64 = AtomicU64::new(0);
 
+    /// Increment the shift counter by `n`.
     #[inline]
     pub fn inc_shifts(n: u64) {
         SHIFTS.fetch_add(n, Ordering::Relaxed);
     }
 
+    /// Increment the reduction counter by `n`.
     #[inline]
     pub fn inc_reductions(n: u64) {
         REDUCTIONS.fetch_add(n, Ordering::Relaxed);
     }
 
+    /// Increment the fork counter by `n`.
     #[inline]
     pub fn inc_forks(n: u64) {
         FORKS.fetch_add(n, Ordering::Relaxed);
     }
 
+    /// Increment the merge counter by `n`.
     #[inline]
     pub fn inc_merges(n: u64) {
         MERGES.fetch_add(n, Ordering::Relaxed);
     }
 
+    /// Take a snapshot of the current counter values.
     pub fn snapshot() -> Counters {
         Counters {
             shifts: SHIFTS.load(Ordering::Relaxed),
@@ -483,6 +497,7 @@ pub mod perf {
         }
     }
 
+    /// Reset all counters to zero.
     pub fn reset() {
         SHIFTS.store(0, Ordering::Relaxed);
         REDUCTIONS.store(0, Ordering::Relaxed);
@@ -495,26 +510,36 @@ pub mod perf {
 #[cfg(not(feature = "perf-counters"))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub mod perf {
+    /// Snapshot of performance counter values (no-op when disabled).
     #[derive(Clone, Debug, Default)]
     pub struct Counters {
+        /// Number of shift operations.
         pub shifts: u64,
+        /// Number of reduce operations.
         pub reductions: u64,
+        /// Number of parser forks.
         pub forks: u64,
+        /// Number of stack merges.
         pub merges: u64,
     }
 
+    /// No-op: increment shift counter.
     #[inline(always)]
     pub fn inc_shifts(_: u64) {}
 
+    /// No-op: increment reduction counter.
     #[inline(always)]
     pub fn inc_reductions(_: u64) {}
 
+    /// No-op: increment fork counter.
     #[inline(always)]
     pub fn inc_forks(_: u64) {}
 
+    /// No-op: increment merge counter.
     #[inline(always)]
     pub fn inc_merges(_: u64) {}
 
+    /// Returns default (zeroed) counters.
     #[inline(always)]
     pub fn snapshot() -> Counters {
         Counters::default()
@@ -526,6 +551,7 @@ pub mod perf {
         Counters::default()
     }
 
+    /// No-op: reset counters.
     #[inline(always)]
     pub fn reset() {}
 }

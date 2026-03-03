@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Parse table compression using Tree-sitter's encoding scheme.
+
 use crate::{Result, TableGenError};
 use adze_glr_core::{Action, ParseTable};
 use adze_ir::{StateId, SymbolId};

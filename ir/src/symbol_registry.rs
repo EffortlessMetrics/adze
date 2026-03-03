@@ -1,3 +1,5 @@
+//! Deterministic symbol ID assignment via an ordered registry.
+
 use crate::{SymbolId, SymbolMetadata};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};

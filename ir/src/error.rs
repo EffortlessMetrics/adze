@@ -1,3 +1,5 @@
+//! Error types for grammar IR operations.
+
 /// Errors that can occur while building and validating the IR.
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]

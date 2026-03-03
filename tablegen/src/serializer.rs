@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Serialization of parse tables and language structures for testing.
+
 // Table serialization for testing and debugging
 // This module allows us to serialize parse tables and language structures for comparison
 

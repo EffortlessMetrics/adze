@@ -1,4 +1,6 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
+//! Alternative table compression algorithms for action tables.
+
 // Table compression algorithms for parse tables
 use adze_glr_core::Action;
 use adze_ir::StateId;
