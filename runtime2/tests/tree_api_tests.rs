@@ -173,7 +173,7 @@ fn point_equality_and_ordering() {
 fn point_clone_and_copy() {
     let p = Point::new(1, 2);
     let p2 = p; // Copy
-    let p3 = p.clone();
+    let p3 = p;
     assert_eq!(p, p2);
     assert_eq!(p, p3);
 }

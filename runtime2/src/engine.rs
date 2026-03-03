@@ -195,14 +195,16 @@ mod tests {
     use adze_glr_core::{Action, ParseTable, StateId};
 
     fn shift_accept_table() -> &'static ParseTable {
-        let mut table = ParseTable::default();
-        table.state_count = 2;
-        table.symbol_count = 2;
-        table.action_table = vec![
-            vec![vec![], vec![Action::Shift(StateId(1))]],
-            vec![vec![Action::Accept], vec![]],
-        ];
-        table.goto_table = vec![vec![], vec![]];
+        let table = ParseTable {
+            state_count: 2,
+            symbol_count: 2,
+            action_table: vec![
+                vec![vec![], vec![Action::Shift(StateId(1))]],
+                vec![vec![Action::Accept], vec![]],
+            ],
+            goto_table: vec![vec![], vec![]],
+            ..Default::default()
+        };
         Box::leak(Box::new(table))
     }
 
@@ -258,7 +260,6 @@ mod tests {
                 let inc_view = incremental_forest.view();
                 assert_eq!(full_view.roots().len(), inc_view.roots().len());
             }
-            _ => panic!("expected glr forest variants when glr-core is enabled"),
         }
     }
 }

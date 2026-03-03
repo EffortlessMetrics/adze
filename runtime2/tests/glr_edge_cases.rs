@@ -397,7 +397,7 @@ fn scan_result_copy_and_eq() {
     };
     let b = a; // Copy
     assert_eq!(a, b);
-    let c = a.clone();
+    let c = a;
     assert_eq!(a, c);
 }
 

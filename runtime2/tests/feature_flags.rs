@@ -3,7 +3,7 @@
 //! Validates that the runtime behaves correctly under the current feature set,
 //! and that compile-time gates produce the expected API surface.
 
-use adze_runtime::{Parser, Tree};
+use adze_runtime::Tree;
 
 // ---------------------------------------------------------------------------
 // EditError is only available with incremental_glr

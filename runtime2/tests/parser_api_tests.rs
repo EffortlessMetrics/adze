@@ -3,11 +3,7 @@
 //! Focuses on gaps not covered by basic.rs: timeout, reset, Default trait,
 //! language validation errors, byte vs UTF-8 parsing, and empty input.
 
-use adze_runtime::{
-    ParseError, Parser, Tree,
-    language::SymbolMetadata,
-    test_helpers::{stub_language, stub_language_with_tokens},
-};
+use adze_runtime::{ParseError, Parser, test_helpers::stub_language};
 use std::time::Duration;
 
 // ---------------------------------------------------------------------------
@@ -194,7 +190,6 @@ fn parse_error_with_location_chaining() {
 
 #[test]
 fn language_builder_without_symbol_names_defaults_to_empty() {
-    use adze_runtime::language::SymbolMetadata;
     use adze_runtime::test_helpers::*;
 
     // multi_symbol_test_language uses auto-generated names
