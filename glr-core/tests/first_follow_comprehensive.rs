@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Comprehensive FIRST/FOLLOW set computation tests for adze-glr-core.
 //!
 //! Covers: single terminals, non-terminal propagation, nullable rules, choice,
