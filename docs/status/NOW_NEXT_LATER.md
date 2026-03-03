@@ -3,7 +3,7 @@
 **Last updated:** 2026-03-06
 **Status:** **Release Candidate** — 0.8.0-rc quality
 
-Adze status and rolling execution plan. For paper cuts and pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md).
+Adze status and rolling execution plan. For paper cuts and pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md).
 
 ---
 
