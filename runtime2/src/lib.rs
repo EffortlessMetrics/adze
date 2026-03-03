@@ -128,14 +128,24 @@ pub struct InputEdit {
     pub new_end_position: Point,
 }
 
-/// Query system types (stub for now)
+/// Query system types for pattern matching over parse trees.
+///
+/// This module is a stub for future implementation. Requires the `query` feature.
 #[cfg(feature = "query")]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 pub mod query {
-    /// A compiled query
+    /// A compiled query for matching patterns in syntax trees.
+    ///
+    /// Queries are compiled from S-expression patterns and can be executed
+    /// against any parse tree to find matching nodes.
     pub struct Query;
-    /// A query cursor for executing queries
+    /// A stateful cursor for executing queries against a tree.
+    ///
+    /// Manages iteration state when running a [`Query`] against a parse tree,
+    /// yielding [`QueryMatch`] results.
     pub struct QueryCursor;
-    /// A query match
+    /// A single match result from executing a query.
+    ///
+    /// Contains the captured nodes that matched the query pattern.
     pub struct QueryMatch;
 }

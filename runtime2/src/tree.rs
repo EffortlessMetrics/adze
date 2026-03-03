@@ -163,12 +163,12 @@ impl Tree {
         }
     }
 
-    /// Get the root node's kind
+    /// Get the root node's symbol ID as a raw `u32`.
     pub fn root_kind(&self) -> u32 {
         self.root.symbol
     }
 
-    /// Create a stub tree for testing
+    /// Create a stub tree with an empty root node, useful for testing.
     pub fn new_stub() -> Self {
         Self {
             root: TreeNode {
@@ -212,7 +212,16 @@ impl Tree {
         self.source.as_deref()
     }
 
-    /// Apply an edit to the tree (for incremental parsing) - Enhanced with comprehensive error handling
+    /// Apply an edit to the tree for incremental parsing.
+    ///
+    /// Updates byte ranges throughout the tree to reflect an edit operation.
+    /// Nodes that overlap the edit are marked dirty for selective re-parsing.
+    ///
+    /// # Errors
+    ///
+    /// - [`EditError::InvalidRange`] if `old_end_byte < start_byte` or `new_end_byte < start_byte`
+    /// - [`EditError::ArithmeticOverflow`] if shifting a node position would overflow
+    /// - [`EditError::ArithmeticUnderflow`] if shifting a node position would underflow
     #[cfg(feature = "incremental_glr")]
     pub fn edit(&mut self, edit: &crate::InputEdit) -> Result<(), EditError> {
         // Validate edit parameters upfront
@@ -354,14 +363,34 @@ struct CursorEntry<'tree> {
     index: usize,
 }
 
-/// Tree cursor for efficient tree traversal
+/// A cursor for efficient depth-first traversal of a [`Tree`].
+///
+/// The cursor maintains a stack of parent nodes, allowing navigation to
+/// children, siblings, and parents without allocating new node references.
+///
+/// # Examples
+///
+/// ```ignore
+/// use adze_runtime::tree::TreeCursor;
+///
+/// let tree = parser.parse(b"1 + 2", None)?;
+/// let mut cursor = TreeCursor::new(&tree);
+///
+/// // Walk to first child
+/// if cursor.goto_first_child() {
+///     // Move to sibling
+///     cursor.goto_next_sibling();
+///     // Back to parent
+///     cursor.goto_parent();
+/// }
+/// ```
 pub struct TreeCursor<'tree> {
     /// Stack of nodes from root to current position
     stack: Vec<CursorEntry<'tree>>,
 }
 
 impl<'tree> TreeCursor<'tree> {
-    /// Create a new cursor at the root
+    /// Create a new cursor positioned at the root of the given tree.
     pub fn new(tree: &'tree Tree) -> Self {
         Self {
             stack: vec![CursorEntry {
@@ -371,7 +400,9 @@ impl<'tree> TreeCursor<'tree> {
         }
     }
 
-    /// Move to the first child
+    /// Move to the first child of the current node.
+    ///
+    /// Returns `true` if the node has children, `false` if it is a leaf.
     pub fn goto_first_child(&mut self) -> bool {
         if let Some(entry) = self.stack.last()
             && let Some(child) = entry.node.children.first()
@@ -385,7 +416,10 @@ impl<'tree> TreeCursor<'tree> {
         false
     }
 
-    /// Move to the next sibling
+    /// Move to the next sibling of the current node.
+    ///
+    /// Returns `true` if a next sibling exists, `false` if the current node
+    /// is the last child of its parent.
     pub fn goto_next_sibling(&mut self) -> bool {
         let len = self.stack.len();
         if len < 2 {
@@ -408,7 +442,9 @@ impl<'tree> TreeCursor<'tree> {
         }
     }
 
-    /// Move to the parent
+    /// Move to the parent of the current node.
+    ///
+    /// Returns `true` if the cursor moved up, `false` if already at the root.
     pub fn goto_parent(&mut self) -> bool {
         if self.stack.len() > 1 {
             self.stack.pop();

@@ -62,7 +62,12 @@ pub enum WhitespaceMode {
 #[derive(Debug)]
 pub enum TokenizerError {
     /// Invalid token at position
-    InvalidToken { position: usize, snippet: String },
+    InvalidToken {
+        /// Byte offset where the unrecognized character was found
+        position: usize,
+        /// Short snippet of the unrecognized input (up to 20 bytes)
+        snippet: String,
+    },
 }
 
 impl fmt::Display for TokenizerError {
@@ -106,7 +111,7 @@ impl Tokenizer {
     /// - Last token is EOF with position at input.len()
     ///
     /// ## Invariants
-    /// - For all tokens: token[i].end == token[i+1].start (no gaps/overlaps)
+    /// - For all tokens: `token\[i\].end == token\[i+1\].start` (no gaps/overlaps)
     /// - EOF token always present: tokens.last().kind == 0
     ///
     /// ## Errors

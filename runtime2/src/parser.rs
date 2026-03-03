@@ -11,7 +11,25 @@ use crate::{error::ParseError, language::Language, tree::Tree};
 use adze_parsetable_metadata::{FORMAT_VERSION, MAGIC_NUMBER, ParsetableMetadata};
 use std::time::Duration;
 
-/// A parser that can parse text using a Language
+/// A parser that can parse text into a syntax [`Tree`] using a [`Language`].
+///
+/// The parser supports two modes:
+///
+/// - **Language mode** (default): Set a [`Language`] via [`set_language`](Self::set_language),
+///   then call [`parse`](Self::parse) or [`parse_utf8`](Self::parse_utf8).
+/// - **GLR mode** (requires `pure-rust` feature): Set a parse table via
+///   `set_glr_table` for pure-Rust GLR parsing.
+///
+/// # Examples
+///
+/// ```ignore
+/// use adze_runtime::Parser;
+///
+/// let mut parser = Parser::new();
+/// parser.set_language(language)?;
+/// let tree = parser.parse(b"1 + 2", None)?;
+/// println!("{:?}", tree.root_node());
+/// ```
 #[derive(Debug)]
 pub struct Parser {
     language: Option<Language>,
@@ -129,7 +147,9 @@ impl Parser {
         Ok(tree)
     }
 
-    /// Parse with UTF-8 string input
+    /// Parse a UTF-8 string input.
+    ///
+    /// Convenience wrapper around [`parse`](Self::parse) that accepts `&str`.
     pub fn parse_utf8(&mut self, input: &str, old_tree: Option<&Tree>) -> Result<Tree, ParseError> {
         self.parse(input.as_bytes(), old_tree)
     }
@@ -314,7 +334,7 @@ impl Parser {
         }
     }
 
-    /// Reset the parser state
+    /// Reset the parser state, clearing any internal caches or arenas.
     pub fn reset(&mut self) {
         #[cfg(feature = "arenas")]
         if let Some(arena) = &mut self.arena {
