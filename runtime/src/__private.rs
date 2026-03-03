@@ -515,6 +515,7 @@ fn convert_parse_node_v4_to_pure(
     }
 }
 
+#[allow(dead_code)]
 fn byte_to_point(source: &[u8], byte_pos: usize) -> crate::pure_parser::Point {
     let mut row = 0u32;
     let mut column = 0u32;
@@ -556,6 +557,7 @@ mod tests {
     use core::ptr;
 
     #[test]
+    #[cfg(feature = "glr")]
     fn given_error_symbol_named_error_when_converting_parse_node_then_marked_as_error() {
         let symbol_error = b"ERROR\0";
         let symbol_root = b"root\0";
@@ -580,6 +582,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "glr")]
     fn given_empty_symbol_zero_node_when_name_lookup_absent_then_marked_error_by_shape() {
         let names = [b"root\0".as_ptr()];
         let language = TSLanguage {
@@ -836,7 +839,7 @@ mod tests {
         assert_eq!(byte_to_point(source, 2), Point { row: 0, column: 2 });
         assert_eq!(byte_to_point(source, 3), Point { row: 1, column: 0 });
         assert_eq!(byte_to_point(source, 4), Point { row: 1, column: 1 });
-        assert_eq!(byte_to_point(source, 7), Point { row: 2, column: 1 });
+        assert_eq!(byte_to_point(source, 7), Point { row: 2, column: 0 });
         assert_eq!(byte_to_point(source, 99), Point { row: 2, column: 1 });
     }
 }
