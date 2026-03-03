@@ -1,0 +1,41 @@
+---
+source: common/tests/expansion_snapshots.rs
+assertion_line: 154
+expression: "serde_json::to_string_pretty(&result).unwrap()"
+---
+{
+  "fields": [
+    {
+      "filtered": "String",
+      "input_type": "String",
+      "is_optional": false,
+      "is_repeat": false,
+      "name": "name",
+      "optional_inner": "N/A",
+      "repeat_inner": "N/A",
+      "wrapped": "adze :: WithLeaf < String >"
+    },
+    {
+      "filtered": "i32",
+      "input_type": "i32",
+      "is_optional": false,
+      "is_repeat": false,
+      "name": "value",
+      "optional_inner": "N/A",
+      "repeat_inner": "N/A",
+      "wrapped": "adze :: WithLeaf < i32 >"
+    },
+    {
+      "filtered": "bool",
+      "input_type": "bool",
+      "is_optional": false,
+      "is_repeat": false,
+      "name": "flag",
+      "optional_inner": "N/A",
+      "repeat_inner": "N/A",
+      "wrapped": "adze :: WithLeaf < bool >"
+    }
+  ],
+  "kind": "struct",
+  "rule_name": "SimpleStruct"
+}

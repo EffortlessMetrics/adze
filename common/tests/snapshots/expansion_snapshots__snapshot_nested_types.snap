@@ -1,0 +1,41 @@
+---
+source: common/tests/expansion_snapshots.rs
+assertion_line: 231
+expression: "serde_json::to_string_pretty(&result).unwrap()"
+---
+{
+  "fields": [
+    {
+      "filtered": "Option < Vec < Item > >",
+      "input_type": "Option < Vec < Item > >",
+      "is_optional": true,
+      "is_repeat": false,
+      "name": "items",
+      "optional_inner": "Vec < Item >",
+      "repeat_inner": "N/A",
+      "wrapped": "Option < Vec < adze :: WithLeaf < Item > > >"
+    },
+    {
+      "filtered": "Node",
+      "input_type": "Box < Spanned < Node > >",
+      "is_optional": false,
+      "is_repeat": false,
+      "name": "boxed_child",
+      "optional_inner": "N/A",
+      "repeat_inner": "N/A",
+      "wrapped": "adze :: WithLeaf < Box < Spanned < Node > > >"
+    },
+    {
+      "filtered": "Option < Vec < Token > >",
+      "input_type": "Box < Option < Vec < Token > > >",
+      "is_optional": true,
+      "is_repeat": false,
+      "name": "deep",
+      "optional_inner": "Vec < Token >",
+      "repeat_inner": "N/A",
+      "wrapped": "adze :: WithLeaf < Box < Option < Vec < Token > > > >"
+    }
+  ],
+  "kind": "struct",
+  "rule_name": "NestedStruct"
+}

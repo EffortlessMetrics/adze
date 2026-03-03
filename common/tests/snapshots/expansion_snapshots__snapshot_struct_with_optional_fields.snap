@@ -1,0 +1,41 @@
+---
+source: common/tests/expansion_snapshots.rs
+assertion_line: 173
+expression: "serde_json::to_string_pretty(&result).unwrap()"
+---
+{
+  "fields": [
+    {
+      "filtered": "String",
+      "input_type": "String",
+      "is_optional": false,
+      "is_repeat": false,
+      "name": "required_name",
+      "optional_inner": "N/A",
+      "repeat_inner": "N/A",
+      "wrapped": "adze :: WithLeaf < String >"
+    },
+    {
+      "filtered": "Option < i32 >",
+      "input_type": "Option < i32 >",
+      "is_optional": true,
+      "is_repeat": false,
+      "name": "optional_value",
+      "optional_inner": "i32",
+      "repeat_inner": "N/A",
+      "wrapped": "Option < adze :: WithLeaf < i32 > >"
+    },
+    {
+      "filtered": "Option < String >",
+      "input_type": "Option < String >",
+      "is_optional": true,
+      "is_repeat": false,
+      "name": "optional_label",
+      "optional_inner": "String",
+      "repeat_inner": "N/A",
+      "wrapped": "Option < adze :: WithLeaf < String > >"
+    }
+  ],
+  "kind": "struct",
+  "rule_name": "OptionalStruct"
+}
