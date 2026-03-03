@@ -896,3 +896,703 @@ proptest! {
         prop_assert_eq!(actual, expected);
     }
 }
+
+// ── 36. Language struct with word-annotated sibling ─────────────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_with_word_sibling(idx in 0usize..=3) {
+        let patterns = [r"[a-zA-Z_]\w*", r"[a-z]+", r"\w+", r"[A-Z][a-zA-Z]*"];
+        let pat = patterns[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Code {
+                    ident: Identifier,
+                }
+
+                #[adze::word]
+                pub struct Identifier {
+                    #[adze::leaf(pattern = #pat)]
+                    name: String,
+                }
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), Some("Code".to_string()));
+        // word-annotated type is not the language type
+        let items = module_items(&m);
+        for item in items {
+            if let Item::Struct(s) = item {
+                if s.ident == "Identifier" {
+                    prop_assert!(!s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+                    prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+                }
+            }
+        }
+    }
+}
+
+// ── 37. Language enum with word sibling type ────────────────────────────────
+
+proptest! {
+    #[test]
+    fn language_enum_with_word_sibling(idx in 0usize..=2) {
+        let word_names = ["Ident", "Keyword", "Name"];
+        let word_ident = syn::Ident::new(word_names[idx], proc_macro2::Span::call_site());
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    #[adze::leaf(text = "x")]
+                    Lit,
+                }
+
+                #[adze::word]
+                pub struct #word_ident {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                }
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), Some("Expr".to_string()));
+        prop_assert_eq!(count_language_types(&m), 1);
+    }
+}
+
+// ── 38. Grammar name does not affect language type detection ────────────────
+
+proptest! {
+    #[test]
+    fn grammar_name_independent_of_language_detection(idx in 0usize..=5) {
+        let grammar_names = ["alpha", "beta_lang", "my_grammar", "test123", "g", "complex_name"];
+        let gname = grammar_names[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    #[adze::leaf(text = "x")]
+                    X,
+                }
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), Some("Expr".to_string()));
+    }
+}
+
+// ── 39. Language struct with multiple child type references ─────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_multiple_child_refs(child_count in 2usize..=5) {
+        let fields: Vec<proc_macro2::TokenStream> = (0..child_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("child{i}"), proc_macro2::Span::call_site());
+                let ty = syn::Ident::new(&format!("Child{i}"), proc_macro2::Span::call_site());
+                quote::quote! { #name: #ty }
+            })
+            .collect();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub struct Root {
+                #(#fields),*
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        if let Fields::Named(ref n) = s.fields {
+            prop_assert_eq!(n.named.len(), child_count);
+        }
+    }
+}
+
+// ── 40. Language struct with Box child type ─────────────────────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_with_box_child(idx in 0usize..=3) {
+        let child_names = ["Expr", "Statement", "Decl", "Block"];
+        let child = syn::Ident::new(child_names[idx], proc_macro2::Span::call_site());
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub struct Root {
+                inner: Box<#child>,
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        if let Fields::Named(ref n) = s.fields {
+            let ty_str = n.named[0].ty.to_token_stream().to_string();
+            prop_assert!(ty_str.contains("Box"));
+            prop_assert!(ty_str.contains(child_names[idx]));
+        }
+    }
+}
+
+// ── 41. Language struct with Option<Box<T>> nested generic ──────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_option_box_nested(idx in 0usize..=3) {
+        let inner_types = ["Expr", "Node", "Item", "Term"];
+        let inner = syn::Ident::new(inner_types[idx], proc_macro2::Span::call_site());
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub struct Root {
+                maybe: Option<Box<#inner>>,
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        if let Fields::Named(ref n) = s.fields {
+            let ty_str = n.named[0].ty.to_token_stream().to_string();
+            prop_assert!(ty_str.contains("Option"));
+            prop_assert!(ty_str.contains("Box"));
+        }
+    }
+}
+
+// ── 42. Language struct with Vec and delimited attribute ─────────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_vec_delimited(idx in 0usize..=3) {
+        let delimiters = [",", ";", "|", ":"];
+        let delim = delimiters[idx];
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub struct Root {
+                #[adze::delimited(
+                    #[adze::leaf(text = #delim)]
+                    ()
+                )]
+                items: Vec<Item>,
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        if let Fields::Named(ref n) = s.fields {
+            prop_assert!(n.named[0].attrs.iter().any(|a| is_adze_attr(a, "delimited")));
+        }
+    }
+}
+
+// ── 43. Language struct with repeat non_empty attribute ──────────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_repeat_non_empty(non_empty in proptest::bool::ANY) {
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub struct Root {
+                #[adze::repeat(non_empty = #non_empty)]
+                items: Vec<Node>,
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        if let Fields::Named(ref n) = s.fields {
+            prop_assert!(n.named[0].attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+        }
+    }
+}
+
+// ── 44. Language determinism with complex enum ──────────────────────────────
+
+proptest! {
+    #[test]
+    fn language_determinism_complex_enum(idx in 0usize..=2) {
+        let variant_sets: Vec<Vec<proc_macro2::TokenStream>> = vec![
+            vec![
+                quote::quote! { Num(#[adze::leaf(pattern = r"\d+")] String) },
+                quote::quote! { #[adze::prec_left(1)] Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>) },
+            ],
+            vec![
+                quote::quote! { #[adze::leaf(text = "true")] True },
+                quote::quote! { #[adze::leaf(text = "false")] False },
+                quote::quote! { #[adze::prec_right(1)] And(Box<Expr>, Box<Expr>) },
+            ],
+            vec![
+                quote::quote! { Lit(i32) },
+                quote::quote! { Neg(#[adze::leaf(text = "-")] (), Box<Expr>) },
+            ],
+        ];
+        let variants = &variant_sets[idx];
+        let tokens = quote::quote! {
+            #[adze::language]
+            pub enum Expr {
+                #(#variants),*
+            }
+        };
+        let e1: ItemEnum = syn::parse2(tokens.clone()).unwrap();
+        let e2: ItemEnum = syn::parse2(tokens).unwrap();
+        prop_assert_eq!(
+            e1.to_token_stream().to_string(),
+            e2.to_token_stream().to_string()
+        );
+    }
+}
+
+// ── 45. Language determinism in grammar module ──────────────────────────────
+
+proptest! {
+    #[test]
+    fn language_determinism_in_module(idx in 0usize..=3) {
+        let names = ["calc", "json", "lisp", "sql"];
+        let gname = names[idx];
+        let tokens = quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }
+            }
+        };
+        let m1 = parse_mod(tokens.clone());
+        let m2 = parse_mod(tokens);
+        prop_assert_eq!(
+            m1.to_token_stream().to_string(),
+            m2.to_token_stream().to_string()
+        );
+    }
+}
+
+// ── 46. Language validation: extra is not language ──────────────────────────
+
+proptest! {
+    #[test]
+    fn extra_type_not_detected_as_language(idx in 0usize..=3) {
+        let extra_names = ["Whitespace", "Comment", "Newline", "Blank"];
+        let extra = syn::Ident::new(extra_names[idx], proc_macro2::Span::call_site());
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::extra]
+                struct #extra {
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), None);
+        prop_assert_eq!(count_language_types(&m), 0);
+    }
+}
+
+// ── 47. Language validation: word is not language ───────────────────────────
+
+proptest! {
+    #[test]
+    fn word_type_not_detected_as_language(idx in 0usize..=3) {
+        let word_names = ["Identifier", "Word", "Symbol", "Name"];
+        let word = syn::Ident::new(word_names[idx], proc_macro2::Span::call_site());
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::word]
+                pub struct #word {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                }
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), None);
+        prop_assert_eq!(count_language_types(&m), 0);
+    }
+}
+
+// ── 48. Language validation: external is not language ───────────────────────
+
+proptest! {
+    #[test]
+    fn external_type_not_detected_as_language(idx in 0usize..=2) {
+        let ext_names = ["IndentToken", "DedentToken", "HeredocEnd"];
+        let ext = syn::Ident::new(ext_names[idx], proc_macro2::Span::call_site());
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::external]
+                struct #ext {
+                    #[adze::leaf(pattern = r"\t+")]
+                    _tok: (),
+                }
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), None);
+        prop_assert_eq!(count_language_types(&m), 0);
+    }
+}
+
+// ── 49. Language with all sibling annotation types ──────────────────────────
+
+proptest! {
+    #[test]
+    fn language_with_all_sibling_types(idx in 0usize..=2) {
+        let lang_names = ["Program", "Script", "Module"];
+        let lang = syn::Ident::new(lang_names[idx], proc_macro2::Span::call_site());
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct #lang {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+
+                #[adze::extra]
+                struct Ws {
+                    #[adze::leaf(pattern = r"\s")]
+                    _ws: (),
+                }
+
+                #[adze::word]
+                pub struct Ident {
+                    #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+                    name: String,
+                }
+
+                #[adze::external]
+                struct Indent {
+                    #[adze::leaf(pattern = r"\t+")]
+                    _indent: (),
+                }
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), Some(lang_names[idx].to_string()));
+        prop_assert_eq!(count_language_types(&m), 1);
+    }
+}
+
+// ── 50. Language enum with recursive Box variants ───────────────────────────
+
+proptest! {
+    #[test]
+    fn language_enum_recursive_box_variants(depth in 1usize..=3) {
+        // Build variants with increasing nesting depth references
+        let mut variants: Vec<proc_macro2::TokenStream> = vec![
+            quote::quote! { #[adze::leaf(text = "x")] Lit },
+        ];
+        for i in 0..depth {
+            let name = syn::Ident::new(&format!("Wrap{i}"), proc_macro2::Span::call_site());
+            variants.push(quote::quote! { #name(Box<Expr>) });
+        }
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub enum Expr {
+                #(#variants),*
+            }
+        }).unwrap();
+        prop_assert!(e.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        prop_assert_eq!(e.variants.len(), 1 + depth);
+    }
+}
+
+// ── 51. Language struct produces root in grammar with helpers ────────────────
+
+proptest! {
+    #[test]
+    fn language_produces_root_with_helpers(helper_count in 1usize..=4) {
+        let helpers: Vec<proc_macro2::TokenStream> = (0..helper_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Helper{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    pub struct #name {
+                        #[adze::leaf(pattern = r"\d+")]
+                        v: String,
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+                #(#helpers)*
+            }
+        });
+        // Only Root is the language type regardless of helper count
+        prop_assert_eq!(find_language_type(&m), Some("Root".to_string()));
+        prop_assert_eq!(count_language_types(&m), 1);
+        // Verify helpers exist but aren't language
+        let items = module_items(&m);
+        let struct_count = items.iter().filter(|i| matches!(i, Item::Struct(_))).count();
+        prop_assert_eq!(struct_count, 1 + helper_count);
+    }
+}
+
+// ── 52. Language enum produces root in grammar with helpers ──────────────────
+
+proptest! {
+    #[test]
+    fn language_enum_produces_root_with_siblings(sibling_count in 0usize..=3) {
+        let siblings: Vec<proc_macro2::TokenStream> = (0..sibling_count)
+            .map(|i| {
+                let name = syn::Ident::new(&format!("Sub{i}"), proc_macro2::Span::call_site());
+                quote::quote! {
+                    pub struct #name {
+                        #[adze::leaf(pattern = r"\w+")]
+                        val: String,
+                    }
+                }
+            })
+            .collect();
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expr {
+                    #[adze::leaf(text = "x")]
+                    Lit,
+                }
+                #(#siblings)*
+            }
+        });
+        prop_assert_eq!(find_language_type(&m), Some("Expr".to_string()));
+        prop_assert_eq!(count_language_types(&m), 1);
+    }
+}
+
+// ── 53. Language struct field types preserved with generics ──────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_generic_field_types(idx in 0usize..=4) {
+        let type_strs = ["Vec<Node>", "Option<i32>", "Box<Expr>", "Vec<Option<Node>>", "Option<Vec<Item>>"];
+        let ty: syn::Type = syn::parse_str(type_strs[idx]).unwrap();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub struct Root {
+                field: #ty,
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        if let Fields::Named(ref n) = s.fields {
+            let actual_ty = n.named[0].ty.to_token_stream().to_string();
+            // Verify the type roundtrips through parsing
+            let expected_ty = ty.to_token_stream().to_string();
+            prop_assert_eq!(actual_ty, expected_ty);
+        }
+    }
+}
+
+// ── 54. Language struct with mixed leaf and non-leaf fields ──────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_mixed_leaf_nonleaf(leaf_count in 1usize..=3, nonleaf_count in 1usize..=3) {
+        let mut fields: Vec<proc_macro2::TokenStream> = Vec::new();
+        for i in 0..leaf_count {
+            let name = syn::Ident::new(&format!("leaf{i}"), proc_macro2::Span::call_site());
+            fields.push(quote::quote! {
+                #[adze::leaf(pattern = r"\w+")]
+                #name: String
+            });
+        }
+        for i in 0..nonleaf_count {
+            let name = syn::Ident::new(&format!("child{i}"), proc_macro2::Span::call_site());
+            let ty = syn::Ident::new(&format!("Child{i}"), proc_macro2::Span::call_site());
+            fields.push(quote::quote! { #name: #ty });
+        }
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub struct Root {
+                #(#fields),*
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        if let Fields::Named(ref n) = s.fields {
+            prop_assert_eq!(n.named.len(), leaf_count + nonleaf_count);
+            // First leaf_count fields have leaf attr
+            for i in 0..leaf_count {
+                prop_assert!(n.named[i].attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+            }
+            // Remaining fields have no adze attrs
+            for i in leaf_count..(leaf_count + nonleaf_count) {
+                prop_assert!(adze_attr_names(&n.named[i].attrs).is_empty());
+            }
+        }
+    }
+}
+
+// ── 55. Language on enum where language attr ordering with other attrs ───────
+
+proptest! {
+    #[test]
+    fn language_enum_attr_ordering(idx in 0usize..=2) {
+        let tokens = match idx {
+            0 => quote::quote! {
+                #[adze::language]
+                #[derive(Debug)]
+                pub enum Expr { Lit(i32) }
+            },
+            1 => quote::quote! {
+                #[derive(Debug)]
+                #[adze::language]
+                pub enum Expr { Lit(i32) }
+            },
+            _ => quote::quote! {
+                #[derive(Clone)]
+                #[adze::language]
+                #[derive(Debug)]
+                pub enum Expr { Lit(i32) }
+            },
+        };
+        let e: ItemEnum = syn::parse2(tokens).unwrap();
+        prop_assert!(e.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        prop_assert!(e.attrs.iter().any(|a| a.path().is_ident("derive")));
+    }
+}
+
+// ── 56. Language grammar name is independent string ─────────────────────────
+
+proptest! {
+    #[test]
+    fn grammar_name_is_string_literal(idx in 0usize..=5) {
+        let grammar_names = ["a", "my_lang", "test_grammar", "json_parser", "x1", "lang99"];
+        let gname = grammar_names[idx];
+        let m = parse_mod(quote::quote! {
+            #[adze::grammar(#gname)]
+            mod grammar {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    token: String,
+                }
+            }
+        });
+        // Grammar attr should be parseable with the name
+        let grammar_attr = m.attrs.iter().find(|a| {
+            let segs: Vec<_> = a.path().segments.iter().collect();
+            segs.len() == 2 && segs[0].ident == "adze" && segs[1].ident == "grammar"
+        });
+        prop_assert!(grammar_attr.is_some());
+    }
+}
+
+// ── 57. Language struct with Spanned wrapper field ──────────────────────────
+
+#[test]
+fn language_struct_with_spanned_wrapper() {
+    let s: ItemStruct = syn::parse2(quote::quote! {
+        #[adze::language]
+        pub struct Root {
+            items: Vec<Spanned<Number>>,
+        }
+    })
+    .unwrap();
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+    if let Fields::Named(ref n) = s.fields {
+        let ty_str = n.named[0].ty.to_token_stream().to_string();
+        assert!(ty_str.contains("Spanned"));
+        assert!(ty_str.contains("Number"));
+    }
+}
+
+// ── 58. Language struct with multiple doc attributes ────────────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_multiple_docs(doc_count in 1usize..=4) {
+        let docs: Vec<proc_macro2::TokenStream> = (0..doc_count)
+            .map(|i| {
+                let doc = format!("Doc line {i}");
+                quote::quote! { #[doc = #doc] }
+            })
+            .collect();
+        let s: ItemStruct = syn::parse2(quote::quote! {
+            #(#docs)*
+            #[adze::language]
+            pub struct Root {
+                #[adze::leaf(pattern = r"\w+")]
+                token: String,
+            }
+        }).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        let doc_attrs: Vec<_> = s.attrs.iter().filter(|a| a.path().is_ident("doc")).collect();
+        prop_assert_eq!(doc_attrs.len(), doc_count);
+    }
+}
+
+// ── 59. Language struct with skip and leaf fields interleaved ────────────────
+
+proptest! {
+    #[test]
+    fn language_struct_skip_leaf_interleaved(idx in 0usize..=2) {
+        let tokens = match idx {
+            0 => quote::quote! {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    name: String,
+                    #[adze::skip(0)]
+                    meta: i32,
+                }
+            },
+            1 => quote::quote! {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::skip(false)]
+                    flag: bool,
+                    #[adze::leaf(pattern = r"\d+")]
+                    num: String,
+                }
+            },
+            _ => quote::quote! {
+                #[adze::language]
+                pub struct Root {
+                    #[adze::leaf(pattern = r"\w+")]
+                    a: String,
+                    #[adze::skip(true)]
+                    b: bool,
+                    #[adze::leaf(pattern = r"\d+")]
+                    c: String,
+                }
+            },
+        };
+        let s: ItemStruct = syn::parse2(tokens).unwrap();
+        prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+    }
+}
+
+// ── 60. Language enum with prec variants at different levels ─────────────────
+
+proptest! {
+    #[test]
+    fn language_enum_multiple_prec_levels(level_count in 2usize..=5) {
+        let mut variants: Vec<proc_macro2::TokenStream> = vec![
+            quote::quote! { Num(#[adze::leaf(pattern = r"\d+")] String) },
+        ];
+        for i in 0..level_count {
+            let name = syn::Ident::new(&format!("Op{i}"), proc_macro2::Span::call_site());
+            let prec = proc_macro2::Literal::usize_unsuffixed(i + 1);
+            variants.push(quote::quote! {
+                #[adze::prec_left(#prec)]
+                #name(Box<Expr>, Box<Expr>)
+            });
+        }
+        let e: ItemEnum = syn::parse2(quote::quote! {
+            #[adze::language]
+            pub enum Expr {
+                #(#variants),*
+            }
+        }).unwrap();
+        prop_assert!(e.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        // 1 base + level_count prec variants
+        prop_assert_eq!(e.variants.len(), 1 + level_count);
+        // Each Op variant has prec_left
+        for i in 0..level_count {
+            let vname = format!("Op{i}");
+            let v = e.variants.iter().find(|v| v.ident == vname).unwrap();
+            prop_assert!(v.attrs.iter().any(|a| is_adze_attr(a, "prec_left")));
+        }
+    }
+}

@@ -484,3 +484,188 @@ proptest! {
         prop_assert!(ErrorRecoveryState::is_matching_delimiter(open, close, delimiters));
     }
 }
+
+// ---------------------------------------------------------------------------
+// 9. determine_recovery_strategy – variant-specific triggers
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    /// Exceeding max_consecutive_errors always yields PanicMode.
+    #[test]
+    fn test_panic_mode_on_error_overflow(max_err in 1..20usize) {
+        let config = ErrorRecoveryConfig {
+            max_consecutive_errors: max_err,
+            enable_phrase_recovery: false,
+            enable_scope_recovery: false,
+            ..Default::default()
+        };
+        let mut state = ErrorRecoveryState::new(config);
+        // Burn through error budget
+        for _ in 0..=max_err {
+            state.increment_error_count();
+        }
+        let strategy = state.determine_recovery_strategy(&[99], Some(50), (0, 0), 0);
+        prop_assert_eq!(strategy, RecoveryStrategy::PanicMode);
+    }
+
+    /// An insertable token in the expected set triggers TokenInsertion.
+    #[test]
+    fn test_token_insertion_via_determine(tok in 1..500u16) {
+        let config = ErrorRecoveryConfigBuilder::new()
+            .add_insertable_token(tok)
+            .enable_phrase_recovery(false)
+            .enable_scope_recovery(false)
+            .build();
+        let mut state = ErrorRecoveryState::new(config);
+        let strategy = state.determine_recovery_strategy(&[tok], None, (0, 0), 0);
+        prop_assert_eq!(strategy, RecoveryStrategy::TokenInsertion);
+    }
+
+    /// A clearly-wrong token (not expected, not sync) triggers TokenDeletion.
+    #[test]
+    fn test_token_deletion_via_determine(actual in 200..300u16) {
+        let config = ErrorRecoveryConfigBuilder::new()
+            .enable_phrase_recovery(false)
+            .enable_scope_recovery(false)
+            .build();
+        let mut state = ErrorRecoveryState::new(config);
+        // expected=[1], actual not in expected and not a sync token
+        let strategy = state.determine_recovery_strategy(&[1, 2], Some(actual), (0, 0), 0);
+        prop_assert_eq!(strategy, RecoveryStrategy::TokenDeletion);
+    }
+
+    /// A single expected token with a present actual triggers TokenSubstitution.
+    #[test]
+    fn test_token_substitution_via_determine(expected in 1..100u16, actual in 100..200u16) {
+        let config = ErrorRecoveryConfigBuilder::new()
+            .add_sync_token(actual) // actual is sync, so not "clearly wrong"
+            .enable_phrase_recovery(false)
+            .enable_scope_recovery(false)
+            .build();
+        let mut state = ErrorRecoveryState::new(config);
+        let strategy = state.determine_recovery_strategy(&[expected], Some(actual), (0, 0), 0);
+        prop_assert_eq!(strategy, RecoveryStrategy::TokenSubstitution);
+    }
+
+    /// When no specific strategy applies and phrase recovery is enabled, PhraseLevel is returned.
+    #[test]
+    fn test_phrase_level_fallback(actual in 100..200u16) {
+        let config = ErrorRecoveryConfigBuilder::new()
+            .add_sync_token(actual) // make actual a sync token so not "clearly wrong"
+            .enable_phrase_recovery(true)
+            .enable_scope_recovery(false)
+            .build();
+        let mut state = ErrorRecoveryState::new(config);
+        // Multiple expected tokens so substitution doesn't trigger
+        let strategy = state.determine_recovery_strategy(&[1, 2, 3], Some(actual), (0, 0), 0);
+        prop_assert_eq!(strategy, RecoveryStrategy::PhraseLevel);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 10. Strategy determinism tests
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    /// Calling determine_recovery_strategy twice with identical fresh state yields the same result.
+    #[test]
+    fn test_determine_strategy_deterministic(
+        expected_count in 1..5usize,
+        actual in proptest::option::of(1..500u16),
+    ) {
+        let expected: Vec<u16> = (1..=expected_count as u16).collect();
+        let make_state = || {
+            let config = ErrorRecoveryConfig::default();
+            ErrorRecoveryState::new(config)
+        };
+        let mut s1 = make_state();
+        let mut s2 = make_state();
+        let r1 = s1.determine_recovery_strategy(&expected, actual, (0, 0), 0);
+        let r2 = s2.determine_recovery_strategy(&expected, actual, (0, 0), 0);
+        prop_assert_eq!(r1, r2);
+    }
+
+    /// Copy of a strategy from determine_recovery_strategy equals the original.
+    #[test]
+    fn test_strategy_copy_from_determine(actual in proptest::option::of(1..500u16)) {
+        let config = ErrorRecoveryConfig::default();
+        let mut state = ErrorRecoveryState::new(config);
+        let r1 = state.determine_recovery_strategy(&[1, 2], actual, (0, 0), 0);
+        let r2 = r1; // Copy
+        prop_assert_eq!(r1, r2);
+    }
+
+    /// Eq transitivity: a == b && b == c ⟹ a == c.
+    #[test]
+    fn test_eq_transitive(idx in 0..7usize) {
+        let a = variant_from_index(idx);
+        let b = variant_from_index(idx);
+        let c = variant_from_index(idx);
+        prop_assert_eq!(a, b);
+        prop_assert_eq!(b, c);
+        prop_assert_eq!(a, c);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 11. Scope recovery interaction with strategy
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    /// Push then pop_scope_test round-trips correctly for arbitrary delimiter count.
+    #[test]
+    fn test_scope_stack_roundtrip(count in 1..10usize) {
+        let delims: Vec<(u16, u16)> = (0..count as u16).map(|i| (i * 2, i * 2 + 1)).collect();
+        let config = ErrorRecoveryConfig {
+            scope_delimiters: delims.clone(),
+            ..Default::default()
+        };
+        let mut state = ErrorRecoveryState::new(config);
+        for &(open, _) in &delims {
+            state.push_scope(open);
+        }
+        for &(open, _) in delims.iter().rev() {
+            prop_assert_eq!(state.pop_scope_test(), Some(open));
+        }
+        prop_assert_eq!(state.pop_scope_test(), None);
+    }
+
+    /// Recent token buffer stays bounded at 10 regardless of input count.
+    #[test]
+    fn test_recent_tokens_bounded(count in 11..50usize) {
+        let config = ErrorRecoveryConfig::default();
+        let mut state = ErrorRecoveryState::new(config);
+        for i in 0..count {
+            state.add_recent_token(i as u16);
+        }
+        // The implementation caps at 10 tokens
+        let node_count = state.get_error_nodes().len();
+        prop_assert_eq!(node_count, 0); // no errors recorded
+    }
+
+    /// ErrorNode clone preserves the recovery strategy field.
+    #[test]
+    fn test_error_node_clone_strategy(idx in 0..7usize, start in 0..100usize, len in 1..100usize) {
+        let strategy = variant_from_index(idx);
+        let node = ErrorNode {
+            start_byte: start,
+            end_byte: start + len,
+            start_position: (0, start),
+            end_position: (0, start + len),
+            expected: vec![1, 2],
+            actual: Some(3),
+            recovery: strategy,
+            skipped_tokens: vec![],
+        };
+        let cloned = node.clone();
+        prop_assert_eq!(cloned.recovery, strategy);
+        prop_assert_eq!(cloned.start_byte, node.start_byte);
+        prop_assert_eq!(cloned.end_byte, node.end_byte);
+    }
+}

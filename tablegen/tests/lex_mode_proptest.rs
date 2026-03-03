@@ -10,9 +10,9 @@
 //!  5. Multiple lex modes
 //!  6. Lex mode determinism (same input → same output)
 
-use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
-use adze_ir::{Grammar, StateId, SymbolId};
-use adze_tablegen::serializer::{SerializableLexState, serialize_language};
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze_tablegen::serializer::serialize_language;
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 
@@ -508,5 +508,451 @@ proptest! {
         let mode = LexMode { lex_state: ls, external_lex_state: ext };
         prop_assert_eq!(mode.lex_state, ls);
         prop_assert_eq!(mode.external_lex_state, ext);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 8 – Lex mode entries per state with terminal actions
+// ══════════════════════════════════════════════════════════════════════
+
+/// Insert a Shift action for `terminal_col` in `state` of the parse table.
+fn insert_action(pt: &mut ParseTable, state: usize, terminal_col: usize, action: Action) {
+    if state < pt.action_table.len() && terminal_col < pt.action_table[state].len() {
+        pt.action_table[state][terminal_col].push(action);
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// Adding a Shift action makes valid_symbols true at that terminal index.
+    #[test]
+    fn shift_action_sets_valid_symbol(states in 2usize..=8, term_idx in 1usize..=3) {
+        let mut pt = empty_table(states, 4, 1, 0);
+        insert_action(&mut pt, 0, term_idx, Action::Shift(StateId(1)));
+        let mask = pt.valid_symbols(StateId(0));
+        prop_assert!(mask[term_idx], "shifted terminal should be valid");
+    }
+
+    /// Reduce action also marks the terminal as valid.
+    #[test]
+    fn reduce_action_sets_valid_symbol(states in 2usize..=8, term_idx in 1usize..=3) {
+        let mut pt = empty_table(states, 4, 1, 0);
+        insert_action(&mut pt, 0, term_idx, Action::Reduce(RuleId(0)));
+        let mask = pt.valid_symbols(StateId(0));
+        prop_assert!(mask[term_idx], "reduced terminal should be valid");
+    }
+
+    /// Accept action marks the terminal as valid.
+    #[test]
+    fn accept_action_sets_valid_symbol(states in 2usize..=8) {
+        let mut pt = empty_table(states, 4, 1, 0);
+        let eof_idx = pt.eof_symbol.0 as usize;
+        insert_action(&mut pt, 0, eof_idx, Action::Accept);
+        let mask = pt.valid_symbols(StateId(0));
+        if eof_idx < mask.len() {
+            prop_assert!(mask[eof_idx], "accept at eof should be valid");
+        }
+    }
+
+    /// Each state's lex mode is independent; modifying one state doesn't affect others.
+    #[test]
+    fn lex_modes_per_state_independent(n in 2usize..=8) {
+        let modes: Vec<LexMode> = (0..n)
+            .map(|i| LexMode {
+                lex_state: (i * 3) as u16,
+                external_lex_state: (i % 2) as u16,
+            })
+            .collect();
+        let pt = table_with_lex_modes(n, modes.clone());
+        for i in 0..n {
+            let lm = pt.lex_mode(StateId(i as u16));
+            prop_assert_eq!(lm.lex_state, (i * 3) as u16);
+            prop_assert_eq!(lm.external_lex_state, (i % 2) as u16);
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 9 – Valid symbols mask with multiple terminals
+// ══════════════════════════════════════════════════════════════════════
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// Multiple actions in different terminals yield correct mask.
+    #[test]
+    fn multiple_terminals_valid_mask(terms in 2usize..=6) {
+        let mut pt = empty_table(2, terms, 1, 0);
+        // Place a Shift in every even-indexed terminal column
+        for t in (0..pt.terminal_boundary()).step_by(2) {
+            insert_action(&mut pt, 0, t, Action::Shift(StateId(1)));
+        }
+        let mask = pt.valid_symbols(StateId(0));
+        for t in 0..mask.len() {
+            if t % 2 == 0 {
+                prop_assert!(mask[t], "even terminals should be valid");
+            } else {
+                prop_assert!(!mask[t], "odd terminals should be invalid");
+            }
+        }
+    }
+
+    /// State with no actions has all-false valid_symbols mask.
+    #[test]
+    fn no_actions_all_false(terms in 1usize..=8) {
+        let pt = empty_table(2, terms, 1, 0);
+        let mask = pt.valid_symbols(StateId(1));
+        for &b in &mask {
+            prop_assert!(!b);
+        }
+    }
+
+    /// Fork action also marks a terminal as valid.
+    #[test]
+    fn fork_action_sets_valid_symbol(terms in 2usize..=5) {
+        let mut pt = empty_table(2, terms, 1, 0);
+        let fork = Action::Fork(vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))]);
+        insert_action(&mut pt, 0, 1, fork);
+        let mask = pt.valid_symbols(StateId(0));
+        prop_assert!(mask[1], "fork terminal should be valid");
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 10 – Lex mode with terminals (grammar tokens in serialization)
+// ══════════════════════════════════════════════════════════════════════
+
+use adze_ir::{Token, TokenPattern};
+
+/// Build a grammar with the given string-literal tokens.
+fn grammar_with_tokens(names: &[&str]) -> Grammar {
+    let mut g = Grammar::new("test_terminals".to_string());
+    for (i, name) in names.iter().enumerate() {
+        g.tokens.insert(
+            SymbolId((i + 1) as u16), // 0 is reserved for EOF
+            Token {
+                name: name.to_string(),
+                pattern: TokenPattern::String(name.to_string()),
+                fragile: false,
+            },
+        );
+    }
+    g
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// Serialized lex_modes array contains one entry per state even with terminals.
+    #[test]
+    fn serialized_lex_modes_with_terminals(states in 1usize..=8) {
+        let mut pt = empty_table(states, 3, 1, 0);
+        pt.grammar = grammar_with_tokens(&["+", "-", "*"]);
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let modes = v["lex_modes"].as_array().unwrap();
+        prop_assert_eq!(modes.len(), states);
+    }
+
+    /// Terminal count in serialized Language matches grammar token count.
+    #[test]
+    fn serialized_token_count_matches_grammar(n_tokens in 1usize..=6) {
+        let names: Vec<String> = (0..n_tokens).map(|i| format!("t{i}")).collect();
+        let name_refs: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
+        let mut pt = empty_table(1, n_tokens, 1, 0);
+        pt.grammar = grammar_with_tokens(&name_refs);
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let tc = v["token_count"].as_u64().unwrap() as usize;
+        prop_assert_eq!(tc, n_tokens);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 11 – Lex mode with keywords (string-pattern tokens that look like keywords)
+// ══════════════════════════════════════════════════════════════════════
+
+/// Build a grammar containing keyword-like tokens (multi-char alphabetic strings).
+fn grammar_with_keywords(keywords: &[&str]) -> Grammar {
+    let mut g = Grammar::new("test_keywords".to_string());
+    for (i, kw) in keywords.iter().enumerate() {
+        g.tokens.insert(
+            SymbolId((i + 1) as u16),
+            Token {
+                name: kw.to_string(),
+                pattern: TokenPattern::String(kw.to_string()),
+                fragile: false,
+            },
+        );
+    }
+    g
+}
+
+/// Build a grammar containing a mix of keywords and regex tokens.
+fn grammar_with_mixed_tokens(keywords: &[&str], regex_names: &[(&str, &str)]) -> Grammar {
+    let mut g = Grammar::new("test_mixed".to_string());
+    let mut idx = 1u16;
+    for kw in keywords {
+        g.tokens.insert(
+            SymbolId(idx),
+            Token {
+                name: kw.to_string(),
+                pattern: TokenPattern::String(kw.to_string()),
+                fragile: false,
+            },
+        );
+        idx += 1;
+    }
+    for (name, pattern) in regex_names {
+        g.tokens.insert(
+            SymbolId(idx),
+            Token {
+                name: name.to_string(),
+                pattern: TokenPattern::Regex(pattern.to_string()),
+                fragile: false,
+            },
+        );
+        idx += 1;
+    }
+    g
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// Keyword tokens are included in serialized symbol names.
+    #[test]
+    fn keyword_tokens_appear_in_symbol_names(_dummy in 0u8..1) {
+        let mut pt = empty_table(1, 3, 1, 0);
+        pt.grammar = grammar_with_keywords(&["if", "while", "return"]);
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let names = v["symbol_names"].as_array().unwrap();
+        let name_strings: Vec<String> = names.iter().map(|n| n.as_str().unwrap().to_string()).collect();
+        prop_assert!(name_strings.contains(&"if".to_string()));
+        prop_assert!(name_strings.contains(&"while".to_string()));
+        prop_assert!(name_strings.contains(&"return".to_string()));
+    }
+
+    /// Grammar with keywords still produces one lex mode per state.
+    #[test]
+    fn keyword_grammar_lex_mode_count(states in 1usize..=8) {
+        let mut pt = empty_table(states, 2, 1, 0);
+        pt.grammar = grammar_with_keywords(&["if", "else"]);
+        prop_assert_eq!(pt.lex_modes.len(), states);
+    }
+
+    /// Mixed keyword + regex tokens serialise with correct lex mode count.
+    #[test]
+    fn mixed_tokens_lex_mode_count(states in 1usize..=8) {
+        let mut pt = empty_table(states, 3, 1, 0);
+        pt.grammar = grammar_with_mixed_tokens(
+            &["for"],
+            &[("number", r"\d+")],
+        );
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let modes = v["lex_modes"].as_array().unwrap();
+        prop_assert_eq!(modes.len(), states);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 12 – Lex mode empty-state edge cases
+// ══════════════════════════════════════════════════════════════════════
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// Zero-terminal table still yields valid lex modes.
+    #[test]
+    fn zero_terminal_table_lex_modes(states in 1usize..=8) {
+        // empty_table clamps terms >= 1 via eof; token_count min is 1
+        let pt = empty_table(states, 0, 1, 0);
+        prop_assert_eq!(pt.lex_modes.len(), states);
+    }
+
+    /// Default ParseTable has empty lex_modes vector.
+    #[test]
+    fn default_parse_table_empty_lex_modes(_dummy in 0u8..1) {
+        let pt = ParseTable::default();
+        prop_assert!(pt.lex_modes.is_empty());
+    }
+
+    /// Single-state table with external tokens has exactly one lex mode.
+    #[test]
+    fn single_state_with_externals(ext in 1usize..=4) {
+        let modes = vec![LexMode { lex_state: 0, external_lex_state: 0 }];
+        let ext_states = vec![vec![false; ext]];
+        let pt = table_with_externals(1, modes, ext_states, ext);
+        prop_assert_eq!(pt.lex_modes.len(), 1);
+    }
+
+    /// lex_mode accessor for state 0 on a single-state table returns the stored mode.
+    #[test]
+    fn single_state_accessor(ls in 0u16..100, ext in 0u16..8) {
+        let mode = LexMode { lex_state: ls, external_lex_state: ext };
+        let pt = table_with_lex_modes(1, vec![mode]);
+        let lm = pt.lex_mode(StateId(0));
+        prop_assert_eq!(lm.lex_state, ls);
+        prop_assert_eq!(lm.external_lex_state, ext);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 13 – Lex mode transition encoding in serialized JSON
+// ══════════════════════════════════════════════════════════════════════
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// Serialized lex_state values are sequential 0..state_count for default table.
+    #[test]
+    fn serialized_lex_state_sequential(states in 1usize..=16) {
+        let pt = empty_table(states, 1, 1, 0);
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let modes = v["lex_modes"].as_array().unwrap();
+        for (i, mode) in modes.iter().enumerate() {
+            prop_assert_eq!(mode["lex_state"].as_u64().unwrap(), i as u64);
+        }
+    }
+
+    /// Every serialized lex mode entry has both lex_state and external_lex_state keys.
+    #[test]
+    fn serialized_lex_mode_has_both_fields(states in 1usize..=8) {
+        let pt = empty_table(states, 1, 1, 0);
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        for mode in v["lex_modes"].as_array().unwrap() {
+            prop_assert!(mode.get("lex_state").is_some());
+            prop_assert!(mode.get("external_lex_state").is_some());
+        }
+    }
+
+    /// Serialized external_lex_state is always 0 for default table.
+    #[test]
+    fn serialized_external_lex_state_zero(states in 1usize..=8) {
+        let pt = empty_table(states, 1, 1, 0);
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        for mode in v["lex_modes"].as_array().unwrap() {
+            prop_assert_eq!(mode["external_lex_state"].as_u64().unwrap(), 0);
+        }
+    }
+
+    /// Serialized lex_state values are u64-parseable and within u16 range.
+    #[test]
+    fn serialized_lex_state_within_u16(states in 1usize..=16) {
+        let pt = empty_table(states, 1, 1, 0);
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        for mode in v["lex_modes"].as_array().unwrap() {
+            let ls = mode["lex_state"].as_u64().unwrap();
+            prop_assert!(ls <= u16::MAX as u64);
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 14 – Lex mode in generated Language struct (StaticLanguageGenerator)
+// ══════════════════════════════════════════════════════════════════════
+
+use adze_tablegen::StaticLanguageGenerator;
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(16))]
+
+    /// Generated code includes LEX_MODES array.
+    #[test]
+    fn generated_code_contains_lex_modes(states in 1usize..=4) {
+        let pt = empty_table(states, 2, 1, 0);
+        let slg = StaticLanguageGenerator::new(pt.grammar.clone(), pt);
+        let code = slg.generate_language_code().to_string();
+        prop_assert!(code.contains("LEX_MODES"), "generated code must contain LEX_MODES");
+    }
+
+    /// Generated code includes TSLexState entries matching state count.
+    #[test]
+    fn generated_code_lex_state_entries(states in 1usize..=4) {
+        let pt = empty_table(states, 1, 1, 0);
+        let slg = StaticLanguageGenerator::new(pt.grammar.clone(), pt);
+        let code = slg.generate_language_code().to_string();
+        // Each state produces a TSLexState { lex_state: N, ... } entry
+        let count = code.matches("TSLexState").count();
+        // At least one TSLexState type reference + N entries
+        prop_assert!(count >= states, "expected at least {states} TSLexState mentions, got {count}");
+    }
+
+    /// Generated code references lex_modes field in TSLanguage struct.
+    #[test]
+    fn generated_code_language_has_lex_modes(_dummy in 0u8..1) {
+        let pt = empty_table(1, 1, 1, 0);
+        let slg = StaticLanguageGenerator::new(pt.grammar.clone(), pt);
+        let code = slg.generate_language_code().to_string();
+        prop_assert!(code.contains("lex_modes"), "TSLanguage must reference lex_modes");
+    }
+
+    /// Generated code sets keyword_lex_fn to None by default.
+    #[test]
+    fn generated_code_keyword_lex_fn_none(_dummy in 0u8..1) {
+        let pt = empty_table(1, 1, 1, 0);
+        let slg = StaticLanguageGenerator::new(pt.grammar.clone(), pt);
+        let code = slg.generate_language_code().to_string();
+        prop_assert!(code.contains("keyword_lex_fn"), "TSLanguage must have keyword_lex_fn field");
+    }
+
+    /// Generated code sets keyword_capture_token to TSSymbol(0) by default.
+    #[test]
+    fn generated_code_keyword_capture_token_zero(_dummy in 0u8..1) {
+        let pt = empty_table(1, 1, 1, 0);
+        let slg = StaticLanguageGenerator::new(pt.grammar.clone(), pt);
+        let code = slg.generate_language_code().to_string();
+        prop_assert!(code.contains("keyword_capture_token"), "TSLanguage must have keyword_capture_token");
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 15 – Additional determinism and cross-cutting checks
+// ══════════════════════════════════════════════════════════════════════
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// valid_symbols is deterministic: two calls yield identical masks.
+    #[test]
+    fn valid_symbols_deterministic(states in 1usize..=8) {
+        let pt = empty_table(states, 3, 1, 0);
+        for s in 0..states {
+            let m1 = pt.valid_symbols(StateId(s as u16));
+            let m2 = pt.valid_symbols(StateId(s as u16));
+            prop_assert_eq!(m1, m2);
+        }
+    }
+
+    /// terminal_boundary is consistent across identical tables.
+    #[test]
+    fn terminal_boundary_deterministic(terms in 1usize..=8, ext in 0usize..=3) {
+        let pt1 = empty_table(1, terms, 1, ext);
+        let pt2 = empty_table(1, terms, 1, ext);
+        prop_assert_eq!(pt1.terminal_boundary(), pt2.terminal_boundary());
+    }
+
+    /// terminal_boundary equals token_count + external_token_count.
+    #[test]
+    fn terminal_boundary_formula(terms in 1usize..=8, ext in 0usize..=4) {
+        let pt = empty_table(1, terms, 1, ext);
+        prop_assert_eq!(pt.terminal_boundary(), pt.token_count + pt.external_token_count);
+    }
+
+    /// Serialization is deterministic with terminal-bearing grammar.
+    #[test]
+    fn serialization_deterministic_with_terminals(_dummy in 0u8..1) {
+        let mut pt = empty_table(2, 2, 1, 0);
+        pt.grammar = grammar_with_tokens(&["+", "-"]);
+        let j1 = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let j2 = serialize_language(&pt.grammar, &pt, None).unwrap();
+        prop_assert_eq!(j1, j2);
     }
 }

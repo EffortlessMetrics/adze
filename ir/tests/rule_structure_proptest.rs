@@ -548,4 +548,370 @@ proptest! {
         prop_assert_ne!(rule.lhs, SymbolId(9999));
         prop_assert_eq!(cloned.lhs, SymbolId(9999));
     }
+
+    // ── 9. Rule alternatives (multiple rules same LHS) ───────────────────
+
+    #[test]
+    fn grammar_multiple_rules_same_lhs(n in 2usize..8) {
+        let mut g = Grammar::new("alt_test".into());
+        for i in 0..n {
+            g.add_rule(Rule {
+                lhs: SymbolId(1),
+                rhs: vec![term(i as u16 + 10)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(i as u16),
+            });
+        }
+        let rules = g.get_rules_for_symbol(SymbolId(1)).unwrap();
+        prop_assert_eq!(rules.len(), n);
+    }
+
+    #[test]
+    fn grammar_alternatives_order_preserved(n in 2usize..6) {
+        let mut g = Grammar::new("order_test".into());
+        for i in 0..n {
+            g.add_rule(Rule {
+                lhs: SymbolId(5),
+                rhs: vec![term(i as u16 + 100)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(i as u16),
+            });
+        }
+        let rules = g.get_rules_for_symbol(SymbolId(5)).unwrap();
+        for i in 0..n {
+            prop_assert_eq!(&rules[i].rhs[0], &term(i as u16 + 100));
+        }
+    }
+
+    #[test]
+    fn grammar_get_rules_unknown_symbol_returns_none(id in 500u16..1000) {
+        let g = Grammar::new("empty".into());
+        prop_assert!(g.get_rules_for_symbol(SymbolId(id)).is_none());
+    }
+
+    #[test]
+    fn grammar_all_rules_counts_across_symbols(
+        n_a in 1usize..4,
+        n_b in 1usize..4,
+    ) {
+        let mut g = Grammar::new("count_test".into());
+        for i in 0..n_a {
+            g.add_rule(Rule {
+                lhs: SymbolId(1),
+                rhs: vec![term(i as u16 + 10)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(i as u16),
+            });
+        }
+        for i in 0..n_b {
+            g.add_rule(Rule {
+                lhs: SymbolId(2),
+                rhs: vec![nonterm(i as u16 + 20)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId((n_a + i) as u16),
+            });
+        }
+        prop_assert_eq!(g.all_rules().count(), n_a + n_b);
+    }
+
+    // ── 10. Clone/Debug/PartialEq extended ───────────────────────────────
+
+    #[test]
+    fn rule_debug_contains_lhs_value(lhs in 1u16..500) {
+        let rule = make_rule(lhs, vec![term(1)]);
+        let dbg = format!("{:?}", rule);
+        let expected = format!("SymbolId({})", lhs);
+        prop_assert!(dbg.contains(&expected));
+    }
+
+    #[test]
+    fn rule_debug_contains_production_id(pid in 0u16..500) {
+        let rule = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(pid),
+        };
+        let dbg = format!("{:?}", rule);
+        let expected = format!("ProductionId({})", pid);
+        prop_assert!(dbg.contains(&expected));
+    }
+
+    #[test]
+    fn rule_clone_independence_rhs(rule in rule_strategy()) {
+        let mut cloned = rule.clone();
+        cloned.rhs.push(Symbol::Epsilon);
+        prop_assert_ne!(rule.rhs.len(), cloned.rhs.len());
+    }
+
+    #[test]
+    fn rule_clone_independence_fields(rule in rule_strategy()) {
+        let mut cloned = rule.clone();
+        cloned.fields.push((FieldId(9999), 0));
+        prop_assert_ne!(rule.fields.len(), cloned.fields.len());
+    }
+
+    #[test]
+    fn rule_eq_transitive(rule in rule_strategy()) {
+        let a = rule.clone();
+        let b = a.clone();
+        let c = b.clone();
+        prop_assert_eq!(&a, &b);
+        prop_assert_eq!(&b, &c);
+        prop_assert_eq!(&a, &c);
+    }
+
+    #[test]
+    fn rule_ne_different_associativity(
+        a_assoc in associativity_strategy(),
+        b_assoc in associativity_strategy(),
+    ) {
+        prop_assume!(a_assoc != b_assoc);
+        let r1 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: Some(a_assoc),
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        let r2 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: Some(b_assoc),
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        prop_assert_ne!(&r1, &r2);
+    }
+
+    // ── 11. Determinism (construction → inspection roundtrip) ────────────
+
+    #[test]
+    fn rule_construct_inspect_all_fields(
+        lhs in symbol_id_strategy(),
+        prod in production_id_strategy(),
+        prec in precedence_kind_strategy(),
+        assoc in associativity_strategy(),
+    ) {
+        let rhs = vec![term(10), nonterm(20), term(30)];
+        let fields = vec![(FieldId(0), 0), (FieldId(1), 2)];
+        let rule = Rule {
+            lhs,
+            rhs: rhs.clone(),
+            precedence: Some(prec),
+            associativity: Some(assoc),
+            fields: fields.clone(),
+            production_id: prod,
+        };
+        prop_assert_eq!(rule.lhs, lhs);
+        prop_assert_eq!(&rule.rhs, &rhs);
+        prop_assert_eq!(rule.precedence, Some(prec));
+        prop_assert_eq!(rule.associativity, Some(assoc));
+        prop_assert_eq!(&rule.fields, &fields);
+        prop_assert_eq!(rule.production_id, prod);
+    }
+
+    #[test]
+    fn rule_rhs_order_deterministic(ids in prop::collection::vec(1u16..300, 2..=8)) {
+        let rhs1: Vec<Symbol> = ids.iter().map(|&i| term(i)).collect();
+        let rhs2: Vec<Symbol> = ids.iter().map(|&i| term(i)).collect();
+        let r1 = make_rule(1, rhs1);
+        let r2 = make_rule(1, rhs2);
+        prop_assert_eq!(&r1.rhs, &r2.rhs);
+    }
+
+    #[test]
+    fn rule_field_mapping_order_deterministic(n in 1usize..6) {
+        let fields: Vec<(FieldId, usize)> = (0..n).map(|i| (FieldId(i as u16), i)).collect();
+        let r1 = Rule {
+            lhs: SymbolId(1),
+            rhs: (0..n).map(|i| term(i as u16 + 1)).collect(),
+            precedence: None,
+            associativity: None,
+            fields: fields.clone(),
+            production_id: ProductionId(0),
+        };
+        let r2 = Rule {
+            lhs: SymbolId(1),
+            rhs: (0..n).map(|i| term(i as u16 + 1)).collect(),
+            precedence: None,
+            associativity: None,
+            fields: fields.clone(),
+            production_id: ProductionId(0),
+        };
+        prop_assert_eq!(&r1, &r2);
+        for i in 0..n {
+            prop_assert_eq!(r1.fields[i], r2.fields[i]);
+        }
+    }
+
+    // ── 12. Additional symbol variants ───────────────────────────────────
+
+    #[test]
+    fn rule_rhs_repeat_one_preserved(id in symbol_id_strategy()) {
+        let sym = Symbol::RepeatOne(Box::new(term(id.0)));
+        let rule = make_rule(1, vec![sym.clone()]);
+        prop_assert_eq!(&rule.rhs[0], &sym);
+    }
+
+    #[test]
+    fn rule_rhs_external_symbol_preserved(id in symbol_id_strategy()) {
+        let sym = Symbol::External(id);
+        let rule = make_rule(1, vec![sym.clone()]);
+        prop_assert_eq!(&rule.rhs[0], &sym);
+    }
+
+    #[test]
+    fn rule_rhs_choice_symbol_preserved(
+        ids in prop::collection::vec(1u16..100, 2..=4),
+    ) {
+        let choices: Vec<Symbol> = ids.iter().map(|&i| term(i)).collect();
+        let sym = Symbol::Choice(choices);
+        let rule = make_rule(1, vec![sym.clone()]);
+        prop_assert_eq!(&rule.rhs[0], &sym);
+    }
+
+    #[test]
+    fn rule_rhs_sequence_symbol_preserved(
+        ids in prop::collection::vec(1u16..100, 2..=4),
+    ) {
+        let seq: Vec<Symbol> = ids.iter().map(|&i| nonterm(i)).collect();
+        let sym = Symbol::Sequence(seq);
+        let rule = make_rule(1, vec![sym.clone()]);
+        prop_assert_eq!(&rule.rhs[0], &sym);
+    }
+
+    #[test]
+    fn rule_empty_rhs_is_valid(lhs in symbol_id_strategy()) {
+        let rule = make_rule(lhs.0, vec![]);
+        prop_assert!(rule.rhs.is_empty());
+        prop_assert_eq!(rule.lhs, lhs);
+    }
+
+    #[test]
+    fn rule_rhs_epsilon_symbol(lhs in symbol_id_strategy()) {
+        let rule = make_rule(lhs.0, vec![Symbol::Epsilon]);
+        prop_assert_eq!(rule.rhs.len(), 1);
+        prop_assert_eq!(&rule.rhs[0], &Symbol::Epsilon);
+    }
+
+    // ── 13. Precedence discrimination ────────────────────────────────────
+
+    #[test]
+    fn rule_static_vs_dynamic_differ(level in -100i16..100) {
+        let r1 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: Some(PrecedenceKind::Static(level)),
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        let r2 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: Some(PrecedenceKind::Dynamic(level)),
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        prop_assert_ne!(&r1, &r2);
+    }
+
+    #[test]
+    fn rule_none_precedence_vs_some_differ(level in -100i16..100) {
+        let r1 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        let r2 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: Some(PrecedenceKind::Static(level)),
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        prop_assert_ne!(&r1, &r2);
+    }
+
+    // ── 14. Associativity discrimination ─────────────────────────────────
+
+    #[test]
+    fn rule_assoc_some_none_vs_absent_differ(_dummy in 0u8..1) {
+        let r1 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: Some(Associativity::None),
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        let r2 = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        prop_assert_ne!(&r1, &r2);
+    }
+
+    // ── 15. Production ID edge cases ─────────────────────────────────────
+
+    #[test]
+    fn rule_production_id_zero_valid(_dummy in 0u8..1) {
+        let rule = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        };
+        prop_assert_eq!(rule.production_id, ProductionId(0));
+    }
+
+    #[test]
+    fn rule_production_id_max_value(_dummy in 0u8..1) {
+        let rule = Rule {
+            lhs: SymbolId(1),
+            rhs: vec![term(2)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(u16::MAX),
+        };
+        prop_assert_eq!(rule.production_id, ProductionId(u16::MAX));
+    }
+
+    // ── 16. Clone full rule roundtrip ────────────────────────────────────
+
+    #[test]
+    fn rule_clone_equals_original(rule in rule_strategy()) {
+        let cloned = rule.clone();
+        prop_assert_eq!(cloned.lhs, rule.lhs);
+        prop_assert_eq!(&cloned.rhs, &rule.rhs);
+        prop_assert_eq!(cloned.precedence, rule.precedence);
+        prop_assert_eq!(cloned.associativity, rule.associativity);
+        prop_assert_eq!(&cloned.fields, &rule.fields);
+        prop_assert_eq!(cloned.production_id, rule.production_id);
+    }
 }
