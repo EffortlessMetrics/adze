@@ -2,7 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [Unreleased] — 0.8.0-dev Release Candidate
+
+**Focus**: Test infrastructure, quality hardening, documentation, and security audit.
+
+### Added
+- **1400+ tests** across all supported crates, covering unit, integration, and end-to-end scenarios
+- **BDD scenario tests** for runtime crate using declarative test patterns
+- **Property-based testing** with `proptest` for grammar and parser invariants
+- **Mutation testing** setup with `cargo-mutants` for test-quality verification
+- **Feature combination verification** script to validate all feature-flag permutations
+- **Benchmark baselines** with `criterion` for parser and table-generation performance
+- **5+ fuzz targets** covering parser inputs, grammar construction, and serialization
+- **Golden test expansion** — additional reference grammars and hash-verified parse trees
+- **Cross-crate integration tests** validating the full IR → GLR → tablegen → runtime pipeline
+- **Book chapters**: parsing guide, external scanners, and API reference
+- **`.editorconfig` and VS Code settings** for consistent contributor experience
+- **Security audit** with `cargo-audit` — 0 known vulnerabilities
+
+### Fixed
+- All **clippy warnings resolved** across supported crates
+- **Rustdoc warnings eliminated** for clean `cargo doc` builds
+- **Runtime compilation errors** fixed for edge-case feature combinations
+- **Error messages improved** — 38 diagnostic messages made more actionable
+- **Snapshot test assertions corrected** to match current parser output
+
+### Changed
+- **WASM build compatibility** verified for all core crates (`wasm32-unknown-unknown`, `wasm32-wasi`)
+- **Workspace dependencies centralized** — 9 common deps lifted to `[workspace.dependencies]`
+- **`cargo-deny` configuration** updated with current advisory database
+- **CI workflow enhanced** with feature matrix covering default, `glr-core`, `incremental`, and `all-features`
+
+### Security
+- **SAFETY comments** added to all `unsafe` blocks per Rust best practices
+- **`cargo-audit` clean** — 0 advisories across the full dependency tree
+
+---
 
 ## [0.8.0] - 2026-02-22
 
