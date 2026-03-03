@@ -11,6 +11,7 @@
 
 # User Guide
 
+- [Architecture](guide/architecture.md)
 - [Grammar Definition](guide/grammar-definition.md)
 - [Parser Generation](guide/parser-generation.md)
 - [GLR Precedence Resolution](guide/glr-precedence-resolution.md)
