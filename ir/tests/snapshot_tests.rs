@@ -283,7 +283,10 @@ fn validate_empty_grammar() {
     let grammar = Grammar::new("empty".into());
     let mut validator = GrammarValidator::new();
     let result = validator.validate(&grammar);
-    insta::assert_snapshot!("validate_empty_grammar_errors", render_errors(&result.errors));
+    insta::assert_snapshot!(
+        "validate_empty_grammar_errors",
+        render_errors(&result.errors)
+    );
 }
 
 #[test]
@@ -302,7 +305,10 @@ fn validate_undefined_symbol() {
 
     let mut validator = GrammarValidator::new();
     let result = validator.validate(&grammar);
-    insta::assert_snapshot!("validate_undefined_symbol_errors", render_errors(&result.errors));
+    insta::assert_snapshot!(
+        "validate_undefined_symbol_errors",
+        render_errors(&result.errors)
+    );
 }
 
 #[test]
@@ -430,10 +436,7 @@ fn symbol_ids_after_normalize_complex() {
     grammar.normalize();
     let ids = collect_lhs_ids(&grammar);
     // Auxiliary IDs should start at max_existing + 1000
-    insta::assert_snapshot!(
-        "symbol_ids_complex",
-        format!("{ids:?}")
-    );
+    insta::assert_snapshot!("symbol_ids_complex", format!("{ids:?}"));
 }
 
 #[test]
@@ -483,10 +486,7 @@ fn symbol_ids_gap_preserved() {
     grammar.normalize();
     let ids = collect_lhs_ids(&grammar);
     // Aux IDs start at 20 + 1000 = 1020
-    insta::assert_snapshot!(
-        "symbol_ids_gap",
-        format!("{ids:?}")
-    );
+    insta::assert_snapshot!("symbol_ids_gap", format!("{ids:?}"));
 }
 
 // ===========================================================================
