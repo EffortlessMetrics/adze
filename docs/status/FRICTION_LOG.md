@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-03-03
+**Last updated:** 2026-03-04
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -11,15 +11,16 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | ID | Area | Symptom | Impact | Status | Link |
 |---:|------|---------|--------|--------|------|
 | FR-001 | Docs | Docs drift from dev head (README/book/guides disagree) | Users follow dead paths | Open | (issue) |
-| FR-002 | CI | Too many workflows fail/cancel simultaneously on PRs | Signal is noisy | Open | (issue) |
+| FR-002 | CI | Too many workflows fail/cancel simultaneously on PRs | Signal is noisy | Mitigated | (issue) |
 | FR-003 | Dev loop | Supported gate is still heavy on constrained machines | Local iteration cost | Mitigated | (issue) |
-| FR-004 | Status | Supported-lane exclusions aren't obvious | Confusing contributor loop | Open | (issue) |
+| FR-004 | Status | Supported-lane exclusions aren't obvious | Confusing contributor loop | Mitigated | (issue) |
 | FR-005 | Macro | Leaf `transform` closures are captured but never executed | Type conversions (e.g. string to i32) fail silently | Open | [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74) |
 | FR-006 | Macro | `Extract` trait signature mismatch in `pure-rust` mode | Compilation errors (E0053, E0308) in user code | Resolved | - |
 | FR-007 | Runtime | Lexer state pointer layout mismatch in `pure-rust` mode | Runtime `UnexpectedToken("end")` errors | Resolved | - |
-| FR-008 | Tooling | `just` has permission issues on some systems | Commands fail with `/run/user/1000/just` errors | Open | - |
+| FR-008 | Tooling | `just` has permission issues on some systems | Commands fail with `/run/user/1000/just` errors | Mitigated | - |
 | FR-009 | Dev loop | Workspace build is very slow (10+ min for full check) | Developers avoid full validation locally | Open | - |
-| FR-010 | Runtime | `runtime/src/pure_parser.rs` has parse errors | Blocks `cargo fmt` on entire workspace | Open | - |
+| FR-010 | Runtime | `runtime/src/pure_parser.rs` has parse errors | Blocks `cargo fmt` on entire workspace | Resolved | - |
+| FR-011 | Docs | `rustdoc::private_intra_doc_links` warning in runtime | Cosmetic noise in doc build | Open | - |
 
 ---
 
@@ -58,8 +59,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** PRs trigger dozens of overlapping workflows (benchmarks, tests, lints) that often conflict or cancel each other.
 **Expected:** Clear, non-redundant signal on PR status.
 **Actual:** Hard to tell if a failure is real or a CI glitch.
-**Fix:** Consolidate workflows and use concurrency groups.
-**Status:** Open
+**Fix:** Added concurrency groups (`cancel-in-progress`) and feature matrix job. Lint/test jobs gated by event type to reduce noise.
+**Status:** Mitigated
 
 ### FR-003 - Heavy Local Dev Loop
 
@@ -76,8 +77,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** Some crates are excluded from the default workspace build (via `exclude` in Cargo.toml) but the reason isn't documented.
 **Expected:** Contributors know which crates require special toolchains (Node.js, C compilers).
 **Actual:** Confusion when `cargo build --workspace` skips important crates.
-**Fix:** Add [`DEVELOPER_GUIDE.md`](../DEVELOPER_GUIDE.md) explaining support lanes.
-**Status:** Open
+**Fix:** [`DEVELOPER_GUIDE.md`](../DEVELOPER_GUIDE.md) added. [`KNOWN_RED.md`](./KNOWN_RED.md) documents exclusions. READMEs added to `crates/` microcrates.
+**Status:** Mitigated
 
 ### FR-005 - Transform Closure Capture Bug
 
@@ -96,8 +97,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** Running `just` commands fails with permission errors related to `/run/user/1000/just` on some Linux systems.
 **Expected:** `just` recipes execute without filesystem permission issues.
 **Actual:** Users see permission denied errors; workaround is to set `JUST_TMPDIR` or use `cargo` directly.
-**Fix:** Document workaround in DEVELOPER_GUIDE; consider switching to `cargo xtask` as primary entry point.
-**Status:** Open
+**Fix:** Workaround documented. `just` runtime dir permission fix applied. `cargo` commands work as primary alternative.
+**Status:** Mitigated
 
 ### FR-009 - Slow Workspace Build
 
@@ -111,10 +112,19 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 ### FR-010 - `pure_parser.rs` Parse Errors
 
 **Area:** runtime
-**Symptom:** `runtime/src/pure_parser.rs` contains Rust parse errors that prevent `cargo fmt` from formatting the file (and potentially the entire workspace if fmt is run with `--all`).
+**Symptom:** `runtime/src/pure_parser.rs` contained Rust parse errors that prevented `cargo fmt` from formatting the file.
 **Expected:** All `.rs` files parse cleanly.
-**Actual:** The file has syntax-level issues that must be fixed before formatting or compilation can succeed.
-**Fix:** Fix parse errors in `pure_parser.rs` as part of the runtime compile error remediation.
+**Actual:** The file had syntax-level issues blocking formatting and compilation.
+**Fix:** All 20 compile errors in the runtime crate resolved. `cargo fmt` and `cargo check` now pass.
+**Status:** Resolved
+
+### FR-011 - Rustdoc Private Intra-Doc Links Warning
+
+**Area:** docs
+**Symptom:** `cargo doc -p adze` emits a `rustdoc::private_intra_doc_links` warning.
+**Expected:** Clean doc build with no warnings.
+**Actual:** One warning about private intra-doc links in the runtime crate.
+**Fix:** Update doc links to reference public items only.
 **Status:** Open
 
 ---

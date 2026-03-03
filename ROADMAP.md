@@ -18,11 +18,16 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - **External Scanners**: Support for custom lexing (e.g. Python indentation).
 
 ## 🚀 Milestone 0.8.0: The Publishable Baseline (Current)
-- **Documentation Overhaul**: Docs updated to reflect Adze naming and 0.8.0 reality (in progress; some drift remains — see `FR-001`).
-- **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
+- **CI Gate Green**: All supported crates compile, clippy clean, tests pass. Full workspace compiles.
+- **Safety Audit**: SAFETY comments on all `unsafe` blocks in supported crates.
+- **Testing Buildout**: Property tests (tablegen), integration tests (runtime, common), snapshot tests (IR, example), 20+ GLR-core integration tests.
+- **API Documentation**: Crate-level doc comments on all supported crates; `cargo doc` builds.
+- **Fuzzing Targets**: 20 fuzz targets covering parser, lexer, external scanners, stack pool, and concurrency.
+- **CI Feature Matrix**: Crate × feature-flag test combinations with concurrency caps.
+- **Cargo.toml Metadata**: Publish-ready metadata across workspace.
 - **Workspace Structure**: 47 microcrates in `crates/`, benchmarks, fuzzing, golden-tests, and book scaffolding.
-- **CI Hardening**: "Supported Lane" defined but currently **red** due to runtime compile errors.
-- 🔴 **Runtime crate (`adze`) does not compile** — ~20 errors being fixed in parallel.
+- **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
+- 🟡 **Remaining**: `cargo package` dry-run, feature-flag name standardization, doc-drift cleanup (`FR-001`).
 
 ## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
 - **CLI Utility**: `adze` command for grammar validation, inspection, and debugging.

@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-03-03
+**Last updated:** 2026-03-04
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -13,17 +13,15 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 
 ---
 
-## 🔴 Currently broken
+## ✅ Previously broken — now fixed
 
-### `adze` (runtime) crate does not compile on `main`
-- **What:** `cargo check -p adze` fails with ~20 errors (lifetime, type, borrow-checker issues in `runtime/src/`).
-- **Why:** Accumulated breakage from pure-Rust integration work; `pure_parser.rs` also has parse errors blocking `cargo fmt`.
-- **Impact:** `ci-supported` gate is **red**. No workspace-wide `cargo check` or `cargo test` passes.
-- **Graduation:** All compile errors fixed, `cargo check -p adze` passes, `ci-supported` returns to green.
+### `adze` (runtime) crate — RESOLVED
+- **Was:** `cargo check -p adze` failed with ~20 errors (lifetime, type, borrow-checker issues).
+- **Fixed:** All compile errors resolved. `cargo check -p adze` passes. `cargo fmt` and `cargo clippy` clean.
+- **Date:** 2026-03-04
 
-### Core pipeline crates compile cleanly
-- `adze-ir`, `adze-glr-core`, `adze-tablegen` all pass `cargo check` as of 2026-03-03.
-- These are **not** blocked by the runtime breakage.
+### Core pipeline crates
+- `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-common`, `adze-macro`, `adze-tool` all pass `cargo check`, `cargo clippy`, and `cargo test`.
 
 ---
 
@@ -32,13 +30,15 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 `ci-supported` currently checks the **core pipeline**:
 
 - `cargo fmt --check`
-- `cargo clippy` (core crates)
-- `cargo test` (core crates)
+- `cargo clippy` (supported crates)
+- `cargo test` (supported crates: `adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-common`, `adze-tool`)
+- `cargo doc` (supported crates)
 - `glr-core` doctests with `serialization`
+- Feature matrix: crate × feature-flag combinations
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
-**Current status:** RED — blocked by runtime compile errors (see above).
+**Current status:** GREEN — all supported crates compile, lint clean, and tests pass.
 
 ---
 
@@ -47,23 +47,29 @@ This lane is intentionally bounded so it stays reliable and fast enough for day-
 ### Not in the supported lane (workspace members / tools)
 These are intentionally excluded for now because they are prototypes, platform-sensitive, heavier than the supported contract, or still stabilizing:
 
-- `runtime/` (`adze` crate — currently broken, being fixed; see above)
 - `runtime2/` (alt runtime path; still converging)
 - `cli/`, `lsp-generator/`, `playground/`, `wasm-demo/` (tooling/prototypes)
 - `golden-tests/` (useful contract, but can be heavy and multi-language)
 - `benchmarks/` (signal, not merge-blocking)
 - `grammars/*` (valuable, but not yet a stable published surface)
-- `crates/*` (47 BDD/governance microcrates; still stabilizing structure, most lack READMEs)
+- `crates/*` (47 BDD/governance microcrates; structure stable, READMEs added)
 
 ### Not in the supported lane (workflows)
 These may run as optional signal (nightly/manual/canary), but are not required for merge:
 
-- fuzzing lanes
+- fuzzing lanes (20 targets exist but run on schedule/manual dispatch)
 - wide platform matrices
 - workflow_dispatch-only CI lanes and manual opt-ins (e.g. feature-matrix examples/burn-in paths)
 - deployment workflows (mdBook / pages)
 - performance regression canaries
 - All other `.github/workflows/ci.yml` jobs are optional unless explicitly promoted in settings.
+
+---
+
+## Known warnings (non-blocking)
+
+- `rustdoc::private_intra_doc_links` warning in `adze` (runtime) crate doc build — cosmetic, does not block CI.
+- `unused manifest key` warnings in `lsp-generator/Cargo.toml` and `wasm-demo/Cargo.toml` — these are excluded crates.
 
 ---
 
@@ -74,12 +80,5 @@ To add a crate/workflow to the supported lane, it must be:
 - stable across the supported toolchain/MSRV
 - bounded in time/resources
 - documented (how to run it locally; common failure modes)
-
-### Runtime crate graduation criteria
-The `adze` runtime crate returns to the supported lane when:
-1. `cargo check -p adze` passes with zero errors
-2. `cargo test -p adze` passes (existing tests, no regressions)
-3. `cargo fmt -- --check` passes (requires fixing `pure_parser.rs` parse errors)
-4. `cargo clippy -p adze` passes with no warnings
 
 When you add something to `ci-supported`, update this file in the same PR.
