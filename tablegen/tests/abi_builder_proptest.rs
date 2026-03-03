@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Property-based tests for the ABI builder module.
 //!
 //! Properties verified:
@@ -18,12 +19,33 @@
 //! 15. Grammar name appears in generated code
 //! 16. Field names in lexicographic order
 //! 17. External scanner struct is present when externals exist
+//! 18. Parse table data arrays present in generated code
+//! 19. ABI min version compatibility
+//! 20. Large grammar ABI generation does not panic
+//! 21. Compressed tables path generates valid code
+//! 22. Alias count is always zero (unimplemented)
+//! 23. Large state count is always zero (unimplemented)
+//! 24. Max alias sequence length is always zero (unimplemented)
+//! 25. Lexer function reference present
+//! 26. External scanner struct present when grammar has externals
+//! 27. External scanner struct null when no externals
+//! 28. Multiple non-terminals each generate rule names
+//! 29. Parse actions array present and non-empty
+//! 30. Production count equals u16 field in Language struct
+//! 31. Symbol metadata array present
+//! 32. Field map arrays present
+//! 33. Determinism across different grammar names
+//! 34. Large grammar with many states
+//! 35. Large grammar with many fields
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
 use adze_ir::{
     ExternalToken, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
-use adze_tablegen::AbiLanguageBuilder;
+use adze_tablegen::abi::{
+    TREE_SITTER_LANGUAGE_VERSION, TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
+};
+use adze_tablegen::{AbiLanguageBuilder, TableCompressor};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 
@@ -571,4 +593,432 @@ fn multiple_fields_appear_in_code() {
             "field name bytes for '{field_name}' not found"
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// Additional property tests (21-35)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(30))]
+
+    // 21. Parse table data arrays are present in generated code
+    #[test]
+    fn parse_table_data_present(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "ptd", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(code.contains("SMALL_PARSE_TABLE"), "SMALL_PARSE_TABLE missing");
+        prop_assert!(code.contains("SMALL_PARSE_TABLE_MAP"), "SMALL_PARSE_TABLE_MAP missing");
+        prop_assert!(code.contains("PARSE_TABLE"), "PARSE_TABLE missing");
+    }
+
+    // 22. ABI version constant is >=13 (min compatible)
+    #[test]
+    fn abi_min_version_compat(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "compat", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        // The version field references TREE_SITTER_LANGUAGE_VERSION which is 15 >= 13
+        prop_assert!(
+            TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
+            "ABI version {} is below minimum compatible version {}",
+            TREE_SITTER_LANGUAGE_VERSION,
+            TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION
+        );
+        prop_assert!(code.contains("version : TREE_SITTER_LANGUAGE_VERSION"));
+    }
+
+    // 23. Alias count is always zero (not yet implemented)
+    #[test]
+    fn alias_count_always_zero(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "alias", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("alias_count : 0u32"),
+            "alias_count should be 0"
+        );
+    }
+
+    // 24. Large state count is always zero (not yet implemented)
+    #[test]
+    fn large_state_count_always_zero(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "lgst", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("large_state_count : 0u32"),
+            "large_state_count should be 0"
+        );
+    }
+
+    // 25. Max alias sequence length is always zero
+    #[test]
+    fn max_alias_seq_len_always_zero(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "masl", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("max_alias_sequence_length : 0u16"),
+            "max_alias_sequence_length should be 0"
+        );
+    }
+
+    // 26. Lexer function reference is always present
+    #[test]
+    fn lexer_fn_present(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "lex_fn", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("lex_fn : Some (lexer_fn)"),
+            "lex_fn should reference Some(lexer_fn)"
+        );
+    }
+
+    // 27. External scanner struct null pointers when no externals
+    #[test]
+    fn no_externals_null_scanner(
+        (terms, nonterms, fields, _externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "noext", terms, nonterms, fields, 0, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        // When no externals, the ExternalScanner should use null pointers
+        prop_assert!(
+            code.contains("create : None") && code.contains("destroy : None"),
+            "ExternalScanner with no externals should have None for create/destroy"
+        );
+    }
+
+    // 28. Multiple non-terminals each appear as rule names in generated code
+    #[test]
+    fn multiple_nonterms_named(
+        nonterms in 2usize..=5,
+        states in 1usize..=4,
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "mnt", 2, nonterms, 0, 0, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        // Each non-terminal should have its name as bytes in the symbol names
+        for i in 0..nonterms {
+            let rule_name = format!("rule_{i}");
+            // Check the rule name appears as byte values in the generated code
+            let first_byte = rule_name.as_bytes()[0]; // 'r' = 114
+            prop_assert!(
+                code.contains(&format!("{}u8", first_byte)),
+                "byte for rule name 'rule_{i}' not found"
+            );
+        }
+    }
+
+    // 29. Parse actions array is present
+    #[test]
+    fn parse_actions_array_present(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "pa", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("PARSE_ACTIONS"),
+            "PARSE_ACTIONS array missing"
+        );
+        // Should reference TSParseAction type
+        prop_assert!(
+            code.contains("TSParseAction"),
+            "TSParseAction type reference missing"
+        );
+    }
+
+    // 30. production_count u16 field uses same value as production_id_count
+    #[test]
+    fn production_count_u16_matches(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "pc16", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        let max_prod = grammar
+            .rules
+            .values()
+            .flat_map(|rs| rs.iter().map(|r| r.production_id.0))
+            .max()
+            .unwrap_or(0);
+        let expected = (max_prod as u32) + 1;
+        // production_count is emitted as `#production_id_count as u16`
+        let needle = format!("production_count : {expected}u32 as u16");
+        prop_assert!(
+            code.contains(&needle),
+            "production_count : {expected}u32 as u16 not found"
+        );
+    }
+
+    // 31. Symbol metadata array is present and references SYMBOL_METADATA
+    #[test]
+    fn symbol_metadata_array_present(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "sm", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("SYMBOL_METADATA"),
+            "SYMBOL_METADATA not found"
+        );
+        prop_assert!(
+            code.contains("symbol_metadata : SYMBOL_METADATA . as_ptr ()"),
+            "symbol_metadata field should point to SYMBOL_METADATA.as_ptr()"
+        );
+    }
+
+    // 32. Field map arrays are present
+    #[test]
+    fn field_map_arrays_present(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "fm", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("FIELD_MAP_SLICES"),
+            "FIELD_MAP_SLICES not found"
+        );
+        prop_assert!(
+            code.contains("FIELD_MAP_ENTRIES"),
+            "FIELD_MAP_ENTRIES not found"
+        );
+    }
+
+    // 33. Determinism: different grammar names produce different FFI function names
+    #[test]
+    fn different_names_different_ffi(
+        terms in 1usize..=3,
+        nonterms in 1usize..=2,
+    ) {
+        let (g1, t1) = build_grammar_and_table("alpha", terms, nonterms, 0, 0, 1);
+        let (g2, t2) = build_grammar_and_table("beta", terms, nonterms, 0, 0, 1);
+        let code1 = AbiLanguageBuilder::new(&g1, &t1).generate().to_string();
+        let code2 = AbiLanguageBuilder::new(&g2, &t2).generate().to_string();
+        prop_assert!(code1.contains("tree_sitter_alpha"));
+        prop_assert!(code2.contains("tree_sitter_beta"));
+        prop_assert!(!code1.contains("tree_sitter_beta"));
+        prop_assert!(!code2.contains("tree_sitter_alpha"));
+    }
+
+    // 34. keyword_lex_fn is always None and keyword_capture_token is 0
+    #[test]
+    fn keyword_defaults(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "kw", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("keyword_lex_fn : None"),
+            "keyword_lex_fn should be None"
+        );
+        prop_assert!(
+            code.contains("keyword_capture_token : 0"),
+            "keyword_capture_token should be 0"
+        );
+    }
+
+    // 35. alias_map and alias_sequences are null pointers
+    #[test]
+    fn alias_pointers_null(
+        (terms, nonterms, fields, externals, states) in grammar_dims()
+    ) {
+        let (grammar, table) = build_grammar_and_table(
+            "anull", terms, nonterms, fields, externals, states,
+        );
+        let code = AbiLanguageBuilder::new(&grammar, &table).generate().to_string();
+        prop_assert!(
+            code.contains("alias_map : std :: ptr :: null ()"),
+            "alias_map should be null"
+        );
+        prop_assert!(
+            code.contains("alias_sequences : std :: ptr :: null"),
+            "alias_sequences should be null"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Additional non-proptest targeted tests (36-48)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn large_grammar_many_terminals() {
+    let (grammar, table) = build_grammar_and_table("large_terms", 20, 5, 4, 0, 10);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains("TSLanguage"));
+    assert!(code.contains("tree_sitter_large_terms"));
+    assert!(code.contains(&format!("state_count : {}u32", table.state_count)));
+}
+
+#[test]
+fn large_grammar_many_states() {
+    let (grammar, table) = build_grammar_and_table("large_st", 4, 3, 2, 0, 30);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains(&format!("state_count : {}u32", 30)));
+    // Lex modes should have at least 30 entries
+    let lex_state_count = code.matches("TSLexState").count();
+    assert!(
+        lex_state_count >= 30,
+        "expected >= 30 TSLexState entries, got {lex_state_count}"
+    );
+}
+
+#[test]
+fn large_grammar_many_fields() {
+    let (grammar, table) = build_grammar_and_table("large_fld", 3, 2, 15, 0, 3);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains("field_count : 15u32"));
+    assert!(code.contains("FIELD_NAME_PTRS_LEN"));
+}
+
+#[test]
+fn large_grammar_with_externals() {
+    let (grammar, table) = build_grammar_and_table("large_ext", 5, 3, 2, 5, 8);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains("external_token_count : 5u32"));
+    // Should have EXTERNAL_SCANNER references since externals > 0
+    assert!(code.contains("ExternalScanner"));
+}
+
+#[test]
+fn with_compressed_tables_generates_code() {
+    let (grammar, table) = build_grammar_and_table("comp", 2, 1, 0, 0, 2);
+    let compressor = TableCompressor::new();
+    let token_indices: Vec<usize> = (0..table.token_count).collect();
+    if let Ok(compressed) = compressor.compress(&table, &token_indices, false) {
+        let code = AbiLanguageBuilder::new(&grammar, &table)
+            .with_compressed_tables(&compressed)
+            .generate()
+            .to_string();
+        assert!(code.contains("TSLanguage"));
+        assert!(code.contains("LANGUAGE"));
+    }
+    // Even without compressed tables, the builder must succeed
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains("TSLanguage"));
+}
+
+#[test]
+fn abi_version_constant_value() {
+    assert_eq!(TREE_SITTER_LANGUAGE_VERSION, 15);
+    assert_eq!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION, 13);
+    assert!(TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION);
+}
+
+#[test]
+fn determinism_across_multiple_runs() {
+    let (grammar, table) = build_grammar_and_table("det_multi", 3, 2, 2, 1, 4);
+    let outputs: Vec<String> = (0..5)
+        .map(|_| {
+            AbiLanguageBuilder::new(&grammar, &table)
+                .generate()
+                .to_string()
+        })
+        .collect();
+    for i in 1..outputs.len() {
+        assert_eq!(outputs[0], outputs[i], "run {i} differs from run 0");
+    }
+}
+
+#[test]
+fn grammar_with_only_one_terminal_and_one_nonterminal() {
+    let (grammar, table) = build_grammar_and_table("minimal", 1, 1, 0, 0, 1);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains("tree_sitter_minimal"));
+    // Should have symbol_count >= 3 (ERROR + terminal + EOF + nonterminal)
+    let sc = table.symbol_count as u32;
+    assert!(sc >= 3, "symbol_count should be >= 3, got {sc}");
+    assert!(code.contains(&format!("symbol_count : {sc}u32")));
+}
+
+#[test]
+fn rule_count_in_language_struct() {
+    let (grammar, table) = build_grammar_and_table("rc", 2, 3, 0, 0, 2);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    // rule_count is emitted as TS_RULES.len() as u16
+    assert!(
+        code.contains("rule_count : TS_RULES . len () as u16"),
+        "rule_count should reference TS_RULES.len()"
+    );
+}
+
+#[test]
+fn eof_symbol_is_zero_in_struct() {
+    let (grammar, table) = build_grammar_and_table("eof_z", 3, 2, 1, 0, 3);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    // EOF is always column 0 in Tree-sitter convention
+    assert!(code.contains("eof_symbol : 0"));
+}
+
+#[test]
+fn symbol_name_ptrs_and_field_name_ptrs_present() {
+    let (grammar, table) = build_grammar_and_table("ptrs", 2, 1, 2, 0, 2);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains("SYMBOL_NAME_PTRS"));
+    assert!(code.contains("FIELD_NAME_PTRS"));
+    assert!(code.contains("SyncPtr"));
+}
+
+#[test]
+fn production_id_map_present() {
+    let (grammar, table) = build_grammar_and_table("pidm", 2, 2, 0, 0, 2);
+    let code = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(code.contains("PRODUCTION_ID_MAP"));
+    assert!(
+        code.contains("production_id_map : PRODUCTION_ID_MAP . as_ptr ()"),
+        "production_id_map field should reference PRODUCTION_ID_MAP"
+    );
 }

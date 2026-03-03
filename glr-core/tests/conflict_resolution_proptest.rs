@@ -309,6 +309,70 @@ fn make_test_table(action_table: Vec<Vec<Vec<Action>>>) -> ParseTable {
 }
 
 // ============================================================================
+// Helper: Build ambiguous grammar E → a | E E
+// ============================================================================
+fn ambiguous_concat_grammar() -> Grammar {
+    let mut g = Grammar::new("ambig_concat".to_string());
+    let a = SymbolId(1);
+    let e = SymbolId(10);
+
+    g.tokens.insert(
+        a,
+        Token {
+            name: "a".into(),
+            pattern: TokenPattern::String("a".into()),
+            fragile: false,
+        },
+    );
+    g.rule_names.insert(e, "E".into());
+    g.rules.insert(
+        e,
+        vec![
+            Rule {
+                lhs: e,
+                rhs: vec![Symbol::Terminal(a)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(0),
+                fields: vec![],
+            },
+            Rule {
+                lhs: e,
+                rhs: vec![Symbol::NonTerminal(e), Symbol::NonTerminal(e)],
+                precedence: None,
+                associativity: None,
+                production_id: ProductionId(1),
+                fields: vec![],
+            },
+        ],
+    );
+    g
+}
+
+/// Helper: Check if any cell contains only Reduce actions with count > 1.
+fn has_reduce_reduce(table: &ParseTable) -> bool {
+    for state in &table.action_table {
+        for cell in state {
+            if cell.len() > 1 && cell.iter().all(|a| matches!(a, Action::Reduce(_))) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Helper: Collect all ConflictType values from a ConflictSummary.
+fn conflict_types_in_summary(summary: &ConflictSummary) -> Vec<ConflictType> {
+    let mut types: Vec<ConflictType> = summary
+        .conflict_details
+        .iter()
+        .map(|d| d.conflict_type)
+        .collect();
+    types.dedup();
+    types
+}
+
+// ============================================================================
 // 1. classify_conflict: Shift + Reduce → ShiftReduce
 // ============================================================================
 proptest! {
@@ -966,4 +1030,410 @@ proptest! {
                 "State {} out of bounds (state_count={})", state.0, n_states);
         }
     }
+}
+
+// ============================================================================
+// 36. state_has_conflicts returns false for out-of-bounds state
+// ============================================================================
+proptest! {
+    #[test]
+    fn state_has_conflicts_oob_returns_false(extra in 1u16..100) {
+        use adze_glr_core::conflict_inspection::state_has_conflicts;
+        let table = make_test_table(vec![vec![vec![Action::Shift(StateId(0))]]]);
+        let oob = StateId(table.state_count as u16 + extra);
+        prop_assert!(!state_has_conflicts(&table, oob));
+    }
+}
+
+// ============================================================================
+// 37. state_has_conflicts true iff cell.len() > 1
+// ============================================================================
+proptest! {
+    #[test]
+    fn state_has_conflicts_iff_multi_action(s in 0..500u16, r in 0..500u16) {
+        use adze_glr_core::conflict_inspection::state_has_conflicts;
+        let table = make_test_table(vec![
+            vec![vec![Action::Shift(StateId(s)), Action::Reduce(RuleId(r))]],
+            vec![vec![Action::Shift(StateId(s))]],
+        ]);
+        prop_assert!(state_has_conflicts(&table, StateId(0)));
+        prop_assert!(!state_has_conflicts(&table, StateId(1)));
+    }
+}
+
+// ============================================================================
+// 38. get_state_conflicts returns only conflicts for the queried state
+// ============================================================================
+proptest! {
+    #[test]
+    fn get_state_conflicts_filters_by_state(s in 0..100u16, r in 0..100u16) {
+        use adze_glr_core::conflict_inspection::get_state_conflicts;
+        let table = make_test_table(vec![
+            vec![vec![Action::Shift(StateId(s)), Action::Reduce(RuleId(r))]],
+            vec![vec![Action::Shift(StateId(s)), Action::Reduce(RuleId(r))]],
+            vec![vec![Action::Shift(StateId(s))]],
+        ]);
+        let c0 = get_state_conflicts(&table, StateId(0));
+        let c1 = get_state_conflicts(&table, StateId(1));
+        let c2 = get_state_conflicts(&table, StateId(2));
+        prop_assert_eq!(c0.len(), 1);
+        prop_assert_eq!(c1.len(), 1);
+        prop_assert_eq!(c2.len(), 0);
+    }
+}
+
+// ============================================================================
+// 39. find_conflicts_for_symbol filters correctly by symbol
+// ============================================================================
+#[test]
+fn find_conflicts_for_symbol_filters_correctly() {
+    use adze_glr_core::conflict_inspection::find_conflicts_for_symbol;
+    let mut table = make_test_table(vec![vec![
+        vec![Action::Shift(StateId(0)), Action::Reduce(RuleId(0))],
+        vec![Action::Shift(StateId(1))],
+    ]]);
+    // Set up index_to_symbol so the first column maps to SymbolId(5) and second to SymbolId(6)
+    table.index_to_symbol = vec![SymbolId(5), SymbolId(6)];
+    let c5 = find_conflicts_for_symbol(&table, SymbolId(5));
+    let c6 = find_conflicts_for_symbol(&table, SymbolId(6));
+    assert_eq!(c5.len(), 1);
+    assert_eq!(c6.len(), 0);
+}
+
+// ============================================================================
+// 40. classify_conflict: empty actions → Mixed (no shift, no reduce)
+// ============================================================================
+#[test]
+fn classify_empty_actions_is_mixed() {
+    let ct = classify_conflict(&[]);
+    assert_eq!(ct, ConflictType::Mixed);
+}
+
+// ============================================================================
+// 41. classify_conflict: Accept + Error → Mixed
+// ============================================================================
+#[test]
+fn classify_accept_error_is_mixed() {
+    let ct = classify_conflict(&[Action::Accept, Action::Error]);
+    assert_eq!(ct, ConflictType::Mixed);
+}
+
+// ============================================================================
+// 42. classify_conflict: Recover + Shift → Mixed (has_shift but no reduce)
+// ============================================================================
+#[test]
+fn classify_recover_shift_is_mixed() {
+    let ct = classify_conflict(&[Action::Recover, Action::Shift(StateId(1))]);
+    assert_eq!(ct, ConflictType::Mixed);
+}
+
+// ============================================================================
+// 43. classify_conflict: nested Fork([Fork([Shift, Reduce])]) → ShiftReduce
+// ============================================================================
+#[test]
+fn classify_nested_fork_sr() {
+    let inner = Action::Fork(vec![Action::Shift(StateId(0)), Action::Reduce(RuleId(0))]);
+    let outer = Action::Fork(vec![inner]);
+    let ct = classify_conflict(&[outer]);
+    assert_eq!(ct, ConflictType::ShiftReduce);
+}
+
+// ============================================================================
+// 44. classify_conflict: Fork([Reduce, Reduce]) → ReduceReduce
+// ============================================================================
+#[test]
+fn classify_fork_reduce_reduce() {
+    let ct = classify_conflict(&[Action::Fork(vec![
+        Action::Reduce(RuleId(0)),
+        Action::Reduce(RuleId(1)),
+    ])]);
+    assert_eq!(ct, ConflictType::ReduceReduce);
+}
+
+// ============================================================================
+// 45. ConflictDetail actions length matches cell size
+// ============================================================================
+proptest! {
+    #[test]
+    fn conflict_detail_actions_length(n_actions in 2usize..6) {
+        let actions: Vec<Action> = (0..n_actions)
+            .map(|i| if i % 2 == 0 {
+                Action::Shift(StateId(i as u16))
+            } else {
+                Action::Reduce(RuleId(i as u16))
+            })
+            .collect();
+        let table = make_test_table(vec![vec![actions.clone()]]);
+        let summary = count_conflicts(&table);
+        prop_assert_eq!(summary.conflict_details.len(), 1);
+        prop_assert_eq!(summary.conflict_details[0].actions.len(), n_actions);
+    }
+}
+
+// ============================================================================
+// 46. ConflictSummary Display includes shift_reduce and reduce_reduce counts
+// ============================================================================
+proptest! {
+    #[test]
+    fn summary_display_includes_both_counts(sr in 0usize..4, rr in 0usize..4) {
+        let mut cells = Vec::new();
+        for i in 0..sr {
+            cells.push(vec![Action::Shift(StateId(i as u16)), Action::Reduce(RuleId(i as u16))]);
+        }
+        for i in 0..rr {
+            cells.push(vec![Action::Reduce(RuleId(100 + i as u16)), Action::Reduce(RuleId(200 + i as u16))]);
+        }
+        if cells.is_empty() {
+            cells.push(vec![Action::Shift(StateId(0))]);
+        }
+        let table = make_test_table(vec![cells]);
+        let summary = count_conflicts(&table);
+        let display = format!("{}", summary);
+        prop_assert!(display.contains("Shift/Reduce conflicts:"));
+        prop_assert!(display.contains("Reduce/Reduce conflicts:"));
+        prop_assert!(display.contains("States with conflicts:"));
+    }
+}
+
+// ============================================================================
+// 47. ConflictDetail Display includes state and symbol info
+// ============================================================================
+#[test]
+fn conflict_detail_display_format() {
+    use adze_glr_core::conflict_inspection::ConflictDetail;
+    let detail = ConflictDetail {
+        state: StateId(7),
+        symbol: SymbolId(3),
+        symbol_name: "plus".into(),
+        conflict_type: ConflictType::ShiftReduce,
+        actions: vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(2))],
+        priorities: vec![0, 0],
+    };
+    let s = format!("{}", detail);
+    assert!(s.contains("State 7"));
+    assert!(s.contains("plus"));
+    assert!(s.contains("ShiftReduce"));
+}
+
+// ============================================================================
+// 48. PrecedenceResolver: no token/symbol prec → always None
+// ============================================================================
+#[test]
+fn prec_resolver_empty_grammar_returns_none() {
+    let g = Grammar::new("empty".to_string());
+    let resolver = PrecedenceResolver::new(&g);
+    assert_eq!(
+        resolver.can_resolve_shift_reduce(SymbolId(1), SymbolId(2)),
+        None
+    );
+}
+
+// ============================================================================
+// 49. PrecedenceResolver: only token prec set, no symbol prec → None
+// ============================================================================
+#[test]
+fn prec_resolver_only_token_prec_returns_none() {
+    let mut g = Grammar::new("token_only".to_string());
+    g.precedences.push(Precedence {
+        level: 5,
+        associativity: Associativity::Left,
+        symbols: vec![SymbolId(1)],
+    });
+    let resolver = PrecedenceResolver::new(&g);
+    // Shift symbol has prec, but reduce symbol has no rule prec → None
+    assert_eq!(
+        resolver.can_resolve_shift_reduce(SymbolId(1), SymbolId(99)),
+        None
+    );
+}
+
+// ============================================================================
+// 50. PrecedenceResolver: only symbol prec set, no token prec → None
+// ============================================================================
+#[test]
+fn prec_resolver_only_symbol_prec_returns_none() {
+    let mut g = Grammar::new("symbol_only".to_string());
+    g.rules.insert(
+        SymbolId(10),
+        vec![Rule {
+            lhs: SymbolId(10),
+            rhs: vec![Symbol::Terminal(SymbolId(1))],
+            precedence: Some(PrecedenceKind::Static(3)),
+            associativity: Some(Associativity::Left),
+            production_id: ProductionId(0),
+            fields: vec![],
+        }],
+    );
+    let resolver = PrecedenceResolver::new(&g);
+    // Shift symbol has no token prec → None
+    assert_eq!(
+        resolver.can_resolve_shift_reduce(SymbolId(1), SymbolId(10)),
+        None
+    );
+}
+
+// ============================================================================
+// 51. ConflictAnalyzer: analyze_table on conflict-free table → zero stats
+// ============================================================================
+#[test]
+fn analyzer_conflict_free_table_zero_stats() {
+    let table = make_test_table(vec![vec![vec![Action::Shift(StateId(0))]]]);
+    let mut analyzer = ConflictAnalyzer::new();
+    let stats = analyzer.analyze_table(&table);
+    assert_eq!(stats.shift_reduce_conflicts, 0);
+    assert_eq!(stats.reduce_reduce_conflicts, 0);
+    assert_eq!(stats.precedence_resolved, 0);
+    assert_eq!(stats.associativity_resolved, 0);
+    assert_eq!(stats.explicit_glr, 0);
+    assert_eq!(stats.default_resolved, 0);
+}
+
+// ============================================================================
+// 52. ConflictStats: Clone produces identical copy
+// ============================================================================
+#[test]
+fn conflict_stats_clone_eq() {
+    let stats = ConflictStats {
+        shift_reduce_conflicts: 3,
+        reduce_reduce_conflicts: 1,
+        precedence_resolved: 2,
+        associativity_resolved: 4,
+        explicit_glr: 5,
+        default_resolved: 0,
+    };
+    let cloned = stats.clone();
+    assert_eq!(cloned.shift_reduce_conflicts, 3);
+    assert_eq!(cloned.reduce_reduce_conflicts, 1);
+    assert_eq!(cloned.precedence_resolved, 2);
+    assert_eq!(cloned.associativity_resolved, 4);
+    assert_eq!(cloned.explicit_glr, 5);
+    assert_eq!(cloned.default_resolved, 0);
+}
+
+// ============================================================================
+// 53. ConflictResolver::detect_conflicts on ambiguous E → a | E E grammar
+// ============================================================================
+#[test]
+fn detect_conflicts_ambig_concat_grammar() {
+    let g = ambiguous_concat_grammar();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let collection = adze_glr_core::ItemSetCollection::build_canonical_collection(&g, &ff);
+    let resolver = adze_glr_core::ConflictResolver::detect_conflicts(&collection, &g, &ff);
+    assert!(
+        !resolver.conflicts.is_empty(),
+        "E → a | E E should produce conflicts"
+    );
+}
+
+// ============================================================================
+// 54. ConflictResolver: all detected conflicts have valid ConflictType
+// ============================================================================
+#[test]
+fn detect_conflicts_all_have_valid_type() {
+    let g = ambiguous_concat_grammar();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let collection = adze_glr_core::ItemSetCollection::build_canonical_collection(&g, &ff);
+    let resolver = adze_glr_core::ConflictResolver::detect_conflicts(&collection, &g, &ff);
+    for c in &resolver.conflicts {
+        // ConflictType is either ShiftReduce or ReduceReduce (the lib.rs enum)
+        match c.conflict_type {
+            adze_glr_core::ConflictType::ShiftReduce => {}
+            adze_glr_core::ConflictType::ReduceReduce => {}
+        }
+    }
+}
+
+// ============================================================================
+// 55. ConflictResolver: each conflict has ≥2 actions
+// ============================================================================
+#[test]
+fn detect_conflicts_each_has_multiple_actions() {
+    let g = ambiguous_concat_grammar();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let collection = adze_glr_core::ItemSetCollection::build_canonical_collection(&g, &ff);
+    let resolver = adze_glr_core::ConflictResolver::detect_conflicts(&collection, &g, &ff);
+    for c in &resolver.conflicts {
+        assert!(
+            c.actions.len() >= 2,
+            "Conflict at state {:?} should have ≥2 actions, got {}",
+            c.state,
+            c.actions.len()
+        );
+    }
+}
+
+// ============================================================================
+// 56. build_lr1_automaton on ambiguous grammar preserves fork cells
+// ============================================================================
+#[test]
+fn build_automaton_ambig_has_fork_cells() {
+    let g = ambiguous_concat_grammar();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let table = build_lr1_automaton(&g, &ff).expect("build_lr1_automaton failed");
+    let forks = count_fork_cells(&table);
+    assert!(
+        forks > 0,
+        "Ambiguous grammar should have fork cells in the parse table"
+    );
+}
+
+// ============================================================================
+// 57. rr_grammar produces reduce/reduce conflicts
+// ============================================================================
+#[test]
+fn rr_grammar_has_reduce_reduce_conflicts() {
+    let g = rr_grammar();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let collection = adze_glr_core::ItemSetCollection::build_canonical_collection(&g, &ff);
+    let resolver = adze_glr_core::ConflictResolver::detect_conflicts(&collection, &g, &ff);
+    let has_rr = resolver
+        .conflicts
+        .iter()
+        .any(|c| matches!(c.conflict_type, adze_glr_core::ConflictType::ReduceReduce));
+    assert!(
+        has_rr,
+        "S → A | B; A → a; B → a should produce reduce/reduce conflict"
+    );
+}
+
+// ============================================================================
+// 58. classify_conflict with 3 Reduce actions → ReduceReduce
+// ============================================================================
+#[test]
+fn classify_three_reduces_is_rr() {
+    let ct = classify_conflict(&[
+        Action::Reduce(RuleId(0)),
+        Action::Reduce(RuleId(1)),
+        Action::Reduce(RuleId(2)),
+    ]);
+    assert_eq!(ct, ConflictType::ReduceReduce);
+}
+
+// ============================================================================
+// 59. classify_conflict: Shift + Reduce + Reduce → ShiftReduce
+// ============================================================================
+#[test]
+fn classify_shift_reduce_reduce_is_sr() {
+    let ct = classify_conflict(&[
+        Action::Shift(StateId(0)),
+        Action::Reduce(RuleId(0)),
+        Action::Reduce(RuleId(1)),
+    ]);
+    assert_eq!(ct, ConflictType::ShiftReduce);
+}
+
+// ============================================================================
+// 60. count_conflicts: no-conflict table → empty details
+// ============================================================================
+#[test]
+fn count_conflicts_no_conflict_empty_details() {
+    let table = make_test_table(vec![
+        vec![vec![Action::Shift(StateId(1))]],
+        vec![vec![Action::Reduce(RuleId(0))]],
+    ]);
+    let summary = count_conflicts(&table);
+    assert!(summary.conflict_details.is_empty());
+    assert!(summary.states_with_conflicts.is_empty());
+    assert_eq!(summary.shift_reduce, 0);
+    assert_eq!(summary.reduce_reduce, 0);
 }

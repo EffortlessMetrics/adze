@@ -564,3 +564,97 @@ proptest! {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// 13 – Default scalar values
+// ---------------------------------------------------------------------------
+
+#[test]
+fn version_defaults_to_zero() {
+    let lang = build_minimal(vec![SymbolMetadata {
+        is_terminal: true,
+        is_visible: true,
+        is_supertype: false,
+    }]);
+    assert_eq!(lang.version, 0);
+}
+
+#[test]
+fn max_alias_defaults_to_zero() {
+    let lang = build_minimal(vec![SymbolMetadata {
+        is_terminal: false,
+        is_visible: false,
+        is_supertype: false,
+    }]);
+    assert_eq!(lang.max_alias_sequence_length, 0);
+}
+
+// ---------------------------------------------------------------------------
+// 14 – symbol_count follows explicit names length
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn symbol_count_follows_explicit_names_length(
+        name_count in 1usize..30,
+        meta_count in 1usize..30,
+    ) {
+        let names: Vec<String> = (0..name_count).map(|i| format!("n{i}")).collect();
+        let meta: Vec<SymbolMetadata> = (0..meta_count)
+            .map(|_| SymbolMetadata {
+                is_terminal: true,
+                is_visible: true,
+                is_supertype: false,
+            })
+            .collect();
+        let lang = Language::builder()
+            .parse_table(leak_table())
+            .symbol_names(names)
+            .symbol_metadata(meta)
+            .build()
+            .unwrap();
+        // symbol_count derives from symbol_names length when names are explicit
+        prop_assert_eq!(lang.symbol_count as usize, name_count);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 15 – symbol_for_name with non-existent name
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn symbol_for_name_nonexistent_returns_none(n in 1usize..15) {
+        let names: Vec<String> = (0..n).map(|i| format!("sym_{i}")).collect();
+        let meta: Vec<SymbolMetadata> = (0..n)
+            .map(|_| SymbolMetadata {
+                is_terminal: true,
+                is_visible: true,
+                is_supertype: false,
+            })
+            .collect();
+        let lang = Language::builder()
+            .parse_table(leak_table())
+            .symbol_names(names)
+            .symbol_metadata(meta)
+            .build()
+            .unwrap();
+        prop_assert!(lang.symbol_for_name("does_not_exist", true).is_none());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 16 – Tokenizer is None when not set
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn tokenizer_is_none_when_not_set(meta in arb_symbol_metadata_vec(1, 10)) {
+        let lang = Language::builder()
+            .parse_table(leak_table())
+            .symbol_metadata(meta)
+            .build()
+            .unwrap();
+        prop_assert!(lang.tokenize.is_none());
+    }
+}

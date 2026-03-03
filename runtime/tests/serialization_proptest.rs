@@ -793,3 +793,789 @@ proptest! {
         prop_assert_eq!(decoded.end_byte, end_col);
     }
 }
+
+// ===========================================================================
+// NEW TESTS (36–65): additional coverage per task requirements
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 36. Deserialization rejects completely invalid JSON
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn deser_rejects_garbage(input in "[^{}\\[\\]\"]{1,40}") {
+        let result: Result<SerializedNode, _> = serde_json::from_str(&input);
+        prop_assert!(result.is_err());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 37. Deserialization rejects JSON missing required `kind` field
+// ---------------------------------------------------------------------------
+
+#[test]
+fn deser_missing_kind_field() {
+    let json = r#"{
+        "is_named": true,
+        "field_name": null,
+        "start_position": [0,0],
+        "end_position": [0,4],
+        "start_byte": 0,
+        "end_byte": 4,
+        "text": "hi",
+        "children": [],
+        "is_error": false,
+        "is_missing": false
+    }"#;
+    let result: Result<SerializedNode, _> = serde_json::from_str(json);
+    assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// 38. Deserialization rejects wrong type for `is_named`
+// ---------------------------------------------------------------------------
+
+#[test]
+fn deser_wrong_type_is_named() {
+    let json = r#"{
+        "kind": "id",
+        "is_named": "yes",
+        "field_name": null,
+        "start_position": [0,0],
+        "end_position": [0,4],
+        "start_byte": 0,
+        "end_byte": 4,
+        "text": null,
+        "children": [],
+        "is_error": false,
+        "is_missing": false
+    }"#;
+    let result: Result<SerializedNode, _> = serde_json::from_str(json);
+    assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// 39. Deserialization rejects wrong type for `start_byte`
+// ---------------------------------------------------------------------------
+
+#[test]
+fn deser_wrong_type_start_byte() {
+    let json = r#"{
+        "kind": "id",
+        "is_named": true,
+        "field_name": null,
+        "start_position": [0,0],
+        "end_position": [0,4],
+        "start_byte": "zero",
+        "end_byte": 4,
+        "text": null,
+        "children": [],
+        "is_error": false,
+        "is_missing": false
+    }"#;
+    let result: Result<SerializedNode, _> = serde_json::from_str(json);
+    assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// 40. Deserialization of CompactNode rejects missing `t` (kind)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn compact_deser_missing_kind() {
+    let json = r#"{"s":0,"e":5}"#;
+    let result: Result<CompactNode, _> = serde_json::from_str(json);
+    assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// 41. Wide tree: many siblings roundtrip
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    #[test]
+    fn wide_tree_roundtrip(n_children in 10usize..50) {
+        let children: Vec<SerializedNode> = (0..n_children)
+            .map(|i| SerializedNode {
+                kind: format!("child_{}", i),
+                is_named: true,
+                field_name: None,
+                start_position: (0, i),
+                end_position: (0, i + 1),
+                start_byte: i,
+                end_byte: i + 1,
+                text: Some(format!("c{}", i)),
+                children: vec![],
+                is_error: false,
+                is_missing: false,
+            })
+            .collect();
+        let root = SerializedNode {
+            kind: "root".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, n_children),
+            start_byte: 0,
+            end_byte: n_children,
+            text: None,
+            children,
+            is_error: false,
+            is_missing: false,
+        };
+        let json = serde_json::to_string(&root).unwrap();
+        let decoded: SerializedNode = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(decoded.children.len(), n_children);
+        for i in 0..n_children {
+            prop_assert_eq!(&decoded.children[i].kind, &format!("child_{}", i));
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 42. Large tree: 200+ nodes total roundtrip
+// ---------------------------------------------------------------------------
+
+#[test]
+fn large_tree_200_nodes_roundtrip() {
+    // Build a tree with ~200 leaf nodes across 20 parents
+    let parents: Vec<SerializedNode> = (0..20)
+        .map(|p| {
+            let leaves: Vec<SerializedNode> = (0..10)
+                .map(|l| SerializedNode {
+                    kind: format!("leaf_{}_{}", p, l),
+                    is_named: true,
+                    field_name: None,
+                    start_position: (p, l),
+                    end_position: (p, l + 1),
+                    start_byte: p * 10 + l,
+                    end_byte: p * 10 + l + 1,
+                    text: Some("x".to_string()),
+                    children: vec![],
+                    is_error: false,
+                    is_missing: false,
+                })
+                .collect();
+            SerializedNode {
+                kind: format!("parent_{}", p),
+                is_named: true,
+                field_name: None,
+                start_position: (p, 0),
+                end_position: (p, 10),
+                start_byte: p * 10,
+                end_byte: (p + 1) * 10,
+                text: None,
+                children: leaves,
+                is_error: false,
+                is_missing: false,
+            }
+        })
+        .collect();
+    let root = SerializedNode {
+        kind: "program".to_string(),
+        is_named: true,
+        field_name: None,
+        start_position: (0, 0),
+        end_position: (20, 0),
+        start_byte: 0,
+        end_byte: 200,
+        text: None,
+        children: parents,
+        is_error: false,
+        is_missing: false,
+    };
+    let json = serde_json::to_string(&root).unwrap();
+    let decoded: SerializedNode = serde_json::from_str(&json).unwrap();
+    assert_eq!(decoded.children.len(), 20);
+    let total_leaves: usize = decoded.children.iter().map(|c| c.children.len()).sum();
+    assert_eq!(total_leaves, 200);
+}
+
+// ---------------------------------------------------------------------------
+// 43. Nested CompactNode (3 levels) roundtrip
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn compact_node_nested_3_levels(
+        gk in "[a-z]{1,5}",
+        pk in "[a-z]{1,5}",
+        ck in "[a-z]{1,5}",
+        txt in "[a-z]{1,8}",
+    ) {
+        let leaf = CompactNode {
+            kind: ck.clone(),
+            start: None,
+            end: None,
+            field: None,
+            children: vec![],
+            text: Some(txt),
+        };
+        let mid = CompactNode {
+            kind: pk,
+            start: Some(0),
+            end: Some(10),
+            field: None,
+            children: vec![leaf],
+            text: None,
+        };
+        let root = CompactNode {
+            kind: gk.clone(),
+            start: Some(0),
+            end: Some(20),
+            field: None,
+            children: vec![mid],
+            text: None,
+        };
+        let json = serde_json::to_string(&root).unwrap();
+        let decoded: CompactNode = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(&decoded.kind, &gk);
+        prop_assert_eq!(decoded.children.len(), 1);
+        prop_assert_eq!(decoded.children[0].children.len(), 1);
+        prop_assert_eq!(&decoded.children[0].children[0].kind, &ck);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 44. All SerializedNode fields preserved in one roundtrip
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn all_node_fields_preserved(
+        kind in "[a-z]{1,8}",
+        is_named in any::<bool>(),
+        field_name in proptest::option::of("[a-z]{1,6}"),
+        sr in 0usize..50,
+        sc in 0usize..100,
+        er in 0usize..50,
+        ec in 0usize..200,
+        sb in 0usize..500,
+        eb in 0usize..500,
+        text in proptest::option::of("[a-z ]{1,12}"),
+        is_error in any::<bool>(),
+        is_missing in any::<bool>(),
+    ) {
+        let node = SerializedNode {
+            kind: kind.clone(),
+            is_named,
+            field_name: field_name.clone(),
+            start_position: (sr, sc),
+            end_position: (er, ec),
+            start_byte: sb,
+            end_byte: eb,
+            text: text.clone(),
+            children: vec![],
+            is_error,
+            is_missing,
+        };
+        let json = serde_json::to_string(&node).unwrap();
+        let d: SerializedNode = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(&d.kind, &kind);
+        prop_assert_eq!(d.is_named, is_named);
+        prop_assert_eq!(&d.field_name, &field_name);
+        prop_assert_eq!(d.start_position, (sr, sc));
+        prop_assert_eq!(d.end_position, (er, ec));
+        prop_assert_eq!(d.start_byte, sb);
+        prop_assert_eq!(d.end_byte, eb);
+        prop_assert_eq!(&d.text, &text);
+        prop_assert_eq!(d.is_error, is_error);
+        prop_assert_eq!(d.is_missing, is_missing);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 45. CompactNode field alias "f" preserved
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn compact_node_field_alias_preserved(
+        kind in "[a-z]{1,6}",
+        field in "[a-z]{1,8}",
+    ) {
+        let node = CompactNode {
+            kind,
+            start: Some(0),
+            end: Some(5),
+            field: Some(field.clone()),
+            children: vec![],
+            text: None,
+        };
+        let json = serde_json::to_string(&node).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let obj = parsed.as_object().unwrap();
+        prop_assert_eq!(obj.get("f").and_then(|v| v.as_str()), Some(field.as_str()));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 46. CompactNode start/end use aliases "s" and "e"
+// ---------------------------------------------------------------------------
+
+#[test]
+fn compact_node_position_aliases() {
+    let node = CompactNode {
+        kind: "id".to_string(),
+        start: Some(42),
+        end: Some(99),
+        field: None,
+        children: vec![],
+        text: None,
+    };
+    let json = serde_json::to_string(&node).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+    let obj = parsed.as_object().unwrap();
+    assert_eq!(obj.get("s").and_then(|v| v.as_u64()), Some(42));
+    assert_eq!(obj.get("e").and_then(|v| v.as_u64()), Some(99));
+    assert!(obj.get("t").is_some()); // kind alias
+}
+
+// ---------------------------------------------------------------------------
+// 47. SerializedNode JSON contains expected top-level keys
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn serialized_node_json_has_all_keys(node in arb_serialized_node(1)) {
+        let json = serde_json::to_string(&node).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let obj = parsed.as_object().unwrap();
+        prop_assert!(obj.contains_key("kind"));
+        prop_assert!(obj.contains_key("is_named"));
+        prop_assert!(obj.contains_key("start_position"));
+        prop_assert!(obj.contains_key("end_position"));
+        prop_assert!(obj.contains_key("start_byte"));
+        prop_assert!(obj.contains_key("end_byte"));
+        prop_assert!(obj.contains_key("children"));
+        prop_assert!(obj.contains_key("is_error"));
+        prop_assert!(obj.contains_key("is_missing"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 48. Deeply nested SExpr JSON roundtrip (depth 5)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(30))]
+
+    #[test]
+    fn deeply_nested_sexpr_json_roundtrip(expr in arb_sexpr(5)) {
+        let json = serde_json::to_string(&expr).unwrap();
+        let decoded: SExpr = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(&expr, &decoded);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 49. SExpr nested list render starts/ends with parens at every level
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn sexpr_nested_list_parens(inner in prop::collection::vec(arb_sexpr(1), 0..4)) {
+        let outer = SExpr::List(vec![SExpr::List(inner)]);
+        let rendered = sexpr_to_string(&outer);
+        prop_assert!(rendered.starts_with("(("));
+        prop_assert!(rendered.ends_with("))"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 50. SerializedNode children order preserved
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn children_order_preserved(n in 2usize..8) {
+        let children: Vec<SerializedNode> = (0..n)
+            .map(|i| SerializedNode {
+                kind: format!("k{}", i),
+                is_named: true,
+                field_name: None,
+                start_position: (0, i),
+                end_position: (0, i + 1),
+                start_byte: i,
+                end_byte: i + 1,
+                text: Some(format!("t{}", i)),
+                children: vec![],
+                is_error: false,
+                is_missing: false,
+            })
+            .collect();
+        let parent = SerializedNode {
+            kind: "p".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, n),
+            start_byte: 0,
+            end_byte: n,
+            text: None,
+            children,
+            is_error: false,
+            is_missing: false,
+        };
+        let json = serde_json::to_string(&parent).unwrap();
+        let decoded: SerializedNode = serde_json::from_str(&json).unwrap();
+        for i in 0..n {
+            prop_assert_eq!(&decoded.children[i].kind, &format!("k{}", i));
+            prop_assert_eq!(&decoded.children[i].text, &Some(format!("t{}", i)));
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 51. TreeSerializer defaults: unnamed excluded, max_text 100
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn tree_serializer_defaults(src_len in 1usize..100) {
+        let source = vec![b'a'; src_len];
+        let s = TreeSerializer::new(&source);
+        prop_assert!(!s.include_unnamed);
+        prop_assert_eq!(s.max_text_length, Some(100));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 52. TreeSerializer with_max_text_length(None) sets unlimited
+// ---------------------------------------------------------------------------
+
+#[test]
+fn tree_serializer_unlimited_text() {
+    let source = b"code";
+    let s = TreeSerializer::new(source).with_max_text_length(None);
+    assert_eq!(s.max_text_length, None);
+}
+
+// ---------------------------------------------------------------------------
+// 53. Serialization determinism across clones
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(80))]
+
+    #[test]
+    fn serialized_node_clone_determinism(node in arb_serialized_node(2)) {
+        let cloned = node.clone();
+        let json_orig = serde_json::to_string(&node).unwrap();
+        let json_clone = serde_json::to_string(&cloned).unwrap();
+        prop_assert_eq!(&json_orig, &json_clone);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 54. CompactNode text alias "x" present when set
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn compact_node_text_alias(text in "[a-z]{1,10}") {
+        let node = CompactNode {
+            kind: "leaf".to_string(),
+            start: None,
+            end: None,
+            field: None,
+            children: vec![],
+            text: Some(text.clone()),
+        };
+        let json = serde_json::to_string(&node).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let obj = parsed.as_object().unwrap();
+        prop_assert_eq!(obj.get("x").and_then(|v| v.as_str()), Some(text.as_str()));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 55. Zero-length span node roundtrip (missing node pattern)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn zero_length_span_roundtrip(pos in 0usize..1000) {
+        let node = SerializedNode {
+            kind: "MISSING".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, pos),
+            end_position: (0, pos),
+            start_byte: pos,
+            end_byte: pos,
+            text: None,
+            children: vec![],
+            is_error: false,
+            is_missing: true,
+        };
+        let json = serde_json::to_string(&node).unwrap();
+        let d: SerializedNode = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(d.start_byte, d.end_byte);
+        prop_assert!(d.is_missing);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 56. Nested error nodes preserved
+// ---------------------------------------------------------------------------
+
+#[test]
+fn nested_error_nodes_preserved() {
+    let err_child = SerializedNode {
+        kind: "ERROR".to_string(),
+        is_named: false,
+        field_name: None,
+        start_position: (0, 3),
+        end_position: (0, 6),
+        start_byte: 3,
+        end_byte: 6,
+        text: Some("???".to_string()),
+        children: vec![],
+        is_error: true,
+        is_missing: false,
+    };
+    let root = SerializedNode {
+        kind: "program".to_string(),
+        is_named: true,
+        field_name: None,
+        start_position: (0, 0),
+        end_position: (0, 10),
+        start_byte: 0,
+        end_byte: 10,
+        text: None,
+        children: vec![err_child],
+        is_error: false,
+        is_missing: false,
+    };
+    let json = serde_json::to_string(&root).unwrap();
+    let d: SerializedNode = serde_json::from_str(&json).unwrap();
+    assert!(!d.is_error);
+    assert_eq!(d.children.len(), 1);
+    assert!(d.children[0].is_error);
+    assert_eq!(d.children[0].kind, "ERROR");
+}
+
+// ---------------------------------------------------------------------------
+// 57. BinaryFormat Debug impl does not panic
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn binary_format_debug_no_panic(
+        types in prop::collection::vec("[a-z]{1,5}", 0..5),
+        data in prop::collection::vec(any::<u8>(), 0..20),
+    ) {
+        let fmt = BinaryFormat {
+            node_types: types,
+            field_names: vec![],
+            tree_data: data,
+        };
+        let dbg = format!("{:?}", fmt);
+        prop_assert!(!dbg.is_empty());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 58. SExpr Debug impl does not panic
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn sexpr_debug_no_panic(expr in arb_sexpr(3)) {
+        let dbg = format!("{:?}", expr);
+        prop_assert!(!dbg.is_empty());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 59. SerializedNode JSON size grows with children
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(30))]
+
+    #[test]
+    fn json_size_monotonic_with_children(extra in 1usize..10) {
+        let leaf = SerializedNode {
+            kind: "x".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, 1),
+            start_byte: 0,
+            end_byte: 1,
+            text: Some("a".to_string()),
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+        let small = SerializedNode {
+            kind: "r".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, 1),
+            start_byte: 0,
+            end_byte: 1,
+            text: None,
+            children: vec![leaf.clone()],
+            is_error: false,
+            is_missing: false,
+        };
+        let big = SerializedNode {
+            kind: "r".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (0, 0),
+            end_position: (0, 1),
+            start_byte: 0,
+            end_byte: 1,
+            text: None,
+            children: (0..1 + extra).map(|_| leaf.clone()).collect(),
+            is_error: false,
+            is_missing: false,
+        };
+        let small_json = serde_json::to_string(&small).unwrap();
+        let big_json = serde_json::to_string(&big).unwrap();
+        prop_assert!(big_json.len() > small_json.len());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 60. CompactNode children alias "c" present only when non-empty
+// ---------------------------------------------------------------------------
+
+#[test]
+fn compact_node_children_alias_present_when_non_empty() {
+    let child = CompactNode {
+        kind: "leaf".to_string(),
+        start: None,
+        end: None,
+        field: None,
+        children: vec![],
+        text: Some("hi".to_string()),
+    };
+    let parent = CompactNode {
+        kind: "root".to_string(),
+        start: Some(0),
+        end: Some(5),
+        field: None,
+        children: vec![child],
+        text: None,
+    };
+    let json = serde_json::to_string(&parent).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+    let obj = parsed.as_object().unwrap();
+    assert!(obj.contains_key("c"));
+    let arr = obj.get("c").unwrap().as_array().unwrap();
+    assert_eq!(arr.len(), 1);
+}
+
+// ---------------------------------------------------------------------------
+// 61. SerializedNode multiline positions roundtrip
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn multiline_position_roundtrip(
+        sr in 0usize..50,
+        sc in 0usize..100,
+        er in 0usize..50,
+        ec in 0usize..100,
+    ) {
+        let node = SerializedNode {
+            kind: "block".to_string(),
+            is_named: true,
+            field_name: None,
+            start_position: (sr, sc),
+            end_position: (er, ec),
+            start_byte: 0,
+            end_byte: 100,
+            text: None,
+            children: vec![],
+            is_error: false,
+            is_missing: false,
+        };
+        let json = serde_json::to_string(&node).unwrap();
+        let d: SerializedNode = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(d.start_position.0, sr);
+        prop_assert_eq!(d.start_position.1, sc);
+        prop_assert_eq!(d.end_position.0, er);
+        prop_assert_eq!(d.end_position.1, ec);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 62. Deserialization of truncated JSON fails gracefully
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(80))]
+
+    #[test]
+    fn deser_truncated_json(node in arb_serialized_node(1)) {
+        let full = serde_json::to_string(&node).unwrap();
+        if full.len() > 5 {
+            let cut = &full[..full.len() / 2];
+            let result: Result<SerializedNode, _> = serde_json::from_str(cut);
+            prop_assert!(result.is_err());
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 63. SExpr single-atom list render
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn sexpr_single_atom_list(s in "[a-z]{1,8}") {
+        let list = SExpr::List(vec![SExpr::Atom(s.clone())]);
+        let rendered = sexpr_to_string(&list);
+        prop_assert_eq!(rendered, format!("({})", s));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 64. Large CompactNode tree (100 children) roundtrip
+// ---------------------------------------------------------------------------
+
+#[test]
+fn large_compact_tree_100_children() {
+    let children: Vec<CompactNode> = (0..100)
+        .map(|i| CompactNode {
+            kind: format!("n{}", i),
+            start: None,
+            end: None,
+            field: None,
+            children: vec![],
+            text: Some(format!("v{}", i)),
+        })
+        .collect();
+    let root = CompactNode {
+        kind: "big".to_string(),
+        start: Some(0),
+        end: Some(1000),
+        field: None,
+        children,
+        text: None,
+    };
+    let json = serde_json::to_string(&root).unwrap();
+    let decoded: CompactNode = serde_json::from_str(&json).unwrap();
+    assert_eq!(decoded.children.len(), 100);
+    assert_eq!(decoded.children[99].kind, "n99");
+}
+
+// ---------------------------------------------------------------------------
+// 65. Deserialization of empty JSON object fails for SerializedNode
+// ---------------------------------------------------------------------------
+
+#[test]
+fn deser_empty_object_fails() {
+    let result: Result<SerializedNode, _> = serde_json::from_str("{}");
+    assert!(result.is_err());
+}

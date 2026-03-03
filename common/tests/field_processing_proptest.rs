@@ -734,3 +734,416 @@ proptest! {
         prop_assert!(parse_str::<Type>(&s).is_ok(), "unparseable: {s}");
     }
 }
+
+// ===========================================================================
+// 9. Visibility handling (pub, pub(crate), private)
+// ===========================================================================
+
+fn build_struct_vis(name: &str, fields: &[(&str, &str, &str)]) -> String {
+    if fields.is_empty() {
+        return format!("pub struct {name} {{}}");
+    }
+    let body: String = fields
+        .iter()
+        .map(|(vis, fname, ftype)| {
+            if vis.is_empty() {
+                format!("    {fname}: {ftype},\n")
+            } else {
+                format!("    {vis} {fname}: {ftype},\n")
+            }
+        })
+        .collect();
+    format!("pub struct {name} {{\n{body}}}")
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 36. Private field types can be extracted from parsed struct.
+    #[test]
+    fn private_field_type_extractable(
+        inner in leaf_type_name(),
+        container in container_name(),
+    ) {
+        let ftype = format!("{container}<{inner}>");
+        let src = build_struct_vis("S", &[("", "field", &ftype)]);
+        let item: Item = parse_str(&src).unwrap();
+        let fields = extract_struct_fields(&item);
+        prop_assert_eq!(fields.len(), 1);
+        let ty: Type = parse_str(&fields[0].1).unwrap();
+        let (extracted, ok) = try_extract_inner_type(&ty, container, &skip(&[]));
+        prop_assert!(ok);
+        prop_assert_eq!(ty_str(&extracted), inner);
+    }
+
+    // 37. pub(crate) field types can be extracted identically to pub fields.
+    #[test]
+    fn pub_crate_field_type_matches_pub(
+        inner in leaf_type_name(),
+        container in container_name(),
+    ) {
+        let ftype = format!("{container}<{inner}>");
+        let src_pub = build_struct_vis("S", &[("pub", "f", &ftype)]);
+        let src_crate = build_struct_vis("S", &[("pub(crate)", "f", &ftype)]);
+        let item_pub: Item = parse_str(&src_pub).unwrap();
+        let item_crate: Item = parse_str(&src_crate).unwrap();
+        let fields_pub = extract_struct_fields(&item_pub);
+        let fields_crate = extract_struct_fields(&item_crate);
+        let ty_pub: Type = parse_str(&fields_pub[0].1).unwrap();
+        let ty_crate: Type = parse_str(&fields_crate[0].1).unwrap();
+        let (ext_pub, _) = try_extract_inner_type(&ty_pub, container, &skip(&[]));
+        let (ext_crate, _) = try_extract_inner_type(&ty_crate, container, &skip(&[]));
+        prop_assert_eq!(ty_str(&ext_pub), ty_str(&ext_crate));
+    }
+
+    // 38. Visibility does not affect filter_inner_type result.
+    #[test]
+    fn visibility_does_not_affect_filter(
+        inner in leaf_type_name(),
+        container in container_name(),
+    ) {
+        let ftype = format!("{container}<{inner}>");
+        let src_priv = build_struct_vis("S", &[("", "f", &ftype)]);
+        let src_pub = build_struct_vis("S", &[("pub", "f", &ftype)]);
+        let item_priv: Item = parse_str(&src_priv).unwrap();
+        let item_pub: Item = parse_str(&src_pub).unwrap();
+        let ty_priv: Type = parse_str(&extract_struct_fields(&item_priv)[0].1).unwrap();
+        let ty_pub: Type = parse_str(&extract_struct_fields(&item_pub)[0].1).unwrap();
+        let f_priv = filter_inner_type(&ty_priv, &skip(&[container]));
+        let f_pub = filter_inner_type(&ty_pub, &skip(&[container]));
+        prop_assert_eq!(ty_str(&f_priv), ty_str(&f_pub));
+    }
+
+    // 39. Visibility does not affect wrap_leaf_type result.
+    #[test]
+    fn visibility_does_not_affect_wrap(
+        inner in leaf_type_name(),
+        container in container_name(),
+    ) {
+        let ftype = format!("{container}<{inner}>");
+        let src_priv = build_struct_vis("S", &[("", "f", &ftype)]);
+        let src_pub = build_struct_vis("S", &[("pub", "f", &ftype)]);
+        let item_priv: Item = parse_str(&src_priv).unwrap();
+        let item_pub: Item = parse_str(&src_pub).unwrap();
+        let ty_priv: Type = parse_str(&extract_struct_fields(&item_priv)[0].1).unwrap();
+        let ty_pub: Type = parse_str(&extract_struct_fields(&item_pub)[0].1).unwrap();
+        let w_priv = wrap_leaf_type(&ty_priv, &skip(&[container]));
+        let w_pub = wrap_leaf_type(&ty_pub, &skip(&[container]));
+        prop_assert_eq!(ty_str(&w_priv), ty_str(&w_pub));
+    }
+
+    // 40. Mixed-visibility struct preserves field ordering.
+    #[test]
+    fn mixed_visibility_preserves_order(
+        f1 in ident_strategy(),
+        f2 in ident_strategy(),
+        f3 in ident_strategy(),
+        ty in leaf_type_name(),
+    ) {
+        prop_assume!(f1 != f2 && f2 != f3 && f1 != f3);
+        let src = build_struct_vis("S", &[
+            ("pub", &f1, ty),
+            ("pub(crate)", &f2, ty),
+            ("", &f3, ty),
+        ]);
+        let item: Item = parse_str(&src).unwrap();
+        let fields = extract_struct_fields(&item);
+        prop_assert_eq!(fields.len(), 3);
+        prop_assert_eq!(&fields[0].0, &f1);
+        prop_assert_eq!(&fields[1].0, &f2);
+        prop_assert_eq!(&fields[2].0, &f3);
+    }
+}
+
+// ===========================================================================
+// 10. FieldThenParams advanced parsing
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 41. FTP with three params preserves all param names in order.
+    #[test]
+    fn ftp_three_params_order(ty in leaf_type_name()) {
+        let input = format!("{ty}, alpha = 1, beta = 2, gamma = 3");
+        let parsed: FieldThenParams = syn::parse_str(&input).unwrap();
+        prop_assert_eq!(parsed.params.len(), 3);
+        prop_assert_eq!(parsed.params[0].path.to_string(), "alpha");
+        prop_assert_eq!(parsed.params[1].path.to_string(), "beta");
+        prop_assert_eq!(parsed.params[2].path.to_string(), "gamma");
+    }
+
+    // 42. FTP with string literal param value.
+    #[test]
+    fn ftp_string_literal_value(ty in leaf_type_name()) {
+        let input = format!("{ty}, label = \"hello\"");
+        let parsed: FieldThenParams = syn::parse_str(&input).unwrap();
+        prop_assert_eq!(parsed.params.len(), 1);
+        prop_assert_eq!(parsed.params[0].path.to_string(), "label");
+    }
+
+    // 43. FTP with nested container type preserves full type.
+    #[test]
+    fn ftp_nested_container_type(
+        outer in container_name(),
+        inner_container in container_name(),
+        leaf in leaf_type_name(),
+    ) {
+        let input = format!("{outer}<{inner_container}<{leaf}>>, depth = 2");
+        let parsed: FieldThenParams = syn::parse_str(&input).unwrap();
+        let s = ty_str(&parsed.field.ty);
+        prop_assert!(s.contains(outer), "outer {outer} in {s}");
+        prop_assert!(s.contains(inner_container), "inner {inner_container} in {s}");
+        prop_assert!(s.contains(leaf), "leaf {leaf} in {s}");
+        prop_assert_eq!(parsed.params.len(), 1);
+    }
+
+    // 44. FTP field type roundtrips through token stream.
+    #[test]
+    fn ftp_type_roundtrip_token_stream(ty in leaf_type_name()) {
+        let input = format!("{ty}, key = 1");
+        let parsed: FieldThenParams = syn::parse_str(&input).unwrap();
+        let tokens = parsed.field.ty.to_token_stream().to_string();
+        let reparsed: Type = parse_str(&tokens).unwrap();
+        prop_assert_eq!(ty_str(&reparsed), ty_str(&parsed.field.ty));
+    }
+
+    // 45. FTP with param names matching ident_strategy are preserved.
+    #[test]
+    fn ftp_arbitrary_param_names(
+        ty in leaf_type_name(),
+        pname in ident_strategy(),
+    ) {
+        let input = format!("{ty}, {pname} = 0");
+        let parsed: FieldThenParams = syn::parse_str(&input).unwrap();
+        prop_assert_eq!(parsed.params[0].path.to_string(), pname);
+    }
+}
+
+// ===========================================================================
+// 11. Multiple fields composition
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 46. All fields in a struct can be independently filtered.
+    #[test]
+    fn all_fields_independently_filterable(
+        inner1 in leaf_type_name(),
+        inner2 in leaf_type_name(),
+        inner3 in leaf_type_name(),
+    ) {
+        let src = build_struct("S", &[
+            ("a", &format!("Box<{inner1}>")),
+            ("b", &format!("Option<{inner2}>")),
+            ("c", &format!("Vec<{inner3}>")),
+        ]);
+        let item: Item = parse_str(&src).unwrap();
+        let fields = extract_struct_fields(&item);
+        let ty_a: Type = parse_str(&fields[0].1).unwrap();
+        let ty_b: Type = parse_str(&fields[1].1).unwrap();
+        let ty_c: Type = parse_str(&fields[2].1).unwrap();
+        prop_assert_eq!(ty_str(&filter_inner_type(&ty_a, &skip(&["Box"]))), inner1);
+        prop_assert_eq!(ty_str(&filter_inner_type(&ty_b, &skip(&["Option"]))), inner2);
+        prop_assert_eq!(ty_str(&filter_inner_type(&ty_c, &skip(&["Vec"]))), inner3);
+    }
+
+    // 47. All fields in a struct can be independently wrapped.
+    #[test]
+    fn all_fields_independently_wrappable(
+        inner1 in leaf_type_name(),
+        inner2 in leaf_type_name(),
+    ) {
+        let src = build_struct("S", &[
+            ("a", &format!("Vec<{inner1}>")),
+            ("b", &format!("Option<{inner2}>")),
+        ]);
+        let item: Item = parse_str(&src).unwrap();
+        let fields = extract_struct_fields(&item);
+        let ty_a: Type = parse_str(&fields[0].1).unwrap();
+        let ty_b: Type = parse_str(&fields[1].1).unwrap();
+        let w_a = wrap_leaf_type(&ty_a, &skip(&["Vec"]));
+        let w_b = wrap_leaf_type(&ty_b, &skip(&["Option"]));
+        prop_assert!(ty_str(&w_a).contains("adze :: WithLeaf"));
+        prop_assert!(ty_str(&w_b).contains("adze :: WithLeaf"));
+    }
+
+    // 48. Processing one field does not affect another field's extraction.
+    #[test]
+    fn processing_field_does_not_affect_sibling(
+        inner1 in leaf_type_name(),
+        inner2 in leaf_type_name(),
+    ) {
+        let src = build_struct("S", &[
+            ("a", &format!("Vec<{inner1}>")),
+            ("b", &format!("Option<{inner2}>")),
+        ]);
+        let item: Item = parse_str(&src).unwrap();
+        let fields = extract_struct_fields(&item);
+        let ty_a: Type = parse_str(&fields[0].1).unwrap();
+        let ty_b: Type = parse_str(&fields[1].1).unwrap();
+        // Extract and wrap field a
+        let _ = try_extract_inner_type(&ty_a, "Vec", &skip(&[]));
+        let _ = wrap_leaf_type(&ty_a, &skip(&["Vec"]));
+        // Field b should be unaffected
+        let (ext_b, ok_b) = try_extract_inner_type(&ty_b, "Option", &skip(&[]));
+        prop_assert!(ok_b);
+        prop_assert_eq!(ty_str(&ext_b), inner2);
+    }
+
+    // 49. Struct with duplicate types but different names extracts all.
+    #[test]
+    fn duplicate_types_different_names(inner in leaf_type_name()) {
+        let ftype = format!("Vec<{inner}>");
+        let src = build_struct("S", &[("x", &ftype), ("y", &ftype), ("z", &ftype)]);
+        let item: Item = parse_str(&src).unwrap();
+        let fields = extract_struct_fields(&item);
+        prop_assert_eq!(fields.len(), 3);
+        for i in 0..3 {
+            let ty: Type = parse_str(&fields[i].1).unwrap();
+            let (ext, ok) = try_extract_inner_type(&ty, "Vec", &skip(&[]));
+            prop_assert!(ok);
+            prop_assert_eq!(ty_str(&ext), inner);
+        }
+    }
+
+    // 50. Struct field count matches input count for various sizes.
+    #[test]
+    fn field_count_matches_input(
+        idents in distinct_idents(8),
+        ty in leaf_type_name(),
+    ) {
+        prop_assume!(!idents.is_empty());
+        let pairs: Vec<(&str, &str)> = idents.iter().map(|id| (id.as_str(), ty)).collect();
+        let src = build_struct("S", &pairs);
+        let item: Item = parse_str(&src).unwrap();
+        let fields = extract_struct_fields(&item);
+        prop_assert_eq!(fields.len(), idents.len());
+    }
+}
+
+// ===========================================================================
+// 12. Nested container processing
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 51. Vec<Option<T>> extracts Option<T> when target is Vec.
+    #[test]
+    fn nested_vec_option_extracts_outer(inner in leaf_type_name()) {
+        let ftype = format!("Vec<Option<{inner}>>");
+        let ty: Type = parse_str(&ftype).unwrap();
+        let (extracted, ok) = try_extract_inner_type(&ty, "Vec", &skip(&[]));
+        prop_assert!(ok);
+        let s = ty_str(&extracted);
+        prop_assert!(s.contains("Option"), "expected Option in {s}");
+        prop_assert!(s.contains(inner), "expected {inner} in {s}");
+    }
+
+    // 52. Option<Vec<T>> extracts Vec<T> when target is Option.
+    #[test]
+    fn nested_option_vec_extracts_outer(inner in leaf_type_name()) {
+        let ftype = format!("Option<Vec<{inner}>>");
+        let ty: Type = parse_str(&ftype).unwrap();
+        let (extracted, ok) = try_extract_inner_type(&ty, "Option", &skip(&[]));
+        prop_assert!(ok);
+        let s = ty_str(&extracted);
+        prop_assert!(s.contains("Vec"), "expected Vec in {s}");
+        prop_assert!(s.contains(inner), "expected {inner} in {s}");
+    }
+
+    // 53. filter_inner_type strips multiple nested containers in skip set.
+    #[test]
+    fn filter_strips_multiple_nested(inner in leaf_type_name()) {
+        let ftype = format!("Box<Arc<{inner}>>");
+        let ty: Type = parse_str(&ftype).unwrap();
+        let filtered = filter_inner_type(&ty, &skip(&["Box", "Arc"]));
+        prop_assert_eq!(ty_str(&filtered), inner);
+    }
+
+    // 54. wrap_leaf_type wraps through nested skip containers.
+    #[test]
+    fn wrap_through_nested_skip_containers(inner in leaf_type_name()) {
+        let ftype = format!("Vec<Option<{inner}>>");
+        let ty: Type = parse_str(&ftype).unwrap();
+        let wrapped = wrap_leaf_type(&ty, &skip(&["Vec", "Option"]));
+        let s = ty_str(&wrapped);
+        prop_assert!(s.starts_with("Vec <"), "outer Vec preserved: {s}");
+        prop_assert!(s.contains("Option <"), "middle Option preserved: {s}");
+        prop_assert!(s.contains("adze :: WithLeaf"), "innermost wrapped: {s}");
+    }
+
+    // 55. Box<Vec<T>> with Box in skip extracts T when target is Vec.
+    #[test]
+    fn skip_through_box_to_vec(inner in leaf_type_name()) {
+        let ftype = format!("Box<Vec<{inner}>>");
+        let ty: Type = parse_str(&ftype).unwrap();
+        let (extracted, ok) = try_extract_inner_type(&ty, "Vec", &skip(&["Box"]));
+        prop_assert!(ok);
+        prop_assert_eq!(ty_str(&extracted), inner);
+    }
+}
+
+// ===========================================================================
+// 13. Field type analysis (container vs plain)
+// ===========================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    // 56. Plain type never extracts for any container target.
+    #[test]
+    fn plain_type_never_extracts(
+        leaf in leaf_type_name(),
+        container in container_name(),
+    ) {
+        let ty: Type = parse_str(leaf).unwrap();
+        let (result, ok) = try_extract_inner_type(&ty, container, &skip(&[]));
+        prop_assert!(!ok);
+        prop_assert_eq!(ty_str(&result), leaf);
+    }
+
+    // 57. Empty skip set means only direct container match works.
+    #[test]
+    fn empty_skip_set_only_direct_match(
+        inner in leaf_type_name(),
+        container in container_name(),
+    ) {
+        let ftype = format!("{container}<{inner}>");
+        let ty: Type = parse_str(&ftype).unwrap();
+        let (_, ok) = try_extract_inner_type(&ty, container, &skip(&[]));
+        prop_assert!(ok, "direct match should work with empty skip set");
+    }
+
+    // 58. filter_inner_type on a plain type is identity.
+    #[test]
+    fn filter_plain_type_is_identity(leaf in leaf_type_name()) {
+        let ty: Type = parse_str(leaf).unwrap();
+        let filtered = filter_inner_type(&ty, &skip(&["Box", "Vec", "Option", "Arc", "Rc"]));
+        prop_assert_eq!(ty_str(&filtered), leaf);
+    }
+
+    // 59. wrap_leaf_type on a plain type wraps it directly.
+    #[test]
+    fn wrap_plain_type_wraps_directly(leaf in leaf_type_name()) {
+        let ty: Type = parse_str(leaf).unwrap();
+        let wrapped = wrap_leaf_type(&ty, &skip(&[]));
+        prop_assert_eq!(ty_str(&wrapped), format!("adze :: WithLeaf < {leaf} >"));
+    }
+
+    // 60. Container not in skip set is treated as a leaf for wrapping.
+    #[test]
+    fn container_not_in_skip_treated_as_leaf(
+        container in container_name(),
+        inner in leaf_type_name(),
+    ) {
+        let ftype = format!("{container}<{inner}>");
+        let ty: Type = parse_str(&ftype).unwrap();
+        // skip set is empty, so the container type itself gets wrapped
+        let wrapped = wrap_leaf_type(&ty, &skip(&[]));
+        let s = ty_str(&wrapped);
+        prop_assert!(s.starts_with("adze :: WithLeaf <"), "whole type wrapped: {s}");
+    }
+}
