@@ -140,7 +140,7 @@ pub mod version_info;
 
 pub mod lib_v2;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-api"))]
 /// Utilities for constructing test parse tables and grammars.
 pub mod test_helpers;
 

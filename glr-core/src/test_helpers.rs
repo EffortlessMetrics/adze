@@ -1,5 +1,5 @@
 /// Test helper functions for working with ParseTable
-#[cfg(test)]
+#[cfg(any(test, feature = "test-api"))]
 pub mod test {
     use crate::{Action, GotoIndexing, ParseTable};
     use adze_ir::{StateId, SymbolId};
