@@ -12,30 +12,19 @@ path = "src/main.rs"
 
 [features]
 dynamic = ["libloading"]
-python-grammar = ["adze-python"]
-javascript-grammar = ["adze-javascript"]
-tree-sitter-standard = ["adze/tree-sitter-standard"]
-tree-sitter-c2rust = ["adze/tree-sitter-c2rust"]
-pure-rust = ["adze/pure-rust"]
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
-adze = { path = "../runtime", default-features = false }
-tree-sitter = "0.25.8"
+clap.workspace = true
 adze-tool = { path = "../tool" }
-adze-ir = { path = "../ir" }
-adze-common = { path = "../common" }
 serde_json.workspace = true
 colored = "3.0"
-anyhow = "1.0"
+anyhow.workspace = true
 env_logger = "0.11"
 log = "0.4"
 walkdir = "2.5"
 notify = "8"
-tempfile = "3.8"
+tempfile.workspace = true
 libloading = { version = "0.8", optional = true }
-adze-python = { path = "../grammars/python", optional = true }
-adze-javascript = { path = "../grammars/javascript", optional = true }
 
 [dev-dependencies]
 assert_cmd = "2.0"

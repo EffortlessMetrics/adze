@@ -8,12 +8,12 @@ edition = "2024"
 adze = { path = "../runtime" }
 adze-ir = { path = "../ir" }
 adze-glr-core = { path = "../glr-core" }
-anyhow = "1.0"
+anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 chrono = "0.4"
-tempfile = "3.0"
-clap = { version = "4.0", features = ["derive"] }
+tempfile.workspace = true
+clap.workspace = true
 proptest.workspace = true
 
 [dev-dependencies]

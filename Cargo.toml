@@ -111,6 +111,14 @@ thiserror = "2.0"
 syn = { version = "2", features = ["full", "extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
+anyhow = "1.0"
+tempfile = "3"
+indexmap = "2.0"
+clap = { version = "4.5", features = ["derive"] }
+rayon = "1.10"
+rustc-hash = "2.1"
+smallvec = "1.13"
+regex = "1.11"
 
 [profile.ci]
 inherits = "dev"

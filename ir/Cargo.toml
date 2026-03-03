@@ -23,11 +23,11 @@ include = [
 all-features = true
 
 [dependencies]
-indexmap = { version = "2.0", features = ["serde"] }
+indexmap = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-anyhow = "1.0"
+anyhow.workspace = true
 
 [features]
 default = []

@@ -154,11 +154,6 @@ dependencies = [
 name = "adze-cli"
 version = "0.8.0-dev"
 dependencies = [
- "adze",
- "adze-common",
- "adze-ir",
- "adze-javascript",
- "adze-python",
  "adze-tool",
  "anyhow",
  "assert_cmd",
@@ -171,7 +166,6 @@ dependencies = [
  "predicates",
  "serde_json",
  "tempfile",
- "tree-sitter 0.25.10",
  "walkdir",
 ]
 

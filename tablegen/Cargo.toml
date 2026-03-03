@@ -34,8 +34,8 @@ quote.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-indexmap = "2.0"
-rustc-hash = "2.1"
+indexmap.workspace = true
+rustc-hash.workspace = true
 
 # Parsetable file generation dependencies
 sha2 = "0.10"
@@ -50,7 +50,7 @@ tree-sitter-c2rust = { version = "0.25.2", optional = true }
 [dev-dependencies]
 proptest.workspace = true
 insta.workspace = true
-rustc-hash = "2.1"
+rustc-hash.workspace = true
 criterion.workspace = true
 
 [[bench]]

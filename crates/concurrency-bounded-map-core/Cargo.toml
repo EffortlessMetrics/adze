@@ -19,7 +19,7 @@ strict_docs = []
 
 [dependencies]
 adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
-rayon = "1.10"
+rayon.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true

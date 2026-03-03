@@ -6,12 +6,12 @@ edition = "2024"
 
 [dependencies]
 adze-ir = { path = "../ir" }
-anyhow = "1.0"
+anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-tempfile = "3.0"
+tempfile.workspace = true
 lsp-types = "0.94"
 
 [[bin]]
@@ -19,5 +19,4 @@ name = "adze-lsp-gen"
 path = "src/bin/adze-lsp-gen.rs"
 
 [dependencies.clap]
-version = "4.0"
-features = ["derive"]
+workspace = true

@@ -75,22 +75,22 @@ adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
 adze-concurrency-caps-core = { version = "0.1.0", path = "../crates/concurrency-caps-core" }
 adze-stack-pool-core = { version = "0.1.0", path = "../crates/stack-pool-core" }
 adze-ts-format-core = { version = "0.1.0", path = "../crates/ts-format-core" }
-regex = "1.11.1"
+regex.workspace = true
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-anyhow = "1.0.98"
-indexmap = "2.10.0"
+anyhow.workspace = true
+indexmap.workspace = true
 once_cell = "1.19"
 thiserror.workspace = true
-rayon = "1.10.0"
+rayon.workspace = true
 ahash = "0.8.12"
 log = "0.4.27"
-smallvec = "1.13"
+smallvec.workspace = true
 wasm-bindgen = { version = "0.2.100", optional = true }
 
 [dev-dependencies]
 insta.workspace = true
-tempfile = "3.20.0"
+tempfile.workspace = true
 criterion.workspace = true
 serde.workspace = true
 serde_json.workspace = true

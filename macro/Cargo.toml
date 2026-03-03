@@ -36,6 +36,6 @@ adze-common = { version = "0.8.0-dev", path = "../common" }
 
 [dev-dependencies]
 insta.workspace = true
-tempfile = "3"
+tempfile.workspace = true
 trybuild = "1.0"
 adze = { version = "0.8.0-dev", path = "../runtime" }

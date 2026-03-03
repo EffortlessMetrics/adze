@@ -13,8 +13,8 @@ categories = ["parsing", "compilers"]
 [dependencies]
 # Core dependencies
 thiserror = "1.0"
-smallvec = "1.13"
-rustc-hash = "2.1"
+smallvec.workspace = true
+rustc-hash.workspace = true
 adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 adze-runtime2-governance = { version = "0.1.0", path = "../crates/runtime2-governance" }
 
@@ -26,7 +26,7 @@ adze-ir = { path = "../ir", optional = true }
 memchr = "2.7"
 
 # For tokenization (Phase 3.2)
-regex = { version = "1.11", optional = true }
+regex = { workspace = true, optional = true }
 
 # Optional dependencies for different features
 bumpalo = { version = "3.16", optional = true }
