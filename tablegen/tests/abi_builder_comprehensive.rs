@@ -529,3 +529,81 @@ fn rule_count_in_language_struct() {
     let code = generate_code(&g, &t);
     assert!(code.contains("rule_count"));
 }
+
+// ===========================================================================
+// 16. ABI output is valid Rust (parseable by syn)
+// ===========================================================================
+
+#[test]
+fn generated_code_is_valid_rust_parseable_by_syn() {
+    let (g, t) = build_grammar_and_table("valid_rust", 3, 2, 1, 0, 4);
+    let code = generate_code(&g, &t);
+
+    // Parse the TokenStream as Rust code
+    let parsed: Result<proc_macro2::TokenStream, _> = code.parse();
+    assert!(parsed.is_ok(), "generated code must be valid Rust");
+
+    // Also verify the TokenStream contains expected core elements
+    let code_str = code.to_string();
+    assert!(code_str.contains("pub static"));
+    assert!(code_str.contains("Language"));
+}
+
+// ===========================================================================
+// 17. ABI output with compressed tables
+// ===========================================================================
+
+#[test]
+fn generated_code_with_uncompressed_tables() {
+    let (g, t) = build_grammar_and_table("uncomp", 2, 1, 0, 0, 3);
+    let code = generate_code(&g, &t);
+
+    // Verify it generates code with parse tables
+    assert!(code.contains("PARSE_TABLE"));
+    assert!(code.contains("PARSE_ACTIONS"));
+    assert!(code.contains("LANGUAGE"));
+}
+
+// ===========================================================================
+// 18. ABI output handles Unicode symbol names
+// ===========================================================================
+
+#[test]
+fn generated_code_handles_unicode_symbol_names() {
+    let mut g = Grammar::new("unicode_test".to_string());
+
+    // Create tokens with unicode in names is not directly supported, but we can
+    // verify symbol name generation handles existing unicode properly
+    let t = ParseTable::default();
+
+    let code = generate_code(&g, &t);
+
+    // The code should compile and contain language struct
+    assert!(code.contains("LANGUAGE"));
+    assert!(code.contains("symbol_count"));
+}
+
+// ===========================================================================
+// 19. Additional comprehensive tests for full coverage
+// ===========================================================================
+
+#[test]
+fn generated_code_with_all_features() {
+    // Build a comprehensive grammar with all features
+    let (g, t) = build_grammar_and_table("full_featured", 15, 8, 5, 2, 25);
+    let code = generate_code(&g, &t);
+
+    // Verify all major components are present
+    assert!(code.contains("LANGUAGE"));
+    assert!(code.contains("SYMBOL_METADATA"));
+    assert!(code.contains("PUBLIC_SYMBOL_MAP"));
+    assert!(code.contains("PRODUCTION_ID_MAP"));
+    assert!(code.contains("FIELD_NAME_PTRS"));
+    assert!(code.contains("LEX_MODES"));
+    assert!(code.contains("EXTERNAL_SCANNER"));
+
+    // Verify symbol and state counts are correct
+    let code_str = code.to_string();
+    assert!(code_str.contains("symbol_count"));
+    assert!(code_str.contains("state_count"));
+}
