@@ -371,6 +371,16 @@ impl<'a> LanguageGenerator<'a> {
         // Production ID count is max ID + 1 (since they start at 0)
         (max_production_id + 1) as usize
     }
+
+    /// Public wrapper for `generate_symbol_metadata` (test use only).
+    pub fn generate_symbol_metadata_public(&self) -> Vec<u8> {
+        self.generate_symbol_metadata()
+    }
+
+    /// Public wrapper for `count_production_ids` (test use only).
+    pub fn count_production_ids_public(&self) -> usize {
+        self.count_production_ids()
+    }
 }
 
 #[cfg(test)]
