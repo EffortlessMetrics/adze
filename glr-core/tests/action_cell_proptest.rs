@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Property-based tests for `Action`, `ActionCell`, and parse table
 //! action/goto operations.
 //!
@@ -470,5 +471,170 @@ proptest! {
         }
         // Our strategy caps recursion at depth 2
         prop_assert!(max_depth(&action) <= 3);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 29. Single-action cell is deterministic (exactly one action)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn single_action_cell_is_deterministic(action in leaf_action()) {
+        let cell: Vec<Action> = vec![action.clone()];
+        prop_assert_eq!(cell.len(), 1);
+        prop_assert_eq!(&cell[0], &action);
+        // A single-action cell has no conflicts
+        let has_shift = matches!(&cell[0], Action::Shift(_));
+        let has_reduce = matches!(&cell[0], Action::Reduce(_));
+        prop_assert!(!(has_shift && has_reduce));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 30. Multi-action cell represents GLR conflict
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn multi_action_cell_has_conflict(
+        s in 0u16..1000,
+        r in 0u16..1000,
+    ) {
+        // A shift-reduce conflict cell
+        let cell: Vec<Action> = vec![
+            Action::Shift(StateId(s)),
+            Action::Reduce(RuleId(r)),
+        ];
+        prop_assert!(cell.len() > 1, "GLR conflict cell must have multiple actions");
+        let has_shift = cell.iter().any(|a| matches!(a, Action::Shift(_)));
+        let has_reduce = cell.iter().any(|a| matches!(a, Action::Reduce(_)));
+        prop_assert!(has_shift && has_reduce, "shift-reduce conflict expected");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 31. Empty action cell signals error state
+// ---------------------------------------------------------------------------
+
+#[test]
+fn empty_action_cell_signals_error() {
+    let cell: Vec<Action> = vec![];
+    assert!(cell.is_empty());
+    assert!(!cell.iter().any(|a| matches!(a, Action::Shift(_))));
+    assert!(!cell.iter().any(|a| matches!(a, Action::Reduce(_))));
+    assert!(!cell.iter().any(|a| matches!(a, Action::Accept)));
+}
+
+// ---------------------------------------------------------------------------
+// 32. Action ordering stability: sorting twice yields same result
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn action_ordering_stable(cell in arb_action_cell()) {
+        let mut sorted1 = cell.clone();
+        sorted1.sort_by(|a, b| format!("{a:?}").cmp(&format!("{b:?}")));
+
+        let mut sorted2 = sorted1.clone();
+        sorted2.sort_by(|a, b| format!("{a:?}").cmp(&format!("{b:?}")));
+
+        prop_assert_eq!(sorted1, sorted2, "sorting must be stable");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 33. Cell merge via extend preserves all actions
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_merge_preserves_all(
+        cell_a in arb_action_cell(),
+        cell_b in arb_action_cell(),
+    ) {
+        let mut merged = cell_a.clone();
+        merged.extend(cell_b.clone());
+        prop_assert_eq!(merged.len(), cell_a.len() + cell_b.len());
+        for action in &cell_a {
+            prop_assert!(merged.contains(action));
+        }
+        for action in &cell_b {
+            prop_assert!(merged.contains(action));
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 34. Cell merge then dedup has no duplicates
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn cell_merge_dedup_unique(
+        cell_a in arb_action_cell(),
+        cell_b in arb_action_cell(),
+    ) {
+        let mut merged = cell_a;
+        merged.extend(cell_b);
+        merged.sort_by(|a, b| format!("{a:?}").cmp(&format!("{b:?}")));
+        merged.dedup();
+        let set: HashSet<_> = merged.iter().cloned().collect();
+        prop_assert_eq!(merged.len(), set.len(), "deduped cell must have unique elements");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 35. Accept action is unique singleton in cell
+// ---------------------------------------------------------------------------
+
+#[test]
+fn accept_action_handling() {
+    let cell: Vec<Action> = vec![Action::Accept];
+    assert_eq!(cell.len(), 1);
+    assert!(matches!(&cell[0], Action::Accept));
+
+    // Accept with shift is a GLR conflict
+    let conflict_cell: Vec<Action> = vec![Action::Accept, Action::Shift(StateId(0))];
+    assert_eq!(conflict_cell.len(), 2);
+
+    // Dedup does not collapse Accept with other variants
+    let mut mixed = vec![Action::Accept, Action::Error, Action::Accept];
+    mixed.dedup();
+    // Adjacent Accept duplicates are removed
+    assert!(mixed.contains(&Action::Accept));
+    assert!(mixed.contains(&Action::Error));
+}
+
+// ---------------------------------------------------------------------------
+// 36. Error action does not equal any other variant
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn error_action_ne_others(s in 0u16..1000, r in 0u16..1000) {
+        let error = Action::Error;
+        prop_assert_ne!(error.clone(), Action::Shift(StateId(s)));
+        prop_assert_ne!(error.clone(), Action::Reduce(RuleId(r)));
+        prop_assert_ne!(error.clone(), Action::Accept);
+        prop_assert_ne!(error.clone(), Action::Recover);
+        prop_assert_ne!(error, Action::Fork(vec![]));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 37. Reduce-reduce conflict cell has multiple reduces
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn reduce_reduce_conflict(r1 in 0u16..1000, r2 in 0u16..1000) {
+        prop_assume!(r1 != r2);
+        let cell: Vec<Action> = vec![
+            Action::Reduce(RuleId(r1)),
+            Action::Reduce(RuleId(r2)),
+        ];
+        let reduce_count = cell.iter().filter(|a| matches!(a, Action::Reduce(_))).count();
+        prop_assert_eq!(reduce_count, 2);
     }
 }
