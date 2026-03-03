@@ -1,0 +1,16 @@
+---
+source: glr-core/tests/snapshot_tests.rs
+expression: "render_first_follow(&ff, &grammar)"
+---
+FIRST(source_file) = [1, 4]
+FOLLOW(source_file) = [0]
+nullable(6) = false
+FIRST(expr) = [1, 4]
+FOLLOW(expr) = [0, 2, 5]
+nullable(7) = false
+FIRST(term) = [1, 4]
+FOLLOW(term) = [0, 2, 3, 5]
+nullable(8) = false
+FIRST(factor) = [1, 4]
+FOLLOW(factor) = [0, 2, 3, 5]
+nullable(9) = false

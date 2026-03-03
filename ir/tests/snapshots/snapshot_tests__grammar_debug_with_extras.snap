@@ -1,0 +1,71 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: grammar
+---
+Grammar {
+    name: "debug_extras",
+    rules: {
+        SymbolId(
+            3,
+        ): [
+            Rule {
+                lhs: SymbolId(
+                    3,
+                ),
+                rhs: [
+                    Terminal(
+                        SymbolId(
+                            1,
+                        ),
+                    ),
+                ],
+                precedence: None,
+                associativity: None,
+                fields: [],
+                production_id: ProductionId(
+                    0,
+                ),
+            },
+        ],
+    },
+    tokens: {
+        SymbolId(
+            1,
+        ): Token {
+            name: "NUM",
+            pattern: Regex(
+                "\\d+",
+            ),
+            fragile: false,
+        },
+        SymbolId(
+            2,
+        ): Token {
+            name: "WS",
+            pattern: Regex(
+                "\\s+",
+            ),
+            fragile: false,
+        },
+    },
+    precedences: [],
+    conflicts: [],
+    externals: [],
+    extras: [
+        SymbolId(
+            2,
+        ),
+    ],
+    fields: {},
+    supertypes: [],
+    inline_rules: [],
+    alias_sequences: {},
+    production_ids: {},
+    max_alias_sequence_length: 0,
+    rule_names: {
+        SymbolId(
+            3,
+        ): "expr",
+    },
+    symbol_registry: None,
+}

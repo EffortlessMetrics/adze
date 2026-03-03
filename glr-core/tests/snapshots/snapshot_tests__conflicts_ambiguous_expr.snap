@@ -1,0 +1,10 @@
+---
+source: glr-core/tests/snapshot_tests.rs
+expression: render_conflicts(&resolver)
+---
+State 0 on SymbolId(1): R/R conflict — [Shift(StateId(1)), Shift(StateId(1))]
+State 0 on SymbolId(3): R/R conflict — [Shift(StateId(2)), Shift(StateId(2)), Shift(StateId(2))]
+State 2 on SymbolId(1): R/R conflict — [Shift(StateId(1)), Shift(StateId(1))]
+State 2 on SymbolId(3): R/R conflict — [Shift(StateId(3)), Shift(StateId(3)), Shift(StateId(3)), Shift(StateId(3))]
+State 3 on SymbolId(1): S/R conflict — [Shift(StateId(1)), Shift(StateId(1)), Reduce(RuleId(2))]
+State 3 on SymbolId(3): R/R conflict — [Shift(StateId(3)), Shift(StateId(3)), Shift(StateId(3)), Shift(StateId(3))]

@@ -1,0 +1,29 @@
+---
+source: glr-core/tests/snapshot_tests.rs
+expression: "lines.join(\"\\n\\n\")"
+---
+Total states: 5
+
+State 0:
+  source_file -> • expr , $
+  expr -> • expr '+' 'NUM' , $
+  expr -> • expr '+' 'NUM' , +
+  expr -> • 'NUM' , $
+  expr -> • 'NUM' , +
+
+State 1:
+  expr -> 'NUM' • , $
+  expr -> 'NUM' • , +
+
+State 2:
+  source_file -> expr • , $
+  expr -> expr • '+' 'NUM' , $
+  expr -> expr • '+' 'NUM' , +
+
+State 3:
+  expr -> expr '+' • 'NUM' , $
+  expr -> expr '+' • 'NUM' , +
+
+State 4:
+  expr -> expr '+' 'NUM' • , $
+  expr -> expr '+' 'NUM' • , +

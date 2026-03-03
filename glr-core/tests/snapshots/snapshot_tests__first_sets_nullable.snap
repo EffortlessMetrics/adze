@@ -1,0 +1,10 @@
+---
+source: glr-core/tests/snapshot_tests.rs
+expression: "lines.join(\"\\n\")"
+---
+  nullable = false
+  nullable = false
+  nullable = true
+FIRST(SymbolId(4)) = [1, 2]
+FIRST(SymbolId(5)) = [1]
+FIRST(source_file) = [1, 2]

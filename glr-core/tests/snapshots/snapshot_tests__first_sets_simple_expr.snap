@@ -1,0 +1,6 @@
+---
+source: glr-core/tests/snapshot_tests.rs
+expression: "lines.join(\"\\n\")"
+---
+FIRST(expr) = [1]
+FIRST(source_file) = [1]

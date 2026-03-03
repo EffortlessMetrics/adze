@@ -1,0 +1,144 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: grammar
+---
+Grammar {
+    name: "debug_prec",
+    rules: {
+        SymbolId(
+            4,
+        ): [
+            Rule {
+                lhs: SymbolId(
+                    4,
+                ),
+                rhs: [
+                    NonTerminal(
+                        SymbolId(
+                            4,
+                        ),
+                    ),
+                    Terminal(
+                        SymbolId(
+                            2,
+                        ),
+                    ),
+                    NonTerminal(
+                        SymbolId(
+                            4,
+                        ),
+                    ),
+                ],
+                precedence: Some(
+                    Static(
+                        1,
+                    ),
+                ),
+                associativity: Some(
+                    Left,
+                ),
+                fields: [],
+                production_id: ProductionId(
+                    0,
+                ),
+            },
+            Rule {
+                lhs: SymbolId(
+                    4,
+                ),
+                rhs: [
+                    NonTerminal(
+                        SymbolId(
+                            4,
+                        ),
+                    ),
+                    Terminal(
+                        SymbolId(
+                            3,
+                        ),
+                    ),
+                    NonTerminal(
+                        SymbolId(
+                            4,
+                        ),
+                    ),
+                ],
+                precedence: Some(
+                    Static(
+                        2,
+                    ),
+                ),
+                associativity: Some(
+                    Left,
+                ),
+                fields: [],
+                production_id: ProductionId(
+                    1,
+                ),
+            },
+            Rule {
+                lhs: SymbolId(
+                    4,
+                ),
+                rhs: [
+                    Terminal(
+                        SymbolId(
+                            1,
+                        ),
+                    ),
+                ],
+                precedence: None,
+                associativity: None,
+                fields: [],
+                production_id: ProductionId(
+                    2,
+                ),
+            },
+        ],
+    },
+    tokens: {
+        SymbolId(
+            1,
+        ): Token {
+            name: "NUMBER",
+            pattern: Regex(
+                "\\d+",
+            ),
+            fragile: false,
+        },
+        SymbolId(
+            2,
+        ): Token {
+            name: "+",
+            pattern: String(
+                "+",
+            ),
+            fragile: false,
+        },
+        SymbolId(
+            3,
+        ): Token {
+            name: "*",
+            pattern: String(
+                "*",
+            ),
+            fragile: false,
+        },
+    },
+    precedences: [],
+    conflicts: [],
+    externals: [],
+    extras: [],
+    fields: {},
+    supertypes: [],
+    inline_rules: [],
+    alias_sequences: {},
+    production_ids: {},
+    max_alias_sequence_length: 0,
+    rule_names: {
+        SymbolId(
+            4,
+        ): "expr",
+    },
+    symbol_registry: None,
+}

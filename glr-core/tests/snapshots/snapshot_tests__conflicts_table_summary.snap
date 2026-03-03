@@ -1,0 +1,5 @@
+---
+source: glr-core/tests/snapshot_tests.rs
+expression: "format!(\"states={} shift_reduce={} reduce_reduce={}\", table.state_count,\nsummary.shift_reduce, summary.reduce_reduce)"
+---
+states=5 shift_reduce=1 reduce_reduce=0

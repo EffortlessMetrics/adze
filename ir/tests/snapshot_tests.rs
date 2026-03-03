@@ -509,3 +509,54 @@ fn grammar_json_roundtrip() {
     assert_eq!(json, json2, "JSON round-trip should be identical");
     insta::assert_snapshot!("grammar_json_roundtrip", json);
 }
+
+// ===========================================================================
+// 6. Grammar Debug output snapshots
+// ===========================================================================
+
+#[test]
+fn grammar_debug_simple() {
+    let grammar = GrammarBuilder::new("debug_simple")
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .rule("expr", vec!["expr", "+", "expr"])
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    insta::assert_debug_snapshot!("grammar_debug_simple", grammar);
+}
+
+#[test]
+fn grammar_debug_with_precedence() {
+    let grammar = GrammarBuilder::new("debug_prec")
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .token("*", "*")
+        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    insta::assert_debug_snapshot!("grammar_debug_with_precedence", grammar);
+}
+
+#[test]
+fn grammar_debug_empty() {
+    let grammar = Grammar::new("empty_debug".into());
+    insta::assert_debug_snapshot!("grammar_debug_empty", grammar);
+}
+
+#[test]
+fn grammar_debug_with_extras() {
+    let grammar = GrammarBuilder::new("debug_extras")
+        .token("NUM", r"\d+")
+        .token("WS", r"\s+")
+        .extra("WS")
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+
+    insta::assert_debug_snapshot!("grammar_debug_with_extras", grammar);
+}

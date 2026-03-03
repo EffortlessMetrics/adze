@@ -1,0 +1,21 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: grammar
+---
+Grammar {
+    name: "empty_debug",
+    rules: {},
+    tokens: {},
+    precedences: [],
+    conflicts: [],
+    externals: [],
+    extras: [],
+    fields: {},
+    supertypes: [],
+    inline_rules: [],
+    alias_sequences: {},
+    production_ids: {},
+    max_alias_sequence_length: 0,
+    rule_names: {},
+    symbol_registry: None,
+}
