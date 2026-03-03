@@ -358,7 +358,7 @@ pub trait Extract<Output>: sealed::Sealed {
     /// Extracts a Rust value from a Tree-sitter node.
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -400,7 +400,7 @@ impl<L> Extract<L> for WithLeaf<L> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         _last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -637,7 +637,7 @@ impl Extract<()> for () {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        _node: Option<tree_sitter::Node>,
+        _node: Option<crate::tree_sitter::Node>,
         _source: &[u8],
         _last_idx: usize,
         _leaf_fn: Option<&Self::LeafFn>,
@@ -659,7 +659,7 @@ impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -683,7 +683,7 @@ impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -707,7 +707,7 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         mut last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -847,7 +847,7 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -1039,7 +1039,7 @@ macro_rules! impl_extract_for_primitive {
 
             #[cfg(not(feature = "pure-rust"))]
             fn extract(
-                node: Option<tree_sitter::Node>,
+                node: Option<crate::tree_sitter::Node>,
                 source: &[u8],
                 _last_idx: usize,
                 _leaf_fn: Option<&Self::LeafFn>,
@@ -1133,7 +1133,7 @@ pub mod errors {
     /// errors that were emitted.
     #[cfg(not(feature = "pure-rust"))]
     pub fn collect_parsing_errors(
-        node: &tree_sitter::Node,
+        node: &crate::tree_sitter::Node,
         source: &[u8],
         errors: &mut Vec<ParseError>,
     ) {
