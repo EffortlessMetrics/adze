@@ -586,7 +586,11 @@ mod tests {
                 tree_sitter_c2rust: tsc,
                 glr,
             };
-            assert_eq!(p.to_string(), expected, "single-feature display for {expected}");
+            assert_eq!(
+                p.to_string(),
+                expected,
+                "single-feature display for {expected}"
+            );
         }
     }
 

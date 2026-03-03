@@ -1,41 +1,41 @@
 ---
 source: common/tests/expansion_snapshots.rs
-assertion_line: 192
+assertion_line: 168
 expression: "serde_json::to_string_pretty(&result).unwrap()"
 ---
 {
+  "rule_name": "VecStruct",
+  "kind": "struct",
   "fields": [
     {
-      "filtered": "Vec < Expr >",
+      "name": "items",
       "input_type": "Vec < Expr >",
       "is_optional": false,
-      "is_repeat": true,
-      "name": "items",
       "optional_inner": "N/A",
+      "is_repeat": true,
       "repeat_inner": "Expr",
+      "filtered": "Vec < Expr >",
       "wrapped": "Vec < adze :: WithLeaf < Expr > >"
     },
     {
-      "filtered": "Vec < String >",
+      "name": "tags",
       "input_type": "Vec < String >",
       "is_optional": false,
-      "is_repeat": true,
-      "name": "tags",
       "optional_inner": "N/A",
+      "is_repeat": true,
       "repeat_inner": "String",
+      "filtered": "Vec < String >",
       "wrapped": "Vec < adze :: WithLeaf < String > >"
     },
     {
-      "filtered": "Identifier",
+      "name": "single",
       "input_type": "Identifier",
       "is_optional": false,
-      "is_repeat": false,
-      "name": "single",
       "optional_inner": "N/A",
+      "is_repeat": false,
       "repeat_inner": "N/A",
+      "filtered": "Identifier",
       "wrapped": "adze :: WithLeaf < Identifier >"
     }
-  ],
-  "kind": "struct",
-  "rule_name": "VecStruct"
+  ]
 }

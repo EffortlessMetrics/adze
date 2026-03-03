@@ -512,9 +512,7 @@ fn make_external_scanner_grammar() -> (Grammar, ParseTable) {
         production_id: ProductionId(0),
     };
     grammar.rules.insert(SymbolId(6), vec![rule]);
-    grammar
-        .rule_names
-        .insert(SymbolId(6), "block".to_string());
+    grammar.rule_names.insert(SymbolId(6), "block".to_string());
 
     let eof_symbol = SymbolId(2);
     let start_symbol = SymbolId(6);
@@ -711,9 +709,7 @@ fn make_many_states_grammar() -> (Grammar, ParseTable) {
             production_id: ProductionId(4),
         }],
     );
-    grammar
-        .rule_names
-        .insert(s_sym, "start".to_string());
+    grammar.rule_names.insert(s_sym, "start".to_string());
 
     let eof_symbol = SymbolId(5);
     let start_symbol = SymbolId(6);
@@ -745,9 +741,9 @@ fn make_many_states_grammar() -> (Grammar, ParseTable) {
     actions[7][5] = vec![Action::Reduce(adze_ir::RuleId(3))];
 
     let mut gotos = vec![vec![StateId(u16::MAX); symbol_count]; state_count];
-    gotos[0][7] = StateId(2);  // A
-    gotos[2][8] = StateId(4);  // B
-    gotos[4][9] = StateId(6);  // C
+    gotos[0][7] = StateId(2); // A
+    gotos[2][8] = StateId(4); // B
+    gotos[4][9] = StateId(6); // C
     gotos[6][10] = StateId(7); // D
 
     let mut nonterminal_to_index = BTreeMap::new();
@@ -810,11 +806,26 @@ fn make_many_states_grammar() -> (Grammar, ParseTable) {
         action_table: actions,
         goto_table: gotos,
         rules: vec![
-            ParseRule { lhs: SymbolId(7), rhs_len: 1 },
-            ParseRule { lhs: SymbolId(8), rhs_len: 1 },
-            ParseRule { lhs: SymbolId(9), rhs_len: 1 },
-            ParseRule { lhs: SymbolId(10), rhs_len: 1 },
-            ParseRule { lhs: SymbolId(6), rhs_len: 4 },
+            ParseRule {
+                lhs: SymbolId(7),
+                rhs_len: 1,
+            },
+            ParseRule {
+                lhs: SymbolId(8),
+                rhs_len: 1,
+            },
+            ParseRule {
+                lhs: SymbolId(9),
+                rhs_len: 1,
+            },
+            ParseRule {
+                lhs: SymbolId(10),
+                rhs_len: 1,
+            },
+            ParseRule {
+                lhs: SymbolId(6),
+                rhs_len: 4,
+            },
         ],
         state_count,
         symbol_count,
@@ -1027,9 +1038,7 @@ fn snapshot_abi_constants() {
             // Skip `:` and whitespace
             let rest = rest.trim_start_matches(|c: char| c == ':' || c.is_whitespace());
             // Take up to next `,` or `}`
-            let end = rest
-                .find(|c: char| c == ',' || c == '}')
-                .unwrap_or(rest.len());
+            let end = rest.find([',', '}']).unwrap_or(rest.len());
             let val = rest[..end].trim();
             format!("{key} = {val}")
         } else {
@@ -1069,9 +1078,7 @@ fn snapshot_expr_abi_constants() {
         if let Some(pos) = code.find(key) {
             let rest = &code[pos + key.len()..];
             let rest = rest.trim_start_matches(|c: char| c == ':' || c.is_whitespace());
-            let end = rest
-                .find(|c: char| c == ',' || c == '}')
-                .unwrap_or(rest.len());
+            let end = rest.find([',', '}']).unwrap_or(rest.len());
             format!("{key} = {}", rest[..end].trim())
         } else {
             format!("{key} = <not found>")
@@ -1089,7 +1096,11 @@ fn snapshot_expr_abi_constants() {
         "production_id_count",
         "field_count",
     ];
-    let output = keys.iter().map(|k| extract(k)).collect::<Vec<_>>().join("\n");
+    let output = keys
+        .iter()
+        .map(|k| extract(k))
+        .collect::<Vec<_>>()
+        .join("\n");
     insta::assert_snapshot!("abi_constants_expr", output);
 }
 
@@ -1105,9 +1116,7 @@ fn snapshot_external_scanner_abi_constants() {
         if let Some(pos) = code.find(key) {
             let rest = &code[pos + key.len()..];
             let rest = rest.trim_start_matches(|c: char| c == ':' || c.is_whitespace());
-            let end = rest
-                .find(|c: char| c == ',' || c == '}')
-                .unwrap_or(rest.len());
+            let end = rest.find([',', '}']).unwrap_or(rest.len());
             format!("{key} = {}", rest[..end].trim())
         } else {
             format!("{key} = <not found>")
@@ -1121,7 +1130,11 @@ fn snapshot_external_scanner_abi_constants() {
         "external_token_count",
         "state_count",
     ];
-    let output = keys.iter().map(|k| extract(k)).collect::<Vec<_>>().join("\n");
+    let output = keys
+        .iter()
+        .map(|k| extract(k))
+        .collect::<Vec<_>>()
+        .join("\n");
     insta::assert_snapshot!("abi_constants_external_scanner", output);
 }
 

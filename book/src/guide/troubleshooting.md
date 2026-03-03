@@ -20,8 +20,12 @@ This chapter covers common issues you may encounter when working with Adze gramm
 2. Ensure your `build.rs` calls `build_parsers()`:
 
    ```rust
+   use std::path::PathBuf;
+
    fn main() {
-       adze_tool::build_parsers();
+       // Point this at the file containing your `#[adze::grammar(...)]` module.
+       // Use `src/lib.rs` for library crates.
+       adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
    }
    ```
 

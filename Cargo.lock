@@ -174,8 +174,10 @@ name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
  "adze-common-syntax-core",
+ "insta",
  "proc-macro2",
  "quote",
+ "serde_json",
  "syn 2.0.117",
 ]
 
