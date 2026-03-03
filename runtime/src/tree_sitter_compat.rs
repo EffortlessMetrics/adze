@@ -1,198 +1,254 @@
-// Compatibility layer to make pure-Rust types work with existing Extract trait
+// Compatibility layer to provide a minimal `tree_sitter`-shaped API
+// for pure-Rust parsing in environments where no `tree-sitter*` backend
+// feature is enabled.
+#![allow(dead_code)]
+#![allow(unreachable_pub)]
+#![allow(clippy::redundant_closure)]
+
+use std::ffi::CStr;
+
 use crate::pure_incremental::Tree as PureTree;
-use crate::pure_parser::{ParsedNode, Parser as PureParser};
+use crate::pure_parser::{ParsedNode, Parser as PureParser, TSLanguage};
 
-// Type aliases for compatibility
-#[allow(dead_code)]
-pub(crate) type Node<'a> = NodeCompat<'a>;
-#[allow(dead_code)]
-pub(crate) type Parser = ParserCompat;
-#[allow(dead_code)]
-pub(crate) type Language = &'static crate::pure_parser::TSLanguage;
+pub type Language = &'static TSLanguage;
+pub use crate::pure_parser::Point;
 
-/// Compatibility wrapper for ParsedNode to work with Extract trait
-pub(crate) struct NodeCompat<'a> {
-    pub inner: &'a ParsedNode,
-    source: &'a [u8],
+pub const LANGUAGE_VERSION: u32 = crate::pure_parser::TREE_SITTER_LANGUAGE_VERSION;
+pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 =
+    crate::pure_parser::TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION;
+
+/// Compatibility wrapper for a parsed node.
+#[derive(Copy, Clone)]
+#[allow(clippy::missing_inline_in_public_items)]
+pub struct Node {
+    ptr: *const ParsedNode,
 }
 
-#[allow(dead_code)]
-impl<'a> NodeCompat<'a> {
-    pub(crate) fn new(node: &'a ParsedNode, source: &'a [u8]) -> Self {
-        NodeCompat {
-            inner: node,
-            source,
+impl Node {
+    #[inline]
+    fn new(inner: &ParsedNode) -> Self {
+        Self {
+            ptr: inner as *const _,
         }
     }
 
-    pub(crate) fn kind(&self) -> &str {
-        // In pure-Rust, we use symbol IDs, but we need to convert to strings
-        // This would be populated from the language's symbol_names
-        match self.inner.symbol {
-            0 => "program",
-            1 => "expression",
-            2 => "number",
-            3 => "identifier",
-            _ => "unknown",
+    #[inline]
+    fn as_ref(&self) -> &ParsedNode {
+        // SAFETY: `Node` values are only constructed from references that are
+        // valid for the lifetime of the underlying parse tree. This module
+        // purposefully mirrors the tree-sitter API shape used by this crate.
+        unsafe { &*self.ptr }
+    }
+
+    pub fn kind(&self) -> &str {
+        self.as_ref().kind()
+    }
+
+    pub fn child_count(&self) -> usize {
+        self.as_ref().child_count()
+    }
+
+    pub fn child(&self, index: usize) -> Option<Node> {
+        self.as_ref().child(index).map(Node::new)
+    }
+
+    pub fn is_error(&self) -> bool {
+        self.as_ref().is_error()
+    }
+
+    pub fn is_missing(&self) -> bool {
+        self.as_ref().is_missing()
+    }
+
+    pub fn has_error(&self) -> bool {
+        self.as_ref().has_error()
+    }
+
+    pub fn is_named(&self) -> bool {
+        self.as_ref().is_named()
+    }
+
+    pub fn utf8_text<'a>(&self, source: &'a [u8]) -> Result<&'a str, std::str::Utf8Error> {
+        self.as_ref().utf8_text(source)
+    }
+
+    pub fn start_byte(&self) -> usize {
+        self.as_ref().start_byte()
+    }
+
+    pub fn end_byte(&self) -> usize {
+        self.as_ref().end_byte()
+    }
+
+    pub fn start_position(&self) -> Point {
+        self.as_ref().start_point()
+    }
+
+    pub fn end_position(&self) -> Point {
+        self.as_ref().end_point()
+    }
+
+    pub fn walk(&self) -> TreeCursor {
+        TreeCursor::new(*self)
+    }
+
+    pub fn children<'a>(&'a self, cursor: &'a mut TreeCursor) -> Children<'a> {
+        cursor.reset(*self);
+        let index = cursor.index;
+        let children = self.as_ref().children();
+        Children {
+            cursor,
+            children,
+            index,
         }
     }
+}
 
-    pub(crate) fn start_byte(&self) -> usize {
-        self.inner.start_byte
-    }
+/// Compatibility tree cursor.
+#[derive(Copy, Clone)]
+pub struct TreeCursor {
+    parent: Option<Node>,
+    index: usize,
+}
 
-    pub(crate) fn end_byte(&self) -> usize {
-        self.inner.end_byte
-    }
-
-    pub(crate) fn utf8_text<'b>(&self, source: &'b [u8]) -> Result<&'b str, std::str::Utf8Error> {
-        let text = &source[self.inner.start_byte..self.inner.end_byte];
-        std::str::from_utf8(text)
-    }
-
-    pub(crate) fn is_error(&self) -> bool {
-        self.inner.is_error
-    }
-
-    pub(crate) fn is_missing(&self) -> bool {
-        self.inner.is_missing
-    }
-
-    pub(crate) fn has_error(&self) -> bool {
-        // Check if this node or any descendant has an error
-        self.inner.is_error
-            || self
-                .inner
-                .children
-                .iter()
-                .any(|c| Self::new(c, self.source).has_error())
-    }
-
-    pub(crate) fn is_named(&self) -> bool {
-        self.inner.is_named
-    }
-
-    pub(crate) fn child(&self, index: usize) -> Option<NodeCompat<'a>> {
-        self.inner
-            .child(index)
-            .map(|c| NodeCompat::new(c, self.source))
-    }
-
-    pub(crate) fn children<'b>(&'b self) -> impl Iterator<Item = NodeCompat<'a>> + 'b {
-        self.inner
-            .children()
-            .iter()
-            .map(move |c| NodeCompat::new(c, self.source))
-    }
-
-    pub(crate) fn walk(&self) -> TreeCursor<'a> {
-        TreeCursor {
-            node: self.clone(),
+impl TreeCursor {
+    #[inline]
+    fn new(node: Node) -> Self {
+        Self {
+            parent: Some(node),
             index: 0,
         }
     }
 
-    pub(crate) fn field_name_for_child(&self, _index: usize) -> Option<&str> {
-        // In pure-Rust, field names would come from the language definition
-        // For now, return None
-        None
+    #[inline]
+    fn reset(&mut self, node: Node) {
+        self.parent = Some(node);
+        self.index = 0;
     }
 
-    pub(crate) fn reset(&mut self, node: Node<'a>) {
-        *self = node;
-    }
-}
-
-impl<'a> Clone for NodeCompat<'a> {
-    fn clone(&self) -> Self {
-        NodeCompat {
-            inner: self.inner,
-            source: self.source,
+    pub fn node(&self) -> Node {
+        let parent = self.parent.unwrap();
+        if let Some(child) = parent.as_ref().child(self.index) {
+            Node::new(child)
+        } else {
+            parent
         }
     }
-}
 
-/// Tree cursor for traversing the parse tree
-#[allow(dead_code)]
-pub(crate) struct TreeCursor<'a> {
-    node: NodeCompat<'a>,
-    index: usize,
-}
-
-#[allow(dead_code)]
-impl<'a> TreeCursor<'a> {
-    pub(crate) fn node(&self) -> NodeCompat<'a> {
-        self.node.clone()
+    pub fn goto_first_child(&mut self) -> bool {
+        self.index = 0;
+        match self.parent {
+            Some(parent) => parent.child_count() > 0,
+            None => false,
+        }
     }
 
-    pub(crate) fn goto_first_child(&mut self) -> bool {
-        if let Some(first_child) = self.node.child(0) {
-            self.node = first_child;
-            self.index = 0;
+    pub fn goto_next_sibling(&mut self) -> bool {
+        let Some(parent) = self.parent else {
+            return false;
+        };
+
+        if self.index + 1 < parent.child_count() {
+            self.index += 1;
             true
         } else {
             false
         }
     }
 
-    pub(crate) fn goto_next_sibling(&mut self) -> bool {
-        // This is simplified - in reality we'd need to track parent nodes
-        false
-    }
+    pub fn field_name(&self) -> Option<&str> {
+        let parent = self.parent?;
+        let children = parent.as_ref().children();
+        let child = children.get(self.index)?;
+        child.field_id.and_then(|field_id| {
+            let language = child.language?;
+            let language = unsafe { &*language };
 
-    pub(crate) fn field_name(&self) -> Option<&str> {
-        None
-    }
+            if usize::from(field_id) >= language.field_count as usize {
+                return None;
+            }
 
-    pub(crate) fn reset(&mut self, node: Node<'a>) {
-        self.node = node;
-        self.index = 0;
+            let field_names = unsafe {
+                std::slice::from_raw_parts(language.field_names, language.field_count as usize)
+            };
+
+            let field_ptr = *field_names.get(field_id as usize)?;
+            if field_ptr.is_null() {
+                return None;
+            }
+
+            unsafe { CStr::from_ptr(field_ptr as *const i8).to_str().ok() }
+        })
     }
 }
 
-/// Parser wrapper for compatibility
-pub(crate) struct ParserCompat {
-    #[allow(dead_code)]
+pub struct Children<'a> {
+    cursor: &'a mut TreeCursor,
+    children: &'a [ParsedNode],
+    index: usize,
+}
+
+impl<'a> Iterator for Children<'a> {
+    type Item = Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let child = self.children.get(self.index).map(Node::new);
+        if self.index < self.children.len() {
+            self.index += 1;
+            self.cursor.index = self.index;
+        }
+        child
+    }
+}
+
+/// Compatibility wrapper for parser object.
+pub struct Parser {
     inner: PureParser,
 }
 
-#[allow(dead_code)]
-impl ParserCompat {
-    pub(crate) fn new() -> Self {
-        ParserCompat {
+impl Parser {
+    pub fn new() -> Self {
+        Self {
             inner: PureParser::new(),
         }
     }
 
-    pub(crate) fn set_language(
-        &mut self,
-        language: &'static crate::pure_parser::TSLanguage,
-    ) -> Result<(), String> {
-        let _ = self.inner.set_language(language);
-        Ok(())
+    pub fn set_language(&mut self, language: Language) -> Result<(), String> {
+        self.inner.set_language(language)
     }
 
-    pub(crate) fn parse(&mut self, source: &str, old_tree: Option<&PureTree>) -> Option<PureTree> {
-        let result = if let Some(tree) = old_tree {
-            self.inner.parse_string_with_tree(source, Some(tree))
-        } else {
-            self.inner.parse_string(source)
-        };
+    pub fn parse(&mut self, source: &str, old_tree: Option<&Tree>) -> Option<Tree> {
+        let result = self
+            .inner
+            .parse_string_with_tree(source, old_tree.map(|tree| &tree.inner));
 
-        result.root.and_then(|root| {
-            self.inner
-                .language()
-                .map(|language| PureTree::new(root, language, source.as_bytes()))
+        let root = result.root?;
+        let language = self.inner.language()?;
+
+        Some(Tree {
+            inner: PureTree::new(root, language, source.as_bytes()),
         })
     }
 
-    pub(crate) fn set_timeout_micros(&mut self, timeout: u64) {
+    pub fn set_timeout_micros(&mut self, timeout: u64) {
         self.inner.set_timeout_micros(timeout);
     }
 }
 
-impl Default for ParserCompat {
+impl Default for Parser {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Compatibility wrapper for a parsed tree.
+#[derive(Clone)]
+pub struct Tree {
+    inner: PureTree,
+}
+
+impl Tree {
+    pub fn root_node(&self) -> Node {
+        Node::new(self.inner.root_node())
     }
 }

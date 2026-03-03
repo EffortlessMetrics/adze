@@ -220,8 +220,18 @@ pub use adze_ir;
 // }
 // mod parallel_parser_v2;
 
-#[cfg(feature = "pure-rust")]
+#[cfg(all(
+    feature = "pure-rust",
+    not(feature = "tree-sitter-standard"),
+    not(feature = "tree-sitter-c2rust")
+))]
 mod tree_sitter_compat;
+#[cfg(all(
+    not(feature = "tree-sitter-standard"),
+    not(feature = "tree-sitter-c2rust"),
+    not(feature = "pure-rust")
+))]
+pub mod tree_sitter_compat;
 
 use std::ops::Deref;
 
@@ -236,6 +246,13 @@ pub use tree_sitter;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
 pub use tree_sitter_c2rust as tree_sitter;
+
+#[cfg(all(
+    not(feature = "tree-sitter-standard"),
+    not(feature = "tree-sitter-c2rust"),
+    not(feature = "pure-rust")
+))]
+pub use tree_sitter_compat as tree_sitter;
 
 /// Tree-sitter compatibility module for pure-Rust implementation.
 #[cfg(feature = "pure-rust")]
@@ -1081,6 +1098,13 @@ pub mod errors {
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
     use tree_sitter_c2rust as tree_sitter;
+
+    #[cfg(all(
+        not(feature = "tree-sitter-standard"),
+        not(feature = "tree-sitter-c2rust"),
+        not(feature = "pure-rust")
+    ))]
+    use crate::tree_sitter;
 
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.
