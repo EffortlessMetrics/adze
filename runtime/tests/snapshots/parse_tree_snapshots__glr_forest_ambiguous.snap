@@ -1,0 +1,5 @@
+---
+source: runtime/tests/parse_tree_snapshots.rs
+expression: "glr_parse_to_sexpr(&grammar, \"1+2*3\")"
+---
+(expression (expression (expression (number "1")) (plus "+") (expression (number "2"))) (star "*") (expression (number "3")))

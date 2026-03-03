@@ -1,0 +1,5 @@
+---
+source: runtime/tests/parse_tree_snapshots.rs
+expression: arith_result_to_sexpr(&result)
+---
+(number 42)
