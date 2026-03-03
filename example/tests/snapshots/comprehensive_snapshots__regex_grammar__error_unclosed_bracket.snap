@@ -1,0 +1,15 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "grammar::parse(\"[\")"
+---
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 1,
+            end: 1,
+        },
+    ],
+)

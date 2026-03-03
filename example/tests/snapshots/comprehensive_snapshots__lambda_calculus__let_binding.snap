@@ -1,0 +1,85 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "grammar::parse(r\"let f = \\x.x in f y\")"
+---
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 4,
+            end: 4,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "=",
+            ),
+            start: 6,
+            end: 6,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "\\",
+            ),
+            start: 8,
+            end: 8,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 9,
+            end: 9,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                ".",
+            ),
+            start: 10,
+            end: 10,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 11,
+            end: 11,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "in",
+            ),
+            start: 13,
+            end: 13,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 14,
+            end: 14,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 16,
+            end: 16,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 18,
+            end: 18,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 19,
+            end: 19,
+        },
+    ],
+)

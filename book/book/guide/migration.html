@@ -1,0 +1,523 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Migration: rust-sitter to Adze - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/guide/migration.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="migration-guide-rust-sitter-to-adze"><a class="header" href="#migration-guide-rust-sitter-to-adze">Migration Guide: rust-sitter to Adze</a></h1>
+<p>This chapter provides a comprehensive guide for migrating projects from
+<code>rust-sitter</code> (the original project name) to <strong>Adze</strong>. The rename was
+formalized in the v0.8.0 release and affects crate names, attribute paths,
+import paths, and repository URLs.</p>
+<blockquote>
+<p><strong>Looking for the runtime → runtime2 (GLR) migration?</strong>
+See <a href="../getting-started/migration.html">Getting Started › Migration</a> for the
+GLR integration guide.</p>
+</blockquote>
+<hr />
+<h2 id="why-the-rename"><a class="header" href="#why-the-rename">Why the Rename?</a></h2>
+<p>The project was renamed from <code>rust-sitter</code> to <strong>Adze</strong> to:</p>
+<ul>
+<li>Establish a distinct identity separate from the Tree-sitter ecosystem.</li>
+<li>Avoid confusion with the upstream <code>tree-sitter</code> crate.</li>
+<li>Reflect the project's evolution into a full grammar toolchain with GLR
+parsing, table generation, and typed AST extraction — well beyond a simple
+Rust wrapper around Tree-sitter.</li>
+</ul>
+<hr />
+<h2 id="what-changed"><a class="header" href="#what-changed">What Changed</a></h2>
+<h3 id="crate-names"><a class="header" href="#crate-names">Crate Names</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Old Name (rust-sitter)</th><th>New Name (Adze)</th><th>Role</th></tr></thead><tbody>
+<tr><td><code>rust-sitter</code></td><td><code>adze</code></td><td>Runtime / main user-facing crate</td></tr>
+<tr><td><code>rust-sitter-macro</code></td><td><code>adze-macro</code></td><td>Procedural macros</td></tr>
+<tr><td><code>rust-sitter-tool</code></td><td><code>adze-tool</code></td><td>Build-time code generation</td></tr>
+<tr><td><code>rust-sitter-common</code></td><td><code>adze-common</code></td><td>Shared expansion logic</td></tr>
+<tr><td>—</td><td><code>adze-ir</code></td><td>Grammar intermediate representation (new)</td></tr>
+<tr><td>—</td><td><code>adze-glr-core</code></td><td>GLR parser generation (new)</td></tr>
+<tr><td>—</td><td><code>adze-tablegen</code></td><td>Table compression (new)</td></tr>
+<tr><td>—</td><td><code>adze-runtime</code></td><td>GLR-compatible runtime (new)</td></tr>
+</tbody></table>
+</div>
+<h3 id="attribute-paths"><a class="header" href="#attribute-paths">Attribute Paths</a></h3>
+<p>All procedural-macro attributes moved from the <code>rust_sitter</code> namespace to
+<code>adze</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Old Attribute</th><th>New Attribute</th></tr></thead><tbody>
+<tr><td><code>#[rust_sitter::grammar("…")]</code></td><td><code>#[adze::grammar("…")]</code></td></tr>
+<tr><td><code>#[rust_sitter::language]</code></td><td><code>#[adze::language]</code></td></tr>
+<tr><td><code>#[rust_sitter::leaf(…)]</code></td><td><code>#[adze::leaf(…)]</code></td></tr>
+<tr><td><code>#[rust_sitter::prec_left(n)]</code></td><td><code>#[adze::prec_left(n)]</code></td></tr>
+<tr><td><code>#[rust_sitter::prec_right(n)]</code></td><td><code>#[adze::prec_right(n)]</code></td></tr>
+<tr><td><code>#[rust_sitter::extra]</code></td><td><code>#[adze::extra]</code></td></tr>
+<tr><td><code>#[rust_sitter::word]</code></td><td><code>#[adze::word]</code></td></tr>
+<tr><td><code>#[rust_sitter::delimited(…)]</code></td><td><code>#[adze::delimited(…)]</code></td></tr>
+<tr><td><code>#[rust_sitter::repeat(…)]</code></td><td><code>#[adze::repeat(…)]</code></td></tr>
+</tbody></table>
+</div>
+<h3 id="import-paths"><a class="header" href="#import-paths">Import Paths</a></h3>
+<pre><code class="language-rust">// ── Before ────────────────────────────────────────
+use rust_sitter::Spanned;
+use rust_sitter::Parser;
+
+// ── After ─────────────────────────────────────────
+use adze::Spanned;
+use adze::Parser;</code></pre>
+<p>Deeper re-exports follow the same pattern:</p>
+<pre><code class="language-rust">// ── Before ────────────────────────────────────────
+use rust_sitter::tree_sitter::Node;
+
+// ── After ─────────────────────────────────────────
+use adze::ts_compat::Language;
+use adze::adze_ir::{Grammar, SymbolId};
+use adze::adze_glr_core::{Action, ParseTable};</code></pre>
+<h3 id="cargotoml-dependencies"><a class="header" href="#cargotoml-dependencies">Cargo.toml Dependencies</a></h3>
+<pre><code class="language-toml"># ── Before ─────────────────────────────────────────
+[dependencies]
+rust-sitter = "0.4"
+
+[build-dependencies]
+rust-sitter-tool = "0.4"
+</code></pre>
+<pre><code class="language-toml"># ── After ──────────────────────────────────────────
+[dependencies]
+adze = "0.8"
+
+[build-dependencies]
+adze-tool = "0.8"
+</code></pre>
+<h3 id="repository-url"><a class="header" href="#repository-url">Repository URL</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Before</th><th><code>github.com/&lt;org&gt;/rust-sitter</code></th></tr></thead><tbody>
+<tr><td><strong>After</strong></td><td><code>github.com/EffortlessMetrics/adze</code></td></tr>
+</tbody></table>
+</div>
+<p>Update any CI badges, issue links, or documentation URLs accordingly.</p>
+<hr />
+<h2 id="new-features-available-after-migration"><a class="header" href="#new-features-available-after-migration">New Features Available After Migration</a></h2>
+<p>Migrating to Adze unlocks several capabilities that did not exist under the
+<code>rust-sitter</code> name:</p>
+<ol>
+<li><strong>GLR Parsing</strong> — Handle ambiguous grammars with automatic fork/merge of
+parse paths (<code>adze-glr-core</code>).</li>
+<li><strong>Pure-Rust Table Generation</strong> — Generate Tree-sitter–compatible parse
+tables entirely in Rust (<code>adze-tablegen</code>).</li>
+<li><strong>Grammar IR</strong> — Inspect and optimize grammars programmatically via the
+intermediate representation (<code>adze-ir</code>).</li>
+<li><strong>Incremental Parsing</strong> — Pass a previous tree to <code>parse_utf8</code> for
+efficient re-parsing of edited documents.</li>
+<li><strong>Performance Monitoring</strong> — Set <code>ADZE_LOG_PERFORMANCE=true</code> to get
+forest-to-tree conversion metrics.</li>
+<li><strong>WASM Support</strong> — The pure-Rust backend compiles to <code>wasm32-unknown-unknown</code>
+and <code>wasm32-wasi</code> without C dependencies.</li>
+<li><strong>Golden Tests</strong> — Validate your parsers against Tree-sitter reference
+implementations with SHA256 hash verification.</li>
+<li><strong>External Scanners</strong> — Write custom lexing logic in pure Rust for things
+like Python indentation tracking.</li>
+</ol>
+<hr />
+<h2 id="before--after-code-examples"><a class="header" href="#before--after-code-examples">Before / After Code Examples</a></h2>
+<h3 id="defining-a-grammar"><a class="header" href="#defining-a-grammar">Defining a Grammar</a></h3>
+<pre><code class="language-rust">// ── Before (rust-sitter) ──────────────────────────
+#[rust_sitter::grammar("arithmetic")]
+mod grammar {
+    #[rust_sitter::language]
+    pub enum Expr {
+        Number(
+            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32,
+        ),
+        #[rust_sitter::prec_left(1)]
+        Sub(Box&lt;Expr&gt;, #[rust_sitter::leaf(text = "-")] (), Box&lt;Expr&gt;),
+        #[rust_sitter::prec_left(2)]
+        Mul(Box&lt;Expr&gt;, #[rust_sitter::leaf(text = "*")] (), Box&lt;Expr&gt;),
+    }
+
+    #[rust_sitter::extra]
+    struct Whitespace {
+        #[rust_sitter::leaf(pattern = r"\s")]
+        _ws: (),
+    }
+}</code></pre>
+<pre><code class="language-rust">// ── After (adze) ──────────────────────────────────
+#[adze::grammar("arithmetic")]
+pub mod grammar {
+    #[adze::language]
+    #[derive(Debug, PartialEq)]
+    pub enum Expr {
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32,
+        ),
+        #[adze::prec_left(1)]
+        Sub(Box&lt;Expr&gt;, #[adze::leaf(text = "-")] (), Box&lt;Expr&gt;),
+        #[adze::prec_left(2)]
+        Mul(Box&lt;Expr&gt;, #[adze::leaf(text = "*")] (), Box&lt;Expr&gt;),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _ws: (),
+    }
+}</code></pre>
+<h3 id="using-the-parser"><a class="header" href="#using-the-parser">Using the Parser</a></h3>
+<pre><code class="language-rust">// ── Before (rust-sitter) ──────────────────────────
+let result = grammar::parse("1 - 2 * 3");
+match result {
+    Ok(expr) =&gt; println!("{:?}", expr),
+    Err(errs) =&gt; eprintln!("{:?}", errs),
+}</code></pre>
+<pre><code class="language-rust">// ── After (adze) ──────────────────────────────────
+let result = grammar::parse("1 - 2 * 3");
+match result {
+    Ok(expr) =&gt; println!("{expr:?}"),
+    Err(errs) =&gt; eprintln!("{errs:?}"),
+}</code></pre>
+<h3 id="build-script"><a class="header" href="#build-script">Build Script</a></h3>
+<pre><code class="language-rust">// ── Before (rust-sitter) ──────────────────────────
+fn main() {
+    rust_sitter_tool::build_parsers();
+}</code></pre>
+<pre><code class="language-rust">// ── After (adze) ──────────────────────────────────
+fn main() {
+    adze_tool::build_parsers();
+}</code></pre>
+<hr />
+<h2 id="step-by-step-migration-checklist"><a class="header" href="#step-by-step-migration-checklist">Step-by-Step Migration Checklist</a></h2>
+<p>Follow these steps in order. Each step is independently committable.</p>
+<h3 id="1-update-cargotoml"><a class="header" href="#1-update-cargotoml">1. Update <code>Cargo.toml</code></a></h3>
+<p>Replace every <code>rust-sitter</code> dependency with its <code>adze</code> equivalent:</p>
+<pre><code class="language-toml"># runtime crate
+rust-sitter = "0.4"   →   adze = "0.8"
+
+# build tool
+rust-sitter-tool = "0.4"   →   adze-tool = "0.8"
+</code></pre>
+<p>Run <code>cargo update</code> to pull the new crates.</p>
+<h3 id="2-update-buildrs"><a class="header" href="#2-update-buildrs">2. Update <code>build.rs</code></a></h3>
+<pre><code class="language-diff">- rust_sitter_tool::build_parsers();
++ adze_tool::build_parsers();
+</code></pre>
+<h3 id="3-rename-attributes-in-grammar-modules"><a class="header" href="#3-rename-attributes-in-grammar-modules">3. Rename Attributes in Grammar Modules</a></h3>
+<p>A project-wide find-and-replace handles this:</p>
+<pre><code class="language-bash"># In your project root
+sed -i 's/rust_sitter::/adze::/g' src/**/*.rs
+</code></pre>
+<p>Verify that every <code>#[rust_sitter::…]</code> becomes <code>#[adze::…]</code>.</p>
+<h3 id="4-update-use-statements"><a class="header" href="#4-update-use-statements">4. Update <code>use</code> Statements</a></h3>
+<pre><code class="language-bash">sed -i 's/use rust_sitter/use adze/g' src/**/*.rs
+</code></pre>
+<h3 id="5-update-any-direct-tree-sitter-imports"><a class="header" href="#5-update-any-direct-tree-sitter-imports">5. Update Any Direct Tree-sitter Imports</a></h3>
+<p>If you used internal Tree-sitter types via <code>rust-sitter</code>, they may have moved:</p>
+<pre><code class="language-rust">// Old
+use rust_sitter::tree_sitter::Node;
+
+// New — use the ts_compat re-export or the sub-crate directly
+use adze::ts_compat::Language;</code></pre>
+<h3 id="6-run-cargo-check"><a class="header" href="#6-run-cargo-check">6. Run <code>cargo check</code></a></h3>
+<p>Resolve any remaining compile errors. The compiler will surface any
+missed renames as "unresolved import" or "cannot find attribute" errors.</p>
+<h3 id="7-run-your-tests"><a class="header" href="#7-run-your-tests">7. Run Your Tests</a></h3>
+<pre><code class="language-bash">cargo test
+</code></pre>
+<p>All existing tests should pass without changes beyond the renames.</p>
+<h3 id="8-update-ci-and-documentation"><a class="header" href="#8-update-ci-and-documentation">8. Update CI and Documentation</a></h3>
+<ul>
+<li>Change repository URLs from <code>rust-sitter</code> to <code>adze</code>.</li>
+<li>Update badge URLs, crate links, and README references.</li>
+<li>Update any <code>Dockerfile</code> or Nix expressions that reference the old crate
+names.</li>
+</ul>
+<h3 id="9-optional-adopt-new-features"><a class="header" href="#9-optional-adopt-new-features">9. (Optional) Adopt New Features</a></h3>
+<p>Once the rename migration compiles cleanly, consider enabling:</p>
+<pre><code class="language-toml">[dependencies]
+adze = { version = "0.8", features = ["pure-rust"] }
+</code></pre>
+<p>Or explore the GLR runtime:</p>
+<pre><code class="language-toml">[dependencies]
+adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+</code></pre>
+<p>See <a href="../getting-started/migration.html">Getting Started › Migration</a> for the
+full GLR migration guide.</p>
+<hr />
+<h2 id="common-migration-issues-and-solutions"><a class="header" href="#common-migration-issues-and-solutions">Common Migration Issues and Solutions</a></h2>
+<h3 id="cannot-find-attribute-rust_sitter-in-this-scope"><a class="header" href="#cannot-find-attribute-rust_sitter-in-this-scope">"cannot find attribute <code>rust_sitter</code> in this scope"</a></h3>
+<p><strong>Cause:</strong> An attribute was not renamed.</p>
+<p><strong>Fix:</strong> Search for any remaining <code>rust_sitter::</code> references:</p>
+<pre><code class="language-bash">grep -rn 'rust_sitter::' src/
+</code></pre>
+<p>Replace them with <code>adze::</code>.</p>
+<h3 id="unresolved-import-rust_sitter"><a class="header" href="#unresolved-import-rust_sitter">"unresolved import <code>rust_sitter</code>"</a></h3>
+<p><strong>Cause:</strong> A <code>use rust_sitter::…</code> statement was not updated.</p>
+<p><strong>Fix:</strong></p>
+<pre><code class="language-bash">grep -rn 'use rust_sitter' src/
+</code></pre>
+<p>Replace with <code>use adze</code>.</p>
+<h3 id="no-matching-package-named-rust-sitter"><a class="header" href="#no-matching-package-named-rust-sitter">"no matching package named <code>rust-sitter</code>"</a></h3>
+<p><strong>Cause:</strong> <code>Cargo.toml</code> still references the old crate name.</p>
+<p><strong>Fix:</strong> Replace <code>rust-sitter</code> with <code>adze</code> and <code>rust-sitter-tool</code> with
+<code>adze-tool</code> in all <code>Cargo.toml</code> files.</p>
+<h3 id="function-build_parsers-not-found-in-rust_sitter_tool"><a class="header" href="#function-build_parsers-not-found-in-rust_sitter_tool">"function <code>build_parsers</code> not found in <code>rust_sitter_tool</code>"</a></h3>
+<p><strong>Cause:</strong> <code>build.rs</code> still calls <code>rust_sitter_tool::build_parsers()</code>.</p>
+<p><strong>Fix:</strong> Change to <code>adze_tool::build_parsers()</code>.</p>
+<h3 id="snapshot-tests-fail-after-migration"><a class="header" href="#snapshot-tests-fail-after-migration">Snapshot tests fail after migration</a></h3>
+<p><strong>Cause:</strong> Generated Tree-sitter grammar JSON may embed the crate path, and
+snapshot tools like <code>insta</code> capture the exact output.</p>
+<p><strong>Fix:</strong> Run <code>cargo insta review</code> to accept the updated snapshots, or
+regenerate golden hashes:</p>
+<pre><code class="language-bash">UPDATE_GOLDEN=1 cargo test -p adze-golden-tests
+</code></pre>
+<h3 id="macro-generated-code-triggers-new-warnings"><a class="header" href="#macro-generated-code-triggers-new-warnings">Macro-generated code triggers new warnings</a></h3>
+<p><strong>Cause:</strong> Adze may produce slightly different expanded code than the old
+<code>rust-sitter</code> macros, surfacing new Clippy lints.</p>
+<p><strong>Fix:</strong> Address the warnings or, as a temporary measure:</p>
+<pre><code class="language-rust">#[allow(clippy::all)]
+#[adze::grammar("my_lang")]
+mod grammar { /* … */ }</code></pre>
+<hr />
+<h2 id="msrv-note"><a class="header" href="#msrv-note">MSRV Note</a></h2>
+<p>Adze v0.8 requires <strong>Rust 1.92.0</strong> (2024 edition). If your project targets an
+older MSRV, you will need to update your <code>rust-toolchain.toml</code> or CI
+configuration:</p>
+<pre><code class="language-toml"># rust-toolchain.toml
+[toolchain]
+channel = "1.92.0"
+components = ["rustfmt", "clippy"]
+</code></pre>
+<hr />
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>The migration from <code>rust-sitter</code> to Adze is primarily a rename operation.
+The core grammar-definition model — annotated Rust types that compile into
+Tree-sitter parsers — is unchanged. After completing the rename you gain
+access to the full Adze ecosystem: GLR parsing, pure-Rust table generation,
+grammar IR, incremental parsing, and WASM support.</p>
+<p>If you run into issues not covered here, please
+<a href="https://github.com/EffortlessMetrics/adze/issues">open an issue</a> on GitHub.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../guide/performance.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../advanced/glr-parsing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../guide/performance.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../advanced/glr-parsing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

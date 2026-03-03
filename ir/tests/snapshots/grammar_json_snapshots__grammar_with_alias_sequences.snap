@@ -1,0 +1,78 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "alias_demo",
+  "rules": {
+    "4": [
+      {
+        "lhs": 4,
+        "rhs": [
+          {
+            "Terminal": 1
+          },
+          {
+            "Terminal": 2
+          },
+          {
+            "Terminal": 1
+          },
+          {
+            "Terminal": 3
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "IDENTIFIER",
+      "pattern": {
+        "Regex": "[a-zA-Z_]\\w*"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": "=",
+      "pattern": {
+        "String": "="
+      },
+      "fragile": false
+    },
+    "3": {
+      "name": ";",
+      "pattern": {
+        "String": ";"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {
+    "0": {
+      "aliases": [
+        "target",
+        null,
+        "value",
+        null
+      ]
+    }
+  },
+  "production_ids": {},
+  "max_alias_sequence_length": 4,
+  "rule_names": {
+    "4": "assignment"
+  },
+  "symbol_registry": null
+}

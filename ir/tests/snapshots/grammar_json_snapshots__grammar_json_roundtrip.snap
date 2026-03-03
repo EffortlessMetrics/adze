@@ -1,0 +1,56 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: json2
+---
+{
+  "name": "roundtrip",
+  "rules": {
+    "3": [
+      {
+        "lhs": 3,
+        "rhs": [
+          {
+            "Terminal": 1
+          },
+          {
+            "Terminal": 2
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "A",
+      "pattern": {
+        "String": "a"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": "B",
+      "pattern": {
+        "String": "b"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "3": "start"
+  },
+  "symbol_registry": null
+}

@@ -52,9 +52,7 @@ fn ambig_to_sexpr(expr: &adze_example::ambiguous_expr::grammar::Expr) -> String 
 /// Safely parse with the arithmetic grammar, catching panics.
 fn safe_arith_parse(input: &str) -> String {
     let input_owned = input.to_string();
-    match std::panic::catch_unwind(move || {
-        adze_example::arithmetic::grammar::parse(&input_owned)
-    }) {
+    match std::panic::catch_unwind(move || adze_example::arithmetic::grammar::parse(&input_owned)) {
         Ok(Ok(expr)) => arith_to_sexpr(&expr),
         Ok(Err(errors)) => {
             let msgs: Vec<String> = errors.iter().map(|e| format!("{:?}", e)).collect();
@@ -67,9 +65,7 @@ fn safe_arith_parse(input: &str) -> String {
 /// Safely parse with the arithmetic grammar, returning Debug format.
 fn safe_arith_parse_debug(input: &str) -> String {
     let input_owned = input.to_string();
-    match std::panic::catch_unwind(move || {
-        adze_example::arithmetic::grammar::parse(&input_owned)
-    }) {
+    match std::panic::catch_unwind(move || adze_example::arithmetic::grammar::parse(&input_owned)) {
         Ok(result) => format!("{:#?}", result),
         Err(_) => "PANIC: Extract called with None node".to_string(),
     }
@@ -435,10 +431,7 @@ fn snapshot_glr_tree_bridge_sexpr() {
     let table = match common::build_table_result(&grammar) {
         Ok(t) => t,
         Err(e) => {
-            insta::assert_snapshot!(
-                "glr_tree_bridge_sexpr",
-                format!("(TABLE_ERROR \"{}\")", e)
-            );
+            insta::assert_snapshot!("glr_tree_bridge_sexpr", format!("(TABLE_ERROR \"{}\")", e));
             return;
         }
     };
