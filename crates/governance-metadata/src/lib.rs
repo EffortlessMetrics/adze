@@ -183,7 +183,7 @@ impl GovernanceMetadata {
     /// ```
     #[must_use]
     pub fn is_complete(&self) -> bool {
-        self.implemented == self.total
+        self.total > 0 && self.implemented == self.total
     }
 
     /// Construct a governance snapshot from explicit counts.

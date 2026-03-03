@@ -41,3 +41,38 @@ test = false
 doc = false
 bench = false
 
+[[bin]]
+name = "fuzz_parser_reset"
+path = "fuzz_targets/fuzz_parser_reset.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_tree_cursor"
+path = "fuzz_targets/fuzz_tree_cursor.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_serialization"
+path = "fuzz_targets/fuzz_serialization.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_concurrent_parse"
+path = "fuzz_targets/fuzz_concurrent_parse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_ir_normalize"
+path = "fuzz_targets/fuzz_ir_normalize.rs"
+test = false
+doc = false
+bench = false
+

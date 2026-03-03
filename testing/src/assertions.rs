@@ -138,8 +138,9 @@ pub fn assert_no_dead_states(table: &ParseTable) {
 
 /// Assert that the parse table dimensions are self-consistent.
 ///
-/// This delegates to [`glr_test_support::assert_parse_table_invariants`]
-/// when available, but can be called stand-alone.
+/// This performs the same style of invariant checks as
+/// `glr_test_support::assert_parse_table_invariants`, when available,
+/// but can be called stand-alone.
 pub fn assert_table_consistent(table: &ParseTable) {
     assert_eq!(
         table.action_table.len(),
