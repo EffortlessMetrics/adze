@@ -14,8 +14,8 @@ keywords = ["parsing", "tablegen", "compression"]
 categories = ["development-tools"]
 include = [
     "Cargo.toml",
-    "LICENSE*",
-    "README*",
+    "/LICENSE*",
+    "/README*",
     "src/**",
     "MIGRATING.md"
 ]

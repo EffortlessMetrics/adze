@@ -13,6 +13,15 @@
 use adze_glr_core::{Action, ParseTable};
 
 /// Tree-sitter action type tags.
+///
+/// # Examples
+///
+/// ```
+/// use adze_ts_format_core::TSActionTag;
+///
+/// assert_eq!(TSActionTag::Shift as u8, 1);
+/// assert!(TSActionTag::Reduce > TSActionTag::Shift);
+/// ```
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TSActionTag {
@@ -31,6 +40,18 @@ pub enum TSActionTag {
 /// Choose a single action from a GLR cell deterministically.
 ///
 /// Priority is `Accept > Shift > Reduce > Error`, matching existing runtime behavior.
+///
+/// # Examples
+///
+/// ```
+/// use adze_ts_format_core::choose_action;
+/// use adze_glr_core::{Action, StateId, RuleId};
+///
+/// let cell = vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))];
+/// assert_eq!(choose_action(&cell), Some(Action::Shift(StateId(1))));
+///
+/// assert_eq!(choose_action(&[]), None);
+/// ```
 #[must_use]
 pub fn choose_action(cell: &[Action]) -> Option<Action> {
     if cell.is_empty() {

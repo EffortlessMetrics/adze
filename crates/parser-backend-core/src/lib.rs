@@ -10,6 +10,17 @@
 use core::fmt::{self, Display, Formatter};
 
 /// Parser backend supported by the runtime feature matrix.
+///
+/// # Examples
+///
+/// ```
+/// use adze_parser_backend_core::ParserBackend;
+///
+/// let backend = ParserBackend::GLR;
+/// assert!(backend.is_glr());
+/// assert!(backend.is_pure_rust());
+/// assert_eq!(backend.name(), "pure-Rust GLR parser");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParserBackend {
     /// Tree-sitter C runtime (default when pure-Rust is disabled).

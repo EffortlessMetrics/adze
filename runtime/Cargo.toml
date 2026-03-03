@@ -8,11 +8,19 @@ documentation = "https://docs.rs/adze"
 version = "0.8.0-dev"
 authors.workspace = true
 edition = "2024"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 publish = true
 keywords = ["parsing", "glr", "grammar", "tree-sitter", "codegen"]
 categories = ["development-tools"]
 build = "build.rs"
+include = [
+    "Cargo.toml",
+    "/LICENSE*",
+    "/README*",
+    "src/**",
+    "build.rs",
+]
 
 [lib]
 path = "src/lib.rs"

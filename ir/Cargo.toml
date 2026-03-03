@@ -14,8 +14,8 @@ keywords = ["parsing", "grammar", "ir"]
 categories = ["development-tools"]
 include = [
     "Cargo.toml",
-    "LICENSE*",
-    "README*",
+    "/LICENSE*",
+    "/README*",
     "src/**"
 ]
 

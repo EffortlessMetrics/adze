@@ -8,14 +8,15 @@ documentation = "https://docs.rs/adze-macro"
 version = "0.8.0-dev"
 authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 publish = true
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
 include = [
     "Cargo.toml",
-    "LICENSE*",
-    "README*",
+    "/LICENSE*",
+    "/README*",
     "src/**"
 ]
 
