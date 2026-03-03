@@ -1,10 +1,9 @@
-#![cfg(feature = "test-api")]
-
 //! Comprehensive FIRST/FOLLOW set computation tests for adze-glr-core.
 //!
 //! Covers: single terminals, non-terminal propagation, nullable rules, choice,
 //! chain propagation, left/right recursion, EOF in FOLLOW, nullable suffixes,
-//! arithmetic grammars, precedence grammars, and determinism.
+//! arithmetic grammars, precedence grammars, determinism, optional symbols,
+//! consistency properties, and edge cases.
 
 use adze_glr_core::FirstFollowSets;
 use adze_ir::*;
@@ -99,7 +98,6 @@ const EOF: SymbolId = SymbolId(0);
 const T_A: SymbolId = SymbolId(1);
 const T_B: SymbolId = SymbolId(2);
 const T_C: SymbolId = SymbolId(3);
-const T_D: SymbolId = SymbolId(4);
 const T_PLUS: SymbolId = SymbolId(5);
 const T_STAR: SymbolId = SymbolId(6);
 const T_LPAREN: SymbolId = SymbolId(7);
@@ -767,7 +765,6 @@ fn determinism_multiple_computations() {
     let ff2 = FirstFollowSets::compute(&build()).unwrap();
     let ff3 = FirstFollowSets::compute(&build()).unwrap();
 
-    // Helper: extract set bits as a sorted Vec for comparison
     let bits_first = |ff: &FirstFollowSets, sym: SymbolId| -> Vec<usize> {
         let set = ff.first(sym).unwrap();
         (0..set.len()).filter(|&i| set.contains(i)).collect()
@@ -807,10 +804,8 @@ fn determinism_multiple_computations() {
 }
 
 // =========================================================================
-// 16–25: Additional tests to reach 25+ total
-// =========================================================================
-
 // 16. Multiple terminals in choice
+// =========================================================================
 #[test]
 fn first_multiple_terminal_alternatives() {
     // A → a | b | c
@@ -832,7 +827,9 @@ fn first_multiple_terminal_alternatives() {
     assert_first_eq(&ff, NT_A, &[T_A, T_B, T_C]);
 }
 
+// =========================================================================
 // 17. Deeply chained non-terminals
+// =========================================================================
 #[test]
 fn first_deep_chain() {
     // S → A, A → B, B → C, C → a
@@ -857,7 +854,9 @@ fn first_deep_chain() {
     }
 }
 
+// =========================================================================
 // 18. Nullable prefix propagation
+// =========================================================================
 #[test]
 fn first_nullable_prefix() {
     // S → A B c,  A → ε,  B → ε | b
@@ -897,7 +896,9 @@ fn first_nullable_prefix() {
     assert_first_eq(&ff, NT_S, &[T_B, T_C]);
 }
 
+// =========================================================================
 // 19. Epsilon-only rule
+// =========================================================================
 #[test]
 fn nullable_only_rule() {
     // A → ε
@@ -917,7 +918,9 @@ fn nullable_only_rule() {
     );
 }
 
+// =========================================================================
 // 20. FOLLOW propagation through nullable tail
+// =========================================================================
 #[test]
 fn follow_through_nullable_tail() {
     // S → A B C,  A → a,  B → b,  C → ε
@@ -953,7 +956,9 @@ fn follow_through_nullable_tail() {
     assert_follow_contains(&ff, NT_B, &[EOF]);
 }
 
+// =========================================================================
 // 21. FOLLOW propagation across multiple nullable
+// =========================================================================
 #[test]
 fn follow_multiple_nullable_suffix() {
     // S → A B C D,  A → a,  B → b,  C → ε,  D → ε
@@ -993,7 +998,9 @@ fn follow_multiple_nullable_suffix() {
     assert_follow_contains(&ff, NT_A, &[T_B]);
 }
 
+// =========================================================================
 // 22. first_of_sequence API
+// =========================================================================
 #[test]
 fn first_of_sequence_api() {
     let mut g = Grammar::new("t22".into());
@@ -1020,7 +1027,9 @@ fn first_of_sequence_api() {
     assert!(first_seq.contains(T_B.0 as usize));
 }
 
+// =========================================================================
 // 23. first_of_sequence with terminal prefix
+// =========================================================================
 #[test]
 fn first_of_sequence_terminal_prefix() {
     let mut g = Grammar::new("t23".into());
@@ -1039,7 +1048,9 @@ fn first_of_sequence_terminal_prefix() {
     assert!(!first_seq.contains(T_B.0 as usize));
 }
 
+// =========================================================================
 // 24. Mutual recursion: A → B a, B → A b | c
+// =========================================================================
 #[test]
 fn first_mutual_recursion() {
     let mut g = Grammar::new("t24".into());
@@ -1074,7 +1085,9 @@ fn first_mutual_recursion() {
     assert_first_eq(&ff, NT_B, &[T_C]);
 }
 
+// =========================================================================
 // 25. FOLLOW set of terminal at end of production
+// =========================================================================
 #[test]
 fn follow_last_nonterminal_gets_lhs_follow() {
     // S → a A,  A → b
@@ -1099,7 +1112,9 @@ fn follow_last_nonterminal_gets_lhs_follow() {
     assert_follow_contains(&ff, NT_A, &[EOF]);
 }
 
+// =========================================================================
 // 26. Entirely nullable grammar
+// =========================================================================
 #[test]
 fn entirely_nullable_grammar() {
     // S → A B,  A → ε,  B → ε
@@ -1130,7 +1145,9 @@ fn entirely_nullable_grammar() {
     assert_eq!(ff.first(NT_B).unwrap().count_ones(..), 0);
 }
 
+// =========================================================================
 // 27. compute_normalized works with Choice symbol
+// =========================================================================
 #[test]
 fn compute_normalized_with_choice() {
     // S → (a | b)  using Choice symbol, needs normalization
@@ -1159,7 +1176,9 @@ fn compute_normalized_with_choice() {
     assert!(first_s.contains(T_B.0 as usize));
 }
 
+// =========================================================================
 // 28. FOLLOW with multiple productions referencing the same non-terminal
+// =========================================================================
 #[test]
 fn follow_from_multiple_productions() {
     // S → A b | A c,  A → a
@@ -1192,7 +1211,9 @@ fn follow_from_multiple_productions() {
     assert_follow_contains(&ff, NT_A, &[T_B, T_C]);
 }
 
+// =========================================================================
 // 29. Non-start symbol does NOT automatically get EOF in FOLLOW
+// =========================================================================
 #[test]
 fn follow_non_start_no_eof() {
     // S → A b,  A → a
@@ -1217,7 +1238,9 @@ fn follow_non_start_no_eof() {
     assert_follow_eq(&ff, NT_A, &[T_B]);
 }
 
+// =========================================================================
 // 30. Left-recursive FOLLOW propagation: S → S a | b
+// =========================================================================
 #[test]
 fn follow_left_recursive_start() {
     // S → S a | b
@@ -1241,4 +1264,453 @@ fn follow_left_recursive_start() {
     let ff = FirstFollowSets::compute(&g).unwrap();
     assert_first_eq(&ff, NT_S, &[T_B]);
     assert_follow_contains(&ff, NT_S, &[EOF, T_A]);
+}
+
+// =========================================================================
+// 31. Single-rule grammar: one non-terminal, one terminal
+// =========================================================================
+#[test]
+fn single_rule_grammar() {
+    // S → a
+    let mut g = Grammar::new("single".into());
+    tok(&mut g, T_A, "a", "a");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rules
+        .insert(NT_S, vec![rule(NT_S, vec![Symbol::Terminal(T_A)], 0)]);
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    assert_first_eq(&ff, NT_S, &[T_A]);
+    assert!(!ff.is_nullable(NT_S));
+    assert_follow_contains(&ff, NT_S, &[EOF]);
+}
+
+// =========================================================================
+// 32. Empty grammar: no rules at all
+// =========================================================================
+#[test]
+fn empty_grammar_no_rules() {
+    let g = Grammar::new("empty".into());
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    // No symbols to query; just ensure it doesn't panic
+    assert!(ff.first(NT_S).is_none());
+    assert!(ff.follow(NT_S).is_none());
+    assert!(!ff.is_nullable(NT_S));
+}
+
+// =========================================================================
+// 33. Optional symbol via compute_normalized (Repeat)
+// =========================================================================
+#[test]
+fn compute_normalized_with_repeat() {
+    // S → a*  (zero or more 'a')
+    let mut g = Grammar::new("t33".into());
+    tok(&mut g, T_A, "a", "a");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rules.insert(
+        NT_S,
+        vec![Rule {
+            lhs: NT_S,
+            rhs: vec![Symbol::Repeat(Box::new(Symbol::Terminal(T_A)))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
+
+    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
+    // S should have 'a' in FIRST (from the repeat)
+    let first_s = ff.first(NT_S).unwrap();
+    assert!(first_s.contains(T_A.0 as usize));
+    // S should be nullable (Repeat allows zero occurrences)
+    assert!(ff.is_nullable(NT_S));
+}
+
+// =========================================================================
+// 34. Optional symbol via compute_normalized (Optional)
+// =========================================================================
+#[test]
+fn compute_normalized_with_optional() {
+    // S → a?  (optional 'a')
+    let mut g = Grammar::new("t34".into());
+    tok(&mut g, T_A, "a", "a");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rules.insert(
+        NT_S,
+        vec![Rule {
+            lhs: NT_S,
+            rhs: vec![Symbol::Optional(Box::new(Symbol::Terminal(T_A)))],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        }],
+    );
+
+    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
+    let first_s = ff.first(NT_S).unwrap();
+    assert!(first_s.contains(T_A.0 as usize));
+    assert!(ff.is_nullable(NT_S));
+}
+
+// =========================================================================
+// 35. Consistency: FIRST(terminal) contains only itself
+// =========================================================================
+#[test]
+fn terminal_first_set_is_itself() {
+    let mut g = Grammar::new("t35".into());
+    tok(&mut g, T_A, "a", "a");
+    tok(&mut g, T_B, "b", "b");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rules.insert(
+        NT_S,
+        vec![rule(
+            NT_S,
+            vec![Symbol::Terminal(T_A), Symbol::Terminal(T_B)],
+            0,
+        )],
+    );
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    // Terminal FIRST sets are only populated for non-terminals; terminals
+    // implicitly have FIRST = {themselves}. Verify via first_of_sequence.
+    let seq = vec![Symbol::Terminal(T_A)];
+    let fs = ff.first_of_sequence(&seq).unwrap();
+    assert!(fs.contains(T_A.0 as usize));
+    assert!(!fs.contains(T_B.0 as usize));
+}
+
+// =========================================================================
+// 36. Consistency: non-nullable non-terminal never has empty FIRST
+// =========================================================================
+#[test]
+fn non_nullable_has_nonempty_first() {
+    // S → A B,  A → a,  B → b | c
+    let mut g = Grammar::new("t36".into());
+    tok(&mut g, T_A, "a", "a");
+    tok(&mut g, T_B, "b", "b");
+    tok(&mut g, T_C, "c", "c");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rule_names.insert(NT_A, "A".into());
+    g.rule_names.insert(NT_B, "B".into());
+    g.rules.insert(
+        NT_S,
+        vec![rule(
+            NT_S,
+            vec![Symbol::NonTerminal(NT_A), Symbol::NonTerminal(NT_B)],
+            0,
+        )],
+    );
+    g.rules
+        .insert(NT_A, vec![rule(NT_A, vec![Symbol::Terminal(T_A)], 1)]);
+    g.rules.insert(
+        NT_B,
+        vec![
+            rule(NT_B, vec![Symbol::Terminal(T_B)], 2),
+            rule(NT_B, vec![Symbol::Terminal(T_C)], 3),
+        ],
+    );
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    for sym in [NT_S, NT_A, NT_B] {
+        assert!(!ff.is_nullable(sym));
+        assert!(
+            ff.first(sym).unwrap().count_ones(..) > 0,
+            "non-nullable {sym:?} must have non-empty FIRST"
+        );
+    }
+}
+
+// =========================================================================
+// 37. Consistency: FIRST(A) ⊆ FIRST(S) when S → A (chain rule)
+// =========================================================================
+#[test]
+fn first_subset_through_chain() {
+    // S → A,  A → a | b
+    let mut g = Grammar::new("t37".into());
+    tok(&mut g, T_A, "a", "a");
+    tok(&mut g, T_B, "b", "b");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rule_names.insert(NT_A, "A".into());
+    g.rules
+        .insert(NT_S, vec![rule(NT_S, vec![Symbol::NonTerminal(NT_A)], 0)]);
+    g.rules.insert(
+        NT_A,
+        vec![
+            rule(NT_A, vec![Symbol::Terminal(T_A)], 1),
+            rule(NT_A, vec![Symbol::Terminal(T_B)], 2),
+        ],
+    );
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let first_a = ff.first(NT_A).unwrap();
+    let first_s = ff.first(NT_S).unwrap();
+    // Every element in FIRST(A) must be in FIRST(S)
+    for i in 0..first_a.len() {
+        if first_a.contains(i) {
+            assert!(
+                first_s.contains(i),
+                "FIRST(A) element {i} not found in FIRST(S)"
+            );
+        }
+    }
+}
+
+// =========================================================================
+// 38. Nullable chain: S → A, A → B, B → ε
+// =========================================================================
+#[test]
+fn nullable_chain_propagation() {
+    // S → A,  A → B,  B → ε
+    // All should be nullable
+    let mut g = Grammar::new("t38".into());
+    g.rule_names.insert(NT_S, "S".into());
+    g.rule_names.insert(NT_A, "A".into());
+    g.rule_names.insert(NT_B, "B".into());
+    g.rules
+        .insert(NT_S, vec![rule(NT_S, vec![Symbol::NonTerminal(NT_A)], 0)]);
+    g.rules
+        .insert(NT_A, vec![rule(NT_A, vec![Symbol::NonTerminal(NT_B)], 1)]);
+    g.rules
+        .insert(NT_B, vec![rule(NT_B, vec![Symbol::Epsilon], 2)]);
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    assert!(ff.is_nullable(NT_S));
+    assert!(ff.is_nullable(NT_A));
+    assert!(ff.is_nullable(NT_B));
+}
+
+// =========================================================================
+// 39. FOLLOW propagation through deep chain
+// =========================================================================
+#[test]
+fn follow_deep_chain_propagation() {
+    // S → A,  A → B,  B → C,  C → a
+    // FOLLOW(C) ⊇ FOLLOW(B) ⊇ FOLLOW(A) ⊇ FOLLOW(S) = {$}
+    let mut g = Grammar::new("t39".into());
+    tok(&mut g, T_A, "a", "a");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rule_names.insert(NT_A, "A".into());
+    g.rule_names.insert(NT_B, "B".into());
+    g.rule_names.insert(NT_C, "C".into());
+    g.rules
+        .insert(NT_S, vec![rule(NT_S, vec![Symbol::NonTerminal(NT_A)], 0)]);
+    g.rules
+        .insert(NT_A, vec![rule(NT_A, vec![Symbol::NonTerminal(NT_B)], 1)]);
+    g.rules
+        .insert(NT_B, vec![rule(NT_B, vec![Symbol::NonTerminal(NT_C)], 2)]);
+    g.rules
+        .insert(NT_C, vec![rule(NT_C, vec![Symbol::Terminal(T_A)], 3)]);
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    for sym in [NT_S, NT_A, NT_B, NT_C] {
+        assert_follow_contains(&ff, sym, &[EOF]);
+    }
+}
+
+// =========================================================================
+// 40. first_of_sequence with empty sequence
+// =========================================================================
+#[test]
+fn first_of_sequence_empty() {
+    let mut g = Grammar::new("t40".into());
+    tok(&mut g, T_A, "a", "a");
+    g.rule_names.insert(NT_A, "A".into());
+    g.rules
+        .insert(NT_A, vec![rule(NT_A, vec![Symbol::Terminal(T_A)], 0)]);
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let empty_seq: Vec<Symbol> = vec![];
+    let first_seq = ff.first_of_sequence(&empty_seq).unwrap();
+    assert_eq!(
+        first_seq.count_ones(..),
+        0,
+        "FIRST of empty sequence should be empty"
+    );
+}
+
+// =========================================================================
+// 41. GrammarBuilder-based test: arithmetic via builder
+// =========================================================================
+#[test]
+fn builder_arithmetic_grammar() {
+    use adze_ir::builder::GrammarBuilder;
+
+    let grammar = GrammarBuilder::new("calc")
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .token("*", "*")
+        .rule("expr", vec!["expr", "+", "term"])
+        .rule("expr", vec!["term"])
+        .rule("term", vec!["term", "*", "NUMBER"])
+        .rule("term", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    let ff = FirstFollowSets::compute(&grammar).unwrap();
+
+    // Find symbol IDs via rule_names
+    let expr_id = grammar
+        .rule_names
+        .iter()
+        .find(|(_, n)| n.as_str() == "expr")
+        .map(|(id, _)| *id)
+        .unwrap();
+    let term_id = grammar
+        .rule_names
+        .iter()
+        .find(|(_, n)| n.as_str() == "term")
+        .map(|(id, _)| *id)
+        .unwrap();
+
+    let number_id = *grammar
+        .tokens
+        .iter()
+        .find(|(_, t)| t.name == "NUMBER")
+        .map(|(id, _)| id)
+        .unwrap();
+
+    // FIRST(expr) and FIRST(term) should both contain NUMBER
+    assert!(ff.first(expr_id).unwrap().contains(number_id.0 as usize));
+    assert!(ff.first(term_id).unwrap().contains(number_id.0 as usize));
+    assert!(!ff.is_nullable(expr_id));
+    assert!(!ff.is_nullable(term_id));
+}
+
+// =========================================================================
+// 42. GrammarBuilder: nullable start (python-like)
+// =========================================================================
+#[test]
+fn builder_python_like_nullable_start() {
+    use adze_ir::builder::GrammarBuilder;
+
+    let grammar = GrammarBuilder::python_like();
+    let ff = FirstFollowSets::compute(&grammar).unwrap();
+
+    let module_id = grammar
+        .rule_names
+        .iter()
+        .find(|(_, n)| n.as_str() == "module")
+        .map(|(id, _)| *id)
+        .unwrap();
+
+    // module is nullable (has ε production)
+    assert!(ff.is_nullable(module_id));
+    // FOLLOW(module) should contain EOF since it's the start symbol
+    assert_follow_contains(&ff, module_id, &[EOF]);
+}
+
+// =========================================================================
+// 43. Consistency: FOLLOW(A) ⊆ FOLLOW(S) when S → A and no other context
+// =========================================================================
+#[test]
+fn follow_subset_single_chain() {
+    // S → A,  A → a | b
+    // Since A only appears in S → A, FOLLOW(A) = FOLLOW(S)
+    let mut g = Grammar::new("t43".into());
+    tok(&mut g, T_A, "a", "a");
+    tok(&mut g, T_B, "b", "b");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rule_names.insert(NT_A, "A".into());
+    g.rules
+        .insert(NT_S, vec![rule(NT_S, vec![Symbol::NonTerminal(NT_A)], 0)]);
+    g.rules.insert(
+        NT_A,
+        vec![
+            rule(NT_A, vec![Symbol::Terminal(T_A)], 1),
+            rule(NT_A, vec![Symbol::Terminal(T_B)], 2),
+        ],
+    );
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let follow_s = ff.follow(NT_S).unwrap();
+    let follow_a = ff.follow(NT_A).unwrap();
+    // FOLLOW(A) should be a superset of FOLLOW(S) (they should be equal here)
+    for i in 0..follow_s.len() {
+        if follow_s.contains(i) {
+            assert!(
+                follow_a.contains(i),
+                "FOLLOW(S) element {i} not in FOLLOW(A)"
+            );
+        }
+    }
+}
+
+// =========================================================================
+// 44. Middle nonterminal FOLLOW: S → A B C
+// =========================================================================
+#[test]
+fn follow_middle_nonterminal() {
+    // S → A B C,  A → a,  B → b,  C → c
+    // FOLLOW(B) should contain FIRST(C) = {c}
+    let mut g = Grammar::new("t44".into());
+    tok(&mut g, T_A, "a", "a");
+    tok(&mut g, T_B, "b", "b");
+    tok(&mut g, T_C, "c", "c");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rule_names.insert(NT_A, "A".into());
+    g.rule_names.insert(NT_B, "B".into());
+    g.rule_names.insert(NT_C, "C".into());
+    g.rules.insert(
+        NT_S,
+        vec![rule(
+            NT_S,
+            vec![
+                Symbol::NonTerminal(NT_A),
+                Symbol::NonTerminal(NT_B),
+                Symbol::NonTerminal(NT_C),
+            ],
+            0,
+        )],
+    );
+    g.rules
+        .insert(NT_A, vec![rule(NT_A, vec![Symbol::Terminal(T_A)], 1)]);
+    g.rules
+        .insert(NT_B, vec![rule(NT_B, vec![Symbol::Terminal(T_B)], 2)]);
+    g.rules
+        .insert(NT_C, vec![rule(NT_C, vec![Symbol::Terminal(T_C)], 3)]);
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    assert_follow_contains(&ff, NT_B, &[T_C]);
+    // B is not at end, so should not get EOF unless C is nullable
+    assert!(!ff.is_nullable(NT_C));
+}
+
+// =========================================================================
+// 45. Nullable with terminal alternative: A → ε | a, not both
+// =========================================================================
+#[test]
+fn nullable_with_terminal_alternative() {
+    // S → A B,  A → ε | a,  B → b
+    // S is not nullable (B not nullable)
+    // FIRST(S) = {a, b} (A nullable → B's first contributes)
+    let mut g = Grammar::new("t45".into());
+    tok(&mut g, T_A, "a", "a");
+    tok(&mut g, T_B, "b", "b");
+    g.rule_names.insert(NT_S, "S".into());
+    g.rule_names.insert(NT_A, "A".into());
+    g.rule_names.insert(NT_B, "B".into());
+    g.rules.insert(
+        NT_S,
+        vec![rule(
+            NT_S,
+            vec![Symbol::NonTerminal(NT_A), Symbol::NonTerminal(NT_B)],
+            0,
+        )],
+    );
+    g.rules.insert(
+        NT_A,
+        vec![
+            rule(NT_A, vec![Symbol::Epsilon], 1),
+            rule(NT_A, vec![Symbol::Terminal(T_A)], 2),
+        ],
+    );
+    g.rules
+        .insert(NT_B, vec![rule(NT_B, vec![Symbol::Terminal(T_B)], 3)]);
+
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    assert!(ff.is_nullable(NT_A));
+    assert!(!ff.is_nullable(NT_B));
+    assert!(!ff.is_nullable(NT_S));
+    assert_first_eq(&ff, NT_S, &[T_A, T_B]);
 }
