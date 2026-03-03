@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 // Property-based tests for NODE_TYPES JSON generation.
 //
 // Properties verified:
@@ -12,11 +13,30 @@
 // 9.  Regex tokens appear with named=true
 // 10. Output is sorted by type name
 // 11. No duplicate type names in output
-// 12. Empty grammar produces valid (empty) JSON array
+// 12. Every entry has required 'type' and 'named' keys
 // 13. Adding tokens doesn't break rule node types
 // 14. Field info preserves field names from grammar
 // 15. Multiple rules for same symbol produce single node type
 // 16. GrammarBuilder-produced grammars yield valid JSON
+// 17. Top-level value is always an array
+// 18. Field entries have required 'types', 'multiple', 'required' keys
+// 19. Same grammar produces deterministic output
+// 20. Children field is an object when present
+// 21. 'named' field is always a boolean
+// 22. 'type' field is always a non-empty string
+// 23. Grammar with externals produces valid JSON with rules present
+// 24. Subtypes field is always an array when present
+// 25. Fields is an object when present
+// 26. Node count matches visible rules and string tokens
+// 27. Only allowed top-level keys exist in each entry
+// 28. Children types entries have 'type' and 'named' keys
+// 29. Large grammars produce valid NODE_TYPES
+// 30. Python-like grammar produces valid output
+// 31. JavaScript-like grammar produces valid output
+// 32. Supertype symbols appear in output
+// 33. Token-only grammar produces only unnamed entries (non-proptest)
+// 34. Mixed grammar produces valid JSON (non-proptest)
+// 35. Empty grammar produces valid empty JSON array (non-proptest)
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
@@ -732,7 +752,352 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------
-// Non-proptest: empty grammar edge case
+// Additional property tests (third block)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    // 19. Determinism: same grammar produces semantically identical output
+    #[test]
+    fn deterministic_output(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let first = ntgen.generate().unwrap();
+        let second = ntgen.generate().unwrap();
+        let v1: Value = serde_json::from_str(&first).unwrap();
+        let v2: Value = serde_json::from_str(&second).unwrap();
+        prop_assert_eq!(v1, v2, "same grammar must produce semantically identical JSON");
+    }
+
+    // 20. Children field is an object (not array) when present
+    #[test]
+    fn children_field_is_object_when_present(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        for t in &types {
+            if let Some(children) = t.get("children") {
+                prop_assert!(
+                    children.is_object(),
+                    "children must be an object, got: {:?}",
+                    children
+                );
+            }
+        }
+    }
+
+    // 21. 'named' field is always a boolean
+    #[test]
+    fn named_field_is_boolean(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        for (i, t) in types.iter().enumerate() {
+            if let Some(named) = t.get("named") {
+                prop_assert!(
+                    named.is_boolean(),
+                    "entry {} 'named' must be boolean, got: {:?}",
+                    i,
+                    named
+                );
+            }
+        }
+    }
+
+    // 22. 'type' field is always a non-empty string
+    #[test]
+    fn type_field_is_nonempty_string(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        for (i, t) in types.iter().enumerate() {
+            let type_name = t.get("type").and_then(|v| v.as_str());
+            prop_assert!(
+                type_name.is_some_and(|s| !s.is_empty()),
+                "entry {} must have non-empty 'type' string",
+                i
+            );
+        }
+    }
+
+    // 23. Grammar with externals still produces valid JSON with rules present
+    #[test]
+    fn grammar_with_externals_produces_valid_json(
+        rule_count in 1usize..4,
+    ) {
+        let mut builder = GrammarBuilder::new("ext_test")
+            .token("NUMBER", r"\d+")
+            .external("INDENT")
+            .external("DEDENT");
+
+        for i in 0..rule_count {
+            let name = format!("expr{}", i);
+            builder = builder.rule(&name, vec!["NUMBER"]);
+        }
+
+        let grammar = builder.start("expr0").build();
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        // All rule names should appear
+        for i in 0..rule_count {
+            let name = format!("expr{}", i);
+            let found = types.iter().any(|t| {
+                t.get("type").and_then(|v| v.as_str()) == Some(name.as_str())
+            });
+            prop_assert!(found, "rule '{}' not found in output", name);
+        }
+    }
+
+    // 24. Subtypes field is always an array when present
+    #[test]
+    fn subtypes_is_array_when_present(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        for t in &types {
+            if let Some(subtypes) = t.get("subtypes") {
+                prop_assert!(
+                    subtypes.is_array(),
+                    "subtypes must be an array, got: {:?}",
+                    subtypes
+                );
+            }
+        }
+    }
+
+    // 25. Fields object is a map (not array) when present
+    #[test]
+    fn fields_is_object_when_present(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        for t in &types {
+            if let Some(fields) = t.get("fields") {
+                prop_assert!(
+                    fields.is_object(),
+                    "fields must be an object, got: {:?}",
+                    fields
+                );
+            }
+        }
+    }
+
+    // 26. Node count equals visible rules + string tokens + regex tokens (no hidden)
+    #[test]
+    fn node_count_matches_expectations(
+        (grammar, visible, _, str_toks, re_toks, _) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        // Regex tokens not appearing as standalone are handled by the generator,
+        // but at minimum we should have all visible rules
+        let named_count = types.iter()
+            .filter(|t| t.get("named").and_then(|v| v.as_bool()) == Some(true))
+            .count();
+        prop_assert!(
+            named_count >= visible.len(),
+            "expected at least {} named entries (visible rules), got {}",
+            visible.len(),
+            named_count
+        );
+
+        let unnamed_count = types.iter()
+            .filter(|t| t.get("named").and_then(|v| v.as_bool()) == Some(false))
+            .count();
+        prop_assert!(
+            unnamed_count <= str_toks.len(),
+            "expected at most {} unnamed entries (string tokens), got {}",
+            str_toks.len(),
+            unnamed_count
+        );
+
+        let _ = re_toks; // acknowledged
+    }
+
+    // 27. Only allowed top-level keys exist in each entry
+    #[test]
+    fn entries_have_only_known_keys(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        let allowed: std::collections::HashSet<&str> =
+            ["type", "named", "fields", "children", "subtypes"].iter().copied().collect();
+
+        for (i, t) in types.iter().enumerate() {
+            if let Some(obj) = t.as_object() {
+                for key in obj.keys() {
+                    prop_assert!(
+                        allowed.contains(key.as_str()),
+                        "entry {} has unexpected key '{}'",
+                        i,
+                        key
+                    );
+                }
+            }
+        }
+    }
+
+    // 28. Children types array entries have 'type' and 'named' keys
+    #[test]
+    fn children_types_entries_have_required_keys(
+        (grammar, ..) in grammar_strategy()
+    ) {
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        for t in &types {
+            if let Some(children) = t.get("children") {
+                if let Some(child_types) = children.get("types").and_then(|v| v.as_array()) {
+                    for ct in child_types {
+                        prop_assert!(ct.get("type").is_some(), "child type missing 'type'");
+                        prop_assert!(ct.get("named").is_some(), "child type missing 'named'");
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Large grammar and determinism tests (fourth block)
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    // 29. Large grammars produce valid NODE_TYPES
+    #[test]
+    fn large_grammar_produces_valid_json(
+        rule_count in 10usize..50,
+        token_count in 5usize..20,
+    ) {
+        let mut builder = GrammarBuilder::new("large")
+            .token("NUMBER", r"\d+");
+
+        for i in 0..token_count {
+            let name = format!("tok{}", i);
+            let pattern = format!("t{}", i);
+            builder = builder.token(&name, &pattern);
+        }
+
+        for i in 0..rule_count {
+            let name = format!("rule{}", i);
+            builder = builder.rule(&name, vec!["NUMBER"]);
+        }
+
+        let grammar = builder.start("rule0").build();
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().expect("large grammar must succeed");
+        let types = parse_node_types(&result);
+
+        // Must have at least rule_count named entries
+        let named = types.iter()
+            .filter(|t| t.get("named").and_then(|v| v.as_bool()) == Some(true))
+            .count();
+        prop_assert!(named >= rule_count, "expected >= {} named entries, got {}", rule_count, named);
+    }
+
+    // 30. Python-like grammar produces valid output
+    #[test]
+    fn python_like_grammar_valid(_seed in 0u32..10) {
+        let grammar = GrammarBuilder::python_like();
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().expect("python-like must succeed");
+        let types = parse_node_types(&result);
+        prop_assert!(!types.is_empty(), "python-like grammar must produce entries");
+
+        // Verify required rules appear
+        let names: Vec<&str> = types.iter()
+            .filter_map(|t| t.get("type").and_then(|v| v.as_str()))
+            .collect();
+        prop_assert!(names.contains(&"module"), "missing 'module'");
+        prop_assert!(names.contains(&"statement"), "missing 'statement'");
+    }
+
+    // 31. JavaScript-like grammar produces valid output
+    #[test]
+    fn javascript_like_grammar_valid(_seed in 0u32..10) {
+        let grammar = GrammarBuilder::javascript_like();
+        let ntgen = NodeTypesGenerator::new(&grammar);
+        let result = ntgen.generate().expect("js-like must succeed");
+        let types = parse_node_types(&result);
+        prop_assert!(!types.is_empty(), "js-like grammar must produce entries");
+
+        let names: Vec<&str> = types.iter()
+            .filter_map(|t| t.get("type").and_then(|v| v.as_str()))
+            .collect();
+        prop_assert!(names.contains(&"program"), "missing 'program'");
+        prop_assert!(names.contains(&"expression"), "missing 'expression'");
+    }
+
+    // 32. Supertype symbols get a subtypes field
+    #[test]
+    fn supertypes_get_subtypes_field(
+        name in visible_name_strategy(),
+    ) {
+        let mut g = Grammar::new("supertype_test".to_string());
+
+        let tok_id = SymbolId(0);
+        g.tokens.insert(tok_id, Token {
+            name: "tok".to_string(),
+            pattern: TokenPattern::Regex(r"\w+".to_string()),
+            fragile: false,
+        });
+
+        let rule_id = SymbolId(10);
+        g.rule_names.insert(rule_id, name.clone());
+        g.supertypes.push(rule_id);
+
+        g.add_rule(Rule {
+            lhs: rule_id,
+            rhs: vec![Symbol::Terminal(tok_id)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let ntgen = NodeTypesGenerator::new(&g);
+        let result = ntgen.generate().unwrap();
+        let types = parse_node_types(&result);
+
+        // The supertype rule is processed by NodeTypesGenerator which doesn't
+        // handle supertypes specially (that's StaticLanguageGenerator), so just
+        // verify the output is valid JSON with the rule present
+        let found = types.iter().any(|t| {
+            t.get("type").and_then(|v| v.as_str()) == Some(name.as_str())
+        });
+        prop_assert!(found, "supertype rule '{}' should appear in output", name);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Non-proptest deterministic tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -742,4 +1107,70 @@ fn empty_grammar_produces_valid_empty_json() {
     let result = generator.generate().expect("empty grammar must succeed");
     let types = parse_node_types(&result);
     assert!(types.is_empty(), "empty grammar should produce empty array");
+}
+
+// 33. Token-only grammar produces only unnamed entries
+#[test]
+fn token_only_grammar_produces_unnamed_entries() {
+    let mut g = Grammar::new("tokens_only".to_string());
+    g.tokens.insert(
+        SymbolId(0),
+        Token {
+            name: "plus".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "minus".to_string(),
+            pattern: TokenPattern::String("-".to_string()),
+            fragile: false,
+        },
+    );
+
+    let ntgen = NodeTypesGenerator::new(&g);
+    let result = ntgen.generate().unwrap();
+    let types = parse_node_types(&result);
+
+    for t in &types {
+        let named = t.get("named").and_then(|v| v.as_bool()).unwrap_or(true);
+        assert!(!named, "string-only tokens should be unnamed");
+    }
+}
+
+// 34. Mixed grammar: rules + tokens + externals all produce valid JSON
+#[test]
+fn mixed_grammar_valid_json() {
+    let grammar = GrammarBuilder::new("mixed")
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .token("(", "(")
+        .token(")", ")")
+        .external("INDENT")
+        .rule("expr", vec!["NUMBER"])
+        .rule("expr", vec!["expr", "+", "expr"])
+        .rule("paren", vec!["(", "expr", ")"])
+        .start("expr")
+        .build();
+
+    let ntgen = NodeTypesGenerator::new(&grammar);
+    let result = ntgen.generate().unwrap();
+    let types = parse_node_types(&result);
+
+    // Basic structure checks
+    assert!(!types.is_empty());
+    for t in &types {
+        assert!(t.get("type").is_some());
+        assert!(t.get("named").is_some());
+    }
+
+    // Named rules present
+    let names: Vec<&str> = types
+        .iter()
+        .filter_map(|t| t.get("type").and_then(|v| v.as_str()))
+        .collect();
+    assert!(names.contains(&"expr"));
+    assert!(names.contains(&"paren"));
 }

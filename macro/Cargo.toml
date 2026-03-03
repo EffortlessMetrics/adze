@@ -42,4 +42,5 @@ adze = { version = "0.8.0-dev", path = "../runtime" }
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
+proptest.workspace = true
 adze-common = { version = "0.8.0-dev", path = "../common" }
