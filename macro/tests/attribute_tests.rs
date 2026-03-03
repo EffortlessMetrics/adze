@@ -33,16 +33,19 @@ fn adze_attr_names(attrs: &[Attribute]) -> Vec<String> {
 }
 
 /// Parse a token stream as a single `syn::Item`.
+#[allow(dead_code)]
 fn parse_item(tokens: TokenStream) -> Item {
     syn::parse2(tokens).expect("failed to parse item")
 }
 
 /// Parse a token stream as an `ItemStruct`.
+#[allow(dead_code)]
 fn parse_struct(tokens: TokenStream) -> ItemStruct {
     syn::parse2(tokens).expect("failed to parse struct")
 }
 
 /// Parse a token stream as an `ItemEnum`.
+#[allow(dead_code)]
 fn parse_enum(tokens: TokenStream) -> ItemEnum {
     syn::parse2(tokens).expect("failed to parse enum")
 }
@@ -148,11 +151,11 @@ fn parse_precedence_value_parameter() {
         .unwrap();
     // The precedence value should parse as a single expression
     let expr: syn::Expr = attr.parse_args().unwrap();
-    if let syn::Expr::Lit(lit) = &expr {
-        if let syn::Lit::Int(int) = &lit.lit {
-            assert_eq!(int.base10_parse::<i32>().unwrap(), 42);
-            return;
-        }
+    if let syn::Expr::Lit(lit) = &expr
+        && let syn::Lit::Int(int) = &lit.lit
+    {
+        assert_eq!(int.base10_parse::<i32>().unwrap(), 42);
+        return;
     }
     panic!("Expected integer literal 42");
 }

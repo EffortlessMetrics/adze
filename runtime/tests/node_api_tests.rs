@@ -418,7 +418,7 @@ fn test_field_id_tree_node_data() {
 #[test]
 fn test_children_iterator_empty() {
     let node = leaf(1, 0, 3);
-    assert_eq!(node.children.iter().count(), 0);
+    assert_eq!(node.children.len(), 0);
 }
 
 #[test]
@@ -441,7 +441,7 @@ fn test_children_iterator_exact_size() {
 #[test]
 fn test_named_children_filter() {
     // Simulate named children filter using TreeNodeData flags
-    let mut nodes = vec![
+    let mut nodes = [
         TreeNodeData::new(1, 0, 5),
         TreeNodeData::new(2, 5, 6),
         TreeNodeData::new(3, 6, 10),
@@ -509,7 +509,7 @@ fn test_sibling_navigation_via_index() {
 fn test_first_child_has_no_prev_sibling() {
     let tree = sample_tree();
     // Index 0 has no predecessor
-    assert!(tree.children.first().is_some());
+    assert!(!tree.children.is_empty());
     // No negative index possible
 }
 
@@ -534,7 +534,7 @@ fn test_named_sibling_navigation() {
     let mut data_named_b = TreeNodeData::new(3, 6, 10);
     data_named_b.set_named(true);
 
-    let siblings = vec![data_named_a, data_anon, data_named_b];
+    let siblings = [data_named_a, data_anon, data_named_b];
     // Next named sibling of index 0 (skipping anonymous at index 1):
     let next_named = siblings.iter().skip(1).find(|s| s.is_named());
     assert!(next_named.is_some());
@@ -577,7 +577,7 @@ fn test_utf8_text_unicode() {
 #[cfg(feature = "ts-compat")]
 #[test]
 fn test_utf8_text_ts_compat_node() {
-    use adze::ts_compat::{Language, Parser, Point};
+    use adze::ts_compat::{Language, Parser};
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
     use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;

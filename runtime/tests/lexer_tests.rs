@@ -14,7 +14,7 @@
 //! - Complex expression token streams
 //! - Lookahead / priority-based matching
 
-use adze::glr_lexer::{GLRLexer, TokenWithPosition};
+use adze::glr_lexer::GLRLexer;
 use adze::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer, Token};
 use adze_ir::{Grammar, SymbolId, TokenPattern};
 
