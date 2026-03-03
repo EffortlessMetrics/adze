@@ -1,0 +1,8 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: before
+---
+  Symbol(4) -> NonTerminal(SymbolId(5))
+  Symbol(5) -> NonTerminal(SymbolId(5)) Terminal(SymbolId(2)) NonTerminal(SymbolId(5))
+  Symbol(5) -> NonTerminal(SymbolId(5)) Terminal(SymbolId(3)) NonTerminal(SymbolId(5))
+  Symbol(5) -> Terminal(SymbolId(1))

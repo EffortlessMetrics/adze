@@ -1,0 +1,6 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: render_errors(&result.errors)
+---
+Symbol 'rule_1' (SymbolId(1)) cannot derive any terminal strings
+Undefined symbol SymbolId(99) referenced in rule for SymbolId(1)

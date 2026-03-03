@@ -1,0 +1,5 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: render_errors(&result.errors)
+---
+Grammar has no rules defined

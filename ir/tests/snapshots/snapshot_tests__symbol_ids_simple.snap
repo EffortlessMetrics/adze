@@ -1,0 +1,5 @@
+---
+source: ir/tests/snapshot_tests.rs
+expression: "format!(\"{:?}\", collect_lhs_ids(&grammar))"
+---
+[5]
