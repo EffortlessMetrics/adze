@@ -64,3 +64,5 @@ path = "src/bin/adze.rs"
 [dev-dependencies]
 insta.workspace = true
 proptest.workspace = true
+tree-sitter-generate = "0.25.1"
+tempfile.workspace = true
