@@ -29,10 +29,10 @@ pub fn fixtures_dir() -> PathBuf {
 
     // Prefer the workspace-level corpus/ directory.
     let workspace_corpus = manifest.parent().map(|p| p.join("corpus"));
-    if let Some(ref dir) = workspace_corpus {
-        if dir.is_dir() {
-            return dir.clone();
-        }
+    if let Some(ref dir) = workspace_corpus
+        && dir.is_dir()
+    {
+        return dir.clone();
     }
 
     // Fall back to a per-crate fixtures/ directory.

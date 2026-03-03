@@ -17,4 +17,5 @@ clap = { version = "4.0", features = ["derive"] }
 proptest.workspace = true
 
 [dev-dependencies]
+adze-tablegen = { path = "../tablegen" }
 insta.workspace = true
