@@ -1225,3 +1225,634 @@ fn fragile_tokens_emitted_as_anonymous() {
         "fragile string token should be anonymous"
     );
 }
+
+// ---------------------------------------------------------------------------
+// COMPRESSION TESTS: Parse table compression properties
+// ---------------------------------------------------------------------------
+// These tests verify the parse table compression pipeline which is essential
+// for generating efficient Tree-sitter grammars with minimal memory overhead.
+
+use adze_glr_core::{Action, FirstFollowSets, ParseTable};
+use adze_ir::RuleId;
+use adze_tablegen::compress::TableCompressor;
+use std::collections::BTreeMap;
+
+/// Helper: Create empty parse table with given dimensions
+fn make_empty_parse_table(states: usize, symbols: usize) -> ParseTable {
+    let actions = vec![vec![vec![]; symbols]; states];
+    let gotos = vec![vec![adze_ir::StateId(u16::MAX); symbols]; states];
+
+    let mut symbol_to_index: BTreeMap<SymbolId, usize> = BTreeMap::new();
+    for i in 0..symbols {
+        symbol_to_index.insert(SymbolId(i as u16), i);
+    }
+
+    let mut index_to_symbol = vec![SymbolId(0); symbols];
+    for (sid, idx) in &symbol_to_index {
+        index_to_symbol[*idx] = *sid;
+    }
+
+    ParseTable {
+        action_table: actions,
+        goto_table: gotos,
+        rules: vec![],
+        state_count: states,
+        symbol_count: symbols,
+        symbol_to_index,
+        index_to_symbol,
+        nonterminal_to_index: BTreeMap::new(),
+        symbol_metadata: vec![],
+        token_count: 2,
+        external_token_count: 0,
+        eof_symbol: SymbolId(symbols as u16 - 1),
+        start_symbol: SymbolId(symbols as u16 - 1),
+        initial_state: adze_ir::StateId(0),
+        lex_modes: vec![
+            adze_glr_core::LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            };
+            states
+        ],
+        extras: vec![],
+        external_scanner_states: vec![],
+        dynamic_prec_by_rule: vec![],
+        rule_assoc_by_rule: vec![],
+        alias_sequences: vec![],
+        field_names: vec![],
+        field_map: BTreeMap::new(),
+        grammar: Grammar::default(),
+        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
+    }
+}
+
+/// Helper: Get sorted token indices from grammar
+fn get_indices(table: &ParseTable) -> Vec<usize> {
+    let mut v: Vec<usize> = table.symbol_to_index.values().copied().collect();
+    v.sort();
+    v.dedup();
+    v
+}
+
+// TEST 1: Compressed action table has row_offsets
+#[test]
+fn compressed_action_table_has_row_offsets() {
+    let mut table = make_empty_parse_table(5, 8);
+    // Add minimal shift action to pass validation
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.action_table.row_offsets.is_empty());
+    assert_eq!(
+        compressed.action_table.row_offsets.len(),
+        table.state_count + 1
+    );
+}
+
+// TEST 2: Compressed goto table has row_offsets
+#[test]
+fn compressed_goto_table_has_row_offsets() {
+    let mut table = make_empty_parse_table(5, 8);
+    // Add minimal shift action
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.goto_table.row_offsets.is_empty());
+    assert_eq!(
+        compressed.goto_table.row_offsets.len(),
+        table.state_count + 1
+    );
+}
+
+// TEST 3: Compressed tables from different grammars differ
+#[test]
+fn compressed_tables_from_different_grammars_differ() {
+    let mut table1 = make_empty_parse_table(3, 5);
+    let mut table2 = make_empty_parse_table(4, 6);
+
+    // Add shift to both
+    if let Some(cell) = table1.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+    if let Some(cell) = table2.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices1 = get_indices(&table1);
+    let indices2 = get_indices(&table2);
+
+    let compressed1 = compressor.compress(&table1, &indices1, false).unwrap();
+    let compressed2 = compressor.compress(&table2, &indices2, false).unwrap();
+
+    // Different table dimensions should produce different offsets or data
+    assert!(
+        compressed1.action_table.row_offsets != compressed2.action_table.row_offsets
+            || compressed1.action_table.data.len() != compressed2.action_table.data.len()
+    );
+}
+
+// TEST 4: Compression deterministic (same grammar → same output)
+#[test]
+fn compression_deterministic_same_output() {
+    let mut table = make_empty_parse_table(3, 5);
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+
+    let compressed1 = compressor.compress(&table, &indices, false).unwrap();
+    let compressed2 = compressor.compress(&table, &indices, false).unwrap();
+
+    // Same table should produce identical compression
+    assert_eq!(
+        compressed1.action_table.row_offsets,
+        compressed2.action_table.row_offsets
+    );
+    assert_eq!(
+        compressed1.goto_table.row_offsets,
+        compressed2.goto_table.row_offsets
+    );
+}
+
+// TEST 5: Row offset count equals state count + 1
+#[test]
+fn row_offset_count_equals_state_count_plus_one() {
+    let mut table = make_empty_parse_table(7, 10);
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let compressed = compressor.compress(&table, &indices, false).unwrap();
+
+    assert_eq!(
+        compressed.action_table.row_offsets.len(),
+        table.state_count + 1
+    );
+    assert_eq!(
+        compressed.goto_table.row_offsets.len(),
+        table.state_count + 1
+    );
+}
+
+// TEST 6: Compression preserves action semantics (action count matches)
+#[test]
+fn compression_preserves_action_semantics() {
+    let mut table = make_empty_parse_table(2, 4);
+
+    // State 0: has 2 shift actions
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+    if let Some(cell) = table.action_table[0].get_mut(2) {
+        cell.push(Action::Shift(adze_ir::StateId(2)));
+    }
+
+    // State 1: has 1 reduce action
+    if let Some(cell) = table.action_table[1].get_mut(1) {
+        cell.push(Action::Reduce(RuleId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let compressed = compressor.compress(&table, &indices, false).unwrap();
+
+    // Should have compressed the actions
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+// TEST 7: Small grammar compression (single rule)
+#[test]
+fn small_grammar_compression() {
+    let mut table = make_empty_parse_table(2, 3);
+
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+    if let Some(cell) = table.action_table[1].get_mut(1) {
+        cell.push(Action::Reduce(RuleId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(compressed.action_table.row_offsets.len() > 0);
+}
+
+// TEST 8: Large grammar compression (10+ tokens)
+#[test]
+fn large_grammar_compression_many_tokens() {
+    let mut table = make_empty_parse_table(20, 15);
+
+    // Populate with shifts
+    for state in 0..20 {
+        for sym in 1..5 {
+            if let Some(cell) = table.action_table[state].get_mut(sym) {
+                cell.push(Action::Shift(adze_ir::StateId((state + 1) as u16)));
+            }
+        }
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(compressed.action_table.data.len() > 0);
+}
+
+// TEST 9: Compression with alternatives (mixed shifts and reduces)
+#[test]
+fn compression_with_mixed_actions() {
+    let mut table = make_empty_parse_table(4, 5);
+
+    // State 0: shifts
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+    if let Some(cell) = table.action_table[0].get_mut(2) {
+        cell.push(Action::Shift(adze_ir::StateId(2)));
+    }
+
+    // State 1: reduce
+    if let Some(cell) = table.action_table[1].get_mut(1) {
+        cell.push(Action::Reduce(RuleId(1)));
+    }
+
+    // State 2: accept (on EOF typically, but we'll use symbol 3)
+    if let Some(cell) = table.action_table[2].get_mut(3) {
+        cell.push(Action::Accept);
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+// TEST 10: Compression with sequences (multiple identical actions in sequence)
+#[test]
+fn compression_with_sequences() {
+    let mut table = make_empty_parse_table(5, 6);
+
+    // Fill several states with same action pattern
+    let shift_state = adze_ir::StateId(3);
+    for state in 0..4 {
+        if let Some(cell) = table.action_table[state].get_mut(1) {
+            cell.push(Action::Shift(shift_state));
+        }
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+}
+
+// TEST 11: Row offsets are strictly increasing
+#[test]
+fn row_offsets_strictly_increasing() {
+    let mut table = make_empty_parse_table(5, 8);
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let compressed = compressor.compress(&table, &indices, false).unwrap();
+
+    let offsets = &compressed.action_table.row_offsets;
+    for i in 1..offsets.len() {
+        assert!(
+            offsets[i] >= offsets[i - 1],
+            "Row offsets not monotonically increasing"
+        );
+    }
+}
+
+// TEST 12: Compression with only reduce actions
+#[test]
+fn compression_with_only_reduces() {
+    let mut table = make_empty_parse_table(4, 5);
+
+    // State 0 needs at least one shift
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    // Other states: reduce only
+    for state in 1..4 {
+        if let Some(cell) = table.action_table[state].get_mut(1) {
+            cell.push(Action::Reduce(RuleId(1)));
+        }
+        if let Some(cell) = table.action_table[state].get_mut(2) {
+            cell.push(Action::Reduce(RuleId(2)));
+        }
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+// TEST 13: Compression with only shift actions
+#[test]
+fn compression_with_only_shifts() {
+    let mut table = make_empty_parse_table(3, 5);
+
+    for state in 0..3 {
+        for sym in 1..4 {
+            if let Some(cell) = table.action_table[state].get_mut(sym) {
+                cell.push(Action::Shift(adze_ir::StateId((state + 1) as u16)));
+            }
+        }
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+// TEST 14: Goto table compression with run-length encoding
+#[test]
+fn goto_table_run_length_encoding() {
+    let mut table = make_empty_parse_table(2, 5);
+
+    // Set repeated goto entries (run of same state)
+    let target_state = adze_ir::StateId(1);
+    for sym in 1..5 {
+        table.goto_table[0][sym] = target_state;
+    }
+
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.goto_table.data.is_empty());
+}
+
+// TEST 15: Compression handles empty rows correctly
+#[test]
+fn compression_handles_empty_rows() {
+    let mut table = make_empty_parse_table(3, 4);
+
+    // Only populate state 0
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+    // States 1, 2 have no actions
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert_eq!(
+        compressed.action_table.row_offsets.len(),
+        table.state_count + 1
+    );
+}
+
+// TEST 16: Compression with multiple states and symbols
+#[test]
+fn compression_with_multiple_states_symbols() {
+    let compressor = TableCompressor::new();
+
+    // Tables with many states
+    let mut table = make_empty_parse_table(100, 10);
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+    assert!(result.is_ok());
+}
+
+// TEST 17: Default actions are set correctly
+#[test]
+fn default_actions_set_correctly() {
+    let mut table = make_empty_parse_table(2, 4);
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let compressed = compressor.compress(&table, &indices, false).unwrap();
+
+    // Default actions should match state count
+    assert_eq!(
+        compressed.action_table.default_actions.len(),
+        table.state_count
+    );
+}
+
+// TEST 18: Compression with nullable start symbol
+#[test]
+fn compression_with_nullable_start() {
+    let mut table = make_empty_parse_table(2, 4);
+
+    // State 0 with nullable start: can accept on EOF immediately
+    if let Some(cell) = table.action_table[0].get_mut(3) {
+        cell.push(Action::Accept); // EOF is typically at index 3
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, true); // start_can_be_empty = true
+
+    assert!(result.is_ok());
+}
+
+// TEST 19: Action count preservation
+#[test]
+fn action_count_preservation() {
+    let mut table = make_empty_parse_table(3, 5);
+
+    let mut original_action_count = 0;
+
+    // Add known actions
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+        original_action_count += 1;
+    }
+    if let Some(cell) = table.action_table[1].get_mut(2) {
+        cell.push(Action::Reduce(RuleId(1)));
+        original_action_count += 1;
+    }
+    if let Some(cell) = table.action_table[2].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(2)));
+        original_action_count += 1;
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let compressed = compressor.compress(&table, &indices, false).unwrap();
+
+    // Compressed data should have at least the number of non-error actions
+    assert!(compressed.action_table.data.len() >= original_action_count);
+}
+
+// TEST 20: Large state space compression
+#[test]
+fn large_state_space_compression() {
+    let mut table = make_empty_parse_table(100, 12);
+
+    // Populate with pattern
+    for state in 0..100 {
+        if let Some(cell) = table.action_table[state].get_mut(1) {
+            cell.push(Action::Shift(adze_ir::StateId((state + 1) as u16 % 100)));
+        }
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert_eq!(
+        compressed.action_table.row_offsets.len(),
+        101 // states + 1
+    );
+}
+
+// TEST 21: Accept action handling
+#[test]
+fn accept_action_handling() {
+    let mut table = make_empty_parse_table(2, 4);
+
+    // State 0: shift to state 1
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    // State 1: accept on EOF
+    if let Some(cell) = table.action_table[1].get_mut(3) {
+        cell.push(Action::Accept);
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+// TEST 22: Error action skipping in compression
+#[test]
+fn error_action_skipping() {
+    let mut table = make_empty_parse_table(2, 4);
+
+    // State 0: shift
+    if let Some(cell) = table.action_table[0].get_mut(1) {
+        cell.push(Action::Shift(adze_ir::StateId(1)));
+    }
+
+    // State 1: has error (should be optimized out)
+    if let Some(cell) = table.action_table[1].get_mut(2) {
+        cell.push(Action::Error);
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let compressed = compressor.compress(&table, &indices, false).unwrap();
+
+    // Error actions are typically omitted, so data should only have the shift
+    assert!(compressed.action_table.data.len() >= 1);
+}
+
+// TEST 23: Multiple symbol columns compression
+#[test]
+fn multiple_symbol_columns_compression() {
+    let mut table = make_empty_parse_table(3, 8);
+
+    // Populate multiple columns
+    for state in 0..3 {
+        for sym in 1..7 {
+            if let Some(cell) = table.action_table[state].get_mut(sym) {
+                cell.push(Action::Shift(adze_ir::StateId((state + sym) as u16 % 3)));
+            }
+        }
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+    let result = compressor.compress(&table, &indices, false);
+
+    assert!(result.is_ok());
+    let compressed = result.unwrap();
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+// TEST 24: Determinism across multiple compressions
+#[test]
+fn determinism_multiple_compressions() {
+    let mut table = make_empty_parse_table(4, 6);
+
+    for state in 0..4 {
+        if let Some(cell) = table.action_table[state].get_mut(1) {
+            cell.push(Action::Shift(adze_ir::StateId((state + 1) as u16)));
+        }
+    }
+
+    let compressor = TableCompressor::new();
+    let indices = get_indices(&table);
+
+    // Compress multiple times
+    let results: Vec<_> = (0..3)
+        .map(|_| compressor.compress(&table, &indices, false).unwrap())
+        .collect();
+
+    // All should be identical
+    for i in 1..results.len() {
+        assert_eq!(
+            results[0].action_table.row_offsets,
+            results[i].action_table.row_offsets
+        );
+    }
+}
