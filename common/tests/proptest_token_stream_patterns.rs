@@ -80,7 +80,7 @@ proptest! {
 
     #[test]
     fn prop_clone_equals_original_complex(name in valid_ident()) {
-        let ts = quote! { struct #(Ident::new(&name, Span::call_site())) { x: u32 } };
+        let _ts = quote! { struct #(Ident::new(&name, Span::call_site())) { x: u32 } };
         // Build via ident interpolation
         let ident = Ident::new(&name, Span::call_site());
         let ts = quote! { fn #ident() -> bool { true } };
@@ -393,8 +393,8 @@ fn unit_literal_i64() {
 
 #[test]
 fn unit_literal_f64() {
-    let lit = Literal::f64_suffixed(3.14);
-    assert!(lit.to_string().starts_with("3.14"));
+    let lit = Literal::f64_suffixed(3.5);
+    assert!(lit.to_string().starts_with("3.5"));
 }
 
 #[test]

@@ -260,11 +260,11 @@ proptest! {
         );
         let item: Item = parse_str(&src).unwrap();
         prop_assert_eq!(count_adze(&item, "grammar"), 1);
-        if let Item::Mod(m) = &item {
-            if let Some((_, items)) = &m.content {
-                for inner in items {
-                    prop_assert_eq!(count_adze(inner, "grammar"), 0);
-                }
+        if let Item::Mod(m) = &item
+            && let Some((_, items)) = &m.content
+        {
+            for inner in items {
+                prop_assert_eq!(count_adze(inner, "grammar"), 0);
             }
         }
     }

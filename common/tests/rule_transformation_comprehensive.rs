@@ -787,7 +787,7 @@ proptest! {
             parse_quote!(Box<Beta>),
             parse_quote!(Box<Gamma>),
         ];
-        let expected = vec!["Alpha", "Beta", "Gamma"];
+        let expected = ["Alpha", "Beta", "Gamma"];
         let ty = &types[idx];
         let filtered = filter_inner_type(ty, &skip(&["Box"]));
         prop_assert_eq!(ts(&filtered), expected[idx]);
@@ -800,7 +800,7 @@ proptest! {
             parse_quote!(Option<Y>),
             parse_quote!(Vec<Z>),
         ];
-        let containers = vec!["Vec", "Option", "Vec"];
+        let containers = ["Vec", "Option", "Vec"];
         let ty = &types[idx];
         let wrapped = wrap_leaf_type(ty, &skip(&["Vec", "Option"]));
         let s = ts(&wrapped);

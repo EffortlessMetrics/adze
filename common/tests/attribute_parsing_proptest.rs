@@ -415,14 +415,14 @@ proptest! {
             "mod {mod_name} {{\n  #[adze::leaf]\n  pub struct A {{ pub v: i32 }}\n  #[adze::skip]\n  pub struct B {{ pub v: i32 }}\n}}"
         );
         let item: Item = parse_str(&src).unwrap();
-        if let Item::Mod(m) = &item {
-            if let Some((_, items)) = &m.content {
-                prop_assert_eq!(items.len(), 2);
-                prop_assert_eq!(count_adze_attrs(&items[0], "leaf"), 1);
-                prop_assert_eq!(count_adze_attrs(&items[0], "skip"), 0);
-                prop_assert_eq!(count_adze_attrs(&items[1], "skip"), 1);
-                prop_assert_eq!(count_adze_attrs(&items[1], "leaf"), 0);
-            }
+        if let Item::Mod(m) = &item
+            && let Some((_, items)) = &m.content
+        {
+            prop_assert_eq!(items.len(), 2);
+            prop_assert_eq!(count_adze_attrs(&items[0], "leaf"), 1);
+            prop_assert_eq!(count_adze_attrs(&items[0], "skip"), 0);
+            prop_assert_eq!(count_adze_attrs(&items[1], "skip"), 1);
+            prop_assert_eq!(count_adze_attrs(&items[1], "leaf"), 0);
         }
     }
 }

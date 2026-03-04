@@ -123,14 +123,14 @@ fn literal_i32() {
 
 #[test]
 fn literal_f32() {
-    let lit = Literal::f32_suffixed(3.14);
-    assert!(lit.to_string().contains("3.14"));
+    let lit = Literal::f32_suffixed(3.5);
+    assert!(lit.to_string().contains("3.5"));
 }
 
 #[test]
 fn literal_f64() {
-    let lit = Literal::f64_suffixed(2.718);
-    assert!(lit.to_string().contains("2.718"));
+    let lit = Literal::f64_suffixed(2.5);
+    assert!(lit.to_string().contains("2.5"));
 }
 
 #[test]

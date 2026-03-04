@@ -226,7 +226,7 @@ fn grammar_struct_if_statement_analysis() {
         expect_rep: bool,
         expect_leaf: &'static str,
     }
-    let fields = vec![
+    let fields = [
         FieldInfo {
             ty: parse_quote!(Expr),
             expect_opt: false,

@@ -1,6 +1,6 @@
 //! Comprehensive tests for the common crate's grammar expansion utilities.
 
-use adze_common::*;
+use adze_common as _;
 
 // ── Basic module structure ──
 

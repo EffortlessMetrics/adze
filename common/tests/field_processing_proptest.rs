@@ -66,7 +66,7 @@ fn skip<'a>(names: &[&'a str]) -> HashSet<&'a str> {
     names.iter().copied().collect()
 }
 
-fn capitalize(s: &str) -> String {
+fn _capitalize(s: &str) -> String {
     let mut chars = s.chars();
     match chars.next() {
         None => String::new(),
@@ -89,18 +89,18 @@ fn build_struct(name: &str, fields: &[(&str, &str)]) -> String {
 }
 
 fn extract_struct_fields(item: &Item) -> Vec<(String, String)> {
-    if let Item::Struct(s) = item {
-        if let Fields::Named(ref named) = s.fields {
-            return named
-                .named
-                .iter()
-                .map(|f| {
-                    let name = f.ident.as_ref().unwrap().to_string();
-                    let ty = ty_str(&f.ty);
-                    (name, ty)
-                })
-                .collect();
-        }
+    if let Item::Struct(s) = item
+        && let Fields::Named(ref named) = s.fields
+    {
+        return named
+            .named
+            .iter()
+            .map(|f| {
+                let name = f.ident.as_ref().unwrap().to_string();
+                let ty = ty_str(&f.ty);
+                (name, ty)
+            })
+            .collect();
     }
     vec![]
 }
@@ -112,10 +112,10 @@ fn to_snake_case(name: &str) -> String {
             let prev = name.chars().nth(i - 1).unwrap_or('_');
             if prev.is_lowercase() || prev.is_ascii_digit() {
                 result.push('_');
-            } else if let Some(next) = name.chars().nth(i + 1) {
-                if next.is_lowercase() {
-                    result.push('_');
-                }
+            } else if let Some(next) = name.chars().nth(i + 1)
+                && next.is_lowercase()
+            {
+                result.push('_');
             }
         }
         result.push(ch.to_lowercase().next().unwrap());

@@ -147,7 +147,7 @@ proptest! {
         let field_strs: Vec<String> = fields.iter().enumerate()
             .map(|(i, (_, ty))| format!("f{i}: {ty}"))
             .collect();
-        let src = format!("struct {name} {{ {} }}", field_strs.join(", "));
+        let _src = format!("struct {name} {{ {} }}", field_strs.join(", "));
         // Must parse as a valid item
         let upper_name = {
             let mut c = name.chars();

@@ -413,7 +413,7 @@ fn wrap_fn_pointer_no_return() {
 #[test]
 fn extract_qualified_path() {
     let t = ty("<Vec<u8> as IntoIterator>::Item");
-    let (inner, ok) = try_extract_inner_type(&t, "Option", &empty());
+    let (_inner, ok) = try_extract_inner_type(&t, "Option", &empty());
     assert!(!ok);
     // QSelf types are not Type::Path in the normal sense
 }
@@ -444,7 +444,7 @@ fn wrap_qualified_path() {
 #[test]
 fn extract_impl_trait() {
     let t = ty("impl Iterator<Item = i32>");
-    let (inner, ok) = try_extract_inner_type(&t, "Option", &empty());
+    let (_inner, ok) = try_extract_inner_type(&t, "Option", &empty());
     assert!(!ok);
     // impl Trait is Type::ImplTrait, not Type::Path
 }
@@ -740,7 +740,7 @@ fn filter_custom_generic_in_skip() {
 #[test]
 fn extract_dyn_trait() {
     let t = ty("dyn Iterator<Item = i32>");
-    let (inner, ok) = try_extract_inner_type(&t, "Option", &empty());
+    let (_inner, ok) = try_extract_inner_type(&t, "Option", &empty());
     assert!(!ok);
 }
 
@@ -954,7 +954,7 @@ fn wrap_double_wraps_non_skip_type() {
 fn extract_paren_type() {
     let t = ty("(i32)");
     // syn parses (i32) as Type::Paren
-    let (inner, ok) = try_extract_inner_type(&t, "Option", &empty());
+    let (_inner, ok) = try_extract_inner_type(&t, "Option", &empty());
     assert!(!ok);
 }
 

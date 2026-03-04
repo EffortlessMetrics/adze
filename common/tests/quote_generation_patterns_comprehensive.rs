@@ -549,7 +549,7 @@ fn nested_quote_conditional_field() {
 
 #[test]
 fn nested_quote_builder_pattern() {
-    let fields = vec![("width", "u32"), ("height", "u32")];
+    let fields = [("width", "u32"), ("height", "u32")];
     let setters: Vec<TokenStream> = fields
         .iter()
         .map(|(name, _ty)| {
@@ -742,7 +742,7 @@ fn generate_default_impl() {
 
 #[test]
 fn generate_new_constructor() {
-    let fields = vec![("name", "String"), ("age", "u32")];
+    let fields = [("name", "String"), ("age", "u32")];
     let params: Vec<TokenStream> = fields
         .iter()
         .map(|(n, t)| {
@@ -771,7 +771,7 @@ fn generate_new_constructor() {
 
 #[test]
 fn generate_getters() {
-    let fields = vec![("name", "String"), ("id", "u64")];
+    let fields = [("name", "String"), ("id", "u64")];
     let methods: Vec<TokenStream> = fields
         .iter()
         .map(|(name, ty)| {

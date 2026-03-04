@@ -154,7 +154,7 @@ proptest! {
         count in 1usize..=8,
         ty in leaf_type(),
     ) {
-        let fields: Vec<(&str, &str)> = (0..count)
+        let _fields: Vec<(&str, &str)> = (0..count)
             .map(|_| ("x", ty))
             .collect();
         // Use numbered field names to avoid duplicates.

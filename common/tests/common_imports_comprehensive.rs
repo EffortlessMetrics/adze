@@ -2,7 +2,6 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn;
 
 // ── TokenStream basics ──
 
@@ -145,8 +144,8 @@ fn literal_string() {
 #[test]
 fn literal_f64() {
     use proc_macro2::Literal;
-    let lit = Literal::f64_suffixed(3.14);
-    assert!(lit.to_string().contains("3.14"));
+    let lit = Literal::f64_suffixed(3.5);
+    assert!(lit.to_string().contains("3.5"));
 }
 
 // ── Complex type patterns ──

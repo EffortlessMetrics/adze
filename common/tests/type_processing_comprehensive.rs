@@ -551,7 +551,7 @@ fn filter_with_large_skip_set() {
 #[test]
 fn extract_preserves_complex_generic_bounds() {
     let ty: Type = parse_quote!(Vec<impl Trait>);
-    let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip(&[]));
+    let (_inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip(&[]));
     assert!(extracted);
 }
 
@@ -680,7 +680,7 @@ fn rand_skip() -> impl Strategy<Value = HashSet<&'static str>> {
 /// Type string strategy with varying nesting depth.
 fn type_str_strat() -> impl Strategy<Value = String> {
     prop_oneof![
-        leaf_name().prop_map(|s| s.to_string()),
+        leaf_name().prop_map(|s| (*s).to_string()),
         (container(), leaf_name()).prop_map(|(c, l)| format!("{c}<{l}>")),
         (container(), container(), leaf_name()).prop_map(|(c1, c2, l)| format!("{c1}<{c2}<{l}>>")),
     ]

@@ -12,7 +12,7 @@ use adze_common::{
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{Item, ItemEnum, ItemMod, ItemStruct, Type, parse_quote, parse_str};
+use syn::{Item, ItemEnum, ItemMod, ItemStruct, Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -60,7 +60,7 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
 }
 
 /// Builds a struct source string with named fields.
-fn build_struct(name: &str, fields: &[(&str, &str)]) -> String {
+fn _build_struct(name: &str, fields: &[(&str, &str)]) -> String {
     let field_strs: Vec<String> = fields
         .iter()
         .map(|(fname, ftype)| format!("    pub {fname}: {ftype},"))
@@ -69,7 +69,7 @@ fn build_struct(name: &str, fields: &[(&str, &str)]) -> String {
 }
 
 /// Builds an enum source string with tuple variants.
-fn build_enum(name: &str, variants: &[(&str, &str)]) -> String {
+fn _build_enum(name: &str, variants: &[(&str, &str)]) -> String {
     let var_strs: Vec<String> = variants
         .iter()
         .map(|(vname, vtype)| format!("    {vname}({vtype}),"))
