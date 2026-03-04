@@ -3,14 +3,15 @@
 //! Comprehensive tests for grammar expansion logic in adze-common.
 //!
 //! Covers: basic expansion, type annotation processing, optional/repetition/choice
-//! expansion, nested types, edge cases, error cases, field mapping, and multi-rule
-//! interaction patterns.
+//! expansion, nested types, edge cases, error cases, field mapping, multi-rule
+//! interaction patterns, and property-based testing with proptest.
 
 use std::collections::HashSet;
 
 use adze_common::{
     FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
+use proptest::prelude::*;
 use quote::ToTokens;
 use syn::{Type, parse_quote};
 
@@ -743,4 +744,478 @@ fn pipeline_comprehensive_transform_scenario() {
         type_to_string(&final_type),
         "adze :: WithLeaf < Identifier >"
     );
+}
+
+// ===========================================================================
+// 18. Token pattern handling — leaf vs non-leaf token types
+// ===========================================================================
+
+#[test]
+fn token_pattern_primitive_types_wrap_as_leaves() {
+    let primitives: Vec<Type> = vec![
+        parse_quote!(i8),
+        parse_quote!(i16),
+        parse_quote!(i32),
+        parse_quote!(i64),
+        parse_quote!(u8),
+        parse_quote!(u16),
+        parse_quote!(u32),
+        parse_quote!(u64),
+        parse_quote!(f32),
+        parse_quote!(f64),
+        parse_quote!(bool),
+        parse_quote!(char),
+        parse_quote!(usize),
+        parse_quote!(isize),
+    ];
+    let skip = skip_set(&[]);
+    for ty in &primitives {
+        let wrapped = wrap_leaf_type(ty, &skip);
+        let s = type_to_string(&wrapped);
+        assert!(
+            s.starts_with("adze :: WithLeaf <"),
+            "Primitive {} should be wrapped as leaf, got: {}",
+            type_to_string(ty),
+            s
+        );
+    }
+}
+
+#[test]
+fn token_pattern_string_type_is_leaf() {
+    let ty: Type = parse_quote!(String);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < String >");
+}
+
+#[test]
+fn token_pattern_unit_type_wraps() {
+    let ty: Type = parse_quote!(());
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < () >");
+}
+
+#[test]
+fn token_pattern_never_type_wraps() {
+    let ty: Type = parse_quote!(!);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert!(type_to_string(&wrapped).contains("adze :: WithLeaf"));
+}
+
+// ===========================================================================
+// 19. Rule composition — combining extraction/filter/wrap in grammar patterns
+// ===========================================================================
+
+#[test]
+fn rule_composition_idempotent_double_filter() {
+    let ty: Type = parse_quote!(Box<String>);
+    let skip = skip_set(&["Box"]);
+    let once = filter_inner_type(&ty, &skip);
+    let twice = filter_inner_type(&once, &skip);
+    assert_eq!(type_to_string(&once), type_to_string(&twice));
+}
+
+#[test]
+fn rule_composition_extract_then_wrap_roundtrip_type_name() {
+    let ty: Type = parse_quote!(Vec<Expr>);
+    let (inner, ok) = try_extract_inner_type(&ty, "Vec", &skip_set(&[]));
+    assert!(ok);
+    let wrapped = wrap_leaf_type(&inner, &skip_set(&[]));
+    assert!(type_to_string(&wrapped).contains("Expr"));
+}
+
+#[test]
+fn rule_composition_multiple_skip_types_filter_chain() {
+    let ty: Type = parse_quote!(Arc<Rc<Leaf>>);
+    let filtered = filter_inner_type(&ty, &skip_set(&["Arc", "Rc"]));
+    assert_eq!(type_to_string(&filtered), "Leaf");
+}
+
+#[test]
+fn rule_composition_wrap_preserves_option_vec_nesting() {
+    let ty: Type = parse_quote!(Option<Vec<Leaf>>);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&["Option", "Vec"]));
+    assert_eq!(
+        type_to_string(&wrapped),
+        "Option < Vec < adze :: WithLeaf < Leaf > > >"
+    );
+}
+
+// ===========================================================================
+// 20. Error handling for malformed grammar definitions
+// ===========================================================================
+
+#[test]
+#[should_panic(expected = "Expected angle bracketed path")]
+fn error_target_type_no_angle_brackets_extract() {
+    let ty: Type = parse_quote!(Option);
+    let _ = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+}
+
+#[test]
+fn error_no_panic_for_non_matching_no_generics() {
+    // A type with no generics that doesn't match target/skip — no panic
+    let ty: Type = parse_quote!(Foo);
+    let (inner, ok) = try_extract_inner_type(&ty, "Bar", &skip_set(&[]));
+    assert!(!ok);
+    assert_eq!(type_to_string(&inner), "Foo");
+}
+
+#[test]
+fn error_no_panic_filter_non_matching() {
+    let ty: Type = parse_quote!(String);
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "String");
+}
+
+#[test]
+fn error_no_panic_wrap_plain_type() {
+    let ty: Type = parse_quote!(MyType);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < MyType >");
+}
+
+#[test]
+#[should_panic(expected = "Expected angle bracketed path")]
+fn error_wrap_skip_type_parenthesized_generics() {
+    // Fn(i32) -> bool is a skip type "Fn" but with parenthesized (not angle-bracketed) args
+    // We simulate by parsing a plain path then forcing it into the skip set
+    let ty: Type = parse_quote!(Fn);
+    let _ = wrap_leaf_type(&ty, &skip_set(&["Fn"]));
+}
+
+// ===========================================================================
+// 21. NameValueExpr edge cases
+// ===========================================================================
+
+#[test]
+fn nv_expr_bool_literal() {
+    let nv: NameValueExpr = parse_quote!(enabled = true);
+    assert_eq!(nv.path.to_string(), "enabled");
+}
+
+#[test]
+fn nv_expr_negative_number() {
+    let nv: NameValueExpr = parse_quote!(offset = -42);
+    assert_eq!(nv.path.to_string(), "offset");
+}
+
+#[test]
+fn nv_expr_method_call() {
+    let nv: NameValueExpr = parse_quote!(default = String::new());
+    assert_eq!(nv.path.to_string(), "default");
+}
+
+#[test]
+fn nv_expr_array_literal() {
+    let nv: NameValueExpr = parse_quote!(tokens = [1, 2, 3]);
+    assert_eq!(nv.path.to_string(), "tokens");
+    assert!(matches!(nv.expr, syn::Expr::Array(_)));
+}
+
+// ===========================================================================
+// 22. FieldThenParams edge cases
+// ===========================================================================
+
+#[test]
+fn field_then_params_complex_type_no_params() {
+    let parsed: FieldThenParams = parse_quote!(Vec<Option<Box<String>>>);
+    assert!(parsed.comma.is_none());
+    assert!(parsed.params.is_empty());
+}
+
+#[test]
+fn field_then_params_single_param() {
+    let parsed: FieldThenParams = parse_quote!(String, pattern = r"[a-z]+");
+    assert!(parsed.comma.is_some());
+    assert_eq!(parsed.params.len(), 1);
+    assert_eq!(parsed.params[0].path.to_string(), "pattern");
+}
+
+#[test]
+fn field_then_params_three_params() {
+    let parsed: FieldThenParams = parse_quote!(u32, min = 0, max = 100, step = 1);
+    assert_eq!(parsed.params.len(), 3);
+    assert_eq!(parsed.params[0].path.to_string(), "min");
+    assert_eq!(parsed.params[1].path.to_string(), "max");
+    assert_eq!(parsed.params[2].path.to_string(), "step");
+}
+
+// ===========================================================================
+// 23. Wrap leaf type with deep skip nesting
+// ===========================================================================
+
+#[test]
+fn wrap_deeply_nested_skip_types_reaches_leaf() {
+    let ty: Type = parse_quote!(Vec<Option<Vec<Option<Leaf>>>>);
+    let skip = skip_set(&["Vec", "Option"]);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    let s = type_to_string(&wrapped);
+    assert!(s.contains("adze :: WithLeaf < Leaf >"));
+    // Verify the containers are preserved
+    assert!(s.starts_with("Vec"));
+    assert!(s.contains("Option"));
+}
+
+#[test]
+fn wrap_all_containers_are_skip_reaches_innermost() {
+    let ty: Type = parse_quote!(Box<Arc<Rc<Cell<Leaf>>>>);
+    let skip = skip_set(&["Box", "Arc", "Rc", "Cell"]);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert!(type_to_string(&wrapped).contains("adze :: WithLeaf < Leaf >"));
+}
+
+// ===========================================================================
+// 24. Extraction with multiple skip types in chain
+// ===========================================================================
+
+#[test]
+fn extract_through_three_skip_types() {
+    let ty: Type = parse_quote!(Box<Arc<Rc<Vec<Item>>>>);
+    let skip = skip_set(&["Box", "Arc", "Rc"]);
+    let (inner, ok) = try_extract_inner_type(&ty, "Vec", &skip);
+    assert!(ok);
+    assert_eq!(type_to_string(&inner), "Item");
+}
+
+#[test]
+fn extract_skip_chain_stops_when_target_not_inside() {
+    let ty: Type = parse_quote!(Box<Arc<String>>);
+    let skip = skip_set(&["Box", "Arc"]);
+    let (inner, ok) = try_extract_inner_type(&ty, "Vec", &skip);
+    assert!(!ok);
+    assert_eq!(type_to_string(&inner), "Box < Arc < String > >");
+}
+
+// ===========================================================================
+// 25. Property-based tests with proptest
+// ===========================================================================
+
+fn leaf_type_strategy() -> impl Strategy<Value = &'static str> {
+    prop::sample::select(
+        &[
+            "i32", "u32", "i64", "u64", "f32", "f64", "bool", "String", "char", "usize",
+        ][..],
+    )
+}
+
+fn container_strategy() -> impl Strategy<Value = &'static str> {
+    prop::sample::select(&["Option", "Vec", "Box", "Arc", "Rc"][..])
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(60))]
+
+    #[test]
+    fn prop_extract_always_returns_valid_type(
+        leaf in leaf_type_strategy(),
+        container in container_strategy(),
+    ) {
+        let src = format!("{container}<{leaf}>");
+        let ty: Type = syn::parse_str(&src).unwrap();
+        let (inner, extracted) = try_extract_inner_type(&ty, container, &HashSet::new());
+        if extracted {
+            // Inner type should parse as a valid type
+            let s = inner.to_token_stream().to_string();
+            prop_assert!(!s.is_empty());
+            prop_assert_eq!(s.trim(), leaf);
+        }
+    }
+
+    #[test]
+    fn prop_filter_idempotent(
+        leaf in leaf_type_strategy(),
+        skip in container_strategy(),
+    ) {
+        let src = format!("{skip}<{leaf}>");
+        let ty: Type = syn::parse_str(&src).unwrap();
+        let skip_set: HashSet<&str> = [skip].into_iter().collect();
+        let once = filter_inner_type(&ty, &skip_set);
+        let twice = filter_inner_type(&once, &skip_set);
+        prop_assert_eq!(
+            once.to_token_stream().to_string(),
+            twice.to_token_stream().to_string()
+        );
+    }
+
+    #[test]
+    fn prop_wrap_always_contains_with_leaf(
+        leaf in leaf_type_strategy(),
+    ) {
+        let ty: Type = syn::parse_str(leaf).unwrap();
+        let wrapped = wrap_leaf_type(&ty, &HashSet::new());
+        let s = wrapped.to_token_stream().to_string();
+        prop_assert!(s.contains("adze :: WithLeaf"), "Expected WithLeaf wrapper in: {}", s);
+    }
+
+    #[test]
+    fn prop_extract_nonmatch_returns_original(
+        leaf in leaf_type_strategy(),
+    ) {
+        let ty: Type = syn::parse_str(leaf).unwrap();
+        let (returned, extracted) = try_extract_inner_type(&ty, "NonExistentType", &HashSet::new());
+        prop_assert!(!extracted);
+        prop_assert_eq!(
+            ty.to_token_stream().to_string(),
+            returned.to_token_stream().to_string()
+        );
+    }
+
+    #[test]
+    fn prop_filter_no_skip_returns_original(
+        leaf in leaf_type_strategy(),
+        container in container_strategy(),
+    ) {
+        let src = format!("{container}<{leaf}>");
+        let ty: Type = syn::parse_str(&src).unwrap();
+        let empty_skip: HashSet<&str> = HashSet::new();
+        let filtered = filter_inner_type(&ty, &empty_skip);
+        prop_assert_eq!(
+            ty.to_token_stream().to_string(),
+            filtered.to_token_stream().to_string()
+        );
+    }
+
+    #[test]
+    fn prop_wrap_skip_container_wraps_inner_only(
+        leaf in leaf_type_strategy(),
+        container in container_strategy(),
+    ) {
+        let src = format!("{container}<{leaf}>");
+        let ty: Type = syn::parse_str(&src).unwrap();
+        let skip: HashSet<&str> = [container].into_iter().collect();
+        let wrapped = wrap_leaf_type(&ty, &skip);
+        let s = wrapped.to_token_stream().to_string();
+        // Container should still be present
+        prop_assert!(s.contains(container), "Container {} lost in: {}", container, s);
+        // Inner leaf should be wrapped
+        prop_assert!(s.contains("adze :: WithLeaf"), "Missing WithLeaf in: {}", s);
+    }
+
+    #[test]
+    fn prop_extract_and_wrap_preserves_leaf_name(
+        leaf in leaf_type_strategy(),
+        container in container_strategy(),
+    ) {
+        let src = format!("{container}<{leaf}>");
+        let ty: Type = syn::parse_str(&src).unwrap();
+        let (inner, extracted) = try_extract_inner_type(&ty, container, &HashSet::new());
+        prop_assert!(extracted);
+        let wrapped = wrap_leaf_type(&inner, &HashSet::new());
+        let s = wrapped.to_token_stream().to_string();
+        prop_assert!(s.contains(leaf), "Leaf {} lost after extract+wrap: {}", leaf, s);
+    }
+
+    #[test]
+    fn prop_nested_extract_through_skip(
+        leaf in leaf_type_strategy(),
+        skip_c in prop::sample::select(&["Box", "Arc", "Rc"][..]),
+        target_c in prop::sample::select(&["Option", "Vec"][..]),
+    ) {
+        let src = format!("{skip_c}<{target_c}<{leaf}>>");
+        let ty: Type = syn::parse_str(&src).unwrap();
+        let skip: HashSet<&str> = [skip_c].into_iter().collect();
+        let (inner, extracted) = try_extract_inner_type(&ty, target_c, &skip);
+        prop_assert!(extracted, "Should extract {target_c} through {skip_c}");
+        let inner_str = inner.to_token_stream().to_string();
+        prop_assert_eq!(inner_str.trim(), leaf);
+    }
+
+    #[test]
+    fn prop_filter_then_wrap_produces_valid_output(
+        leaf in leaf_type_strategy(),
+        container in prop::sample::select(&["Box", "Arc", "Rc"][..]),
+    ) {
+        let src = format!("{container}<{leaf}>");
+        let ty: Type = syn::parse_str(&src).unwrap();
+        let skip: HashSet<&str> = [container].into_iter().collect();
+        let filtered = filter_inner_type(&ty, &skip);
+        let wrapped = wrap_leaf_type(&filtered, &HashSet::new());
+        let s = wrapped.to_token_stream().to_string();
+        prop_assert!(s.contains("adze :: WithLeaf"));
+        prop_assert!(s.contains(leaf));
+    }
+
+    #[test]
+    fn prop_double_wrap_nests_with_leaf(
+        leaf in leaf_type_strategy(),
+    ) {
+        let ty: Type = syn::parse_str(leaf).unwrap();
+        let empty: HashSet<&str> = HashSet::new();
+        let once = wrap_leaf_type(&ty, &empty);
+        let twice = wrap_leaf_type(&once, &empty);
+        let s = twice.to_token_stream().to_string();
+        // Should contain nested WithLeaf
+        prop_assert!(s.starts_with("adze :: WithLeaf < adze :: WithLeaf"));
+    }
+}
+
+// ===========================================================================
+// 26. Additional edge cases for completeness
+// ===========================================================================
+
+#[test]
+fn edge_dyn_trait_type_wraps() {
+    let ty: Type = parse_quote!(dyn Iterator<Item = u8>);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert!(type_to_string(&wrapped).contains("adze :: WithLeaf"));
+}
+
+#[test]
+fn edge_fn_pointer_type_wraps() {
+    let ty: Type = parse_quote!(fn(i32) -> bool);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert!(type_to_string(&wrapped).contains("adze :: WithLeaf"));
+}
+
+#[test]
+fn edge_slice_type_wraps() {
+    let ty: Type = parse_quote!(&[u8]);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert!(type_to_string(&wrapped).contains("adze :: WithLeaf"));
+}
+
+#[test]
+fn filter_single_element_skip_set() {
+    let ty: Type = parse_quote!(Box<Arc<String>>);
+    // Only Box in skip set: filter unwraps Box, but not Arc
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "Arc < String >");
+}
+
+#[test]
+fn extract_same_type_as_both_target_and_skip() {
+    // If Vec is both target and in skip set, target match takes precedence
+    let ty: Type = parse_quote!(Vec<String>);
+    let skip = skip_set(&["Vec"]);
+    let (inner, ok) = try_extract_inner_type(&ty, "Vec", &skip);
+    assert!(ok);
+    assert_eq!(type_to_string(&inner), "String");
+}
+
+#[test]
+fn wrap_option_inside_vec_with_both_in_skip() {
+    let ty: Type = parse_quote!(Vec<Option<String>>);
+    let skip = skip_set(&["Vec", "Option"]);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert_eq!(
+        type_to_string(&wrapped),
+        "Vec < Option < adze :: WithLeaf < String > > >"
+    );
+}
+
+#[test]
+fn name_value_expr_block_expression() {
+    let nv: NameValueExpr = parse_quote!(compute = { 1 + 2 });
+    assert_eq!(nv.path.to_string(), "compute");
+    assert!(matches!(nv.expr, syn::Expr::Block(_)));
+}
+
+#[test]
+fn field_then_params_preserves_field_type_info() {
+    let parsed: FieldThenParams = parse_quote!(HashMap<String, Vec<i32>>, key = "data");
+    let field_ty = &parsed.field.ty;
+    let (inner, ok) = try_extract_inner_type(field_ty, "HashMap", &skip_set(&[]));
+    assert!(ok);
+    assert_eq!(type_to_string(&inner), "String");
 }

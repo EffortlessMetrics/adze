@@ -1,943 +1,908 @@
-//! Comprehensive tests for TreeCursor navigation and traversal
+//! Comprehensive tests for Tree construction and TreeCursor navigation.
 //!
-//! Tests cover:
-//! - TreeCursor creation and initialization
-//! - Navigation methods (goto_first_child, goto_next_sibling, goto_parent, reset)
-//! - Node access at each cursor position
-//! - Depth tracking
-//! - Full tree traversals (depth-first)
-//! - Edge cases (leaf nodes, single children, deep/wide trees)
-//! - Navigation state assertions
+//! Coverage areas:
+//! 1. Tree construction via `Tree::new_for_testing` and `Tree::new_stub`
+//! 2. TreeCursor navigation: goto_first_child, goto_next_sibling, goto_parent, reset
+//! 3. Node properties: kind(), start_byte(), end_byte(), child_count(), is_named(), etc.
+//! 4. TreeCursor field_name() / child_by_field_name() behavior
+//! 5. Deep tree traversal patterns
+//! 6. Wide tree navigation
+//! 7. Property-based tests for tree invariants (proptest)
 
 use adze_runtime::tree::{Tree, TreeCursor};
 
 // ============================================================================
-// Helper Functions to Build Test Trees
+// Helpers
 // ============================================================================
 
-/// Build a simple tree with 2 children:
-/// ```
-///     root(0)
-///    /        \
-///  child1(1) child2(2)
-/// ```
-fn simple_two_child_tree() -> Tree {
-    Tree::new_for_testing(
-        0,  // root symbol
-        0,  // start_byte
-        10, // end_byte
-        vec![
-            Tree::new_for_testing(1, 0, 5, vec![]),  // child1
-            Tree::new_for_testing(2, 5, 10, vec![]), // child2
-        ],
-    )
+/// Leaf node helper.
+fn leaf(symbol: u32, start: usize, end: usize) -> Tree {
+    Tree::new_for_testing(symbol, start, end, vec![])
 }
 
-/// Build a tree with nested children:
-/// ```
-///       root(0)
-///      /        \
-///    child1(1) child2(2)
-///    /
-///  grandchild(3)
-/// ```
-fn nested_tree() -> Tree {
-    Tree::new_for_testing(
+/// Perform a full iterative DFS traversal with a cursor, returning kind_ids in visit order.
+fn dfs_kind_ids(tree: &Tree) -> Vec<u16> {
+    let mut cursor = TreeCursor::new(tree);
+    let mut ids = Vec::new();
+    let mut reached_root = false;
+
+    loop {
+        ids.push(cursor.node().kind_id());
+
+        // Try going deeper first.
+        if cursor.goto_first_child() {
+            continue;
+        }
+
+        // Try going to sibling.
+        if cursor.goto_next_sibling() {
+            continue;
+        }
+
+        // Walk up until we can take a sibling, or we're back at root.
+        loop {
+            if !cursor.goto_parent() {
+                reached_root = true;
+                break;
+            }
+            if cursor.goto_next_sibling() {
+                break;
+            }
+        }
+
+        if reached_root {
+            break;
+        }
+    }
+
+    ids
+}
+
+/// Count total nodes in a tree via DFS.
+fn count_nodes(tree: &Tree) -> usize {
+    dfs_kind_ids(tree).len()
+}
+
+// ============================================================================
+// 1. Tree construction with Tree::new_for_testing
+// ============================================================================
+
+#[test]
+fn construct_leaf_node() {
+    let tree = leaf(42, 0, 5);
+    let root = tree.root_node();
+    assert_eq!(root.kind_id(), 42);
+    assert_eq!(root.start_byte(), 0);
+    assert_eq!(root.end_byte(), 5);
+    assert_eq!(root.child_count(), 0);
+}
+
+#[test]
+fn construct_one_child() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 10)]);
+    let root = tree.root_node();
+    assert_eq!(root.child_count(), 1);
+    let child = root.child(0).unwrap();
+    assert_eq!(child.kind_id(), 1);
+}
+
+#[test]
+fn construct_multiple_children() {
+    let tree = Tree::new_for_testing(
+        0,
+        0,
+        30,
+        vec![leaf(1, 0, 10), leaf(2, 10, 20), leaf(3, 20, 30)],
+    );
+    assert_eq!(tree.root_node().child_count(), 3);
+}
+
+#[test]
+fn construct_nested_children() {
+    let inner = Tree::new_for_testing(2, 0, 5, vec![leaf(3, 0, 5)]);
+    let tree = Tree::new_for_testing(0, 0, 10, vec![inner]);
+    let root = tree.root_node();
+    assert_eq!(root.child_count(), 1);
+    let child = root.child(0).unwrap();
+    assert_eq!(child.kind_id(), 2);
+    assert_eq!(child.child_count(), 1);
+    let grandchild = child.child(0).unwrap();
+    assert_eq!(grandchild.kind_id(), 3);
+}
+
+#[test]
+fn construct_preserves_byte_ranges() {
+    let tree = Tree::new_for_testing(0, 10, 99, vec![leaf(1, 15, 50), leaf(2, 50, 90)]);
+    let root = tree.root_node();
+    assert_eq!(root.start_byte(), 10);
+    assert_eq!(root.end_byte(), 99);
+    assert_eq!(root.child(0).unwrap().start_byte(), 15);
+    assert_eq!(root.child(1).unwrap().end_byte(), 90);
+}
+
+#[test]
+fn construct_zero_length_node() {
+    let tree = leaf(7, 5, 5);
+    let root = tree.root_node();
+    assert_eq!(root.start_byte(), root.end_byte());
+}
+
+#[test]
+fn new_stub_creates_empty_tree() {
+    let tree = Tree::new_stub();
+    let root = tree.root_node();
+    assert_eq!(root.kind_id(), 0);
+    assert_eq!(root.start_byte(), 0);
+    assert_eq!(root.end_byte(), 0);
+    assert_eq!(root.child_count(), 0);
+}
+
+#[test]
+fn construct_deeply_nested() {
+    // 6 levels deep: 0 -> 1 -> 2 -> 3 -> 4 -> 5
+    let mut tree = leaf(5, 0, 2);
+    for sym in (0..5).rev() {
+        tree = Tree::new_for_testing(sym, 0, 10, vec![tree]);
+    }
+    let root = tree.root_node();
+    assert_eq!(root.kind_id(), 0);
+    // Walk down and verify
+    let c1 = root.child(0).unwrap();
+    assert_eq!(c1.kind_id(), 1);
+    let c2 = c1.child(0).unwrap();
+    assert_eq!(c2.kind_id(), 2);
+}
+
+// ============================================================================
+// 2. TreeCursor navigation
+// ============================================================================
+
+#[test]
+fn cursor_starts_at_root() {
+    let tree = Tree::new_for_testing(99, 0, 50, vec![leaf(1, 0, 25)]);
+    let cursor = TreeCursor::new(&tree);
+    assert_eq!(cursor.node().kind_id(), 99);
+    assert_eq!(cursor.depth(), 0);
+}
+
+#[test]
+fn goto_first_child_returns_true_when_children_exist() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 10)]);
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(cursor.goto_first_child());
+    assert_eq!(cursor.node().kind_id(), 1);
+}
+
+#[test]
+fn goto_first_child_returns_false_on_leaf() {
+    let tree = leaf(0, 0, 5);
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(!cursor.goto_first_child());
+    assert_eq!(cursor.depth(), 0);
+}
+
+#[test]
+fn goto_first_child_selects_first_child() {
+    let tree = Tree::new_for_testing(0, 0, 20, vec![leaf(10, 0, 10), leaf(20, 10, 20)]);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child();
+    assert_eq!(cursor.node().kind_id(), 10);
+}
+
+#[test]
+fn goto_next_sibling_advances() {
+    let tree = Tree::new_for_testing(0, 0, 20, vec![leaf(1, 0, 10), leaf(2, 10, 20)]);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child();
+    assert!(cursor.goto_next_sibling());
+    assert_eq!(cursor.node().kind_id(), 2);
+}
+
+#[test]
+fn goto_next_sibling_false_at_last_child() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 5), leaf(2, 5, 10)]);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child();
+    cursor.goto_next_sibling(); // at child 2
+    assert!(!cursor.goto_next_sibling());
+}
+
+#[test]
+fn goto_next_sibling_false_at_root() {
+    let tree = leaf(0, 0, 5);
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(!cursor.goto_next_sibling());
+}
+
+#[test]
+fn goto_parent_from_child() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 10)]);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child();
+    assert!(cursor.goto_parent());
+    assert_eq!(cursor.node().kind_id(), 0);
+    assert_eq!(cursor.depth(), 0);
+}
+
+#[test]
+fn goto_parent_false_at_root() {
+    let tree = leaf(0, 0, 5);
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(!cursor.goto_parent());
+}
+
+#[test]
+fn goto_parent_restores_correct_node() {
+    let tree = Tree::new_for_testing(
+        0,
+        0,
+        30,
+        vec![
+            Tree::new_for_testing(1, 0, 15, vec![leaf(11, 0, 8), leaf(12, 8, 15)]),
+            leaf(2, 15, 30),
+        ],
+    );
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child(); // node 1
+    cursor.goto_first_child(); // node 11
+    cursor.goto_next_sibling(); // node 12
+    cursor.goto_parent(); // back to node 1
+    assert_eq!(cursor.node().kind_id(), 1);
+    // And we should still be able to reach sibling 2
+    assert!(cursor.goto_next_sibling());
+    assert_eq!(cursor.node().kind_id(), 2);
+}
+
+#[test]
+fn reset_returns_to_root() {
+    let tree = Tree::new_for_testing(0, 0, 20, vec![leaf(1, 0, 10), leaf(2, 10, 20)]);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child();
+    cursor.goto_next_sibling();
+    assert_eq!(cursor.depth(), 1);
+    cursor.reset(&tree);
+    assert_eq!(cursor.depth(), 0);
+    assert_eq!(cursor.node().kind_id(), 0);
+}
+
+#[test]
+fn reset_after_deep_traversal() {
+    let mut t = leaf(5, 0, 1);
+    for i in (0..5).rev() {
+        t = Tree::new_for_testing(i, 0, 10, vec![t]);
+    }
+    let mut cursor = TreeCursor::new(&t);
+    while cursor.goto_first_child() {}
+    assert!(cursor.depth() > 0);
+    cursor.reset(&t);
+    assert_eq!(cursor.depth(), 0);
+}
+
+#[test]
+fn depth_tracks_through_navigation() {
+    let tree = Tree::new_for_testing(
         0,
         0,
         20,
-        vec![
-            Tree::new_for_testing(1, 0, 10, vec![Tree::new_for_testing(3, 0, 5, vec![])]),
-            Tree::new_for_testing(2, 10, 20, vec![]),
-        ],
-    )
+        vec![Tree::new_for_testing(1, 0, 10, vec![leaf(2, 0, 5)])],
+    );
+    let mut cursor = TreeCursor::new(&tree);
+    assert_eq!(cursor.depth(), 0);
+    cursor.goto_first_child();
+    assert_eq!(cursor.depth(), 1);
+    cursor.goto_first_child();
+    assert_eq!(cursor.depth(), 2);
+    cursor.goto_parent();
+    assert_eq!(cursor.depth(), 1);
+    cursor.goto_parent();
+    assert_eq!(cursor.depth(), 0);
 }
 
-/// Build a single node tree (just root, no children)
-fn single_node_tree() -> Tree {
-    Tree::new_for_testing(0, 0, 5, vec![])
+#[test]
+fn multiple_cursors_are_independent() {
+    let tree = Tree::new_for_testing(0, 0, 20, vec![leaf(1, 0, 10), leaf(2, 10, 20)]);
+    let mut c1 = TreeCursor::new(&tree);
+    let c2 = TreeCursor::new(&tree);
+    c1.goto_first_child();
+    assert_eq!(c1.depth(), 1);
+    assert_eq!(c2.depth(), 0);
 }
 
-/// Build a deep tree (many levels):
-/// ```
-/// root(0)
-///   -> child1(1)
-///     -> child1_1(11)
-///       -> child1_1_1(111)
-/// ```
-fn deep_tree() -> Tree {
-    Tree::new_for_testing(
-        0,
-        0,
-        100,
-        vec![Tree::new_for_testing(
-            1,
-            0,
-            75,
-            vec![Tree::new_for_testing(
-                11,
-                0,
-                50,
-                vec![Tree::new_for_testing(
-                    111,
-                    0,
-                    25,
-                    vec![Tree::new_for_testing(1111, 0, 10, vec![])],
-                )],
-            )],
-        )],
-    )
+#[test]
+fn goto_first_child_then_immediate_parent() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 10)]);
+    let mut cursor = TreeCursor::new(&tree);
+    for _ in 0..10 {
+        assert!(cursor.goto_first_child());
+        assert!(cursor.goto_parent());
+        assert_eq!(cursor.depth(), 0);
+    }
 }
 
-/// Build a wide tree (many siblings):
-/// ```
-///            root(0)
-///   /    /    |    \    \
-///  c1(1) c2(2) c3(3) c4(4) c5(5)
-/// ```
-fn wide_tree() -> Tree {
-    Tree::new_for_testing(
+#[test]
+fn repeated_goto_parent_at_root_is_idempotent() {
+    let tree = leaf(0, 0, 5);
+    let mut cursor = TreeCursor::new(&tree);
+    for _ in 0..5 {
+        assert!(!cursor.goto_parent());
+        assert_eq!(cursor.depth(), 0);
+    }
+}
+
+#[test]
+fn cursor_depth_unchanged_across_siblings() {
+    let tree = Tree::new_for_testing(
         0,
         0,
         50,
         vec![
-            Tree::new_for_testing(1, 0, 10, vec![]),
-            Tree::new_for_testing(2, 10, 20, vec![]),
-            Tree::new_for_testing(3, 20, 30, vec![]),
-            Tree::new_for_testing(4, 30, 40, vec![]),
-            Tree::new_for_testing(5, 40, 50, vec![]),
+            leaf(1, 0, 10),
+            leaf(2, 10, 20),
+            leaf(3, 20, 30),
+            leaf(4, 30, 40),
+            leaf(5, 40, 50),
         ],
-    )
-}
-
-/// Build a complex tree with mixed depth and width
-fn complex_tree() -> Tree {
-    Tree::new_for_testing(
-        0,
-        0,
-        100,
-        vec![
-            Tree::new_for_testing(
-                1,
-                0,
-                30,
-                vec![
-                    Tree::new_for_testing(11, 0, 10, vec![]),
-                    Tree::new_for_testing(12, 10, 20, vec![]),
-                    Tree::new_for_testing(13, 20, 30, vec![]),
-                ],
-            ),
-            Tree::new_for_testing(
-                2,
-                30,
-                65,
-                vec![
-                    Tree::new_for_testing(
-                        21,
-                        30,
-                        47,
-                        vec![
-                            Tree::new_for_testing(211, 30, 38, vec![]),
-                            Tree::new_for_testing(212, 38, 47, vec![]),
-                        ],
-                    ),
-                    Tree::new_for_testing(22, 47, 65, vec![]),
-                ],
-            ),
-            Tree::new_for_testing(3, 65, 100, vec![]),
-        ],
-    )
-}
-
-// ============================================================================
-// Tests: 1-6 TreeCursor Creation and Basic Navigation
-// ============================================================================
-
-#[test]
-fn test_cursor_creation_at_root() {
-    let tree = simple_two_child_tree();
-    let cursor = TreeCursor::new(&tree);
-
-    // Cursor should start at root
-    let node = cursor.node();
-    assert_eq!(node.start_byte(), 0);
-    assert_eq!(node.end_byte(), 10);
-    assert_eq!(node.child_count(), 2);
-}
-
-#[test]
-fn test_cursor_depth_at_root() {
-    let tree = simple_two_child_tree();
-    let cursor = TreeCursor::new(&tree);
-
-    // Depth at root should be 0
-    assert_eq!(cursor.depth(), 0);
-}
-
-#[test]
-fn test_cursor_node_returns_correct_node() {
-    let tree = simple_two_child_tree();
-    let cursor = TreeCursor::new(&tree);
-    let node = cursor.node();
-
-    assert_eq!(node.start_byte(), 0);
-    assert_eq!(node.end_byte(), 10);
-    assert_eq!(node.child_count(), 2);
-}
-
-#[test]
-fn test_cursor_creation_from_stub_tree() {
-    let tree = Tree::new_stub();
-    let cursor = TreeCursor::new(&tree);
-
-    // Should not panic and should be at root
-    assert_eq!(cursor.depth(), 0);
-    let node = cursor.node();
-    assert_eq!(node.child_count(), 0);
-}
-
-#[test]
-fn test_cursor_multiple_independent_cursors() {
-    let tree = simple_two_child_tree();
-    let cursor1 = TreeCursor::new(&tree);
-    let mut cursor2 = TreeCursor::new(&tree);
-
-    // Both start at root, but can navigate independently
-    assert_eq!(cursor1.depth(), 0);
-    assert_eq!(cursor2.depth(), 0);
-
-    cursor2.goto_first_child();
-    assert_eq!(cursor2.depth(), 1);
-    // cursor1 should still be at root
-    assert_eq!(cursor1.depth(), 0);
-}
-
-#[test]
-fn test_cursor_from_different_tree_types() {
-    let single = single_node_tree();
-    let nested = nested_tree();
-    let deep = deep_tree();
-
-    let c1 = TreeCursor::new(&single);
-    let c2 = TreeCursor::new(&nested);
-    let c3 = TreeCursor::new(&deep);
-
-    assert_eq!(c1.depth(), 0);
-    assert_eq!(c2.depth(), 0);
-    assert_eq!(c3.depth(), 0);
-}
-
-// ============================================================================
-// Tests: 7-12 goto_first_child Navigation
-// ============================================================================
-
-#[test]
-fn test_goto_first_child_returns_true() {
-    let tree = simple_two_child_tree();
+    );
     let mut cursor = TreeCursor::new(&tree);
-
-    assert!(cursor.goto_first_child());
-}
-
-#[test]
-fn test_goto_first_child_advances_depth() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
     cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 1);
-}
-
-#[test]
-fn test_goto_first_child_updates_node() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    let node = cursor.node();
-    assert_eq!(node.start_byte(), 0);
-    assert_eq!(node.end_byte(), 5);
-}
-
-#[test]
-fn test_goto_first_child_on_leaf_returns_false() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    // First child is a leaf (has no children)
-    assert!(!cursor.goto_first_child());
-    // Depth should not change
-    assert_eq!(cursor.depth(), 1);
-}
-
-#[test]
-fn test_goto_first_child_on_single_child() {
-    let tree = nested_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // First child has one child
-    assert!(cursor.goto_first_child());
-    assert_eq!(cursor.depth(), 1);
-
-    // Can navigate to grandchild
-    assert!(cursor.goto_first_child());
-    assert_eq!(cursor.depth(), 2);
-
-    let node = cursor.node();
-    assert_eq!(node.start_byte(), 0);
-    assert_eq!(node.end_byte(), 5);
-}
-
-#[test]
-fn test_goto_first_child_on_empty_tree() {
-    let tree = single_node_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Single node tree has no children
-    assert!(!cursor.goto_first_child());
-    assert_eq!(cursor.depth(), 0);
-}
-
-// ============================================================================
-// Tests: 13-18 goto_next_sibling Navigation
-// ============================================================================
-
-#[test]
-fn test_goto_next_sibling_returns_true() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    assert!(cursor.goto_next_sibling());
-}
-
-#[test]
-fn test_goto_next_sibling_updates_node() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    let first_child = cursor.node();
-    let first_end = first_child.end_byte();
-
-    cursor.goto_next_sibling();
-    let second_child = cursor.node();
-    assert_eq!(second_child.start_byte(), first_end);
-}
-
-#[test]
-fn test_goto_next_sibling_depth_unchanged() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    let depth_before = cursor.depth();
-
-    cursor.goto_next_sibling();
-    assert_eq!(cursor.depth(), depth_before);
-}
-
-#[test]
-fn test_goto_next_sibling_on_last_sibling_returns_false() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    cursor.goto_next_sibling(); // Move to second (last) child
-
-    // No more siblings
-    assert!(!cursor.goto_next_sibling());
-}
-
-#[test]
-fn test_goto_next_sibling_at_root_returns_false() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Root has no siblings
-    assert!(!cursor.goto_next_sibling());
-    assert_eq!(cursor.depth(), 0);
-}
-
-#[test]
-fn test_goto_next_sibling_multiple_steps() {
-    let tree = wide_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    let mut count = 1;
-
-    while cursor.goto_next_sibling() {
-        count += 1;
-    }
-
-    assert_eq!(count, 5); // Wide tree has 5 children
-}
-
-// ============================================================================
-// Tests: 19-24 goto_parent Navigation
-// ============================================================================
-
-#[test]
-fn test_goto_parent_returns_true() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    assert!(cursor.goto_parent());
-}
-
-#[test]
-fn test_goto_parent_updates_depth() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 1);
-
-    cursor.goto_parent();
-    assert_eq!(cursor.depth(), 0);
-}
-
-#[test]
-fn test_goto_parent_restores_node() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    let root_node = cursor.node();
-    let root_start = root_node.start_byte();
-    let root_end = root_node.end_byte();
-
-    cursor.goto_first_child();
-    cursor.goto_parent();
-
-    let restored = cursor.node();
-    assert_eq!(restored.start_byte(), root_start);
-    assert_eq!(restored.end_byte(), root_end);
-}
-
-#[test]
-fn test_goto_parent_from_grandchild() {
-    let tree = nested_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Navigate down two levels
-    cursor.goto_first_child();
-    cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 2);
-
-    // Go back up
-    cursor.goto_parent();
-    assert_eq!(cursor.depth(), 1);
-
-    cursor.goto_parent();
-    assert_eq!(cursor.depth(), 0);
-}
-
-#[test]
-fn test_goto_parent_at_root_returns_false() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Already at root
-    assert!(!cursor.goto_parent());
-    assert_eq!(cursor.depth(), 0);
-}
-
-// ============================================================================
-// Tests: 25-28 Depth Tracking
-// ============================================================================
-
-#[test]
-fn test_depth_increases_with_goto_first_child() {
-    let tree = deep_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    assert_eq!(cursor.depth(), 0);
-    cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 1);
-    cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 2);
-    cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 3);
-}
-
-#[test]
-fn test_depth_unchanged_with_goto_next_sibling() {
-    let tree = wide_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    let depth = cursor.depth();
-
     for _ in 0..4 {
+        assert_eq!(cursor.depth(), 1);
         cursor.goto_next_sibling();
-        assert_eq!(cursor.depth(), depth);
     }
-}
-
-#[test]
-fn test_depth_after_parent_navigation() {
-    let tree = nested_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    cursor.goto_first_child();
-    let depth = cursor.depth();
-
-    cursor.goto_parent();
-    assert_eq!(cursor.depth(), depth - 1);
-
-    cursor.goto_parent();
-    assert_eq!(cursor.depth(), depth - 2);
-}
-
-#[test]
-fn test_depth_with_mixed_navigation() {
-    let tree = complex_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    assert_eq!(cursor.depth(), 0);
-    cursor.goto_first_child(); // depth 1
-    assert_eq!(cursor.depth(), 1);
-
-    cursor.goto_first_child(); // depth 2
-    assert_eq!(cursor.depth(), 2);
-
-    cursor.goto_next_sibling(); // depth still 2
-    assert_eq!(cursor.depth(), 2);
-
-    cursor.goto_parent(); // depth 1
-    assert_eq!(cursor.depth(), 1);
-
-    cursor.goto_next_sibling(); // depth still 1
     assert_eq!(cursor.depth(), 1);
 }
 
 // ============================================================================
-// Tests: 29-32 Cursor Reset
+// 3. Node properties
 // ============================================================================
 
 #[test]
-fn test_cursor_reset_returns_to_root() {
-    let tree = nested_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 2);
-
-    cursor.reset(&tree);
-    assert_eq!(cursor.depth(), 0);
-
-    let node = cursor.node();
-    assert_eq!(node.start_byte(), 0);
-    assert_eq!(node.end_byte(), 20);
+fn node_kind_returns_unknown_without_language() {
+    let tree = leaf(42, 0, 5);
+    assert_eq!(tree.root_node().kind(), "unknown");
 }
 
 #[test]
-fn test_cursor_reset_multiple_times() {
-    let tree = deep_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    for _ in 0..3 {
-        cursor.goto_first_child();
-    }
-    assert_eq!(cursor.depth(), 3);
-
-    cursor.reset(&tree);
-    assert_eq!(cursor.depth(), 0);
-
-    cursor.goto_first_child();
-    assert_eq!(cursor.depth(), 1);
-
-    cursor.reset(&tree);
-    assert_eq!(cursor.depth(), 0);
+fn node_kind_id_returns_symbol() {
+    let tree = leaf(123, 0, 5);
+    assert_eq!(tree.root_node().kind_id(), 123);
 }
 
 #[test]
-fn test_cursor_reset_can_navigate_again() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    cursor.reset(&tree);
-
-    // Should be able to navigate again
-    assert!(cursor.goto_first_child());
-    assert_eq!(cursor.depth(), 1);
+fn node_start_and_end_byte() {
+    let tree = leaf(0, 7, 42);
+    let root = tree.root_node();
+    assert_eq!(root.start_byte(), 7);
+    assert_eq!(root.end_byte(), 42);
 }
 
 #[test]
-fn test_cursor_reset_between_different_trees() {
-    let tree1 = simple_two_child_tree();
-    let tree2 = wide_tree();
-
-    let mut cursor = TreeCursor::new(&tree1);
-    cursor.goto_first_child();
-
-    cursor.reset(&tree2);
-    // Should now be at root of tree2
-    assert_eq!(cursor.depth(), 0);
-    let node = cursor.node();
-    assert_eq!(node.child_count(), 5); // tree2 has 5 children
-}
-
-// ============================================================================
-// Tests: 33-35 Full Tree Traversal (Depth-First)
-// ============================================================================
-
-#[test]
-fn test_full_depth_first_traversal_simple() {
-    let tree = simple_two_child_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    let mut visited_symbols = vec![];
-
-    // Visit root
-    visited_symbols.push(cursor.node().kind_id());
-
-    // Visit first child
-    cursor.goto_first_child();
-    visited_symbols.push(cursor.node().kind_id());
-
-    // Try to go deeper
-    assert!(!cursor.goto_first_child());
-
-    // Try to go to sibling
-    cursor.goto_parent();
-    cursor.goto_first_child();
-    cursor.goto_next_sibling();
-    visited_symbols.push(cursor.node().kind_id());
-
-    // Should have visited: root(0), child1(1), child2(2)
-    assert_eq!(visited_symbols, vec![0, 1, 2]);
+fn node_child_count_matches_children() {
+    let tree = Tree::new_for_testing(
+        0,
+        0,
+        40,
+        vec![
+            leaf(1, 0, 10),
+            leaf(2, 10, 20),
+            leaf(3, 20, 30),
+            leaf(4, 30, 40),
+        ],
+    );
+    assert_eq!(tree.root_node().child_count(), 4);
 }
 
 #[test]
-fn test_full_depth_first_traversal_nested() {
-    let tree = nested_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    let mut visited = vec![];
-
-    // Visit root
-    visited.push(cursor.node().kind_id());
-
-    // Visit first child (1)
-    cursor.goto_first_child();
-    visited.push(cursor.node().kind_id());
-
-    // Visit grandchild (3)
-    cursor.goto_first_child();
-    visited.push(cursor.node().kind_id());
-
-    // Grandchild has no siblings, so go back to parent
-    assert!(!cursor.goto_next_sibling());
-    cursor.goto_parent();
-
-    // Parent (child 1) HAS a sibling (child 2), so we CAN move to it
-    assert!(cursor.goto_next_sibling());
-    visited.push(cursor.node().kind_id());
-
-    assert_eq!(visited, vec![0, 1, 3, 2]);
+fn node_is_named_always_true() {
+    let tree = leaf(0, 0, 5);
+    assert!(tree.root_node().is_named());
 }
 
 #[test]
-fn test_full_depth_first_traversal_wide() {
-    let tree = wide_tree();
-    let mut cursor = TreeCursor::new(&tree);
+fn node_is_missing_always_false() {
+    let tree = leaf(0, 0, 5);
+    assert!(!tree.root_node().is_missing());
+}
 
-    let mut visited = vec![];
-    visited.push(cursor.node().kind_id());
+#[test]
+fn node_is_error_always_false() {
+    let tree = leaf(0, 0, 5);
+    assert!(!tree.root_node().is_error());
+}
 
-    // Visit all children
-    if cursor.goto_first_child() {
-        loop {
-            visited.push(cursor.node().kind_id());
-            if !cursor.goto_next_sibling() {
-                break;
-            }
-        }
-    }
+#[test]
+fn node_byte_range_matches_start_end() {
+    let tree = leaf(0, 3, 17);
+    let root = tree.root_node();
+    assert_eq!(root.byte_range(), 3..17);
+}
 
-    // Should have visited: root(0), children 1,2,3,4,5
-    assert_eq!(visited, vec![0, 1, 2, 3, 4, 5]);
+#[test]
+fn node_named_child_count_equals_child_count() {
+    let tree = Tree::new_for_testing(0, 0, 20, vec![leaf(1, 0, 10), leaf(2, 10, 20)]);
+    let root = tree.root_node();
+    assert_eq!(root.named_child_count(), root.child_count());
+}
+
+#[test]
+fn node_child_by_index() {
+    let tree = Tree::new_for_testing(0, 0, 20, vec![leaf(10, 0, 10), leaf(20, 10, 20)]);
+    let root = tree.root_node();
+    assert_eq!(root.child(0).unwrap().kind_id(), 10);
+    assert_eq!(root.child(1).unwrap().kind_id(), 20);
+    assert!(root.child(2).is_none());
+}
+
+#[test]
+fn node_child_out_of_bounds_returns_none() {
+    let tree = leaf(0, 0, 5);
+    assert!(tree.root_node().child(0).is_none());
+    assert!(tree.root_node().child(999).is_none());
+}
+
+#[test]
+fn node_utf8_text() {
+    let tree = Tree::new_for_testing(0, 0, 11, vec![leaf(1, 0, 5), leaf(2, 6, 11)]);
+    let source = b"hello world";
+    let root = tree.root_node();
+    assert_eq!(root.utf8_text(source).unwrap(), "hello world");
+    assert_eq!(root.child(0).unwrap().utf8_text(source).unwrap(), "hello");
+    assert_eq!(root.child(1).unwrap().utf8_text(source).unwrap(), "world");
+}
+
+#[test]
+fn node_start_and_end_position_are_zero() {
+    // Phase 1 stubs return (0,0)
+    let tree = leaf(0, 10, 20);
+    let root = tree.root_node();
+    assert_eq!(root.start_position(), adze_runtime::Point::new(0, 0));
+    assert_eq!(root.end_position(), adze_runtime::Point::new(0, 0));
 }
 
 // ============================================================================
-// Tests: 36+ Mixed Navigation Patterns and Edge Cases
+// 4. field_name / child_by_field_name behavior
 // ============================================================================
 
 #[test]
-fn test_navigation_pattern_down_and_up() {
-    let tree = deep_tree();
-    let mut cursor = TreeCursor::new(&tree);
+fn child_by_field_name_returns_none() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 5), leaf(2, 5, 10)]);
+    assert!(tree.root_node().child_by_field_name("left").is_none());
+    assert!(tree.root_node().child_by_field_name("right").is_none());
+}
 
-    // Go down 3 levels
-    for _ in 0..3 {
-        assert!(cursor.goto_first_child());
+#[test]
+fn child_by_field_name_empty_string_returns_none() {
+    let tree = leaf(0, 0, 5);
+    assert!(tree.root_node().child_by_field_name("").is_none());
+}
+
+#[test]
+fn node_parent_returns_none() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 10)]);
+    assert!(tree.root_node().parent().is_none());
+    assert!(tree.root_node().child(0).unwrap().parent().is_none());
+}
+
+#[test]
+fn node_sibling_links_return_none() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 5), leaf(2, 5, 10)]);
+    let first = tree.root_node().child(0).unwrap();
+    assert!(first.next_sibling().is_none());
+    assert!(first.prev_sibling().is_none());
+    assert!(first.next_named_sibling().is_none());
+    assert!(first.prev_named_sibling().is_none());
+}
+
+// ============================================================================
+// 5. Deep tree traversal patterns
+// ============================================================================
+
+fn make_deep_chain(depth: u32) -> Tree {
+    let mut t = leaf(depth, 0, 1);
+    for i in (0..depth).rev() {
+        t = Tree::new_for_testing(i, 0, 10, vec![t]);
     }
-    let max_depth = cursor.depth();
-    assert_eq!(max_depth, 3);
+    t
+}
 
-    // Go back up all the way
-    for _ in 0..3 {
-        assert!(cursor.goto_parent());
+#[test]
+fn traverse_deep_chain_to_bottom() {
+    let tree = make_deep_chain(10);
+    let mut cursor = TreeCursor::new(&tree);
+    let mut max_depth = 0;
+    while cursor.goto_first_child() {
+        max_depth += 1;
     }
-
-    assert_eq!(cursor.depth(), 0);
+    assert_eq!(max_depth, 10);
+    assert_eq!(cursor.node().kind_id(), 10);
 }
 
 #[test]
-fn test_navigation_sibling_then_child() {
-    let tree = complex_tree();
+fn deep_tree_round_trip() {
+    let tree = make_deep_chain(8);
     let mut cursor = TreeCursor::new(&tree);
-
-    cursor.goto_first_child();
-    let node1 = cursor.node();
-    let node1_start = node1.start_byte();
-
-    cursor.goto_next_sibling();
-    let node2 = cursor.node();
-    let node2_start = node2.start_byte();
-
-    assert!(node2_start >= node1_start);
-
-    // Can navigate into second sibling
-    if node2.child_count() > 0 {
-        assert!(cursor.goto_first_child());
-    }
-}
-
-#[test]
-fn test_node_byte_ranges_consistent_during_traversal() {
-    let tree = complex_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Root node
-    let root = cursor.node();
-    let root_start = root.start_byte();
-    let root_end = root.end_byte();
-    assert!(root_start <= root_end);
-
-    // Explore children
-    if cursor.goto_first_child() {
-        let child1 = cursor.node();
-        assert!(child1.start_byte() >= root_start);
-        assert!(child1.end_byte() <= root_end);
-
-        if cursor.goto_next_sibling() {
-            let child2 = cursor.node();
-            assert!(child2.start_byte() >= root_start);
-            assert!(child2.end_byte() <= root_end);
-        }
-    }
-}
-
-#[test]
-fn test_cursor_child_count_matches_navigation() {
-    let tree = wide_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    let node = cursor.node();
-    let child_count = node.child_count();
-    assert_eq!(child_count, 5);
-
-    // Count children via navigation
-    let mut actual_count = 0;
-    if cursor.goto_first_child() {
-        actual_count = 1;
-        while cursor.goto_next_sibling() {
-            actual_count += 1;
-        }
-    }
-
-    assert_eq!(actual_count, child_count);
-}
-
-#[test]
-fn test_traverse_all_nodes_in_complex_tree() {
-    let tree = complex_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    let mut node_count = 0;
-
-    // Simple traversal: visit root and all first-level children
-    node_count += 1;
-    if cursor.goto_first_child() {
-        loop {
-            node_count += 1;
-
-            // Try to go deeper
-            if cursor.goto_first_child() {
-                loop {
-                    node_count += 1;
-                    if !cursor.goto_next_sibling() {
-                        break;
-                    }
-                }
-                cursor.goto_parent();
-            }
-
-            if !cursor.goto_next_sibling() {
-                break;
-            }
-        }
-    }
-
-    // Complex tree should have multiple nodes
-    assert!(node_count > 5);
-}
-
-#[test]
-fn test_navigate_to_specific_node() {
-    let tree = complex_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Navigate to second child's first grandchild
-    cursor.goto_first_child(); // to first child
-    cursor.goto_next_sibling(); // to second child
-    assert_eq!(cursor.depth(), 1);
-
-    if cursor.node().child_count() > 0 {
-        cursor.goto_first_child();
-        assert_eq!(cursor.depth(), 2);
-    }
-}
-
-#[test]
-fn test_multiple_cursor_independence() {
-    let tree = complex_tree();
-    let mut cursor1 = TreeCursor::new(&tree);
-    let mut cursor2 = TreeCursor::new(&tree);
-
-    // Cursor1 goes deep
-    cursor1.goto_first_child();
-    cursor1.goto_first_child();
-
-    // Cursor2 navigates siblings
-    cursor2.goto_first_child();
-    cursor2.goto_next_sibling();
-
-    // They should be at different positions
-    assert_eq!(cursor1.depth(), 2);
-    assert_eq!(cursor2.depth(), 1);
-    assert_ne!(cursor1.node().kind_id(), cursor2.node().kind_id());
-}
-
-#[test]
-fn test_cursor_operations_sequence() {
-    let tree = nested_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Sequence: goto_first_child, goto_parent, goto_first_child, goto_next_sibling
-    assert!(cursor.goto_first_child()); // depth 1
-    cursor.goto_parent(); // depth 0
-
-    assert!(cursor.goto_first_child()); // depth 1
-    let node_at_depth_1 = cursor.node().kind_id();
-
-    cursor.goto_next_sibling(); // Still depth 1
-    let sibling_id = cursor.node().kind_id();
-
-    assert_ne!(node_at_depth_1, sibling_id);
-}
-
-#[test]
-fn test_cursor_with_very_deep_tree() {
-    let tree = deep_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
     let mut depth = 0;
     while cursor.goto_first_child() {
         depth += 1;
-        assert_eq!(cursor.depth(), depth);
     }
-
-    assert!(depth > 0);
-
-    // Navigate back up
+    assert_eq!(depth, 8);
     while cursor.goto_parent() {
         depth -= 1;
-        assert_eq!(cursor.depth(), depth);
     }
-
     assert_eq!(depth, 0);
+    assert_eq!(cursor.node().kind_id(), 0);
 }
 
 #[test]
-fn test_node_method_after_navigation() {
-    let tree = complex_tree();
-    let mut cursor = TreeCursor::new(&tree);
-
-    // Get node properties after different navigation positions
-    let root = cursor.node();
-    let root_count = root.child_count();
-    assert!(root_count > 0);
-
-    cursor.goto_first_child();
-    let child = cursor.node();
-    assert!(child.start_byte() <= root.end_byte());
-    assert!(child.end_byte() <= root.end_byte());
-
-    cursor.goto_parent();
-    let restored = cursor.node();
-    assert_eq!(restored.child_count(), root_count);
+fn dfs_visits_all_nodes_in_deep_chain() {
+    let tree = make_deep_chain(5);
+    let ids = dfs_kind_ids(&tree);
+    // symbols 0,1,2,3,4,5
+    assert_eq!(ids, vec![0, 1, 2, 3, 4, 5]);
 }
 
 #[test]
-fn test_alternating_first_child_and_sibling() {
-    let tree = complex_tree();
+fn dfs_complex_tree_order() {
+    //       0
+    //      / \
+    //     1   2
+    //    / \
+    //   3   4
+    let tree = Tree::new_for_testing(
+        0,
+        0,
+        50,
+        vec![
+            Tree::new_for_testing(1, 0, 25, vec![leaf(3, 0, 12), leaf(4, 12, 25)]),
+            leaf(2, 25, 50),
+        ],
+    );
+    let ids = dfs_kind_ids(&tree);
+    assert_eq!(ids, vec![0, 1, 3, 4, 2]);
+}
+
+#[test]
+fn dfs_single_node_tree() {
+    let tree = leaf(77, 0, 1);
+    let ids = dfs_kind_ids(&tree);
+    assert_eq!(ids, vec![77]);
+}
+
+#[test]
+fn dfs_asymmetric_tree() {
+    //        0
+    //      / | \
+    //     1  2  3
+    //    /      |
+    //   4       5
+    //          / \
+    //         6   7
+    let tree = Tree::new_for_testing(
+        0,
+        0,
+        70,
+        vec![
+            Tree::new_for_testing(1, 0, 20, vec![leaf(4, 0, 10)]),
+            leaf(2, 20, 30),
+            Tree::new_for_testing(
+                3,
+                30,
+                70,
+                vec![Tree::new_for_testing(
+                    5,
+                    30,
+                    70,
+                    vec![leaf(6, 30, 50), leaf(7, 50, 70)],
+                )],
+            ),
+        ],
+    );
+    let ids = dfs_kind_ids(&tree);
+    assert_eq!(ids, vec![0, 1, 4, 2, 3, 5, 6, 7]);
+}
+
+// ============================================================================
+// 6. Wide tree navigation
+// ============================================================================
+
+fn make_wide_tree(width: u32) -> Tree {
+    let children: Vec<Tree> = (0..width)
+        .map(|i| {
+            let start = (i * 10) as usize;
+            leaf(i + 1, start, start + 10)
+        })
+        .collect();
+    Tree::new_for_testing(0, 0, (width * 10) as usize, children)
+}
+
+#[test]
+fn iterate_all_siblings_wide() {
+    let tree = make_wide_tree(10);
     let mut cursor = TreeCursor::new(&tree);
-
-    // Go to first child
     cursor.goto_first_child();
-
-    // Repeatedly: try first child, then sibling
-    let mut iteration = 0;
-    loop {
-        iteration += 1;
-
-        // Can we go deeper?
-        if cursor.goto_first_child() {
-            // Go back and try sibling instead
-            cursor.goto_parent();
-        }
-
-        // Try to go to sibling
-        if !cursor.goto_next_sibling() {
-            // No more siblings
-            cursor.goto_parent();
-            break;
-        }
-
-        if iteration > 20 {
-            break; // Safety limit
-        }
+    let mut count = 1;
+    while cursor.goto_next_sibling() {
+        count += 1;
     }
-
-    // Should have explored the tree structure
-    assert!(iteration > 0);
+    assert_eq!(count, 10);
 }
 
 #[test]
-fn test_cursor_node_byte_consistency() {
-    let tree = wide_tree();
+fn sibling_count_matches_child_count() {
+    let tree = make_wide_tree(7);
+    let root = tree.root_node();
+    let expected = root.child_count();
     let mut cursor = TreeCursor::new(&tree);
-
     cursor.goto_first_child();
+    let mut count = 1;
+    while cursor.goto_next_sibling() {
+        count += 1;
+    }
+    assert_eq!(count, expected);
+}
+
+#[test]
+fn wide_tree_siblings_byte_ranges_non_overlapping() {
+    let tree = make_wide_tree(5);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child();
+    let mut prev_end = cursor.node().start_byte();
     loop {
         let node = cursor.node();
-        let start = node.start_byte();
-        let end = node.end_byte();
-
-        // Byte ranges should always be valid
-        assert!(start <= end);
-
+        assert!(node.start_byte() >= prev_end, "siblings must not overlap");
+        prev_end = node.end_byte();
         if !cursor.goto_next_sibling() {
             break;
+        }
+    }
+}
+
+#[test]
+fn navigate_to_last_sibling() {
+    let tree = make_wide_tree(6);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child();
+    while cursor.goto_next_sibling() {}
+    // Last child symbol is width (6)
+    assert_eq!(cursor.node().kind_id(), 6);
+}
+
+#[test]
+fn wide_tree_dfs_visits_all() {
+    let tree = make_wide_tree(8);
+    let count = count_nodes(&tree);
+    // root + 8 children = 9
+    assert_eq!(count, 9);
+}
+
+// ============================================================================
+// 7. Additional edge cases & combined patterns
+// ============================================================================
+
+#[test]
+fn cursor_node_after_failed_goto_first_child() {
+    let tree = leaf(42, 3, 9);
+    let mut cursor = TreeCursor::new(&tree);
+    assert!(!cursor.goto_first_child());
+    // Current node unchanged
+    assert_eq!(cursor.node().kind_id(), 42);
+    assert_eq!(cursor.node().start_byte(), 3);
+}
+
+#[test]
+fn cursor_node_after_failed_goto_next_sibling() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 10)]);
+    let mut cursor = TreeCursor::new(&tree);
+    cursor.goto_first_child(); // at 1
+    assert!(!cursor.goto_next_sibling()); // only child
+    assert_eq!(cursor.node().kind_id(), 1); // still at 1
+}
+
+#[test]
+fn tree_clone_is_independent() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 10)]);
+    let cloned = tree.clone();
+    // Both trees work independently
+    assert_eq!(tree.root_node().kind_id(), cloned.root_node().kind_id());
+    assert_eq!(
+        tree.root_node().child_count(),
+        cloned.root_node().child_count()
+    );
+}
+
+#[test]
+fn tree_debug_does_not_panic() {
+    let tree = Tree::new_for_testing(0, 0, 10, vec![leaf(1, 0, 5)]);
+    let debug_str = format!("{:?}", tree);
+    assert!(!debug_str.is_empty());
+}
+
+#[test]
+fn tree_language_is_none_for_testing_tree() {
+    let tree = leaf(0, 0, 5);
+    assert!(tree.language().is_none());
+}
+
+#[test]
+fn tree_source_bytes_is_none_for_testing_tree() {
+    let tree = leaf(0, 0, 5);
+    assert!(tree.source_bytes().is_none());
+}
+
+#[test]
+fn tree_root_kind() {
+    let tree = Tree::new_for_testing(55, 0, 10, vec![]);
+    assert_eq!(tree.root_kind(), 55);
+}
+
+#[test]
+fn reset_to_different_tree() {
+    let tree1 = leaf(1, 0, 5);
+    let tree2 = Tree::new_for_testing(2, 0, 20, vec![leaf(3, 0, 10), leaf(4, 10, 20)]);
+    let mut cursor = TreeCursor::new(&tree1);
+    assert_eq!(cursor.node().kind_id(), 1);
+    cursor.reset(&tree2);
+    assert_eq!(cursor.node().kind_id(), 2);
+    assert_eq!(cursor.node().child_count(), 2);
+}
+
+#[test]
+fn navigate_complex_pattern_down_sibling_down() {
+    //       0
+    //      / \
+    //     1   2
+    //    /   / \
+    //   3   4   5
+    let tree = Tree::new_for_testing(
+        0,
+        0,
+        60,
+        vec![
+            Tree::new_for_testing(1, 0, 20, vec![leaf(3, 0, 20)]),
+            Tree::new_for_testing(2, 20, 60, vec![leaf(4, 20, 40), leaf(5, 40, 60)]),
+        ],
+    );
+    let mut cursor = TreeCursor::new(&tree);
+
+    // Down to 1
+    cursor.goto_first_child();
+    assert_eq!(cursor.node().kind_id(), 1);
+
+    // Sibling to 2
+    cursor.goto_next_sibling();
+    assert_eq!(cursor.node().kind_id(), 2);
+
+    // Down into 2's first child (4)
+    cursor.goto_first_child();
+    assert_eq!(cursor.node().kind_id(), 4);
+
+    // Sibling to 5
+    cursor.goto_next_sibling();
+    assert_eq!(cursor.node().kind_id(), 5);
+
+    // Back to 2
+    cursor.goto_parent();
+    assert_eq!(cursor.node().kind_id(), 2);
+
+    // Back to root
+    cursor.goto_parent();
+    assert_eq!(cursor.node().kind_id(), 0);
+}
+
+// ============================================================================
+// 7. Property-based tests (proptest)
+// ============================================================================
+
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// Strategy for a simple well-structured tree where we know exact counts.
+    fn arb_simple_tree() -> impl Strategy<Value = Tree> {
+        (1u32..=8).prop_map(|width| {
+            let children: Vec<Tree> = (0..width)
+                .map(|i| leaf(i + 1, (i * 10) as usize, ((i + 1) * 10) as usize))
+                .collect();
+            Tree::new_for_testing(0, 0, (width * 10) as usize, children)
+        })
+    }
+
+    proptest! {
+        #[test]
+        fn prop_root_start_lte_end(sym in 0u32..500, start in 0usize..1000, len in 0usize..500) {
+            let tree = leaf(sym, start, start + len);
+            let root = tree.root_node();
+            prop_assert!(root.start_byte() <= root.end_byte());
+        }
+
+        #[test]
+        fn prop_child_ranges_within_parent(width in 1u32..=6) {
+            let tree = make_wide_tree(width);
+            let root = tree.root_node();
+            for i in 0..root.child_count() {
+                let child = root.child(i).unwrap();
+                prop_assert!(child.start_byte() >= root.start_byte());
+                prop_assert!(child.end_byte() <= root.end_byte());
+            }
+        }
+
+        #[test]
+        fn prop_depth_equals_goto_first_child_count(depth in 1u32..=12) {
+            let tree = make_deep_chain(depth);
+            let mut cursor = TreeCursor::new(&tree);
+            let mut actual_depth = 0;
+            while cursor.goto_first_child() {
+                actual_depth += 1;
+            }
+            prop_assert_eq!(actual_depth, depth);
+        }
+
+        #[test]
+        fn prop_sibling_count_equals_child_count(tree in arb_simple_tree()) {
+            let root = tree.root_node();
+            let expected = root.child_count();
+            let mut cursor = TreeCursor::new(&tree);
+            if !cursor.goto_first_child() {
+                prop_assert_eq!(expected, 0);
+                return Ok(());
+            }
+            let mut count = 1;
+            while cursor.goto_next_sibling() {
+                count += 1;
+            }
+            prop_assert_eq!(count, expected);
+        }
+
+        #[test]
+        fn prop_reset_always_returns_to_depth_zero(tree in arb_simple_tree()) {
+            let mut cursor = TreeCursor::new(&tree);
+            cursor.goto_first_child();
+            cursor.goto_next_sibling();
+            cursor.reset(&tree);
+            prop_assert_eq!(cursor.depth(), 0);
+        }
+
+        #[test]
+        fn prop_dfs_count_matches_wide(width in 1u32..=10) {
+            let tree = make_wide_tree(width);
+            let count = count_nodes(&tree);
+            // root + width children
+            prop_assert_eq!(count, (width + 1) as usize);
+        }
+
+        #[test]
+        fn prop_dfs_count_matches_deep(depth in 1u32..=15) {
+            let tree = make_deep_chain(depth);
+            let count = count_nodes(&tree);
+            // depth + 1 nodes (0..=depth)
+            prop_assert_eq!(count, (depth + 1) as usize);
+        }
+
+        #[test]
+        fn prop_goto_parent_after_first_child_restores_depth(tree in arb_simple_tree()) {
+            let mut cursor = TreeCursor::new(&tree);
+            let before = cursor.depth();
+            if cursor.goto_first_child() {
+                prop_assert_eq!(cursor.depth(), before + 1);
+                prop_assert!(cursor.goto_parent());
+                prop_assert_eq!(cursor.depth(), before);
+            }
+        }
+
+        #[test]
+        fn prop_kind_id_matches_construction(sym in 0u32..500) {
+            let tree = leaf(sym, 0, 1);
+            prop_assert_eq!(tree.root_node().kind_id(), sym as u16);
+        }
+
+        #[test]
+        fn prop_byte_range_consistent(start in 0usize..1000, len in 0usize..500) {
+            let end = start + len;
+            let tree = leaf(0, start, end);
+            let root = tree.root_node();
+            prop_assert_eq!(root.byte_range(), start..end);
+            prop_assert_eq!(root.start_byte(), start);
+            prop_assert_eq!(root.end_byte(), end);
         }
     }
 }
