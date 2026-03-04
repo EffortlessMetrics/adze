@@ -59,7 +59,8 @@ fn deref_returns_inner_i32() {
 fn deref_with_star_operator() {
     let expected = 157.0 / 50.0;
     let s = mk(expected, 0, 4);
-    assert!((*s - expected).abs() < f64::EPSILON);
+    let diff: f64 = *s - expected;
+    assert!(diff.abs() < f64::EPSILON);
 }
 
 #[test]
