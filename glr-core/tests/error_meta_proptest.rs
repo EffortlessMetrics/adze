@@ -376,7 +376,7 @@ fn multiple_forest_nodes_independent_meta() {
 proptest! {
     #[test]
     fn clone_matches_original(meta in arb_error_meta()) {
-        let cloned = meta.clone();
+        let cloned = meta;
         prop_assert_eq!(cloned.missing, meta.missing);
         prop_assert_eq!(cloned.is_error, meta.is_error);
         prop_assert_eq!(cloned.cost, meta.cost);

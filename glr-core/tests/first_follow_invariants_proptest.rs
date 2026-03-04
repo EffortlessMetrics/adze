@@ -1,8 +1,8 @@
 //! Property-based tests for FIRST/FOLLOW and parse table invariants.
 
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::Associativity;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, SymbolId};
 use proptest::prelude::*;
 
 /// Build a simple choice grammar with n tokens, compute FIRST/FOLLOW.
@@ -58,24 +58,22 @@ proptest! {
     #[test]
     fn first_set_of_nonterminal_start_nonempty(n_tokens in 1usize..6) {
         let (grammar, ff) = build_choice_grammar(n_tokens);
-        if let Some(start) = grammar.start_symbol() {
-            if let Some(first) = ff.first(start) {
+        if let Some(start) = grammar.start_symbol()
+            && let Some(first) = ff.first(start) {
                 prop_assert!(first.count_ones(..) > 0,
                     "FIRST(start) should not be empty for {} tokens", n_tokens);
             }
-        }
     }
 
     #[test]
     fn follow_set_of_start_contains_eof(n_tokens in 1usize..6) {
         let (grammar, ff) = build_choice_grammar(n_tokens);
-        if let Some(start) = grammar.start_symbol() {
-            if let Some(follow) = ff.follow(start) {
+        if let Some(start) = grammar.start_symbol()
+            && let Some(follow) = ff.follow(start) {
                 // EOF is SymbolId(0)
                 prop_assert!(follow.contains(0),
                     "Follow(start) should contain EOF");
             }
-        }
     }
 
     #[test]
@@ -200,7 +198,7 @@ fn optional_grammar_with_epsilon() {
         .build();
     let ff = FirstFollowSets::compute_normalized(&mut grammar).unwrap();
     let table = build_lr1_automaton(&grammar, &ff).unwrap();
-    assert!(table.action_table.len() >= 1);
+    assert!(!table.action_table.is_empty());
 }
 
 #[test]

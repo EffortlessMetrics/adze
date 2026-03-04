@@ -538,8 +538,8 @@ proptest! {
             Ok(ff) => ff,
             Err(_) => return Ok(()),
         };
-        if let Some(start) = g.start_symbol() {
-            if let Some(rules) = g.get_rules_for_symbol(start) {
+        if let Some(start) = g.start_symbol()
+            && let Some(rules) = g.get_rules_for_symbol(start) {
                 let mut set = ItemSet::new(StateId(0));
                 for r in rules {
                     set.add_item(LRItem::new(RuleId(r.production_id.0), 0, SymbolId(0)));
@@ -549,7 +549,6 @@ proptest! {
                 let _ = set.closure(&g, &ff);
                 prop_assert_eq!(set.items, snapshot, "closure must be idempotent");
             }
-        }
     }
 }
 
@@ -578,13 +577,13 @@ fn goto_on_terminal_produces_advanced_position() {
     );
     // All items in the goto set should have position > 0
     for item in &goto_set.items {
-        if let Some(r) = g.all_rules().find(|r| r.production_id.0 == item.rule_id.0) {
-            if r.lhs == s {
-                assert!(
-                    item.position > 0,
-                    "goto items should have advanced dot position"
-                );
-            }
+        if let Some(r) = g.all_rules().find(|r| r.production_id.0 == item.rule_id.0)
+            && r.lhs == s
+        {
+            assert!(
+                item.position > 0,
+                "goto items should have advanced dot position"
+            );
         }
     }
 }
@@ -1135,8 +1134,8 @@ proptest! {
         let (col, _) = build(&mut g);
         // Rules for the start symbol are always reachable and must produce
         // at least one reduce item somewhere in the collection.
-        if let Some(start) = g.start_symbol() {
-            if let Some(rules) = g.get_rules_for_symbol(start) {
+        if let Some(start) = g.start_symbol()
+            && let Some(rules) = g.get_rules_for_symbol(start) {
                 for r in rules {
                     let has_reduce = col.sets.iter().any(|set| {
                         set.items.iter().any(|item| {
@@ -1150,6 +1149,5 @@ proptest! {
                     );
                 }
             }
-        }
     }
 }

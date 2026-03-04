@@ -295,7 +295,7 @@ fn single_nonterminal_item_predicts() {
 fn epsilon_production_is_reduce_item() {
     let g = epsilon_grammar();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let s = SymbolId(10);
+    let _s = SymbolId(10);
 
     let mut set = ItemSet::new(StateId(0));
     // S -> • ε , $   (production 0)
@@ -378,7 +378,7 @@ fn right_recursive_closure_terminates() {
     // so closure should not add predictions.
     // Only kernel + L -> • a (production 1) might appear if also seeded.
     // With only production 0 seeded and 'a' being terminal, closure adds nothing.
-    assert!(set.items.len() >= 1);
+    assert!(!set.items.is_empty());
 }
 
 // ---- Multiple kernel items ----
@@ -657,7 +657,7 @@ fn large_grammar_many_alternatives() {
             precedence: None,
             associativity: None,
             fields: vec![],
-            production_id: ProductionId(i as u16),
+            production_id: ProductionId(i),
         });
     }
     g.rules.insert(s, rules);
@@ -701,7 +701,7 @@ fn large_chain_grammar() {
                 precedence: None,
                 associativity: None,
                 fields: vec![],
-                production_id: ProductionId(i as u16),
+                production_id: ProductionId(i),
             }],
         );
     }

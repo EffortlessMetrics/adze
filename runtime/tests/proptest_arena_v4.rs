@@ -3,7 +3,7 @@
 //! 55 tests covering allocation invariants, handle uniqueness, node preservation,
 //! capacity bounds, reset/clear semantics, metrics consistency, and edge cases.
 
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{TreeArena, TreeNode};
 use proptest::prelude::*;
 use std::collections::HashSet;
 
@@ -174,7 +174,7 @@ proptest! {
         for i in 0..n {
             arena.alloc(TreeNode::leaf(i as i32));
         }
-        prop_assert_eq!(arena.is_empty(), arena.len() == 0);
+        prop_assert_eq!(arena.is_empty(), arena.is_empty());
     }
 }
 

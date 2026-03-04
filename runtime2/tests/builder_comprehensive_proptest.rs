@@ -1087,7 +1087,7 @@ proptest! {
         };
         let nc = count_nodes(tree.root_node());
         let d = tree_depth(tree.root_node());
-        prop_assert!(nc >= d + 1);
+        prop_assert!(nc > d);
     }
 }
 

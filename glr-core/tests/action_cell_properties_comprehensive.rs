@@ -331,7 +331,7 @@ fn action_cell_contains() {
 #[test]
 fn action_cell_iter_count() {
     let cell: ActionCell = vec![Action::Accept, Action::Error, Action::Recover];
-    assert_eq!(cell.iter().count(), 3);
+    assert_eq!(cell.len(), 3);
 }
 
 #[test]

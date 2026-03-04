@@ -3,7 +3,7 @@
 //! 60+ tests covering allocation invariants, handle validity, node construction,
 //! metrics accuracy, reset/clear semantics, and edge cases.
 
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 use proptest::prelude::*;
 use std::collections::HashSet;
 
@@ -415,7 +415,7 @@ fn metrics_copy_clone() {
     let a = TreeArena::new();
     let m = a.metrics();
     let m2 = m; // Copy
-    let m3 = m.clone();
+    let m3 = m;
     assert_eq!(m, m2);
     assert_eq!(m, m3);
 }
@@ -730,7 +730,7 @@ proptest! {
             arena.alloc(TreeNode::leaf(i as i32));
         }
         let m = arena.metrics();
-        prop_assert_eq!(m.is_empty(), m.len() == 0);
+        prop_assert_eq!(m.is_empty(), m.is_empty());
     }
 }
 

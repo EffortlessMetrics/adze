@@ -658,7 +658,10 @@ fn language_accessor_returns_none_initially() {
 fn parse_error_with_msg_empty_string() {
     let err = ParseError::with_msg("");
     let msg = format!("{err}");
-    assert!(msg.is_empty() || msg.len() >= 0); // does not panic
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(msg.is_empty() || msg.len() >= 0); // does not panic
+    }
 }
 
 #[test]

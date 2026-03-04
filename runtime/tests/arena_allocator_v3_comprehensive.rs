@@ -1,6 +1,6 @@
 //! Comprehensive v3 tests for TreeArena, NodeHandle, TreeNode, and related types.
 
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 
 // ===== Section 1: TreeArena construction =====
 
@@ -386,7 +386,7 @@ fn node_handle_copy() {
 #[test]
 fn node_handle_clone() {
     let h1 = NodeHandle::new(1, 2);
-    let h2 = h1.clone();
+    let h2 = h1;
     assert_eq!(h1, h2);
 }
 

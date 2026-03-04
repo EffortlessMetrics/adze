@@ -799,7 +799,7 @@ fn token_clone() {
         start: 0,
         end: 3,
     };
-    let t2 = t.clone();
+    let t2 = t;
     assert_eq!(t.kind, t2.kind);
 }
 

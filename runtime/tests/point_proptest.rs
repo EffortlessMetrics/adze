@@ -148,7 +148,7 @@ proptest! {
 proptest! {
     #[test]
     fn test_clone_equals_original(p in arb_point()) {
-        let cloned = p.clone();
+        let cloned = p;
         prop_assert_eq!(p, cloned);
     }
 
@@ -166,6 +166,7 @@ proptest! {
         let p = Point { row, column: col };
         let mut cloned = p;
         cloned.row = cloned.row.wrapping_add(1);
+        prop_assert_ne!(cloned.row, row);
         // Original is unaffected (Copy type — independent).
         prop_assert_eq!(p.row, row);
     }

@@ -8,15 +8,15 @@ use adze_runtime::tree::{Tree, TreeCursor};
 // Helpers — build trees from (symbol, start, end, children) descriptions
 // ---------------------------------------------------------------------------
 
-/// Minimal tree-building DSL using the crate-public `Tree::new_stub` plus
-/// a manually-constructed `TreeNode` hierarchy.  Because `TreeNode` is
-/// `pub(crate)`, we build trees through the public `Tree` API that already
-/// exists (new_stub), plus a small helper that builds richer trees via a
-/// dedicated builder module exposed for tests.
-///
-/// For these tests we only need symbol IDs and byte ranges visible through
-/// `Node::kind_id()`, `Node::start_byte()`, `Node::end_byte()`, and
-/// `Node::child_count()`.
+// Minimal tree-building DSL using the crate-public `Tree::new_stub` plus
+// a manually-constructed `TreeNode` hierarchy.  Because `TreeNode` is
+// `pub(crate)`, we build trees through the public `Tree` API that already
+// exists (new_stub), plus a small helper that builds richer trees via a
+// dedicated builder module exposed for tests.
+//
+// For these tests we only need symbol IDs and byte ranges visible through
+// `Node::kind_id()`, `Node::start_byte()`, `Node::end_byte()`, and
+// `Node::child_count()`.
 
 // -- Single-node tree (stub) ------------------------------------------------
 

@@ -6,8 +6,8 @@
 //! count verification for known grammars.
 
 use adze_glr_core::{
-    Action, Conflict, ConflictResolver, ConflictType, FirstFollowSets, ItemSet, ItemSetCollection,
-    LRItem, build_lr1_automaton, build_lr1_automaton_res,
+    Action, ConflictResolver, ConflictType, FirstFollowSets, ItemSetCollection,
+    build_lr1_automaton, build_lr1_automaton_res,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
@@ -61,18 +61,6 @@ fn transitions_from(col: &ItemSetCollection, state: StateId) -> usize {
         .iter()
         .filter(|((src, _), _)| *src == state)
         .count()
-}
-
-fn any_state_has_action<F>(table: &adze_glr_core::ParseTable, sym: SymbolId, pred: F) -> bool
-where
-    F: Fn(&Action) -> bool,
-{
-    (0..table.state_count).any(|st| {
-        table
-            .actions(StateId(st as u16), sym)
-            .iter()
-            .any(|a| pred(a))
-    })
 }
 
 fn count_states_with_reduce(table: &adze_glr_core::ParseTable, sym: SymbolId) -> usize {
@@ -679,7 +667,7 @@ fn normalization_preserves_start_symbol() {
 
 #[test]
 fn normalized_collection_has_same_or_more_states() {
-    let mut g1 = GrammarBuilder::new("norm6a")
+    let g1 = GrammarBuilder::new("norm6a")
         .token("a", "a")
         .token("b", "b")
         .rule("s", vec!["a"])

@@ -2,7 +2,6 @@
 #![cfg(feature = "test-api")]
 
 use adze_glr_core::{FirstFollowSets, GLRError};
-use adze_ir::SymbolId;
 use adze_ir::builder::GrammarBuilder;
 
 fn compute_ff(

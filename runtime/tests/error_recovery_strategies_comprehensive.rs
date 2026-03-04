@@ -8,7 +8,6 @@ use adze::error_recovery::{
     RecoveryStrategy,
 };
 use adze_ir::SymbolId;
-use std::collections::HashSet;
 
 // =========================================================================
 // 1. RecoveryStrategy — trait impls and variant coverage
@@ -289,8 +288,10 @@ fn config_can_replace_with_empty_sync_tokens() {
 
 #[test]
 fn config_clone() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_panic_skip = 77;
+    let mut cfg = ErrorRecoveryConfig {
+        max_panic_skip: 77,
+        ..Default::default()
+    };
     cfg.sync_tokens.push(SymbolId(1));
     let cfg2 = cfg.clone();
     assert_eq!(cfg2.max_panic_skip, 77);

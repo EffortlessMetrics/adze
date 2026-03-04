@@ -154,7 +154,7 @@ proptest! {
 proptest! {
     #[test]
     fn clone_identical(a in arb_action()) {
-        let cloned = a.clone();
+        let cloned = a;
         prop_assert_eq!(a, cloned);
     }
 

@@ -605,7 +605,7 @@ proptest! {
         };
         let nc = count_nodes(tree.root_node());
         let d = tree_depth(tree.root_node());
-        prop_assert!(nc >= d + 1, "node_count {} < depth {} + 1", nc, d);
+        prop_assert!(nc > d, "node_count {} < depth {} + 1", nc, d);
     }
 }
 

@@ -158,7 +158,10 @@ fn arena_capacity_grows() {
 #[test]
 fn arena_num_chunks_starts_at_one() {
     let arena = TreeArena::new();
-    assert!(arena.num_chunks() >= 0);
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(arena.num_chunks() >= 0);
+    }
 }
 
 #[test]
@@ -351,7 +354,10 @@ fn arena_reset_and_reuse_capacity() {
     let cap_before = arena.capacity();
     arena.reset();
     // After reset, capacity should be retained
-    assert!(arena.capacity() >= cap_before || arena.capacity() >= 0);
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(arena.capacity() >= cap_before || arena.capacity() >= 0);
+    }
     // Can allocate again
     let h = arena.alloc(TreeNode::leaf(999));
     assert_eq!(arena.get(h).value(), 999);

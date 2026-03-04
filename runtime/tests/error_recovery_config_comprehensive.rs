@@ -1,7 +1,6 @@
 // Comprehensive tests for ErrorRecoveryConfig and RecoveryStrategy
 use adze::error_recovery::*;
 use adze_ir::SymbolId;
-use std::collections::HashSet;
 
 // =====================================================================
 // 1. ErrorRecoveryConfig default construction
@@ -79,8 +78,10 @@ fn config_default_indentation_recovery_disabled() {
 
 #[test]
 fn config_clone_preserves_max_panic_skip() {
-    let mut config = ErrorRecoveryConfig::default();
-    config.max_panic_skip = 200;
+    let config = ErrorRecoveryConfig {
+        max_panic_skip: 200,
+        ..Default::default()
+    };
     let cloned = config.clone();
     assert_eq!(cloned.max_panic_skip, 200);
 }
@@ -106,8 +107,10 @@ fn config_clone_preserves_scope_delimiters() {
 
 #[test]
 fn config_clone_is_independent() {
-    let mut config = ErrorRecoveryConfig::default();
-    config.max_panic_skip = 100;
+    let config = ErrorRecoveryConfig {
+        max_panic_skip: 100,
+        ..Default::default()
+    };
     let mut cloned = config.clone();
     cloned.max_panic_skip = 999;
     assert_eq!(config.max_panic_skip, 100);
@@ -402,7 +405,7 @@ fn state_clear_errors_removes_recorded() {
 
 #[test]
 fn strategies_in_vec() {
-    let strategies = vec![
+    let strategies = [
         RecoveryStrategy::PanicMode,
         RecoveryStrategy::TokenInsertion,
         RecoveryStrategy::TokenDeletion,
@@ -416,7 +419,7 @@ fn strategies_in_vec() {
 
 #[test]
 fn strategies_in_vec_contains() {
-    let strategies = vec![RecoveryStrategy::PanicMode, RecoveryStrategy::TokenDeletion];
+    let strategies = [RecoveryStrategy::PanicMode, RecoveryStrategy::TokenDeletion];
     assert!(strategies.contains(&RecoveryStrategy::PanicMode));
     assert!(strategies.contains(&RecoveryStrategy::TokenDeletion));
     assert!(!strategies.contains(&RecoveryStrategy::PhraseLevel));
@@ -424,7 +427,7 @@ fn strategies_in_vec_contains() {
 
 #[test]
 fn strategies_in_vec_filter() {
-    let strategies = vec![
+    let strategies = [
         RecoveryStrategy::PanicMode,
         RecoveryStrategy::TokenInsertion,
         RecoveryStrategy::TokenDeletion,

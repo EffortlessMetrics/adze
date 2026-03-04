@@ -2,7 +2,7 @@
 
 //! Comprehensive tests for the Graph-Structured Stack (GSS) in adze-glr-core.
 
-use adze_glr_core::gss_arena::{ArenaGSS, ArenaGSSManager, ArenaGSSStats, ArenaStackNode};
+use adze_glr_core::gss_arena::{ArenaGSS, ArenaGSSManager, ArenaGSSStats};
 use adze_ir::{StateId, SymbolId};
 use typed_arena::Arena;
 
@@ -379,7 +379,7 @@ fn large_push_pop_cycle() {
     let mut gss = ArenaGSS::new(&arena, StateId(0));
     let count = 500;
     for i in 1..=count {
-        gss.push(0, StateId(i), Some(SymbolId(i as u16)));
+        gss.push(0, StateId(i), Some(SymbolId(i)));
     }
     assert_eq!(gss.active_heads[0].depth, count as usize);
     let popped = gss.pop(0, count as usize).unwrap();

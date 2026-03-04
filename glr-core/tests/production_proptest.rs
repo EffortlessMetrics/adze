@@ -497,7 +497,7 @@ proptest! {
             .build();
         let table = build_grammar_table(&grammar);
         // At least one rule should carry the specified precedence
-        let has_prec = table.dynamic_prec_by_rule.iter().any(|&p| p == prec_val);
+        let has_prec = table.dynamic_prec_by_rule.contains(&prec_val);
         prop_assert!(has_prec, "Expected prec {} in {:?}", prec_val, table.dynamic_prec_by_rule);
     }
 
@@ -514,7 +514,7 @@ proptest! {
             .start("expr")
             .build();
         let table = build_grammar_table(&grammar);
-        let has_left = table.rule_assoc_by_rule.iter().any(|&a| a == 1);
+        let has_left = table.rule_assoc_by_rule.contains(&1);
         prop_assert!(has_left, "Expected left-assoc (1) in {:?}", table.rule_assoc_by_rule);
     }
 
@@ -531,7 +531,7 @@ proptest! {
             .start("assign")
             .build();
         let table = build_grammar_table(&grammar);
-        let has_right = table.rule_assoc_by_rule.iter().any(|&a| a == -1);
+        let has_right = table.rule_assoc_by_rule.contains(&-1);
         prop_assert!(has_right, "Expected right-assoc (-1) in {:?}", table.rule_assoc_by_rule);
     }
 

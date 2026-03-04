@@ -79,13 +79,13 @@ proptest! {
 proptest! {
     #[test]
     fn clone_equals_original(r in arb_scan_result()) {
-        let cloned = r.clone();
+        let cloned = r;
         prop_assert_eq!(r, cloned);
     }
 
     #[test]
     fn clone_is_independent(r in arb_scan_result()) {
-        let mut cloned = r.clone();
+        let mut cloned = r;
         cloned.bytes_consumed = r.bytes_consumed.wrapping_add(1);
         prop_assert_ne!(r.bytes_consumed, cloned.bytes_consumed);
     }
@@ -93,7 +93,7 @@ proptest! {
     #[test]
     fn clone_fields_match(token_type in any::<u32>(), bytes_consumed in any::<usize>()) {
         let r = ScanResult { token_type, bytes_consumed };
-        let c = r.clone();
+        let c = r;
         prop_assert_eq!(c.token_type, token_type);
         prop_assert_eq!(c.bytes_consumed, bytes_consumed);
     }
@@ -282,7 +282,8 @@ proptest! {
     #[test]
     fn some_preserves_value(r in arb_scan_result()) {
         let opt: Option<ScanResult> = Some(r);
-        prop_assert_eq!(opt.unwrap(), r);
+        prop_assert!(opt.is_some());
+        prop_assert_eq!(opt, Some(r));
     }
 
     #[test]

@@ -340,6 +340,7 @@ proptest! {
         let loc = ErrorLocation { byte_offset, line, column };
         let mut cloned = loc.clone();
         cloned.byte_offset = cloned.byte_offset.wrapping_add(1);
+        prop_assert_ne!(cloned.byte_offset, byte_offset);
         // Original should be unchanged
         prop_assert_eq!(loc.byte_offset, byte_offset);
     }

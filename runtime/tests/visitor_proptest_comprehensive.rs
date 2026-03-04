@@ -123,7 +123,7 @@ fn tree_depth(node: &ParsedNode) -> usize {
 /// Build a deep chain: root -> child -> ... -> leaf (depth levels).
 fn build_deep_tree(depth: usize, source_len: usize) -> ParsedNode {
     assert!(depth >= 1);
-    let mut current = leaf(1, 0, source_len.min(1).max(1));
+    let mut current = leaf(1, 0, source_len.max(1));
     for _ in 1..depth {
         current = interior(1, vec![current]);
     }
@@ -140,7 +140,7 @@ fn build_wide_tree(width: usize, source_len: usize) -> ParsedNode {
         })
         .collect();
     if children.is_empty() {
-        leaf(1, 0, source_len.min(1).max(1))
+        leaf(1, 0, source_len.max(1))
     } else {
         interior(1, children)
     }

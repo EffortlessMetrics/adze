@@ -6,9 +6,7 @@
 //! recursive grammars, precedence grammars, large grammars, determinism,
 //! and rule ordering properties.
 
-use adze_glr_core::{
-    Action, FirstFollowSets, ParseRule, ParseTable, RuleId, StateId, build_lr1_automaton,
-};
+use adze_glr_core::{Action, FirstFollowSets, ParseRule, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar};
 
@@ -196,7 +194,7 @@ fn minimal_grammar_rule_count() {
     let table = build_table(&mut minimal_grammar());
     // S → a  → 1 user rule; augmented start adds 1 more
     assert!(
-        table.rules.len() >= 1,
+        !table.rules.is_empty(),
         "minimal grammar must have at least 1 rule, got {}",
         table.rules.len()
     );

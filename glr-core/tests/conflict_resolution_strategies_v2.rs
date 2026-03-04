@@ -13,8 +13,8 @@ use adze_glr_core::conflict_inspection::{
     find_conflicts_for_symbol, get_state_conflicts, state_has_conflicts,
 };
 use adze_glr_core::{
-    Action, Conflict, ConflictResolver, ConflictType as CoreConflictType, FirstFollowSets,
-    ItemSetCollection, ParseTable, build_lr1_automaton,
+    Action, ConflictResolver, ConflictType as CoreConflictType, FirstFollowSets, ItemSetCollection,
+    ParseTable, build_lr1_automaton,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar, RuleId, StateId, SymbolId};
@@ -49,14 +49,6 @@ fn build_table_normalized(grammar: &mut Grammar) -> ParseTable {
 /// Build canonical collection + conflict resolver for a grammar.
 fn detect(grammar: &Grammar) -> (ItemSetCollection, ConflictResolver) {
     let ff = compute_ff(grammar);
-    let collection = ItemSetCollection::build_canonical_collection(grammar, &ff);
-    let resolver = ConflictResolver::detect_conflicts(&collection, grammar, &ff);
-    (collection, resolver)
-}
-
-/// Same as `detect` but normalizes grammar in-place first.
-fn detect_normalized(grammar: &mut Grammar) -> (ItemSetCollection, ConflictResolver) {
-    let ff = compute_ff_normalized(grammar);
     let collection = ItemSetCollection::build_canonical_collection(grammar, &ff);
     let resolver = ConflictResolver::detect_conflicts(&collection, grammar, &ff);
     (collection, resolver)
@@ -272,10 +264,8 @@ fn sr_conflict_symbol_is_terminal() {
     let (_coll, resolver) = detect(&g);
     // The conflict lookahead must be a real symbol
     for c in &resolver.conflicts {
-        assert!(
-            c.symbol.0 > 0 || c.symbol.0 == 0,
-            "symbol id should be valid"
-        );
+        // SymbolId uses u16, so it's always >= 0 — just verify we can access the field
+        let _ = c.symbol;
     }
 }
 
@@ -387,7 +377,7 @@ fn rr_resolved_to_single_reduce() {
     // Note: some "ReduceReduce" conflicts may include Accept+Reduce pairs
     // which the resolver does not fully resolve
     assert!(
-        resolver.conflicts.len() > 0 || before_total == 0,
+        !resolver.conflicts.is_empty() || before_total == 0,
         "resolver should run"
     );
 }
@@ -416,7 +406,7 @@ fn prec_higher_precedence_wins_shift() {
     resolver.resolve_conflicts(&g);
 
     // After resolution some conflicts should be eliminated
-    let unresolved: Vec<_> = resolver
+    let _unresolved: Vec<_> = resolver
         .conflicts
         .iter()
         .filter(|c| c.actions.len() > 1)
@@ -1638,7 +1628,7 @@ fn recursive_grammar_has_expected_behavior() {
         .start("S")
         .build();
 
-    let (_coll, resolver) = detect(&g);
+    let (_coll, _resolver) = detect(&g);
     // This grammar builds successfully; conflicts may exist due to lookahead limitations
     let table = build_table(&g);
     assert!(has_accept(&table), "recursive grammar should accept");
@@ -1664,7 +1654,8 @@ fn precedence_declaration_on_builder() {
     let coll = ItemSetCollection::build_canonical_collection(&g, &ff);
     let resolver = ConflictResolver::detect_conflicts(&coll, &g, &ff);
     // Precedence declarations should be picked up by the resolver
-    assert!(resolver.conflicts.len() > 0 || true, "grammar builds ok");
+    // Grammar should build successfully regardless of conflict count
+    let _ = &resolver.conflicts;
 }
 
 #[test]

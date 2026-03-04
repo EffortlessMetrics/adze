@@ -191,7 +191,7 @@ fn token_clone_preserves_all_fields() {
         start: 10,
         end: 20,
     };
-    let cloned = token.clone();
+    let cloned = token;
     assert_eq!(token.kind, cloned.kind);
     assert_eq!(token.start, cloned.start);
     assert_eq!(token.end, cloned.end);
@@ -208,6 +208,9 @@ fn token_clone_independent_modification() {
     cloned.kind = 99;
     cloned.start = 100;
     cloned.end = 200;
+    assert_eq!(cloned.kind, 99);
+    assert_eq!(cloned.start, 100);
+    assert_eq!(cloned.end, 200);
     assert_eq!(token.kind, 1);
     assert_eq!(token.start, 0);
     assert_eq!(token.end, 5);
@@ -235,7 +238,7 @@ fn symbol_metadata_clone_preserves_fields() {
         is_visible: false,
         is_supertype: true,
     };
-    let cloned = meta.clone();
+    let cloned = meta;
     assert_eq!(meta.is_terminal, cloned.is_terminal);
     assert_eq!(meta.is_visible, cloned.is_visible);
     assert_eq!(meta.is_supertype, cloned.is_supertype);
@@ -252,6 +255,9 @@ fn symbol_metadata_clone_independent_modification() {
     cloned.is_terminal = false;
     cloned.is_visible = false;
     cloned.is_supertype = true;
+    assert!(!cloned.is_terminal);
+    assert!(!cloned.is_visible);
+    assert!(cloned.is_supertype);
     assert!(meta.is_terminal);
     assert!(meta.is_visible);
     assert!(!meta.is_supertype);
@@ -274,7 +280,7 @@ fn symbol_metadata_copy_semantic() {
 #[test]
 fn point_clone_preserves_fields() {
     let point = Point::new(10, 25);
-    let cloned = point.clone();
+    let cloned = point;
     assert_eq!(point.row, cloned.row);
     assert_eq!(point.column, cloned.column);
 }
@@ -285,6 +291,8 @@ fn point_clone_independent_modification() {
     let mut cloned = point;
     cloned.row = 99;
     cloned.column = 200;
+    assert_eq!(cloned.row, 99);
+    assert_eq!(cloned.column, 200);
     assert_eq!(point.row, 5);
     assert_eq!(point.column, 15);
 }
@@ -305,7 +313,7 @@ fn scan_result_clone_preserves_fields() {
         token_type: 42,
         bytes_consumed: 10,
     };
-    let cloned = result.clone();
+    let cloned = result;
     assert_eq!(result, cloned);
 }
 
@@ -333,7 +341,7 @@ fn input_edit_clone_preserves_fields() {
         old_end_position: Point::new(1, 20),
         new_end_position: Point::new(1, 25),
     };
-    let cloned = edit.clone();
+    let cloned = edit;
     assert_eq!(edit, cloned);
 }
 
@@ -377,6 +385,9 @@ fn error_location_clone_independent() {
     cloned.byte_offset = 999;
     cloned.line = 100;
     cloned.column = 200;
+    assert_eq!(cloned.byte_offset, 999);
+    assert_eq!(cloned.line, 100);
+    assert_eq!(cloned.column, 200);
     assert_eq!(loc.byte_offset, 10);
     assert_eq!(loc.line, 1);
     assert_eq!(loc.column, 5);
@@ -402,10 +413,11 @@ fn action_clone_all_variants() {
 #[test]
 fn action_copy_independent() {
     let action = Action::Shift(10);
-    let mut cloned = action;
-    cloned = Action::Shift(99);
+    let cloned = action;
+    let modified = Action::Shift(99);
     assert_eq!(action, Action::Shift(10));
-    assert_eq!(cloned, Action::Shift(99));
+    assert_eq!(cloned, Action::Shift(10));
+    assert_ne!(action, modified);
 }
 
 // ===== ParseTable (language module) clone tests =====

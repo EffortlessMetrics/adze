@@ -793,7 +793,10 @@ proptest! {
     fn parsed_tree_depth_non_negative(idx in 0usize..4) {
         let tree = parse_for_index(idx);
         // depth is usize, so always >= 0, but verify non-trivial
-        prop_assert!(tree_depth(tree.root_node()) >= 0);
+        #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+        {
+            prop_assert!(tree_depth(tree.root_node()) >= 0);
+        }
     }
 
     /// Chain grammar (start→mid→a) produces a tree with depth >= 1.

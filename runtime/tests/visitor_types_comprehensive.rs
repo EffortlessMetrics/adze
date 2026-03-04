@@ -71,21 +71,21 @@ fn action_ne_skip_stop() {
 #[test]
 fn action_clone_continue() {
     let a = VisitorAction::Continue;
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
 #[test]
 fn action_clone_skip() {
     let a = VisitorAction::SkipChildren;
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
 #[test]
 fn action_clone_stop() {
     let a = VisitorAction::Stop;
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
@@ -184,7 +184,7 @@ fn pretty_print_size() {
 
 #[test]
 fn action_vec() {
-    let actions = vec![
+    let actions = [
         VisitorAction::Continue,
         VisitorAction::SkipChildren,
         VisitorAction::Stop,

@@ -8,11 +8,10 @@
 //! - Error handling and recovery
 //! - Memory and state management
 
-use adze_runtime::language::SymbolMetadata;
 use adze_runtime::test_helpers::{
     multi_symbol_test_language, stub_language, stub_language_with_tokens,
 };
-use adze_runtime::{Language, Parser, Token};
+use adze_runtime::{Parser, Token};
 use std::time::Duration;
 
 // ---------------------------------------------------------------------------
@@ -522,8 +521,11 @@ fn test_parser_language_properties() {
 
     if let Some(lang) = parser.language() {
         // Language should have basic properties
-        assert!(lang.version > 0 || lang.version == 0); // Accept any version
-        assert!(lang.symbol_count >= 0); // Should have at least 0 symbols
+        #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+        {
+            assert!(lang.version >= 0); // Accept any version
+            assert!(lang.symbol_count >= 0); // Should have at least 0 symbols
+        }
     }
 }
 

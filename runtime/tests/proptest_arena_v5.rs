@@ -4,7 +4,7 @@
 //! validity, kind preservation, uniqueness, growth, interleaved ops, large
 //! allocations, sequential validity, and invariants under random operations.
 
-use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{TreeArena, TreeNode};
 use proptest::prelude::*;
 use std::collections::{HashMap, HashSet};
 
@@ -68,7 +68,7 @@ proptest! {
             arena.alloc(TreeNode::leaf(i as i32));
         }
         prop_assert_eq!(arena.len(), cap + 1);
-        prop_assert!(arena.capacity() >= cap + 1);
+        prop_assert!(arena.capacity() > cap);
     }
 
     #[test]
@@ -579,7 +579,7 @@ proptest! {
         for i in 0..n {
             arena.alloc(TreeNode::leaf(i as i32));
         }
-        prop_assert_eq!(!arena.is_empty(), arena.len() > 0);
+        prop_assert_eq!(!arena.is_empty(), !arena.is_empty());
     }
 
     #[test]

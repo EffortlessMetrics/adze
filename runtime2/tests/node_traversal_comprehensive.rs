@@ -308,7 +308,7 @@ fn kind_id_propagates_through_children() {
 fn byte_ranges_preserved_in_children() {
     let tree = simple_tree();
     let root = tree.root_node();
-    let expected_ranges = vec![0..5, 5..10, 10..20];
+    let expected_ranges = [0..5, 5..10, 10..20];
     for i in 0..root.child_count() {
         assert_eq!(root.child(i).unwrap().byte_range(), expected_ranges[i]);
     }

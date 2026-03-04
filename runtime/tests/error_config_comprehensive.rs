@@ -79,8 +79,10 @@ fn default_config_indentation_recovery_disabled() {
 
 #[test]
 fn config_clone_preserves_all_fields() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_panic_skip = 77;
+    let mut cfg = ErrorRecoveryConfig {
+        max_panic_skip: 77,
+        ..Default::default()
+    };
     cfg.sync_tokens.push(SymbolId(5));
     cfg.insert_candidates.push(SymbolId(9));
     cfg.deletable_tokens.insert(42);
@@ -120,15 +122,19 @@ fn config_debug_output_contains_field_names() {
 
 #[test]
 fn custom_max_panic_skip() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_panic_skip = 200;
+    let cfg = ErrorRecoveryConfig {
+        max_panic_skip: 200,
+        ..Default::default()
+    };
     assert_eq!(cfg.max_panic_skip, 200);
 }
 
 #[test]
 fn custom_max_consecutive_errors_zero() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_consecutive_errors = 0;
+    let cfg = ErrorRecoveryConfig {
+        max_consecutive_errors: 0,
+        ..Default::default()
+    };
     assert_eq!(cfg.max_consecutive_errors, 0);
 }
 

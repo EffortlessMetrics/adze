@@ -216,9 +216,11 @@ proptest! {
         nodes in any::<usize>(),
         heads in any::<usize>(),
     ) {
-        let mut stats = GSSStats::default();
-        stats.total_nodes_created = nodes;
-        stats.max_active_heads = heads;
+        let stats = GSSStats {
+            total_nodes_created: nodes,
+            max_active_heads: heads,
+            ..Default::default()
+        };
         prop_assert_eq!(stats.total_nodes_created, nodes);
         prop_assert_eq!(stats.max_active_heads, heads);
         prop_assert_eq!(stats.total_forks, 0);
@@ -507,8 +509,10 @@ proptest! {
 
     #[test]
     fn test_shared_segments_large_values(base in 1_000_000..10_000_000usize, extra in 1..1000usize) {
-        let mut stats = GSSStats::default();
-        stats.shared_segments = base;
+        let mut stats = GSSStats {
+            shared_segments: base,
+            ..Default::default()
+        };
         stats.shared_segments += extra;
         prop_assert_eq!(stats.shared_segments, base + extra);
     }
@@ -625,8 +629,10 @@ proptest! {
 proptest! {
     #[test]
     fn test_overwrite_replaces_value(first in any::<usize>(), second in any::<usize>()) {
-        let mut stats = GSSStats::default();
-        stats.total_nodes_created = first;
+        let mut stats = GSSStats {
+            total_nodes_created: first,
+            ..Default::default()
+        };
         prop_assert_eq!(stats.total_nodes_created, first);
         stats.total_nodes_created = second;
         prop_assert_eq!(stats.total_nodes_created, second);
@@ -637,8 +643,10 @@ proptest! {
         high in 500..1000usize,
         low in 0..500usize,
     ) {
-        let mut stats = GSSStats::default();
-        stats.max_active_heads = high;
+        let mut stats = GSSStats {
+            max_active_heads: high,
+            ..Default::default()
+        };
         prop_assert_eq!(stats.max_active_heads, high);
         // Direct assignment can decrease (unlike .max() pattern)
         stats.max_active_heads = low;

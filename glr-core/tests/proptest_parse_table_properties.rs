@@ -8,8 +8,8 @@
 //! ```
 
 use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::Grammar;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Grammar, SymbolId};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ fn arb_valid_grammar() -> impl Strategy<Value = Grammar> {
             let rhs_indices = proptest::collection::vec(0..n_tok, n_extra_rules);
             (Just(n_tok), Just(n_extra_rules), rhs_indices)
         })
-        .prop_map(|(n_tok, n_extra, rhs_indices)| {
+        .prop_map(|(n_tok, _n_extra, rhs_indices)| {
             let tok_names: Vec<String> = (0..n_tok).map(|i| format!("t{i}")).collect();
             let mut b = GrammarBuilder::new("rand_grammar");
             for tn in &tok_names {
@@ -305,13 +305,12 @@ proptest! {
         let ff = FirstFollowSets::compute(&grammar).expect("FF failed");
         // For our random grammars, S -> t{k} means FIRST(S) must contain t{k}.
         // The start symbol's FIRST set should contain at least one token.
-        if let Some(start_sym) = grammar.rules.keys().next() {
-            if let Some(first_set) = ff.first(*start_sym) {
+        if let Some(start_sym) = grammar.rules.keys().next()
+            && let Some(first_set) = ff.first(*start_sym) {
                 // At least one token should be in the FIRST set of the start symbol.
                 let any_token = grammar.tokens.keys().any(|t| first_set.contains(t.0 as usize));
                 prop_assert!(any_token, "FIRST(start) should contain at least one terminal");
             }
-        }
     }
 }
 

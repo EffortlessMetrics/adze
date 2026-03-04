@@ -6,7 +6,6 @@ use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
-use adze_ir::SymbolId;
 
 // ---------------------------------------------------------------------------
 // Helpers

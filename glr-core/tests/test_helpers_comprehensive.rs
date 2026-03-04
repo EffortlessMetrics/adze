@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use adze_glr_core::test_helpers::test::{
     actions_for, goto_for, has_accept_on_eof, reduce_rules, shift_destinations,
 };
-use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+use adze_glr_core::{Action, ParseTable};
 use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 // ---------------------------------------------------------------------------

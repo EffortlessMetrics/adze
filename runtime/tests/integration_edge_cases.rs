@@ -214,7 +214,7 @@ fn test_point_clone() {
         row: 42,
         column: 99,
     };
-    let cloned = original.clone();
+    let cloned = original;
     assert_eq!(cloned.row, original.row);
     assert_eq!(cloned.column, original.column);
 }
@@ -451,7 +451,7 @@ fn test_error_recovery_state_scope_operations() {
 
     state.push_scope(1);
     // pop_scope_test checks if stack is empty
-    let result = state.pop_scope_test();
+    let _result = state.pop_scope_test();
     // Result depends on implementation - just verify no panic
 }
 
@@ -553,7 +553,7 @@ fn test_recovery_strategy_scope_recovery() {
 
 #[test]
 fn test_recovery_strategy_all_variants_distinct() {
-    let strategies = vec![
+    let strategies = [
         error_recovery::RecoveryStrategy::PanicMode,
         error_recovery::RecoveryStrategy::TokenInsertion,
         error_recovery::RecoveryStrategy::TokenDeletion,
@@ -595,7 +595,7 @@ fn test_recovery_strategy_copy() {
 #[test]
 fn test_recovery_strategy_clone() {
     let original = error_recovery::RecoveryStrategy::TokenSubstitution;
-    let cloned = original.clone();
+    let cloned = original;
     assert_eq!(original, cloned);
 }
 
@@ -654,7 +654,7 @@ fn test_visitor_action_copy() {
 #[test]
 fn test_visitor_action_clone() {
     let action1 = visitor::VisitorAction::Stop;
-    let action2 = action1.clone();
+    let action2 = action1;
     assert_eq!(action1, action2);
 }
 
@@ -773,7 +773,7 @@ fn test_point_with_different_row_and_column_max() {
 #[test]
 fn test_error_recovery_config_builder_pattern() {
     // Test that custom config can be built
-    let _config = error_recovery::ErrorRecoveryConfig {
+    let config = error_recovery::ErrorRecoveryConfig {
         max_panic_skip: 75,
         sync_tokens: Default::default(),
         insert_candidates: Default::default(),
@@ -787,8 +787,8 @@ fn test_error_recovery_config_builder_pattern() {
         enable_indentation_recovery: true,
     };
 
-    // Verify it was created
-    assert!(true);
+    // Verify it was created with expected values
+    assert_eq!(config.max_panic_skip, 75);
 }
 
 #[test]

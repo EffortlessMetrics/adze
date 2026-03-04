@@ -490,9 +490,8 @@ fn unexpected_eof_is_handled() {
     let a = sym_id(&g, "a");
     let result = pipeline_parse(&mut g, &[(a, 0, 1)]);
     // Either error or recovery — must not panic
-    match result {
-        Ok(f) => assert!(!f.view().roots().is_empty()),
-        Err(_) => {}
+    if let Ok(f) = result {
+        assert!(!f.view().roots().is_empty())
     }
 }
 
@@ -736,11 +735,8 @@ fn empty_input_non_nullable_grammar_handled() {
         .start("S")
         .build();
     let result = pipeline_parse(&mut g, &[]);
-    match result {
-        Ok(f) => {
-            let _ = f.debug_error_stats();
-        }
-        Err(_) => {} // expected
+    if let Ok(f) = result {
+        let _ = f.debug_error_stats();
     }
 }
 
@@ -752,9 +748,8 @@ fn empty_input_with_epsilon_production() {
         .start("S")
         .build();
     let result = pipeline_parse(&mut g, &[]);
-    match result {
-        Ok(f) => assert!(!f.view().roots().is_empty()),
-        Err(_) => {} // also acceptable
+    if let Ok(f) = result {
+        assert!(!f.view().roots().is_empty());
     }
 }
 
@@ -769,11 +764,8 @@ fn empty_token_stream_to_parse_tokens() {
     let mut driver = Driver::new(&table);
     let result = driver.parse_tokens(std::iter::empty::<(u32, u32, u32)>());
     // Should not panic
-    match result {
-        Ok(f) => {
-            let _ = f.debug_error_stats();
-        }
-        Err(_) => {}
+    if let Ok(f) = result {
+        let _ = f.debug_error_stats();
     }
 }
 
@@ -811,7 +803,7 @@ fn parse_long_right_recursive_chain() {
     let tokens: Vec<_> = (0..30)
         .map(|i| (a.0 as u32, i as u32, (i + 1) as u32))
         .collect();
-    let f = driver.parse_tokens(tokens.into_iter()).expect("parse");
+    let f = driver.parse_tokens(tokens).expect("parse");
     assert!(!f.view().roots().is_empty());
 }
 
@@ -1304,12 +1296,9 @@ fn recovery_insertion_produces_error_stats() {
         .build();
     let a = sym_id(&g, "a");
     let result = pipeline_parse(&mut g, &[(a, 0, 1)]);
-    match result {
-        Ok(f) => {
-            let (has_err, missing, cost) = f.debug_error_stats();
-            assert!(has_err || missing > 0 || cost > 0);
-        }
-        Err(_) => {} // graceful failure is acceptable
+    if let Ok(f) = result {
+        let (has_err, missing, cost) = f.debug_error_stats();
+        assert!(has_err || missing > 0 || cost > 0);
     }
 }
 
@@ -1470,7 +1459,7 @@ fn parse_tokens_accepts_vec_iterator() {
     let table = run_pipeline(&mut g).expect("pipeline");
     let mut driver = Driver::new(&table);
     let tokens: Vec<(u32, u32, u32)> = vec![(a.0 as u32, 0, 1)];
-    let f = driver.parse_tokens(tokens.into_iter()).expect("parse");
+    let f = driver.parse_tokens(tokens).expect("parse");
     assert_eq!(f.view().roots().len(), 1);
 }
 

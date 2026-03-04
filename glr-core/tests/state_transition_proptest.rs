@@ -211,7 +211,7 @@ proptest! {
     #[test]
     fn actions_oob_state_returns_empty(pt in arb_parse_table(), extra in 0u16..100) {
         let oob = StateId(pt.state_count as u16 + extra);
-        for (&sym, _) in &pt.symbol_to_index {
+        for &sym in pt.symbol_to_index.keys() {
             let actions = pt.actions(oob, sym);
             prop_assert!(actions.is_empty(), "OOB state {:?} should yield empty actions", oob);
         }

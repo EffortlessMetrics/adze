@@ -219,7 +219,10 @@ fn test_spanned_in_mpsc_channel() {
 
     let mut count = 0;
     while let Ok(spanned) = rx.recv() {
-        assert!(spanned.value >= 0);
+        #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+        {
+            assert!(spanned.value >= 0);
+        }
         assert!(spanned.span.1 > spanned.span.0);
         count += 1;
     }
@@ -280,7 +283,7 @@ fn test_parallel_error_recording() {
     let error_count = Arc::new(Mutex::new(0usize));
 
     let handles: Vec<_> = (0..4)
-        .map(|i| {
+        .map(|_i| {
             let count = Arc::clone(&error_count);
             thread::spawn(move || {
                 for _ in 0..3 {
@@ -325,10 +328,10 @@ fn test_multiple_readers_error_config() {
 #[test]
 fn test_spanned_in_thread_local() {
     thread_local! {
-        static SPANNED: Spanned<i32> = Spanned {
+        static SPANNED: Spanned<i32> = const { Spanned {
             value: 99,
             span: (0, 10),
-        };
+        } };
     }
 
     let handles: Vec<_> = (0..3)
@@ -511,7 +514,7 @@ fn test_shared_readonly_spanned() {
     });
 
     let handles: Vec<_> = (0..4)
-        .map(|i| {
+        .map(|_i| {
             let s = Arc::clone(&shared);
             thread::spawn(move || {
                 // Multiple simultaneous reads, no synchronization needed
@@ -710,10 +713,7 @@ fn test_arc_strong_count_concurrent() {
     let handles: Vec<_> = (0..3)
         .map(|_| {
             let s = Arc::clone(&spanned);
-            thread::spawn(move || {
-                let count = Arc::strong_count(&s);
-                count
-            })
+            thread::spawn(move || Arc::strong_count(&s))
         })
         .collect();
 

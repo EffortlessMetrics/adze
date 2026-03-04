@@ -52,19 +52,19 @@ impl TestGrammar {
     fn first_contains(&self, nt: SymbolId, terminal: SymbolId) -> bool {
         self.ff
             .first(nt)
-            .map_or(false, |set| set.contains(terminal.0 as usize))
+            .is_some_and(|set| set.contains(terminal.0 as usize))
     }
 
     /// Check if terminal is in FOLLOW(symbol)
     fn follow_contains(&self, sym: SymbolId, terminal: SymbolId) -> bool {
         self.ff
             .follow(sym)
-            .map_or(false, |set| set.contains(terminal.0 as usize))
+            .is_some_and(|set| set.contains(terminal.0 as usize))
     }
 
     /// Check if EOF (symbol 0) is in FOLLOW(symbol)
     fn follow_has_eof(&self, sym: SymbolId) -> bool {
-        self.ff.follow(sym).map_or(false, |set| set.contains(0))
+        self.ff.follow(sym).is_some_and(|set| set.contains(0))
     }
 }
 

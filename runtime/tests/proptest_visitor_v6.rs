@@ -7,7 +7,7 @@
 //! - TreeArena allocation, growth, and reset
 //! - NodeHandle identity and uniqueness
 
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 use adze::pure_parser::{ParsedNode, Point};
 use adze::visitor::{
     BreadthFirstWalker, PrettyPrintVisitor, SearchVisitor, StatsVisitor, TransformVisitor,
@@ -68,14 +68,6 @@ fn error_node(start: usize, end: usize) -> ParsedNode {
 
 fn count_nodes(node: &ParsedNode) -> usize {
     1 + node.children().iter().map(count_nodes).sum::<usize>()
-}
-
-fn count_leaves(node: &ParsedNode) -> usize {
-    if node.children().is_empty() {
-        1
-    } else {
-        node.children().iter().map(count_leaves).sum()
-    }
 }
 
 fn tree_depth(node: &ParsedNode) -> usize {
@@ -365,7 +357,7 @@ proptest! {
     ) {
         let mut pp = PrettyPrintVisitor::new();
         TreeWalker::new(source.as_bytes()).walk(&tree, &mut pp);
-        prop_assert!(pp.output().len() > 0);
+        prop_assert!(!pp.output().is_empty());
     }
 
     // 17. Pretty print of leaf-only tree has exactly one line per node

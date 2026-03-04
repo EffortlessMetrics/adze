@@ -353,7 +353,7 @@ fn goto_table_has_columns() {
     let (_, t) = simple_table();
     // At least one nonterminal column
     assert!(!t.goto_table.is_empty());
-    assert!(t.goto_table[0].len() >= 1, "goto needs at least 1 column");
+    assert!(!t.goto_table[0].is_empty(), "goto needs at least 1 column");
 }
 
 #[test]
@@ -382,7 +382,7 @@ fn rules_nonempty_simple() {
 fn rules_count_single_rule() {
     let (_, t) = simple_table();
     // At least the user rule (+ augmented rule)
-    assert!(t.rules.len() >= 1);
+    assert!(!t.rules.is_empty());
 }
 
 #[test]

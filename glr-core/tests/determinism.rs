@@ -6,9 +6,7 @@
 
 #![cfg(feature = "test-api")]
 
-use adze_glr_core::{
-    Action, FirstFollowSets, ItemSetCollection, build_lr1_automaton, sanity_check_tables,
-};
+use adze_glr_core::{FirstFollowSets, ItemSetCollection, build_lr1_automaton, sanity_check_tables};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Grammar, SymbolId};
 

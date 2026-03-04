@@ -6,12 +6,9 @@
 use adze_glr_core::advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
-use adze_glr_core::conflict_inspection::{
-    ConflictSummary, ConflictType, classify_conflict, count_conflicts,
-};
+use adze_glr_core::conflict_inspection::{ConflictType, classify_conflict, count_conflicts};
 use adze_glr_core::{
-    Action, Conflict, ConflictResolver, ConflictType as CrConflictType, GotoIndexing, LexMode,
-    ParseTable,
+    Action, ConflictResolver, ConflictType as CrConflictType, GotoIndexing, ParseTable,
 };
 use adze_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, StateId,

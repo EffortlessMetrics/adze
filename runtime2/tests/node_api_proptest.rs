@@ -918,7 +918,7 @@ proptest! {
         let root = tree.root_node();
         for i in 0..root.child_count() {
             let c = root.child(i).unwrap();
-            prop_assert!(c.byte_range().len() > 0);
+            prop_assert!(!c.byte_range().is_empty());
         }
     }
 }

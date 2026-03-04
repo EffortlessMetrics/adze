@@ -104,23 +104,6 @@ fn insert_ambiguous_node(
 // Strategies
 // ---------------------------------------------------------------------------
 
-fn arb_symbol_id() -> impl Strategy<Value = SymbolId> {
-    (1u16..1000).prop_map(SymbolId)
-}
-
-fn arb_span(max_end: usize) -> impl Strategy<Value = (usize, usize)> {
-    (0..max_end)
-        .prop_flat_map(move |start| (Just(start), start..=max_end).prop_map(|(s, e)| (s, e)))
-}
-
-fn arb_error_meta() -> impl Strategy<Value = ErrorMeta> {
-    (any::<bool>(), any::<bool>(), 0u32..100).prop_map(|(missing, is_error, cost)| ErrorMeta {
-        missing,
-        is_error,
-        cost,
-    })
-}
-
 // ===========================================================================
 // 1. Forest node creation
 // ===========================================================================

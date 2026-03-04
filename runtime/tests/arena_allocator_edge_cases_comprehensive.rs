@@ -240,7 +240,7 @@ fn node_handle_copy_semantics() {
 #[test]
 fn node_handle_clone_semantics() {
     let h1 = NodeHandle::new(0, 5);
-    let h2 = h1.clone();
+    let h2 = h1;
     assert_eq!(h1, h2);
 }
 

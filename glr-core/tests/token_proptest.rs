@@ -178,7 +178,7 @@ proptest! {
 proptest! {
     #[test]
     fn test_clone_equals_original(tok in any_token()) {
-        let cloned = tok.clone();
+        let cloned = tok;
         prop_assert_eq!(tok.kind, cloned.kind);
         prop_assert_eq!(tok.start, cloned.start);
         prop_assert_eq!(tok.end, cloned.end);

@@ -42,11 +42,11 @@ fn minimal_table(
     let invalid = StateId(65535);
     for i in 0..symbol_count {
         for row in &gotos {
-            if let Some(&s) = row.get(i) {
-                if s != invalid {
-                    nonterminal_to_index.insert(SymbolId(i as u16), i);
-                    break;
-                }
+            if let Some(&s) = row.get(i)
+                && s != invalid
+            {
+                nonterminal_to_index.insert(SymbolId(i as u16), i);
+                break;
             }
         }
     }
@@ -881,7 +881,7 @@ fn driver_with_single_state_no_actions() {
 
     let mut driver = Driver::new(&table);
     // Feed a token that has no action
-    let result = driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)].into_iter());
+    let result = driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)]);
     assert!(result.is_err(), "no actions → parse error");
 }
 
@@ -911,7 +911,7 @@ fn driver_unknown_token_produces_error() {
     // Feed only the unknown symbol → state 0 has no action for it
     let result = std::panic::catch_unwind(|| {
         let mut driver = Driver::new(&table);
-        driver.parse_tokens(vec![(99_u32, 0_u32, 1_u32)].into_iter())
+        driver.parse_tokens(vec![(99_u32, 0_u32, 1_u32)])
     });
     assert!(
         result.is_err() || result.unwrap().is_err(),
@@ -923,7 +923,7 @@ fn driver_unknown_token_produces_error() {
 fn driver_shift_to_nonexistent_state() {
     // Table says shift to state 999, but table only has 2 states
     let eof = SymbolId(0);
-    let tok = SymbolId(1);
+    let _tok = SymbolId(1);
     let s_sym = SymbolId(2);
     let rules = vec![ParseRule {
         lhs: s_sym,
@@ -936,7 +936,7 @@ fn driver_shift_to_nonexistent_state() {
     let table = minimal_table(actions, gotos, rules, s_sym, eof);
 
     let mut driver = Driver::new(&table);
-    let result = driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)].into_iter());
+    let result = driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)]);
     // The driver should either error or panic at EOF when the state is invalid
     // Either outcome is acceptable; what matters is no silent corruption.
     // In practice, the out-of-bounds state will cause action lookup to return
@@ -949,7 +949,7 @@ fn driver_reduce_with_invalid_rule_id() {
     // Table says reduce rule 999, but only 1 rule exists.
     // The rule() method indexes directly into the rules vec → panics.
     let eof = SymbolId(0);
-    let tok = SymbolId(1);
+    let _tok = SymbolId(1);
     let s_sym = SymbolId(2);
     let rules = vec![ParseRule {
         lhs: s_sym,
@@ -963,7 +963,7 @@ fn driver_reduce_with_invalid_rule_id() {
 
     let result = std::panic::catch_unwind(|| {
         let mut driver = Driver::new(&table);
-        driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)].into_iter())
+        driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)])
     });
     assert!(
         result.is_err() || result.unwrap().is_err(),
@@ -975,7 +975,7 @@ fn driver_reduce_with_invalid_rule_id() {
 fn driver_eof_without_accept_produces_error() {
     // State 1 has no Accept on EOF → parse must fail
     let eof = SymbolId(0);
-    let tok = SymbolId(1);
+    let _tok = SymbolId(1);
     let s_sym = SymbolId(2);
     let rules = vec![ParseRule {
         lhs: s_sym,
@@ -988,7 +988,7 @@ fn driver_eof_without_accept_produces_error() {
     let table = minimal_table(actions, gotos, rules, s_sym, eof);
 
     let mut driver = Driver::new(&table);
-    let result = driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)].into_iter());
+    let result = driver.parse_tokens(vec![(1_u32, 0_u32, 1_u32)]);
     assert!(result.is_err(), "EOF without Accept must fail");
 }
 

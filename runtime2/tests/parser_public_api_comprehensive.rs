@@ -245,7 +245,7 @@ fn parse_error_sync() {
 
 #[test]
 fn point_sort_vec() {
-    let mut points = vec![
+    let mut points = [
         Point { row: 2, column: 3 },
         Point { row: 0, column: 5 },
         Point { row: 1, column: 0 },

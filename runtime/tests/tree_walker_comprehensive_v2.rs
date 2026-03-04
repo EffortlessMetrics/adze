@@ -129,7 +129,7 @@ fn visitor_action_debug_format() {
 fn visitor_action_copy_clone() {
     let a = VisitorAction::Stop;
     let b = a; // Copy
-    let c = a.clone(); // Clone
+    let c = a; // Clone
     assert_eq!(a, b);
     assert_eq!(a, c);
 }
@@ -1055,7 +1055,8 @@ fn pretty_print_deep_tree_indentation_grows() {
         let prev_indent = lines[i - 1].len() - lines[i - 1].trim_start().len();
         let curr_indent = lines[i].len() - lines[i].trim_start().len();
         // Indentation may grow or stay same (for leaf text at same level)
-        assert!(curr_indent >= prev_indent || curr_indent == prev_indent + 2 || true);
+        // Indentation may grow, stay same, or vary for leaf text at same level
+        let _ = (curr_indent, prev_indent);
     }
     // At minimum, deepest line should be indented
     let max_indent = lines

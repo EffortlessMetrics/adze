@@ -142,7 +142,7 @@ fn symbol_metadata_populated() {
 fn symbol_metadata_count_matches() {
     let pt = build_table("mc", |b| b.token("a", "a").rule("s", vec!["a"]).start("s"));
     // Metadata count should be related to symbol count but may differ
-    assert!(pt.symbol_metadata.len() > 0);
+    assert!(!pt.symbol_metadata.is_empty());
 }
 
 // ── Action table dimensions ──

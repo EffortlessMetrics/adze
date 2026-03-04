@@ -4,7 +4,7 @@
 //!
 //! Run with: `cargo test -p adze-glr-core --test symbol_id_proptest`
 
-use adze_glr_core::{Action, GotoIndexing, ParseRule, ParseTable, SymbolMetadata};
+use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use adze_ir::{RuleId, StateId, SymbolId};
 use proptest::prelude::*;
 use std::collections::hash_map::DefaultHasher;
@@ -20,11 +20,6 @@ fn arb_symbol_id() -> impl Strategy<Value = SymbolId> {
     (0..=1000u16).prop_map(SymbolId)
 }
 
-/// Random SymbolId covering the full u16 range.
-fn arb_symbol_id_full() -> impl Strategy<Value = SymbolId> {
-    any::<u16>().prop_map(SymbolId)
-}
-
 /// Generate a sorted, deduplicated vec of SymbolId.
 fn arb_symbol_id_set(max_len: usize) -> impl Strategy<Value = Vec<SymbolId>> {
     prop::collection::vec(arb_symbol_id(), 0..=max_len).prop_map(|mut v| {
@@ -36,8 +31,10 @@ fn arb_symbol_id_set(max_len: usize) -> impl Strategy<Value = Vec<SymbolId>> {
 
 /// Build a minimal ParseTable with given terminal SymbolIds mapped.
 fn build_table_with_terminals(terminals: &[SymbolId], states: usize) -> ParseTable {
-    let mut table = ParseTable::default();
-    table.state_count = states;
+    let mut table = ParseTable {
+        state_count: states,
+        ..Default::default()
+    };
     for (idx, &sym) in terminals.iter().enumerate() {
         table.symbol_to_index.insert(sym, idx);
         if idx >= table.index_to_symbol.len() {
@@ -457,9 +454,11 @@ proptest! {
 proptest! {
     #[test]
     fn eof_and_start_symbol_valid(eof in arb_symbol_id(), start in arb_symbol_id()) {
-        let mut table = ParseTable::default();
-        table.eof_symbol = eof;
-        table.start_symbol = start;
+        let table = ParseTable {
+            eof_symbol: eof,
+            start_symbol: start,
+            ..Default::default()
+        };
         prop_assert_eq!(table.eof(), eof);
         prop_assert_eq!(table.start_symbol(), start);
     }
@@ -476,9 +475,11 @@ proptest! {
         ext_count in 0..10usize,
         sym_raw in 0..100u16,
     ) {
-        let mut table = ParseTable::default();
-        table.token_count = tok_count;
-        table.external_token_count = ext_count;
+        let table = ParseTable {
+            token_count: tok_count,
+            external_token_count: ext_count,
+            ..Default::default()
+        };
         let boundary = tok_count + ext_count;
         let sym = SymbolId(sym_raw);
         prop_assert_eq!(
@@ -509,8 +510,10 @@ proptest! {
 proptest! {
     #[test]
     fn extras_roundtrip(extras in arb_symbol_id_set(10)) {
-        let mut table = ParseTable::default();
-        table.extras = extras.clone();
+        let table = ParseTable {
+            extras: extras.clone(),
+            ..Default::default()
+        };
         prop_assert_eq!(table.extras.len(), extras.len());
         for i in 0..extras.len() {
             prop_assert_eq!(table.extras[i], extras[i]);

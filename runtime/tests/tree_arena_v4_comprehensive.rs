@@ -118,7 +118,7 @@ fn node_handle_debug() {
 #[test]
 fn node_handle_clone() {
     let h = NodeHandle::new(1, 2);
-    let h2 = h.clone();
+    let h2 = h;
     assert_eq!(h, h2);
 }
 
@@ -141,8 +141,6 @@ fn node_handle_eq() {
 
 #[test]
 fn node_handle_hash_consistent_with_eq() {
-    use std::hash::{Hash, Hasher};
-
     let mut set = HashSet::new();
     let h1 = NodeHandle::new(0, 0);
     let h2 = NodeHandle::new(0, 0);

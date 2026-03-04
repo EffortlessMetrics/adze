@@ -904,7 +904,7 @@ fn cross_leaf_count_matches_search_for_childless() {
     let mut search_leaves =
         SearchVisitor::new(|n: &adze::pure_parser::ParsedNode| n.child_count() == 0);
     walker.walk(&root, &mut search_leaves);
-    assert_eq!(stats.leaf_nodes as usize, search_leaves.matches.len());
+    assert_eq!(stats.leaf_nodes, search_leaves.matches.len());
 }
 
 #[test]
@@ -975,7 +975,7 @@ fn bfs_skip_children_respected() {
     let source = b"ab";
     let root = interior(5, vec![leaf(1, 0, 1), leaf(2, 1, 2)]);
     let walker = BreadthFirstWalker::new(source);
-    let mut stats = StatsVisitor::default();
+    let stats = StatsVisitor::default();
     // Override stats behavior: we'll use a custom visitor
     struct SkipRoot {
         count: usize,

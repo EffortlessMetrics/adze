@@ -820,7 +820,7 @@ proptest! {
     fn cell_drain_empties(cell in arb_action_cell()) {
         let original_len = cell.len();
         let mut cell = cell;
-        let drained: Vec<Action> = cell.drain(..).collect();
+        let drained: Vec<Action> = std::mem::take(&mut cell);
         prop_assert!(cell.is_empty());
         prop_assert_eq!(drained.len(), original_len);
     }
@@ -943,7 +943,7 @@ fn fork_nesting_depth_two() {
 
     fn depth(a: &Action) -> usize {
         match a {
-            Action::Fork(ch) => 1 + ch.iter().map(|c| depth(c)).max().unwrap_or(0),
+            Action::Fork(ch) => 1 + ch.iter().map(depth).max().unwrap_or(0),
             _ => 0,
         }
     }
@@ -979,7 +979,7 @@ proptest! {
 proptest! {
     #[test]
     fn cell_from_iter_roundtrip(cell in arb_action_cell()) {
-        let collected: Vec<Action> = cell.iter().cloned().collect();
+        let collected: Vec<Action> = cell.to_vec();
         prop_assert_eq!(&cell, &collected);
     }
 }

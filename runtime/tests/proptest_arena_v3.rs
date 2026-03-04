@@ -303,7 +303,7 @@ proptest! {
         for i in 0..n {
             arena.alloc(TreeNode::leaf(i as i32));
         }
-        prop_assert_eq!(arena.is_empty(), arena.len() == 0);
+        prop_assert_eq!(arena.is_empty(), n == 0);
     }
 }
 

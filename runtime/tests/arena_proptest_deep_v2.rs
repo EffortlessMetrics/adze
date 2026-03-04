@@ -4,7 +4,7 @@
 //! handle semantics, node construction, metrics, reset/clear,
 //! multi-arena independence, and stress scenarios.
 
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 use proptest::prelude::*;
 use std::collections::HashSet;
 

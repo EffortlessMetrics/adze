@@ -644,7 +644,7 @@ proptest! {
         let result: Spanned<String> =
             <Spanned<String> as Extract<Spanned<String>>>::extract(Some(&node), source, 0, None);
         // Deref should allow transparent access
-        let inner: &String = &*result;
+        let inner: &String = &result;
         prop_assert_eq!(inner, &s);
     }
 }

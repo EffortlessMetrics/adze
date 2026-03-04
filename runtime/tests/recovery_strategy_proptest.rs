@@ -57,11 +57,6 @@ fn variant_name(v: RecoveryStrategy) -> &'static str {
     }
 }
 
-/// Proptest strategy that yields a random RecoveryStrategy variant.
-fn arb_strategy() -> impl Strategy<Value = RecoveryStrategy> {
-    (0..ALL_VARIANTS.len()).prop_map(variant_from_index)
-}
-
 // ---------------------------------------------------------------------------
 // 1. Variant creation tests
 // ---------------------------------------------------------------------------
@@ -355,16 +350,16 @@ proptest! {
     fn test_pair_pattern_matching(a_idx in 0..7usize, b_idx in 0..7usize) {
         let a = variant_from_index(a_idx);
         let b = variant_from_index(b_idx);
-        let same = match (a, b) {
-            (RecoveryStrategy::PanicMode, RecoveryStrategy::PanicMode) => true,
-            (RecoveryStrategy::TokenInsertion, RecoveryStrategy::TokenInsertion) => true,
-            (RecoveryStrategy::TokenDeletion, RecoveryStrategy::TokenDeletion) => true,
-            (RecoveryStrategy::TokenSubstitution, RecoveryStrategy::TokenSubstitution) => true,
-            (RecoveryStrategy::PhraseLevel, RecoveryStrategy::PhraseLevel) => true,
-            (RecoveryStrategy::ScopeRecovery, RecoveryStrategy::ScopeRecovery) => true,
-            (RecoveryStrategy::IndentationRecovery, RecoveryStrategy::IndentationRecovery) => true,
-            _ => false,
-        };
+        let same = matches!(
+            (a, b),
+            (RecoveryStrategy::PanicMode, RecoveryStrategy::PanicMode)
+                | (RecoveryStrategy::TokenInsertion, RecoveryStrategy::TokenInsertion)
+                | (RecoveryStrategy::TokenDeletion, RecoveryStrategy::TokenDeletion)
+                | (RecoveryStrategy::TokenSubstitution, RecoveryStrategy::TokenSubstitution)
+                | (RecoveryStrategy::PhraseLevel, RecoveryStrategy::PhraseLevel)
+                | (RecoveryStrategy::ScopeRecovery, RecoveryStrategy::ScopeRecovery)
+                | (RecoveryStrategy::IndentationRecovery, RecoveryStrategy::IndentationRecovery)
+        );
         prop_assert_eq!(same, a_idx == b_idx);
     }
 }

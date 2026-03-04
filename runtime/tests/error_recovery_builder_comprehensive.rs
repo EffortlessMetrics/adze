@@ -488,7 +488,7 @@ fn recovery_strategy_all_variants() {
 #[test]
 fn recovery_strategy_clone() {
     let s = RecoveryStrategy::PanicMode;
-    let cloned = s.clone();
+    let cloned = s;
     let _ = format!("{:?}", cloned);
 }
 

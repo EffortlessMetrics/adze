@@ -1510,7 +1510,7 @@ fn accept_only_on_eof() {
         .start("start")
         .build();
     let t = build_table(&g);
-    let eof = t.eof();
+    let _eof = t.eof();
     for st in 0..t.state_count {
         let state = StateId(st as u16);
         for (tok, _) in &g.tokens {

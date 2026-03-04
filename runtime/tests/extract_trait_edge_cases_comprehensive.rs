@@ -545,9 +545,12 @@ fn extract_all_primitives_none_return_default() {
 #[test]
 fn extract_has_conflicts_default_is_false() {
     // The default for HAS_CONFLICTS is false
-    assert!(!<String as Extract<String>>::HAS_CONFLICTS);
-    assert!(!<i32 as Extract<i32>>::HAS_CONFLICTS);
-    assert!(!<() as Extract<()>>::HAS_CONFLICTS);
+    #[allow(clippy::assertions_on_constants)]
+    {
+        assert!(!<String as Extract<String>>::HAS_CONFLICTS);
+        assert!(!<i32 as Extract<i32>>::HAS_CONFLICTS);
+        assert!(!<() as Extract<()>>::HAS_CONFLICTS);
+    }
 }
 
 // ---------------------------------------------------------------------------

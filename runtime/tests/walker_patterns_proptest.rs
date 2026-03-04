@@ -77,45 +77,6 @@ fn count_non_error_nodes(node: &ParsedNode) -> usize {
     }
 }
 
-fn tree_depth(node: &ParsedNode) -> usize {
-    if node.children().is_empty() {
-        1
-    } else {
-        1 + node.children().iter().map(tree_depth).max().unwrap_or(0)
-    }
-}
-
-fn count_leaves(node: &ParsedNode) -> usize {
-    if node.children().is_empty() {
-        1
-    } else {
-        node.children().iter().map(count_leaves).sum()
-    }
-}
-
-/// Collect DFS pre-order node symbols.
-fn dfs_preorder_symbols(node: &ParsedNode) -> Vec<u16> {
-    let mut out = vec![node.symbol];
-    for child in node.children() {
-        out.extend(dfs_preorder_symbols(child));
-    }
-    out
-}
-
-/// Collect BFS level-order node symbols.
-fn bfs_symbols(node: &ParsedNode) -> Vec<u16> {
-    let mut out = Vec::new();
-    let mut queue = std::collections::VecDeque::new();
-    queue.push_back(node);
-    while let Some(n) = queue.pop_front() {
-        out.push(n.symbol);
-        for child in n.children() {
-            queue.push_back(child);
-        }
-    }
-    out
-}
-
 // ---------------------------------------------------------------------------
 // Proptest strategies
 // ---------------------------------------------------------------------------

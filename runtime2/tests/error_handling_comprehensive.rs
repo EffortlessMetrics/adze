@@ -316,7 +316,7 @@ fn test_parse_error_kind_cloning() {
 
 #[test]
 fn test_collect_multiple_parse_errors() {
-    let errors = vec![
+    let errors = [
         ParseError::no_language(),
         ParseError::timeout(),
         ParseError::with_msg("error 3"),
@@ -329,7 +329,7 @@ fn test_collect_multiple_parse_errors() {
 
 #[test]
 fn test_filter_errors_by_kind_match() {
-    let errors = vec![
+    let errors = [
         ParseError::no_language(),
         ParseError::timeout(),
         ParseError::no_language(),
@@ -354,7 +354,7 @@ fn test_error_sequences_with_locations() {
         line: 2,
         column: 5,
     };
-    let errors = vec![
+    let errors = [
         ParseError::syntax_error("error1", loc1.clone()),
         ParseError::syntax_error("error2", loc2.clone()),
     ];
@@ -780,10 +780,11 @@ fn test_error_kind_option_wrapping() {
 
 #[test]
 fn test_multiple_errors_distinct_kinds() {
-    let mut errors = vec![];
-    errors.push(ParseError::no_language());
-    errors.push(ParseError::timeout());
-    errors.push(ParseError::with_msg("custom"));
+    let errors = [
+        ParseError::no_language(),
+        ParseError::timeout(),
+        ParseError::with_msg("custom"),
+    ];
 
     let kinds_match = errors.iter().all(|e| {
         matches!(

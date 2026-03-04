@@ -26,7 +26,7 @@ proptest! {
         let a = Point { row: r1, column: c1 };
         let b = Point { row: r2, column: c2 };
         if a == b {
-            prop_assert!(!(a < b) && !(b < a));
+            prop_assert!((a >= b) && (b >= a));
         }
     }
 
@@ -87,7 +87,7 @@ proptest! {
     #[test]
     fn point_clone_eq(row in 0..1000usize, col in 0..1000usize) {
         let a = Point { row, column: col };
-        let b = a.clone();
+        let b = a;
         prop_assert_eq!(a, b);
     }
 }

@@ -5,13 +5,12 @@
 #![cfg(feature = "test-api")]
 
 use adze_glr_core::conflict_inspection::count_conflicts;
-use adze_glr_core::forest_view::ForestView;
 use adze_glr_core::{
     Action, Driver, FirstFollowSets, Forest, GLRError, GotoIndexing, LexMode, ParseRule,
     ParseTable, build_lr1_automaton, sanity_check_tables,
 };
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar, RuleId, StateId, SymbolId};
+use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -383,8 +382,8 @@ fn driver_shift_transitions_correct() {
     // S → 'x' 'y'   (two shifts then reduce)
     // 0: EOF, 1: x, 2: y, 3: S
     let eof = SymbolId(0);
-    let x = SymbolId(1);
-    let y = SymbolId(2);
+    let _x = SymbolId(1);
+    let _y = SymbolId(2);
     let s = SymbolId(3);
 
     let rules = vec![ParseRule { lhs: s, rhs_len: 2 }]; // S → x y
@@ -418,8 +417,8 @@ fn driver_reduce_transitions_correct() {
     // A → 'a';  S → A 'b'
     // 0: EOF, 1: a, 2: b, 3: S, 4: A
     let eof = SymbolId(0);
-    let a = SymbolId(1);
-    let b = SymbolId(2);
+    let _a = SymbolId(1);
+    let _b = SymbolId(2);
     let s_sym = SymbolId(3);
     let a_sym = SymbolId(4);
 
@@ -465,7 +464,7 @@ fn driver_reduce_transitions_correct() {
 fn driver_accept_valid_input() {
     // S → 't'
     let eof = SymbolId(0);
-    let t = SymbolId(1);
+    let _t = SymbolId(1);
     let s_sym = SymbolId(3);
 
     let rules = vec![ParseRule {
@@ -496,8 +495,8 @@ fn driver_rejects_invalid_input() {
     // Hand-crafted table: S → 'a' 'b', no recovery.
     // Feed 'a' 'a' — second token has no action → must reject.
     let eof = SymbolId(0);
-    let a = SymbolId(1);
-    let b = SymbolId(2);
+    let _a = SymbolId(1);
+    let _b = SymbolId(2);
     let s_sym = SymbolId(3);
 
     let rules = vec![ParseRule {
@@ -531,8 +530,8 @@ fn driver_reduce_various_lengths() {
     // R1: B → 'x' (len 1)
     // R2: S → A B 'y' (len 3)
     let eof = SymbolId(0);
-    let x = SymbolId(1);
-    let y = SymbolId(2);
+    let _x = SymbolId(1);
+    let _y = SymbolId(2);
     let s_sym = SymbolId(3);
     let a_sym = SymbolId(4);
     let b_sym = SymbolId(5);

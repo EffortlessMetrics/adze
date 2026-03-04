@@ -681,7 +681,7 @@ fn terminal_classified_correctly() {
 
     let a_sym = g.find_symbol_by_name("a").unwrap();
     if col.symbol_is_terminal.contains_key(&a_sym) {
-        assert_eq!(col.symbol_is_terminal[&a_sym], true);
+        assert!(col.symbol_is_terminal[&a_sym]);
     }
 }
 
@@ -697,7 +697,7 @@ fn nonterminal_classified_correctly() {
 
     let mid_nt = g.find_symbol_by_name("mid").unwrap();
     if col.symbol_is_terminal.contains_key(&mid_nt) {
-        assert_eq!(col.symbol_is_terminal[&mid_nt], false);
+        assert!(!col.symbol_is_terminal[&mid_nt]);
     }
 }
 
@@ -787,7 +787,7 @@ fn augmented_collection_nonempty() {
         .rule("S", vec!["a"])
         .start("S")
         .build();
-    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
+    let _ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
 
     let max_id = g
         .rules

@@ -14,7 +14,7 @@ use adze_glr_core::parse_forest::{
     ParseTree,
 };
 use adze_glr_core::{
-    Driver, FirstFollowSets, Forest, GLRError, ParseTable, build_lr1_automaton, sanity_check_tables,
+    Driver, FirstFollowSets, Forest, ParseTable, build_lr1_automaton, sanity_check_tables,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Grammar, SymbolId};
@@ -530,7 +530,7 @@ fn error_stats_multiple_errors() {
     let mut forest = empty_forest(minimal_grammar());
     forest.push_error_chunk((0, 1));
     forest.push_error_chunk((1, 2));
-    let (has_error, missing, cost) = forest.debug_error_stats();
+    let (has_error, _missing, cost) = forest.debug_error_stats();
     assert!(has_error);
     assert_eq!(cost, 2);
 }

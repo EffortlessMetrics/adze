@@ -72,8 +72,6 @@ fn arb_grammar(
     num_term: std::ops::RangeInclusive<usize>,
     num_nt: std::ops::RangeInclusive<usize>,
 ) -> impl Strategy<Value = Grammar> {
-    let num_term = num_term;
-    let num_nt = num_nt;
     (num_term, num_nt).prop_flat_map(|(nt_count, nn_count)| {
         let nt_count = nt_count.max(1);
         let nn_count = nn_count.max(1);
@@ -227,13 +225,11 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
     fn follow_start_contains_eof(g in arb_small_grammar()) {
-        if let Ok(ff) = FirstFollowSets::compute(&g) {
-            if let Some(start) = g.start_symbol() {
-                if let Some(follow_set) = ff.follow(start) {
+        if let Ok(ff) = FirstFollowSets::compute(&g)
+            && let Some(start) = g.start_symbol()
+                && let Some(follow_set) = ff.follow(start) {
                     prop_assert!(follow_set.contains(0), "FOLLOW(start) must contain EOF");
                 }
-            }
-        }
     }
 }
 
@@ -362,7 +358,7 @@ proptest! {
     #[test]
     fn first_set_within_terminal_range(g in arb_small_grammar()) {
         if let Ok(ff) = FirstFollowSets::compute(&g) {
-            let terminal_ids: std::collections::HashSet<u16> =
+            let _terminal_ids: std::collections::HashSet<u16> =
                 g.tokens.keys().map(|id| id.0).collect();
             for (nt_id, _) in &g.rules {
                 if let Some(first_set) = ff.first(*nt_id) {
@@ -684,12 +680,10 @@ proptest! {
         let mut g = Grammar::new("all_eps".into());
         // Need at least one token for a valid grammar context
         tok(&mut g, SymbolId(1), "t1", "x");
-        let mut prod = 0u16;
-        for i in 0..num_nt {
+        for (prod, i) in (0..num_nt).enumerate() {
             let nt = SymbolId(NT_BASE + i as u16);
             g.rule_names.insert(nt, format!("N{i}"));
-            g.rules.entry(nt).or_default().push(rule(nt, vec![Symbol::Epsilon], prod));
-            prod += 1;
+            g.rules.entry(nt).or_default().push(rule(nt, vec![Symbol::Epsilon], prod as u16));
         }
         let ff = FirstFollowSets::compute(&g).unwrap();
         for i in 0..num_nt {

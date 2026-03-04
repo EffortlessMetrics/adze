@@ -5,7 +5,6 @@
 //! from grammars, and end-to-end parsing through the full pipeline.
 
 use adze_glr_core::driver::GlrError;
-use adze_glr_core::forest_view::ForestView;
 use adze_glr_core::{
     Action, Driver, FirstFollowSets, Forest, GLRError, GotoIndexing, LexMode, ParseRule,
     ParseTable, build_lr1_automaton, sanity_check_tables,
@@ -119,7 +118,7 @@ fn create_test_table(
 #[test]
 fn driver_new_with_valid_table() {
     let eof = SymbolId(0);
-    let t = SymbolId(1);
+    let _t = SymbolId(1);
     let s = SymbolId(3);
 
     let rules = vec![ParseRule { lhs: s, rhs_len: 1 }];
@@ -265,8 +264,8 @@ fn parse_table_eof_symbol_valid() {
 fn driver_rejects_invalid_token_sequence() {
     // S → 'a' 'b'; feed 'a' 'a' → error
     let eof = SymbolId(0);
-    let a = SymbolId(1);
-    let b = SymbolId(2);
+    let _a = SymbolId(1);
+    let _b = SymbolId(2);
     let s_sym = SymbolId(3);
 
     let rules = vec![ParseRule {

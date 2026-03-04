@@ -95,7 +95,7 @@ fn clone_equals_original() {
         start: 50,
         end: 100,
     };
-    let cloned = t.clone();
+    let cloned = t;
     assert_eq!(t, cloned);
 }
 
@@ -106,7 +106,7 @@ fn clone_is_independent() {
         start: 30,
         end: 40,
     };
-    let mut cloned = t.clone();
+    let mut cloned = t;
     cloned.start = 999;
     assert_eq!(t.start, 30);
     assert_eq!(cloned.start, 999);
@@ -119,9 +119,9 @@ fn clone_multiple_times() {
         start: 1,
         end: 3,
     };
-    let c1 = t.clone();
-    let c2 = t.clone();
-    let c3 = c1.clone();
+    let c1 = t;
+    let c2 = t;
+    let c3 = c1;
     assert_eq!(t, c1);
     assert_eq!(c1, c2);
     assert_eq!(c2, c3);

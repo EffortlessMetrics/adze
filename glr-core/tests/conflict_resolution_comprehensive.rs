@@ -356,7 +356,7 @@ fn right_assoc_grammar() -> Grammar {
 
 #[test]
 fn sr_detect_basic_conflict_in_cell() {
-    let cell = vec![
+    let cell = [
         Action::Shift(adze_ir::StateId(3)),
         Action::Reduce(RuleId(1)),
     ];
@@ -547,7 +547,7 @@ fn rr_table_detection() {
 
 #[test]
 fn rr_not_detected_for_single_reduce() {
-    let cell = vec![Action::Reduce(RuleId(1))];
+    let cell = [Action::Reduce(RuleId(1))];
     assert_eq!(cell.len(), 1, "single reduce is not a table-level conflict");
 }
 
@@ -962,7 +962,7 @@ fn fork_classify_as_rr_via_inspection() {
 
 #[test]
 fn cell_all_action_types() {
-    let cell = vec![
+    let cell = [
         Action::Shift(adze_ir::StateId(1)),
         Action::Reduce(RuleId(1)),
         Action::Accept,
@@ -975,7 +975,7 @@ fn cell_all_action_types() {
 
 #[test]
 fn cell_action_ordering_canonical() {
-    let mut cell = vec![
+    let mut cell = [
         Action::Fork(vec![]),
         Action::Recover,
         Action::Error,
@@ -1036,13 +1036,13 @@ fn cell_mixed_in_multi_state_table() {
 
 #[test]
 fn cell_state_id_u16_max_boundary() {
-    let cell = vec![Action::Shift(adze_ir::StateId(u16::MAX))];
+    let cell = [Action::Shift(adze_ir::StateId(u16::MAX))];
     assert!(matches!(cell[0], Action::Shift(adze_ir::StateId(65535))));
 }
 
 #[test]
 fn cell_rule_id_u16_max_boundary() {
-    let cell = vec![Action::Reduce(RuleId(u16::MAX))];
+    let cell = [Action::Reduce(RuleId(u16::MAX))];
     assert!(matches!(cell[0], Action::Reduce(RuleId(65535))));
 }
 
@@ -1785,7 +1785,7 @@ fn stats_analyzer_tracks_sr_and_rr() {
         vec![SymbolId(0)],
     );
     let mut analyzer = ConflictAnalyzer::new();
-    let stats = analyzer.analyze_table(&table);
+    let _stats = analyzer.analyze_table(&table);
     // ConflictAnalyzer reports based on its own heuristics; verify it runs without panic
     // and that the summary API also reports conflicts
     let summary = count_conflicts(&table);
@@ -1900,7 +1900,7 @@ mod proptest_section {
 
         #[test]
         fn prop_classify_single_action_never_rr(action in arb_action()) {
-            let cell = vec![action];
+            let cell = [action];
             prop_assert_eq!(cell.len(), 1);
         }
 
