@@ -17,6 +17,7 @@ smallvec.workspace = true
 rustc-hash.workspace = true
 adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 adze-runtime2-governance = { version = "0.1.0", path = "../crates/runtime2-governance" }
+adze-runtime2-tokenizer-core = { version = "0.1.0", path = "../crates/runtime2-tokenizer-core" }
 
 # GLR core (optional, enabled by default)
 adze-glr-core = { path = "../glr-core", optional = true }
@@ -25,14 +26,13 @@ adze-ir = { path = "../ir", optional = true }
 # For incremental parsing (future)
 memchr = "2.7"
 
-# For tokenization (Phase 3.2)
-regex = { workspace = true, optional = true }
 
 # Optional dependencies for different features
 bumpalo = { version = "3.16", optional = true }
 typed-arena = { version = "2.0", optional = true }
 
 [dev-dependencies]
+regex.workspace = true
 criterion.workspace = true
 pretty_assertions = "1.4"
 serde_json.workspace = true
@@ -46,7 +46,7 @@ default = ["glr-core", "serialization"]
 glr-core = ["dep:adze-glr-core", "dep:adze-ir"]
 # Enable pure-Rust GLR runtime (bypasses TSLanguage encoding).
 # This is the Phase 3 feature that uses ParseTable directly.
-pure-rust = ["glr-core", "dep:regex"]
+pure-rust = ["glr-core"]
 # Deprecated alias retained for backward compatibility.
 pure-rust-glr = ["pure-rust"]
 # Enable .parsetable file loading (Phase 3.1)

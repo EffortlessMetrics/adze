@@ -1,0 +1,13 @@
+[package]
+name = "adze-runtime2-tokenizer-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Token and tokenizer primitives for the adze runtime2 GLR parser."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = false
+
+[dependencies]
+adze-glr-core = { path = "../../glr-core" }
+regex.workspace = true
