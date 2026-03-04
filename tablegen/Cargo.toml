@@ -27,6 +27,7 @@ features = ["strict_docs"]
 
 [dependencies]
 adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
+adze-parsetable-analysis-core = { version = "0.1.0", path = "../crates/parsetable-analysis-core" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core", features = ["serialization"] }
 proc-macro2.workspace = true

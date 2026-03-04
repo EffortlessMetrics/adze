@@ -1,0 +1,22 @@
+[package]
+name = "adze-parsetable-analysis-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Core parse-table analysis helpers shared across table generation and tooling."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["parsing", "parse-table", "analysis", "lr", "glr"]
+categories = ["parsing", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-parsetable-analysis-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }
