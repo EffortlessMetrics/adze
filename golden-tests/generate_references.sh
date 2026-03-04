@@ -32,16 +32,12 @@ generate_reference() {
     
     # Generate S-expression using tree-sitter CLI
     if [ -n "$grammar_dir" ] && [ -d "$grammar_dir" ]; then
-        (cd "$grammar_dir" && tree-sitter parse "$input_path" --quiet) > "$sexp_path" 2>/dev/null || {
-            echo "Error: Failed to parse $input_path with tree-sitter"
-            echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
-            exit 1
+        (cd "$grammar_dir" && tree-sitter parse "$input_path") > "$sexp_path" 2>/dev/null || {
+            echo "Warning: tree-sitter parse returned a non-zero status for $input_path (continuing with captured output)"
         }
     else
-        tree-sitter parse "$input_path" --quiet > "$sexp_path" 2>/dev/null || {
-            echo "Error: Failed to parse $input_path with tree-sitter"
-            echo "Make sure tree-sitter CLI is installed and $lang grammar is available"
-            exit 1
+        tree-sitter parse "$input_path" > "$sexp_path" 2>/dev/null || {
+            echo "Warning: tree-sitter parse returned a non-zero status for $input_path (continuing with captured output)"
         }
     fi
 

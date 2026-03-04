@@ -4,7 +4,7 @@
 // This module provides tools to visualize grammars and parse trees
 
 use adze_ir::{Grammar, Symbol, SymbolId};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
 /// Grammar visualizer that generates various output formats
@@ -342,7 +342,7 @@ impl GrammarVisualizer {
     /// Generate dependency graph showing which symbols depend on which
     pub fn dependency_graph(&self) -> String {
         let mut output = String::new();
-        let mut dependencies: HashMap<SymbolId, HashSet<SymbolId>> = HashMap::new();
+        let mut dependencies: BTreeMap<SymbolId, BTreeSet<SymbolId>> = BTreeMap::new();
 
         // Build dependency map
         for (lhs, rules) in &self.grammar.rules {

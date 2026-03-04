@@ -1,0 +1,98 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "external_demo",
+  "rules": {
+    "7": [
+      {
+        "lhs": 7,
+        "rhs": [
+          {
+            "NonTerminal": 6
+          },
+          {
+            "NonTerminal": 4
+          },
+          {
+            "NonTerminal": 8
+          },
+          {
+            "NonTerminal": 5
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      }
+    ],
+    "8": [
+      {
+        "lhs": 8,
+        "rhs": [
+          {
+            "Terminal": 3
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 1
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "IDENTIFIER",
+      "pattern": {
+        "Regex": "[a-zA-Z_]\\w*"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": ":",
+      "pattern": {
+        "String": ":"
+      },
+      "fragile": false
+    },
+    "3": {
+      "name": "pass",
+      "pattern": {
+        "String": "pass"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [
+    {
+      "name": "INDENT",
+      "symbol_id": 4
+    },
+    {
+      "name": "DEDENT",
+      "symbol_id": 5
+    },
+    {
+      "name": "NEWLINE",
+      "symbol_id": 6
+    }
+  ],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "3": "pass",
+    "7": "suite",
+    "8": "statement"
+  },
+  "symbol_registry": null
+}

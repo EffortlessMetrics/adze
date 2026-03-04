@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 9f7bd3e12cee2928ceaaba6876df2b508203ca07f45236bec67c8754e758fdff # shrinks to source = " 00 00 0a0aaa0a  0aa 0a 000a aaaa aa0a aa   0 aa a00a a a0 0a000", tree = ParsedNode { symbol: 1, children: [ParsedNode { symbol: 1, children: [], start_byte: 16, end_byte: 17, start_point: Point { row: 0, column: 16 }, end_point: Point { row: 0, column: 17 }, is_extra: false, is_error: false, is_missing: false, is_named: true, field_id: None, language: None }, ParsedNode { symbol: 1, children: [ParsedNode { symbol: 1, children: [], start_byte: 0, end_byte: 1, start_point: Point { row: 0, column: 0 }, end_point: Point { row: 0, column: 1 }, is_extra: false, is_error: false, is_missing: false, is_named: true, field_id: None, language: None }], start_byte: 0, end_byte: 1, start_point: Point { row: 0, column: 0 }, end_point: Point { row: 0, column: 1 }, is_extra: false, is_error: false, is_missing: false, is_named: true, field_id: None, language: None }], start_byte: 16, end_byte: 1, start_point: Point { row: 0, column: 16 }, end_point: Point { row: 0, column: 1 }, is_extra: false, is_error: false, is_missing: false, is_named: true, field_id: None, language: None }

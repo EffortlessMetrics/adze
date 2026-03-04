@@ -138,7 +138,9 @@ pub mod symbol_comparison;
 #[doc(hidden)]
 pub mod version_info;
 
-#[cfg(test)]
+pub mod lib_v2;
+
+#[cfg(any(test, feature = "test-api"))]
 /// Utilities for constructing test parse tables and grammars.
 pub mod test_helpers;
 

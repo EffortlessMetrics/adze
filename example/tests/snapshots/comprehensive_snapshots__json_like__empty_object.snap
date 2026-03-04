@@ -1,0 +1,11 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "grammar::parse(\"{}\")"
+---
+Ok(
+    Object {
+        _open: (),
+        entries: [],
+        _close: (),
+    },
+)

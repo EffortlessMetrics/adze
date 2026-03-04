@@ -1,5 +1,5 @@
 /// A lexical token the GLR engine consumes.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
     /// Symbol id (terminal) in the grammar.
     pub kind: u32,

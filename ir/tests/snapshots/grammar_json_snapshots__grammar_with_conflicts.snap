@@ -1,0 +1,136 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "conflict_demo",
+  "rules": {
+    "6": [
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "Terminal": 1
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      },
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "NonTerminal": 6
+          },
+          {
+            "Terminal": 5
+          },
+          {
+            "NonTerminal": 6
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 1
+      },
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "Terminal": 2
+          },
+          {
+            "NonTerminal": 7
+          },
+          {
+            "Terminal": 3
+          },
+          {
+            "NonTerminal": 6
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 2
+      }
+    ],
+    "7": [
+      {
+        "lhs": 7,
+        "rhs": [
+          {
+            "Terminal": 1
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 3
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "IDENTIFIER",
+      "pattern": {
+        "Regex": "[a-zA-Z_]\\w*"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": "(",
+      "pattern": {
+        "String": "("
+      },
+      "fragile": false
+    },
+    "3": {
+      "name": ")",
+      "pattern": {
+        "String": ")"
+      },
+      "fragile": false
+    },
+    "4": {
+      "name": ",",
+      "pattern": {
+        "String": ","
+      },
+      "fragile": false
+    },
+    "5": {
+      "name": "*",
+      "pattern": {
+        "String": "*"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [
+    {
+      "symbols": [
+        6,
+        7
+      ],
+      "resolution": "GLR"
+    }
+  ],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "6": "expr",
+    "7": "type_expr"
+  },
+  "symbol_registry": null
+}

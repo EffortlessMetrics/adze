@@ -1,0 +1,15 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "grammar2::parse(\"1\")"
+---
+Ok(
+    NumberList {
+        numbers: Spanned {
+            value: [],
+            span: (
+                1,
+                1,
+            ),
+        },
+    },
+)

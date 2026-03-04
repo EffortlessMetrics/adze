@@ -1,0 +1,22 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "grammar::parse(\"a\")"
+---
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 0,
+            end: 0,
+        },
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 1,
+            end: 1,
+        },
+    ],
+)

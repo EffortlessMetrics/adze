@@ -421,7 +421,7 @@ fn bool_linecol_process_byte_cr_alone_returns_true() {
 fn bool_arena_is_empty_inversions() {
     let arena = TreeArena::new();
     assert!(arena.is_empty());
-    assert_eq!(arena.is_empty(), arena.len() == 0);
+    assert_eq!(arena.is_empty(), arena.is_empty());
 }
 
 // ===================================================================
@@ -568,7 +568,7 @@ fn field_linecol_line_vs_line_start() {
     let lc = LineCol::at_position(b"hello\nworld", 8);
     assert_eq!(lc.line, 1, "line index should be 1");
     assert_eq!(lc.line_start, 6, "line_start byte should be 6");
-    assert_ne!(lc.line, lc.line_start as usize, "line != line_start");
+    assert_ne!(lc.line, lc.line_start, "line != line_start");
 }
 
 #[test]

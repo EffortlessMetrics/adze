@@ -1,0 +1,15 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "grammar::parse(\"if\")"
+---
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "end",
+            ),
+            start: 2,
+            end: 2,
+        },
+    ],
+)

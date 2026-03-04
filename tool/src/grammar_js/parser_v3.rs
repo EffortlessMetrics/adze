@@ -1,8 +1,8 @@
 #![allow(clippy::manual_strip)]
 
 use anyhow::{Context, Result, bail};
+use indexmap::IndexMap;
 use regex::Regex;
-use std::collections::HashMap;
 
 use super::helpers::HelperFunctions;
 use super::{ExternalToken, GrammarJs, Rule};
@@ -38,14 +38,14 @@ fn is_symbol_ref(s: &str) -> bool {
 /// A more robust parser for grammar.js files
 pub struct GrammarJsParserV3 {
     content: String,
-    precedence_map: HashMap<String, i32>,
+    precedence_map: IndexMap<String, i32>,
 }
 
 impl GrammarJsParserV3 {
     pub fn new(content: String) -> Self {
         Self {
             content,
-            precedence_map: HashMap::new(),
+            precedence_map: IndexMap::new(),
         }
     }
 
@@ -73,7 +73,7 @@ impl GrammarJsParserV3 {
         let mut grammar = GrammarJs {
             name: String::new(),
             word: None,
-            rules: HashMap::new(),
+            rules: IndexMap::new(),
             extras: vec![],
             conflicts: vec![],
             externals: vec![],
@@ -193,8 +193,8 @@ impl GrammarJsParserV3 {
         Ok(vec![])
     }
 
-    fn extract_rules(&self, content: &str) -> Result<HashMap<String, Rule>> {
-        let mut rules = HashMap::new();
+    fn extract_rules(&self, content: &str) -> Result<IndexMap<String, Rule>> {
+        let mut rules = IndexMap::new();
 
         // Find the rules: section
         if let Some(rules_start) = content.find("rules:") {
@@ -221,7 +221,7 @@ impl GrammarJsParserV3 {
         Ok(rules)
     }
 
-    fn parse_rules_object(&self, content: &str, rules: &mut HashMap<String, Rule>) -> Result<()> {
+    fn parse_rules_object(&self, content: &str, rules: &mut IndexMap<String, Rule>) -> Result<()> {
         // Use regex to find all rule definitions
         let rule_regex = Regex::new(r"(\w+):\s*\$\s*=>\s*")?;
 
@@ -442,7 +442,7 @@ impl GrammarJsParserV3 {
         }
 
         // Extract const helper function declarations
-        let mut helpers: HashMap<String, (String, String)> = HashMap::new();
+        let mut helpers: IndexMap<String, (String, String)> = IndexMap::new();
         let lines: Vec<&str> = block.lines().collect();
 
         for line in &lines {

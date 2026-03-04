@@ -1,0 +1,73 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "extras_demo",
+  "rules": {
+    "5": [
+      {
+        "lhs": 5,
+        "rhs": [
+          {
+            "Terminal": 1
+          },
+          {
+            "Terminal": 2
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "IDENTIFIER",
+      "pattern": {
+        "Regex": "[a-zA-Z_]\\w*"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": ";",
+      "pattern": {
+        "String": ";"
+      },
+      "fragile": false
+    },
+    "3": {
+      "name": "WHITESPACE",
+      "pattern": {
+        "Regex": "[ \\t\\n\\r]+"
+      },
+      "fragile": false
+    },
+    "4": {
+      "name": "COMMENT",
+      "pattern": {
+        "Regex": "//[^\\n]*"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [
+    3,
+    4
+  ],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "5": "statement"
+  },
+  "symbol_registry": null
+}

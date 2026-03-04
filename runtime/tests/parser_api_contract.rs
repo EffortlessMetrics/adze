@@ -243,7 +243,7 @@ fn assert_kind_nonempty(node: &ParsedNode) {
 /// Build an invalid language for rejection tests.
 fn make_invalid_language(version: u32, has_names: bool, has_table: bool) -> TSLanguage {
     let (names_ptr, meta_ptr) = if has_names {
-        let name = Box::leak(Box::new(b"end\0".as_ptr()));
+        let name = Box::leak(Box::new(c"end".as_ptr()));
         let meta = Box::leak(Box::new(0u8));
         (*name as *const *const u8, meta as *const u8)
     } else {
@@ -591,13 +591,12 @@ fn contract_15_walker_visits_all_nodes_long() {
 
 #[test]
 fn contract_15_walker_leaf_has_no_children() {
-    if let Some(root) = do_parse("x").root {
-        if let Some(leaf) = collect_all_nodes(&root)
+    if let Some(root) = do_parse("x").root
+        && let Some(leaf) = collect_all_nodes(&root)
             .into_iter()
             .find(|n| n.child_count() == 0)
-        {
-            assert!(!leaf.walk().goto_first_child());
-        }
+    {
+        assert!(!leaf.walk().goto_first_child());
     }
 }
 
@@ -663,12 +662,12 @@ fn contract_reset_preserves_language() {
 #[test]
 fn contract_utf8_text_correct_slice() {
     let source = "hello";
-    if let Some(root) = do_parse(source).root {
-        if root.end_byte() > 0 {
-            let text = root.utf8_text(source.as_bytes());
-            assert!(text.is_ok());
-            assert_eq!(text.unwrap(), &source[root.start_byte()..root.end_byte()]);
-        }
+    if let Some(root) = do_parse(source).root
+        && root.end_byte() > 0
+    {
+        let text = root.utf8_text(source.as_bytes());
+        assert!(text.is_ok());
+        assert_eq!(text.unwrap(), &source[root.start_byte()..root.end_byte()]);
     }
 }
 

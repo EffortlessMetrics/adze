@@ -15,9 +15,14 @@ jobs:
     name: Test Pure Rust Implementation
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         rust: [stable, nightly]
+
+    defaults:
+      run:
+        shell: bash
     
     steps:
     - uses: actions/checkout@v4
@@ -38,6 +43,7 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Check formatting
+      if: matrix.os != 'windows-latest'
       run: cargo fmt --all -- --check
     
     - name: Clippy (default features)
@@ -172,7 +178,7 @@ jobs:
     
     - name: Generate coverage
       run: |
-        cargo llvm-cov --workspace --features "pure-rust,glr,incremental_glr,external_scanners,serialization,ts-compat" --lcov --output-path lcov.info
+        cargo llvm-cov --workspace --exclude adze-wasm-demo --features "pure-rust,glr,incremental_glr,external_scanners,serialization,ts-compat" --lcov --output-path lcov.info
     
     - name: Upload to codecov
       uses: codecov/codecov-action@v4

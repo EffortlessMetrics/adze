@@ -1,0 +1,21 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "empty",
+  "rules": {},
+  "tokens": {},
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {},
+  "symbol_registry": null
+}

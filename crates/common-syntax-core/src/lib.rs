@@ -17,6 +17,9 @@ use syn::{
 };
 
 /// Name-value expression for attribute parameters.
+///
+/// Represents a key-value pair in attribute syntax, such as `param = "value"`.
+/// This is commonly used when parsing macro or tool attributes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NameValueExpr {
     /// The parameter name.
@@ -38,6 +41,9 @@ impl Parse for NameValueExpr {
 }
 
 /// Field declaration followed by optional parameters.
+///
+/// Represents a struct field declaration optionally followed by a comma and additional
+/// named parameters. Used in parsing attribute syntax that includes field definitions with extra metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldThenParams {
     /// The field declaration.
@@ -67,6 +73,15 @@ impl Parse for FieldThenParams {
 }
 
 /// Extract the innermost generic argument from a container type.
+///
+/// # Arguments
+/// * `ty` - The type to extract from
+/// * `inner_of` - The target generic type to extract (e.g., "Vec", "Option")
+/// * `skip_over` - Set of container types to skip through (e.g., "Box", "Arc")
+///
+/// # Returns
+/// A tuple `(inner_type, was_extracted)` where `inner_type` is the extracted or original type,
+/// and `was_extracted` indicates whether the target type was found and extracted.
 pub fn try_extract_inner_type(
     ty: &Type,
     inner_of: &str,
@@ -110,6 +125,14 @@ pub fn try_extract_inner_type(
 }
 
 /// Remove configured container wrappers from a type.
+///
+/// # Arguments
+/// * `ty` - The type to filter
+/// * `skip_over` - Set of container types to unwrap (e.g., "Box", "Arc")
+///
+/// # Returns
+/// The type with all specified container wrappers removed. If the type is not a container type
+/// in the skip set, returns the original type unchanged.
 pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     if let Type::Path(p) = &ty {
         let type_segment = p.path.segments.last().unwrap();
@@ -132,6 +155,14 @@ pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
 }
 
 /// Wrap leaf types in `adze::WithLeaf` unless they are in the skip set.
+///
+/// # Arguments
+/// * `ty` - The type to potentially wrap
+/// * `skip_over` - Set of container types to skip wrapping (e.g., "Vec", "Option")
+///
+/// # Returns
+/// The type with leaf types wrapped in `adze::WithLeaf`, or the original type if it's
+/// a container type in the skip set. For skipped containers, recursively wraps their inner generic arguments.
 pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     let mut ty = ty.clone();
     if let Type::Path(p) = &mut ty {

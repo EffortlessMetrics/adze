@@ -1,0 +1,670 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Grammar Design Patterns - Adze Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official documentation for Adze - a Rust framework for generating Tree-sitter parsers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Adze Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/EffortlessMetrics/adze/edit/main/book/src/guide/grammar_patterns.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="grammar-design-patterns"><a class="header" href="#grammar-design-patterns">Grammar Design Patterns</a></h1>
+<p>This chapter covers practical design patterns for building grammars with adze.
+Each pattern is illustrated with working examples drawn from real grammars in the
+repository.</p>
+<h2 id="operator-precedence"><a class="header" href="#operator-precedence">Operator Precedence</a></h2>
+<p>When a grammar has multiple operators, you need precedence levels to control
+which operators bind more tightly. Assign higher numbers to operators that
+should bind first.</p>
+<h3 id="standard-arithmetic-precedence"><a class="header" href="#standard-arithmetic-precedence">Standard arithmetic precedence</a></h3>
+<pre><code class="language-rust">#[adze::grammar("calc")]
+mod grammar {
+    #[adze::language]
+    #[derive(PartialEq, Eq, Debug)]
+    pub enum Expression {
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+
+        // Level 1 – additive (loosest)
+        #[adze::prec_left(1)]
+        Add(Box&lt;Expression&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expression&gt;),
+
+        #[adze::prec_left(1)]
+        Sub(Box&lt;Expression&gt;, #[adze::leaf(text = "-")] (), Box&lt;Expression&gt;),
+
+        // Level 2 – multiplicative
+        #[adze::prec_left(2)]
+        Mul(Box&lt;Expression&gt;, #[adze::leaf(text = "*")] (), Box&lt;Expression&gt;),
+
+        #[adze::prec_left(2)]
+        Div(Box&lt;Expression&gt;, #[adze::leaf(text = "/")] (), Box&lt;Expression&gt;),
+
+        // Level 3 – exponentiation (tightest)
+        #[adze::prec_right(3)]
+        Pow(Box&lt;Expression&gt;, #[adze::leaf(text = "^")] (), Box&lt;Expression&gt;),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
+}</code></pre>
+<p>With these levels <code>1 + 2 * 3</code> parses as <code>1 + (2 * 3)</code> because multiplication
+(level 2) binds tighter than addition (level 1).</p>
+<h3 id="tip-leave-gaps-between-levels"><a class="header" href="#tip-leave-gaps-between-levels">Tip: leave gaps between levels</a></h3>
+<p>Use increments of 10 instead of 1 so you can insert new levels later without
+renumbering everything:</p>
+<pre><code class="language-rust">#[adze::prec_left(10)]  // additive
+Add(/* ... */),
+
+#[adze::prec_left(20)]  // multiplicative
+Mul(/* ... */),
+
+#[adze::prec_right(30)] // exponentiation
+Pow(/* ... */),</code></pre>
+<h2 id="associativity"><a class="header" href="#associativity">Associativity</a></h2>
+<p>Associativity decides how operators of the <strong>same</strong> precedence level group.</p>
+<h3 id="left-associativity-prec_left"><a class="header" href="#left-associativity-prec_left">Left associativity (<code>prec_left</code>)</a></h3>
+<p>Most arithmetic operators are left-associative. <code>1 - 2 - 3</code> becomes <code>(1 - 2) - 3</code>:</p>
+<pre><code class="language-rust">#[adze::prec_left(1)]
+Sub(Box&lt;Expression&gt;, #[adze::leaf(text = "-")] (), Box&lt;Expression&gt;),</code></pre>
+<h3 id="right-associativity-prec_right"><a class="header" href="#right-associativity-prec_right">Right associativity (<code>prec_right</code>)</a></h3>
+<p>Assignment and exponentiation are typically right-associative. <code>2 ^ 3 ^ 4</code>
+becomes <code>2 ^ (3 ^ 4)</code>:</p>
+<pre><code class="language-rust">#[adze::prec_right(3)]
+Pow(Box&lt;Expression&gt;, #[adze::leaf(text = "^")] (), Box&lt;Expression&gt;),</code></pre>
+<h3 id="non-associative-prec"><a class="header" href="#non-associative-prec">Non-associative (<code>prec</code>)</a></h3>
+<p>Comparison operators are often non-associative. Chaining <code>a == b == c</code> should
+produce a parse error rather than silently grouping:</p>
+<pre><code class="language-rust">#[adze::prec(5)]
+Equal(Box&lt;Expression&gt;, #[adze::leaf(text = "==")] (), Box&lt;Expression&gt;),</code></pre>
+<h3 id="combining-multiple-tiers"><a class="header" href="#combining-multiple-tiers">Combining multiple tiers</a></h3>
+<p>A real-world expression grammar often combines all three:</p>
+<pre><code class="language-rust">// Logical (lowest)
+#[adze::prec_left(1)]
+Or(Box&lt;Expr&gt;, #[adze::leaf(text = "||")] (), Box&lt;Expr&gt;),
+
+#[adze::prec_left(2)]
+And(Box&lt;Expr&gt;, #[adze::leaf(text = "&amp;&amp;")] (), Box&lt;Expr&gt;),
+
+// Comparison (non-associative)
+#[adze::prec(3)]
+Equal(Box&lt;Expr&gt;, #[adze::leaf(text = "==")] (), Box&lt;Expr&gt;),
+
+// Arithmetic
+#[adze::prec_left(4)]
+Add(Box&lt;Expr&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expr&gt;),
+
+#[adze::prec_left(5)]
+Mul(Box&lt;Expr&gt;, #[adze::leaf(text = "*")] (), Box&lt;Expr&gt;),</code></pre>
+<h2 id="recursive-grammars"><a class="header" href="#recursive-grammars">Recursive Grammars</a></h2>
+<p>Recursive types let you describe nested structures. Use <code>Box&lt;T&gt;</code> to break the
+size cycle that Rust would otherwise reject.</p>
+<h3 id="direct-recursion-through-an-enum"><a class="header" href="#direct-recursion-through-an-enum">Direct recursion through an enum</a></h3>
+<p>The arithmetic grammar above is directly recursive — each <code>Expression</code> variant
+contains <code>Box&lt;Expression&gt;</code>.</p>
+<h3 id="mutual-recursion"><a class="header" href="#mutual-recursion">Mutual recursion</a></h3>
+<p>Statements and expressions often refer to each other:</p>
+<pre><code class="language-rust">#[adze::language]
+#[derive(Debug)]
+pub enum Statement {
+    IfThen(
+        #[adze::leaf(text = "if")] (),
+        Box&lt;Expr&gt;,
+        #[adze::leaf(text = "then")] (),
+        Box&lt;Statement&gt;,
+    ),
+    IfThenElse(
+        #[adze::leaf(text = "if")] (),
+        Box&lt;Expr&gt;,
+        #[adze::leaf(text = "then")] (),
+        Box&lt;Statement&gt;,
+        #[adze::leaf(text = "else")] (),
+        Box&lt;Statement&gt;,
+    ),
+    ExprStmt(Box&lt;Expr&gt;),
+}</code></pre>
+<h3 id="lambda-calculus--a-compact-recursive-grammar"><a class="header" href="#lambda-calculus--a-compact-recursive-grammar">Lambda calculus — a compact recursive grammar</a></h3>
+<p>This example shows recursive enums with keyword literals and backslash-dot
+abstraction syntax:</p>
+<pre><code class="language-rust">#[adze::grammar("lambda")]
+mod grammar {
+    #[adze::language]
+    #[derive(PartialEq, Eq, Debug, Clone)]
+    pub enum Expr {
+        Var(#[adze::leaf(pattern = r"[a-z][a-z0-9]*")] String),
+
+        Abs(
+            #[adze::leaf(text = r"\")] (),
+            #[adze::leaf(pattern = r"[a-z][a-z0-9]*")] String,
+            #[adze::leaf(text = ".")] (),
+            Box&lt;Expr&gt;,
+        ),
+
+        #[adze::prec_left(1)]
+        App(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+
+        Paren(
+            #[adze::leaf(text = "(")] (),
+            Box&lt;Expr&gt;,
+            #[adze::leaf(text = ")")] (),
+        ),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
+}</code></pre>
+<h2 id="optional-and-vec-fields"><a class="header" href="#optional-and-vec-fields">Optional and Vec Fields</a></h2>
+<h3 id="optional-fields-with-optiont"><a class="header" href="#optional-fields-with-optiont">Optional fields with <code>Option&lt;T&gt;</code></a></h3>
+<p>Wrap a field in <code>Option</code> when the element may be absent:</p>
+<pre><code class="language-rust">pub struct Function {
+    pub name: Identifier,
+    pub params: Option&lt;ParameterList&gt;,
+    pub return_type: Option&lt;Type&gt;,
+}</code></pre>
+<p>You can also make leaf tokens optional:</p>
+<pre><code class="language-rust">pub struct Language {
+    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+    v: Option&lt;i32&gt;,
+    #[adze::leaf(text = "_")]
+    _sep: (),
+    #[adze::leaf(text = ".")]
+    _dot: Option&lt;()&gt;,
+}</code></pre>
+<p>With this grammar <code>_</code>, <code>1_</code>, <code>_.</code>, and <code>1_.</code> are all valid inputs.</p>
+<h3 id="repeated-fields-with-vect"><a class="header" href="#repeated-fields-with-vect">Repeated fields with <code>Vec&lt;T&gt;</code></a></h3>
+<p>Use <code>Vec</code> for zero-or-more repetitions:</p>
+<pre><code class="language-rust">pub struct IniFile {
+    entries: Vec&lt;Entry&gt;,
+}</code></pre>
+<p>For one-or-more, add <code>non_empty</code>:</p>
+<pre><code class="language-rust">#[adze::repeat(non_empty = true)]
+#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+numbers: Vec&lt;i32&gt;,</code></pre>
+<h3 id="delimited-lists"><a class="header" href="#delimited-lists">Delimited lists</a></h3>
+<p>Combine <code>#[adze::delimited]</code> with <code>Vec</code> for separator-separated lists:</p>
+<pre><code class="language-rust">#[adze::repeat(non_empty = true)]
+#[adze::delimited(
+    #[adze::leaf(text = ",")]
+    ()
+)]
+#[adze::leaf(pattern = r"[a-zA-Z_]\w*", transform = |v| v.to_string())]
+items: Vec&lt;String&gt;,</code></pre>
+<p>This accepts <code>alpha, beta, gamma</code> but rejects a trailing comma.</p>
+<h3 id="optional-elements-inside-a-list"><a class="header" href="#optional-elements-inside-a-list">Optional elements inside a list</a></h3>
+<p>When a list element itself is optional, use <code>Vec&lt;Option&lt;T&gt;&gt;</code>:</p>
+<pre><code class="language-rust">#[adze::delimited(
+    #[adze::leaf(text = ",")]
+    ()
+)]
+#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+numbers: Vec&lt;Option&lt;i32&gt;&gt;,</code></pre>
+<p>This lets you parse <code>1,, 2</code> where the middle slot is empty.</p>
+<h2 id="enums-for-choice-rules"><a class="header" href="#enums-for-choice-rules">Enums for Choice Rules</a></h2>
+<p>Enums map naturally to grammar alternatives. Each variant is one possible
+production.</p>
+<h3 id="simple-alternatives"><a class="header" href="#simple-alternatives">Simple alternatives</a></h3>
+<pre><code class="language-rust">#[derive(Debug)]
+pub enum Entry {
+    Section(Section),
+    Pair(Pair),
+    Comment(Comment),
+}</code></pre>
+<h3 id="inline-leaf-alternatives"><a class="header" href="#inline-leaf-alternatives">Inline leaf alternatives</a></h3>
+<p>For simple token choices you can use a regex instead of a full enum:</p>
+<pre><code class="language-rust">pub struct Statement {
+    #[adze::leaf(pattern = r"(let|const|var)")]
+    keyword: (),
+    decl: Declaration,
+}</code></pre>
+<h3 id="tagged-enums-with-operator-variants"><a class="header" href="#tagged-enums-with-operator-variants">Tagged enums with operator variants</a></h3>
+<p>The arithmetic grammar earlier shows this pattern: each enum variant carries its
+own literal operator token and precedence annotation.</p>
+<h3 id="nesting-enums"><a class="header" href="#nesting-enums">Nesting enums</a></h3>
+<p>Enums can be nested. For example, separate <code>Statement</code> and <code>Expression</code> enums
+where <code>Statement</code> has a variant wrapping <code>Expression</code>:</p>
+<pre><code class="language-rust">pub enum Statement {
+    Assign(Assignment),
+    Expr(Expression),
+    Return(ReturnStmt),
+}
+
+pub enum Expression {
+    Number(Number),
+    Binary(BinaryOp),
+    Call(FnCall),
+}</code></pre>
+<h2 id="error-recovery-patterns"><a class="header" href="#error-recovery-patterns">Error Recovery Patterns</a></h2>
+<h3 id="whitespace-and-comments-as-extras"><a class="header" href="#whitespace-and-comments-as-extras">Whitespace and comments as extras</a></h3>
+<p>Defining <code>#[adze::extra]</code> for whitespace (and optionally comments) lets the
+parser skip over them automatically, which prevents many trivial parse failures:</p>
+<pre><code class="language-rust">#[adze::extra]
+struct Whitespace {
+    #[adze::leaf(pattern = r"\s")]
+    _whitespace: (),
+}</code></pre>
+<h3 id="handling-parse-results-gracefully"><a class="header" href="#handling-parse-results-gracefully">Handling parse results gracefully</a></h3>
+<p>Always match on <code>Result</code> to avoid panicking on invalid input:</p>
+<pre><code class="language-rust">match grammar::parse(input) {
+    Ok(tree) =&gt; process(tree),
+    Err(errs) =&gt; {
+        for e in &amp;errs {
+            eprintln!("parse error: {:?}", e);
+        }
+    }
+}</code></pre>
+<h3 id="defensive-span-extraction"><a class="header" href="#defensive-span-extraction">Defensive span extraction</a></h3>
+<p>When working with parsed <code>Spanned</code> values, use the safe API to avoid panics on
+truncated input:</p>
+<pre><code class="language-rust">match span.try_slice_str(source) {
+    Ok(text) =&gt; Some(text.to_string()),
+    Err(SpanError::OutOfBounds { .. }) =&gt; {
+        // Extract what we can
+        if span.span.0 &lt; source.len() {
+            Some(source[span.span.0..].to_string())
+        } else {
+            None
+        }
+    }
+    Err(_) =&gt; None,
+}</code></pre>
+<h3 id="glr-ambiguity-as-a-recovery-tool"><a class="header" href="#glr-ambiguity-as-a-recovery-tool">GLR ambiguity as a recovery tool</a></h3>
+<p>With adze's GLR backend, ambiguous grammars do not cause hard failures. The
+parser explores multiple interpretations and picks the highest-precedence one.
+This means a slightly ambiguous grammar will still parse, giving you time to
+refine rather than blocking all progress.</p>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="keep-grammars-small-and-focused"><a class="header" href="#keep-grammars-small-and-focused">Keep grammars small and focused</a></h3>
+<p>Each additional rule increases the parse table size. Split unrelated sub-languages
+into separate grammar modules when possible.</p>
+<h3 id="prefer-vec-over-deep-recursion"><a class="header" href="#prefer-vec-over-deep-recursion">Prefer <code>Vec</code> over deep recursion</a></h3>
+<p>A grammar like <code>List → Item List | ε</code> creates a deeply nested AST.
+Using <code>Vec&lt;Item&gt;</code> produces a flat list and a smaller parse table:</p>
+<pre><code class="language-rust">// ❌ Deep recursion
+pub enum List {
+    Cons(Item, Box&lt;List&gt;),
+    Nil,
+}
+
+// ✅ Flat repetition
+pub struct List {
+    items: Vec&lt;Item&gt;,
+}</code></pre>
+<h3 id="use-adzeextra-for-whitespace"><a class="header" href="#use-adzeextra-for-whitespace">Use <code>#[adze::extra]</code> for whitespace</a></h3>
+<p>Handling whitespace inside every rule bloats the grammar. Declare it once as an
+extra token and the parser skips it everywhere:</p>
+<pre><code class="language-rust">#[adze::extra]
+struct Whitespace {
+    #[adze::leaf(pattern = r"\s")]
+    _whitespace: (),
+}</code></pre>
+<h3 id="avoid-overly-broad-regex-patterns"><a class="header" href="#avoid-overly-broad-regex-patterns">Avoid overly broad regex patterns</a></h3>
+<p>A pattern like <code>r".*"</code> matches everything and causes conflicts. Be as specific
+as possible:</p>
+<pre><code class="language-rust">// ❌ Too broad
+#[adze::leaf(pattern = r".+")]
+token: (),
+
+// ✅ Specific
+#[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+identifier: (),</code></pre>
+<h3 id="use-snapshot-tests-to-catch-regressions"><a class="header" href="#use-snapshot-tests-to-catch-regressions">Use snapshot tests to catch regressions</a></h3>
+<p>The <code>insta</code> crate is used throughout the example grammars for snapshot testing.
+This catches accidental changes to parse tree shapes:</p>
+<pre><code class="language-rust">#[test]
+fn parse_simple() {
+    insta::assert_debug_snapshot!(grammar::parse("1 + 2"));
+}</code></pre>
+<h3 id="enable-artifact-output-for-debugging"><a class="header" href="#enable-artifact-output-for-debugging">Enable artifact output for debugging</a></h3>
+<p>Set <code>ADZE_EMIT_ARTIFACTS=true</code> to inspect the generated grammar JSON and
+understand what the tool produced:</p>
+<pre><code class="language-bash">ADZE_EMIT_ARTIFACTS=true cargo build 2&gt;&amp;1
+# Artifacts appear in target/debug/build/&lt;crate&gt;-&lt;hash&gt;/out/
+</code></pre>
+<h2 id="common-pitfalls-and-how-to-avoid-them"><a class="header" href="#common-pitfalls-and-how-to-avoid-them">Common Pitfalls and How to Avoid Them</a></h2>
+<h3 id="1-left-recursion-without-prec_left"><a class="header" href="#1-left-recursion-without-prec_left">1. Left recursion without <code>prec_left</code></a></h3>
+<p>Direct left recursion in an enum without a precedence annotation produces
+infinite loops or parse failures. Always annotate recursive binary operators:</p>
+<pre><code class="language-rust">// ❌ Infinite loop risk
+pub enum Expr {
+    Add(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+}
+
+// ✅ Annotated
+#[adze::prec_left(1)]
+Add(Box&lt;Expr&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expr&gt;),</code></pre>
+<h3 id="2-forgetting-box-for-recursive-types"><a class="header" href="#2-forgetting-box-for-recursive-types">2. Forgetting <code>Box</code> for recursive types</a></h3>
+<p>Rust requires indirection for recursive types. Omitting <code>Box</code> causes a compile
+error about infinite size:</p>
+<pre><code class="language-rust">// ❌ Compile error: recursive type has infinite size
+pub enum Expr {
+    Add(Expr, Expr),
+}
+
+// ✅ Box breaks the cycle
+pub enum Expr {
+    Add(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+}</code></pre>
+<h3 id="3-multiple-precedence-attributes-on-one-rule"><a class="header" href="#3-multiple-precedence-attributes-on-one-rule">3. Multiple precedence attributes on one rule</a></h3>
+<p>Only one of <code>prec</code>, <code>prec_left</code>, or <code>prec_right</code> may appear per rule.
+The grammar processor will reject duplicates with a clear error message:</p>
+<pre><code class="language-rust">// ❌ Error: multiple precedence attributes
+#[adze::prec(1)]
+#[adze::prec_left(2)]
+pub struct Conflict { /* ... */ }</code></pre>
+<h3 id="4-non-integer-precedence-values"><a class="header" href="#4-non-integer-precedence-values">4. Non-integer precedence values</a></h3>
+<p>Precedence must be a <code>u32</code> integer literal. Strings, floats, and constants are
+rejected:</p>
+<pre><code class="language-rust">// ❌ Rejected
+#[adze::prec("high")]
+#[adze::prec(3.14)]
+
+// ✅ Valid
+#[adze::prec(10)]</code></pre>
+<h3 id="5-ambiguous-grammars-without-precedence"><a class="header" href="#5-ambiguous-grammars-without-precedence">5. Ambiguous grammars without precedence</a></h3>
+<p>If two operators share a precedence level and associativity unintentionally, the
+parser may pick an unexpected grouping. Compare operators should usually have
+their own distinct level:</p>
+<pre><code class="language-rust">// ❌ Same level — "a + b &lt; c" is ambiguous
+#[adze::prec_left(1)]
+Add(/* ... */),
+#[adze::prec_left(1)]
+LessThan(/* ... */),
+
+// ✅ Separate levels
+#[adze::prec_left(2)]
+Add(/* ... */),
+#[adze::prec(1)]
+LessThan(/* ... */),</code></pre>
+<h3 id="6-missing-adzeextra-for-whitespace"><a class="header" href="#6-missing-adzeextra-for-whitespace">6. Missing <code>#[adze::extra]</code> for whitespace</a></h3>
+<p>Without an extra-token declaration the parser requires exact whitespace
+placement, which is almost never what you want:</p>
+<pre><code class="language-rust">// ❌ Only parses "1+2", not "1 + 2"
+// (no whitespace handling)
+
+// ✅ Parses "1+2", "1 + 2", "1  +  2", etc.
+#[adze::extra]
+struct Whitespace {
+    #[adze::leaf(pattern = r"\s")]
+    _whitespace: (),
+}</code></pre>
+<h3 id="7-trailing-separators-in-delimited-lists"><a class="header" href="#7-trailing-separators-in-delimited-lists">7. Trailing separators in delimited lists</a></h3>
+<p><code>#[adze::delimited]</code> with <code>#[adze::repeat(non_empty = true)]</code> rejects trailing
+separators. If you need to allow them, use <code>Vec&lt;Option&lt;T&gt;&gt;</code> for the element type
+so the final empty slot is legal.</p>
+<h3 id="8-overly-complex-leaf-transforms"><a class="header" href="#8-overly-complex-leaf-transforms">8. Overly complex leaf transforms</a></h3>
+<p>Keep <code>transform</code> closures simple. Complex logic should live in a separate
+function to keep the grammar readable:</p>
+<pre><code class="language-rust">// ❌ Hard to read inline
+#[adze::leaf(
+    pattern = r#""([^"\\]|\\.)*""#,
+    transform = |s| {
+        s[1..s.len()-1]
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\\"", "\"")
+    }
+)]
+pub value: String,
+
+// ✅ Extract into a helper
+fn unescape(s: &amp;str) -&gt; String {
+    s[1..s.len()-1]
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\\"", "\"")
+}
+
+#[adze::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = unescape)]
+pub value: String,</code></pre>
+<h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Pattern</th><th>Attribute / Type</th><th>Example</th></tr></thead><tbody>
+<tr><td>Zero-or-more</td><td><code>Vec&lt;T&gt;</code></td><td><code>entries: Vec&lt;Entry&gt;</code></td></tr>
+<tr><td>One-or-more</td><td><code>#[adze::repeat(non_empty = true)]</code></td><td><code>items: Vec&lt;Item&gt;</code></td></tr>
+<tr><td>Optional</td><td><code>Option&lt;T&gt;</code></td><td><code>ret: Option&lt;Type&gt;</code></td></tr>
+<tr><td>Delimited list</td><td><code>#[adze::delimited(...)]</code></td><td><code>args: Vec&lt;Expr&gt;</code></td></tr>
+<tr><td>Left-associative op</td><td><code>#[adze::prec_left(N)]</code></td><td><code>Add(Box&lt;E&gt;, (), Box&lt;E&gt;)</code></td></tr>
+<tr><td>Right-associative op</td><td><code>#[adze::prec_right(N)]</code></td><td><code>Pow(Box&lt;E&gt;, (), Box&lt;E&gt;)</code></td></tr>
+<tr><td>Non-associative op</td><td><code>#[adze::prec(N)]</code></td><td><code>Eq(Box&lt;E&gt;, (), Box&lt;E&gt;)</code></td></tr>
+<tr><td>Skip whitespace</td><td><code>#[adze::extra]</code></td><td><code>struct Whitespace { ... }</code></td></tr>
+<tr><td>Exact token</td><td><code>#[adze::leaf(text = "...")]</code></td><td><code>_plus: ()</code></td></tr>
+<tr><td>Pattern token</td><td><code>#[adze::leaf(pattern = r"...")]</code></td><td><code>name: ()</code></td></tr>
+<tr><td>Transform token</td><td><code>transform = |v| ...</code></td><td><code>value: i32</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="grammar-definition.html">Grammar Definition</a> — full attribute reference</li>
+<li><a href="glr-precedence-resolution.html">GLR Precedence Resolution</a> — deep dive on GLR conflict handling</li>
+<li><a href="error-recovery.html">Error Recovery</a> — robust parsing of malformed input</li>
+<li><a href="performance.html">Performance Optimization</a> — tuning large grammars</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../guide/grammar-definition.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../guide/parser-generation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../guide/grammar-definition.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../guide/parser-generation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

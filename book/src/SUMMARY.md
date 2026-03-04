@@ -13,6 +13,7 @@
 
 - [Architecture](guide/architecture.md)
 - [Grammar Definition](guide/grammar-definition.md)
+- [Grammar Design Patterns](guide/grammar_patterns.md)
 - [Parser Generation](guide/parser-generation.md)
 - [GLR Precedence Resolution](guide/glr-precedence-resolution.md)
 - [Incremental Parsing](guide/incremental-parsing.md)
@@ -21,6 +22,7 @@
 - [Golden Tests Maintenance](guide/golden-tests-maintenance.md)
 - [LSP Server Generation](guide/lsp-generation.md)
 - [Performance Optimization](guide/performance.md)
+- [Migration: rust-sitter to Adze](guide/migration.md)
 
 # Advanced Topics
 

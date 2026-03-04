@@ -1,0 +1,6 @@
+---
+source: ir/tests/validation_snapshots.rs
+expression: msgs
+---
+WARNING: Token 'ws' (SymbolId(2)) is defined but never used
+stats: rules=1, tokens=2, symbols=3

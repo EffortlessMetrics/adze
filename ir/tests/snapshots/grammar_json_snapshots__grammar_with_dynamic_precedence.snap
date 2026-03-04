@@ -1,0 +1,73 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "dynamic_prec",
+  "rules": {
+    "1": [
+      {
+        "lhs": 1,
+        "rhs": [
+          {
+            "NonTerminal": 1
+          },
+          {
+            "Terminal": 3
+          },
+          {
+            "NonTerminal": 1
+          }
+        ],
+        "precedence": {
+          "Dynamic": 5
+        },
+        "associativity": "Left",
+        "fields": [],
+        "production_id": 0
+      },
+      {
+        "lhs": 1,
+        "rhs": [
+          {
+            "Terminal": 2
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 1
+      }
+    ]
+  },
+  "tokens": {
+    "2": {
+      "name": "NUMBER",
+      "pattern": {
+        "Regex": "\\d+"
+      },
+      "fragile": false
+    },
+    "3": {
+      "name": "+",
+      "pattern": {
+        "String": "+"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "1": "expr"
+  },
+  "symbol_registry": null
+}

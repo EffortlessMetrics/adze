@@ -430,6 +430,7 @@ pub struct BinaryFormat {
 }
 
 /// Binary serializer for compact storage
+#[allow(dead_code)]
 pub struct BinarySerializer {
     node_type_map: HashMap<String, u16>,
     field_name_map: HashMap<String, u16>,
@@ -475,6 +476,7 @@ impl BinarySerializer {
         }
     }
 
+    #[allow(dead_code)]
     fn get_field_name_id(&mut self, name: &str) -> u16 {
         if let Some(&id) = self.field_name_map.get(name) {
             id

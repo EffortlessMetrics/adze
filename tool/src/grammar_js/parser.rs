@@ -5,8 +5,8 @@
 
 use super::{GrammarJs, Rule};
 use anyhow::{Result, bail};
+use indexmap::IndexMap;
 use regex::Regex;
-use std::collections::HashMap;
 
 /// Parse a grammar.js file content
 pub fn parse_grammar_js(content: &str) -> Result<GrammarJs> {
@@ -113,8 +113,8 @@ impl SimpleGrammarJsParser {
         Ok(extras)
     }
 
-    fn extract_rules(&self) -> Result<HashMap<String, Rule>> {
-        let mut rules = HashMap::new();
+    fn extract_rules(&self) -> Result<IndexMap<String, Rule>> {
+        let mut rules = IndexMap::new();
 
         // Extract rules section
         let rules_regex = Regex::new(r#"rules:\s*\{([\s\S]*?)\n\s*\}"#)?;

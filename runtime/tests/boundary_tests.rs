@@ -505,14 +505,16 @@ fn parser_with_empty_parse_table_does_not_crash_process() {
 #[test]
 fn parser_with_single_state_no_actions() {
     let g = Grammar::new("one_state".into());
-    let mut table = ParseTable::default();
-    table.state_count = 1;
-    table.symbol_count = 1;
-    table.action_table = vec![vec![vec![]; 1]; 1];
-    table.goto_table = vec![vec![StateId(0); 1]; 1];
-    table.index_to_symbol = vec![SymbolId(0)];
+    let mut table = ParseTable {
+        state_count: 1,
+        symbol_count: 1,
+        action_table: vec![vec![vec![]; 1]; 1],
+        goto_table: vec![vec![StateId(0); 1]; 1],
+        index_to_symbol: vec![SymbolId(0)],
+        eof_symbol: SymbolId(0),
+        ..Default::default()
+    };
     table.symbol_to_index.insert(SymbolId(0), 0);
-    table.eof_symbol = SymbolId(0);
 
     let mut parser = GLRParser::new(table, g);
     parser.process_token(SymbolId(0), "", 0);
@@ -666,12 +668,14 @@ fn large_parse_table_many_states_does_not_panic() {
     let state_count = 500;
     let symbol_count = 10;
 
-    let mut table = ParseTable::default();
-    table.state_count = state_count;
-    table.symbol_count = symbol_count;
-    table.eof_symbol = SymbolId(0);
-    table.action_table = vec![vec![vec![]; symbol_count]; state_count];
-    table.goto_table = vec![vec![StateId(0); symbol_count]; state_count];
+    let mut table = ParseTable {
+        state_count,
+        symbol_count,
+        eof_symbol: SymbolId(0),
+        action_table: vec![vec![vec![]; symbol_count]; state_count],
+        goto_table: vec![vec![StateId(0); symbol_count]; state_count],
+        ..Default::default()
+    };
     for i in 0..symbol_count {
         let sym = SymbolId(i as u16);
         table.symbol_to_index.insert(sym, i);
@@ -691,12 +695,14 @@ fn large_parse_table_many_symbols_does_not_panic() {
     let state_count = 2;
     let symbol_count = 500;
 
-    let mut table = ParseTable::default();
-    table.state_count = state_count;
-    table.symbol_count = symbol_count;
-    table.eof_symbol = SymbolId(0);
-    table.action_table = vec![vec![vec![]; symbol_count]; state_count];
-    table.goto_table = vec![vec![StateId(0); symbol_count]; state_count];
+    let mut table = ParseTable {
+        state_count,
+        symbol_count,
+        eof_symbol: SymbolId(0),
+        action_table: vec![vec![vec![]; symbol_count]; state_count],
+        goto_table: vec![vec![StateId(0); symbol_count]; state_count],
+        ..Default::default()
+    };
     for i in 0..symbol_count {
         let sym = SymbolId(i as u16);
         table.symbol_to_index.insert(sym, i);

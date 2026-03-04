@@ -1,0 +1,7 @@
+---
+source: runtime/tests/parse_tree_snapshots.rs
+expression: output
+---
+compact:  (PANIC)
+spaced:   (PANIC)
+extra:    (PANIC)

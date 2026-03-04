@@ -9,9 +9,7 @@ use adze::error_recovery::{
 };
 use adze::error_reporting::{ErrorReporter, ParseError as ReportingParseError};
 use adze::errors::{ParseError, ParseErrorReason};
-use adze::glr_validation::{
-    ErrorKind, ErrorLocation, RelatedInfo, ValidationError, ValidationWarning,
-};
+use adze::glr_validation::{ErrorKind, ErrorLocation, RelatedInfo, ValidationError};
 use adze::{SpanError, SpanErrorReason};
 
 // ============================================================================
@@ -611,7 +609,7 @@ fn reporting_error_display_shows_line_column() {
 
 #[test]
 fn multiple_parse_errors_are_distinct() {
-    let errors = vec![
+    let errors = [
         ParseError {
             reason: ParseErrorReason::UnexpectedToken("@".to_string()),
             start: 0,

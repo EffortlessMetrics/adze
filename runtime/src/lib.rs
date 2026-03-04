@@ -220,8 +220,18 @@ pub use adze_ir;
 // }
 // mod parallel_parser_v2;
 
-#[cfg(feature = "pure-rust")]
+#[cfg(all(
+    feature = "pure-rust",
+    not(feature = "tree-sitter-standard"),
+    not(feature = "tree-sitter-c2rust")
+))]
 mod tree_sitter_compat;
+#[cfg(all(
+    not(feature = "tree-sitter-standard"),
+    not(feature = "tree-sitter-c2rust"),
+    not(feature = "pure-rust")
+))]
+pub mod tree_sitter_compat;
 
 use std::ops::Deref;
 
@@ -236,6 +246,13 @@ pub use tree_sitter;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
 pub use tree_sitter_c2rust as tree_sitter;
+
+#[cfg(all(
+    not(feature = "tree-sitter-standard"),
+    not(feature = "tree-sitter-c2rust"),
+    not(feature = "pure-rust")
+))]
+pub use tree_sitter_compat as tree_sitter;
 
 /// Tree-sitter compatibility module for pure-Rust implementation.
 #[cfg(feature = "pure-rust")]
@@ -341,7 +358,7 @@ pub trait Extract<Output>: sealed::Sealed {
     /// Extracts a Rust value from a Tree-sitter node.
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -383,7 +400,7 @@ impl<L> Extract<L> for WithLeaf<L> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         _last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -620,7 +637,7 @@ impl Extract<()> for () {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        _node: Option<tree_sitter::Node>,
+        _node: Option<crate::tree_sitter::Node>,
         _source: &[u8],
         _last_idx: usize,
         _leaf_fn: Option<&Self::LeafFn>,
@@ -642,7 +659,7 @@ impl<T: Extract<U>, U> Extract<Option<U>> for Option<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -666,7 +683,7 @@ impl<T: Extract<U>, U> Extract<Box<U>> for Box<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -690,7 +707,7 @@ impl<T: Extract<U>, U> Extract<Vec<U>> for Vec<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         mut last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -830,7 +847,7 @@ impl<T: Extract<U>, U> Extract<Spanned<U>> for Spanned<T> {
 
     #[cfg(not(feature = "pure-rust"))]
     fn extract(
-        node: Option<tree_sitter::Node>,
+        node: Option<crate::tree_sitter::Node>,
         source: &[u8],
         last_idx: usize,
         leaf_fn: Option<&Self::LeafFn>,
@@ -1022,7 +1039,7 @@ macro_rules! impl_extract_for_primitive {
 
             #[cfg(not(feature = "pure-rust"))]
             fn extract(
-                node: Option<tree_sitter::Node>,
+                node: Option<crate::tree_sitter::Node>,
                 source: &[u8],
                 _last_idx: usize,
                 _leaf_fn: Option<&Self::LeafFn>,
@@ -1082,6 +1099,13 @@ pub mod errors {
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
     use tree_sitter_c2rust as tree_sitter;
 
+    #[cfg(all(
+        not(feature = "tree-sitter-standard"),
+        not(feature = "tree-sitter-c2rust"),
+        not(feature = "pure-rust")
+    ))]
+    use crate::tree_sitter;
+
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.
     pub enum ParseErrorReason {
@@ -1109,7 +1133,7 @@ pub mod errors {
     /// errors that were emitted.
     #[cfg(not(feature = "pure-rust"))]
     pub fn collect_parsing_errors(
-        node: &tree_sitter::Node,
+        node: &crate::tree_sitter::Node,
         source: &[u8],
         errors: &mut Vec<ParseError>,
     ) {

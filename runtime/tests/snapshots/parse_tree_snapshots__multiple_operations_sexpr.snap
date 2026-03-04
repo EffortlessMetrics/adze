@@ -1,0 +1,5 @@
+---
+source: runtime/tests/parse_tree_snapshots.rs
+expression: "safe_arith_parse(\"1*2-3*4-5\")"
+---
+(PANIC)

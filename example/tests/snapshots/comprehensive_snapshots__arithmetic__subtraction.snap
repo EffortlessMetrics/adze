@@ -1,0 +1,7 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "safe_parse(\"1 - 2\")"
+---
+Err(
+    "PANIC during parse",
+)

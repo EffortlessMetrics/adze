@@ -1495,6 +1495,440 @@ Mul(...),</code></pre>
 <li>Explore <a href="guide/query-patterns.html">Query and Pattern Matching</a> for analyzing parsed trees</li>
 <li>Read about <a href="guide/performance.html">Performance Optimization</a> for large grammars</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="grammar-design-patterns"><a class="header" href="#grammar-design-patterns">Grammar Design Patterns</a></h1>
+<p>This chapter covers practical design patterns for building grammars with adze.
+Each pattern is illustrated with working examples drawn from real grammars in the
+repository.</p>
+<h2 id="operator-precedence"><a class="header" href="#operator-precedence">Operator Precedence</a></h2>
+<p>When a grammar has multiple operators, you need precedence levels to control
+which operators bind more tightly. Assign higher numbers to operators that
+should bind first.</p>
+<h3 id="standard-arithmetic-precedence"><a class="header" href="#standard-arithmetic-precedence">Standard arithmetic precedence</a></h3>
+<pre><code class="language-rust">#[adze::grammar("calc")]
+mod grammar {
+    #[adze::language]
+    #[derive(PartialEq, Eq, Debug)]
+    pub enum Expression {
+        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+
+        // Level 1 – additive (loosest)
+        #[adze::prec_left(1)]
+        Add(Box&lt;Expression&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expression&gt;),
+
+        #[adze::prec_left(1)]
+        Sub(Box&lt;Expression&gt;, #[adze::leaf(text = "-")] (), Box&lt;Expression&gt;),
+
+        // Level 2 – multiplicative
+        #[adze::prec_left(2)]
+        Mul(Box&lt;Expression&gt;, #[adze::leaf(text = "*")] (), Box&lt;Expression&gt;),
+
+        #[adze::prec_left(2)]
+        Div(Box&lt;Expression&gt;, #[adze::leaf(text = "/")] (), Box&lt;Expression&gt;),
+
+        // Level 3 – exponentiation (tightest)
+        #[adze::prec_right(3)]
+        Pow(Box&lt;Expression&gt;, #[adze::leaf(text = "^")] (), Box&lt;Expression&gt;),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
+}</code></pre>
+<p>With these levels <code>1 + 2 * 3</code> parses as <code>1 + (2 * 3)</code> because multiplication
+(level 2) binds tighter than addition (level 1).</p>
+<h3 id="tip-leave-gaps-between-levels"><a class="header" href="#tip-leave-gaps-between-levels">Tip: leave gaps between levels</a></h3>
+<p>Use increments of 10 instead of 1 so you can insert new levels later without
+renumbering everything:</p>
+<pre><code class="language-rust">#[adze::prec_left(10)]  // additive
+Add(/* ... */),
+
+#[adze::prec_left(20)]  // multiplicative
+Mul(/* ... */),
+
+#[adze::prec_right(30)] // exponentiation
+Pow(/* ... */),</code></pre>
+<h2 id="associativity"><a class="header" href="#associativity">Associativity</a></h2>
+<p>Associativity decides how operators of the <strong>same</strong> precedence level group.</p>
+<h3 id="left-associativity-prec_left"><a class="header" href="#left-associativity-prec_left">Left associativity (<code>prec_left</code>)</a></h3>
+<p>Most arithmetic operators are left-associative. <code>1 - 2 - 3</code> becomes <code>(1 - 2) - 3</code>:</p>
+<pre><code class="language-rust">#[adze::prec_left(1)]
+Sub(Box&lt;Expression&gt;, #[adze::leaf(text = "-")] (), Box&lt;Expression&gt;),</code></pre>
+<h3 id="right-associativity-prec_right"><a class="header" href="#right-associativity-prec_right">Right associativity (<code>prec_right</code>)</a></h3>
+<p>Assignment and exponentiation are typically right-associative. <code>2 ^ 3 ^ 4</code>
+becomes <code>2 ^ (3 ^ 4)</code>:</p>
+<pre><code class="language-rust">#[adze::prec_right(3)]
+Pow(Box&lt;Expression&gt;, #[adze::leaf(text = "^")] (), Box&lt;Expression&gt;),</code></pre>
+<h3 id="non-associative-prec"><a class="header" href="#non-associative-prec">Non-associative (<code>prec</code>)</a></h3>
+<p>Comparison operators are often non-associative. Chaining <code>a == b == c</code> should
+produce a parse error rather than silently grouping:</p>
+<pre><code class="language-rust">#[adze::prec(5)]
+Equal(Box&lt;Expression&gt;, #[adze::leaf(text = "==")] (), Box&lt;Expression&gt;),</code></pre>
+<h3 id="combining-multiple-tiers"><a class="header" href="#combining-multiple-tiers">Combining multiple tiers</a></h3>
+<p>A real-world expression grammar often combines all three:</p>
+<pre><code class="language-rust">// Logical (lowest)
+#[adze::prec_left(1)]
+Or(Box&lt;Expr&gt;, #[adze::leaf(text = "||")] (), Box&lt;Expr&gt;),
+
+#[adze::prec_left(2)]
+And(Box&lt;Expr&gt;, #[adze::leaf(text = "&amp;&amp;")] (), Box&lt;Expr&gt;),
+
+// Comparison (non-associative)
+#[adze::prec(3)]
+Equal(Box&lt;Expr&gt;, #[adze::leaf(text = "==")] (), Box&lt;Expr&gt;),
+
+// Arithmetic
+#[adze::prec_left(4)]
+Add(Box&lt;Expr&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expr&gt;),
+
+#[adze::prec_left(5)]
+Mul(Box&lt;Expr&gt;, #[adze::leaf(text = "*")] (), Box&lt;Expr&gt;),</code></pre>
+<h2 id="recursive-grammars"><a class="header" href="#recursive-grammars">Recursive Grammars</a></h2>
+<p>Recursive types let you describe nested structures. Use <code>Box&lt;T&gt;</code> to break the
+size cycle that Rust would otherwise reject.</p>
+<h3 id="direct-recursion-through-an-enum"><a class="header" href="#direct-recursion-through-an-enum">Direct recursion through an enum</a></h3>
+<p>The arithmetic grammar above is directly recursive — each <code>Expression</code> variant
+contains <code>Box&lt;Expression&gt;</code>.</p>
+<h3 id="mutual-recursion"><a class="header" href="#mutual-recursion">Mutual recursion</a></h3>
+<p>Statements and expressions often refer to each other:</p>
+<pre><code class="language-rust">#[adze::language]
+#[derive(Debug)]
+pub enum Statement {
+    IfThen(
+        #[adze::leaf(text = "if")] (),
+        Box&lt;Expr&gt;,
+        #[adze::leaf(text = "then")] (),
+        Box&lt;Statement&gt;,
+    ),
+    IfThenElse(
+        #[adze::leaf(text = "if")] (),
+        Box&lt;Expr&gt;,
+        #[adze::leaf(text = "then")] (),
+        Box&lt;Statement&gt;,
+        #[adze::leaf(text = "else")] (),
+        Box&lt;Statement&gt;,
+    ),
+    ExprStmt(Box&lt;Expr&gt;),
+}</code></pre>
+<h3 id="lambda-calculus--a-compact-recursive-grammar"><a class="header" href="#lambda-calculus--a-compact-recursive-grammar">Lambda calculus — a compact recursive grammar</a></h3>
+<p>This example shows recursive enums with keyword literals and backslash-dot
+abstraction syntax:</p>
+<pre><code class="language-rust">#[adze::grammar("lambda")]
+mod grammar {
+    #[adze::language]
+    #[derive(PartialEq, Eq, Debug, Clone)]
+    pub enum Expr {
+        Var(#[adze::leaf(pattern = r"[a-z][a-z0-9]*")] String),
+
+        Abs(
+            #[adze::leaf(text = r"\")] (),
+            #[adze::leaf(pattern = r"[a-z][a-z0-9]*")] String,
+            #[adze::leaf(text = ".")] (),
+            Box&lt;Expr&gt;,
+        ),
+
+        #[adze::prec_left(1)]
+        App(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+
+        Paren(
+            #[adze::leaf(text = "(")] (),
+            Box&lt;Expr&gt;,
+            #[adze::leaf(text = ")")] (),
+        ),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
+}</code></pre>
+<h2 id="optional-and-vec-fields"><a class="header" href="#optional-and-vec-fields">Optional and Vec Fields</a></h2>
+<h3 id="optional-fields-with-optiont"><a class="header" href="#optional-fields-with-optiont">Optional fields with <code>Option&lt;T&gt;</code></a></h3>
+<p>Wrap a field in <code>Option</code> when the element may be absent:</p>
+<pre><code class="language-rust">pub struct Function {
+    pub name: Identifier,
+    pub params: Option&lt;ParameterList&gt;,
+    pub return_type: Option&lt;Type&gt;,
+}</code></pre>
+<p>You can also make leaf tokens optional:</p>
+<pre><code class="language-rust">pub struct Language {
+    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+    v: Option&lt;i32&gt;,
+    #[adze::leaf(text = "_")]
+    _sep: (),
+    #[adze::leaf(text = ".")]
+    _dot: Option&lt;()&gt;,
+}</code></pre>
+<p>With this grammar <code>_</code>, <code>1_</code>, <code>_.</code>, and <code>1_.</code> are all valid inputs.</p>
+<h3 id="repeated-fields-with-vect"><a class="header" href="#repeated-fields-with-vect">Repeated fields with <code>Vec&lt;T&gt;</code></a></h3>
+<p>Use <code>Vec</code> for zero-or-more repetitions:</p>
+<pre><code class="language-rust">pub struct IniFile {
+    entries: Vec&lt;Entry&gt;,
+}</code></pre>
+<p>For one-or-more, add <code>non_empty</code>:</p>
+<pre><code class="language-rust">#[adze::repeat(non_empty = true)]
+#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+numbers: Vec&lt;i32&gt;,</code></pre>
+<h3 id="delimited-lists-1"><a class="header" href="#delimited-lists-1">Delimited lists</a></h3>
+<p>Combine <code>#[adze::delimited]</code> with <code>Vec</code> for separator-separated lists:</p>
+<pre><code class="language-rust">#[adze::repeat(non_empty = true)]
+#[adze::delimited(
+    #[adze::leaf(text = ",")]
+    ()
+)]
+#[adze::leaf(pattern = r"[a-zA-Z_]\w*", transform = |v| v.to_string())]
+items: Vec&lt;String&gt;,</code></pre>
+<p>This accepts <code>alpha, beta, gamma</code> but rejects a trailing comma.</p>
+<h3 id="optional-elements-inside-a-list"><a class="header" href="#optional-elements-inside-a-list">Optional elements inside a list</a></h3>
+<p>When a list element itself is optional, use <code>Vec&lt;Option&lt;T&gt;&gt;</code>:</p>
+<pre><code class="language-rust">#[adze::delimited(
+    #[adze::leaf(text = ",")]
+    ()
+)]
+#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+numbers: Vec&lt;Option&lt;i32&gt;&gt;,</code></pre>
+<p>This lets you parse <code>1,, 2</code> where the middle slot is empty.</p>
+<h2 id="enums-for-choice-rules"><a class="header" href="#enums-for-choice-rules">Enums for Choice Rules</a></h2>
+<p>Enums map naturally to grammar alternatives. Each variant is one possible
+production.</p>
+<h3 id="simple-alternatives"><a class="header" href="#simple-alternatives">Simple alternatives</a></h3>
+<pre><code class="language-rust">#[derive(Debug)]
+pub enum Entry {
+    Section(Section),
+    Pair(Pair),
+    Comment(Comment),
+}</code></pre>
+<h3 id="inline-leaf-alternatives"><a class="header" href="#inline-leaf-alternatives">Inline leaf alternatives</a></h3>
+<p>For simple token choices you can use a regex instead of a full enum:</p>
+<pre><code class="language-rust">pub struct Statement {
+    #[adze::leaf(pattern = r"(let|const|var)")]
+    keyword: (),
+    decl: Declaration,
+}</code></pre>
+<h3 id="tagged-enums-with-operator-variants"><a class="header" href="#tagged-enums-with-operator-variants">Tagged enums with operator variants</a></h3>
+<p>The arithmetic grammar earlier shows this pattern: each enum variant carries its
+own literal operator token and precedence annotation.</p>
+<h3 id="nesting-enums"><a class="header" href="#nesting-enums">Nesting enums</a></h3>
+<p>Enums can be nested. For example, separate <code>Statement</code> and <code>Expression</code> enums
+where <code>Statement</code> has a variant wrapping <code>Expression</code>:</p>
+<pre><code class="language-rust">pub enum Statement {
+    Assign(Assignment),
+    Expr(Expression),
+    Return(ReturnStmt),
+}
+
+pub enum Expression {
+    Number(Number),
+    Binary(BinaryOp),
+    Call(FnCall),
+}</code></pre>
+<h2 id="error-recovery-patterns"><a class="header" href="#error-recovery-patterns">Error Recovery Patterns</a></h2>
+<h3 id="whitespace-and-comments-as-extras"><a class="header" href="#whitespace-and-comments-as-extras">Whitespace and comments as extras</a></h3>
+<p>Defining <code>#[adze::extra]</code> for whitespace (and optionally comments) lets the
+parser skip over them automatically, which prevents many trivial parse failures:</p>
+<pre><code class="language-rust">#[adze::extra]
+struct Whitespace {
+    #[adze::leaf(pattern = r"\s")]
+    _whitespace: (),
+}</code></pre>
+<h3 id="handling-parse-results-gracefully"><a class="header" href="#handling-parse-results-gracefully">Handling parse results gracefully</a></h3>
+<p>Always match on <code>Result</code> to avoid panicking on invalid input:</p>
+<pre><code class="language-rust">match grammar::parse(input) {
+    Ok(tree) =&gt; process(tree),
+    Err(errs) =&gt; {
+        for e in &amp;errs {
+            eprintln!("parse error: {:?}", e);
+        }
+    }
+}</code></pre>
+<h3 id="defensive-span-extraction"><a class="header" href="#defensive-span-extraction">Defensive span extraction</a></h3>
+<p>When working with parsed <code>Spanned</code> values, use the safe API to avoid panics on
+truncated input:</p>
+<pre><code class="language-rust">match span.try_slice_str(source) {
+    Ok(text) =&gt; Some(text.to_string()),
+    Err(SpanError::OutOfBounds { .. }) =&gt; {
+        // Extract what we can
+        if span.span.0 &lt; source.len() {
+            Some(source[span.span.0..].to_string())
+        } else {
+            None
+        }
+    }
+    Err(_) =&gt; None,
+}</code></pre>
+<h3 id="glr-ambiguity-as-a-recovery-tool"><a class="header" href="#glr-ambiguity-as-a-recovery-tool">GLR ambiguity as a recovery tool</a></h3>
+<p>With adze's GLR backend, ambiguous grammars do not cause hard failures. The
+parser explores multiple interpretations and picks the highest-precedence one.
+This means a slightly ambiguous grammar will still parse, giving you time to
+refine rather than blocking all progress.</p>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="keep-grammars-small-and-focused"><a class="header" href="#keep-grammars-small-and-focused">Keep grammars small and focused</a></h3>
+<p>Each additional rule increases the parse table size. Split unrelated sub-languages
+into separate grammar modules when possible.</p>
+<h3 id="prefer-vec-over-deep-recursion"><a class="header" href="#prefer-vec-over-deep-recursion">Prefer <code>Vec</code> over deep recursion</a></h3>
+<p>A grammar like <code>List → Item List | ε</code> creates a deeply nested AST.
+Using <code>Vec&lt;Item&gt;</code> produces a flat list and a smaller parse table:</p>
+<pre><code class="language-rust">// ❌ Deep recursion
+pub enum List {
+    Cons(Item, Box&lt;List&gt;),
+    Nil,
+}
+
+// ✅ Flat repetition
+pub struct List {
+    items: Vec&lt;Item&gt;,
+}</code></pre>
+<h3 id="use-adzeextra-for-whitespace"><a class="header" href="#use-adzeextra-for-whitespace">Use <code>#[adze::extra]</code> for whitespace</a></h3>
+<p>Handling whitespace inside every rule bloats the grammar. Declare it once as an
+extra token and the parser skips it everywhere:</p>
+<pre><code class="language-rust">#[adze::extra]
+struct Whitespace {
+    #[adze::leaf(pattern = r"\s")]
+    _whitespace: (),
+}</code></pre>
+<h3 id="avoid-overly-broad-regex-patterns"><a class="header" href="#avoid-overly-broad-regex-patterns">Avoid overly broad regex patterns</a></h3>
+<p>A pattern like <code>r".*"</code> matches everything and causes conflicts. Be as specific
+as possible:</p>
+<pre><code class="language-rust">// ❌ Too broad
+#[adze::leaf(pattern = r".+")]
+token: (),
+
+// ✅ Specific
+#[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
+identifier: (),</code></pre>
+<h3 id="use-snapshot-tests-to-catch-regressions"><a class="header" href="#use-snapshot-tests-to-catch-regressions">Use snapshot tests to catch regressions</a></h3>
+<p>The <code>insta</code> crate is used throughout the example grammars for snapshot testing.
+This catches accidental changes to parse tree shapes:</p>
+<pre><code class="language-rust">#[test]
+fn parse_simple() {
+    insta::assert_debug_snapshot!(grammar::parse("1 + 2"));
+}</code></pre>
+<h3 id="enable-artifact-output-for-debugging"><a class="header" href="#enable-artifact-output-for-debugging">Enable artifact output for debugging</a></h3>
+<p>Set <code>ADZE_EMIT_ARTIFACTS=true</code> to inspect the generated grammar JSON and
+understand what the tool produced:</p>
+<pre><code class="language-bash">ADZE_EMIT_ARTIFACTS=true cargo build 2&gt;&amp;1
+# Artifacts appear in target/debug/build/&lt;crate&gt;-&lt;hash&gt;/out/
+</code></pre>
+<h2 id="common-pitfalls-and-how-to-avoid-them"><a class="header" href="#common-pitfalls-and-how-to-avoid-them">Common Pitfalls and How to Avoid Them</a></h2>
+<h3 id="1-left-recursion-without-prec_left"><a class="header" href="#1-left-recursion-without-prec_left">1. Left recursion without <code>prec_left</code></a></h3>
+<p>Direct left recursion in an enum without a precedence annotation produces
+infinite loops or parse failures. Always annotate recursive binary operators:</p>
+<pre><code class="language-rust">// ❌ Infinite loop risk
+pub enum Expr {
+    Add(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+}
+
+// ✅ Annotated
+#[adze::prec_left(1)]
+Add(Box&lt;Expr&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expr&gt;),</code></pre>
+<h3 id="2-forgetting-box-for-recursive-types"><a class="header" href="#2-forgetting-box-for-recursive-types">2. Forgetting <code>Box</code> for recursive types</a></h3>
+<p>Rust requires indirection for recursive types. Omitting <code>Box</code> causes a compile
+error about infinite size:</p>
+<pre><code class="language-rust">// ❌ Compile error: recursive type has infinite size
+pub enum Expr {
+    Add(Expr, Expr),
+}
+
+// ✅ Box breaks the cycle
+pub enum Expr {
+    Add(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+}</code></pre>
+<h3 id="3-multiple-precedence-attributes-on-one-rule"><a class="header" href="#3-multiple-precedence-attributes-on-one-rule">3. Multiple precedence attributes on one rule</a></h3>
+<p>Only one of <code>prec</code>, <code>prec_left</code>, or <code>prec_right</code> may appear per rule.
+The grammar processor will reject duplicates with a clear error message:</p>
+<pre><code class="language-rust">// ❌ Error: multiple precedence attributes
+#[adze::prec(1)]
+#[adze::prec_left(2)]
+pub struct Conflict { /* ... */ }</code></pre>
+<h3 id="4-non-integer-precedence-values"><a class="header" href="#4-non-integer-precedence-values">4. Non-integer precedence values</a></h3>
+<p>Precedence must be a <code>u32</code> integer literal. Strings, floats, and constants are
+rejected:</p>
+<pre><code class="language-rust">// ❌ Rejected
+#[adze::prec("high")]
+#[adze::prec(3.14)]
+
+// ✅ Valid
+#[adze::prec(10)]</code></pre>
+<h3 id="5-ambiguous-grammars-without-precedence"><a class="header" href="#5-ambiguous-grammars-without-precedence">5. Ambiguous grammars without precedence</a></h3>
+<p>If two operators share a precedence level and associativity unintentionally, the
+parser may pick an unexpected grouping. Compare operators should usually have
+their own distinct level:</p>
+<pre><code class="language-rust">// ❌ Same level — "a + b &lt; c" is ambiguous
+#[adze::prec_left(1)]
+Add(/* ... */),
+#[adze::prec_left(1)]
+LessThan(/* ... */),
+
+// ✅ Separate levels
+#[adze::prec_left(2)]
+Add(/* ... */),
+#[adze::prec(1)]
+LessThan(/* ... */),</code></pre>
+<h3 id="6-missing-adzeextra-for-whitespace"><a class="header" href="#6-missing-adzeextra-for-whitespace">6. Missing <code>#[adze::extra]</code> for whitespace</a></h3>
+<p>Without an extra-token declaration the parser requires exact whitespace
+placement, which is almost never what you want:</p>
+<pre><code class="language-rust">// ❌ Only parses "1+2", not "1 + 2"
+// (no whitespace handling)
+
+// ✅ Parses "1+2", "1 + 2", "1  +  2", etc.
+#[adze::extra]
+struct Whitespace {
+    #[adze::leaf(pattern = r"\s")]
+    _whitespace: (),
+}</code></pre>
+<h3 id="7-trailing-separators-in-delimited-lists"><a class="header" href="#7-trailing-separators-in-delimited-lists">7. Trailing separators in delimited lists</a></h3>
+<p><code>#[adze::delimited]</code> with <code>#[adze::repeat(non_empty = true)]</code> rejects trailing
+separators. If you need to allow them, use <code>Vec&lt;Option&lt;T&gt;&gt;</code> for the element type
+so the final empty slot is legal.</p>
+<h3 id="8-overly-complex-leaf-transforms"><a class="header" href="#8-overly-complex-leaf-transforms">8. Overly complex leaf transforms</a></h3>
+<p>Keep <code>transform</code> closures simple. Complex logic should live in a separate
+function to keep the grammar readable:</p>
+<pre><code class="language-rust">// ❌ Hard to read inline
+#[adze::leaf(
+    pattern = r#""([^"\\]|\\.)*""#,
+    transform = |s| {
+        s[1..s.len()-1]
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\\"", "\"")
+    }
+)]
+pub value: String,
+
+// ✅ Extract into a helper
+fn unescape(s: &amp;str) -&gt; String {
+    s[1..s.len()-1]
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\\"", "\"")
+}
+
+#[adze::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = unescape)]
+pub value: String,</code></pre>
+<h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Pattern</th><th>Attribute / Type</th><th>Example</th></tr></thead><tbody>
+<tr><td>Zero-or-more</td><td><code>Vec&lt;T&gt;</code></td><td><code>entries: Vec&lt;Entry&gt;</code></td></tr>
+<tr><td>One-or-more</td><td><code>#[adze::repeat(non_empty = true)]</code></td><td><code>items: Vec&lt;Item&gt;</code></td></tr>
+<tr><td>Optional</td><td><code>Option&lt;T&gt;</code></td><td><code>ret: Option&lt;Type&gt;</code></td></tr>
+<tr><td>Delimited list</td><td><code>#[adze::delimited(...)]</code></td><td><code>args: Vec&lt;Expr&gt;</code></td></tr>
+<tr><td>Left-associative op</td><td><code>#[adze::prec_left(N)]</code></td><td><code>Add(Box&lt;E&gt;, (), Box&lt;E&gt;)</code></td></tr>
+<tr><td>Right-associative op</td><td><code>#[adze::prec_right(N)]</code></td><td><code>Pow(Box&lt;E&gt;, (), Box&lt;E&gt;)</code></td></tr>
+<tr><td>Non-associative op</td><td><code>#[adze::prec(N)]</code></td><td><code>Eq(Box&lt;E&gt;, (), Box&lt;E&gt;)</code></td></tr>
+<tr><td>Skip whitespace</td><td><code>#[adze::extra]</code></td><td><code>struct Whitespace { ... }</code></td></tr>
+<tr><td>Exact token</td><td><code>#[adze::leaf(text = "...")]</code></td><td><code>_plus: ()</code></td></tr>
+<tr><td>Pattern token</td><td><code>#[adze::leaf(pattern = r"...")]</code></td><td><code>name: ()</code></td></tr>
+<tr><td>Transform token</td><td><code>transform = |v| ...</code></td><td><code>value: i32</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
+<ul>
+<li><a href="guide/grammar-definition.html">Grammar Definition</a> — full attribute reference</li>
+<li><a href="guide/glr-precedence-resolution.html">GLR Precedence Resolution</a> — deep dive on GLR conflict handling</li>
+<li><a href="guide/error-recovery.html">Error Recovery</a> — robust parsing of malformed input</li>
+<li><a href="guide/performance.html">Performance Optimization</a> — tuning large grammars</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="parser-generation"><a class="header" href="#parser-generation">Parser Generation</a></h1>
 <p>This chapter explains how Adze transforms your grammar definitions into efficient parsers.</p>
 <h2 id="the-generation-process"><a class="header" href="#the-generation-process">The Generation Process</a></h2>
@@ -1679,7 +2113,7 @@ match language.validate_glr() {
 <li>Maximum performance for simple grammars</li>
 <li>Minimal binary size requirements</li>
 </ul>
-<h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
+<h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
 <ul>
 <li>Learn about <a href="guide/incremental-parsing.html">Incremental Parsing</a></li>
 <li>Explore <a href="guide/performance.html">Performance Optimization</a></li>
@@ -1778,15 +2212,15 @@ action_table[state_add][MULTIPLY] = vec![
 }
 // Represents: 1 + (2 * 3) ✅</code></pre>
 <h2 id="associativity-control"><a class="header" href="#associativity-control">Associativity Control</a></h2>
-<h3 id="left-associativity-prec_left"><a class="header" href="#left-associativity-prec_left">Left Associativity: <code>prec_left</code></a></h3>
+<h3 id="left-associativity-prec_left-1"><a class="header" href="#left-associativity-prec_left-1">Left Associativity: <code>prec_left</code></a></h3>
 <pre><code class="language-rust">#[adze::prec_left(1)]
 pub struct Subtraction { /* ... */ }</code></pre>
 <p><strong>Effect</strong>: <code>1 - 2 - 3</code> parses as <code>(1 - 2) - 3</code></p>
-<h3 id="right-associativity-prec_right"><a class="header" href="#right-associativity-prec_right">Right Associativity: <code>prec_right</code></a></h3>
+<h3 id="right-associativity-prec_right-1"><a class="header" href="#right-associativity-prec_right-1">Right Associativity: <code>prec_right</code></a></h3>
 <pre><code class="language-rust">#[adze::prec_right(3)]
 pub struct Exponentiation { /* ... */ }</code></pre>
 <p><strong>Effect</strong>: <code>2 ^ 3 ^ 4</code> parses as <code>2 ^ (3 ^ 4)</code></p>
-<h3 id="non-associative-prec"><a class="header" href="#non-associative-prec">Non-Associative: <code>prec</code></a></h3>
+<h3 id="non-associative-prec-1"><a class="header" href="#non-associative-prec-1">Non-Associative: <code>prec</code></a></h3>
 <pre><code class="language-rust">#[adze::prec(5)]
 pub struct Comparison { /* ... */ }</code></pre>
 <p><strong>Effect</strong>: <code>a == b == c</code> produces a parse error (prevents chaining)</p>
@@ -2318,7 +2752,7 @@ match span.validate_for_str(source_code) {
         // Handle truncated input gracefully  
     }
 }</code></pre>
-<h3 id="error-recovery-patterns"><a class="header" href="#error-recovery-patterns">Error Recovery Patterns</a></h3>
+<h3 id="error-recovery-patterns-1"><a class="header" href="#error-recovery-patterns-1">Error Recovery Patterns</a></h3>
 <h4 id="pattern-1-defensive-span-extraction"><a class="header" href="#pattern-1-defensive-span-extraction">Pattern 1: Defensive Span Extraction</a></h4>
 <pre><code class="language-rust">fn safe_extract_token(source: &amp;str, span: &amp;Spanned&lt;()&gt;) -&gt; Option&lt;String&gt; {
     match span.try_slice_str(source) {
@@ -3178,7 +3612,7 @@ cargo build -p adze-javascript
 # Verify feature flags
 cargo metadata --format-version 1 | jq '.packages[] | select(.name=="adze-golden-tests") | .features'
 </code></pre>
-<h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
 <ul>
 <li><strong>Read <a href="guide/../development/testing.html">Testing Guide</a></strong> for comprehensive testing strategies</li>
 <li><strong>See <a href="guide/../reference/s-expression-format.html">S-Expression Reference</a></strong> for format details</li>
@@ -3444,7 +3878,7 @@ RUST_LOG=debug my-language-lsp --stdio
 # Enable performance monitoring  
 ADZE_LOG_PERFORMANCE=true my-language-lsp --stdio
 </code></pre>
-<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
 <ul>
 <li>Explore the <a href="guide/../LSP_GENERATOR.html">LSP Generator documentation</a> for complete API reference</li>
 <li>Check out <a href="guide/../API_DOCUMENTATION.html">API Documentation</a> for detailed function signatures</li>
@@ -3458,6 +3892,293 @@ ADZE_LOG_PERFORMANCE=true my-language-lsp --stdio
 <li><a href="guide/../../../PERFORMANCE_GUIDE.html"><code>PERFORMANCE_GUIDE.md.ISSUES_DOCUMENTED</code></a></li>
 <li><a href="guide/../development/architecture.html">Architecture</a></li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="migration-guide-rust-sitter-to-adze"><a class="header" href="#migration-guide-rust-sitter-to-adze">Migration Guide: rust-sitter to Adze</a></h1>
+<p>This chapter provides a comprehensive guide for migrating projects from
+<code>rust-sitter</code> (the original project name) to <strong>Adze</strong>. The rename was
+formalized in the v0.8.0 release and affects crate names, attribute paths,
+import paths, and repository URLs.</p>
+<blockquote>
+<p><strong>Looking for the runtime → runtime2 (GLR) migration?</strong>
+See <a href="guide/../getting-started/migration.html">Getting Started › Migration</a> for the
+GLR integration guide.</p>
+</blockquote>
+<hr />
+<h2 id="why-the-rename"><a class="header" href="#why-the-rename">Why the Rename?</a></h2>
+<p>The project was renamed from <code>rust-sitter</code> to <strong>Adze</strong> to:</p>
+<ul>
+<li>Establish a distinct identity separate from the Tree-sitter ecosystem.</li>
+<li>Avoid confusion with the upstream <code>tree-sitter</code> crate.</li>
+<li>Reflect the project's evolution into a full grammar toolchain with GLR
+parsing, table generation, and typed AST extraction — well beyond a simple
+Rust wrapper around Tree-sitter.</li>
+</ul>
+<hr />
+<h2 id="what-changed"><a class="header" href="#what-changed">What Changed</a></h2>
+<h3 id="crate-names"><a class="header" href="#crate-names">Crate Names</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Old Name (rust-sitter)</th><th>New Name (Adze)</th><th>Role</th></tr></thead><tbody>
+<tr><td><code>rust-sitter</code></td><td><code>adze</code></td><td>Runtime / main user-facing crate</td></tr>
+<tr><td><code>rust-sitter-macro</code></td><td><code>adze-macro</code></td><td>Procedural macros</td></tr>
+<tr><td><code>rust-sitter-tool</code></td><td><code>adze-tool</code></td><td>Build-time code generation</td></tr>
+<tr><td><code>rust-sitter-common</code></td><td><code>adze-common</code></td><td>Shared expansion logic</td></tr>
+<tr><td>—</td><td><code>adze-ir</code></td><td>Grammar intermediate representation (new)</td></tr>
+<tr><td>—</td><td><code>adze-glr-core</code></td><td>GLR parser generation (new)</td></tr>
+<tr><td>—</td><td><code>adze-tablegen</code></td><td>Table compression (new)</td></tr>
+<tr><td>—</td><td><code>adze-runtime</code></td><td>GLR-compatible runtime (new)</td></tr>
+</tbody></table>
+</div>
+<h3 id="attribute-paths"><a class="header" href="#attribute-paths">Attribute Paths</a></h3>
+<p>All procedural-macro attributes moved from the <code>rust_sitter</code> namespace to
+<code>adze</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Old Attribute</th><th>New Attribute</th></tr></thead><tbody>
+<tr><td><code>#[rust_sitter::grammar("…")]</code></td><td><code>#[adze::grammar("…")]</code></td></tr>
+<tr><td><code>#[rust_sitter::language]</code></td><td><code>#[adze::language]</code></td></tr>
+<tr><td><code>#[rust_sitter::leaf(…)]</code></td><td><code>#[adze::leaf(…)]</code></td></tr>
+<tr><td><code>#[rust_sitter::prec_left(n)]</code></td><td><code>#[adze::prec_left(n)]</code></td></tr>
+<tr><td><code>#[rust_sitter::prec_right(n)]</code></td><td><code>#[adze::prec_right(n)]</code></td></tr>
+<tr><td><code>#[rust_sitter::extra]</code></td><td><code>#[adze::extra]</code></td></tr>
+<tr><td><code>#[rust_sitter::word]</code></td><td><code>#[adze::word]</code></td></tr>
+<tr><td><code>#[rust_sitter::delimited(…)]</code></td><td><code>#[adze::delimited(…)]</code></td></tr>
+<tr><td><code>#[rust_sitter::repeat(…)]</code></td><td><code>#[adze::repeat(…)]</code></td></tr>
+</tbody></table>
+</div>
+<h3 id="import-paths"><a class="header" href="#import-paths">Import Paths</a></h3>
+<pre><code class="language-rust">// ── Before ────────────────────────────────────────
+use rust_sitter::Spanned;
+use rust_sitter::Parser;
+
+// ── After ─────────────────────────────────────────
+use adze::Spanned;
+use adze::Parser;</code></pre>
+<p>Deeper re-exports follow the same pattern:</p>
+<pre><code class="language-rust">// ── Before ────────────────────────────────────────
+use rust_sitter::tree_sitter::Node;
+
+// ── After ─────────────────────────────────────────
+use adze::ts_compat::Language;
+use adze::adze_ir::{Grammar, SymbolId};
+use adze::adze_glr_core::{Action, ParseTable};</code></pre>
+<h3 id="cargotoml-dependencies"><a class="header" href="#cargotoml-dependencies">Cargo.toml Dependencies</a></h3>
+<pre><code class="language-toml"># ── Before ─────────────────────────────────────────
+[dependencies]
+rust-sitter = "0.4"
+
+[build-dependencies]
+rust-sitter-tool = "0.4"
+</code></pre>
+<pre><code class="language-toml"># ── After ──────────────────────────────────────────
+[dependencies]
+adze = "0.8"
+
+[build-dependencies]
+adze-tool = "0.8"
+</code></pre>
+<h3 id="repository-url"><a class="header" href="#repository-url">Repository URL</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Before</th><th><code>github.com/&lt;org&gt;/rust-sitter</code></th></tr></thead><tbody>
+<tr><td><strong>After</strong></td><td><code>github.com/EffortlessMetrics/adze</code></td></tr>
+</tbody></table>
+</div>
+<p>Update any CI badges, issue links, or documentation URLs accordingly.</p>
+<hr />
+<h2 id="new-features-available-after-migration"><a class="header" href="#new-features-available-after-migration">New Features Available After Migration</a></h2>
+<p>Migrating to Adze unlocks several capabilities that did not exist under the
+<code>rust-sitter</code> name:</p>
+<ol>
+<li><strong>GLR Parsing</strong> — Handle ambiguous grammars with automatic fork/merge of
+parse paths (<code>adze-glr-core</code>).</li>
+<li><strong>Pure-Rust Table Generation</strong> — Generate Tree-sitter–compatible parse
+tables entirely in Rust (<code>adze-tablegen</code>).</li>
+<li><strong>Grammar IR</strong> — Inspect and optimize grammars programmatically via the
+intermediate representation (<code>adze-ir</code>).</li>
+<li><strong>Incremental Parsing</strong> — Pass a previous tree to <code>parse_utf8</code> for
+efficient re-parsing of edited documents.</li>
+<li><strong>Performance Monitoring</strong> — Set <code>ADZE_LOG_PERFORMANCE=true</code> to get
+forest-to-tree conversion metrics.</li>
+<li><strong>WASM Support</strong> — The pure-Rust backend compiles to <code>wasm32-unknown-unknown</code>
+and <code>wasm32-wasi</code> without C dependencies.</li>
+<li><strong>Golden Tests</strong> — Validate your parsers against Tree-sitter reference
+implementations with SHA256 hash verification.</li>
+<li><strong>External Scanners</strong> — Write custom lexing logic in pure Rust for things
+like Python indentation tracking.</li>
+</ol>
+<hr />
+<h2 id="before--after-code-examples"><a class="header" href="#before--after-code-examples">Before / After Code Examples</a></h2>
+<h3 id="defining-a-grammar"><a class="header" href="#defining-a-grammar">Defining a Grammar</a></h3>
+<pre><code class="language-rust">// ── Before (rust-sitter) ──────────────────────────
+#[rust_sitter::grammar("arithmetic")]
+mod grammar {
+    #[rust_sitter::language]
+    pub enum Expr {
+        Number(
+            #[rust_sitter::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32,
+        ),
+        #[rust_sitter::prec_left(1)]
+        Sub(Box&lt;Expr&gt;, #[rust_sitter::leaf(text = "-")] (), Box&lt;Expr&gt;),
+        #[rust_sitter::prec_left(2)]
+        Mul(Box&lt;Expr&gt;, #[rust_sitter::leaf(text = "*")] (), Box&lt;Expr&gt;),
+    }
+
+    #[rust_sitter::extra]
+    struct Whitespace {
+        #[rust_sitter::leaf(pattern = r"\s")]
+        _ws: (),
+    }
+}</code></pre>
+<pre><code class="language-rust">// ── After (adze) ──────────────────────────────────
+#[adze::grammar("arithmetic")]
+pub mod grammar {
+    #[adze::language]
+    #[derive(Debug, PartialEq)]
+    pub enum Expr {
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32,
+        ),
+        #[adze::prec_left(1)]
+        Sub(Box&lt;Expr&gt;, #[adze::leaf(text = "-")] (), Box&lt;Expr&gt;),
+        #[adze::prec_left(2)]
+        Mul(Box&lt;Expr&gt;, #[adze::leaf(text = "*")] (), Box&lt;Expr&gt;),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _ws: (),
+    }
+}</code></pre>
+<h3 id="using-the-parser"><a class="header" href="#using-the-parser">Using the Parser</a></h3>
+<pre><code class="language-rust">// ── Before (rust-sitter) ──────────────────────────
+let result = grammar::parse("1 - 2 * 3");
+match result {
+    Ok(expr) =&gt; println!("{:?}", expr),
+    Err(errs) =&gt; eprintln!("{:?}", errs),
+}</code></pre>
+<pre><code class="language-rust">// ── After (adze) ──────────────────────────────────
+let result = grammar::parse("1 - 2 * 3");
+match result {
+    Ok(expr) =&gt; println!("{expr:?}"),
+    Err(errs) =&gt; eprintln!("{errs:?}"),
+}</code></pre>
+<h3 id="build-script"><a class="header" href="#build-script">Build Script</a></h3>
+<pre><code class="language-rust">// ── Before (rust-sitter) ──────────────────────────
+fn main() {
+    rust_sitter_tool::build_parsers();
+}</code></pre>
+<pre><code class="language-rust">// ── After (adze) ──────────────────────────────────
+fn main() {
+    adze_tool::build_parsers();
+}</code></pre>
+<hr />
+<h2 id="step-by-step-migration-checklist"><a class="header" href="#step-by-step-migration-checklist">Step-by-Step Migration Checklist</a></h2>
+<p>Follow these steps in order. Each step is independently committable.</p>
+<h3 id="1-update-cargotoml"><a class="header" href="#1-update-cargotoml">1. Update <code>Cargo.toml</code></a></h3>
+<p>Replace every <code>rust-sitter</code> dependency with its <code>adze</code> equivalent:</p>
+<pre><code class="language-toml"># runtime crate
+rust-sitter = "0.4"   →   adze = "0.8"
+
+# build tool
+rust-sitter-tool = "0.4"   →   adze-tool = "0.8"
+</code></pre>
+<p>Run <code>cargo update</code> to pull the new crates.</p>
+<h3 id="2-update-buildrs"><a class="header" href="#2-update-buildrs">2. Update <code>build.rs</code></a></h3>
+<pre><code class="language-diff">- rust_sitter_tool::build_parsers();
++ adze_tool::build_parsers();
+</code></pre>
+<h3 id="3-rename-attributes-in-grammar-modules"><a class="header" href="#3-rename-attributes-in-grammar-modules">3. Rename Attributes in Grammar Modules</a></h3>
+<p>A project-wide find-and-replace handles this:</p>
+<pre><code class="language-bash"># In your project root
+sed -i 's/rust_sitter::/adze::/g' src/**/*.rs
+</code></pre>
+<p>Verify that every <code>#[rust_sitter::…]</code> becomes <code>#[adze::…]</code>.</p>
+<h3 id="4-update-use-statements"><a class="header" href="#4-update-use-statements">4. Update <code>use</code> Statements</a></h3>
+<pre><code class="language-bash">sed -i 's/use rust_sitter/use adze/g' src/**/*.rs
+</code></pre>
+<h3 id="5-update-any-direct-tree-sitter-imports"><a class="header" href="#5-update-any-direct-tree-sitter-imports">5. Update Any Direct Tree-sitter Imports</a></h3>
+<p>If you used internal Tree-sitter types via <code>rust-sitter</code>, they may have moved:</p>
+<pre><code class="language-rust">// Old
+use rust_sitter::tree_sitter::Node;
+
+// New — use the ts_compat re-export or the sub-crate directly
+use adze::ts_compat::Language;</code></pre>
+<h3 id="6-run-cargo-check"><a class="header" href="#6-run-cargo-check">6. Run <code>cargo check</code></a></h3>
+<p>Resolve any remaining compile errors. The compiler will surface any
+missed renames as "unresolved import" or "cannot find attribute" errors.</p>
+<h3 id="7-run-your-tests"><a class="header" href="#7-run-your-tests">7. Run Your Tests</a></h3>
+<pre><code class="language-bash">cargo test
+</code></pre>
+<p>All existing tests should pass without changes beyond the renames.</p>
+<h3 id="8-update-ci-and-documentation"><a class="header" href="#8-update-ci-and-documentation">8. Update CI and Documentation</a></h3>
+<ul>
+<li>Change repository URLs from <code>rust-sitter</code> to <code>adze</code>.</li>
+<li>Update badge URLs, crate links, and README references.</li>
+<li>Update any <code>Dockerfile</code> or Nix expressions that reference the old crate
+names.</li>
+</ul>
+<h3 id="9-optional-adopt-new-features"><a class="header" href="#9-optional-adopt-new-features">9. (Optional) Adopt New Features</a></h3>
+<p>Once the rename migration compiles cleanly, consider enabling:</p>
+<pre><code class="language-toml">[dependencies]
+adze = { version = "0.8", features = ["pure-rust"] }
+</code></pre>
+<p>Or explore the GLR runtime:</p>
+<pre><code class="language-toml">[dependencies]
+adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+</code></pre>
+<p>See <a href="guide/../getting-started/migration.html">Getting Started › Migration</a> for the
+full GLR migration guide.</p>
+<hr />
+<h2 id="common-migration-issues-and-solutions"><a class="header" href="#common-migration-issues-and-solutions">Common Migration Issues and Solutions</a></h2>
+<h3 id="cannot-find-attribute-rust_sitter-in-this-scope"><a class="header" href="#cannot-find-attribute-rust_sitter-in-this-scope">"cannot find attribute <code>rust_sitter</code> in this scope"</a></h3>
+<p><strong>Cause:</strong> An attribute was not renamed.</p>
+<p><strong>Fix:</strong> Search for any remaining <code>rust_sitter::</code> references:</p>
+<pre><code class="language-bash">grep -rn 'rust_sitter::' src/
+</code></pre>
+<p>Replace them with <code>adze::</code>.</p>
+<h3 id="unresolved-import-rust_sitter"><a class="header" href="#unresolved-import-rust_sitter">"unresolved import <code>rust_sitter</code>"</a></h3>
+<p><strong>Cause:</strong> A <code>use rust_sitter::…</code> statement was not updated.</p>
+<p><strong>Fix:</strong></p>
+<pre><code class="language-bash">grep -rn 'use rust_sitter' src/
+</code></pre>
+<p>Replace with <code>use adze</code>.</p>
+<h3 id="no-matching-package-named-rust-sitter"><a class="header" href="#no-matching-package-named-rust-sitter">"no matching package named <code>rust-sitter</code>"</a></h3>
+<p><strong>Cause:</strong> <code>Cargo.toml</code> still references the old crate name.</p>
+<p><strong>Fix:</strong> Replace <code>rust-sitter</code> with <code>adze</code> and <code>rust-sitter-tool</code> with
+<code>adze-tool</code> in all <code>Cargo.toml</code> files.</p>
+<h3 id="function-build_parsers-not-found-in-rust_sitter_tool"><a class="header" href="#function-build_parsers-not-found-in-rust_sitter_tool">"function <code>build_parsers</code> not found in <code>rust_sitter_tool</code>"</a></h3>
+<p><strong>Cause:</strong> <code>build.rs</code> still calls <code>rust_sitter_tool::build_parsers()</code>.</p>
+<p><strong>Fix:</strong> Change to <code>adze_tool::build_parsers()</code>.</p>
+<h3 id="snapshot-tests-fail-after-migration"><a class="header" href="#snapshot-tests-fail-after-migration">Snapshot tests fail after migration</a></h3>
+<p><strong>Cause:</strong> Generated Tree-sitter grammar JSON may embed the crate path, and
+snapshot tools like <code>insta</code> capture the exact output.</p>
+<p><strong>Fix:</strong> Run <code>cargo insta review</code> to accept the updated snapshots, or
+regenerate golden hashes:</p>
+<pre><code class="language-bash">UPDATE_GOLDEN=1 cargo test -p adze-golden-tests
+</code></pre>
+<h3 id="macro-generated-code-triggers-new-warnings"><a class="header" href="#macro-generated-code-triggers-new-warnings">Macro-generated code triggers new warnings</a></h3>
+<p><strong>Cause:</strong> Adze may produce slightly different expanded code than the old
+<code>rust-sitter</code> macros, surfacing new Clippy lints.</p>
+<p><strong>Fix:</strong> Address the warnings or, as a temporary measure:</p>
+<pre><code class="language-rust">#[allow(clippy::all)]
+#[adze::grammar("my_lang")]
+mod grammar { /* … */ }</code></pre>
+<hr />
+<h2 id="msrv-note"><a class="header" href="#msrv-note">MSRV Note</a></h2>
+<p>Adze v0.8 requires <strong>Rust 1.92.0</strong> (2024 edition). If your project targets an
+older MSRV, you will need to update your <code>rust-toolchain.toml</code> or CI
+configuration:</p>
+<pre><code class="language-toml"># rust-toolchain.toml
+[toolchain]
+channel = "1.92.0"
+components = ["rustfmt", "clippy"]
+</code></pre>
+<hr />
+<h2 id="summary-2"><a class="header" href="#summary-2">Summary</a></h2>
+<p>The migration from <code>rust-sitter</code> to Adze is primarily a rename operation.
+The core grammar-definition model — annotated Rust types that compile into
+Tree-sitter parsers — is unchanged. After completing the rename you gain
+access to the full Adze ecosystem: GLR parsing, pure-Rust table generation,
+grammar IR, incremental parsing, and WASM support.</p>
+<p>If you run into issues not covered here, please
+<a href="https://github.com/EffortlessMetrics/adze/issues">open an issue</a> on GitHub.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="glr-generalized-lr-parsing"><a class="header" href="#glr-generalized-lr-parsing">GLR (Generalized LR) Parsing</a></h1>
 <p>GLR parsing is a powerful parsing technique that extends traditional LR parsing to handle ambiguous grammars. With the GLR parser implementation in PR #56, adze can now parse languages with inherent ambiguities, multiple interpretations, and complex grammar conflicts.</p>
 <h2 id="what-is-glr-parsing"><a class="header" href="#what-is-glr-parsing">What is GLR Parsing?</a></h2>
@@ -5233,7 +5954,7 @@ std::env::set_var("ADZE_LOG_PERFORMANCE", "true");
 <p><strong>Machine Learning Integration</strong>: Grammar inference and automatic optimization using ML techniques.</p>
 <p><strong>Formal Verification</strong>: Mathematical proofs of parser correctness and completeness.</p>
 <p><strong>Domain-Specific Languages</strong>: Specialized architectures for particular language families.</p>
-<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
+<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
 <ul>
 <li><strong>Explore <a href="development/golden-tests.html">Golden Tests Guide</a></strong> for compatibility testing</li>
 <li><strong>Read <a href="development/testing.html">Testing Guide</a></strong> for comprehensive testing strategies</li>
@@ -5694,7 +6415,7 @@ fn test_independent_parsing() {
 <li><strong>Property tests</strong>: Universal invariants</li>
 <li><strong>Benchmarks</strong>: Performance characteristics</li>
 </ul>
-<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
+<h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
 <ul>
 <li><strong>Explore <a href="development/golden-tests.html">Golden Tests Guide</a></strong> for compatibility testing</li>
 <li><strong>Review <a href="development/architecture.html">Architecture Documentation</a></strong> for system understanding</li>
@@ -5879,7 +6600,7 @@ npm install -g tree-sitter-cli
 cd /path/to/tree-sitter-python
 tree-sitter generate
 </code></pre>
-<h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
+<h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
 <ul>
 <li><strong>Read the <a href="development/testing.html">Testing Guide</a></strong> for comprehensive testing strategies</li>
 <li><strong>Explore <a href="development/../reference/s-expression-format.html">S-Expression Reference</a></strong> for format details</li>

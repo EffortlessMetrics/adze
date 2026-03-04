@@ -1,0 +1,54 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: first_50
+---
+{
+  "name": "large_grammar",
+  "rules": {
+    "25": [
+      {
+        "lhs": 25,
+        "rhs": [
+          {
+            "NonTerminal": 26
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      }
+    ],
+    "26": [
+      {
+        "lhs": 26,
+        "rhs": [
+          {
+            "NonTerminal": 27
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 1
+      },
+      {
+        "lhs": 26,
+        "rhs": [
+          {
+            "NonTerminal": 26
+          },
+          {
+            "NonTerminal": 27
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 2
+      }
+    ],
+    "27": [
+      {
+        "lhs": 27,
+        "rhs": [

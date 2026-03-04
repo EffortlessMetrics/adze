@@ -5,7 +5,7 @@
 //! of multiple cursors, deep/wide trees, and field name resolution.
 
 use adze::glr_tree_bridge::{GLRTree, GLRTreeCursor};
-use adze::subtree::{ChildEdge, FIELD_NONE, Subtree, SubtreeNode};
+use adze::subtree::{ChildEdge, Subtree, SubtreeNode};
 use adze_ir::{FieldId, Grammar, SymbolId};
 use std::sync::Arc;
 

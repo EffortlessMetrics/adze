@@ -1,1 +1,1 @@
-functionadd(a,b){returna+b;}
+function add(a, b) { return a + b; }

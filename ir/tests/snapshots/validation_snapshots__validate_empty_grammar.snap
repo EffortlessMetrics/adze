@@ -1,0 +1,6 @@
+---
+source: ir/tests/validation_snapshots.rs
+expression: msgs
+---
+ERROR: Grammar has no rules defined
+stats: rules=0, tokens=0, symbols=0

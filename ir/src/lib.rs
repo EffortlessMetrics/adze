@@ -35,7 +35,7 @@ pub use symbol_registry::{SymbolInfo, SymbolRegistry};
 pub mod builder;
 
 /// Core grammar representation supporting all Tree-sitter features including GLR
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Grammar {
     /// Grammar name
     pub name: String,
@@ -298,14 +298,14 @@ pub enum Symbol {
 }
 
 /// Alias sequence for node renaming
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AliasSequence {
     /// Aliases for each position
     pub aliases: Vec<Option<String>>,
 }
 
 /// Precedence declaration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Precedence {
     /// Precedence level
     pub level: i16,
@@ -327,7 +327,7 @@ pub enum Associativity {
 }
 
 /// Conflict declaration for GLR handling
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConflictDeclaration {
     /// Conflicting symbols
     pub symbols: Vec<SymbolId>,
@@ -347,7 +347,7 @@ pub enum ConflictResolution {
 }
 
 /// External token declaration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExternalToken {
     /// External token name
     pub name: String,

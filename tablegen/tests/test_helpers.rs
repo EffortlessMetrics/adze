@@ -51,6 +51,7 @@ pub fn create_minimal_parse_table(grammar: Grammar) -> ParseTable {
 }
 
 /// Create a test ParseTable with some actual content
+#[allow(dead_code)]
 pub fn create_test_parse_table_with_content(
     grammar: Grammar,
     state_count: usize,

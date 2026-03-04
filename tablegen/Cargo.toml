@@ -52,6 +52,8 @@ proptest.workspace = true
 insta.workspace = true
 rustc-hash.workspace = true
 criterion.workspace = true
+syn.workspace = true
+serde_json.workspace = true
 
 [[bench]]
 name = "compression"

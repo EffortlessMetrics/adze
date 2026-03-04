@@ -192,12 +192,19 @@ pub fn parse_incremental(
 mod tests {
     use super::*;
     use crate::{Token, language::SymbolMetadata, tree::Tree};
-    use adze_glr_core::{Action, ParseTable, StateId};
+    use adze_glr_core::{Action, ParseTable, StateId, SymbolId};
 
     fn shift_accept_table() -> &'static ParseTable {
+        let mut symbol_to_index = std::collections::BTreeMap::new();
+        symbol_to_index.insert(SymbolId(0), 0);
+        symbol_to_index.insert(SymbolId(1), 1);
+
         let table = ParseTable {
             state_count: 2,
             symbol_count: 2,
+            symbol_to_index,
+            start_symbol: SymbolId(1),
+            index_to_symbol: vec![SymbolId(0), SymbolId(1)],
             action_table: vec![
                 vec![vec![], vec![Action::Shift(StateId(1))]],
                 vec![vec![Action::Accept], vec![]],

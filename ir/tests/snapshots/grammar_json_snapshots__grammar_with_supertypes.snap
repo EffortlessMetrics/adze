@@ -1,0 +1,122 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "supertype_demo",
+  "rules": {
+    "5": [
+      {
+        "lhs": 5,
+        "rhs": [
+          {
+            "NonTerminal": 6
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      }
+    ],
+    "6": [
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "Terminal": 1
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 1
+      },
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "Terminal": 2
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 2
+      },
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "Terminal": 3
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 3
+      },
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "Terminal": 4
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 4
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "NUMBER",
+      "pattern": {
+        "Regex": "\\d+"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": "STRING",
+      "pattern": {
+        "Regex": "\"[^\"]*\""
+      },
+      "fragile": false
+    },
+    "3": {
+      "name": "true",
+      "pattern": {
+        "String": "true"
+      },
+      "fragile": false
+    },
+    "4": {
+      "name": "false",
+      "pattern": {
+        "String": "false"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [
+    6
+  ],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "3": "true",
+    "4": "false",
+    "5": "expression",
+    "6": "literal"
+  },
+  "symbol_registry": null
+}

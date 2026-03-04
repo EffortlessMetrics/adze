@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-03-05
+**Last updated:** 2026-03-07
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -23,6 +23,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-011 | Docs | `rustdoc::private_intra_doc_links` warning in runtime | Cosmetic noise in doc build | Resolved | - |
 | FR-012 | Publishing | No `cargo package` dry-run in CI | Broken publishes not caught early | Open | - |
 | FR-013 | Tooling | No CLI binary yet (`adze check`, `adze stats`) | Grammar validation requires writing Rust | Open | - |
+| FR-014 | Runtime | Some `adze` runtime integration tests fail to compile | Stale API references in test files (Node, etc) | Open | - |
+| FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Open | - |
 
 ---
 
@@ -146,6 +148,26 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Actual:** No CLI binary exists yet.
 **Fix:** Implement `adze check` and `adze stats` subcommands.
 **Status:** Open
+
+### FR-014 - Stale Runtime Test API References
+
+**Area:** runtime
+**Symptom:** Several `adze` runtime integration test files fail to compile with `use of undeclared type Node` and similar errors.
+**Expected:** All test files compile and run.
+**Actual:** Tests like `lexer_tests`, `simd_lexer_test`, `test_glr_integration`, `test_abi_contract`, `error_recovery_tests` reference APIs (`Node`, etc.) that were removed or renamed during the pure-Rust runtime refactor.
+**Fix:** Update test files to use current API surface or remove tests that duplicate coverage already in the supported lane.
+**Status:** Open
+**Discovered:** Wave 14
+
+### FR-015 - Feature Matrix Expected Failure
+
+**Area:** testing
+**Symptom:** `feature_profile_resolve_backend` test in `adze-feature-policy-contract` panics with "Grammar has shift/reduce or reduce/reduce conflicts, but the GLR feature is not enabled."
+**Expected:** Feature matrix: 12/12 pass.
+**Actual:** 11/12 pass; 1 expected failure due to intentional GLR feature gating logic being tested without the GLR feature enabled.
+**Fix:** Either mark the test as `#[ignore]` with a reason, or adjust the test to correctly handle the feature-absent case.
+**Status:** Open
+**Discovered:** Wave 14
 
 ---
 

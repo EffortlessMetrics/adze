@@ -1,0 +1,9 @@
+---
+source: tests/comprehensive_snapshots.rs
+expression: "grammar::parse(\"999999\")"
+---
+Ok(
+    Number(
+        999999,
+    ),
+)

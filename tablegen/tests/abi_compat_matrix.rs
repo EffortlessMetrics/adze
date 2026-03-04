@@ -9,16 +9,12 @@ use std::ffi::CStr;
 use std::mem;
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable, StateId};
-use adze_ir::{
-    ExternalToken, FieldId, Grammar, ProductionId, Rule, RuleId, Symbol, SymbolId, Token,
-    TokenPattern,
-};
-use adze_tablegen::AbiLanguageBuilder;
+use adze_ir::{FieldId, Grammar, RuleId, SymbolId};
 use adze_tablegen::LanguageValidator;
 use adze_tablegen::abi::{
-    self, ExternalScanner, TREE_SITTER_LANGUAGE_VERSION,
-    TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION, TSFieldId, TSLanguage, TSLexState, TSParseAction,
-    TSStateId, TSSymbol, create_symbol_metadata, symbol_metadata,
+    ExternalScanner, TREE_SITTER_LANGUAGE_VERSION, TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
+    TSFieldId, TSLanguage, TSLexState, TSParseAction, TSStateId, TSSymbol, create_symbol_metadata,
+    symbol_metadata,
 };
 use adze_tablegen::compress::CompressedParseTable;
 use adze_tablegen::schema::validate_action_encoding;
@@ -181,8 +177,8 @@ fn abi_version_is_15() {
 
 #[test]
 fn min_abi_version_in_range() {
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION >= 13);
-    assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION <= TREE_SITTER_LANGUAGE_VERSION);
+    const { assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION >= 13) };
+    const { assert!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION <= TREE_SITTER_LANGUAGE_VERSION) };
 }
 
 // ===========================================================================

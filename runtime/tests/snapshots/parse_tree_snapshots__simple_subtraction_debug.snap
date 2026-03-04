@@ -1,0 +1,5 @@
+---
+source: runtime/tests/parse_tree_snapshots.rs
+expression: "safe_arith_parse_debug(\"1-2\")"
+---
+PANIC: Extract called with None node

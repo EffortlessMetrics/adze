@@ -1,0 +1,158 @@
+---
+source: ir/tests/grammar_json_snapshots.rs
+expression: grammar_json(&grammar)
+---
+{
+  "name": "arithmetic",
+  "rules": {
+    "6": [
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "NonTerminal": 6
+          },
+          {
+            "Terminal": 2
+          },
+          {
+            "NonTerminal": 7
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 0
+      },
+      {
+        "lhs": 6,
+        "rhs": [
+          {
+            "NonTerminal": 7
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 1
+      }
+    ],
+    "7": [
+      {
+        "lhs": 7,
+        "rhs": [
+          {
+            "NonTerminal": 7
+          },
+          {
+            "Terminal": 3
+          },
+          {
+            "NonTerminal": 8
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 2
+      },
+      {
+        "lhs": 7,
+        "rhs": [
+          {
+            "NonTerminal": 8
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 3
+      }
+    ],
+    "8": [
+      {
+        "lhs": 8,
+        "rhs": [
+          {
+            "Terminal": 4
+          },
+          {
+            "NonTerminal": 6
+          },
+          {
+            "Terminal": 5
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 4
+      },
+      {
+        "lhs": 8,
+        "rhs": [
+          {
+            "Terminal": 1
+          }
+        ],
+        "precedence": null,
+        "associativity": null,
+        "fields": [],
+        "production_id": 5
+      }
+    ]
+  },
+  "tokens": {
+    "1": {
+      "name": "NUMBER",
+      "pattern": {
+        "Regex": "\\d+"
+      },
+      "fragile": false
+    },
+    "2": {
+      "name": "+",
+      "pattern": {
+        "String": "+"
+      },
+      "fragile": false
+    },
+    "3": {
+      "name": "*",
+      "pattern": {
+        "String": "*"
+      },
+      "fragile": false
+    },
+    "4": {
+      "name": "(",
+      "pattern": {
+        "String": "("
+      },
+      "fragile": false
+    },
+    "5": {
+      "name": ")",
+      "pattern": {
+        "String": ")"
+      },
+      "fragile": false
+    }
+  },
+  "precedences": [],
+  "conflicts": [],
+  "externals": [],
+  "extras": [],
+  "fields": {},
+  "supertypes": [],
+  "inline_rules": [],
+  "alias_sequences": {},
+  "production_ids": {},
+  "max_alias_sequence_length": 0,
+  "rule_names": {
+    "6": "expr",
+    "7": "term",
+    "8": "factor"
+  },
+  "symbol_registry": null
+}
