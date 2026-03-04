@@ -1,0 +1,25 @@
+[package]
+name = "adze-governance-runtime-profile-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Core parser-feature profile selection and backend resolution helpers for runtime governance."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["governance", "parser", "metadata", "bdd", "policy"]
+categories = ["development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-governance-runtime-profile-core"
+
+[features]
+default = []
+pure-rust = ["adze-governance-matrix-contract/pure-rust"]
+tree-sitter-c2rust = ["adze-governance-matrix-contract/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-governance-matrix-contract/tree-sitter-standard"]
+glr = ["pure-rust", "adze-governance-matrix-contract/glr"]
+strict_api = ["adze-governance-matrix-contract/strict_api"]
+strict_docs = ["adze-governance-matrix-contract/strict_docs"]
+
+[dependencies]
+adze-governance-matrix-contract = { version = "0.1.0", path = "../governance-matrix-contract" }
