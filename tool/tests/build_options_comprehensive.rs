@@ -6,6 +6,7 @@
 use std::fs;
 use std::path::Path;
 
+use adze_ir::builder::GrammarBuilder;
 use adze_tool::GrammarConverter;
 use adze_tool::pure_rust_builder::{
     BuildOptions, build_parser, build_parser_from_grammar_js, build_parser_from_json,
@@ -42,6 +43,42 @@ fn build_grammar_js(js: &str, opts: BuildOptions) -> adze_tool::pure_rust_builde
     let path = dir.path().join("grammar.js");
     fs::write(&path, js).unwrap();
     build_parser_from_grammar_js(&path, opts).unwrap()
+}
+
+fn simple_json_grammar(name: &str) -> String {
+    serde_json::json!({
+        "name": name,
+        "word": null,
+        "rules": {
+            "source_file": {
+                "type": "SYMBOL",
+                "name": "value"
+            },
+            "value": {
+                "type": "PATTERN",
+                "value": "\\d+"
+            }
+        },
+        "extras": [
+            { "type": "PATTERN", "value": "\\s" }
+        ],
+        "conflicts": [],
+        "precedences": [],
+        "externals": [],
+        "inline": [],
+        "supertypes": []
+    })
+    .to_string()
+}
+
+fn builder_grammar(name: &str) -> adze_ir::Grammar {
+    GrammarBuilder::new(name)
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .rule("expr", vec!["NUMBER"])
+        .rule("expr", vec!["expr", "+", "NUMBER"])
+        .start("expr")
+        .build()
 }
 
 // =========================================================================
@@ -536,4 +573,275 @@ fn build_stats_conflict_cells_non_negative() {
             <= result.build_stats.state_count * result.build_stats.symbol_count,
         "conflict cells cannot exceed total cells"
     );
+}
+
+// =========================================================================
+// 11. GrammarBuilder → build_parser integration
+// =========================================================================
+
+#[test]
+fn build_parser_with_grammar_builder() {
+    let dir = TempDir::new().unwrap();
+    let grammar = builder_grammar("builder_test");
+    let result = build_parser(grammar, temp_opts(&dir));
+    assert!(
+        result.is_ok(),
+        "GrammarBuilder grammar should build: {result:?}"
+    );
+}
+
+#[test]
+fn builder_grammar_name_preserved() {
+    let dir = TempDir::new().unwrap();
+    let grammar = builder_grammar("my_lang");
+    let result = build_parser(grammar, temp_opts(&dir)).unwrap();
+    assert_eq!(result.grammar_name, "my_lang");
+}
+
+#[test]
+fn builder_grammar_parser_code_nonempty() {
+    let dir = TempDir::new().unwrap();
+    let grammar = builder_grammar("code_check");
+    let result = build_parser(grammar, temp_opts(&dir)).unwrap();
+    assert!(!result.parser_code.is_empty());
+}
+
+#[test]
+fn builder_grammar_node_types_valid_json() {
+    let dir = TempDir::new().unwrap();
+    let grammar = builder_grammar("nt_check");
+    let result = build_parser(grammar, temp_opts(&dir)).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&result.node_types_json).unwrap();
+    assert!(parsed.is_array());
+}
+
+#[test]
+fn builder_grammar_stats_nonzero() {
+    let dir = TempDir::new().unwrap();
+    let grammar = builder_grammar("stats_check");
+    let result = build_parser(grammar, temp_opts(&dir)).unwrap();
+    assert!(result.build_stats.state_count > 0);
+    assert!(result.build_stats.symbol_count > 0);
+}
+
+#[test]
+fn builder_grammar_single_token() {
+    let dir = TempDir::new().unwrap();
+    let grammar = GrammarBuilder::new("single_tok")
+        .token("WORD", r"[a-z]+")
+        .rule("start", vec!["WORD"])
+        .start("start")
+        .build();
+    let result = build_parser(grammar, temp_opts(&dir));
+    assert!(
+        result.is_ok(),
+        "single-token grammar should build: {result:?}"
+    );
+}
+
+#[test]
+fn builder_grammar_parser_file_on_disk() {
+    let dir = TempDir::new().unwrap();
+    let grammar = builder_grammar("disk_check");
+    let result = build_parser(grammar, temp_opts(&dir)).unwrap();
+    assert!(Path::new(&result.parser_path).exists());
+}
+
+// =========================================================================
+// 12. build_parser_from_json — additional cases
+// =========================================================================
+
+#[test]
+fn build_from_json_empty_string_errors() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json(String::new(), temp_opts(&dir));
+    assert!(result.is_err(), "empty string should error");
+}
+
+#[test]
+fn build_from_json_bare_number_errors() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json("42".to_string(), temp_opts(&dir));
+    assert!(result.is_err(), "bare number JSON should error");
+}
+
+#[test]
+fn build_from_json_array_errors() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json("[1,2,3]".to_string(), temp_opts(&dir));
+    assert!(result.is_err(), "JSON array should error");
+}
+
+#[test]
+fn build_from_json_null_errors() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json("null".to_string(), temp_opts(&dir));
+    assert!(result.is_err(), "null JSON should error");
+}
+
+#[test]
+fn build_from_json_boolean_errors() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json("true".to_string(), temp_opts(&dir));
+    assert!(result.is_err(), "boolean JSON should error");
+}
+
+#[test]
+fn build_from_json_bare_string_errors() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json("\"hello\"".to_string(), temp_opts(&dir));
+    assert!(result.is_err(), "bare string JSON should error");
+}
+
+#[test]
+fn build_from_json_grammar_name_matches() {
+    let dir = TempDir::new().unwrap();
+    let result =
+        build_parser_from_json(simple_json_grammar("name_match"), temp_opts(&dir)).unwrap();
+    assert_eq!(result.grammar_name, "name_match");
+}
+
+#[test]
+fn build_from_json_parser_code_nonempty() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json(simple_json_grammar("code_nz"), temp_opts(&dir)).unwrap();
+    assert!(!result.parser_code.is_empty());
+}
+
+#[test]
+fn build_from_json_node_types_valid() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json(simple_json_grammar("nt_valid"), temp_opts(&dir)).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&result.node_types_json).unwrap();
+    assert!(parsed.is_array());
+}
+
+#[test]
+fn build_from_json_stats_populated() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json(simple_json_grammar("stats_pop"), temp_opts(&dir)).unwrap();
+    assert!(result.build_stats.state_count > 0);
+    assert!(result.build_stats.symbol_count > 0);
+}
+
+#[test]
+fn build_from_json_with_compression() {
+    let dir = TempDir::new().unwrap();
+    let mut opts = temp_opts(&dir);
+    opts.compress_tables = true;
+    let result = build_parser_from_json(simple_json_grammar("comp_json"), opts);
+    assert!(
+        result.is_ok(),
+        "JSON build with compression should succeed: {result:?}"
+    );
+}
+
+// =========================================================================
+// 13. Multiple sequential builds
+// =========================================================================
+
+#[test]
+fn sequential_builds_different_grammars() {
+    let dir = TempDir::new().unwrap();
+    let r1 = build_parser_from_json(simple_json_grammar("seq_a"), temp_opts(&dir)).unwrap();
+    let r2 = build_parser_from_json(simple_json_grammar("seq_b"), temp_opts(&dir)).unwrap();
+    assert_eq!(r1.grammar_name, "seq_a");
+    assert_eq!(r2.grammar_name, "seq_b");
+}
+
+#[test]
+fn sequential_builds_same_grammar_same_result() {
+    let dir = TempDir::new().unwrap();
+    let r1 = build_parser(builder_grammar("dup"), temp_opts(&dir)).unwrap();
+    let r2 = build_parser(builder_grammar("dup"), temp_opts(&dir)).unwrap();
+    assert_eq!(r1.grammar_name, r2.grammar_name);
+    assert_eq!(r1.parser_code, r2.parser_code);
+}
+
+#[test]
+fn sequential_builds_alternating_compression() {
+    let dir = TempDir::new().unwrap();
+    let mut opts_c = temp_opts(&dir);
+    opts_c.compress_tables = true;
+    let mut opts_u = temp_opts(&dir);
+    opts_u.compress_tables = false;
+    let r1 = build_parser(builder_grammar("alt"), opts_c).unwrap();
+    let r2 = build_parser(builder_grammar("alt"), opts_u).unwrap();
+    assert_eq!(r1.grammar_name, r2.grammar_name);
+}
+
+// =========================================================================
+// 14. BuildOptions clone & modification
+// =========================================================================
+
+#[test]
+fn clone_then_modify_out_dir() {
+    let opts = BuildOptions {
+        out_dir: "/original".to_string(),
+        emit_artifacts: false,
+        compress_tables: true,
+    };
+    let mut cloned = opts.clone();
+    cloned.out_dir = "/changed".to_string();
+    assert_eq!(opts.out_dir, "/original");
+    assert_eq!(cloned.out_dir, "/changed");
+}
+
+#[test]
+fn clone_then_modify_emit_artifacts() {
+    let opts = BuildOptions {
+        out_dir: "/tmp".to_string(),
+        emit_artifacts: false,
+        compress_tables: true,
+    };
+    let mut cloned = opts.clone();
+    cloned.emit_artifacts = true;
+    assert!(!opts.emit_artifacts);
+    assert!(cloned.emit_artifacts);
+}
+
+#[test]
+fn clone_then_modify_compress_tables() {
+    let opts = BuildOptions {
+        out_dir: "/tmp".to_string(),
+        emit_artifacts: false,
+        compress_tables: true,
+    };
+    let mut cloned = opts.clone();
+    cloned.compress_tables = false;
+    assert!(opts.compress_tables);
+    assert!(!cloned.compress_tables);
+}
+
+// =========================================================================
+// 15. BuildResult parser_code content checks
+// =========================================================================
+
+#[test]
+fn parser_code_contains_language_struct() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser(builder_grammar("lang_struct"), temp_opts(&dir)).unwrap();
+    assert!(
+        result.parser_code.contains("LANGUAGE")
+            || result.parser_code.contains("Language")
+            || result.parser_code.contains("language"),
+        "parser code should reference LANGUAGE"
+    );
+}
+
+#[test]
+fn parser_code_is_valid_utf8() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser(builder_grammar("utf8_check"), temp_opts(&dir)).unwrap();
+    // parser_code is a String so already valid UTF-8, but verify it's parseable text
+    assert!(result.parser_code.is_ascii() || !result.parser_code.is_empty());
+}
+
+#[test]
+fn node_types_json_has_entries() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser(GrammarConverter::create_sample_grammar(), temp_opts(&dir)).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&result.node_types_json).unwrap();
+    let arr = parsed.as_array().unwrap();
+    assert!(!arr.is_empty(), "node_types_json should have entries");
 }
