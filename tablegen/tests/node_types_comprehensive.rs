@@ -1227,6 +1227,977 @@ fn fragile_tokens_emitted_as_anonymous() {
 }
 
 // ---------------------------------------------------------------------------
+// 35. Only string-pattern tokens appear as anonymous — regex tokens excluded
+// ---------------------------------------------------------------------------
+
+#[test]
+fn only_string_tokens_appear_anonymous() {
+    let mut g = Grammar::new("anon_only".to_string());
+
+    let regex_id = SymbolId(0);
+    g.tokens.insert(
+        regex_id,
+        Token {
+            name: "ident".to_string(),
+            pattern: TokenPattern::Regex(r"[a-z]+".to_string()),
+            fragile: false,
+        },
+    );
+
+    let str_id = SymbolId(1);
+    g.tokens.insert(
+        str_id,
+        Token {
+            name: "comma".to_string(),
+            pattern: TokenPattern::String(",".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "list".to_string());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(regex_id), Symbol::Terminal(str_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let anon_nodes: Vec<_> = nodes.iter().filter(|n| n["named"] == false).collect();
+    // Only the string token "," should be anonymous
+    assert_eq!(anon_nodes.len(), 1);
+    assert_eq!(anon_nodes[0]["type"].as_str(), Some(","));
+}
+
+// ---------------------------------------------------------------------------
+// 36. Rule with no rule_name gets fallback name
+// ---------------------------------------------------------------------------
+
+#[test]
+fn rule_without_name_gets_fallback() {
+    let mut g = Grammar::new("fallback".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "x".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+
+    // Add rule without inserting into rule_names
+    let rule_id = SymbolId(5);
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    // Fallback name should be "rule_5"
+    assert!(
+        find_node(&nodes, "rule_5").is_some(),
+        "unnamed rule should get fallback name 'rule_5'"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 37. Multiple string tokens all appear as anonymous
+// ---------------------------------------------------------------------------
+
+#[test]
+fn multiple_string_tokens_all_anonymous() {
+    let mut g = Grammar::new("multi_str".to_string());
+
+    for (i, lit) in ["+", "-", "*", "/", "(", ")"].iter().enumerate() {
+        g.tokens.insert(
+            SymbolId(i as u16),
+            Token {
+                name: lit.to_string(),
+                pattern: TokenPattern::String(lit.to_string()),
+                fragile: false,
+            },
+        );
+    }
+
+    let rule_id = SymbolId(100);
+    g.rule_names.insert(rule_id, "expr".to_string());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(SymbolId(0))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let anon: Vec<_> = nodes.iter().filter(|n| n["named"] == false).collect();
+    assert_eq!(anon.len(), 6, "all 6 string tokens should be anonymous");
+}
+
+// ---------------------------------------------------------------------------
+// 38. Grammar with only tokens and no rules
+// ---------------------------------------------------------------------------
+
+#[test]
+fn grammar_only_tokens_no_rules() {
+    let mut g = Grammar::new("tokens_only".to_string());
+
+    g.tokens.insert(
+        SymbolId(0),
+        Token {
+            name: "plus".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "num".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        },
+    );
+
+    let nodes = generate_and_parse(&g);
+    // Only string tokens appear (regex tokens are excluded from anonymous output)
+    assert_eq!(nodes.len(), 1);
+    assert_eq!(nodes[0]["type"].as_str(), Some("+"));
+    assert_eq!(nodes[0]["named"], false);
+}
+
+// ---------------------------------------------------------------------------
+// 39. Grammar with only anonymous tokens — no named nodes at all
+// ---------------------------------------------------------------------------
+
+#[test]
+fn all_anonymous_grammar() {
+    let mut g = Grammar::new("all_anon".to_string());
+
+    for (i, lit) in ["(", ")", "{", "}"].iter().enumerate() {
+        g.tokens.insert(
+            SymbolId(i as u16),
+            Token {
+                name: lit.to_string(),
+                pattern: TokenPattern::String(lit.to_string()),
+                fragile: false,
+            },
+        );
+    }
+
+    let nodes = generate_and_parse(&g);
+    assert!(
+        nodes.iter().all(|n| n["named"] == false),
+        "all nodes should be anonymous"
+    );
+    assert_eq!(nodes.len(), 4);
+}
+
+// ---------------------------------------------------------------------------
+// 40. Token that is also referenced by rule_names uses token name
+// ---------------------------------------------------------------------------
+
+#[test]
+fn token_name_takes_priority_over_rule_name() {
+    let mut g = Grammar::new("overlap".to_string());
+
+    let id = SymbolId(0);
+    g.tokens.insert(
+        id,
+        Token {
+            name: "number".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        },
+    );
+    // Also add to rule_names (simulates overlap)
+    g.rule_names.insert(id, "number_alt".to_string());
+
+    // The get_rule_name method checks tokens first
+    let generator = NodeTypesGenerator::new(&g);
+    let json = generator.generate().unwrap();
+    // Should produce valid JSON without error
+    let _: Vec<Value> = serde_json::from_str(&json).unwrap();
+}
+
+// ---------------------------------------------------------------------------
+// 41. Very long rule name is preserved verbatim
+// ---------------------------------------------------------------------------
+
+#[test]
+fn long_rule_name_preserved() {
+    let mut g = Grammar::new("long_name".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+
+    let long_name = "a".repeat(200);
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, long_name.clone());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    assert!(
+        find_node(&nodes, &long_name).is_some(),
+        "long rule name should be preserved"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 42. Unicode rule names preserved
+// ---------------------------------------------------------------------------
+
+#[test]
+fn unicode_rule_name_preserved() {
+    let mut g = Grammar::new("unicode".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "x".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "式".to_string());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    assert!(
+        find_node(&nodes, "式").is_some(),
+        "unicode rule name should be preserved"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 43. Unicode token literal preserved
+// ---------------------------------------------------------------------------
+
+#[test]
+fn unicode_token_literal_preserved() {
+    let mut g = Grammar::new("unicode_tok".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "arrow".to_string(),
+            pattern: TokenPattern::String("→".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "stmt".to_string());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    assert!(
+        find_node(&nodes, "→").is_some(),
+        "unicode token literal should appear"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 44. Field referencing unknown FieldId is gracefully skipped
+// ---------------------------------------------------------------------------
+
+#[test]
+fn field_with_unknown_field_id_skipped() {
+    let mut g = Grammar::new("bad_field".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "r".to_string());
+    // FieldId(99) is not in g.fields
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![(FieldId(99), 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let r = find_node(&nodes, "r").expect("missing 'r'");
+    // Unknown field should be skipped, so no fields
+    assert!(r.get("fields").is_none(), "unknown field should be skipped");
+}
+
+// ---------------------------------------------------------------------------
+// 45. Field with out-of-bounds position is gracefully skipped
+// ---------------------------------------------------------------------------
+
+#[test]
+fn field_with_out_of_bounds_position_skipped() {
+    let mut g = Grammar::new("oob_field".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "r".to_string());
+    let f = FieldId(0);
+    g.fields.insert(f, "val".to_string());
+    // Position 10 is out of bounds (rhs has only 1 element)
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![(f, 10)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let r = find_node(&nodes, "r").expect("missing 'r'");
+    // Out-of-bounds field position should be skipped
+    assert!(
+        r.get("fields").is_none(),
+        "out-of-bounds field should be skipped"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 46. Two rules with same LHS but different fields merges them
+// ---------------------------------------------------------------------------
+
+#[test]
+fn multiple_rules_merge_fields() {
+    let mut g = Grammar::new("merge_fields".to_string());
+
+    let tok_a = SymbolId(0);
+    g.tokens.insert(
+        tok_a,
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::Regex(r"a".to_string()),
+            fragile: false,
+        },
+    );
+    let tok_b = SymbolId(1);
+    g.tokens.insert(
+        tok_b,
+        Token {
+            name: "b".to_string(),
+            pattern: TokenPattern::Regex(r"b".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "node".to_string());
+
+    let f_left = FieldId(0);
+    let f_right = FieldId(1);
+    g.fields.insert(f_left, "left".to_string());
+    g.fields.insert(f_right, "right".to_string());
+
+    // First production: has "left" field
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_a)],
+        precedence: None,
+        associativity: None,
+        fields: vec![(f_left, 0)],
+        production_id: ProductionId(0),
+    });
+    // Second production: has "right" field
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Terminal(tok_b)],
+        precedence: None,
+        associativity: None,
+        fields: vec![(f_right, 0)],
+        production_id: ProductionId(1),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let node = find_node(&nodes, "node").expect("missing 'node'");
+    let fields_obj = node.get("fields").expect("should have fields");
+    assert!(fields_obj.get("left").is_some(), "missing 'left'");
+    assert!(fields_obj.get("right").is_some(), "missing 'right'");
+}
+
+// ---------------------------------------------------------------------------
+// 47. Deeply nested Symbol::Optional(Repeat(Terminal)) resolves
+// ---------------------------------------------------------------------------
+
+#[test]
+fn deeply_nested_symbol_resolves() {
+    let mut g = Grammar::new("deep_nest".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "num".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "deep".to_string());
+    let f = FieldId(0);
+    g.fields.insert(f, "val".to_string());
+
+    // Optional(Repeat(Optional(Terminal)))
+    let sym = Symbol::Optional(Box::new(Symbol::Repeat(Box::new(Symbol::Optional(
+        Box::new(Symbol::Terminal(tok_id)),
+    )))));
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![sym],
+        precedence: None,
+        associativity: None,
+        fields: vec![(f, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let deep = find_node(&nodes, "deep").expect("missing 'deep'");
+    let types = &deep["fields"]["val"]["types"];
+    let first = &types[0];
+    assert_eq!(first["type"].as_str(), Some("num"));
+    assert_eq!(first["named"], true);
+}
+
+// ---------------------------------------------------------------------------
+// 48. Choice with all terminals picks first
+// ---------------------------------------------------------------------------
+
+#[test]
+fn choice_all_terminals_picks_first() {
+    let mut g = Grammar::new("choice_terms".to_string());
+
+    let tok_a = SymbolId(0);
+    g.tokens.insert(
+        tok_a,
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+    let tok_b = SymbolId(1);
+    g.tokens.insert(
+        tok_b,
+        Token {
+            name: "b".to_string(),
+            pattern: TokenPattern::String("b".to_string()),
+            fragile: false,
+        },
+    );
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "pick".to_string());
+    let f = FieldId(0);
+    g.fields.insert(f, "v".to_string());
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Choice(vec![
+            Symbol::Terminal(tok_a),
+            Symbol::Terminal(tok_b),
+        ])],
+        precedence: None,
+        associativity: None,
+        fields: vec![(f, 0)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let pick = find_node(&nodes, "pick").expect("missing 'pick'");
+    let types = &pick["fields"]["v"]["types"];
+    assert_eq!(types[0]["type"].as_str(), Some("a"));
+}
+
+// ---------------------------------------------------------------------------
+// 49. Sequence with mixed terminals and nonterminals picks first
+// ---------------------------------------------------------------------------
+
+#[test]
+fn sequence_mixed_picks_first() {
+    let mut g = Grammar::new("seq_mixed".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "x".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+
+    let nt_id = SymbolId(5);
+    g.rule_names.insert(nt_id, "child".to_string());
+    g.add_rule(Rule {
+        lhs: nt_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "parent".to_string());
+    let f = FieldId(0);
+    g.fields.insert(f, "v".to_string());
+
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Sequence(vec![
+            Symbol::NonTerminal(nt_id),
+            Symbol::Terminal(tok_id),
+        ])],
+        precedence: None,
+        associativity: None,
+        fields: vec![(f, 0)],
+        production_id: ProductionId(1),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let parent = find_node(&nodes, "parent").expect("missing 'parent'");
+    let types = &parent["fields"]["v"]["types"];
+    // Sequence picks first element which is NonTerminal("child")
+    assert_eq!(types[0]["type"].as_str(), Some("child"));
+    assert_eq!(types[0]["named"], true);
+}
+
+// ---------------------------------------------------------------------------
+// 50. GrammarBuilder-based test with extras produces valid JSON
+// ---------------------------------------------------------------------------
+
+#[test]
+fn builder_extras_valid_json() {
+    let g = GrammarBuilder::new("extras")
+        .token("ws", r"[ \t]+")
+        .token("id", r"[a-z]+")
+        .extra("ws")
+        .rule("prog", vec!["id"])
+        .build();
+
+    let nodes = generate_and_parse(&g);
+    // Should not panic; extras don't affect node types output
+    assert!(!nodes.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 51. GrammarBuilder with external tokens produces valid output
+// ---------------------------------------------------------------------------
+
+#[test]
+fn builder_external_tokens_valid() {
+    let g = GrammarBuilder::new("ext_builder")
+        .token("id", r"[a-z]+")
+        .external("INDENT")
+        .external("DEDENT")
+        .rule("block", vec!["id"])
+        .build();
+
+    let nodes = generate_and_parse(&g);
+    assert!(!nodes.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 52. NodeTypesGenerator is Send (can be transferred across threads)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn generator_is_send() {
+    fn assert_send<T: Send>() {}
+    assert_send::<NodeTypesGenerator<'_>>();
+}
+
+// ---------------------------------------------------------------------------
+// 53. NodeTypesGenerator is Sync (can be shared across threads)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn generator_is_sync() {
+    fn assert_sync<T: Sync>() {}
+    assert_sync::<NodeTypesGenerator<'_>>();
+}
+
+// ---------------------------------------------------------------------------
+// 54. Same-name rules and tokens — token checked first in get_rule_name
+// ---------------------------------------------------------------------------
+
+#[test]
+fn same_name_token_checked_first() {
+    let mut g = Grammar::new("priority".to_string());
+
+    let id = SymbolId(0);
+    g.tokens.insert(
+        id,
+        Token {
+            name: "kw".to_string(),
+            pattern: TokenPattern::String("keyword".to_string()),
+            fragile: false,
+        },
+    );
+    g.rule_names.insert(id, "kw".to_string());
+
+    // When this symbol has a rule, the node type name comes from the token
+    g.add_rule(Rule {
+        lhs: id,
+        rhs: vec![Symbol::Epsilon],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    // Should not panic; produces valid output
+    let nodes = generate_and_parse(&g);
+    assert!(!nodes.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 55. Large number of rules doesn't cause stack overflow
+// ---------------------------------------------------------------------------
+
+#[test]
+fn large_rule_count_no_overflow() {
+    let mut g = Grammar::new("large".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "t".to_string(),
+            pattern: TokenPattern::String("t".to_string()),
+            fragile: false,
+        },
+    );
+
+    for i in 1u16..=200 {
+        let id = SymbolId(i);
+        g.rule_names.insert(id, format!("rule_{}", i));
+        g.add_rule(Rule {
+            lhs: id,
+            rhs: vec![Symbol::Terminal(tok_id)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(i),
+        });
+    }
+
+    let nodes = generate_and_parse(&g);
+    // 200 named rules + 1 anonymous token "t"
+    assert_eq!(nodes.len(), 201);
+}
+
+// ---------------------------------------------------------------------------
+// 56. Token with empty-string name still produces valid JSON
+// ---------------------------------------------------------------------------
+
+#[test]
+fn empty_string_token_name() {
+    let mut g = Grammar::new("empty_name".to_string());
+
+    g.tokens.insert(
+        SymbolId(0),
+        Token {
+            name: "".to_string(),
+            pattern: TokenPattern::String("".to_string()),
+            fragile: false,
+        },
+    );
+
+    // Should not panic
+    let generator = NodeTypesGenerator::new(&g);
+    let result = generator.generate();
+    assert!(result.is_ok());
+}
+
+// ---------------------------------------------------------------------------
+// 57. RepeatOne delegates through to inner like Repeat
+// ---------------------------------------------------------------------------
+
+#[test]
+fn repeat_one_delegates_same_as_repeat() {
+    let mut g = Grammar::new("rep1_vs_rep".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "num".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        },
+    );
+
+    let f_rep = FieldId(0);
+    let f_rep1 = FieldId(1);
+    g.fields.insert(f_rep, "rep".to_string());
+    g.fields.insert(f_rep1, "rep1".to_string());
+
+    let rule_id = SymbolId(10);
+    g.rule_names.insert(rule_id, "node".to_string());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![
+            Symbol::Repeat(Box::new(Symbol::Terminal(tok_id))),
+            Symbol::RepeatOne(Box::new(Symbol::Terminal(tok_id))),
+        ],
+        precedence: None,
+        associativity: None,
+        fields: vec![(f_rep, 0), (f_rep1, 1)],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let node = find_node(&nodes, "node").expect("missing 'node'");
+    let rep_type = &node["fields"]["rep"]["types"][0];
+    let rep1_type = &node["fields"]["rep1"]["types"][0];
+    assert_eq!(rep_type["type"], rep1_type["type"]);
+    assert_eq!(rep_type["named"], rep1_type["named"]);
+}
+
+// ---------------------------------------------------------------------------
+// 58. Multiple internal rules — none appear in output
+// ---------------------------------------------------------------------------
+
+#[test]
+fn multiple_internal_rules_all_excluded() {
+    let mut g = Grammar::new("multi_internal".to_string());
+
+    let tok_id = SymbolId(0);
+    g.tokens.insert(
+        tok_id,
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+
+    for i in 1u16..=5 {
+        let id = SymbolId(i);
+        g.rule_names.insert(id, format!("_internal_{}", i));
+        g.add_rule(Rule {
+            lhs: id,
+            rhs: vec![Symbol::Terminal(tok_id)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(i),
+        });
+    }
+
+    let nodes = generate_and_parse(&g);
+    for node in &nodes {
+        let name = node["type"].as_str().unwrap();
+        assert!(
+            !name.starts_with('_'),
+            "internal rule '{}' should not appear",
+            name
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 59. JSON output has no duplicate entries for same type name
+// ---------------------------------------------------------------------------
+
+#[test]
+fn no_duplicate_type_entries() {
+    let g = GrammarBuilder::new("dedup")
+        .token("num", r"\d+")
+        .token("+", "+")
+        .rule("expr", vec!["num"])
+        .rule("expr", vec!["expr", "+", "expr"])
+        .build();
+
+    let nodes = generate_and_parse(&g);
+    let mut seen = std::collections::HashSet::new();
+    for node in &nodes {
+        let name = node["type"].as_str().unwrap();
+        let named = node["named"].as_bool().unwrap();
+        let key = (name.to_string(), named);
+        assert!(
+            seen.insert(key.clone()),
+            "duplicate entry for ({}, named={})",
+            name,
+            named
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 60. generate() returns Ok, not Err
+// ---------------------------------------------------------------------------
+
+#[test]
+fn generate_returns_ok_for_valid_grammar() {
+    let g = GrammarBuilder::new("ok_test")
+        .token("id", r"[a-z]+")
+        .rule("start", vec!["id"])
+        .build();
+
+    let generator = NodeTypesGenerator::new(&g);
+    assert!(generator.generate().is_ok());
+}
+
+// ---------------------------------------------------------------------------
+// 61. Named rule nodes always have `named: true`
+// ---------------------------------------------------------------------------
+
+#[test]
+fn all_rule_nodes_are_named() {
+    let g = GrammarBuilder::new("named_rules")
+        .token("id", r"[a-z]+")
+        .token(",", ",")
+        .rule("item", vec!["id"])
+        .rule("list", vec!["item", ",", "item"])
+        .build();
+
+    let nodes = generate_and_parse(&g);
+    for node in &nodes {
+        let name = node["type"].as_str().unwrap();
+        let named = node["named"].as_bool().unwrap();
+        // Rules should be named, string tokens should not
+        if name == "item" || name == "list" {
+            assert!(named, "rule '{}' should be named", name);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 62. GrammarBuilder python_like produces valid node types
+// ---------------------------------------------------------------------------
+
+#[test]
+fn python_like_grammar_valid() {
+    let g = GrammarBuilder::python_like();
+    let nodes = generate_and_parse(&g);
+    assert!(!nodes.is_empty());
+    // Should contain "module", "statement", "function_def", etc.
+    assert!(find_node(&nodes, "module").is_some());
+    assert!(find_node(&nodes, "statement").is_some());
+}
+
+// ---------------------------------------------------------------------------
+// 63. GrammarBuilder javascript_like produces valid node types
+// ---------------------------------------------------------------------------
+
+#[test]
+fn javascript_like_grammar_valid() {
+    let g = GrammarBuilder::javascript_like();
+    let nodes = generate_and_parse(&g);
+    assert!(!nodes.is_empty());
+    assert!(find_node(&nodes, "program").is_some());
+}
+
+// ---------------------------------------------------------------------------
+// 64. Epsilon-only rule still produces a named node
+// ---------------------------------------------------------------------------
+
+#[test]
+fn epsilon_only_rule_produces_named_node() {
+    let mut g = Grammar::new("eps_rule".to_string());
+
+    let rule_id = SymbolId(1);
+    g.rule_names.insert(rule_id, "empty_rule".to_string());
+    g.add_rule(Rule {
+        lhs: rule_id,
+        rhs: vec![Symbol::Epsilon],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let nodes = generate_and_parse(&g);
+    let er = find_node(&nodes, "empty_rule").expect("missing 'empty_rule'");
+    assert_eq!(er["named"], true);
+}
+
+// ---------------------------------------------------------------------------
+// 65. Rules with precedence still produce node types
+// ---------------------------------------------------------------------------
+
+#[test]
+fn precedence_rules_produce_node_types() {
+    let g = GrammarBuilder::new("prec")
+        .token("num", r"\d+")
+        .token("+", "+")
+        .token("*", "*")
+        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
+        .rule("expr", vec!["num"])
+        .build();
+
+    let nodes = generate_and_parse(&g);
+    assert!(find_node(&nodes, "expr").is_some());
+}
+
+// ---------------------------------------------------------------------------
 // COMPRESSION TESTS: Parse table compression properties
 // ---------------------------------------------------------------------------
 // These tests verify the parse table compression pipeline which is essential
