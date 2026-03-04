@@ -208,7 +208,7 @@ fn version_clone() {
     v.enter_error();
     v.add_error_cost(3, 1);
     let v2 = v.clone();
-    assert_eq!(v2.in_error, true);
+    assert!(v2.in_error);
     assert_eq!(v2.dynamic_prec, 5);
     assert_eq!(v2.cost, 3);
     assert_eq!(v2.node_count, 1);

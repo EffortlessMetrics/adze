@@ -40,7 +40,7 @@ fn creation_with_string_preserves_value_and_span() {
 #[test]
 fn creation_with_zero_width_span() {
     let s = mk(true, 7, 7);
-    assert_eq!(s.value, true);
+    assert!(s.value);
     assert_eq!(s.span.0, s.span.1);
 }
 
@@ -57,8 +57,9 @@ fn deref_returns_inner_i32() {
 
 #[test]
 fn deref_with_star_operator() {
-    let s = mk(3.14_f64, 0, 4);
-    assert!((*s - 3.14).abs() < f64::EPSILON);
+    let expected = 157.0 / 50.0;
+    let s = mk(expected, 0, 4);
+    assert!((*s - expected).abs() < f64::EPSILON);
 }
 
 #[test]

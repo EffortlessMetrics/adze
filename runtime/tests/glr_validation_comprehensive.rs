@@ -423,7 +423,7 @@ fn test_left_recursive_grammar_detected() {
 #[test]
 fn test_unreachable_symbol_detection() {
     // Create a grammar where some rules are disconnected from start
-    let mut g = GrammarBuilder::new("unreach")
+    let g = GrammarBuilder::new("unreach")
         .token("x", "x")
         .token("y", "y")
         .rule("start", vec!["x"])

@@ -238,15 +238,35 @@ fn json_all_node_types() {
     let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
     // Normal named node
-    assert_eq!(value["children"][0]["is_named"], true);
-    assert_eq!(value["children"][0]["is_error"], false);
+    assert!(
+        value["children"][0]["is_named"]
+            .as_bool()
+            .expect("is_named")
+    );
+    assert!(
+        !value["children"][0]["is_error"]
+            .as_bool()
+            .expect("is_error")
+    );
 
     // Error node
-    assert_eq!(value["children"][1]["is_error"], true);
-    assert_eq!(value["children"][1]["is_named"], false);
+    assert!(
+        value["children"][1]["is_error"]
+            .as_bool()
+            .expect("is_error")
+    );
+    assert!(
+        !value["children"][1]["is_named"]
+            .as_bool()
+            .expect("is_named")
+    );
 
     // Missing node
-    assert_eq!(value["children"][2]["is_missing"], true);
+    assert!(
+        value["children"][2]["is_missing"]
+            .as_bool()
+            .expect("is_missing")
+    );
 
     // Node with field_name
     assert_eq!(value["children"][3]["field_name"], "value");

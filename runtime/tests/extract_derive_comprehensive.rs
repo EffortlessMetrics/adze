@@ -130,8 +130,9 @@ fn extract_i32_negative() {
 fn extract_f64_from_node() {
     let src = b"3.14";
     let node = leaf(0, 4);
+    let expected = 157.0 / 50.0;
     let val = f64::extract(Some(&node), src, 0, None);
-    assert!((val - 3.14).abs() < f64::EPSILON);
+    assert!((val - expected).abs() < f64::EPSILON);
 }
 
 #[test]
