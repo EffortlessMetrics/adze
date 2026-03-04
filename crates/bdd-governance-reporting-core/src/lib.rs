@@ -14,21 +14,9 @@ use core::fmt::Write;
 
 pub use adze_bdd_grid_core::{BddPhase, BddScenario, bdd_progress, bdd_progress_report};
 pub use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
-
-/// Advisory profile description for conflict-capable grammars.
-pub const GLR_CONFLICT_FALLBACK: &str =
-    "Pure-rust without GLR: conflicts panic unless `glr` feature is enabled";
-
-/// Describe the conflict backend behavior for a given feature profile.
-pub const fn describe_backend_for_conflicts(profile: ParserFeatureProfile) -> &'static str {
-    if profile.glr {
-        ParserBackend::GLR.name()
-    } else if profile.pure_rust {
-        GLR_CONFLICT_FALLBACK
-    } else {
-        ParserBackend::TreeSitter.name()
-    }
-}
+pub use adze_governance_status_core::{
+    GLR_CONFLICT_FALLBACK, bdd_progress_status_line, describe_backend_for_conflicts,
+};
 
 /// Compose BDD progress with parser profile diagnostics in one report.
 pub fn bdd_progress_report_with_profile(
@@ -58,25 +46,6 @@ pub fn bdd_progress_report_with_profile(
     );
 
     out
-}
-
-/// Return a stable machine-readable status line for dashboards and CI.
-pub fn bdd_progress_status_line(
-    phase: BddPhase,
-    scenarios: &[BddScenario],
-    profile: ParserFeatureProfile,
-) -> String {
-    let (implemented, total) = bdd_progress(phase, scenarios);
-    let backend = profile.resolve_backend(false).name();
-    let phase_label = match phase {
-        BddPhase::Core => "core",
-        BddPhase::Runtime => "runtime",
-    };
-
-    format!(
-        "{phase_label}:{implemented}/{total}:{backend}:{profile}",
-        backend = backend,
-    )
 }
 
 #[cfg(test)]

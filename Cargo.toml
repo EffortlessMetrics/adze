@@ -50,6 +50,7 @@ members = [
   "crates/bdd-grid-core",
   "crates/feature-policy-core",
   "crates/parser-feature-profile-core",
+  "crates/governance-status-core",
   "crates/concurrency-bounded-map-core",
   "crates/concurrency-caps-contract-core",
   "crates/concurrency-init-bootstrap-policy-core",
