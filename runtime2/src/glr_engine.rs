@@ -311,7 +311,7 @@ impl GLREngine {
                 })?;
             let first = first_child.range.clone();
             let last = last_child.range.clone();
-            first.range.start..last.range.end
+            first.start..last.end
         };
 
         // Add nonterminal node to forest
