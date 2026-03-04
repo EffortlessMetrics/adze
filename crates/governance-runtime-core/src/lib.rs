@@ -1,8 +1,7 @@
 //! Shared governance primitives for runtime profile selection and BDD reporting.
 //!
-//! This crate intentionally owns the profile composition helpers so that both
-//! `runtime` and `runtime2` consumers can share the same behavior and fixture
-//! wiring for BDD progress reporting.
+//! This crate composes runtime profile helpers with governance reporting so that
+//! `runtime` and `runtime2` consumers can share fixture wiring and status output.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -14,34 +13,16 @@
 /// Re-exported governance reporting primitives (BDD grid, parser profiles, report helpers).
 pub use adze_governance_runtime_reporting::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
-    GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
-    bdd_governance_snapshot, bdd_progress, bdd_progress_report, bdd_progress_report_with_profile,
+    GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, bdd_governance_snapshot, bdd_progress,
+    bdd_progress_report, bdd_progress_report_with_profile,
     bdd_progress_report_with_profile_runtime, bdd_progress_status_line,
     describe_backend_for_conflicts,
 };
 
-/// Return the compile-time parser feature profile for the runtime crate.
-pub const fn parser_feature_profile_for_runtime() -> ParserFeatureProfile {
-    ParserFeatureProfile::current()
-}
-
-/// Return a parser profile equivalent to the runtime2 `pure-rust-glr` toggle.
-pub const fn parser_feature_profile_for_runtime2(pure_rust_glr: bool) -> ParserFeatureProfile {
-    ParserFeatureProfile {
-        pure_rust: pure_rust_glr,
-        tree_sitter_standard: false,
-        tree_sitter_c2rust: false,
-        glr: pure_rust_glr,
-    }
-}
-
-/// Resolve a backend using an explicit profile.
-pub const fn resolve_backend_for_profile(
-    profile: ParserFeatureProfile,
-    has_conflicts: bool,
-) -> ParserBackend {
-    profile.resolve_backend(has_conflicts)
-}
+pub use adze_runtime_profile_core::{
+    ParserBackend, ParserFeatureProfile, parser_feature_profile_for_runtime,
+    parser_feature_profile_for_runtime2, resolve_backend_for_profile,
+};
 
 /// Build a profile-specific governance report against the canonical GLR scenario grid.
 pub fn bdd_progress_report_for_profile(

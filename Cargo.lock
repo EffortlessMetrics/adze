@@ -444,6 +444,7 @@ name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
  "adze-governance-runtime-reporting",
+ "adze-runtime-profile-core",
 ]
 
 [[package]]
@@ -632,6 +633,13 @@ name = "adze-runtime-governance-matrix"
 version = "0.1.0"
 dependencies = [
  "adze-governance-runtime-core",
+]
+
+[[package]]
+name = "adze-runtime-profile-core"
+version = "0.1.0"
+dependencies = [
+ "adze-feature-policy-core",
 ]
 
 [[package]]

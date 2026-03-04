@@ -22,6 +22,7 @@ members = [
   "crates/governance-matrix-core-impl",
   "crates/governance-matrix-core",
   "crates/governance-runtime-core",
+  "crates/runtime-profile-core",
   "crates/governance-runtime-reporting",
   "crates/feature-policy-contract",
   "crates/concurrency-map-core",
