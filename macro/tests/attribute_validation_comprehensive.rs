@@ -1076,3 +1076,757 @@ fn twelve_known_attrs_complete_set() {
         );
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 11. try_extract_inner_type tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn extract_inner_vec_of_string() {
+    use adze_common::try_extract_inner_type;
+    let t = ty("Vec<String>");
+    let (inner, ok) = try_extract_inner_type(&t, "Vec", &skip_set(&[]));
+    assert!(ok);
+    assert_eq!(ts(&inner), "String");
+}
+
+#[test]
+fn extract_inner_option_of_i32() {
+    use adze_common::try_extract_inner_type;
+    let t = ty("Option<i32>");
+    let (inner, ok) = try_extract_inner_type(&t, "Option", &skip_set(&[]));
+    assert!(ok);
+    assert_eq!(ts(&inner), "i32");
+}
+
+#[test]
+fn extract_inner_not_matching_returns_false() {
+    use adze_common::try_extract_inner_type;
+    let t = ty("HashMap<String, i32>");
+    let (inner, ok) = try_extract_inner_type(&t, "Vec", &skip_set(&[]));
+    assert!(!ok);
+    assert_eq!(ts(&inner), "HashMap < String , i32 >");
+}
+
+#[test]
+fn extract_inner_through_box_skip() {
+    use adze_common::try_extract_inner_type;
+    let t = ty("Box<Vec<u32>>");
+    let (inner, ok) = try_extract_inner_type(&t, "Vec", &skip_set(&["Box"]));
+    assert!(ok);
+    assert_eq!(ts(&inner), "u32");
+}
+
+#[test]
+fn extract_inner_non_path_type_unchanged() {
+    use adze_common::try_extract_inner_type;
+    let t: Type = parse_quote!(&str);
+    let (_inner, ok) = try_extract_inner_type(&t, "Vec", &skip_set(&[]));
+    assert!(!ok);
+}
+
+#[test]
+fn extract_inner_plain_type_not_extracted() {
+    use adze_common::try_extract_inner_type;
+    let t = ty("String");
+    let (inner, ok) = try_extract_inner_type(&t, "Vec", &skip_set(&[]));
+    assert!(!ok);
+    assert_eq!(ts(&inner), "String");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 12. Additional wrap_leaf_type edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn wrap_leaf_type_nested_option_vec() {
+    let t = ty("Option<Vec<u64>>");
+    let wrapped = wrap_leaf_type(&t, &skip_set(&["Option", "Vec"]));
+    assert_eq!(ts(&wrapped), "Option < Vec < adze :: WithLeaf < u64 > > >");
+}
+
+#[test]
+fn wrap_leaf_type_plain_string() {
+    let t = ty("String");
+    let wrapped = wrap_leaf_type(&t, &skip_set(&[]));
+    assert_eq!(ts(&wrapped), "adze :: WithLeaf < String >");
+}
+
+#[test]
+fn wrap_leaf_type_tuple_type() {
+    let t: Type = parse_quote!((i32, u32));
+    let wrapped = wrap_leaf_type(&t, &skip_set(&[]));
+    assert_eq!(ts(&wrapped), "adze :: WithLeaf < (i32 , u32) >");
+}
+
+#[test]
+fn wrap_leaf_type_reference_type() {
+    let t: Type = parse_quote!(&str);
+    let wrapped = wrap_leaf_type(&t, &skip_set(&[]));
+    assert_eq!(ts(&wrapped), "adze :: WithLeaf < & str >");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 13. Additional filter_inner_type edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn filter_inner_type_triple_nested() {
+    let t = ty("Box<Arc<Rc<String>>>");
+    let filtered = filter_inner_type(&t, &skip_set(&["Box", "Arc", "Rc"]));
+    assert_eq!(ts(&filtered), "String");
+}
+
+#[test]
+fn filter_inner_type_empty_skip_preserves() {
+    let t = ty("Box<String>");
+    let filtered = filter_inner_type(&t, &skip_set(&[]));
+    assert_eq!(ts(&filtered), "Box < String >");
+}
+
+#[test]
+fn filter_inner_type_non_path_unchanged() {
+    let t: Type = parse_quote!(&str);
+    let filtered = filter_inner_type(&t, &skip_set(&["Box"]));
+    assert_eq!(ts(&filtered), "& str");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 14. Struct with multiple named fields
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn struct_multiple_named_fields() {
+    let s: ItemStruct = parse_quote! {
+        pub struct BinaryOp {
+            left: Box<Expr>,
+            #[adze::leaf(text = "+")]
+            _op: (),
+            right: Box<Expr>,
+        }
+    };
+    assert_eq!(s.fields.iter().count(), 3);
+    let field_names: Vec<_> = s
+        .fields
+        .iter()
+        .map(|f| f.ident.as_ref().unwrap().to_string())
+        .collect();
+    assert_eq!(field_names, vec!["left", "_op", "right"]);
+}
+
+#[test]
+fn struct_all_fields_have_leaf() {
+    let s: ItemStruct = parse_quote! {
+        pub struct Pair {
+            #[adze::leaf(pattern = r"\d+")]
+            a: String,
+            #[adze::leaf(text = ",")]
+            _sep: (),
+            #[adze::leaf(pattern = r"\d+")]
+            b: String,
+        }
+    };
+    for field in &s.fields {
+        assert!(
+            field.attrs.iter().any(|a| is_adze_attr(a, "leaf")),
+            "Each field should have leaf attr"
+        );
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 15. Enum variant type diversity
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn enum_mixed_variant_kinds() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Node {
+            #[adze::leaf(text = "nil")]
+            Nil,
+            Value(i32),
+            Pair {
+                left: Box<Node>,
+                right: Box<Node>,
+            },
+        }
+    };
+    assert!(matches!(e.variants[0].fields, Fields::Unit));
+    assert!(matches!(e.variants[1].fields, Fields::Unnamed(_)));
+    assert!(matches!(e.variants[2].fields, Fields::Named(_)));
+}
+
+#[test]
+fn enum_single_variant() {
+    let e: ItemEnum = parse_quote! {
+        #[adze::language]
+        pub enum Expr {
+            Number(#[adze::leaf(pattern = r"\d+")] String),
+        }
+    };
+    assert_eq!(e.variants.len(), 1);
+    assert!(e.attrs.iter().any(|a| is_adze_attr(a, "language")));
+}
+
+#[test]
+fn enum_many_unit_variants() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Op {
+            #[adze::leaf(text = "+")]
+            Add,
+            #[adze::leaf(text = "-")]
+            Sub,
+            #[adze::leaf(text = "*")]
+            Mul,
+            #[adze::leaf(text = "/")]
+            Div,
+            #[adze::leaf(text = "%")]
+            Mod,
+        }
+    };
+    assert_eq!(e.variants.len(), 5);
+    for v in &e.variants {
+        assert!(v.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 16. Optional and Vec field patterns
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn struct_optional_leaf_field() {
+    let s: ItemStruct = parse_quote! {
+        pub struct MaybeNum {
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            value: Option<i32>,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let ty_str = field.ty.to_token_stream().to_string();
+    assert!(ty_str.contains("Option"));
+}
+
+#[test]
+fn struct_vec_field_without_repeat() {
+    let s: ItemStruct = parse_quote! {
+        pub struct List {
+            items: Vec<Number>,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    assert!(adze_attr_names(&field.attrs).is_empty());
+    let ty_str = field.ty.to_token_stream().to_string();
+    assert!(ty_str.contains("Vec"));
+}
+
+#[test]
+fn enum_unnamed_optional_field() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            MaybeNeg(
+                #[adze::leaf(text = "-")] Option<()>,
+                Box<Expr>,
+            ),
+        }
+    };
+    if let Fields::Unnamed(ref fields) = e.variants[0].fields {
+        let ty_str = fields.unnamed[0].ty.to_token_stream().to_string();
+        assert!(ty_str.contains("Option"));
+    } else {
+        panic!("Expected unnamed fields");
+    }
+}
+
+#[test]
+fn enum_unnamed_vec_field() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Numbers(
+                #[adze::repeat(non_empty = true)]
+                Vec<Number>,
+            ),
+        }
+    };
+    if let Fields::Unnamed(ref fields) = e.variants[0].fields {
+        let ty_str = fields.unnamed[0].ty.to_token_stream().to_string();
+        assert!(ty_str.contains("Vec"));
+        assert!(
+            fields.unnamed[0]
+                .attrs
+                .iter()
+                .any(|a| is_adze_attr(a, "repeat"))
+        );
+    } else {
+        panic!("Expected unnamed fields");
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 17. Grammar name edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn grammar_name_with_dots() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("my.grammar.v2")]
+        mod grammar {}
+    });
+    let attr = m.attrs.iter().find(|a| is_adze_attr(a, "grammar")).unwrap();
+    let expr: syn::Expr = attr.parse_args().unwrap();
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = expr
+    {
+        assert_eq!(s.value(), "my.grammar.v2");
+    } else {
+        panic!("Expected string literal");
+    }
+}
+
+#[test]
+fn grammar_name_with_numbers() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("grammar123")]
+        mod grammar {}
+    });
+    let attr = m.attrs.iter().find(|a| is_adze_attr(a, "grammar")).unwrap();
+    let expr: syn::Expr = attr.parse_args().unwrap();
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = expr
+    {
+        assert_eq!(s.value(), "grammar123");
+    } else {
+        panic!("Expected string literal");
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 18. Skip attribute value types
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn skip_with_bool_value() {
+    let s: ItemStruct = parse_quote! {
+        pub struct Node {
+            #[adze::skip(false)]
+            visited: bool,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
+    let expr: syn::Expr = attr.parse_args().unwrap();
+    assert!(matches!(
+        &expr,
+        syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Bool(_),
+            ..
+        })
+    ));
+}
+
+#[test]
+fn skip_with_integer_value() {
+    let s: ItemStruct = parse_quote! {
+        pub struct Node {
+            #[adze::skip(0)]
+            count: i32,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
+    let expr: syn::Expr = attr.parse_args().unwrap();
+    assert!(matches!(
+        &expr,
+        syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Int(_),
+            ..
+        })
+    ));
+}
+
+#[test]
+fn skip_with_string_value() {
+    let s: ItemStruct = parse_quote! {
+        pub struct Node {
+            #[adze::skip("default")]
+            label: String,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
+    let expr: syn::Expr = attr.parse_args().unwrap();
+    assert!(matches!(
+        &expr,
+        syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(_),
+            ..
+        })
+    ));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 19. Repeat attribute variations
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn repeat_with_non_empty_false() {
+    let s: ItemStruct = parse_quote! {
+        pub struct List {
+            #[adze::repeat(non_empty = false)]
+            items: Vec<Number>,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "repeat"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    assert_eq!(params[0].path.to_string(), "non_empty");
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Bool(b),
+        ..
+    }) = &params[0].expr
+    {
+        assert!(!b.value);
+    } else {
+        panic!("Expected bool literal");
+    }
+}
+
+#[test]
+fn repeat_without_params() {
+    let s: ItemStruct = parse_quote! {
+        pub struct List {
+            #[adze::repeat]
+            items: Vec<Number>,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "repeat"))
+        .unwrap();
+    let result = attr.parse_args::<syn::Expr>();
+    // repeat without params has no args to parse
+    assert!(result.is_err());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 20. Delimited attribute edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn delimited_parses_as_field_then_params() {
+    let s: ItemStruct = parse_quote! {
+        pub struct List {
+            #[adze::delimited(
+                #[adze::leaf(text = ",")]
+                ()
+            )]
+            items: Vec<Number>,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "delimited"))
+        .unwrap();
+    let ftp: FieldThenParams = attr.parse_args().unwrap();
+    assert_eq!(ftp.field.ty.to_token_stream().to_string(), "()");
+    assert!(ftp.field.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 21. Module items counting and types
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn module_counts_language_types() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            #[adze::language]
+            pub enum Expr {
+                Lit(i32),
+            }
+
+            pub struct Helper {
+                value: i32,
+            }
+        }
+    });
+    let items = &m.content.as_ref().unwrap().1;
+    let language_count = items
+        .iter()
+        .filter(|item| match item {
+            Item::Struct(s) => s.attrs.iter().any(|a| is_adze_attr(a, "language")),
+            Item::Enum(e) => e.attrs.iter().any(|a| is_adze_attr(a, "language")),
+            _ => false,
+        })
+        .count();
+    assert_eq!(language_count, 1);
+}
+
+#[test]
+fn module_with_private_struct() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            #[adze::language]
+            pub enum Expr {
+                Lit(i32),
+            }
+
+            struct PrivateHelper {
+                value: i32,
+            }
+        }
+    });
+    let items = &m.content.as_ref().unwrap().1;
+    let private_count = items
+        .iter()
+        .filter(|item| {
+            if let Item::Struct(s) = item {
+                matches!(s.vis, syn::Visibility::Inherited)
+            } else {
+                false
+            }
+        })
+        .count();
+    assert_eq!(private_count, 1);
+}
+
+#[test]
+fn module_with_const_item() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            const MAX: usize = 100;
+
+            #[adze::language]
+            pub struct Root {
+                value: i32,
+            }
+        }
+    });
+    let items = &m.content.as_ref().unwrap().1;
+    let const_count = items.iter().filter(|i| matches!(i, Item::Const(_))).count();
+    assert_eq!(const_count, 1);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 22. Leaf parameter ordering and combinations
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn leaf_transform_before_pattern() {
+    let s: ItemStruct = parse_quote! {
+        pub struct Num {
+            #[adze::leaf(transform = |v| v.parse().unwrap(), pattern = r"\d+")]
+            value: i32,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    assert_eq!(params[0].path.to_string(), "transform");
+    assert_eq!(params[1].path.to_string(), "pattern");
+}
+
+#[test]
+fn leaf_text_only_no_transform() {
+    let s: ItemStruct = parse_quote! {
+        pub struct Tok {
+            #[adze::leaf(text = "+")]
+            op: (),
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    assert_eq!(params.len(), 1);
+    assert_eq!(params[0].path.to_string(), "text");
+}
+
+#[test]
+fn leaf_with_all_three_params() {
+    let s: ItemStruct = parse_quote! {
+        pub struct Num {
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap(), text = "42")]
+            value: i32,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    let attr = field
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    assert_eq!(params.len(), 3);
+    let names: Vec<_> = params.iter().map(|p| p.path.to_string()).collect();
+    assert!(names.contains(&"pattern".to_string()));
+    assert!(names.contains(&"transform".to_string()));
+    assert!(names.contains(&"text".to_string()));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 23. FieldThenParams edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn field_then_params_with_attributed_field() {
+    let ftp: FieldThenParams = parse_quote!(
+        #[adze::leaf(text = ",")]
+        ()
+    );
+    assert_eq!(ftp.field.ty.to_token_stream().to_string(), "()");
+    assert!(!ftp.field.attrs.is_empty());
+    assert!(ftp.field.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+}
+
+#[test]
+fn field_then_params_box_type() {
+    let ftp: FieldThenParams = parse_quote!(Box<Expr>);
+    assert_eq!(ftp.field.ty.to_token_stream().to_string(), "Box < Expr >");
+    assert!(ftp.params.is_empty());
+}
+
+#[test]
+fn field_then_params_vec_type() {
+    let ftp: FieldThenParams = parse_quote!(Vec<Number>);
+    assert_eq!(ftp.field.ty.to_token_stream().to_string(), "Vec < Number >");
+    assert!(ftp.params.is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 24. Visibility combinations
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn pub_crate_struct_visibility() {
+    let s: ItemStruct = parse_quote! {
+        #[adze::language]
+        pub(crate) struct Root {
+            value: i32,
+        }
+    };
+    assert!(matches!(s.vis, syn::Visibility::Restricted(_)));
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+}
+
+#[test]
+fn private_struct_has_inherited_visibility() {
+    let s: ItemStruct = parse_quote! {
+        struct Helper {
+            #[adze::leaf(pattern = r"\w+")]
+            name: String,
+        }
+    };
+    assert!(matches!(s.vis, syn::Visibility::Inherited));
+}
+
+#[test]
+fn pub_enum_visibility() {
+    let e: ItemEnum = parse_quote! {
+        #[adze::language]
+        pub enum Expr {
+            Lit(i32),
+        }
+    };
+    assert!(matches!(e.vis, syn::Visibility::Public(_)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 25. Precedence value edge cases
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn prec_left_with_negative_value() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            #[adze::prec_left(-1)]
+            Sub(Box<Expr>, Box<Expr>),
+        }
+    };
+    let attr = e.variants[0]
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "prec_left"))
+        .unwrap();
+    // Negative value parses as a unary neg expression
+    let expr: syn::Expr = attr.parse_args().unwrap();
+    assert!(matches!(&expr, syn::Expr::Unary(_)));
+}
+
+#[test]
+fn prec_values_differ_across_variants() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            #[adze::prec_left(1)]
+            Add(Box<Expr>, Box<Expr>),
+            #[adze::prec_left(2)]
+            Mul(Box<Expr>, Box<Expr>),
+            #[adze::prec_left(3)]
+            Pow(Box<Expr>, Box<Expr>),
+        }
+    };
+    let values: Vec<i32> = e
+        .variants
+        .iter()
+        .map(|v| {
+            let attr = v
+                .attrs
+                .iter()
+                .find(|a| is_adze_attr(a, "prec_left"))
+                .unwrap();
+            let expr: syn::Expr = attr.parse_args().unwrap();
+            if let syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Int(i),
+                ..
+            }) = expr
+            {
+                i.base10_parse::<i32>().unwrap()
+            } else {
+                panic!("Expected int");
+            }
+        })
+        .collect();
+    assert_eq!(values, vec![1, 2, 3]);
+}
