@@ -110,7 +110,7 @@ fn dangling_else_has_conflicts() {
     // Dangling else grammar should have shift-reduce conflicts
     let conflict_count = count_multi_action_cells(&table);
     // It's a classic ambiguous grammar
-    assert!(conflict_count >= 0); // May or may not have conflicts after resolution
+    let _ = conflict_count; // May or may not have conflicts after resolution
 }
 
 #[test]
