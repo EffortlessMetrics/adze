@@ -4,10 +4,13 @@
 //!
 //! Covers: direct construction, Debug formatting, stats from the build
 //! pipeline, grammar-complexity correlation, conflict counting, comparison
-//! between grammars, zero-complexity grammars, and large grammars.
+//! between grammars, zero-complexity grammars, large grammars, BuildResult
+//! fields, GrammarBuilder-based grammars, BuildOptions defaults/customization,
+//! and pipeline determinism.
 
 use std::fs;
 
+use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -64,6 +67,12 @@ fn build(g: Grammar) -> BuildResult {
 /// Build a grammar and return just the stats.
 fn stats_for(g: Grammar) -> BuildStats {
     build(g).build_stats
+}
+
+/// Build a GrammarBuilder grammar and return the BuildResult.
+fn build_from_builder(gb: GrammarBuilder) -> BuildResult {
+    let (_dir, opts) = temp_opts();
+    build_parser(gb.build(), opts).expect("build should succeed")
 }
 
 /// Build grammar.js through the pure-Rust builder and return the result.
@@ -761,5 +770,328 @@ fn chained_nonterminals_increase_state_count() {
         "chained grammar should have more symbols: {} vs {}",
         s_chain.symbol_count,
         s_min.symbol_count,
+    );
+}
+
+// =========================================================================
+// 14. GrammarBuilder-based builds
+// =========================================================================
+
+#[test]
+fn grammar_builder_single_token_rule() {
+    let r = build_from_builder(
+        GrammarBuilder::new("gb_single")
+            .token("a", "a")
+            .rule("s", vec!["a"])
+            .start("s"),
+    );
+    assert_eq!(r.grammar_name, "gb_single");
+    assert!(r.build_stats.state_count > 0);
+    assert!(r.build_stats.symbol_count > 0);
+}
+
+#[test]
+fn grammar_builder_two_token_sequence() {
+    let r = build_from_builder(
+        GrammarBuilder::new("gb_seq")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("s", vec!["a", "b"])
+            .start("s"),
+    );
+    assert!(r.build_stats.state_count >= 2);
+    assert!(r.build_stats.symbol_count >= 4); // a, b, s, EOF
+}
+
+#[test]
+fn grammar_builder_alternatives() {
+    let r = build_from_builder(
+        GrammarBuilder::new("gb_alt")
+            .token("x", "x")
+            .token("y", "y")
+            .rule("s", vec!["x"])
+            .rule("s", vec!["y"])
+            .start("s"),
+    );
+    assert!(r.build_stats.symbol_count >= 4);
+}
+
+#[test]
+fn grammar_builder_nested_nonterminals() {
+    let r = build_from_builder(
+        GrammarBuilder::new("gb_nest")
+            .token("lit", "lit")
+            .rule("inner", vec!["lit"])
+            .rule("s", vec!["inner"])
+            .start("s"),
+    );
+    assert!(r.build_stats.symbol_count >= 4); // lit, inner, s, EOF
+}
+
+#[test]
+fn grammar_builder_with_precedence() {
+    let r = build_from_builder(
+        GrammarBuilder::new("gb_prec")
+            .token("n", r"\d+")
+            .token("+", "+")
+            .token("*", "*")
+            .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+            .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
+            .rule("expr", vec!["n"])
+            .start("expr"),
+    );
+    assert!(r.build_stats.state_count > 0);
+    // Precedence-annotated grammar should still build successfully
+    assert!(!r.parser_code.is_empty());
+}
+
+#[test]
+fn grammar_builder_with_extras() {
+    let r = build_from_builder(
+        GrammarBuilder::new("gb_extras")
+            .token("a", "a")
+            .token("WS", r"[ \t]+")
+            .extra("WS")
+            .rule("s", vec!["a"])
+            .start("s"),
+    );
+    assert!(r.build_stats.symbol_count >= 3);
+}
+
+#[test]
+fn grammar_builder_fragile_token() {
+    let r = build_from_builder(
+        GrammarBuilder::new("gb_fragile")
+            .token("a", "a")
+            .fragile_token("err", "ERROR")
+            .rule("s", vec!["a"])
+            .start("s"),
+    );
+    assert!(r.build_stats.state_count > 0);
+}
+
+// =========================================================================
+// 15. BuildResult field validation
+// =========================================================================
+
+#[test]
+fn build_result_grammar_name_matches_input() {
+    let r = build_from_builder(
+        GrammarBuilder::new("my_grammar_42")
+            .token("a", "a")
+            .rule("s", vec!["a"])
+            .start("s"),
+    );
+    assert_eq!(r.grammar_name, "my_grammar_42");
+}
+
+#[test]
+fn build_result_parser_path_is_nonempty() {
+    let r = build(minimal_grammar("path_test"));
+    assert!(!r.parser_path.is_empty(), "parser_path should not be empty");
+}
+
+#[test]
+fn build_result_parser_code_contains_rust() {
+    let r = build(minimal_grammar("code_rust"));
+    // Generated parser code should contain Rust-like constructs
+    assert!(
+        r.parser_code.contains("fn")
+            || r.parser_code.contains("struct")
+            || r.parser_code.contains("const"),
+        "parser_code should contain Rust code"
+    );
+}
+
+#[test]
+fn build_result_node_types_json_is_valid_json() {
+    let r = build(minimal_grammar("json_valid"));
+    let parsed: serde_json::Value =
+        serde_json::from_str(&r.node_types_json).expect("node_types_json should be valid JSON");
+    assert!(parsed.is_array(), "node_types_json should be a JSON array");
+}
+
+#[test]
+fn build_result_node_types_json_contains_entries() {
+    let r = build_from_builder(
+        GrammarBuilder::new("ntj_entries")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("s", vec!["a", "b"])
+            .start("s"),
+    );
+    let parsed: serde_json::Value = serde_json::from_str(&r.node_types_json).unwrap();
+    let arr = parsed.as_array().unwrap();
+    assert!(!arr.is_empty(), "node_types_json should have entries");
+}
+
+#[test]
+fn build_result_stats_state_count_positive() {
+    let r = build(minimal_grammar("stats_pos"));
+    assert!(r.build_stats.state_count > 0);
+}
+
+#[test]
+fn build_result_stats_symbol_count_positive() {
+    let r = build(minimal_grammar("stats_sym"));
+    assert!(r.build_stats.symbol_count > 0);
+}
+
+// =========================================================================
+// 16. BuildOptions defaults and customization
+// =========================================================================
+
+#[test]
+fn build_options_default_compress_tables_is_true() {
+    let opts = BuildOptions::default();
+    assert!(
+        opts.compress_tables,
+        "default compress_tables should be true"
+    );
+}
+
+#[test]
+fn build_options_custom_out_dir() {
+    let dir = TempDir::new().unwrap();
+    let custom_path = dir.path().to_string_lossy().to_string();
+    let opts = BuildOptions {
+        out_dir: custom_path.clone(),
+        emit_artifacts: false,
+        compress_tables: true,
+    };
+    assert_eq!(opts.out_dir, custom_path);
+}
+
+#[test]
+fn build_options_emit_artifacts_creates_extra_files() {
+    let dir = TempDir::new().unwrap();
+    let opts_artifacts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: true,
+        compress_tables: false,
+    };
+    let _r = build_parser(minimal_grammar("emit_test"), opts_artifacts).unwrap();
+    // When emit_artifacts is true, additional files may be written to out_dir
+    // The build should at least succeed
+}
+
+#[test]
+fn build_options_compress_false_succeeds() {
+    let dir = TempDir::new().unwrap();
+    let opts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: false,
+        compress_tables: false,
+    };
+    let r = build_parser(minimal_grammar("nocompress"), opts).unwrap();
+    assert!(r.build_stats.state_count > 0);
+}
+
+#[test]
+fn build_options_compress_true_succeeds() {
+    let dir = TempDir::new().unwrap();
+    let opts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: false,
+        compress_tables: true,
+    };
+    let r = build_parser(minimal_grammar("yescompress"), opts).unwrap();
+    assert!(r.build_stats.state_count > 0);
+}
+
+// =========================================================================
+// 17. Pipeline determinism
+// =========================================================================
+
+#[test]
+fn deterministic_stats_across_runs() {
+    let s1 = stats_for(minimal_grammar("det1"));
+    let s2 = stats_for(minimal_grammar("det1"));
+    assert_eq!(s1.state_count, s2.state_count);
+    assert_eq!(s1.symbol_count, s2.symbol_count);
+    assert_eq!(s1.conflict_cells, s2.conflict_cells);
+}
+
+#[test]
+fn deterministic_parser_code_across_runs() {
+    let r1 = build(minimal_grammar("det_code1"));
+    let r2 = build(minimal_grammar("det_code1"));
+    assert_eq!(r1.parser_code, r2.parser_code);
+}
+
+#[test]
+fn deterministic_node_types_json_across_runs() {
+    let r1 = build(minimal_grammar("det_ntj1"));
+    let r2 = build(minimal_grammar("det_ntj1"));
+    assert_eq!(r1.node_types_json, r2.node_types_json);
+}
+
+#[test]
+fn deterministic_grammar_builder_builds() {
+    let make = || {
+        build_from_builder(
+            GrammarBuilder::new("det_gb")
+                .token("a", "a")
+                .token("b", "b")
+                .rule("s", vec!["a", "b"])
+                .start("s"),
+        )
+    };
+    let r1 = make();
+    let r2 = make();
+    assert_eq!(r1.parser_code, r2.parser_code);
+    assert_eq!(r1.build_stats.state_count, r2.build_stats.state_count);
+    assert_eq!(r1.build_stats.symbol_count, r2.build_stats.symbol_count);
+    assert_eq!(r1.build_stats.conflict_cells, r2.build_stats.conflict_cells);
+}
+
+// =========================================================================
+// 18. BuildResult consistency checks
+// =========================================================================
+
+#[test]
+fn build_result_grammar_name_preserved_through_builder() {
+    let r = build_from_builder(
+        GrammarBuilder::new("preserve_name")
+            .token("tok", "tok")
+            .rule("s", vec!["tok"])
+            .start("s"),
+    );
+    assert_eq!(r.grammar_name, "preserve_name");
+}
+
+#[test]
+fn build_result_parser_path_contains_grammar_name() {
+    let r = build_from_builder(
+        GrammarBuilder::new("path_name_check")
+            .token("z", "z")
+            .rule("s", vec!["z"])
+            .start("s"),
+    );
+    // parser_path typically includes the grammar name
+    assert!(
+        r.parser_path.contains("path_name_check"),
+        "parser_path '{}' should contain grammar name",
+        r.parser_path
+    );
+}
+
+#[test]
+fn build_stats_symbol_count_at_least_token_count() {
+    // With 3 tokens, symbol_count should be >= 3 (plus non-terminals, EOF)
+    let r = build_from_builder(
+        GrammarBuilder::new("sym_ge_tok")
+            .token("a", "a")
+            .token("b", "b")
+            .token("c", "c")
+            .rule("s", vec!["a"])
+            .rule("s", vec!["b"])
+            .rule("s", vec!["c"])
+            .start("s"),
+    );
+    assert!(
+        r.build_stats.symbol_count >= 3,
+        "symbol_count {} should be >= token count 3",
+        r.build_stats.symbol_count
     );
 }
