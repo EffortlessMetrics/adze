@@ -91,7 +91,7 @@ fn type_name(ty: &Type) -> String {
     ty.to_token_stream().to_string()
 }
 
-fn skip_set(names: &[&str]) -> HashSet<&str> {
+fn skip_set<'a>(names: &'a [&'a str]) -> HashSet<&'a str> {
     names.iter().copied().collect()
 }
 
@@ -143,9 +143,9 @@ fn box_filter_inner_type() {
 #[test]
 fn box_nested_in_option() {
     let ty: Type = parse_quote!(Option<Box<Expr>>);
-    let (inner, found) = try_extract_inner_type(&ty, "Option", &skip_set(&["Box"]));
+    let (inner, found) = try_extract_inner_type(&ty, "Option", &HashSet::new());
     assert!(found);
-    assert_eq!(type_name(&inner), "Expr");
+    assert_eq!(type_name(&inner), "Box < Expr >");
 }
 
 #[test]
@@ -211,9 +211,9 @@ fn vec_filter_inner_type() {
 #[test]
 fn vec_with_box_inside() {
     let ty: Type = parse_quote!(Vec<Box<Expr>>);
-    let (inner, found) = try_extract_inner_type(&ty, "Vec", &skip_set(&["Box"]));
+    let (inner, found) = try_extract_inner_type(&ty, "Vec", &HashSet::new());
     assert!(found);
-    assert_eq!(type_name(&inner), "Expr");
+    assert_eq!(type_name(&inner), "Box < Expr >");
 }
 
 #[test]
@@ -295,7 +295,8 @@ fn option_filter_inner() {
 
 #[test]
 fn option_of_box() {
-    let ty: Type = parse_quote!(Option<Box<Expr>>);
+    // skip_over skips *outer* wrappers, not inner ones
+    let ty: Type = parse_quote!(Box<Option<Expr>>);
     let (inner, found) = try_extract_inner_type(&ty, "Option", &skip_set(&["Box"]));
     assert!(found);
     assert_eq!(type_name(&inner), "Expr");
@@ -827,7 +828,7 @@ fn ident_pascal_case() {
 
 #[test]
 fn ident_raw_keyword() {
-    let id = Ident::new_raw("r#type", Span::call_site());
+    let id = Ident::new_raw("type", Span::call_site());
     assert_eq!(id.to_string(), "r#type");
 }
 
@@ -927,7 +928,8 @@ fn nested_vec_option() {
 
 #[test]
 fn nested_option_box() {
-    let ty: Type = parse_quote!(Option<Box<Stmt>>);
+    // skip_over allows skipping outer Box to find inner Option
+    let ty: Type = parse_quote!(Box<Option<Stmt>>);
     let (inner, found) = try_extract_inner_type(&ty, "Option", &skip_set(&["Box"]));
     assert!(found);
     assert_eq!(type_name(&inner), "Stmt");
@@ -935,7 +937,8 @@ fn nested_option_box() {
 
 #[test]
 fn nested_vec_box() {
-    let ty: Type = parse_quote!(Vec<Box<Node>>);
+    // skip_over allows skipping outer Box to find inner Vec
+    let ty: Type = parse_quote!(Box<Vec<Node>>);
     let (inner, found) = try_extract_inner_type(&ty, "Vec", &skip_set(&["Box"]));
     assert!(found);
     assert_eq!(type_name(&inner), "Node");
