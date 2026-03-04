@@ -530,3 +530,349 @@ fn spanned_debug_format() {
     assert!(debug.contains("0"));
     assert!(debug.contains("2"));
 }
+
+// ---------------------------------------------------------------------------
+// 12. Trait object patterns – SpanError as dyn Error
+// ---------------------------------------------------------------------------
+
+#[test]
+fn span_error_as_dyn_error_source_is_none() {
+    use std::error::Error;
+    let err = SpanError {
+        span: (5, 3),
+        source_len: 10,
+        reason: SpanErrorReason::StartGreaterThanEnd,
+    };
+    let dyn_err: &dyn Error = &err;
+    assert!(dyn_err.source().is_none());
+}
+
+#[test]
+fn span_error_debug_contains_fields() {
+    let err = SpanError {
+        span: (1, 2),
+        source_len: 10,
+        reason: SpanErrorReason::EndOutOfBounds,
+    };
+    let debug = format!("{:?}", err);
+    assert!(debug.contains("SpanError"));
+    assert!(debug.contains("EndOutOfBounds"));
+}
+
+// ---------------------------------------------------------------------------
+// 13. Error types – ParseError and ParseErrorReason
+// ---------------------------------------------------------------------------
+
+#[test]
+fn parse_error_unexpected_token_debug() {
+    use adze::errors::{ParseError, ParseErrorReason};
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("foo".into()),
+        start: 0,
+        end: 3,
+    };
+    let debug = format!("{:?}", err);
+    assert!(debug.contains("UnexpectedToken"));
+    assert!(debug.contains("foo"));
+}
+
+#[test]
+fn parse_error_missing_token_debug() {
+    use adze::errors::{ParseError, ParseErrorReason};
+    let err = ParseError {
+        reason: ParseErrorReason::MissingToken(";".into()),
+        start: 5,
+        end: 5,
+    };
+    let debug = format!("{:?}", err);
+    assert!(debug.contains("MissingToken"));
+}
+
+#[test]
+fn parse_error_failed_node_nested() {
+    use adze::errors::{ParseError, ParseErrorReason};
+    let inner = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("x".into()),
+        start: 0,
+        end: 1,
+    };
+    let outer = ParseError {
+        reason: ParseErrorReason::FailedNode(vec![inner]),
+        start: 0,
+        end: 5,
+    };
+    match &outer.reason {
+        ParseErrorReason::FailedNode(v) => assert_eq!(v.len(), 1),
+        _ => panic!("expected FailedNode"),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 14. Nested generic extraction
+// ---------------------------------------------------------------------------
+
+#[test]
+fn extract_option_box_string() {
+    let source = b"nested";
+    let node = leaf(0, 6);
+    let val = <Option<Box<String>> as Extract<Option<Box<String>>>>::extract(
+        Some(&node),
+        source,
+        0,
+        None,
+    );
+    assert_eq!(**val.as_ref().unwrap(), "nested");
+}
+
+#[test]
+fn extract_option_box_none() {
+    let source = b"";
+    let val = <Option<Box<String>> as Extract<Option<Box<String>>>>::extract(None, source, 0, None);
+    assert!(val.is_none());
+}
+
+#[test]
+fn extract_box_option_some() {
+    let source = b"77";
+    let node = leaf(0, 2);
+    let val =
+        <Box<Option<i32>> as Extract<Box<Option<i32>>>>::extract(Some(&node), source, 0, None);
+    assert_eq!(*val, Some(77));
+}
+
+#[test]
+fn extract_box_box_string() {
+    let source = b"deep";
+    let node = leaf(0, 4);
+    let val =
+        <Box<Box<String>> as Extract<Box<Box<String>>>>::extract(Some(&node), source, 0, None);
+    assert_eq!(**val, "deep");
+}
+
+// ---------------------------------------------------------------------------
+// 15. Unicode edge cases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn extract_string_multibyte_emoji() {
+    let source = "🦀🦀🦀".as_bytes();
+    let node = leaf(0, source.len());
+    let val = String::extract(Some(&node), source, 0, None);
+    assert_eq!(val, "🦀🦀🦀");
+}
+
+#[test]
+fn extract_string_cjk() {
+    let source = "漢字テスト".as_bytes();
+    let node = leaf(0, source.len());
+    let val = String::extract(Some(&node), source, 0, None);
+    assert_eq!(val, "漢字テスト");
+}
+
+#[test]
+fn extract_string_mixed_ascii_unicode() {
+    let source = "abc_αβγ_🎉".as_bytes();
+    let node = leaf(0, source.len());
+    let val = String::extract(Some(&node), source, 0, None);
+    assert_eq!(val, "abc_αβγ_🎉");
+}
+
+// ---------------------------------------------------------------------------
+// 16. Empty input edge cases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn extract_string_empty_source() {
+    let source = b"";
+    let node = leaf(0, 0);
+    let val = String::extract(Some(&node), source, 0, None);
+    assert_eq!(val, "");
+}
+
+#[test]
+fn extract_vec_empty_parent_no_children() {
+    let source = b"";
+    let parent = make_node(10, vec![], 0, 0, true);
+    let val = <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
+    assert!(val.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// 17. Re-exports smoke tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn reexport_extract_trait_accessible() {
+    // Verify Extract is accessible from adze root
+    fn _assert_extract<T: Extract<String>>() {}
+    _assert_extract::<String>();
+}
+
+#[test]
+fn reexport_spanned_accessible() {
+    let _: Spanned<i32> = Spanned {
+        value: 0,
+        span: (0, 0),
+    };
+}
+
+#[test]
+fn reexport_with_leaf_accessible() {
+    // WithLeaf is accessible from adze root
+    let _phantom: std::marker::PhantomData<WithLeaf<String>> = std::marker::PhantomData;
+}
+
+#[test]
+fn reexport_span_error_types_accessible() {
+    let _: SpanError = SpanError {
+        span: (0, 0),
+        source_len: 0,
+        reason: SpanErrorReason::StartGreaterThanEnd,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// 18. HAS_CONFLICTS default
+// ---------------------------------------------------------------------------
+
+#[test]
+fn has_conflicts_default_is_false() {
+    assert!(!<String as Extract<String>>::HAS_CONFLICTS);
+    assert!(!<i32 as Extract<i32>>::HAS_CONFLICTS);
+    assert!(!<() as Extract<()>>::HAS_CONFLICTS);
+}
+
+// ---------------------------------------------------------------------------
+// 19. Spanned with various inner types
+// ---------------------------------------------------------------------------
+
+#[test]
+fn spanned_extract_i32() {
+    let source = b"99";
+    let node = leaf(0, 2);
+    let result = <Spanned<i32> as Extract<Spanned<i32>>>::extract(Some(&node), source, 0, None);
+    assert_eq!(result.value, 99);
+    assert_eq!(result.span, (0, 2));
+}
+
+#[test]
+fn spanned_extract_option_some() {
+    let source = b"hi";
+    let node = leaf(0, 2);
+    let result = <Spanned<Option<String>> as Extract<Spanned<Option<String>>>>::extract(
+        Some(&node),
+        source,
+        0,
+        None,
+    );
+    assert_eq!(result.value, Some("hi".to_string()));
+    assert_eq!(result.span, (0, 2));
+}
+
+#[test]
+fn spanned_deref_to_inner() {
+    let s = Spanned {
+        value: String::from("abc"),
+        span: (0, 3),
+    };
+    // Deref gives &String
+    assert_eq!(s.len(), 3);
+}
+
+// ---------------------------------------------------------------------------
+// 20. WithLeaf edge cases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn with_leaf_transform_returns_custom_type() {
+    let source = b"hello world";
+    let node = leaf(0, 5);
+    let transform: &dyn Fn(&str) -> Vec<char> = &|s: &str| s.chars().collect();
+    let val = <WithLeaf<Vec<char>> as Extract<Vec<char>>>::extract(
+        Some(&node),
+        source,
+        0,
+        Some(transform),
+    );
+    assert_eq!(val, vec!['h', 'e', 'l', 'l', 'o']);
+}
+
+#[test]
+fn with_leaf_transform_on_numeric_string() {
+    let source = b"  42  ";
+    let node = leaf(0, 6);
+    let transform: &dyn Fn(&str) -> i32 = &|s: &str| s.trim().parse().unwrap_or(0);
+    let val = <WithLeaf<i32> as Extract<i32>>::extract(Some(&node), source, 0, Some(transform));
+    assert_eq!(val, 42);
+}
+
+// ---------------------------------------------------------------------------
+// 21. ParsedNode deeper integration
+// ---------------------------------------------------------------------------
+
+#[test]
+fn parsed_node_nested_children() {
+    let grandchild = leaf(0, 1);
+    let child = make_node(2, vec![grandchild], 0, 1, true);
+    let parent = make_node(3, vec![child], 0, 1, true);
+    assert_eq!(parent.child_count(), 1);
+    let c = parent.child(0).unwrap();
+    assert_eq!(c.child_count(), 1);
+}
+
+#[test]
+fn parsed_node_is_not_error_by_default() {
+    let node = leaf(0, 1);
+    assert!(!node.is_error);
+    assert!(!node.is_missing);
+    assert!(!node.is_extra);
+}
+
+#[test]
+fn parsed_node_start_end_points() {
+    let node = leaf(5, 10);
+    assert_eq!(node.start_point.row, 0);
+    assert_eq!(node.start_point.column, 5);
+    assert_eq!(node.end_point.row, 0);
+    assert_eq!(node.end_point.column, 10);
+}
+
+#[test]
+fn parsed_node_symbol_accessor() {
+    let node = make_node(42, vec![], 0, 0, false);
+    assert_eq!(node.symbol(), 42);
+    assert!(!node.is_named());
+}
+
+// ---------------------------------------------------------------------------
+// 22. Extract with offset (last_idx) parameter
+// ---------------------------------------------------------------------------
+
+#[test]
+fn extract_string_ignores_last_idx() {
+    let source = b"abcdef";
+    let node = leaf(2, 5);
+    // last_idx shouldn't affect String extraction when node is present
+    let val = String::extract(Some(&node), source, 99, None);
+    assert_eq!(val, "cde");
+}
+
+#[test]
+fn spanned_none_uses_last_idx_offset() {
+    let source = b"hello";
+    let result = <Spanned<String> as Extract<Spanned<String>>>::extract(None, source, 42, None);
+    assert_eq!(result.span, (42, 42));
+}
+
+// ---------------------------------------------------------------------------
+// 23. Vec extraction with single child
+// ---------------------------------------------------------------------------
+
+#[test]
+fn extract_vec_single_child() {
+    let source = b"x";
+    let child = leaf(0, 1);
+    let parent = make_node(10, vec![child], 0, 1, true);
+    let val = <Vec<String> as Extract<Vec<String>>>::extract(Some(&parent), source, 0, None);
+    assert_eq!(val, vec!["x"]);
+}

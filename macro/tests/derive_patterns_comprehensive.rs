@@ -1,41 +1,44 @@
-// Comprehensive tests for derive macro patterns used in adze.
-// Tests the syn/quote/proc_macro2 patterns that underpin proc-macro processing.
+//! Comprehensive tests for derive/proc-macro patterns used in adze.
+//!
+//! Covers:
+//!   - Proc-macro attribute handling and recognition
+//!   - Token stream parsing and code generation
+//!   - Attribute validation logic (NameValueExpr, FieldThenParams)
+//!   - Error reporting patterns (malformed input, missing attrs)
+//!   - Macro infrastructure utilities (type extraction, leaf wrapping)
+//!   - Edge cases: empty attrs, multiple attributes, nested attrs
 
+use std::collections::HashSet;
+
+use adze_common::{
+    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
+};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Attribute, Data, DeriveInput, Fields, GenericParam, ItemEnum, ItemStruct, Lifetime, Type,
-    parse_quote, parse2,
+    Attribute, Data, DeriveInput, Expr, ExprLit, Fields, GenericParam, Item, ItemEnum, ItemMod,
+    ItemStruct, Lit, Token, Type, parse_quote, parse2, punctuated::Punctuated,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-fn parse_derive_input(tokens: TokenStream) -> DeriveInput {
-    parse2::<DeriveInput>(tokens).expect("failed to parse DeriveInput")
-}
-
-fn parse_struct(tokens: TokenStream) -> ItemStruct {
-    parse2::<ItemStruct>(tokens).expect("failed to parse ItemStruct")
-}
-
-fn parse_enum(tokens: TokenStream) -> ItemEnum {
-    parse2::<ItemEnum>(tokens).expect("failed to parse ItemEnum")
-}
-
-fn has_derive(attrs: &[Attribute], derive_name: &str) -> bool {
-    attrs.iter().any(|attr| {
-        if attr.path().is_ident("derive") {
-            let s = attr.to_token_stream().to_string();
-            s.contains(derive_name)
-        } else {
-            false
-        }
-    })
-}
-
-fn is_path_attr(attr: &Attribute, ns: &str, name: &str) -> bool {
+fn is_adze_attr(attr: &Attribute, name: &str) -> bool {
     let segs: Vec<_> = attr.path().segments.iter().collect();
-    segs.len() == 2 && segs[0].ident == ns && segs[1].ident == name
+    segs.len() == 2 && segs[0].ident == "adze" && segs[1].ident == name
+}
+
+fn adze_attr_names(attrs: &[Attribute]) -> Vec<String> {
+    attrs
+        .iter()
+        .filter_map(|a| {
+            let segs: Vec<_> = a.path().segments.iter().collect();
+            if segs.len() == 2 && segs[0].ident == "adze" {
+                Some(segs[1].ident.to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn field_count(fields: &Fields) -> usize {
@@ -46,1006 +49,767 @@ fn field_count(fields: &Fields) -> usize {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 1. Parse derive attribute patterns
-// ═══════════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn derive_single_trait() {
-    let input = parse_derive_input(quote! {
-        #[derive(Clone)]
-        struct Foo;
-    });
-    assert!(has_derive(&input.attrs, "Clone"));
-}
-
-#[test]
-fn derive_multiple_traits() {
-    let input = parse_derive_input(quote! {
-        #[derive(Clone, Debug, PartialEq)]
-        struct Bar;
-    });
-    assert!(has_derive(&input.attrs, "Clone"));
-    assert!(has_derive(&input.attrs, "Debug"));
-    assert!(has_derive(&input.attrs, "PartialEq"));
-}
-
-#[test]
-fn derive_preserves_ident() {
-    let input = parse_derive_input(quote! {
-        #[derive(Default)]
-        struct MyStruct { x: i32 }
-    });
-    assert_eq!(input.ident.to_string(), "MyStruct");
-}
-
-#[test]
-fn derive_with_doc_attr() {
-    let input = parse_derive_input(quote! {
-        /// Some docs
-        #[derive(Debug)]
-        struct Documented;
-    });
-    assert!(has_derive(&input.attrs, "Debug"));
-    assert!(input.attrs.iter().any(|a| a.path().is_ident("doc")));
-}
-
-#[test]
-fn derive_no_attrs() {
-    let input = parse_derive_input(quote! {
-        struct Plain;
-    });
-    assert!(input.attrs.is_empty());
+fn parse_mod(tokens: TokenStream) -> ItemMod {
+    parse2(tokens).expect("failed to parse module")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. Parse custom attribute patterns
+// Section 1: NameValueExpr parsing — the key-value parameter type used in attrs
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn custom_attr_two_segment_path() {
-    let s = parse_struct(quote! {
-        #[adze::language]
-        pub struct Lang;
-    });
-    assert!(is_path_attr(&s.attrs[0], "adze", "language"));
+fn name_value_expr_string_literal() {
+    let nv: NameValueExpr = parse_quote!(text = "hello");
+    assert_eq!(nv.path.to_string(), "text");
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Str(s), ..
+    }) = &nv.expr
+    {
+        assert_eq!(s.value(), "hello");
+    } else {
+        panic!("Expected string literal");
+    }
 }
 
 #[test]
-fn custom_attr_leaf_text() {
-    let s: ItemStruct = parse_quote! {
-        struct T {
-            #[adze::leaf(text = "+")]
-            op: (),
-        }
-    };
-    let field = s.fields.iter().next().unwrap();
-    assert!(is_path_attr(&field.attrs[0], "adze", "leaf"));
+fn name_value_expr_integer_literal() {
+    let nv: NameValueExpr = parse_quote!(precedence = 42);
+    assert_eq!(nv.path.to_string(), "precedence");
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Int(i), ..
+    }) = &nv.expr
+    {
+        assert_eq!(i.base10_parse::<i32>().unwrap(), 42);
+    } else {
+        panic!("Expected integer literal");
+    }
 }
 
 #[test]
-fn custom_attr_leaf_pattern() {
-    let s: ItemStruct = parse_quote! {
-        struct T {
-            #[adze::leaf(pattern = r"\d+")]
-            num: String,
-        }
-    };
-    let tokens = s.fields.iter().next().unwrap().attrs[0]
-        .to_token_stream()
-        .to_string();
-    assert!(tokens.contains("pattern"));
+fn name_value_expr_bool_literal() {
+    let nv: NameValueExpr = parse_quote!(non_empty = true);
+    assert_eq!(nv.path.to_string(), "non_empty");
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Bool(b), ..
+    }) = &nv.expr
+    {
+        assert!(b.value);
+    } else {
+        panic!("Expected bool literal");
+    }
 }
 
 #[test]
-fn custom_attr_extra() {
-    let s: ItemStruct = parse_quote! {
-        #[adze::extra]
-        struct Ws {
-            #[adze::leaf(pattern = r"\s")]
-            _ws: (),
-        }
-    };
-    assert!(is_path_attr(&s.attrs[0], "adze", "extra"));
+fn name_value_expr_closure_value() {
+    let nv: NameValueExpr = parse_quote!(transform = |v| v.parse().unwrap());
+    assert_eq!(nv.path.to_string(), "transform");
+    assert!(matches!(nv.expr, Expr::Closure(_)));
 }
 
 #[test]
-fn custom_attr_prec_left() {
-    let e: ItemEnum = parse_quote! {
-        enum Expr {
-            #[adze::prec_left(1)]
-            Add(Box<Expr>, (), Box<Expr>),
-        }
-    };
-    let variant_attr = &e.variants[0].attrs[0];
-    assert!(is_path_attr(variant_attr, "adze", "prec_left"));
+fn name_value_expr_raw_string_pattern() {
+    let nv: NameValueExpr = parse_quote!(pattern = r"\d+");
+    assert_eq!(nv.path.to_string(), "pattern");
 }
 
 #[test]
-fn custom_attr_prec_right() {
-    let e: ItemEnum = parse_quote! {
-        enum Expr {
-            #[adze::prec_right(2)]
-            Cons(Box<Expr>, (), Box<Expr>),
-        }
-    };
-    assert!(is_path_attr(&e.variants[0].attrs[0], "adze", "prec_right"));
+fn name_value_expr_punctuated_list() {
+    let params: Punctuated<NameValueExpr, Token![,]> =
+        parse_quote!(pattern = r"\d+", transform = |v| v.parse::<i32>().unwrap());
+    assert_eq!(params.len(), 2);
+    assert_eq!(params[0].path.to_string(), "pattern");
+    assert_eq!(params[1].path.to_string(), "transform");
 }
 
 #[test]
-fn custom_attr_prec_no_assoc() {
-    let e: ItemEnum = parse_quote! {
-        enum Expr {
-            #[adze::prec(3)]
-            Cmp(Box<Expr>, (), Box<Expr>),
-        }
-    };
-    assert!(is_path_attr(&e.variants[0].attrs[0], "adze", "prec"));
+fn name_value_expr_single_item_punctuated() {
+    let params: Punctuated<NameValueExpr, Token![,]> = parse_quote!(text = "+");
+    assert_eq!(params.len(), 1);
+    assert_eq!(params[0].path.to_string(), "text");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 3. Parse struct with derives
+// Section 2: FieldThenParams parsing — used for delimited attribute syntax
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn struct_unit() {
-    let s = parse_struct(quote! { struct Unit; });
-    assert!(matches!(s.fields, Fields::Unit));
+fn field_then_params_type_only() {
+    let ftp: FieldThenParams = parse_quote!(MyType);
+    assert!(ftp.comma.is_none());
+    assert!(ftp.params.is_empty());
+    assert_eq!(ftp.field.ty.to_token_stream().to_string(), "MyType");
 }
 
 #[test]
-fn struct_named_fields() {
-    let s = parse_struct(quote! {
-        struct Named { x: i32, y: String }
-    });
-    assert_eq!(field_count(&s.fields), 2);
+fn field_then_params_with_named_params() {
+    let ftp: FieldThenParams = parse_quote!(MyType, name = "test", count = 5);
+    assert!(ftp.comma.is_some());
+    assert_eq!(ftp.params.len(), 2);
+    assert_eq!(ftp.params[0].path.to_string(), "name");
+    assert_eq!(ftp.params[1].path.to_string(), "count");
 }
 
 #[test]
-fn struct_unnamed_fields() {
-    let s = parse_struct(quote! {
-        struct Tuple(i32, String);
-    });
-    assert_eq!(field_count(&s.fields), 2);
+fn field_then_params_unit_type() {
+    let ftp: FieldThenParams = parse_quote!(());
+    assert_eq!(ftp.field.ty.to_token_stream().to_string(), "()");
+    assert!(ftp.params.is_empty());
 }
 
 #[test]
-fn struct_with_pub_visibility() {
-    let s = parse_struct(quote! {
-        pub struct Public { pub x: i32 }
-    });
-    assert!(matches!(s.vis, syn::Visibility::Public(_)));
-}
-
-#[test]
-fn struct_field_types_preserved() {
-    let s: ItemStruct = parse_quote! {
-        struct S { a: Vec<i32>, b: Option<String> }
-    };
-    let types: Vec<_> = s
-        .fields
-        .iter()
-        .map(|f| f.ty.to_token_stream().to_string())
-        .collect();
-    assert!(types[0].contains("Vec"));
-    assert!(types[1].contains("Option"));
-}
-
-#[test]
-fn struct_derive_data_variant() {
-    let input = parse_derive_input(quote! {
-        struct S { x: i32 }
-    });
-    assert!(matches!(input.data, Data::Struct(_)));
+fn field_then_params_with_attrs_on_field() {
+    let ftp: FieldThenParams = parse_quote!(
+        #[adze::leaf(text = ",")]
+        ()
+    );
+    assert_eq!(ftp.field.attrs.len(), 1);
+    assert!(is_adze_attr(&ftp.field.attrs[0], "leaf"));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4. Parse enum with derives
+// Section 3: Type extraction utilities — try_extract_inner_type
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn enum_single_variant() {
-    let e = parse_enum(quote! {
-        enum Single { One }
-    });
-    assert_eq!(e.variants.len(), 1);
+fn extract_inner_type_vec_string() {
+    let skip: HashSet<&str> = HashSet::new();
+    let ty: Type = parse_quote!(Vec<String>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+    assert!(extracted);
+    assert_eq!(inner.to_token_stream().to_string(), "String");
 }
 
 #[test]
-fn enum_multiple_variants() {
-    let e = parse_enum(quote! {
-        enum Multi { A, B, C, D }
-    });
-    assert_eq!(e.variants.len(), 4);
+fn extract_inner_type_option_i32() {
+    let skip: HashSet<&str> = HashSet::new();
+    let ty: Type = parse_quote!(Option<i32>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip);
+    assert!(extracted);
+    assert_eq!(inner.to_token_stream().to_string(), "i32");
 }
 
 #[test]
-fn enum_tuple_variant() {
-    let e = parse_enum(quote! {
-        enum E { Tup(i32, String) }
-    });
-    assert_eq!(field_count(&e.variants[0].fields), 2);
+fn extract_inner_type_not_matching() {
+    let skip: HashSet<&str> = HashSet::new();
+    let ty: Type = parse_quote!(Vec<String>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip);
+    assert!(!extracted);
+    assert_eq!(inner.to_token_stream().to_string(), "Vec < String >");
 }
 
 #[test]
-fn enum_named_variant() {
-    let e = parse_enum(quote! {
-        enum E { Named { x: i32, y: bool } }
-    });
-    assert_eq!(field_count(&e.variants[0].fields), 2);
+fn extract_inner_type_through_box() {
+    let skip: HashSet<&str> = ["Box"].into_iter().collect();
+    let ty: Type = parse_quote!(Box<Vec<i32>>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+    assert!(extracted);
+    assert_eq!(inner.to_token_stream().to_string(), "i32");
 }
 
 #[test]
-fn enum_unit_variant() {
-    let e = parse_enum(quote! {
-        enum E { Unit }
-    });
-    assert_eq!(field_count(&e.variants[0].fields), 0);
+fn extract_inner_type_box_no_target_inside() {
+    let skip: HashSet<&str> = ["Box"].into_iter().collect();
+    let ty: Type = parse_quote!(Box<String>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip);
+    assert!(!extracted);
+    assert_eq!(inner.to_token_stream().to_string(), "Box < String >");
 }
 
 #[test]
-fn enum_mixed_variants() {
-    let e = parse_enum(quote! {
-        enum Mixed {
-            Unit,
-            Tuple(i32),
-            Named { a: String },
-        }
-    });
-    assert_eq!(field_count(&e.variants[0].fields), 0);
-    assert_eq!(field_count(&e.variants[1].fields), 1);
-    assert_eq!(field_count(&e.variants[2].fields), 1);
+fn extract_inner_type_non_path_type_unchanged() {
+    let skip: HashSet<&str> = HashSet::new();
+    let ty: Type = parse_quote!(&str);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip);
+    assert!(!extracted);
+    assert_eq!(inner.to_token_stream().to_string(), "& str");
 }
 
 #[test]
-fn enum_derive_data_variant() {
-    let input = parse_derive_input(quote! {
-        enum E { A, B }
-    });
-    assert!(matches!(input.data, Data::Enum(_)));
+fn extract_inner_type_nested_skip_types() {
+    let skip: HashSet<&str> = ["Box", "Arc"].into_iter().collect();
+    let ty: Type = parse_quote!(Box<Arc<Option<u64>>>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip);
+    assert!(extracted);
+    assert_eq!(inner.to_token_stream().to_string(), "u64");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 5. Parse multiple derive macros
+// Section 4: filter_inner_type — unwrap container wrappers
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn multiple_derive_attrs_separate() {
-    let input = parse_derive_input(quote! {
-        #[derive(Clone)]
-        #[derive(Debug)]
-        struct S;
-    });
-    let derive_count = input
-        .attrs
-        .iter()
-        .filter(|a| a.path().is_ident("derive"))
-        .count();
-    assert_eq!(derive_count, 2);
+fn filter_inner_type_unwrap_box() {
+    let skip: HashSet<&str> = ["Box"].into_iter().collect();
+    let ty: Type = parse_quote!(Box<Expr>);
+    let filtered = filter_inner_type(&ty, &skip);
+    assert_eq!(filtered.to_token_stream().to_string(), "Expr");
 }
 
 #[test]
-fn multiple_derive_attrs_combined() {
-    let input = parse_derive_input(quote! {
-        #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-        struct S;
-    });
-    assert!(has_derive(&input.attrs, "Clone"));
-    assert!(has_derive(&input.attrs, "Hash"));
+fn filter_inner_type_unwrap_nested_box_arc() {
+    let skip: HashSet<&str> = ["Box", "Arc"].into_iter().collect();
+    let ty: Type = parse_quote!(Box<Arc<String>>);
+    let filtered = filter_inner_type(&ty, &skip);
+    assert_eq!(filtered.to_token_stream().to_string(), "String");
 }
 
 #[test]
-fn derive_plus_custom_attr() {
-    let input = parse_derive_input(quote! {
-        #[derive(Debug)]
-        #[adze::language]
-        struct S;
-    });
-    assert!(has_derive(&input.attrs, "Debug"));
-    assert!(
-        input
-            .attrs
-            .iter()
-            .any(|a| is_path_attr(a, "adze", "language"))
+fn filter_inner_type_non_skip_unchanged() {
+    let skip: HashSet<&str> = ["Box"].into_iter().collect();
+    let ty: Type = parse_quote!(Vec<i32>);
+    let filtered = filter_inner_type(&ty, &skip);
+    assert_eq!(filtered.to_token_stream().to_string(), "Vec < i32 >");
+}
+
+#[test]
+fn filter_inner_type_empty_skip_set() {
+    let skip: HashSet<&str> = HashSet::new();
+    let ty: Type = parse_quote!(Box<String>);
+    let filtered = filter_inner_type(&ty, &skip);
+    assert_eq!(filtered.to_token_stream().to_string(), "Box < String >");
+}
+
+#[test]
+fn filter_inner_type_tuple_unchanged() {
+    let skip: HashSet<&str> = ["Box"].into_iter().collect();
+    let ty: Type = parse_quote!((i32, u32));
+    let filtered = filter_inner_type(&ty, &skip);
+    assert_eq!(filtered.to_token_stream().to_string(), "(i32 , u32)");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Section 5: wrap_leaf_type — wrap types in adze::WithLeaf
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn wrap_leaf_type_plain_type() {
+    let skip: HashSet<&str> = HashSet::new();
+    let ty: Type = parse_quote!(i32);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert_eq!(
+        wrapped.to_token_stream().to_string(),
+        "adze :: WithLeaf < i32 >"
     );
 }
 
 #[test]
-fn derive_on_enum() {
-    let input = parse_derive_input(quote! {
-        #[derive(Clone, Debug)]
-        enum E { A, B }
-    });
-    assert!(has_derive(&input.attrs, "Clone"));
-    assert!(matches!(input.data, Data::Enum(_)));
+fn wrap_leaf_type_vec_wraps_inner() {
+    let skip: HashSet<&str> = ["Vec"].into_iter().collect();
+    let ty: Type = parse_quote!(Vec<String>);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert_eq!(
+        wrapped.to_token_stream().to_string(),
+        "Vec < adze :: WithLeaf < String > >"
+    );
+}
+
+#[test]
+fn wrap_leaf_type_option_wraps_inner() {
+    let skip: HashSet<&str> = ["Option"].into_iter().collect();
+    let ty: Type = parse_quote!(Option<u32>);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert_eq!(
+        wrapped.to_token_stream().to_string(),
+        "Option < adze :: WithLeaf < u32 > >"
+    );
+}
+
+#[test]
+fn wrap_leaf_type_nested_skip() {
+    let skip: HashSet<&str> = ["Vec", "Option"].into_iter().collect();
+    let ty: Type = parse_quote!(Vec<Option<f64>>);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert_eq!(
+        wrapped.to_token_stream().to_string(),
+        "Vec < Option < adze :: WithLeaf < f64 > > >"
+    );
+}
+
+#[test]
+fn wrap_leaf_type_reference_wrapped() {
+    let skip: HashSet<&str> = HashSet::new();
+    let ty: Type = parse_quote!(&str);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert_eq!(
+        wrapped.to_token_stream().to_string(),
+        "adze :: WithLeaf < & str >"
+    );
+}
+
+#[test]
+fn wrap_leaf_type_multiple_generic_args() {
+    let skip: HashSet<&str> = ["Result"].into_iter().collect();
+    let ty: Type = parse_quote!(Result<String, i32>);
+    let wrapped = wrap_leaf_type(&ty, &skip);
+    assert_eq!(
+        wrapped.to_token_stream().to_string(),
+        "Result < adze :: WithLeaf < String > , adze :: WithLeaf < i32 > >"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 6. Parse nested attribute arguments
+// Section 6: Attribute recognition patterns — all adze:: attributes
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn nested_attr_name_value() {
+fn recognize_grammar_attr() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {}
+    });
+    assert!(m.attrs.iter().any(|a| is_adze_attr(a, "grammar")));
+}
+
+#[test]
+fn recognize_language_attr() {
     let s: ItemStruct = parse_quote! {
-        struct S {
+        #[adze::language]
+        pub struct Root {}
+    };
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+}
+
+#[test]
+fn recognize_extra_attr() {
+    let s: ItemStruct = parse_quote! {
+        #[adze::extra]
+        struct Ws { _ws: () }
+    };
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+}
+
+#[test]
+fn recognize_leaf_attr_on_field() {
+    let s: ItemStruct = parse_quote! {
+        struct T {
+            #[adze::leaf(pattern = r"\d+")]
+            value: String,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    assert!(field.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+}
+
+#[test]
+fn recognize_skip_attr() {
+    let s: ItemStruct = parse_quote! {
+        struct N {
+            #[adze::skip(false)]
+            visited: bool,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    assert!(field.attrs.iter().any(|a| is_adze_attr(a, "skip")));
+}
+
+#[test]
+fn recognize_word_attr() {
+    let s: ItemStruct = parse_quote! {
+        #[adze::word]
+        struct Ident { name: String }
+    };
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
+}
+
+#[test]
+fn recognize_external_attr() {
+    let s: ItemStruct = parse_quote! {
+        #[adze::external]
+        struct IndentToken;
+    };
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "external")));
+}
+
+#[test]
+fn recognize_repeat_attr() {
+    let s: ItemStruct = parse_quote! {
+        struct L {
+            #[adze::repeat(non_empty = true)]
+            items: Vec<Number>,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    assert!(field.attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+}
+
+#[test]
+fn recognize_delimited_attr() {
+    let s: ItemStruct = parse_quote! {
+        struct L {
+            #[adze::delimited(
+                #[adze::leaf(text = ",")]
+                ()
+            )]
+            items: Vec<Item>,
+        }
+    };
+    let field = s.fields.iter().next().unwrap();
+    assert!(field.attrs.iter().any(|a| is_adze_attr(a, "delimited")));
+}
+
+#[test]
+fn recognize_prec_left_on_variant() {
+    let e: ItemEnum = parse_quote! {
+        enum E {
+            #[adze::prec_left(1)]
+            Add(Box<E>, Box<E>),
+        }
+    };
+    assert!(
+        e.variants[0]
+            .attrs
+            .iter()
+            .any(|a| is_adze_attr(a, "prec_left"))
+    );
+}
+
+#[test]
+fn recognize_prec_right_on_variant() {
+    let e: ItemEnum = parse_quote! {
+        enum E {
+            #[adze::prec_right(2)]
+            Cons(Box<E>, Box<E>),
+        }
+    };
+    assert!(
+        e.variants[0]
+            .attrs
+            .iter()
+            .any(|a| is_adze_attr(a, "prec_right"))
+    );
+}
+
+#[test]
+fn recognize_prec_on_variant() {
+    let e: ItemEnum = parse_quote! {
+        enum E {
+            #[adze::prec(3)]
+            Cmp(Box<E>, Box<E>),
+        }
+    };
+    assert!(e.variants[0].attrs.iter().any(|a| is_adze_attr(a, "prec")));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Section 7: Attribute parameter extraction — parsing attr arguments
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn parse_leaf_text_param_from_field() {
+    let s: ItemStruct = parse_quote! {
+        struct T {
             #[adze::leaf(text = "+")]
             op: (),
         }
     };
-    let attr_str = s.fields.iter().next().unwrap().attrs[0]
-        .to_token_stream()
-        .to_string();
-    assert!(attr_str.contains("text"));
-    assert!(attr_str.contains("+"));
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    assert_eq!(params.len(), 1);
+    assert_eq!(params[0].path.to_string(), "text");
 }
 
 #[test]
-fn nested_attr_multiple_args() {
+fn parse_leaf_pattern_and_transform_from_field() {
     let s: ItemStruct = parse_quote! {
-        struct S {
-            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
-            num: i32,
+        struct T {
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse::<i32>().unwrap())]
+            value: i32,
         }
     };
-    let attr_str = s.fields.iter().next().unwrap().attrs[0]
-        .to_token_stream()
-        .to_string();
-    assert!(attr_str.contains("pattern"));
-    assert!(attr_str.contains("transform"));
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    let names: Vec<_> = params.iter().map(|p| p.path.to_string()).collect();
+    assert!(names.contains(&"pattern".to_string()));
+    assert!(names.contains(&"transform".to_string()));
 }
 
 #[test]
-fn nested_attr_boolean_arg() {
-    let s: ItemStruct = parse_quote! {
-        struct S {
-            #[adze::repeat(non_empty = true)]
-            items: Vec<i32>,
-        }
-    };
-    let attr_str = s.fields.iter().next().unwrap().attrs[0]
-        .to_token_stream()
-        .to_string();
-    assert!(attr_str.contains("non_empty"));
-    assert!(attr_str.contains("true"));
-}
-
-#[test]
-fn nested_attr_inner_attr_in_delimited() {
-    let s: ItemStruct = parse_quote! {
-        struct S {
-            #[adze::delimited(
-                #[adze::leaf(text = ",")]
-                ()
-            )]
-            items: Vec<i32>,
-        }
-    };
-    let attr_str = s.fields.iter().next().unwrap().attrs[0]
-        .to_token_stream()
-        .to_string();
-    assert!(attr_str.contains("delimited"));
-    assert!(attr_str.contains("leaf"));
-}
-
-#[test]
-fn nested_attr_integer_arg() {
+fn parse_precedence_integer_from_variant() {
     let e: ItemEnum = parse_quote! {
         enum E {
-            #[adze::prec_left(42)]
-            V(i32),
+            #[adze::prec_left(99)]
+            V(Box<E>, Box<E>),
         }
     };
-    let attr_str = e.variants[0].attrs[0].to_token_stream().to_string();
-    assert!(attr_str.contains("42"));
+    let attr = &e.variants[0].attrs[0];
+    let expr: Expr = attr.parse_args().unwrap();
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Int(i), ..
+    }) = &expr
+    {
+        assert_eq!(i.base10_parse::<i32>().unwrap(), 99);
+    } else {
+        panic!("Expected integer literal");
+    }
+}
+
+#[test]
+fn parse_skip_bool_value() {
+    let s: ItemStruct = parse_quote! {
+        struct N {
+            #[adze::skip(false)]
+            visited: bool,
+        }
+    };
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "skip"))
+        .unwrap();
+    let expr: Expr = attr.parse_args().unwrap();
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Bool(b), ..
+    }) = &expr
+    {
+        assert!(!b.value);
+    } else {
+        panic!("Expected bool literal");
+    }
+}
+
+#[test]
+fn parse_grammar_name_string() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("my_lang")]
+        mod grammar {}
+    });
+    let attr = m.attrs.iter().find(|a| is_adze_attr(a, "grammar")).unwrap();
+    let expr: Expr = attr.parse_args().unwrap();
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Str(s), ..
+    }) = expr
+    {
+        assert_eq!(s.value(), "my_lang");
+    } else {
+        panic!("Expected string literal");
+    }
+}
+
+#[test]
+fn parse_repeat_non_empty_param() {
+    let s: ItemStruct = parse_quote! {
+        struct L {
+            #[adze::repeat(non_empty = true)]
+            items: Vec<Number>,
+        }
+    };
+    let attr = s
+        .fields
+        .iter()
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "repeat"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    assert_eq!(params.len(), 1);
+    assert_eq!(params[0].path.to_string(), "non_empty");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 7. Attribute path parsing
+// Section 8: Attribute validation — checking error conditions
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn attr_path_single_segment() {
+fn unknown_adze_attr_parsed_but_not_recognized() {
     let s: ItemStruct = parse_quote! {
-        #[derive(Debug)]
+        #[adze::nonexistent]
         struct S;
     };
-    assert!(s.attrs[0].path().is_ident("derive"));
+    let names = adze_attr_names(&s.attrs);
+    assert_eq!(names, vec!["nonexistent"]);
+    let known = [
+        "grammar",
+        "language",
+        "leaf",
+        "word",
+        "prec",
+        "prec_left",
+        "prec_right",
+        "extra",
+        "skip",
+        "delimited",
+        "repeat",
+        "external",
+    ];
+    assert!(!known.contains(&names[0].as_str()));
 }
 
 #[test]
-fn attr_path_two_segments() {
+fn non_adze_attr_not_in_adze_names() {
     let s: ItemStruct = parse_quote! {
+        #[derive(Debug)]
+        #[serde(rename_all = "camelCase")]
         #[adze::language]
         struct S;
     };
-    let segs: Vec<_> = s.attrs[0].path().segments.iter().collect();
-    assert_eq!(segs.len(), 2);
-    assert_eq!(segs[0].ident.to_string(), "adze");
-    assert_eq!(segs[1].ident.to_string(), "language");
+    let adze_names = adze_attr_names(&s.attrs);
+    assert_eq!(adze_names, vec!["language"]);
 }
 
 #[test]
-fn attr_path_segments_iteration() {
+fn grammar_attr_without_parens_is_meta_path() {
+    // #[adze::grammar] without arguments — the meta style is Path (no args)
+    let m = parse_mod(quote! {
+        #[adze::grammar]
+        mod grammar {}
+    });
+    let attr = m.attrs.iter().find(|a| is_adze_attr(a, "grammar")).unwrap();
+    assert!(matches!(&attr.meta, syn::Meta::Path(_)));
+}
+
+#[test]
+fn grammar_attr_with_non_string_parses_as_expr() {
+    // #[adze::grammar(42)] — the expansion would reject this, but syn parses it
+    let m = parse_mod(quote! {
+        #[adze::grammar(42)]
+        mod grammar {}
+    });
+    let attr = m.attrs.iter().find(|a| is_adze_attr(a, "grammar")).unwrap();
+    let expr: Expr = attr.parse_args().unwrap();
+    assert!(matches!(
+        expr,
+        Expr::Lit(ExprLit {
+            lit: Lit::Int(_),
+            ..
+        })
+    ));
+}
+
+#[test]
+fn leaf_attr_empty_parens_parses_empty_params() {
+    // #[adze::leaf()] — empty argument list
     let s: ItemStruct = parse_quote! {
-        #[some::nested::path]
-        struct S;
+        struct T {
+            #[adze::leaf()]
+            x: (),
+        }
     };
-    let names: Vec<_> = s.attrs[0]
-        .path()
-        .segments
+    let attr = s
+        .fields
         .iter()
-        .map(|s| s.ident.to_string())
-        .collect();
-    assert_eq!(names, vec!["some", "nested", "path"]);
+        .next()
+        .unwrap()
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = attr
+        .parse_args_with(Punctuated::<NameValueExpr, Token![,]>::parse_terminated)
+        .unwrap();
+    assert_eq!(params.len(), 0);
 }
 
 #[test]
-fn attr_path_is_ident_check() {
-    let s: ItemStruct = parse_quote! {
-        #[cfg(test)]
-        struct S;
-    };
-    assert!(s.attrs[0].path().is_ident("cfg"));
+fn malformed_name_value_expr_fails_parse() {
+    // Missing the `= expr` part: just an ident alone is not a valid NameValueExpr
+    let result: syn::Result<NameValueExpr> = syn::parse_str("justident");
+    assert!(result.is_err());
 }
 
 #[test]
-fn attr_path_not_matching() {
-    let s: ItemStruct = parse_quote! {
-        #[serde(rename = "x")]
-        struct S;
-    };
-    assert!(!s.attrs[0].path().is_ident("derive"));
-    assert!(s.attrs[0].path().is_ident("serde"));
+fn malformed_name_value_expr_missing_value_fails() {
+    let result: syn::Result<NameValueExpr> = syn::parse_str("key =");
+    assert!(result.is_err());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 8. Attribute token parsing
+// Section 9: Edge cases — empty attrs, multiple attrs, structural preservation
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn attr_tokens_to_string() {
-    let s: ItemStruct = parse_quote! {
-        #[adze::leaf(text = "hello")]
-        struct S;
-    };
-    let tok_str = s.attrs[0].to_token_stream().to_string();
-    assert!(tok_str.contains("hello"));
+fn struct_with_no_attrs() {
+    let s: ItemStruct = parse_quote! { struct Plain { x: i32 } };
+    assert!(s.attrs.is_empty());
+    assert_eq!(adze_attr_names(&s.attrs).len(), 0);
 }
 
 #[test]
-fn attr_meta_path_style() {
+fn multiple_adze_attrs_on_same_item() {
     let s: ItemStruct = parse_quote! {
-        #[adze::external]
-        struct S;
+        #[adze::word]
+        #[adze::language]
+        struct Ident { name: String }
     };
-    let meta = &s.attrs[0].meta;
-    assert!(matches!(meta, syn::Meta::Path(_)));
+    let names = adze_attr_names(&s.attrs);
+    assert_eq!(names.len(), 2);
+    assert!(names.contains(&"word".to_string()));
+    assert!(names.contains(&"language".to_string()));
 }
 
 #[test]
-fn attr_meta_list_style() {
+fn multiple_adze_attrs_on_same_field() {
     let s: ItemStruct = parse_quote! {
-        #[derive(Clone, Debug)]
-        struct S;
-    };
-    let meta = &s.attrs[0].meta;
-    assert!(matches!(meta, syn::Meta::List(_)));
-}
-
-#[test]
-fn attr_tokens_roundtrip() {
-    let original: ItemStruct = parse_quote! {
-        #[adze::leaf(pattern = r"\w+")]
-        struct S;
-    };
-    let tokens = original.to_token_stream();
-    let reparsed: ItemStruct = parse2(tokens).unwrap();
-    assert_eq!(original.ident, reparsed.ident);
-    assert_eq!(original.attrs.len(), reparsed.attrs.len());
-}
-
-#[test]
-fn attr_multiple_on_same_field() {
-    let s: ItemStruct = parse_quote! {
-        struct S {
+        struct L {
             #[adze::repeat(non_empty = true)]
             #[adze::delimited(
-                #[adze::leaf(text = ",")]
+                #[adze::leaf(text = ";")]
                 ()
             )]
-            items: Vec<i32>,
+            items: Vec<Number>,
         }
     };
     let field = s.fields.iter().next().unwrap();
-    assert_eq!(field.attrs.len(), 2);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 9. TokenStream combination patterns
-// ═══════════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn token_stream_extend() {
-    let a = quote! { fn foo() {} };
-    let b = quote! { fn bar() {} };
-    let mut combined = TokenStream::new();
-    combined.extend(a);
-    combined.extend(b);
-    let s = combined.to_string();
-    assert!(s.contains("foo"));
-    assert!(s.contains("bar"));
+    let names = adze_attr_names(&field.attrs);
+    assert_eq!(names.len(), 2);
+    assert!(names.contains(&"repeat".to_string()));
+    assert!(names.contains(&"delimited".to_string()));
 }
 
 #[test]
-fn token_stream_interpolation() {
-    let name = format_ident!("MyStruct");
-    let field_ty = quote! { i32 };
-    let result = quote! {
-        struct #name {
-            value: #field_ty,
-        }
-    };
-    let parsed: ItemStruct = parse2(result).unwrap();
-    assert_eq!(parsed.ident.to_string(), "MyStruct");
-}
-
-#[test]
-fn token_stream_iteration_interpolation() {
-    let names: Vec<Ident> = vec![
-        format_ident!("Alpha"),
-        format_ident!("Beta"),
-        format_ident!("Gamma"),
-    ];
-    let result = quote! {
-        enum Variants { #(#names),* }
-    };
-    let e: ItemEnum = parse2(result).unwrap();
-    assert_eq!(e.variants.len(), 3);
-}
-
-#[test]
-fn token_stream_nested_quote() {
-    let inner = quote! { x: i32 };
-    let outer = quote! {
-        struct Wrapper { #inner }
-    };
-    let s: ItemStruct = parse2(outer).unwrap();
-    assert_eq!(field_count(&s.fields), 1);
-}
-
-#[test]
-fn token_stream_conditional_generation() {
-    let include_field = true;
-    let extra = if include_field {
-        quote! { extra: bool, }
-    } else {
-        quote! {}
-    };
-    let result = quote! {
-        struct S { base: i32, #extra }
-    };
-    let s: ItemStruct = parse2(result).unwrap();
-    assert_eq!(field_count(&s.fields), 2);
-}
-
-#[test]
-fn token_stream_empty() {
-    let ts = TokenStream::new();
-    assert!(ts.is_empty());
-}
-
-#[test]
-fn token_stream_from_string() {
-    let ts: TokenStream = "struct S;".parse().unwrap();
-    let s: ItemStruct = parse2(ts).unwrap();
-    assert_eq!(s.ident.to_string(), "S");
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 10. Ident manipulation for derive expansion
-// ═══════════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn ident_format_suffix() {
-    let base = format_ident!("Expr");
-    let derived = format_ident!("{base}Visitor");
-    assert_eq!(derived.to_string(), "ExprVisitor");
-}
-
-#[test]
-fn ident_format_prefix() {
-    let base = format_ident!("Token");
-    let derived = format_ident!("parse_{base}");
-    assert_eq!(derived.to_string(), "parse_Token");
-}
-
-#[test]
-fn ident_from_string() {
-    let name = String::from("dynamic_name");
-    let ident = Ident::new(&name, Span::call_site());
-    assert_eq!(ident.to_string(), "dynamic_name");
-}
-
-#[test]
-fn ident_in_quote() {
-    let ty_name = format_ident!("Foo");
-    let tokens = quote! { impl #ty_name {} };
-    let s = tokens.to_string();
-    assert!(s.contains("Foo"));
-}
-
-#[test]
-fn ident_equality() {
-    let a = format_ident!("same");
-    let b = format_ident!("same");
-    assert_eq!(a, b);
-}
-
-#[test]
-fn ident_lowercase_conversion() {
-    let variant = "MyVariant";
-    let snake = variant
-        .chars()
-        .enumerate()
-        .map(|(i, c)| {
-            if c.is_uppercase() && i > 0 {
-                format!("_{}", c.to_lowercase())
-            } else {
-                c.to_lowercase().to_string()
-            }
-        })
-        .collect::<String>();
-    let ident = format_ident!("{snake}");
-    assert_eq!(ident.to_string(), "my_variant");
-}
-
-#[test]
-fn ident_numbered_generation() {
-    let idents: Vec<Ident> = (0..3).map(|i| format_ident!("field_{i}")).collect();
-    assert_eq!(idents[0].to_string(), "field_0");
-    assert_eq!(idents[2].to_string(), "field_2");
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 11. Generic struct derive patterns
-// ═══════════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn generic_single_type_param() {
-    let input = parse_derive_input(quote! {
-        struct Wrapper<T> { inner: T }
-    });
-    assert_eq!(input.generics.params.len(), 1);
-    assert!(matches!(&input.generics.params[0], GenericParam::Type(_)));
-}
-
-#[test]
-fn generic_multiple_type_params() {
-    let input = parse_derive_input(quote! {
-        struct Pair<A, B> { first: A, second: B }
-    });
-    assert_eq!(input.generics.params.len(), 2);
-}
-
-#[test]
-fn generic_with_bound() {
-    let input = parse_derive_input(quote! {
-        struct Bounded<T: Clone + Send> { val: T }
-    });
-    if let GenericParam::Type(tp) = &input.generics.params[0] {
-        assert!(!tp.bounds.is_empty());
-    } else {
-        panic!("expected type param");
-    }
-}
-
-#[test]
-fn generic_with_where_clause() {
-    let input = parse_derive_input(quote! {
-        struct WithWhere<T> where T: Default { val: T }
-    });
-    assert!(input.generics.where_clause.is_some());
-}
-
-#[test]
-fn generic_const_param() {
-    let input = parse_derive_input(quote! {
-        struct Array<const N: usize> { data: [u8; N] }
-    });
-    assert!(matches!(&input.generics.params[0], GenericParam::Const(_)));
-}
-
-#[test]
-fn generic_split_for_impl() {
-    let input = parse_derive_input(quote! {
-        struct G<T: Clone> { val: T }
-    });
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let name = &input.ident;
-    let tokens = quote! {
-        impl #impl_generics #name #ty_generics #where_clause {
-            fn get(&self) -> &T { &self.val }
-        }
-    };
-    let s = tokens.to_string();
-    assert!(s.contains("impl"));
-    assert!(s.contains("Clone"));
-}
-
-#[test]
-fn generic_quote_interpolation() {
-    let name = format_ident!("Container");
-    let ty_param = format_ident!("T");
-    let result = quote! {
-        struct #name<#ty_param> { inner: #ty_param }
-    };
-    let parsed: ItemStruct = parse2(result).unwrap();
-    assert_eq!(parsed.generics.params.len(), 1);
-}
-
-#[test]
-fn generic_default_type() {
-    let input = parse_derive_input(quote! {
-        struct WithDefault<T = String> { val: T }
-    });
-    if let GenericParam::Type(tp) = &input.generics.params[0] {
-        assert!(tp.default.is_some());
-    } else {
-        panic!("expected type param");
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 12. Lifetime struct derive patterns
-// ═══════════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn lifetime_single() {
-    let input = parse_derive_input(quote! {
-        struct Ref<'a> { data: &'a str }
-    });
-    assert_eq!(input.generics.params.len(), 1);
-    assert!(matches!(
-        &input.generics.params[0],
-        GenericParam::Lifetime(_)
-    ));
-}
-
-#[test]
-fn lifetime_multiple() {
-    let input = parse_derive_input(quote! {
-        struct Multi<'a, 'b> { x: &'a str, y: &'b str }
-    });
-    assert_eq!(input.generics.params.len(), 2);
-}
-
-#[test]
-fn lifetime_with_type_param() {
-    let input = parse_derive_input(quote! {
-        struct Mixed<'a, T> { data: &'a T }
-    });
-    assert!(matches!(
-        &input.generics.params[0],
-        GenericParam::Lifetime(_)
-    ));
-    assert!(matches!(&input.generics.params[1], GenericParam::Type(_)));
-}
-
-#[test]
-fn lifetime_bound() {
-    let input = parse_derive_input(quote! {
-        struct Bounded<'a, 'b: 'a> { x: &'a str, y: &'b str }
-    });
-    if let GenericParam::Lifetime(lt) = &input.generics.params[1] {
-        assert!(!lt.bounds.is_empty());
-    } else {
-        panic!("expected lifetime param");
-    }
-}
-
-#[test]
-fn lifetime_in_quote() {
-    let lt = Lifetime::new("'a", Span::call_site());
-    let tokens = quote! {
-        struct Ref<#lt> { data: &#lt str }
-    };
-    let parsed: ItemStruct = parse2(tokens).unwrap();
-    assert_eq!(parsed.generics.params.len(), 1);
-}
-
-#[test]
-fn lifetime_split_for_impl() {
-    let input = parse_derive_input(quote! {
-        struct Ref<'a> { data: &'a str }
-    });
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let name = &input.ident;
-    let tokens = quote! {
-        impl #impl_generics #name #ty_generics #where_clause {
-            fn data(&self) -> &str { self.data }
-        }
-    };
-    let s = tokens.to_string();
-    assert!(s.contains("'a"));
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Additional pattern tests (roundtrips, edge cases, combinations)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn roundtrip_struct_parse_quote_reparse() {
-    let original: ItemStruct = parse_quote! {
-        pub struct Node {
-            #[adze::leaf(pattern = r"\w+")]
-            name: String,
-        }
-    };
-    let tokens = original.to_token_stream();
-    let reparsed: ItemStruct = parse2(tokens).unwrap();
-    assert_eq!(original.ident, reparsed.ident);
-    assert_eq!(field_count(&original.fields), field_count(&reparsed.fields));
-}
-
-#[test]
-fn roundtrip_enum_parse_quote_reparse() {
-    let original: ItemEnum = parse_quote! {
-        pub enum Expr {
-            Num(i32),
-            Add(Box<Expr>, Box<Expr>),
-        }
-    };
-    let tokens = original.to_token_stream();
-    let reparsed: ItemEnum = parse2(tokens).unwrap();
-    assert_eq!(original.variants.len(), reparsed.variants.len());
-}
-
-#[test]
-fn field_type_box_extraction() {
+fn mixed_adze_and_derive_attrs() {
     let s: ItemStruct = parse_quote! {
-        struct S { child: Box<Expr> }
-    };
-    let ty_str = s
-        .fields
-        .iter()
-        .next()
-        .unwrap()
-        .ty
-        .to_token_stream()
-        .to_string();
-    assert!(ty_str.contains("Box"));
-    assert!(ty_str.contains("Expr"));
-}
-
-#[test]
-fn field_type_vec_extraction() {
-    let s: ItemStruct = parse_quote! {
-        struct S { items: Vec<Item> }
-    };
-    let ty_str = s
-        .fields
-        .iter()
-        .next()
-        .unwrap()
-        .ty
-        .to_token_stream()
-        .to_string();
-    assert!(ty_str.contains("Vec"));
-    assert!(ty_str.contains("Item"));
-}
-
-#[test]
-fn field_type_option_extraction() {
-    let s: ItemStruct = parse_quote! {
-        struct S { maybe: Option<i32> }
-    };
-    let ty_str = s
-        .fields
-        .iter()
-        .next()
-        .unwrap()
-        .ty
-        .to_token_stream()
-        .to_string();
-    assert!(ty_str.contains("Option"));
-}
-
-#[test]
-fn enum_variant_with_boxed_self_reference() {
-    let e: ItemEnum = parse_quote! {
-        enum Tree {
-            Leaf(i32),
-            Branch(Box<Tree>, Box<Tree>),
-        }
-    };
-    assert_eq!(field_count(&e.variants[0].fields), 1);
-    assert_eq!(field_count(&e.variants[1].fields), 2);
-}
-
-#[test]
-fn derive_input_data_fields_extraction() {
-    let input = parse_derive_input(quote! {
-        struct S { a: i32, b: String, c: bool }
-    });
-    if let Data::Struct(ds) = &input.data {
-        assert_eq!(field_count(&ds.fields), 3);
-    } else {
-        panic!("expected struct");
-    }
-}
-
-#[test]
-fn derive_input_enum_variant_names() {
-    let input = parse_derive_input(quote! {
-        enum Color { Red, Green, Blue }
-    });
-    if let Data::Enum(de) = &input.data {
-        let names: Vec<_> = de.variants.iter().map(|v| v.ident.to_string()).collect();
-        assert_eq!(names, vec!["Red", "Green", "Blue"]);
-    } else {
-        panic!("expected enum");
-    }
-}
-
-#[test]
-fn quote_generate_impl_block() {
-    let ty_name = format_ident!("Foo");
-    let method_name = format_ident!("new");
-    let tokens = quote! {
-        impl #ty_name {
-            fn #method_name() -> Self {
-                Self {}
-            }
-        }
-    };
-    let s = tokens.to_string();
-    assert!(s.contains("impl Foo"));
-    assert!(s.contains("fn new"));
-}
-
-#[test]
-fn quote_generate_match_arms() {
-    let variants = vec![
-        (format_ident!("A"), quote! { 1 }),
-        (format_ident!("B"), quote! { 2 }),
-        (format_ident!("C"), quote! { 3 }),
-    ];
-    let arms = variants.iter().map(|(name, val)| {
-        quote! { Self::#name => #val, }
-    });
-    let tokens = quote! {
-        fn to_int(&self) -> i32 {
-            match self {
-                #(#arms)*
-            }
-        }
-    };
-    let s = tokens.to_string();
-    assert!(s.contains("Self :: A => 1"));
-    assert!(s.contains("Self :: C => 3"));
-}
-
-#[test]
-fn parse_type_from_string() {
-    let ty: Type = syn::parse_str("Vec<Option<i32>>").unwrap();
-    let s = ty.to_token_stream().to_string();
-    assert!(s.contains("Vec"));
-    assert!(s.contains("Option"));
-    assert!(s.contains("i32"));
-}
-
-#[test]
-fn struct_with_multiple_adze_attrs() {
-    let s: ItemStruct = parse_quote! {
+        #[derive(Debug, Clone)]
         #[adze::language]
-        #[adze::word]
-        pub struct Identifier {
-            #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
-            name: String,
-        }
+        #[derive(PartialEq)]
+        struct S { x: i32 }
     };
-    assert!(is_path_attr(&s.attrs[0], "adze", "language"));
-    assert!(is_path_attr(&s.attrs[1], "adze", "word"));
+    let adze_count = s
+        .attrs
+        .iter()
+        .filter(|a| {
+            a.path()
+                .segments
+                .iter()
+                .next()
+                .map(|seg| seg.ident == "adze")
+                .unwrap_or(false)
+        })
+        .count();
+    let derive_count = s
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("derive"))
+        .count();
+    assert_eq!(adze_count, 1);
+    assert_eq!(derive_count, 2);
 }
 
 #[test]
@@ -1058,36 +822,443 @@ fn enum_all_unit_leaf_variants() {
             Else,
             #[adze::leaf(text = "while")]
             While,
-            #[adze::leaf(text = "for")]
-            For,
         }
     };
-    assert_eq!(e.variants.len(), 4);
     for v in &e.variants {
         assert_eq!(field_count(&v.fields), 0);
-        assert!(is_path_attr(&v.attrs[0], "adze", "leaf"));
+        assert!(v.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
     }
 }
 
 #[test]
-fn complex_enum_with_all_adze_attrs() {
-    let e: ItemEnum = parse_quote! {
-        enum Expr {
-            #[adze::leaf(pattern = r"\d+")]
-            Num(String),
-            #[adze::prec_left(1)]
-            Add(Box<Expr>, (), Box<Expr>),
-            #[adze::prec_left(2)]
-            Mul(Box<Expr>, (), Box<Expr>),
-            #[adze::prec_right(3)]
-            Pow(Box<Expr>, (), Box<Expr>),
-            #[adze::prec(0)]
-            Cmp(Box<Expr>, (), Box<Expr>),
+fn unit_struct_with_leaf_text() {
+    let s: ItemStruct = parse_quote! {
+        #[adze::leaf(text = "9")]
+        struct BigDigit;
+    };
+    assert!(matches!(s.fields, Fields::Unit));
+    assert!(s.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+}
+
+#[test]
+fn attrs_preserve_field_names() {
+    let s: ItemStruct = parse_quote! {
+        #[adze::language]
+        struct P {
+            #[adze::leaf(pattern = r"\w+")]
+            name: String,
+            count: usize,
         }
     };
-    assert_eq!(e.variants.len(), 5);
-    assert!(is_path_attr(&e.variants[0].attrs[0], "adze", "leaf"));
-    assert!(is_path_attr(&e.variants[1].attrs[0], "adze", "prec_left"));
-    assert!(is_path_attr(&e.variants[3].attrs[0], "adze", "prec_right"));
-    assert!(is_path_attr(&e.variants[4].attrs[0], "adze", "prec"));
+    let names: Vec<_> = s
+        .fields
+        .iter()
+        .map(|f| f.ident.as_ref().unwrap().to_string())
+        .collect();
+    assert_eq!(names, vec!["name", "count"]);
+}
+
+#[test]
+fn attrs_preserve_variant_names() {
+    let e: ItemEnum = parse_quote! {
+        enum E {
+            #[adze::prec_left(1)]
+            Add(Box<E>, Box<E>),
+            #[adze::prec_right(2)]
+            Pow(Box<E>, Box<E>),
+            Lit(i32),
+        }
+    };
+    let names: Vec<_> = e.variants.iter().map(|v| v.ident.to_string()).collect();
+    assert_eq!(names, vec!["Add", "Pow", "Lit"]);
+}
+
+#[test]
+fn grammar_module_preserves_item_count() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            #[adze::language]
+            pub struct Root {}
+
+            #[adze::extra]
+            struct Ws {}
+        }
+    });
+    let (_, items) = m.content.unwrap();
+    assert_eq!(items.len(), 2);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Section 10: Token stream generation and code gen patterns
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn quote_generates_impl_with_extract() {
+    let ty_name = format_ident!("MyNode");
+    let grammar_name = "test_grammar";
+    let tokens = quote! {
+        impl ::adze::Extract<#ty_name> for #ty_name {
+            type LeafFn = ();
+            const GRAMMAR_NAME: &'static str = #grammar_name;
+            fn extract(node: Option<()>, source: &[u8], _last_idx: usize, _leaf_fn: Option<&Self::LeafFn>) -> Self {
+                todo!()
+            }
+        }
+    };
+    let s = tokens.to_string();
+    assert!(s.contains("MyNode"));
+    assert!(s.contains("test_grammar"));
+    assert!(s.contains("Extract"));
+}
+
+#[test]
+fn quote_variant_detection_pattern() {
+    let enum_name = format_ident!("Expr");
+    let variant_name = "Number";
+    let expected_symbol = format!("Expr_{variant_name}");
+    let tokens = quote! {
+        if node.kind() == #expected_symbol {
+            return Self::Number(value);
+        }
+    };
+    let s = tokens.to_string();
+    assert!(s.contains("Expr_Number"));
+}
+
+#[test]
+fn quote_iteration_over_variants() {
+    let variants: Vec<(Ident, String)> = vec![
+        (format_ident!("Num"), "Expr_Num".to_string()),
+        (format_ident!("Add"), "Expr_Add".to_string()),
+    ];
+    let detection_arms: Vec<_> = variants
+        .iter()
+        .map(|(name, symbol)| {
+            quote! {
+                if node.kind() == #symbol {
+                    return #name;
+                }
+            }
+        })
+        .collect();
+    let tokens = quote! { #(#detection_arms)* };
+    let s = tokens.to_string();
+    assert!(s.contains("Expr_Num"));
+    assert!(s.contains("Expr_Add"));
+}
+
+#[test]
+fn format_variant_symbol_name() {
+    let enum_name = "Expression";
+    let variant_name = "Number";
+    let expected = format!("{enum_name}_{variant_name}");
+    assert_eq!(expected, "Expression_Number");
+}
+
+#[test]
+fn quote_extern_fn_declaration() {
+    let grammar = "json";
+    let fn_name = format_ident!("tree_sitter_{grammar}");
+    let tokens = quote! {
+        unsafe extern "C" {
+            fn #fn_name() -> ::adze::tree_sitter::Language;
+        }
+    };
+    let s = tokens.to_string();
+    assert!(s.contains("tree_sitter_json"));
+}
+
+#[test]
+fn roundtrip_struct_with_attrs() {
+    let original: ItemStruct = parse_quote! {
+        #[adze::language]
+        pub struct Node {
+            #[adze::leaf(pattern = r"\w+")]
+            name: String,
+        }
+    };
+    let tokens = original.to_token_stream();
+    let reparsed: ItemStruct = parse2(tokens).unwrap();
+    assert_eq!(original.ident, reparsed.ident);
+    assert_eq!(field_count(&original.fields), field_count(&reparsed.fields));
+}
+
+#[test]
+fn roundtrip_enum_with_attrs() {
+    let original: ItemEnum = parse_quote! {
+        enum E {
+            #[adze::prec_left(1)]
+            A(i32),
+            B(String),
+        }
+    };
+    let tokens = original.to_token_stream();
+    let reparsed: ItemEnum = parse2(tokens).unwrap();
+    assert_eq!(original.variants.len(), reparsed.variants.len());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Section 11: Complex grammar patterns — realistic attribute combinations
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn complex_enum_all_prec_variants() {
+    let e: ItemEnum = parse_quote! {
+        enum Expr {
+            #[adze::prec(1)]
+            A(i32),
+            #[adze::prec_left(2)]
+            B(i32),
+            #[adze::prec_right(3)]
+            C(i32),
+        }
+    };
+    let attrs: Vec<String> = e
+        .variants
+        .iter()
+        .flat_map(|v| adze_attr_names(&v.attrs))
+        .collect();
+    assert_eq!(attrs, vec!["prec", "prec_left", "prec_right"]);
+    // Verify all precedence values parse
+    for (v, expected) in e.variants.iter().zip([1i32, 2, 3]) {
+        let expr: Expr = v.attrs[0].parse_args().unwrap();
+        if let Expr::Lit(ExprLit {
+            lit: Lit::Int(i), ..
+        }) = expr
+        {
+            assert_eq!(i.base10_parse::<i32>().unwrap(), expected);
+        } else {
+            panic!("Expected int literal for {}", v.ident);
+        }
+    }
+}
+
+#[test]
+fn complex_grammar_module_structure() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("arithmetic")]
+        mod grammar {
+            #[adze::language]
+            pub enum Expr {
+                Number(
+                    #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                    i32
+                ),
+                #[adze::prec_left(1)]
+                Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+            }
+
+            #[adze::extra]
+            struct Whitespace {
+                #[adze::leaf(pattern = r"\s")]
+                _ws: (),
+            }
+        }
+    });
+    let (_, items) = m.content.unwrap();
+    assert_eq!(items.len(), 2);
+    // First item is the enum
+    if let Item::Enum(ref e) = items[0] {
+        assert!(e.attrs.iter().any(|a| is_adze_attr(a, "language")));
+        assert_eq!(e.variants.len(), 2);
+    } else {
+        panic!("Expected enum as first item");
+    }
+    // Second item is the extra struct
+    if let Item::Struct(ref s) = items[1] {
+        assert!(s.attrs.iter().any(|a| is_adze_attr(a, "extra")));
+    } else {
+        panic!("Expected struct as second item");
+    }
+}
+
+#[test]
+fn enum_named_field_variant() {
+    let e: ItemEnum = parse_quote! {
+        enum E {
+            Named {
+                #[adze::leaf(text = "!")]
+                _bang: (),
+                value: Box<E>,
+            }
+        }
+    };
+    assert_eq!(field_count(&e.variants[0].fields), 2);
+    if let Fields::Named(ref f) = e.variants[0].fields {
+        assert!(f.named[0].attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+    } else {
+        panic!("Expected named fields");
+    }
+}
+
+#[test]
+fn struct_with_vec_option_box_fields() {
+    let s: ItemStruct = parse_quote! {
+        struct Complex {
+            items: Vec<Item>,
+            maybe: Option<Item>,
+            child: Box<Item>,
+        }
+    };
+    let types: Vec<_> = s
+        .fields
+        .iter()
+        .map(|f| f.ty.to_token_stream().to_string())
+        .collect();
+    assert!(types[0].contains("Vec"));
+    assert!(types[1].contains("Option"));
+    assert!(types[2].contains("Box"));
+}
+
+#[test]
+fn all_twelve_adze_attrs_recognized() {
+    // Verify all documented attribute names are parseable
+    let known = [
+        "grammar",
+        "language",
+        "leaf",
+        "word",
+        "prec",
+        "prec_left",
+        "prec_right",
+        "extra",
+        "skip",
+        "delimited",
+        "repeat",
+        "external",
+    ];
+    for attr_name in &known {
+        let ident = Ident::new(attr_name, Span::call_site());
+        let tokens = quote! {
+            #[adze::#ident]
+            struct S;
+        };
+        let s: ItemStruct = parse2(tokens).unwrap();
+        assert!(
+            is_adze_attr(&s.attrs[0], attr_name),
+            "Failed to recognize adze::{attr_name}"
+        );
+    }
+}
+
+#[test]
+fn meta_style_path_for_no_arg_attrs() {
+    // Attributes without arguments have Meta::Path style
+    for attr_name in ["language", "extra", "external", "word"] {
+        let ident = Ident::new(attr_name, Span::call_site());
+        let s: ItemStruct = parse2(quote! {
+            #[adze::#ident]
+            struct S;
+        })
+        .unwrap();
+        assert!(
+            matches!(&s.attrs[0].meta, syn::Meta::Path(_)),
+            "Expected Path meta for adze::{attr_name}"
+        );
+    }
+}
+
+#[test]
+fn meta_style_list_for_arg_attrs() {
+    // Attributes with arguments have Meta::List style
+    let s: ItemStruct = parse_quote! {
+        #[adze::leaf(text = "+")]
+        struct S;
+    };
+    assert!(matches!(&s.attrs[0].meta, syn::Meta::List(_)));
+
+    let e: ItemEnum = parse_quote! {
+        enum E {
+            #[adze::prec_left(1)]
+            V(i32),
+        }
+    };
+    assert!(matches!(&e.variants[0].attrs[0].meta, syn::Meta::List(_)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Section 12: Code generation building blocks
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn generate_tree_sitter_fn_name() {
+    let grammar_name = "python";
+    let fn_ident = format_ident!("tree_sitter_{grammar_name}");
+    assert_eq!(fn_ident.to_string(), "tree_sitter_python");
+}
+
+#[test]
+fn generate_variant_symbol_names() {
+    let enum_name = "Expression";
+    let variants = ["Number", "Add", "Subtract"];
+    let symbols: Vec<String> = variants
+        .iter()
+        .map(|v| format!("{enum_name}_{v}"))
+        .collect();
+    assert_eq!(
+        symbols,
+        vec!["Expression_Number", "Expression_Add", "Expression_Subtract"]
+    );
+}
+
+#[test]
+fn generate_parse_fn_with_root_type() {
+    let root_type = format_ident!("Expr");
+    let grammar_name = "test";
+    let _doc = format!("[`{root_type}`]");
+    let tokens = quote! {
+        pub fn parse(input: &str) -> core::result::Result<#root_type, Vec<::adze::errors::ParseError>> {
+            ::adze::__private::parse::<#root_type>(input, || language())
+        }
+    };
+    let s = tokens.to_string();
+    assert!(s.contains("Expr"));
+    assert!(s.contains("parse"));
+    // Verify grammar_name was defined (used elsewhere)
+    assert_eq!(grammar_name, "test");
+}
+
+#[test]
+fn is_sitter_attr_pattern() {
+    // Reproduce the is_sitter_attr check from expansion.rs
+    let check = |attr: &Attribute| -> bool {
+        attr.path()
+            .segments
+            .iter()
+            .next()
+            .map(|seg| seg.ident == "adze")
+            .unwrap_or(false)
+    };
+    let s: ItemStruct = parse_quote! {
+        #[adze::language]
+        #[derive(Debug)]
+        #[serde(rename = "x")]
+        struct S;
+    };
+    let adze_count = s.attrs.iter().filter(|a| check(a)).count();
+    assert_eq!(adze_count, 1);
+}
+
+#[test]
+fn retain_non_sitter_attrs_pattern() {
+    // Test the pattern used in expansion.rs to strip adze attrs
+    let s: ItemStruct = parse_quote! {
+        #[derive(Debug)]
+        #[adze::language]
+        #[cfg(test)]
+        struct S;
+    };
+    let mut attrs = s.attrs.clone();
+    attrs.retain(|a| {
+        !a.path()
+            .segments
+            .iter()
+            .next()
+            .map(|seg| seg.ident == "adze")
+            .unwrap_or(false)
+    });
+    assert_eq!(attrs.len(), 2);
+    assert!(attrs[0].path().is_ident("derive"));
+    assert!(attrs[1].path().is_ident("cfg"));
 }
