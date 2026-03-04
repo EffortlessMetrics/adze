@@ -4,6 +4,8 @@
 //! left/right recursion, shift-reduce and reduce-reduce conflicts,
 //! GOTO tables, state counts, FIRST/FOLLOW sets, and edge cases.
 
+#![cfg(feature = "test-api")]
+
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
@@ -1124,5 +1126,888 @@ fn first_through_nullable_prefix() {
     assert!(
         first.contains(b.0 as usize),
         "FIRST(start) must contain 'b' from opt → b"
+    );
+}
+
+// ===========================================================================
+// 28. Deterministic: building twice gives same state count
+// ===========================================================================
+
+#[test]
+fn deterministic_state_count() {
+    let make = || {
+        let g = GrammarBuilder::new("det")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("start", vec!["a", "b"])
+            .start("start")
+            .build();
+        build_table(&g)
+    };
+    let t1 = make();
+    let t2 = make();
+    assert_eq!(
+        t1.state_count, t2.state_count,
+        "state count must be deterministic"
+    );
+}
+
+// ===========================================================================
+// 29. Deterministic: rule count stable across builds
+// ===========================================================================
+
+#[test]
+fn deterministic_rule_count() {
+    let make = || {
+        let g = GrammarBuilder::new("det2")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build();
+        build_table(&g)
+    };
+    let t1 = make();
+    let t2 = make();
+    assert_eq!(
+        t1.rules.len(),
+        t2.rules.len(),
+        "rule count must be deterministic"
+    );
+}
+
+// ===========================================================================
+// 30. Deterministic: symbol count stable
+// ===========================================================================
+
+#[test]
+fn deterministic_symbol_count() {
+    let make = || {
+        let g = GrammarBuilder::new("det3")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("start", vec!["a"])
+            .rule("start", vec!["b"])
+            .start("start")
+            .build();
+        build_table(&g)
+    };
+    let t1 = make();
+    let t2 = make();
+    assert_eq!(
+        t1.symbol_count, t2.symbol_count,
+        "symbol count must be deterministic"
+    );
+}
+
+// ===========================================================================
+// 31. Deterministic: EOF symbol stable
+// ===========================================================================
+
+#[test]
+fn deterministic_eof_symbol() {
+    let make = || {
+        let g = GrammarBuilder::new("det4")
+            .token("x", "x")
+            .rule("start", vec!["x"])
+            .start("start")
+            .build();
+        build_table(&g)
+    };
+    let t1 = make();
+    let t2 = make();
+    assert_eq!(t1.eof(), t2.eof(), "EOF symbol must be deterministic");
+}
+
+// ===========================================================================
+// 32. Deterministic: initial state stable
+// ===========================================================================
+
+#[test]
+fn deterministic_initial_state() {
+    let make = || {
+        let g = GrammarBuilder::new("det5")
+            .token("x", "x")
+            .rule("start", vec!["x"])
+            .start("start")
+            .build();
+        build_table(&g)
+    };
+    let t1 = make();
+    let t2 = make();
+    assert_eq!(
+        t1.initial_state, t2.initial_state,
+        "initial state must be deterministic"
+    );
+}
+
+// ===========================================================================
+// 33. Shift target is always a valid state index
+// ===========================================================================
+
+#[test]
+fn shift_targets_in_range() {
+    let g = GrammarBuilder::new("stir")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["a", "b"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    for st in 0..t.state_count {
+        for cell in &t.action_table[st] {
+            for action in cell {
+                if let Action::Shift(target) = action {
+                    assert!(
+                        (target.0 as usize) < t.state_count,
+                        "shift target {} out of range (state_count={})",
+                        target.0,
+                        t.state_count
+                    );
+                }
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 34. Reduce rule IDs are all in range
+// ===========================================================================
+
+#[test]
+fn reduce_rule_ids_in_range() {
+    let g = GrammarBuilder::new("rrir")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    for st in 0..t.state_count {
+        for cell in &t.action_table[st] {
+            for action in cell {
+                if let Action::Reduce(rid) = action {
+                    assert!(
+                        (rid.0 as usize) < t.rules.len(),
+                        "reduce rule {} out of range (rules.len()={})",
+                        rid.0,
+                        t.rules.len()
+                    );
+                }
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 35. Action table rows match state count
+// ===========================================================================
+
+#[test]
+fn action_table_rows_match_state_count() {
+    let g = GrammarBuilder::new("atrc")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert_eq!(
+        t.action_table.len(),
+        t.state_count,
+        "action_table rows must equal state_count"
+    );
+}
+
+// ===========================================================================
+// 36. Goto table rows match state count
+// ===========================================================================
+
+#[test]
+fn goto_table_rows_match_state_count() {
+    let g = GrammarBuilder::new("gtrc")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert_eq!(
+        t.goto_table.len(),
+        t.state_count,
+        "goto_table rows must equal state_count"
+    );
+}
+
+// ===========================================================================
+// 37. Initial state is within range
+// ===========================================================================
+
+#[test]
+fn initial_state_in_range() {
+    let g = GrammarBuilder::new("isir")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(
+        (t.initial_state.0 as usize) < t.state_count,
+        "initial_state {} must be < state_count {}",
+        t.initial_state.0,
+        t.state_count
+    );
+}
+
+// ===========================================================================
+// 38. Token count is positive
+// ===========================================================================
+
+#[test]
+fn token_count_positive() {
+    let g = GrammarBuilder::new("tcp")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(t.token_count > 0, "token_count must be positive");
+}
+
+// ===========================================================================
+// 39. Symbol count includes tokens
+// ===========================================================================
+
+#[test]
+fn symbol_count_includes_tokens() {
+    let g = GrammarBuilder::new("sci")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .rule("start", vec!["a", "b", "c"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(
+        t.symbol_count >= 3,
+        "symbol_count must include at least the 3 tokens, got {}",
+        t.symbol_count
+    );
+}
+
+// ===========================================================================
+// 40. Unary prefix operator grammar
+// ===========================================================================
+
+#[test]
+fn unary_prefix_operator() {
+    // expr → - expr | n
+    let g = GrammarBuilder::new("unary")
+        .token("n", "n")
+        .token("-", "-")
+        .rule("expr", vec!["-", "expr"])
+        .rule("expr", vec!["n"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(initial_shifts(&t, tok_id(&g, "-")));
+    assert!(initial_shifts(&t, tok_id(&g, "n")));
+}
+
+// ===========================================================================
+// 41. Nested parentheses grammar
+// ===========================================================================
+
+#[test]
+fn nested_parentheses() {
+    // start → ( start ) | a
+    let g = GrammarBuilder::new("nested")
+        .token("a", "a")
+        .token("(", "(")
+        .token(")", ")")
+        .rule("start", vec!["(", "start", ")"])
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(initial_shifts(&t, tok_id(&g, "(")));
+    assert!(initial_shifts(&t, tok_id(&g, "a")));
+}
+
+// ===========================================================================
+// 42. Comma-separated list grammar
+// ===========================================================================
+
+#[test]
+fn comma_separated_list() {
+    // list → list , item | item
+    // item → n
+    let g = GrammarBuilder::new("csv")
+        .token("n", "n")
+        .token(",", ",")
+        .rule("item", vec!["n"])
+        .rule("csv_list", vec!["csv_list", ",", "item"])
+        .rule("csv_list", vec!["item"])
+        .start("csv_list")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(initial_shifts(&t, tok_id(&g, "n")));
+}
+
+// ===========================================================================
+// 43. Assignment-like grammar
+// ===========================================================================
+
+#[test]
+fn assignment_grammar() {
+    // stmt → id = expr, expr → n | id
+    let g = GrammarBuilder::new("asgn")
+        .token("id", "id")
+        .token("=", "=")
+        .token("n", "n")
+        .rule("val", vec!["n"])
+        .rule("val", vec!["id"])
+        .rule("stmt", vec!["id", "=", "val"])
+        .start("stmt")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+}
+
+// ===========================================================================
+// 44. Five-token linear grammar state count
+// ===========================================================================
+
+#[test]
+fn five_token_linear_state_count() {
+    let g = GrammarBuilder::new("lin5")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .token("d", "d")
+        .token("e", "e")
+        .rule("start", vec!["a", "b", "c", "d", "e"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(
+        t.state_count >= 6,
+        "5-token sequence needs >= 6 states, got {}",
+        t.state_count
+    );
+}
+
+// ===========================================================================
+// 45. Accept only appears on EOF, never on regular tokens
+// ===========================================================================
+
+#[test]
+fn accept_only_on_eof() {
+    let g = GrammarBuilder::new("aeof")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["a", "b"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    let eof = t.eof();
+    for st in 0..t.state_count {
+        let state = StateId(st as u16);
+        for (tok, _) in &g.tokens {
+            let actions = t.actions(state, *tok);
+            assert!(
+                !actions.iter().any(|a| matches!(a, Action::Accept)),
+                "Accept should only appear on EOF, not on token {:?}",
+                tok
+            );
+        }
+    }
+    assert!(has_accept(&t));
+}
+
+// ===========================================================================
+// 46. Shared prefix grammar: start → a b c | a b d
+// ===========================================================================
+
+#[test]
+fn shared_prefix_shifts_both_continuations() {
+    let g = GrammarBuilder::new("spfx")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .token("d", "d")
+        .rule("start", vec!["a", "b", "c"])
+        .rule("start", vec!["a", "b", "d"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    // Both c and d should be shiftable somewhere after a b
+    let shifts_c = any_state_has_shift(&t, tok_id(&g, "c"));
+    let shifts_d = any_state_has_shift(&t, tok_id(&g, "d"));
+    assert!(shifts_c, "must shift 'c' somewhere");
+    assert!(shifts_d, "must shift 'd' somewhere");
+}
+
+// ===========================================================================
+// 47. Mutual recursion: even → a odd | a, odd → a even | a
+// ===========================================================================
+
+#[test]
+fn mutual_recursion_builds() {
+    let g = GrammarBuilder::new("mutr")
+        .token("a", "a")
+        .rule("even_r", vec!["a", "odd_r"])
+        .rule("even_r", vec!["a"])
+        .rule("odd_r", vec!["a", "even_r"])
+        .rule("odd_r", vec!["a"])
+        .rule("start", vec!["even_r"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+}
+
+// ===========================================================================
+// 48. Diamond-shaped grammar
+// ===========================================================================
+
+#[test]
+fn diamond_grammar_gotos() {
+    // start → left right, left → a, right → a
+    let g = GrammarBuilder::new("dia")
+        .token("a", "a")
+        .rule("left_nt", vec!["a"])
+        .rule("right_nt", vec!["a"])
+        .rule("start", vec!["left_nt", "right_nt"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(any_goto_exists(&t, nt_id(&g, "left_nt")));
+    assert!(any_goto_exists(&t, nt_id(&g, "right_nt")));
+}
+
+// ===========================================================================
+// 49. Right associative grammar builds
+// ===========================================================================
+
+#[test]
+fn right_associative_builds() {
+    let g = GrammarBuilder::new("rassoc")
+        .token("n", "n")
+        .token("^", "^")
+        .rule("base", vec!["n"])
+        .rule_with_precedence("expr", vec!["expr", "^", "expr"], 3, Associativity::Right)
+        .rule("expr", vec!["base"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+}
+
+// ===========================================================================
+// 50. Mixed associativity grammar builds
+// ===========================================================================
+
+#[test]
+fn mixed_associativity_builds() {
+    let g = GrammarBuilder::new("mixas")
+        .token("n", "n")
+        .token("+", "+")
+        .token("^", "^")
+        .rule("base", vec!["n"])
+        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "^", "expr"], 2, Associativity::Right)
+        .rule("expr", vec!["base"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+}
+
+// ===========================================================================
+// 51. Full arithmetic: expr/term/factor with parentheses
+// ===========================================================================
+
+#[test]
+fn full_arithmetic_with_parens() {
+    let g = GrammarBuilder::new("arithp")
+        .token("n", "n")
+        .token("+", "+")
+        .token("*", "*")
+        .token("(", "(")
+        .token(")", ")")
+        .rule("factor", vec!["n"])
+        .rule("factor", vec!["(", "expr", ")"])
+        .rule("term", vec!["term", "*", "factor"])
+        .rule("term", vec!["factor"])
+        .rule("expr", vec!["expr", "+", "term"])
+        .rule("expr", vec!["term"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(
+        t.state_count >= 8,
+        "full arithmetic needs >= 8 states, got {}",
+        t.state_count
+    );
+}
+
+// ===========================================================================
+// 52. Arithmetic gotos for all nonterminals
+// ===========================================================================
+
+#[test]
+fn arithmetic_gotos_for_all_nonterminals() {
+    let g = GrammarBuilder::new("ago")
+        .token("n", "n")
+        .token("+", "+")
+        .token("*", "*")
+        .rule("factor", vec!["n"])
+        .rule("term", vec!["term", "*", "factor"])
+        .rule("term", vec!["factor"])
+        .rule("expr", vec!["expr", "+", "term"])
+        .rule("expr", vec!["term"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    for name in &["expr", "term", "factor"] {
+        let nt = nt_id(&g, name);
+        assert!(any_goto_exists(&t, nt), "must have goto for '{name}'");
+    }
+}
+
+// ===========================================================================
+// 53. Rule method returns correct lhs and rhs_len
+// ===========================================================================
+
+#[test]
+fn rule_method_returns_correct_values() {
+    let g = GrammarBuilder::new("rmeth")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["a", "b"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    let s = nt_id(&g, "start");
+    let idx = t
+        .rules
+        .iter()
+        .position(|r| r.lhs == s && r.rhs_len == 2)
+        .expect("must have start rule with rhs_len=2");
+    let (lhs, len) = t.rule(RuleId(idx as u16));
+    assert_eq!(lhs, s);
+    assert_eq!(len, 2);
+}
+
+// ===========================================================================
+// 54. Epsilon rule rhs_len is 0
+// ===========================================================================
+
+#[test]
+fn epsilon_rule_rhs_len_zero() {
+    let g = GrammarBuilder::new("epslen")
+        .rule("start", vec![])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    // The grammar has an epsilon production; at least one rule must have rhs_len=0
+    let found = t.rules.iter().any(|r| r.rhs_len == 0);
+    assert!(
+        found,
+        "epsilon grammar must have at least one rule with rhs_len=0"
+    );
+}
+
+// ===========================================================================
+// 55. Branching with sequences: start → a b | c d
+// ===========================================================================
+
+#[test]
+fn branching_with_sequences_no_cross_shift() {
+    let g = GrammarBuilder::new("brsq")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .token("d", "d")
+        .rule("start", vec!["a", "b"])
+        .rule("start", vec!["c", "d"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    // Initial state should shift on 'a' and 'c' but not 'b' or 'd'
+    assert!(initial_shifts(&t, tok_id(&g, "a")));
+    assert!(initial_shifts(&t, tok_id(&g, "c")));
+    assert!(!initial_shifts(&t, tok_id(&g, "b")));
+    assert!(!initial_shifts(&t, tok_id(&g, "d")));
+}
+
+// ===========================================================================
+// 56. Left recursive with two operators
+// ===========================================================================
+
+#[test]
+fn left_recursive_two_operators() {
+    // expr → expr + n | expr * n | n
+    let g = GrammarBuilder::new("lr2op")
+        .token("n", "n")
+        .token("+", "+")
+        .token("*", "*")
+        .rule("expr", vec!["expr", "+", "n"])
+        .rule("expr", vec!["expr", "*", "n"])
+        .rule("expr", vec!["n"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    // After reducing to expr, both + and * should be shiftable somewhere
+    assert!(any_state_has_shift(&t, tok_id(&g, "+")));
+    assert!(any_state_has_shift(&t, tok_id(&g, "*")));
+}
+
+// ===========================================================================
+// 57. Triple nonterminal sequence gotos
+// ===========================================================================
+
+#[test]
+fn triple_nonterminal_gotos() {
+    // start → p q r, p → a, q → b, r → c
+    let g = GrammarBuilder::new("tns")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .rule("p_nt", vec!["a"])
+        .rule("q_nt", vec!["b"])
+        .rule("r_nt", vec!["c"])
+        .rule("start", vec!["p_nt", "q_nt", "r_nt"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(any_goto_exists(&t, nt_id(&g, "p_nt")));
+    assert!(any_goto_exists(&t, nt_id(&g, "q_nt")));
+    assert!(any_goto_exists(&t, nt_id(&g, "r_nt")));
+}
+
+// ===========================================================================
+// 58. Reduce on EOF for three alternatives
+// ===========================================================================
+
+#[test]
+fn three_alternatives_all_reduce_on_eof() {
+    let g = GrammarBuilder::new("3alt")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .rule("start", vec!["a"])
+        .rule("start", vec!["b"])
+        .rule("start", vec!["c"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    let eof = t.eof();
+    let mut reduce_states = Vec::new();
+    for st in 0..t.state_count {
+        let state = StateId(st as u16);
+        for action in t.actions(state, eof) {
+            if matches!(action, Action::Reduce(_)) {
+                reduce_states.push(st);
+            }
+        }
+    }
+    assert!(
+        reduce_states.len() >= 3,
+        "3 alternatives should yield >= 3 reduce actions on EOF, got {}",
+        reduce_states.len()
+    );
+}
+
+// ===========================================================================
+// 59. Ambiguous grammar creates multi-action cells
+// ===========================================================================
+
+#[test]
+fn ambiguous_grammar_multi_action_cells() {
+    // expr → expr + expr | n  (inherently ambiguous without precedence)
+    let g = GrammarBuilder::new("ambm")
+        .token("n", "n")
+        .token("+", "+")
+        .rule("expr", vec!["expr", "+", "expr"])
+        .rule("expr", vec!["n"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    let plus = tok_id(&g, "+");
+    let has_conflict = (0..t.state_count).any(|st| {
+        let actions = t.actions(StateId(st as u16), plus);
+        actions.len() > 1 || actions.iter().any(|a| matches!(a, Action::Fork(_)))
+    });
+    assert!(
+        has_conflict,
+        "ambiguous grammar must produce multi-action cell on '+'"
+    );
+}
+
+// ===========================================================================
+// 60. Goto target is always a valid state
+// ===========================================================================
+
+#[test]
+fn goto_targets_in_range() {
+    let g = GrammarBuilder::new("gtir")
+        .token("a", "a")
+        .rule("inner", vec!["a"])
+        .rule("start", vec!["inner"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    let inner = nt_id(&g, "inner");
+    for st in 0..t.state_count {
+        if let Some(target) = t.goto(StateId(st as u16), inner) {
+            assert!(
+                (target.0 as usize) < t.state_count,
+                "goto target {} out of range (state_count={})",
+                target.0,
+                t.state_count
+            );
+        }
+    }
+}
+
+// ===========================================================================
+// 61. Reduce action references rule with correct rhs_len
+// ===========================================================================
+
+#[test]
+fn reduce_references_correct_rule_len() {
+    // start → a b c (rhs_len=3)
+    let g = GrammarBuilder::new("rrcrl")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .rule("start", vec!["a", "b", "c"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    let eof = t.eof();
+    let mut found_len3 = false;
+    for st in 0..t.state_count {
+        for action in t.actions(StateId(st as u16), eof) {
+            if let Action::Reduce(rid) = action {
+                let (_, len) = t.rule(*rid);
+                if len == 3 {
+                    found_len3 = true;
+                }
+            }
+        }
+    }
+    assert!(found_len3, "must have reduce for the 3-token rule on EOF");
+}
+
+// ===========================================================================
+// 62. Nullable nonterminal in sequence shifts later token
+// ===========================================================================
+
+#[test]
+fn nullable_in_sequence_shifts_later() {
+    // opt → ε | a, start → opt b
+    let g = GrammarBuilder::new("nsl")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("opt", vec![])
+        .rule("opt", vec!["a"])
+        .rule("start", vec!["opt", "b"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    // Because opt is nullable, 'b' must be shiftable from some state
+    assert!(
+        any_state_has_shift(&t, tok_id(&g, "b")),
+        "with nullable opt, 'b' must be shiftable from some state"
+    );
+}
+
+// ===========================================================================
+// 63. Precedence grammar builds without error
+// ===========================================================================
+
+#[test]
+fn precedence_with_three_levels() {
+    let g = GrammarBuilder::new("p3l")
+        .token("n", "n")
+        .token("+", "+")
+        .token("*", "*")
+        .token("^", "^")
+        .rule("atom", vec!["n"])
+        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "^", "expr"], 3, Associativity::Right)
+        .rule("expr", vec!["atom"])
+        .start("expr")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(t.state_count >= 6);
+}
+
+// ===========================================================================
+// 64. Deeply chained nonterminals (4 levels)
+// ===========================================================================
+
+#[test]
+fn four_level_chain() {
+    // start → a1, a1 → a2, a2 → a3, a3 → x
+    let g = GrammarBuilder::new("ch4")
+        .token("x", "x")
+        .rule("a3", vec!["x"])
+        .rule("a2", vec!["a3"])
+        .rule("a1", vec!["a2"])
+        .rule("start", vec!["a1"])
+        .start("start")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let s = nt_id(&g, "start");
+    let x = tok_id(&g, "x");
+    let first_s = ff.first(s).unwrap();
+    assert!(
+        first_s.contains(x.0 as usize),
+        "FIRST(start) must contain 'x' via a1→a2→a3→x"
+    );
+}
+
+// ===========================================================================
+// 65. If-then-else like grammar (dangling-else variant)
+// ===========================================================================
+
+#[test]
+fn if_then_else_state_count() {
+    let g = GrammarBuilder::new("ite2")
+        .token("if_kw", "if")
+        .token("then_kw", "then")
+        .token("else_kw", "else")
+        .token("id", "id")
+        .rule("cond", vec!["id"])
+        .rule(
+            "stmt",
+            vec!["if_kw", "cond", "then_kw", "stmt", "else_kw", "stmt"],
+        )
+        .rule("stmt", vec!["if_kw", "cond", "then_kw", "stmt"])
+        .rule("stmt", vec!["id"])
+        .start("stmt")
+        .build();
+    let t = build_table(&g);
+    assert!(has_accept(&t));
+    assert!(
+        t.state_count >= 6,
+        "if-then-else needs >= 6 states, got {}",
+        t.state_count
     );
 }
