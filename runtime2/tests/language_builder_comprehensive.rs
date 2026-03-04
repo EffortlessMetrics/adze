@@ -664,3 +664,461 @@ fn symbol_names_padded_to_metadata_length_when_omitted() {
         assert!(name.is_empty());
     }
 }
+
+// ---------------------------------------------------------------------------
+// 11. symbol_for_name lookups
+// ---------------------------------------------------------------------------
+
+#[test]
+fn symbol_for_name_finds_named_symbol() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["eof".into(), "number".into(), "expr".into()])
+        .symbol_metadata(vec![hidden_meta(), terminal_meta(), nonterminal_meta()])
+        .build()
+        .unwrap();
+    // "number" is visible (terminal_meta), so is_named=true should find it.
+    assert_eq!(lang.symbol_for_name("number", true), Some(1));
+}
+
+#[test]
+fn symbol_for_name_finds_anonymous_symbol() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["eof".into(), "number".into()])
+        .symbol_metadata(vec![hidden_meta(), terminal_meta()])
+        .build()
+        .unwrap();
+    // "eof" is hidden (is_visible=false), so is_named=false should find it.
+    assert_eq!(lang.symbol_for_name("eof", false), Some(0));
+}
+
+#[test]
+fn symbol_for_name_returns_none_for_nonexistent() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["number".into()])
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap();
+    assert_eq!(lang.symbol_for_name("nonexistent", true), None);
+    assert_eq!(lang.symbol_for_name("nonexistent", false), None);
+}
+
+#[test]
+fn symbol_for_name_wrong_named_flag_returns_none() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["num".into()])
+        .symbol_metadata(vec![terminal_meta()]) // visible=true
+        .build()
+        .unwrap();
+    // "num" is visible, so is_named=false should NOT find it.
+    assert_eq!(lang.symbol_for_name("num", false), None);
+    // And is_named=true should find it.
+    assert_eq!(lang.symbol_for_name("num", true), Some(0));
+}
+
+#[test]
+fn symbol_for_name_same_name_different_visibility() {
+    // Two symbols with the same name but different visibility.
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["tok".into(), "tok".into()])
+        .symbol_metadata(vec![hidden_meta(), terminal_meta()])
+        .build()
+        .unwrap();
+    // is_named=false → first match at index 0 (hidden)
+    assert_eq!(lang.symbol_for_name("tok", false), Some(0));
+    // is_named=true → first match at index 1 (visible)
+    assert_eq!(lang.symbol_for_name("tok", true), Some(1));
+}
+
+#[test]
+fn symbol_for_name_empty_name() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["".into(), "x".into()])
+        .symbol_metadata(vec![terminal_meta(), terminal_meta()])
+        .build()
+        .unwrap();
+    // Empty string is a valid name to search for.
+    assert_eq!(lang.symbol_for_name("", true), Some(0));
+}
+
+#[test]
+fn symbol_for_name_on_empty_language() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![])
+        .build()
+        .unwrap();
+    assert_eq!(lang.symbol_for_name("anything", true), None);
+    assert_eq!(lang.symbol_for_name("anything", false), None);
+}
+
+// ---------------------------------------------------------------------------
+// 12. Unicode and special character symbol names
+// ---------------------------------------------------------------------------
+
+#[test]
+fn unicode_symbol_names() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["変数".into(), "関数".into(), "αβγ".into()])
+        .symbol_metadata(vec![terminal_meta(), terminal_meta(), terminal_meta()])
+        .build()
+        .unwrap();
+    assert_eq!(lang.symbol_name(0), Some("変数"));
+    assert_eq!(lang.symbol_name(1), Some("関数"));
+    assert_eq!(lang.symbol_for_name("αβγ", true), Some(2));
+}
+
+#[test]
+fn unicode_field_names() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .field_names(vec!["左".into(), "右".into()])
+        .build()
+        .unwrap();
+    assert_eq!(lang.field_name(0), Some("左"));
+    assert_eq!(lang.field_name(1), Some("右"));
+    assert_eq!(lang.field_count, 2);
+}
+
+// ---------------------------------------------------------------------------
+// 13. Clone independence
+// ---------------------------------------------------------------------------
+
+#[test]
+fn cloned_language_is_independent() {
+    let lang = Language::builder()
+        .version(5)
+        .parse_table(leak_table())
+        .symbol_names(vec!["a".into()])
+        .symbol_metadata(vec![terminal_meta()])
+        .field_names(vec!["f".into()])
+        .build()
+        .unwrap();
+    let mut cloned = lang.clone();
+    // Mutate the clone and verify the original is unaffected.
+    cloned.version = 99;
+    cloned.symbol_names[0] = "mutated".into();
+    cloned.field_names[0] = "changed".into();
+    assert_eq!(lang.version, 5);
+    assert_eq!(lang.symbol_name(0), Some("a"));
+    assert_eq!(lang.field_name(0), Some("f"));
+}
+
+#[test]
+fn cloned_language_preserves_metadata() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![hidden_meta(), supertype_meta()])
+        .build()
+        .unwrap();
+    let cloned = lang.clone();
+    assert!(!cloned.is_visible(0));
+    assert!(cloned.is_visible(1));
+    assert!(cloned.symbol_metadata[1].is_supertype);
+}
+
+// ---------------------------------------------------------------------------
+// 14. Debug output coverage
+// ---------------------------------------------------------------------------
+
+#[test]
+fn debug_includes_symbol_names() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["my_sym".into()])
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap();
+    let debug = format!("{lang:?}");
+    assert!(debug.contains("my_sym"));
+    assert!(debug.contains("symbol_count"));
+    assert!(debug.contains("field_count"));
+}
+
+#[test]
+fn debug_includes_field_names() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .field_names(vec!["my_field".into()])
+        .build()
+        .unwrap();
+    let debug = format!("{lang:?}");
+    assert!(debug.contains("my_field"));
+}
+
+// ---------------------------------------------------------------------------
+// 15. Boundary conditions for is_terminal / is_visible
+// ---------------------------------------------------------------------------
+
+#[test]
+fn is_terminal_at_u16_max_returns_false() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap();
+    assert!(!lang.is_terminal(u16::MAX));
+}
+
+#[test]
+fn is_visible_at_u16_max_returns_false() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap();
+    assert!(!lang.is_visible(u16::MAX));
+}
+
+#[test]
+fn symbol_name_at_u16_max_returns_none() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(vec!["x".into()])
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap();
+    assert!(lang.symbol_name(u16::MAX).is_none());
+}
+
+// ---------------------------------------------------------------------------
+// 16. with_static_tokens edge cases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn with_static_tokens_empty_vec() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap()
+        .with_static_tokens(vec![]);
+    let tokenize = lang.tokenize.as_ref().unwrap();
+    let result: Vec<_> = tokenize(b"anything").collect();
+    assert!(result.is_empty());
+}
+
+#[test]
+fn with_static_tokens_ignores_input_content() {
+    let tokens = vec![Token {
+        kind: 7,
+        start: 0,
+        end: 1,
+    }];
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap()
+        .with_static_tokens(tokens);
+    let tokenize = lang.tokenize.as_ref().unwrap();
+    // Same tokens regardless of input.
+    let r1: Vec<_> = tokenize(b"abc").collect();
+    let r2: Vec<_> = tokenize(b"xyz").collect();
+    assert_eq!(r1.len(), r2.len());
+    assert_eq!(r1[0].kind, r2[0].kind);
+}
+
+#[test]
+fn with_static_tokens_can_be_called_multiple_times() {
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .build()
+        .unwrap()
+        .with_static_tokens(vec![Token {
+            kind: 1,
+            start: 0,
+            end: 1,
+        }])
+        .with_static_tokens(vec![Token {
+            kind: 2,
+            start: 0,
+            end: 1,
+        }]);
+    let tokenize = lang.tokenize.as_ref().unwrap();
+    let result: Vec<_> = tokenize(b"x").collect();
+    // Last call wins.
+    assert_eq!(result[0].kind, 2);
+}
+
+// ---------------------------------------------------------------------------
+// 17. SymbolMetadata / Action / ParseTable type tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn symbol_metadata_clone_and_copy() {
+    let meta = terminal_meta();
+    let copied = meta;
+    let cloned = meta.clone();
+    assert_eq!(copied.is_terminal, meta.is_terminal);
+    assert_eq!(cloned.is_visible, meta.is_visible);
+}
+
+#[test]
+fn symbol_metadata_debug_output() {
+    let meta = supertype_meta();
+    let debug = format!("{meta:?}");
+    assert!(debug.contains("is_supertype"));
+    assert!(debug.contains("true"));
+}
+
+#[test]
+fn action_shift_equality() {
+    use adze_runtime::language::Action;
+    assert_eq!(Action::Shift(1), Action::Shift(1));
+    assert_ne!(Action::Shift(1), Action::Shift(2));
+}
+
+#[test]
+fn action_reduce_equality() {
+    use adze_runtime::language::Action;
+    let r1 = Action::Reduce {
+        symbol: 1,
+        child_count: 2,
+    };
+    let r2 = Action::Reduce {
+        symbol: 1,
+        child_count: 2,
+    };
+    let r3 = Action::Reduce {
+        symbol: 1,
+        child_count: 3,
+    };
+    assert_eq!(r1, r2);
+    assert_ne!(r1, r3);
+}
+
+#[test]
+fn action_accept_and_error_equality() {
+    use adze_runtime::language::Action;
+    assert_eq!(Action::Accept, Action::Accept);
+    assert_eq!(Action::Error, Action::Error);
+    assert_ne!(Action::Accept, Action::Error);
+}
+
+#[test]
+fn action_variants_are_distinct() {
+    use adze_runtime::language::Action;
+    let shift = Action::Shift(0);
+    let reduce = Action::Reduce {
+        symbol: 0,
+        child_count: 0,
+    };
+    let accept = Action::Accept;
+    let error = Action::Error;
+    assert_ne!(shift, reduce);
+    assert_ne!(shift, accept);
+    assert_ne!(shift, error);
+    assert_ne!(reduce, accept);
+    assert_ne!(reduce, error);
+    assert_ne!(accept, error);
+}
+
+#[test]
+fn action_clone_and_copy() {
+    use adze_runtime::language::Action;
+    let a = Action::Shift(42);
+    let copied = a;
+    let cloned = a.clone();
+    assert_eq!(copied, Action::Shift(42));
+    assert_eq!(cloned, Action::Shift(42));
+}
+
+#[test]
+fn action_debug_output() {
+    use adze_runtime::language::Action;
+    let debug = format!("{:?}", Action::Shift(5));
+    assert!(debug.contains("Shift"));
+    assert!(debug.contains("5"));
+
+    let debug = format!(
+        "{:?}",
+        Action::Reduce {
+            symbol: 3,
+            child_count: 2
+        }
+    );
+    assert!(debug.contains("Reduce"));
+}
+
+#[test]
+fn local_parse_table_debug() {
+    use adze_runtime::language::ParseTable;
+    let pt = ParseTable {
+        state_count: 2,
+        action_table: vec![vec![vec![]]],
+        small_parse_table: None,
+        small_parse_table_map: None,
+    };
+    let debug = format!("{pt:?}");
+    assert!(debug.contains("state_count"));
+    assert!(debug.contains("2"));
+}
+
+#[test]
+fn local_parse_table_clone() {
+    use adze_runtime::language::{Action, ParseTable};
+    let pt = ParseTable {
+        state_count: 1,
+        action_table: vec![vec![vec![Action::Accept]]],
+        small_parse_table: Some(vec![1, 2, 3]),
+        small_parse_table_map: Some(vec![10, 20]),
+    };
+    let cloned = pt.clone();
+    assert_eq!(cloned.state_count, 1);
+    assert_eq!(cloned.action_table[0][0][0], Action::Accept);
+    assert_eq!(cloned.small_parse_table.unwrap(), vec![1, 2, 3]);
+    assert_eq!(cloned.small_parse_table_map.unwrap(), vec![10, 20]);
+}
+
+// ---------------------------------------------------------------------------
+// 18. Stress / scale tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn language_with_1000_symbols() {
+    let n = 1000;
+    let names: Vec<String> = (0..n).map(|i| format!("sym_{i}")).collect();
+    let meta: Vec<_> = (0..n)
+        .map(|i| SymbolMetadata {
+            is_terminal: i < 500,
+            is_visible: i % 2 == 0,
+            is_supertype: false,
+        })
+        .collect();
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_names(names)
+        .symbol_metadata(meta)
+        .build()
+        .unwrap();
+    assert_eq!(lang.symbol_count, 1000);
+    assert_eq!(lang.symbol_name(999), Some("sym_999"));
+    assert!(lang.is_terminal(0));
+    assert!(!lang.is_terminal(500));
+    // symbol_for_name at the end of the list
+    assert_eq!(lang.symbol_for_name("sym_998", true), Some(998));
+}
+
+#[test]
+fn language_with_100_field_names() {
+    let fields: Vec<String> = (0..100).map(|i| format!("field_{i}")).collect();
+    let lang = Language::builder()
+        .parse_table(leak_table())
+        .symbol_metadata(vec![terminal_meta()])
+        .field_names(fields)
+        .build()
+        .unwrap();
+    assert_eq!(lang.field_count, 100);
+    assert_eq!(lang.field_name(99), Some("field_99"));
+    assert!(lang.field_name(100).is_none());
+}
