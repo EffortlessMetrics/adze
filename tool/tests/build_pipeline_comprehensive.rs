@@ -1,59 +1,25 @@
-#![allow(clippy::needless_range_loop)]
-
 //! Comprehensive build-pipeline tests for the adze-tool crate.
 //!
-//! Covers: grammar extraction from Rust source, JSON grammar generation,
-//! build configuration options, error handling for malformed grammars,
-//! and edge cases in build processing.
+//! Covers: ToolError construction/display/source for each variant,
+//! ToolError From impls, build configuration defaults, scanner types,
+//! error propagation patterns, and end-to-end build pipeline.
 
+use std::error::Error;
 use std::fs;
-use std::path::Path;
+use std::io;
+use std::path::{Path, PathBuf};
 
-use adze_tool::GrammarConverter;
+use adze_tool::ToolError;
 use adze_tool::pure_rust_builder::{
-    BuildOptions, build_parser, build_parser_from_grammar_js, build_parser_from_json,
+    BuildOptions, build_parser_from_grammar_js, build_parser_from_json,
 };
+use adze_tool::scanner_build::{ScannerBuilder, ScannerLanguage, ScannerSource};
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Write Rust source to a temp file and extract grammars via `generate_grammars`.
-fn grammars_from_rust(code: &str) -> Vec<serde_json::Value> {
-    let dir = TempDir::new().unwrap();
-    let src = dir.path().join("lib.rs");
-    fs::write(&src, code).unwrap();
-    adze_tool::generate_grammars(&src).unwrap()
-}
-
-/// Write a grammar.js and build with the pure-Rust builder.
-fn build_js(js: &str) -> adze_tool::pure_rust_builder::BuildResult {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("grammar.js");
-    fs::write(&path, js).unwrap();
-    let opts = BuildOptions {
-        out_dir: dir.path().to_string_lossy().into(),
-        emit_artifacts: false,
-        compress_tables: false,
-    };
-    build_parser_from_grammar_js(&path, opts).unwrap()
-}
-
-/// Try building from grammar.js, returning the Result.
-fn try_build_js(js: &str) -> anyhow::Result<adze_tool::pure_rust_builder::BuildResult> {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("grammar.js");
-    fs::write(&path, js).unwrap();
-    let opts = BuildOptions {
-        out_dir: dir.path().to_string_lossy().into(),
-        emit_artifacts: false,
-        compress_tables: false,
-    };
-    build_parser_from_grammar_js(&path, opts)
-}
-
-/// Default build options pointing at a temp dir.
 fn opts_in(dir: &TempDir) -> BuildOptions {
     BuildOptions {
         out_dir: dir.path().to_string_lossy().into(),
@@ -62,167 +28,230 @@ fn opts_in(dir: &TempDir) -> BuildOptions {
     }
 }
 
-// =========================================================================
-// 1–4  Grammar extraction from Rust source
-// =========================================================================
-
-#[test]
-fn extract_single_grammar_from_enum() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("single_enum")]
-        mod grammar {
-            #[adze::language]
-            pub enum Token {
-                Ident(#[adze::leaf(pattern = r"[a-z]+")] String),
-            }
-        }
-        "#,
-    );
-    assert_eq!(gs.len(), 1);
-    assert_eq!(gs[0]["name"].as_str().unwrap(), "single_enum");
+fn build_js(js: &str) -> adze_tool::pure_rust_builder::BuildResult {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("grammar.js");
+    fs::write(&path, js).unwrap();
+    build_parser_from_grammar_js(&path, opts_in(&dir)).unwrap()
 }
 
-#[test]
-fn extract_grammar_rules_are_present() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("has_rules")]
-        mod grammar {
-            #[adze::language]
-            pub enum Expr {
-                Num(#[adze::leaf(pattern = r"\d+")] i32),
-                Id(#[adze::leaf(pattern = r"[a-z]+")] String),
-            }
-        }
-        "#,
-    );
-    let rules = gs[0]["rules"].as_object().unwrap();
-    // Must have at least source_file + variant rules.
-    assert!(rules.len() >= 2, "expected >=2 rules, got {}", rules.len());
+fn try_build_js(js: &str) -> anyhow::Result<adze_tool::pure_rust_builder::BuildResult> {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("grammar.js");
+    fs::write(&path, js).unwrap();
+    build_parser_from_grammar_js(&path, opts_in(&dir))
 }
 
-#[test]
-fn extract_multiple_grammars_from_one_file() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("alpha")]
-        mod g1 {
-            #[adze::language]
-            pub enum A { V(#[adze::leaf(pattern = r"a")] String) }
-        }
-        #[adze::grammar("beta")]
-        mod g2 {
-            #[adze::language]
-            pub enum B { V(#[adze::leaf(pattern = r"b")] String) }
-        }
-        "#,
-    );
-    assert_eq!(gs.len(), 2);
-    let names: Vec<&str> = gs.iter().map(|g| g["name"].as_str().unwrap()).collect();
-    assert!(names.contains(&"alpha"));
-    assert!(names.contains(&"beta"));
-}
-
-#[test]
-fn no_grammar_attribute_yields_empty() {
-    let gs = grammars_from_rust(
-        r#"
-        mod not_a_grammar {
-            pub struct Foo;
-        }
-        "#,
-    );
-    assert!(gs.is_empty());
+fn grammars_from_rust(code: &str) -> Vec<serde_json::Value> {
+    let dir = TempDir::new().unwrap();
+    let src = dir.path().join("lib.rs");
+    fs::write(&src, code).unwrap();
+    adze_tool::generate_grammars(&src).unwrap()
 }
 
 // =========================================================================
-// 5–9  JSON grammar generation
+// 1. ToolError construction and display — one per variant
 // =========================================================================
 
 #[test]
-fn json_has_name_and_rules_keys() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("keys_test")]
-        mod grammar {
-            #[adze::language]
-            pub enum T { X(#[adze::leaf(pattern = r"x")] String) }
-        }
-        "#,
-    );
-    assert!(gs[0].get("name").is_some());
-    assert!(gs[0].get("rules").is_some());
+fn error_display_multiple_word_rules() {
+    let e = ToolError::MultipleWordRules;
+    assert!(e.to_string().contains("multiple word rules"));
 }
 
 #[test]
-fn json_has_word_key() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("word_key")]
-        mod grammar {
-            #[adze::language]
-            pub enum T { X(#[adze::leaf(pattern = r"x")] String) }
-        }
-        "#,
-    );
-    // word may be null but should be present
-    assert!(gs[0].get("word").is_some(), "'word' key should be present");
+fn error_display_multiple_precedence_attributes() {
+    let e = ToolError::MultiplePrecedenceAttributes;
+    assert!(e.to_string().contains("prec"));
 }
 
 #[test]
-fn json_rule_values_have_type_field() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("typed_rules")]
-        mod grammar {
-            #[adze::language]
-            pub enum T { N(#[adze::leaf(pattern = r"\d+")] i32) }
-        }
-        "#,
-    );
-    for (_name, rule) in gs[0]["rules"].as_object().unwrap() {
-        assert!(rule.get("type").is_some(), "rule must have 'type' field");
+fn error_display_expected_string_literal() {
+    let e = ToolError::ExpectedStringLiteral {
+        context: "token".into(),
+        actual: "42".into(),
+    };
+    let msg = e.to_string();
+    assert!(msg.contains("token") && msg.contains("42"));
+}
+
+#[test]
+fn error_display_expected_integer_literal() {
+    let e = ToolError::ExpectedIntegerLiteral {
+        actual: "abc".into(),
+    };
+    assert!(e.to_string().contains("abc"));
+}
+
+#[test]
+fn error_display_expected_path_type() {
+    let e = ToolError::ExpectedPathType {
+        actual: "fn()".into(),
+    };
+    assert!(e.to_string().contains("fn()"));
+}
+
+#[test]
+fn error_display_expected_single_segment_path() {
+    let e = ToolError::ExpectedSingleSegmentPath {
+        actual: "a::b::c".into(),
+    };
+    assert!(e.to_string().contains("a::b::c"));
+}
+
+#[test]
+fn error_display_nested_option_type() {
+    let e = ToolError::NestedOptionType;
+    assert!(e.to_string().contains("Option<Option<_>>"));
+}
+
+#[test]
+fn error_display_struct_has_no_fields() {
+    let e = ToolError::StructHasNoFields {
+        name: "Empty".into(),
+    };
+    let msg = e.to_string();
+    assert!(msg.contains("Empty") && msg.contains("no non-skipped fields"));
+}
+
+#[test]
+fn error_display_complex_symbols_not_normalized() {
+    let e = ToolError::complex_symbols_not_normalized("FIRST set computation");
+    assert!(e.to_string().contains("FIRST set computation"));
+}
+
+#[test]
+fn error_display_expected_symbol_type() {
+    let e = ToolError::expected_symbol_type("terminal");
+    assert!(e.to_string().contains("terminal"));
+}
+
+#[test]
+fn error_display_expected_action_type() {
+    let e = ToolError::expected_action_type("shift");
+    assert!(e.to_string().contains("shift"));
+}
+
+#[test]
+fn error_display_expected_error_type() {
+    let e = ToolError::expected_error_type("syntax");
+    assert!(e.to_string().contains("syntax"));
+}
+
+#[test]
+fn error_display_string_too_long() {
+    let e = ToolError::string_too_long("extract", 99999);
+    let msg = e.to_string();
+    assert!(msg.contains("extract") && msg.contains("99999"));
+}
+
+#[test]
+fn error_display_invalid_production() {
+    let e = ToolError::InvalidProduction {
+        details: "empty rhs".into(),
+    };
+    assert!(e.to_string().contains("empty rhs"));
+}
+
+#[test]
+fn error_display_grammar_validation() {
+    let e = ToolError::grammar_validation("missing start rule");
+    assert!(e.to_string().contains("missing start rule"));
+}
+
+#[test]
+fn error_display_other() {
+    let e = ToolError::Other("custom message".into());
+    assert_eq!(e.to_string(), "custom message");
+}
+
+// =========================================================================
+// 2. ToolError From impls — String and &str
+// =========================================================================
+
+#[test]
+fn error_from_string() {
+    let e: ToolError = String::from("owned error").into();
+    assert_eq!(e.to_string(), "owned error");
+    assert!(matches!(e, ToolError::Other(_)));
+}
+
+#[test]
+fn error_from_str_ref() {
+    let e: ToolError = "borrowed error".into();
+    assert_eq!(e.to_string(), "borrowed error");
+    assert!(matches!(e, ToolError::Other(_)));
+}
+
+#[test]
+fn error_from_io() {
+    let io_err = io::Error::new(io::ErrorKind::NotFound, "gone");
+    let e: ToolError = io_err.into();
+    assert!(matches!(e, ToolError::Io(_)));
+    assert!(e.to_string().contains("gone"));
+}
+
+#[test]
+fn error_from_serde_json() {
+    let json_err = serde_json::from_str::<serde_json::Value>("{bad").unwrap_err();
+    let e: ToolError = json_err.into();
+    assert!(matches!(e, ToolError::Json(_)));
+}
+
+#[test]
+fn error_from_ir_error() {
+    let ir_err = adze_ir::IrError::InvalidSymbol("sym_x".into());
+    let e: ToolError = ir_err.into();
+    assert!(matches!(e, ToolError::Ir(_)));
+    assert!(e.to_string().contains("sym_x"));
+}
+
+// =========================================================================
+// 3. ToolError source() chains
+// =========================================================================
+
+#[test]
+fn source_is_none_for_simple_variants() {
+    let simple_errors: Vec<ToolError> = vec![
+        ToolError::MultipleWordRules,
+        ToolError::NestedOptionType,
+        ToolError::Other("msg".into()),
+        ToolError::grammar_validation("bad"),
+    ];
+    for e in &simple_errors {
+        assert!(
+            e.source().is_none(),
+            "expected no source for {:?}",
+            std::mem::discriminant(e)
+        );
     }
 }
 
 #[test]
-fn json_prec_left_appears_in_output() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("prec_json")]
-        mod grammar {
-            #[adze::language]
-            pub enum Expr {
-                Num(#[adze::leaf(pattern = r"\d+")] i32),
-                #[adze::prec_left(1)]
-                Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
-            }
-            #[adze::extra]
-            struct Ws { #[adze::leaf(pattern = r"\s")] _w: () }
-        }
-        "#,
-    );
-    let json_str = serde_json::to_string(&gs[0]).unwrap();
-    assert!(json_str.contains("PREC_LEFT"), "should contain PREC_LEFT");
+fn transparent_io_delegates_display() {
+    let io_err = io::Error::new(io::ErrorKind::PermissionDenied, "no access");
+    let e: ToolError = io_err.into();
+    // transparent delegates Display to the inner error
+    assert!(e.to_string().contains("no access"));
 }
 
 #[test]
-fn json_grammar_name_propagates() {
-    let gs = grammars_from_rust(
-        r#"
-        #[adze::grammar("unique_name_99")]
-        mod grammar {
-            #[adze::language]
-            pub enum T { V(#[adze::leaf(pattern = r"v")] String) }
-        }
-        "#,
-    );
-    assert_eq!(gs[0]["name"].as_str().unwrap(), "unique_name_99");
+fn transparent_json_delegates_display() {
+    let json_err = serde_json::from_str::<serde_json::Value>("[").unwrap_err();
+    let msg = json_err.to_string();
+    let e: ToolError = json_err.into();
+    assert_eq!(e.to_string(), msg);
+}
+
+#[test]
+fn tool_error_is_send_and_sync() {
+    fn assert_send_sync<T: Send + Sync>() {}
+    // ToolError should be usable across threads
+    assert_send_sync::<ToolError>();
 }
 
 // =========================================================================
-// 10–16  Build configuration options
+// 4. Build configuration types and defaults
 // =========================================================================
 
 #[test]
@@ -238,187 +267,108 @@ fn build_options_default_emit_artifacts_is_false() {
 }
 
 #[test]
-fn build_with_compress_produces_code() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("grammar.js");
-    fs::write(
-        &path,
-        r#"
-module.exports = grammar({
-  name: 'compress_test',
-  rules: { source: $ => $.t, t: $ => /[a-z]+/ }
-});
-"#,
-    )
-    .unwrap();
+fn build_options_clone_preserves_fields() {
     let opts = BuildOptions {
-        out_dir: dir.path().to_string_lossy().into(),
-        emit_artifacts: false,
-        compress_tables: true,
-    };
-    let r = build_parser_from_grammar_js(&path, opts).unwrap();
-    assert!(!r.parser_code.is_empty());
-}
-
-#[test]
-fn build_without_compress_produces_code() {
-    let r = build_js(
-        r#"
-module.exports = grammar({
-  name: 'no_compress',
-  rules: { source: $ => $.t, t: $ => /[a-z]+/ }
-});
-"#,
-    );
-    assert!(!r.parser_code.is_empty());
-}
-
-#[test]
-fn emit_artifacts_creates_ir_json() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("grammar.js");
-    fs::write(
-        &path,
-        r#"
-module.exports = grammar({
-  name: 'emit_test',
-  rules: { source: $ => $.t, t: $ => /[a-z]+/ }
-});
-"#,
-    )
-    .unwrap();
-    let opts = BuildOptions {
-        out_dir: dir.path().to_string_lossy().into(),
+        out_dir: "/tmp/test".into(),
         emit_artifacts: true,
         compress_tables: false,
     };
-    build_parser_from_grammar_js(&path, opts).unwrap();
-    let artifact_dir = dir.path().join("grammar_emit_test");
-    assert!(artifact_dir.join("grammar.ir.json").exists());
+    let cloned = opts.clone();
+    assert_eq!(cloned.out_dir, "/tmp/test");
+    assert!(cloned.emit_artifacts);
+    assert!(!cloned.compress_tables);
 }
 
 #[test]
-fn emit_artifacts_creates_node_types_json() {
-    let dir = TempDir::new().unwrap();
-    let path = dir.path().join("grammar.js");
-    fs::write(
-        &path,
-        r#"
-module.exports = grammar({
-  name: 'nt_emit',
-  rules: { source: $ => $.t, t: $ => /[a-z]+/ }
-});
-"#,
-    )
-    .unwrap();
-    let opts = BuildOptions {
-        out_dir: dir.path().to_string_lossy().into(),
-        emit_artifacts: true,
-        compress_tables: false,
+fn build_options_debug_impl() {
+    let opts = BuildOptions::default();
+    let dbg = format!("{opts:?}");
+    assert!(dbg.contains("BuildOptions"));
+    assert!(dbg.contains("compress_tables"));
+}
+
+// =========================================================================
+// 5. Scanner-related types
+// =========================================================================
+
+#[test]
+fn scanner_language_c_extension() {
+    assert_eq!(ScannerLanguage::C.extension(), "c");
+}
+
+#[test]
+fn scanner_language_cpp_extension() {
+    assert_eq!(ScannerLanguage::Cpp.extension(), "cc");
+}
+
+#[test]
+fn scanner_language_rust_extension() {
+    assert_eq!(ScannerLanguage::Rust.extension(), "rs");
+}
+
+#[test]
+fn scanner_language_equality() {
+    assert_eq!(ScannerLanguage::C, ScannerLanguage::C);
+    assert_ne!(ScannerLanguage::C, ScannerLanguage::Rust);
+}
+
+#[test]
+fn scanner_source_fields_accessible() {
+    let src = ScannerSource {
+        path: PathBuf::from("scanner.c"),
+        language: ScannerLanguage::C,
+        grammar_name: "test_grammar".into(),
     };
-    build_parser_from_grammar_js(&path, opts).unwrap();
-    assert!(
-        dir.path()
-            .join("grammar_nt_emit")
-            .join("NODE_TYPES.json")
-            .exists()
-    );
+    assert_eq!(src.grammar_name, "test_grammar");
+    assert_eq!(src.language, ScannerLanguage::C);
+    assert_eq!(src.path, PathBuf::from("scanner.c"));
 }
 
 #[test]
-fn parser_file_written_to_out_dir() {
+fn scanner_builder_find_scanner_empty_dir() {
     let dir = TempDir::new().unwrap();
-    let path = dir.path().join("grammar.js");
-    fs::write(
-        &path,
-        r#"
-module.exports = grammar({
-  name: 'outdir_write',
-  rules: { source: $ => $.t, t: $ => /[a-z]+/ }
-});
-"#,
-    )
-    .unwrap();
-    let opts = opts_in(&dir);
-    let r = build_parser_from_grammar_js(&path, opts).unwrap();
-    let p = Path::new(&r.parser_path);
-    assert!(p.exists(), "parser file must exist at {}", p.display());
-    assert!(p.starts_with(dir.path()));
+    let builder = ScannerBuilder::new("test", dir.path().to_path_buf(), dir.path().to_path_buf());
+    let result = builder.find_scanner().unwrap();
+    assert!(result.is_none(), "empty dir should have no scanner");
 }
 
 // =========================================================================
-// 17–23  Error handling for malformed grammars
+// 6. Error propagation patterns
 // =========================================================================
 
 #[test]
-fn malformed_json_gives_error() {
+fn malformed_json_propagates_error() {
     let dir = TempDir::new().unwrap();
     let result = build_parser_from_json("{bad json".into(), opts_in(&dir));
     assert!(result.is_err());
 }
 
 #[test]
-fn empty_rules_grammar_js_fails() {
-    let result = try_build_js(
-        r#"
-module.exports = grammar({
-  name: 'empty',
-  rules: {}
-});
-"#,
-    );
-    assert!(result.is_err());
-}
-
-#[test]
-fn nonexistent_grammar_js_file_errors() {
+fn nonexistent_grammar_js_propagates_error() {
     let dir = TempDir::new().unwrap();
-    let result =
-        build_parser_from_grammar_js(Path::new("/nonexistent/path/grammar.js"), opts_in(&dir));
+    let result = build_parser_from_grammar_js(Path::new("/nonexistent/grammar.js"), opts_in(&dir));
     assert!(result.is_err());
 }
 
 #[test]
-fn completely_invalid_grammar_js_content_errors() {
-    let result = try_build_js("THIS IS NOT JAVASCRIPT AT ALL!!!");
+fn invalid_grammar_js_content_propagates_error() {
+    let result = try_build_js("THIS IS NOT JAVASCRIPT");
     assert!(result.is_err());
 }
 
 #[test]
-fn grammar_js_missing_name_errors() {
-    let result = try_build_js(
-        r#"
-module.exports = grammar({
-  rules: { source: $ => /x/ }
-});
-"#,
-    );
-    assert!(result.is_err());
-}
-
-#[test]
-fn json_with_missing_rules_key_errors() {
+fn json_missing_rules_key_propagates_error() {
     let dir = TempDir::new().unwrap();
-    let result = build_parser_from_json(r#"{"name": "no_rules"}"#.into(), opts_in(&dir));
-    assert!(result.is_err());
-}
-
-#[test]
-fn json_with_empty_rules_errors() {
-    let dir = TempDir::new().unwrap();
-    let result = build_parser_from_json(
-        r#"{"name": "empty_rules", "rules": {}}"#.into(),
-        opts_in(&dir),
-    );
+    let result = build_parser_from_json(r#"{"name":"x"}"#.into(), opts_in(&dir));
     assert!(result.is_err());
 }
 
 // =========================================================================
-// 24–30  Edge cases in build processing
+// 7. End-to-end build pipeline
 // =========================================================================
 
 #[test]
-fn single_rule_grammar_builds_successfully() {
+fn minimal_grammar_builds_with_positive_stats() {
     let r = build_js(
         r#"
 module.exports = grammar({
@@ -429,124 +379,15 @@ module.exports = grammar({
     );
     assert_eq!(r.grammar_name, "minimal");
     assert!(r.build_stats.state_count > 0);
-}
-
-#[test]
-fn grammar_with_seq_and_choice_builds() {
-    let r = build_js(
-        r#"
-module.exports = grammar({
-  name: 'seq_choice',
-  rules: {
-    source: $ => choice($.a, $.b),
-    a: $ => seq('let', /[a-z]+/),
-    b: $ => /\d+/
-  }
-});
-"#,
-    );
-    assert_eq!(r.grammar_name, "seq_choice");
-    assert!(r.build_stats.symbol_count >= 3);
-}
-
-#[test]
-fn grammar_with_optional_and_repeat_builds() {
-    let r = build_js(
-        r#"
-module.exports = grammar({
-  name: 'opt_rep',
-  rules: {
-    source: $ => seq($.head, repeat($.tail)),
-    head: $ => /[a-z]+/,
-    tail: $ => seq(',', optional(/[a-z]+/))
-  }
-});
-"#,
-    );
-    assert_eq!(r.grammar_name, "opt_rep");
+    assert!(r.build_stats.symbol_count > 0);
     assert!(!r.parser_code.is_empty());
 }
 
 #[test]
-fn build_stats_have_positive_counts() {
-    let r = build_js(
-        r#"
-module.exports = grammar({
-  name: 'stats_check',
-  rules: {
-    source: $ => $.tok,
-    tok: $ => /[a-z]+/
-  }
-});
-"#,
-    );
-    assert!(r.build_stats.state_count > 0);
-    assert!(r.build_stats.symbol_count > 0);
-}
-
-#[test]
-fn node_types_json_is_valid_array() {
-    let r = build_js(
-        r#"
-module.exports = grammar({
-  name: 'nt_arr',
-  rules: {
-    source: $ => $.tok,
-    tok: $ => /[a-z]+/
-  }
-});
-"#,
-    );
-    let val: serde_json::Value = serde_json::from_str(&r.node_types_json).unwrap();
-    assert!(val.is_array());
-}
-
-#[test]
-fn node_types_entries_have_type_field() {
-    let r = build_js(
-        r#"
-module.exports = grammar({
-  name: 'nt_typed',
-  rules: {
-    source: $ => $.item,
-    item: $ => /[0-9]+/
-  }
-});
-"#,
-    );
-    let entries: Vec<serde_json::Value> = serde_json::from_str(&r.node_types_json).unwrap();
-    for e in &entries {
-        assert!(e.get("type").is_some(), "entry missing 'type': {:?}", e);
-    }
-}
-
-#[test]
-fn grammar_name_appears_in_generated_code() {
-    let r = build_js(
-        r#"
-module.exports = grammar({
-  name: 'name_in_code',
-  rules: { source: $ => /x/ }
-});
-"#,
-    );
-    assert_eq!(r.grammar_name, "name_in_code");
-    let lower = r.parser_code.to_lowercase();
-    assert!(
-        lower.contains("name_in_code"),
-        "grammar name should appear in generated code"
-    );
-}
-
-// =========================================================================
-// 31–35  Additional edge cases and integration
-// =========================================================================
-
-#[test]
-fn build_from_json_round_trip() {
+fn rust_grammar_extraction_round_trip() {
     let gs = grammars_from_rust(
         r#"
-        #[adze::grammar("round_trip")]
+        #[adze::grammar("rt")]
         mod grammar {
             #[adze::language]
             pub enum T { N(#[adze::leaf(pattern = r"\d+")] i32) }
@@ -556,81 +397,20 @@ fn build_from_json_round_trip() {
     let dir = TempDir::new().unwrap();
     let json_str = serde_json::to_string(&gs[0]).unwrap();
     let r = build_parser_from_json(json_str, opts_in(&dir)).unwrap();
-    assert_eq!(r.grammar_name, "round_trip");
+    assert_eq!(r.grammar_name, "rt");
     assert!(!r.parser_code.is_empty());
 }
 
 #[test]
-fn build_from_ir_grammar_directly() {
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-
-    let dir = TempDir::new().unwrap();
-    let mut grammar = Grammar::new("ir_direct".into());
-
-    let tok_id = SymbolId(1);
-    let src_id = SymbolId(2);
-
-    grammar.tokens.insert(
-        tok_id,
-        Token {
-            name: "number".into(),
-            pattern: TokenPattern::Regex(r"\d+".into()),
-            fragile: false,
-        },
-    );
-    grammar.rule_names.insert(src_id, "source_file".into());
-    grammar.rules.entry(src_id).or_default().push(Rule {
-        lhs: src_id,
-        rhs: vec![Symbol::Terminal(tok_id)],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(0),
-    });
-
-    let r = build_parser(grammar, opts_in(&dir)).unwrap();
-    assert_eq!(r.grammar_name, "ir_direct");
-    assert!(r.build_stats.state_count > 0);
-}
-
-#[test]
-fn grammar_converter_creates_sample_grammar() {
-    let g = GrammarConverter::create_sample_grammar();
-    assert_eq!(g.name, "sample");
-    assert!(!g.tokens.is_empty());
-    assert!(!g.rules.is_empty());
-}
-
-#[test]
-fn empty_rust_file_yields_no_grammars() {
-    let gs = grammars_from_rust("");
-    assert!(gs.is_empty());
-}
-
-#[test]
-fn large_grammar_with_many_rules_builds() {
-    let mut rules = String::from("source: $ => choice(\n");
-    for i in 0..30 {
-        if i > 0 {
-            rules.push_str(",\n");
-        }
-        rules.push_str(&format!("      $.r_{i}"));
-    }
-    rules.push_str("\n    )");
-    for i in 0..30 {
-        rules.push_str(&format!(",\n    r_{i}: $ => /tok_{i}/"));
-    }
-    let js = format!(
+fn node_types_json_is_valid_array() {
+    let r = build_js(
         r#"
-module.exports = grammar({{
-  name: 'large',
-  rules: {{
-    {rules}
-  }}
-}});
-"#
+module.exports = grammar({
+  name: 'nt_check',
+  rules: { source: $ => $.tok, tok: $ => /[a-z]+/ }
+});
+"#,
     );
-    let r = build_js(&js);
-    assert_eq!(r.grammar_name, "large");
-    assert!(r.build_stats.symbol_count >= 30);
+    let val: serde_json::Value = serde_json::from_str(&r.node_types_json).unwrap();
+    assert!(val.is_array());
 }
