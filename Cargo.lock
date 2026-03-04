@@ -451,6 +451,14 @@ name = "adze-governance-runtime-reporting"
 version = "0.1.0"
 dependencies = [
  "adze-governance-matrix-contract",
+ "adze-governance-runtime-summary-core",
+]
+
+[[package]]
+name = "adze-governance-runtime-summary-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-contract",
 ]
 
 [[package]]

@@ -11,9 +11,11 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-use core::fmt::Write;
-
 /// Re-exported governance matrix types and helpers for BDD progress tracking.
+pub use adze_governance_runtime_summary_core::{
+    append_runtime_governance_summary, runtime_governance_summary,
+};
+
 pub use adze_governance_matrix_contract::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
@@ -30,23 +32,7 @@ pub fn bdd_progress_report_with_profile_runtime(
 ) -> String {
     let mut out = bdd_progress_report_with_profile(phase, scenarios, phase_title, profile);
     let (implemented, total) = bdd_progress(phase, scenarios);
-
-    let _ = writeln!(
-        &mut out,
-        "Governance status: {implemented}/{total} scenarios implemented"
-    );
-    let _ = writeln!(&mut out, "Feature profile: {profile}");
-    let _ = writeln!(
-        &mut out,
-        "Non-conflict backend: {}",
-        profile.resolve_backend(false).name()
-    );
-    let _ = writeln!(
-        &mut out,
-        "Conflict profiles: {}",
-        describe_backend_for_conflicts(profile)
-    );
-
+    append_runtime_governance_summary(&mut out, implemented, total, profile);
     out
 }
 

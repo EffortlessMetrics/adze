@@ -14,12 +14,14 @@ documentation = "https://docs.rs/adze-governance-runtime-reporting"
 
 [features]
 default = []
-pure-rust = ["adze-governance-matrix-contract/pure-rust"]
-tree-sitter-c2rust = ["adze-governance-matrix-contract/tree-sitter-c2rust"]
-tree-sitter-standard = ["adze-governance-matrix-contract/tree-sitter-standard"]
-glr = ["pure-rust", "adze-governance-matrix-contract/glr"]
-strict_api = ["adze-governance-matrix-contract/strict_api"]
-strict_docs = ["adze-governance-matrix-contract/strict_docs"]
+pure-rust = ["adze-governance-runtime-summary-core/pure-rust", "adze-governance-matrix-contract/pure-rust"]
+tree-sitter-c2rust = ["adze-governance-runtime-summary-core/tree-sitter-c2rust", "adze-governance-matrix-contract/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-governance-runtime-summary-core/tree-sitter-standard", "adze-governance-matrix-contract/tree-sitter-standard"]
+glr = ["pure-rust", "adze-governance-runtime-summary-core/glr", "adze-governance-matrix-contract/glr"]
+strict_api = ["adze-governance-runtime-summary-core/strict_api", "adze-governance-matrix-contract/strict_api"]
+strict_docs = ["adze-governance-runtime-summary-core/strict_docs", "adze-governance-matrix-contract/strict_docs"]
 
 [dependencies]
 adze-governance-matrix-contract = { version = "0.1.0", path = "../governance-matrix-contract" }
+
+adze-governance-runtime-summary-core = { version = "0.1.0", path = "../governance-runtime-summary-core" }
