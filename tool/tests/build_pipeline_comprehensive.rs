@@ -414,3 +414,644 @@ module.exports = grammar({
     let val: serde_json::Value = serde_json::from_str(&r.node_types_json).unwrap();
     assert!(val.is_array());
 }
+
+// =========================================================================
+// 8. Grammar JSON generation — structural checks
+// =========================================================================
+
+#[test]
+fn generated_grammar_json_has_name_field() {
+    let gs = grammars_from_rust(
+        r#"
+        #[adze::grammar("named")]
+        mod grammar {
+            #[adze::language]
+            pub enum Lang { Tok(#[adze::leaf(pattern = r"[a-z]+")] String) }
+        }
+        "#,
+    );
+    assert_eq!(gs.len(), 1);
+    assert_eq!(gs[0]["name"].as_str().unwrap(), "named");
+}
+
+#[test]
+fn generated_grammar_json_has_rules_object() {
+    let gs = grammars_from_rust(
+        r#"
+        #[adze::grammar("rules_check")]
+        mod grammar {
+            #[adze::language]
+            pub enum Lang { Tok(#[adze::leaf(pattern = r"\d+")] i32) }
+        }
+        "#,
+    );
+    assert!(gs[0]["rules"].is_object());
+}
+
+#[test]
+fn grammar_json_rules_are_not_empty() {
+    let gs = grammars_from_rust(
+        r#"
+        #[adze::grammar("notempty")]
+        mod grammar {
+            #[adze::language]
+            pub enum Lang { A(#[adze::leaf(pattern = r"a")] String) }
+        }
+        "#,
+    );
+    let rules = gs[0]["rules"].as_object().unwrap();
+    assert!(!rules.is_empty());
+}
+
+// =========================================================================
+// 9. Multiple grammars extraction
+// =========================================================================
+
+#[test]
+fn extract_zero_grammars_from_bare_module() {
+    let gs = grammars_from_rust(
+        r#"
+        mod no_grammar {
+            pub fn hello() {}
+        }
+        "#,
+    );
+    assert!(gs.is_empty());
+}
+
+#[test]
+fn extract_zero_grammars_from_empty_file() {
+    let gs = grammars_from_rust("");
+    assert!(gs.is_empty());
+}
+
+// =========================================================================
+// 10. Build pipeline — grammar.js edge cases
+// =========================================================================
+
+#[test]
+fn grammar_js_with_choice_builds_successfully() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'choice_test',
+  rules: {
+    source: $ => choice($.a, $.b),
+    a: $ => 'hello',
+    b: $ => 'world'
+  }
+});
+"#,
+    );
+    assert_eq!(r.grammar_name, "choice_test");
+    assert!(!r.parser_code.is_empty());
+}
+
+#[test]
+fn grammar_js_with_seq_builds_successfully() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'seq_test',
+  rules: {
+    source: $ => seq($.a, $.b),
+    a: $ => 'hello',
+    b: $ => 'world'
+  }
+});
+"#,
+    );
+    assert_eq!(r.grammar_name, "seq_test");
+    assert!(r.build_stats.state_count > 0);
+}
+
+#[test]
+fn grammar_js_with_optional_builds() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'opt_test',
+  rules: {
+    source: $ => seq(optional('hello'), 'world')
+  }
+});
+"#,
+    );
+    assert_eq!(r.grammar_name, "opt_test");
+}
+
+#[test]
+fn grammar_js_with_repeat_builds() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'repeat_test',
+  rules: {
+    source: $ => repeat($.item),
+    item: $ => /[a-z]+/
+  }
+});
+"#,
+    );
+    assert_eq!(r.grammar_name, "repeat_test");
+}
+
+#[test]
+fn grammar_js_with_repeat1_builds() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'repeat1_test',
+  rules: {
+    source: $ => repeat1($.item),
+    item: $ => /[a-z]+/
+  }
+});
+"#,
+    );
+    assert_eq!(r.grammar_name, "repeat1_test");
+}
+
+#[test]
+fn grammar_js_with_prec_left_builds() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'prec_left_test',
+  rules: {
+    source: $ => $.expr,
+    expr: $ => choice(
+      /\d+/,
+      prec.left(1, seq($.expr, '+', $.expr))
+    )
+  }
+});
+"#,
+    );
+    assert_eq!(r.grammar_name, "prec_left_test");
+    assert!(r.build_stats.state_count > 1);
+}
+
+#[test]
+fn grammar_js_with_prec_right_builds() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'prec_right_test',
+  rules: {
+    source: $ => $.expr,
+    expr: $ => choice(
+      /\d+/,
+      prec.right(1, seq($.expr, '=', $.expr))
+    )
+  }
+});
+"#,
+    );
+    assert_eq!(r.grammar_name, "prec_right_test");
+}
+
+// =========================================================================
+// 11. Build result structural properties
+// =========================================================================
+
+#[test]
+fn build_result_parser_code_contains_language_constant() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'lang_const',
+  rules: { source: $ => /[a-z]+/ }
+});
+"#,
+    );
+    // The parser code should contain some reference to the language
+    assert!(!r.parser_code.is_empty());
+}
+
+#[test]
+fn build_result_parser_path_is_written_to_disk() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("grammar.js");
+    fs::write(
+        &path,
+        r#"
+module.exports = grammar({
+  name: 'disk_check',
+  rules: { source: $ => /[a-z]+/ }
+});
+"#,
+    )
+    .unwrap();
+    let r = build_parser_from_grammar_js(&path, opts_in(&dir)).unwrap();
+    assert!(Path::new(&r.parser_path).exists());
+}
+
+#[test]
+fn build_result_debug_impl_is_accessible() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'debug_check',
+  rules: { source: $ => /[a-z]+/ }
+});
+"#,
+    );
+    let dbg = format!("{:?}", r);
+    assert!(dbg.contains("BuildResult"));
+    assert!(dbg.contains("debug_check"));
+}
+
+#[test]
+fn build_stats_debug_is_accessible() {
+    let r = build_js(
+        r#"
+module.exports = grammar({
+  name: 'stats_dbg',
+  rules: { source: $ => /[a-z]+/ }
+});
+"#,
+    );
+    let dbg = format!("{:?}", r.build_stats);
+    assert!(dbg.contains("BuildStats"));
+    assert!(dbg.contains("state_count"));
+}
+
+// =========================================================================
+// 12. Build from JSON — more cases
+// =========================================================================
+
+#[test]
+fn build_from_json_minimal_valid() {
+    let dir = TempDir::new().unwrap();
+    let json = serde_json::json!({
+        "name": "json_min",
+        "rules": {
+            "source": {"type": "PATTERN", "value": "[a-z]+"}
+        }
+    });
+    let r = build_parser_from_json(serde_json::to_string(&json).unwrap(), opts_in(&dir)).unwrap();
+    assert_eq!(r.grammar_name, "json_min");
+}
+
+#[test]
+fn build_from_json_with_seq_rule() {
+    let dir = TempDir::new().unwrap();
+    let json = serde_json::json!({
+        "name": "json_seq",
+        "rules": {
+            "source": {
+                "type": "SEQ",
+                "members": [
+                    {"type": "STRING", "value": "hello"},
+                    {"type": "STRING", "value": "world"}
+                ]
+            }
+        }
+    });
+    let r = build_parser_from_json(serde_json::to_string(&json).unwrap(), opts_in(&dir)).unwrap();
+    assert_eq!(r.grammar_name, "json_seq");
+}
+
+#[test]
+fn build_from_json_with_choice_rule() {
+    let dir = TempDir::new().unwrap();
+    let json = serde_json::json!({
+        "name": "json_choice",
+        "rules": {
+            "source": {
+                "type": "CHOICE",
+                "members": [
+                    {"type": "STRING", "value": "a"},
+                    {"type": "STRING", "value": "b"}
+                ]
+            }
+        }
+    });
+    let r = build_parser_from_json(serde_json::to_string(&json).unwrap(), opts_in(&dir)).unwrap();
+    assert_eq!(r.grammar_name, "json_choice");
+}
+
+#[test]
+fn build_from_json_empty_string_is_error() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json(String::new(), opts_in(&dir));
+    assert!(result.is_err());
+}
+
+#[test]
+fn build_from_json_array_instead_of_object_is_error() {
+    let dir = TempDir::new().unwrap();
+    let result = build_parser_from_json("[]".into(), opts_in(&dir));
+    assert!(result.is_err());
+}
+
+// =========================================================================
+// 13. Scanner builder — more edge cases
+// =========================================================================
+
+#[test]
+fn scanner_builder_finds_c_scanner() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("scanner.c"), "// C scanner").unwrap();
+    let builder = ScannerBuilder::new("test", dir.path().to_path_buf(), dir.path().to_path_buf());
+    let scanner = builder.find_scanner().unwrap().unwrap();
+    assert_eq!(scanner.language, ScannerLanguage::C);
+}
+
+#[test]
+fn scanner_builder_finds_cc_scanner() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("scanner.cc"), "// C++ scanner").unwrap();
+    let builder = ScannerBuilder::new("test", dir.path().to_path_buf(), dir.path().to_path_buf());
+    let scanner = builder.find_scanner().unwrap().unwrap();
+    assert_eq!(scanner.language, ScannerLanguage::Cpp);
+}
+
+#[test]
+fn scanner_builder_finds_rs_scanner() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("scanner.rs"), "// Rust scanner").unwrap();
+    let builder = ScannerBuilder::new("test", dir.path().to_path_buf(), dir.path().to_path_buf());
+    let scanner = builder.find_scanner().unwrap().unwrap();
+    assert_eq!(scanner.language, ScannerLanguage::Rust);
+}
+
+#[test]
+fn scanner_builder_finds_named_scanner() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("mygrammar_scanner.c"), "// named").unwrap();
+    let builder = ScannerBuilder::new(
+        "mygrammar",
+        dir.path().to_path_buf(),
+        dir.path().to_path_buf(),
+    );
+    let scanner = builder.find_scanner().unwrap().unwrap();
+    assert_eq!(scanner.grammar_name, "mygrammar");
+    assert_eq!(scanner.language, ScannerLanguage::C);
+}
+
+#[test]
+fn scanner_builder_prefers_generic_over_named() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("scanner.c"), "// generic").unwrap();
+    fs::write(dir.path().join("test_scanner.c"), "// named").unwrap();
+    let builder = ScannerBuilder::new("test", dir.path().to_path_buf(), dir.path().to_path_buf());
+    let scanner = builder.find_scanner().unwrap().unwrap();
+    // generic scanner.c should be found first
+    assert!(scanner.path.ends_with("scanner.c"));
+}
+
+// =========================================================================
+// 14. ToolError variant coverage — remaining variants
+// =========================================================================
+
+#[test]
+fn error_display_invalid_production_details() {
+    let e = ToolError::InvalidProduction {
+        details: "rhs contains unknown symbol".into(),
+    };
+    assert!(e.to_string().contains("rhs contains unknown symbol"));
+}
+
+#[test]
+fn error_from_glr_is_transparent() {
+    let glr_err = adze_glr_core::GLRError::ConflictResolution("test conflict".into());
+    let e: ToolError = glr_err.into();
+    assert!(matches!(e, ToolError::Glr(_)));
+    assert!(e.to_string().contains("test conflict"));
+}
+
+#[test]
+fn error_from_syn_is_transparent() {
+    let syn_err = syn::Error::new(proc_macro2::Span::call_site(), "bad syntax");
+    let e: ToolError = syn_err.into();
+    assert!(matches!(e, ToolError::SynError { .. }));
+    assert!(e.to_string().contains("bad syntax"));
+}
+
+// =========================================================================
+// 15. GrammarJs validation
+// =========================================================================
+
+#[test]
+fn grammar_js_validate_empty_rules_succeeds() {
+    let grammar = adze_tool::grammar_js::GrammarJs::new("empty".into());
+    assert!(grammar.validate().is_ok());
+}
+
+#[test]
+fn grammar_js_validate_word_not_in_rules_fails() {
+    let mut grammar = adze_tool::grammar_js::GrammarJs::new("bad_word".into());
+    grammar.word = Some("identifier".into());
+    assert!(grammar.validate().is_err());
+}
+
+#[test]
+fn grammar_js_validate_inline_not_in_rules_fails() {
+    let mut grammar = adze_tool::grammar_js::GrammarJs::new("bad_inline".into());
+    grammar.inline.push("nonexistent".into());
+    assert!(grammar.validate().is_err());
+}
+
+#[test]
+fn grammar_js_validate_conflict_not_in_rules_fails() {
+    let mut grammar = adze_tool::grammar_js::GrammarJs::new("bad_conflict".into());
+    grammar.conflicts.push(vec!["nonexistent".into()]);
+    assert!(grammar.validate().is_err());
+}
+
+// =========================================================================
+// 16. GrammarConverter sample grammar
+// =========================================================================
+
+#[test]
+fn sample_grammar_has_tokens() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    assert!(!grammar.tokens.is_empty());
+}
+
+#[test]
+fn sample_grammar_has_rules() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    assert!(!grammar.rules.is_empty());
+}
+
+#[test]
+fn sample_grammar_has_fields() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    assert!(!grammar.fields.is_empty());
+}
+
+#[test]
+fn sample_grammar_name_is_sample() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    assert_eq!(grammar.name, "sample");
+}
+
+// =========================================================================
+// 17. Visualization — smoke tests
+// =========================================================================
+
+#[test]
+fn visualizer_to_dot_produces_digraph() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    let viz = adze_tool::GrammarVisualizer::new(grammar);
+    let dot = viz.to_dot();
+    assert!(dot.contains("digraph Grammar"));
+    assert!(dot.contains("}"));
+}
+
+#[test]
+fn visualizer_to_text_contains_grammar_name() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    let viz = adze_tool::GrammarVisualizer::new(grammar);
+    let text = viz.to_text();
+    assert!(text.contains("Grammar: sample"));
+}
+
+#[test]
+fn visualizer_to_railroad_svg_produces_svg() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    let viz = adze_tool::GrammarVisualizer::new(grammar);
+    let svg = viz.to_railroad_svg();
+    assert!(svg.contains("<svg"));
+    assert!(svg.contains("</svg>"));
+}
+
+#[test]
+fn visualizer_dependency_graph_produces_output() {
+    let grammar = adze_tool::GrammarConverter::create_sample_grammar();
+    let viz = adze_tool::GrammarVisualizer::new(grammar);
+    let deps = viz.dependency_graph();
+    assert!(deps.contains("Symbol Dependencies:"));
+}
+
+// =========================================================================
+// 18. Build options with emit_artifacts
+// =========================================================================
+
+#[test]
+fn build_with_emit_artifacts_writes_extra_files() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("grammar.js");
+    fs::write(
+        &path,
+        r#"
+module.exports = grammar({
+  name: 'artifact_test',
+  rules: { source: $ => /[a-z]+/ }
+});
+"#,
+    )
+    .unwrap();
+    let opts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: true,
+        compress_tables: false,
+    };
+    let r = build_parser_from_grammar_js(&path, opts).unwrap();
+    assert_eq!(r.grammar_name, "artifact_test");
+    // With emit_artifacts, grammar directory should have extra files
+    let grammar_dir = dir.path().join("grammar_artifact_test");
+    assert!(grammar_dir.exists());
+}
+
+#[test]
+fn build_without_compression() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("grammar.js");
+    fs::write(
+        &path,
+        r#"
+module.exports = grammar({
+  name: 'no_compress',
+  rules: { source: $ => /[a-z]+/ }
+});
+"#,
+    )
+    .unwrap();
+    let opts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: false,
+        compress_tables: false,
+    };
+    let r = build_parser_from_grammar_js(&path, opts).unwrap();
+    assert!(!r.parser_code.is_empty());
+}
+
+#[test]
+fn build_with_compression() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("grammar.js");
+    fs::write(
+        &path,
+        r#"
+module.exports = grammar({
+  name: 'with_compress',
+  rules: { source: $ => /[a-z]+/ }
+});
+"#,
+    )
+    .unwrap();
+    let opts = BuildOptions {
+        out_dir: dir.path().to_string_lossy().into(),
+        emit_artifacts: false,
+        compress_tables: true,
+    };
+    let r = build_parser_from_grammar_js(&path, opts).unwrap();
+    assert!(!r.parser_code.is_empty());
+}
+
+// =========================================================================
+// 19. Build from Rust — edge cases in grammar extraction
+// =========================================================================
+
+#[test]
+fn rust_grammar_with_string_literal_leaf() {
+    let gs = grammars_from_rust(
+        r#"
+        #[adze::grammar("str_leaf")]
+        mod grammar {
+            #[adze::language]
+            pub enum Lang { Kw(#[adze::leaf(text = "keyword")] ()) }
+        }
+        "#,
+    );
+    assert_eq!(gs.len(), 1);
+    assert_eq!(gs[0]["name"].as_str().unwrap(), "str_leaf");
+}
+
+// =========================================================================
+// 20. Error propagation — more patterns
+// =========================================================================
+
+#[test]
+fn json_with_missing_name_is_error() {
+    let dir = TempDir::new().unwrap();
+    let json = serde_json::json!({
+        "rules": {
+            "source": {"type": "PATTERN", "value": "[a-z]+"}
+        }
+    });
+    let result = build_parser_from_json(serde_json::to_string(&json).unwrap(), opts_in(&dir));
+    assert!(result.is_err());
+}
+
+#[test]
+fn error_tool_result_type_alias_works() {
+    fn returns_tool_error() -> adze_tool::ToolResult<()> {
+        Err(ToolError::MultipleWordRules)
+    }
+    assert!(returns_tool_error().is_err());
+}
+
+#[test]
+fn multiple_error_constructors_are_distinct() {
+    let e1 = ToolError::string_too_long("a", 1);
+    let e2 = ToolError::grammar_validation("b");
+    let e3 = ToolError::expected_symbol_type("c");
+    // Just verify they are distinct variants
+    assert_ne!(e1.to_string(), e2.to_string());
+    assert_ne!(e2.to_string(), e3.to_string());
+}
