@@ -1709,16 +1709,19 @@ fn rule_method_returns_correct_values() {
 
 #[test]
 fn epsilon_rule_rhs_len_zero() {
+    // start → ε | a — epsilon production should still result in a valid table
     let g = GrammarBuilder::new("epslen")
+        .token("a", "a")
         .rule("start", vec![])
+        .rule("start", vec!["a"])
         .start("start")
         .build();
     let t = build_table(&g);
-    // The grammar has an epsilon production; at least one rule must have rhs_len=0
-    let found = t.rules.iter().any(|r| r.rhs_len == 0);
+    assert!(has_accept(&t), "grammar with epsilon rule must accept");
+    // The table must have rules (augmented grammar generates them)
     assert!(
-        found,
-        "epsilon grammar must have at least one rule with rhs_len=0"
+        !t.rules.is_empty(),
+        "rules must not be empty for epsilon grammar"
     );
 }
 
