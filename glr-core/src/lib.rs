@@ -135,8 +135,6 @@ pub mod perf_optimizations;
 pub mod precedence_compare;
 #[doc(hidden)]
 pub mod symbol_comparison;
-#[doc(hidden)]
-pub mod version_info;
 
 #[cfg(test)]
 /// Utilities for constructing test parse tables and grammars.
@@ -150,6 +148,8 @@ pub mod test_symbol_alloc;
 pub use advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
+#[doc(hidden)]
+pub use adze_glr_versioning::{CompareResult, VersionInfo, compare_versions};
 #[doc(hidden)]
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 #[doc(hidden)]
@@ -166,8 +166,6 @@ pub use precedence_compare::{
 };
 #[doc(hidden)]
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
-#[doc(hidden)]
-pub use version_info::{CompareResult, VersionInfo, compare_versions};
 
 // ============================================================================
 // EOF Symbol Sentinel Handling
