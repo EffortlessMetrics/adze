@@ -237,6 +237,7 @@ dependencies = [
 name = "adze-concurrency-env-contract-core"
 version = "0.1.0"
 dependencies = [
+ "adze-concurrency-env-vars-core",
  "adze-concurrency-parse-core",
  "proptest",
 ]
@@ -246,6 +247,13 @@ name = "adze-concurrency-env-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-contract-core",
+ "proptest",
+]
+
+[[package]]
+name = "adze-concurrency-env-vars-core"
+version = "0.1.0"
+dependencies = [
  "proptest",
 ]
 

@@ -9,19 +9,11 @@
 
 use std::env;
 
+pub use adze_concurrency_env_vars_core::{
+    DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS, RAYON_NUM_THREADS_ENV,
+    TOKIO_WORKER_THREADS_ENV,
+};
 pub use adze_concurrency_parse_core::parse_positive_usize_or_default;
-
-/// Environment variable used for Rayon global thread-pool caps.
-pub const RAYON_NUM_THREADS_ENV: &str = "RAYON_NUM_THREADS";
-
-/// Environment variable used for Tokio worker-thread caps.
-pub const TOKIO_WORKER_THREADS_ENV: &str = "TOKIO_WORKER_THREADS";
-
-/// Default thread count used for Rayon when `RAYON_NUM_THREADS` is unset/invalid.
-pub const DEFAULT_RAYON_NUM_THREADS: usize = 4;
-
-/// Default worker count used for Tokio when `TOKIO_WORKER_THREADS` is unset/invalid.
-pub const DEFAULT_TOKIO_WORKER_THREADS: usize = 2;
 
 /// Snapshot of active concurrency cap values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
