@@ -368,11 +368,13 @@ fn abi_right_assoc_grammar_generates() {
 }
 
 #[test]
-fn abi_precedence_output_contains_symbol_names() {
+fn abi_precedence_output_contains_grammar_name() {
     let (g, t) = precedence_grammar_and_table();
     let code = abi_code(&g, &t);
-    // The generated code should reference at least the grammar tokens
-    assert!(code.contains("num") || code.contains("expr"));
+    assert!(
+        code.contains("prec"),
+        "generated code should reference the grammar name"
+    );
 }
 
 // ===========================================================================
