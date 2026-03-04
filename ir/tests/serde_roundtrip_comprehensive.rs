@@ -16,8 +16,8 @@
 
 use adze_ir::{
     AliasSequence, Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId,
-    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token,
-    TokenPattern,
+    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
+    SymbolMetadata, Token, TokenPattern, builder::GrammarBuilder,
 };
 use indexmap::IndexMap;
 
@@ -1404,4 +1404,328 @@ fn test_grammar_serialized_to_canonical_form_json() {
 
     // Both should produce identical JSON, proving canonical form
     assert_eq!(json1, json2, "Canonical form test failed");
+}
+
+// ============================================================================
+// Tests: StateId roundtrip (missing from original coverage)
+// ============================================================================
+
+#[test]
+fn test_state_id_json_roundtrip() {
+    let id = StateId(456);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: StateId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+#[test]
+fn test_state_id_zero_json_roundtrip() {
+    let id = StateId(0);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: StateId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+#[test]
+fn test_state_id_max_json_roundtrip() {
+    let id = StateId(u16::MAX);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: StateId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+#[test]
+fn test_state_id_bincode_roundtrip() {
+    let id = StateId(1024);
+    let bytes = bincode::serialize(&id).expect("serialize");
+    let deserialized: StateId = bincode::deserialize(&bytes).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+// ============================================================================
+// Tests: All ID types at boundary values
+// ============================================================================
+
+#[test]
+fn test_symbol_id_zero_json_roundtrip() {
+    let id = SymbolId(0);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: SymbolId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+#[test]
+fn test_symbol_id_max_json_roundtrip() {
+    let id = SymbolId(u16::MAX);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: SymbolId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+#[test]
+fn test_rule_id_max_json_roundtrip() {
+    let id = RuleId(u16::MAX);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: RuleId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+#[test]
+fn test_field_id_max_json_roundtrip() {
+    let id = FieldId(u16::MAX);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: FieldId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+#[test]
+fn test_production_id_max_json_roundtrip() {
+    let id = ProductionId(u16::MAX);
+    let json = serde_json::to_string(&id).expect("serialize");
+    let deserialized: ProductionId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(id, deserialized);
+}
+
+// ============================================================================
+// Tests: Grammar via GrammarBuilder
+// ============================================================================
+
+#[test]
+fn test_grammar_builder_simple_json_roundtrip() {
+    let grammar = GrammarBuilder::new("simple")
+        .token("NUMBER", r"\d+")
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    assert_json_roundtrip(&grammar, "grammar_builder_simple");
+}
+
+#[test]
+fn test_grammar_builder_arithmetic_json_roundtrip() {
+    let grammar = GrammarBuilder::new("arithmetic")
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .token("*", "*")
+        .rule("expr", vec!["expr", "+", "expr"])
+        .rule("expr", vec!["expr", "*", "expr"])
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    assert_json_roundtrip(&grammar, "grammar_builder_arithmetic");
+}
+
+#[test]
+fn test_grammar_builder_with_precedence_json_roundtrip() {
+    let grammar = GrammarBuilder::new("prec_grammar")
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .token("*", "*")
+        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    assert_json_roundtrip(&grammar, "grammar_builder_with_precedence");
+}
+
+#[test]
+fn test_grammar_builder_with_extras_json_roundtrip() {
+    let grammar = GrammarBuilder::new("extras_grammar")
+        .token("NUMBER", r"\d+")
+        .token("WS", r"\s+")
+        .rule("expr", vec!["NUMBER"])
+        .extra("WS")
+        .start("expr")
+        .build();
+
+    assert_json_roundtrip(&grammar, "grammar_builder_with_extras");
+}
+
+#[test]
+fn test_grammar_builder_with_externals_json_roundtrip() {
+    let grammar = GrammarBuilder::new("ext_grammar")
+        .token("NUMBER", r"\d+")
+        .rule("expr", vec!["NUMBER"])
+        .external("INDENT")
+        .external("DEDENT")
+        .start("expr")
+        .build();
+
+    assert_json_roundtrip(&grammar, "grammar_builder_with_externals");
+}
+
+#[test]
+fn test_grammar_builder_empty_json_roundtrip() {
+    let grammar = GrammarBuilder::new("empty_builder").build();
+    assert_json_roundtrip(&grammar, "grammar_builder_empty");
+}
+
+#[test]
+fn test_grammar_builder_with_precedence_decl_json_roundtrip() {
+    let grammar = GrammarBuilder::new("prec_decl")
+        .token("+", "+")
+        .token("*", "*")
+        .token("NUMBER", r"\d+")
+        .precedence(1, Associativity::Left, vec!["+"])
+        .precedence(2, Associativity::Left, vec!["*"])
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    assert_json_roundtrip(&grammar, "grammar_builder_precedence_decl");
+}
+
+#[test]
+fn test_grammar_builder_fragile_token_json_roundtrip() {
+    let grammar = GrammarBuilder::new("fragile")
+        .token("NUMBER", r"\d+")
+        .fragile_token("ERROR_TOKEN", r".")
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    assert_json_roundtrip(&grammar, "grammar_builder_fragile_token");
+}
+
+#[test]
+fn test_grammar_builder_bincode_roundtrip() {
+    let grammar = GrammarBuilder::new("bincode_builder")
+        .token("NUMBER", r"\d+")
+        .token("+", "+")
+        .rule("expr", vec!["expr", "+", "expr"])
+        .rule("expr", vec!["NUMBER"])
+        .start("expr")
+        .build();
+
+    assert_bincode_roundtrip(&grammar, "grammar_builder_bincode");
+}
+
+// ============================================================================
+// Tests: Special characters in names
+// ============================================================================
+
+#[test]
+fn test_grammar_special_chars_in_token_names_json_roundtrip() {
+    let mut grammar = Grammar::new("special_chars".to_string());
+
+    let names_and_patterns = vec![
+        (SymbolId(1), "tab\there", "tab\there"),
+        (SymbolId(2), "quote\"inside", "quote\"inside"),
+        (SymbolId(3), "back\\slash", "back\\slash"),
+        (SymbolId(4), "newline\nin_name", "newline\nin_name"),
+    ];
+
+    for (id, name, pattern) in names_and_patterns {
+        grammar.tokens.insert(
+            id,
+            Token {
+                name: name.to_string(),
+                pattern: TokenPattern::String(pattern.to_string()),
+                fragile: false,
+            },
+        );
+        grammar.rule_names.insert(id, name.to_string());
+    }
+
+    assert_json_roundtrip(&grammar, "special_chars_in_names");
+}
+
+#[test]
+fn test_grammar_emoji_in_names_json_roundtrip() {
+    let mut grammar = Grammar::new("emoji_grammar".to_string());
+
+    let id = SymbolId(1);
+    grammar.tokens.insert(
+        id,
+        Token {
+            name: "🔥fire🔥".to_string(),
+            pattern: TokenPattern::String("🔥".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.rule_names.insert(id, "🔥fire🔥".to_string());
+
+    assert_json_roundtrip(&grammar, "emoji_in_names");
+}
+
+#[test]
+fn test_grammar_empty_string_name_json_roundtrip() {
+    let mut grammar = Grammar::new("".to_string());
+
+    let id = SymbolId(1);
+    grammar.rule_names.insert(id, "".to_string());
+
+    assert_json_roundtrip(&grammar, "empty_name");
+}
+
+// ============================================================================
+// Tests: SymbolMetadata roundtrip
+// ============================================================================
+
+#[test]
+fn test_symbol_metadata_json_roundtrip() {
+    let metadata = SymbolMetadata {
+        visible: true,
+        named: false,
+        hidden: true,
+        terminal: false,
+    };
+    let json = serde_json::to_string(&metadata).expect("serialize");
+    let deserialized: SymbolMetadata = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(metadata, deserialized);
+}
+
+#[test]
+fn test_symbol_metadata_all_true_json_roundtrip() {
+    let metadata = SymbolMetadata {
+        visible: true,
+        named: true,
+        hidden: true,
+        terminal: true,
+    };
+    let json = serde_json::to_string(&metadata).expect("serialize");
+    let deserialized: SymbolMetadata = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(metadata, deserialized);
+}
+
+// ============================================================================
+// Tests: ConflictResolution variants roundtrip
+// ============================================================================
+
+#[test]
+fn test_conflict_resolution_glr_json_roundtrip() {
+    let resolution = ConflictResolution::GLR;
+    let json = serde_json::to_string(&resolution).expect("serialize");
+    let deserialized: ConflictResolution = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(resolution, deserialized);
+}
+
+#[test]
+fn test_conflict_resolution_dynamic_prec_json_roundtrip() {
+    let resolution = ConflictResolution::Precedence(PrecedenceKind::Dynamic(-5));
+    let json = serde_json::to_string(&resolution).expect("serialize");
+    let deserialized: ConflictResolution = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(resolution, deserialized);
+}
+
+// ============================================================================
+// Tests: Negative and extreme precedence values
+// ============================================================================
+
+#[test]
+fn test_precedence_kind_min_max_i16_json_roundtrip() {
+    for val in [i16::MIN, -1, 0, 1, i16::MAX] {
+        let static_kind = PrecedenceKind::Static(val);
+        let json = serde_json::to_string(&static_kind).expect("serialize");
+        let deserialized: PrecedenceKind = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(static_kind, deserialized, "Failed for Static({})", val);
+
+        let dynamic_kind = PrecedenceKind::Dynamic(val);
+        let json = serde_json::to_string(&dynamic_kind).expect("serialize");
+        let deserialized: PrecedenceKind = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(dynamic_kind, deserialized, "Failed for Dynamic({})", val);
+    }
 }
