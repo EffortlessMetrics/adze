@@ -5,8 +5,7 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::validation::{GrammarValidator, ValidationError, ValidationWarning};
 use adze_ir::{
-    ExternalToken, FieldId, Grammar, Precedence, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
+    ExternalToken, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 use proptest::prelude::*;
 

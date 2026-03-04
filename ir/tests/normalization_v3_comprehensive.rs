@@ -1,7 +1,6 @@
 // Comprehensive tests for Grammar::normalize() in adze-ir
 // Tests the conversion of complex symbols to auxiliary rules
 
-use adze_ir::Symbol;
 use adze_ir::builder::GrammarBuilder;
 
 fn simple_grammar() -> adze_ir::Grammar {

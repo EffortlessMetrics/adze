@@ -42,10 +42,10 @@ fn build_grammar_and_table(
 
     let mut symbol_to_index = BTreeMap::new();
     let mut index_to_symbol = vec![SymbolId(0); symbol_count];
-    for i in 0..symbol_count {
+    for (i, slot) in index_to_symbol.iter_mut().enumerate().take(symbol_count) {
         let sym = SymbolId(i as u16);
         symbol_to_index.insert(sym, i);
-        index_to_symbol[i] = sym;
+        *slot = sym;
     }
 
     let mut grammar = Grammar::new(name.to_string());

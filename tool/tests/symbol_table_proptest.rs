@@ -94,10 +94,11 @@ fn extract_symbol_names(c_code: &str) -> Vec<String> {
 /// Extract the numeric SYMBOL_COUNT value from C code.
 fn extract_symbol_count(c_code: &str) -> Option<usize> {
     for line in c_code.lines() {
-        if line.contains("#define") && line.contains("SYMBOL_COUNT") {
-            if let Some(num_str) = line.split_whitespace().last() {
-                return num_str.parse().ok();
-            }
+        if line.contains("#define")
+            && line.contains("SYMBOL_COUNT")
+            && let Some(num_str) = line.split_whitespace().last()
+        {
+            return num_str.parse().ok();
         }
     }
     None
@@ -108,17 +109,17 @@ fn extract_symbol_count(c_code: &str) -> Option<usize> {
 fn extract_symbol_metadata(c_code: &str) -> Vec<bool> {
     let mut entries = Vec::new();
     let marker = "ts_symbol_metadata";
-    if let Some(start) = c_code.find(marker) {
-        if let Some(brace) = c_code[start..].find('{') {
-            let arr_start = start + brace;
-            if let Some(end) = c_code[arr_start..].find("};") {
-                let block = &c_code[arr_start..arr_start + end + 1];
-                // Each entry looks like: {.visible = true, .named = true},
-                for line in block.lines() {
-                    if line.contains(".named") {
-                        let named = line.contains(".named = true");
-                        entries.push(named);
-                    }
+    if let Some(start) = c_code.find(marker)
+        && let Some(brace) = c_code[start..].find('{')
+    {
+        let arr_start = start + brace;
+        if let Some(end) = c_code[arr_start..].find("};") {
+            let block = &c_code[arr_start..arr_start + end + 1];
+            // Each entry looks like: {.visible = true, .named = true},
+            for line in block.lines() {
+                if line.contains(".named") {
+                    let named = line.contains(".named = true");
+                    entries.push(named);
                 }
             }
         }
@@ -376,7 +377,7 @@ mod grammar {{
     )
 }
 
-fn src_optional(name: &str) -> String {
+fn _src_optional(name: &str) -> String {
     format!(
         r#"
 #[adze::grammar("{name}")]

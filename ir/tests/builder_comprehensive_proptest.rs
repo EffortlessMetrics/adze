@@ -446,7 +446,7 @@ fn test_start_symbol_not_in_rules_still_recorded() {
         .build();
     // "other" was created by start() but has no rules, so it won't appear in rules map
     // "s" should still be present
-    assert!(g.rules.len() >= 1);
+    assert!(!g.rules.is_empty());
 }
 
 #[test]

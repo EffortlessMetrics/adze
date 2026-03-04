@@ -8,7 +8,7 @@
 
 use proptest::prelude::*;
 use quote::ToTokens;
-use syn::{Attribute, Item, ItemMod, parse_quote};
+use syn::{Attribute, Item, ItemMod};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1919,7 +1919,7 @@ proptest! {
             }
         });
         // Root struct + static_count statics
-        prop_assert!(count_items(&m) >= static_count + 1);
+        prop_assert!(count_items(&m) > static_count);
     }
 }
 

@@ -172,13 +172,13 @@ fn validate_no_start() {
 
 #[test]
 fn validator_debug() {
-    let g = GrammarBuilder::new("dbg")
+    let _g = GrammarBuilder::new("dbg")
         .token("a", "a")
         .rule("s", vec!["a"])
         .start("s")
         .build();
-    let v = GrammarValidator::new();
-    let _ = format!("validator");
+    let _v = GrammarValidator::new();
+    let _ = "validator".to_string();
 }
 
 // ── After normalize ──

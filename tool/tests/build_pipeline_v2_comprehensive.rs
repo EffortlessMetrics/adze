@@ -1,7 +1,7 @@
 //! Comprehensive tests for BuildOptions and BuildStats types.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_tool::pure_rust_builder::{BuildOptions, BuildStats, build_parser};
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser};
 
 // ── BuildOptions tests ──
 

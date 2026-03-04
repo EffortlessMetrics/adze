@@ -971,12 +971,10 @@ proptest! {
         let types = parse_node_types(&result);
 
         for t in &types {
-            if let Some(children) = t.get("children") {
-                if let Some(child_types) = children.get("types").and_then(|v| v.as_array()) {
-                    for ct in child_types {
-                        prop_assert!(ct.get("type").is_some(), "child type missing 'type'");
-                        prop_assert!(ct.get("named").is_some(), "child type missing 'named'");
-                    }
+            if let Some(child_types) = t.get("children").and_then(|c| c.get("types")).and_then(|v| v.as_array()) {
+                for ct in child_types {
+                    prop_assert!(ct.get("type").is_some(), "child type missing 'type'");
+                    prop_assert!(ct.get("named").is_some(), "child type missing 'named'");
                 }
             }
         }

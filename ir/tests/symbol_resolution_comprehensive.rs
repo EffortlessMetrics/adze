@@ -203,7 +203,8 @@ fn symbol_deep_clone_independence() {
         SymbolId(1),
     )))));
     let mut cloned = original.clone();
-    // Mutate cloned; original is unaffected.
+    // Reassign cloned; original is unaffected.
+    let _ = &cloned;
     cloned = Symbol::Epsilon;
     assert_ne!(original, cloned);
 }

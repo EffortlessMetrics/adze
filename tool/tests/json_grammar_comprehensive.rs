@@ -926,7 +926,6 @@ fn build_result_parser_code_is_non_empty() {
     let result = build_parser_from_json(grammar_json, opts).unwrap();
 
     assert!(!result.parser_code.is_empty());
-    assert!(result.parser_code.len() > 0);
 }
 
 #[test]

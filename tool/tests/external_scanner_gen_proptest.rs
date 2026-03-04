@@ -12,7 +12,7 @@
 //!   - Scanner integration with grammar JSON generation
 
 use adze_tool::grammar_js::{ExternalToken, GrammarJs, GrammarJsConverter};
-use adze_tool::scanner_build::{ScannerBuilder, ScannerLanguage, ScannerSource};
+use adze_tool::scanner_build::{ScannerBuilder, ScannerLanguage};
 use proptest::prelude::*;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -57,7 +57,7 @@ fn generate_c_bindings_text(grammar_name: &str) -> String {
     fs::write(src_dir.join("scanner.c"), "// stub scanner").unwrap();
 
     let builder = ScannerBuilder::new(grammar_name, src_dir, out_dir.clone());
-    let scanner = builder.find_scanner().unwrap().unwrap();
+    let _scanner = builder.find_scanner().unwrap().unwrap();
 
     // We can't call `generate_c_bindings` directly (private), but we can
     // reproduce the template logic used by the builder. Instead, we verify
@@ -186,7 +186,7 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{1,10}"
 }
 
-fn external_name_strategy() -> impl Strategy<Value = String> {
+fn _external_name_strategy() -> impl Strategy<Value = String> {
     "[A-Z][a-z]{2,8}"
 }
 
@@ -315,7 +315,7 @@ proptest! {
         prop_assert!(
             g.get("externals").is_none()
                 || g["externals"].is_null()
-                || g["externals"].as_array().map_or(false, |a| a.is_empty()),
+                || g["externals"].as_array().is_some_and(|a| a.is_empty()),
             "grammar without externals should not have externals key"
         );
     }
@@ -488,7 +488,6 @@ proptest! {
     /// Grammar.js ExternalToken roundtrips through converter.
     #[test]
     fn grammarjs_external_token_roundtrip(tok_name in token_name_strategy()) {
-        use std::collections::HashMap;
         let mut grammar_js = GrammarJs::new("test_roundtrip".to_string());
         grammar_js.externals.push(ExternalToken {
             name: tok_name.clone(),

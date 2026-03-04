@@ -22,7 +22,7 @@ fn parse_type(tokens: TokenStream) -> Type {
     parse2::<Type>(tokens).expect("Failed to parse Type")
 }
 
-fn parse_item(tokens: TokenStream) -> Item {
+fn _parse_item(tokens: TokenStream) -> Item {
     parse2::<Item>(tokens).expect("Failed to parse Item")
 }
 

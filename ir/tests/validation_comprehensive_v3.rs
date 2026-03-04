@@ -402,7 +402,7 @@ fn warnings_can_be_iterated() {
 #[test]
 fn warnings_can_be_counted() {
     let r = validate(&multi_token_grammar());
-    let count = r.warnings.iter().count();
+    let count = r.warnings.len();
     assert!(count <= 100); // sanity bound
 }
 

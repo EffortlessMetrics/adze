@@ -12,7 +12,7 @@ use adze_common::{FieldThenParams, NameValueExpr, try_extract_inner_type, wrap_l
 use proptest::prelude::*;
 use quote::ToTokens;
 use syn::punctuated::Punctuated;
-use syn::{Attribute, Fields, ItemEnum, ItemMod, ItemStruct, Token, Type, parse_quote};
+use syn::{Attribute, Fields, ItemEnum, ItemMod, ItemStruct, Token, Type};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

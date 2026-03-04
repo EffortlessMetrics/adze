@@ -6,10 +6,8 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     AliasSequence, Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId,
-    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token,
-    TokenPattern,
+    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
-use indexmap::IndexMap;
 use proptest::prelude::*;
 
 // ===========================================================================
@@ -142,7 +140,7 @@ fn arb_conflict_declaration() -> impl Strategy<Value = ConflictDeclaration> {
         })
 }
 
-fn arb_alias_sequence() -> impl Strategy<Value = AliasSequence> {
+fn _arb_alias_sequence() -> impl Strategy<Value = AliasSequence> {
     prop::collection::vec(
         prop::option::of("[a-zA-Z]{1,6}".prop_map(String::from)),
         0..4,

@@ -14,10 +14,9 @@
 //! - `BuildResult` - build output containing grammar name, parser code, node types, stats
 
 use std::fs;
-use std::path::Path;
 
 use adze_tool::pure_rust_builder::{
-    BuildOptions, BuildResult, build_parser, build_parser_from_grammar_js, build_parser_from_json,
+    BuildOptions, BuildResult, build_parser_from_grammar_js, build_parser_from_json,
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -783,7 +782,8 @@ fn build_result_has_build_stats() {
     let result = build_from_json_unwrap(grammar);
     assert!(result.build_stats.state_count > 0);
     assert!(result.build_stats.symbol_count > 0);
-    assert!(result.build_stats.conflict_cells >= 0);
+    // conflict_cells is always valid (unsigned)
+    let _ = result.build_stats.conflict_cells;
 }
 
 #[test]

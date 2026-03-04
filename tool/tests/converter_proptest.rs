@@ -152,10 +152,10 @@ fn collect_field_names(val: &Value) -> Vec<String> {
     let mut names = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("FIELD") {
-                if let Some(n) = map.get("name").and_then(|v| v.as_str()) {
-                    names.push(n.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some("FIELD")
+                && let Some(n) = map.get("name").and_then(|v| v.as_str())
+            {
+                names.push(n.to_string());
             }
             for v in map.values() {
                 names.extend(collect_field_names(v));
@@ -177,10 +177,10 @@ fn collect_string_tokens(val: &Value) -> Vec<String> {
     let mut tokens = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("STRING") {
-                if let Some(v) = map.get("value").and_then(|v| v.as_str()) {
-                    tokens.push(v.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some("STRING")
+                && let Some(v) = map.get("value").and_then(|v| v.as_str())
+            {
+                tokens.push(v.to_string());
             }
             for v in map.values() {
                 tokens.extend(collect_string_tokens(v));
@@ -202,10 +202,10 @@ fn collect_pattern_tokens(val: &Value) -> Vec<String> {
     let mut tokens = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("PATTERN") {
-                if let Some(v) = map.get("value").and_then(|v| v.as_str()) {
-                    tokens.push(v.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some("PATTERN")
+                && let Some(v) = map.get("value").and_then(|v| v.as_str())
+            {
+                tokens.push(v.to_string());
             }
             for v in map.values() {
                 tokens.extend(collect_pattern_tokens(v));

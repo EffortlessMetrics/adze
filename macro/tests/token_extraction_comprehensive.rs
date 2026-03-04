@@ -13,7 +13,7 @@ use adze_common::{
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
-use syn::{Attribute, Field, Fields, ItemEnum, ItemMod, ItemStruct, Token, Type, parse_quote};
+use syn::{Attribute, Fields, ItemEnum, ItemMod, ItemStruct, Token, Type, parse_quote};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -36,15 +36,15 @@ fn adze_attr_names(attrs: &[Attribute]) -> Vec<String> {
         .collect()
 }
 
-fn parse_struct(tokens: TokenStream) -> ItemStruct {
+fn _parse_struct(tokens: TokenStream) -> ItemStruct {
     syn::parse2(tokens).expect("failed to parse struct")
 }
 
-fn parse_enum(tokens: TokenStream) -> ItemEnum {
+fn _parse_enum(tokens: TokenStream) -> ItemEnum {
     syn::parse2(tokens).expect("failed to parse enum")
 }
 
-fn parse_mod(tokens: TokenStream) -> ItemMod {
+fn _parse_mod(tokens: TokenStream) -> ItemMod {
     syn::parse2(tokens).expect("failed to parse module")
 }
 

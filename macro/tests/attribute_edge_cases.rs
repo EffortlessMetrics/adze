@@ -12,7 +12,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct, parse_quote};
+use syn::{Attribute, Item, ItemEnum, ItemMod, ItemStruct, parse_quote};
 
 // ── Helper Functions ────────────────────────────────────────────────────────
 
@@ -38,12 +38,12 @@ fn adze_attr_names(attrs: &[Attribute]) -> Vec<String> {
 }
 
 /// Parse a token stream as an `ItemStruct`.
-fn parse_struct(tokens: TokenStream) -> ItemStruct {
+fn _parse_struct(tokens: TokenStream) -> ItemStruct {
     syn::parse2(tokens).expect("failed to parse struct")
 }
 
 /// Parse a token stream as an `ItemEnum`.
-fn parse_enum(tokens: TokenStream) -> ItemEnum {
+fn _parse_enum(tokens: TokenStream) -> ItemEnum {
     syn::parse2(tokens).expect("failed to parse enum")
 }
 

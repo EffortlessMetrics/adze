@@ -54,10 +54,10 @@ fn collect_field_names(value: &Value) -> Vec<String> {
 fn collect_field_names_inner(value: &Value, names: &mut Vec<String>) {
     match value {
         Value::Object(obj) => {
-            if obj.get("type").and_then(|t| t.as_str()) == Some("FIELD") {
-                if let Some(name) = obj.get("name").and_then(|n| n.as_str()) {
-                    names.push(name.to_string());
-                }
+            if obj.get("type").and_then(|t| t.as_str()) == Some("FIELD")
+                && let Some(name) = obj.get("name").and_then(|n| n.as_str())
+            {
+                names.push(name.to_string());
             }
             for v in obj.values() {
                 collect_field_names_inner(v, names);
@@ -138,7 +138,7 @@ fn two_field_grammar_source(
 }
 
 /// Build an enum grammar source with one variant.
-fn enum_grammar_source(name: &str, type_name: &str, pattern: &str) -> String {
+fn _enum_grammar_source(name: &str, type_name: &str, pattern: &str) -> String {
     format!(
         r##"
         #[adze::grammar("{name}")]
@@ -551,7 +551,7 @@ proptest! {
         name in grammar_name_strategy(),
         field in ir_field_name_strategy(),
     ) {
-        let grammar = ir_grammar_with_fields(&name, &[field.clone()]);
+        let grammar = ir_grammar_with_fields(&name, std::slice::from_ref(&field));
         let generator = NodeTypesGenerator::new(&grammar);
         let result = generator.generate().unwrap();
         let entries = parse_node_types(&result);
@@ -571,7 +571,7 @@ proptest! {
         name in grammar_name_strategy(),
         field in ir_field_name_strategy(),
     ) {
-        let grammar = ir_grammar_with_fields(&name, &[field.clone()]);
+        let grammar = ir_grammar_with_fields(&name, std::slice::from_ref(&field));
         let generator = NodeTypesGenerator::new(&grammar);
         let result = generator.generate().unwrap();
         let entries = parse_node_types(&result);

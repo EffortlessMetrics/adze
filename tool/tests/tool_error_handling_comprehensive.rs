@@ -1,7 +1,6 @@
 //! Comprehensive tests for `ToolError` type and error handling in the adze-tool crate.
 
 use adze_tool::error::ToolError;
-use std::fmt;
 use std::io;
 
 // ============================================================
@@ -618,7 +617,7 @@ fn backslash_in_grammar_validation() {
 #[test]
 fn result_type_ok() {
     let r: adze_tool::error::Result<i32> = Ok(42);
-    assert_eq!(r.unwrap(), 42);
+    assert!(r.is_ok());
 }
 
 #[test]
@@ -688,7 +687,7 @@ fn classify_from_string_is_other() {
 
 #[test]
 fn classify_from_io_is_io() {
-    let e: ToolError = io::Error::new(io::ErrorKind::Other, "x").into();
+    let e: ToolError = io::Error::other("x").into();
     assert!(matches!(e, ToolError::Io(_)));
 }
 

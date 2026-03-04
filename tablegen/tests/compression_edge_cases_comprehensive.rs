@@ -554,7 +554,7 @@ fn small_table_skips_errors_and_defaults_to_error() {
 
 #[test]
 fn compressed_action_entry_all_variants() {
-    let variants = vec![
+    let variants = &[
         Action::Shift(StateId(0)),
         Action::Shift(StateId(u16::MAX)),
         Action::Reduce(RuleId(0)),

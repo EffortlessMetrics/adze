@@ -196,7 +196,7 @@ fn grammar_precedence_symbols_reference_tokens() {
 
 #[test]
 fn sort_precedences_by_level() {
-    let mut precs = vec![
+    let mut precs = [
         Precedence {
             level: 5,
             associativity: Associativity::Left,
@@ -491,7 +491,7 @@ fn rule_without_precedence_or_associativity() {
 
 #[test]
 fn multiple_rules_with_different_precedence_levels() {
-    let rules = vec![
+    let rules = [
         Rule {
             lhs: SymbolId(0),
             rhs: vec![Symbol::Terminal(SymbolId(1))],

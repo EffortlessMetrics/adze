@@ -145,10 +145,10 @@ fn node_types_contains_type_field() {
     let g = make_simple_grammar();
     let output = NodeTypesGenerator::new(&g).generate().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
-    if let serde_json::Value::Array(arr) = parsed {
-        if let Some(first) = arr.first() {
-            assert!(first.get("type").is_some());
-        }
+    if let serde_json::Value::Array(arr) = parsed
+        && let Some(first) = arr.first()
+    {
+        assert!(first.get("type").is_some());
     }
 }
 
@@ -157,10 +157,10 @@ fn node_types_contains_named_field() {
     let g = make_simple_grammar();
     let output = NodeTypesGenerator::new(&g).generate().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
-    if let serde_json::Value::Array(arr) = parsed {
-        if let Some(first) = arr.first() {
-            assert!(first.get("named").is_some());
-        }
+    if let serde_json::Value::Array(arr) = parsed
+        && let Some(first) = arr.first()
+    {
+        assert!(first.get("named").is_some());
     }
 }
 

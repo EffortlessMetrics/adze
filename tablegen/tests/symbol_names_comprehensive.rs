@@ -8,7 +8,7 @@
 //! - `AbiLanguageBuilder::generate()` → TokenStream with SYMBOL_NAME_N byte arrays
 //! - `StaticLanguageGenerator::generate_language_code()` → TokenStream
 
-use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
+use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
 use adze_ir::{
     ExternalToken, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token, TokenPattern,
 };

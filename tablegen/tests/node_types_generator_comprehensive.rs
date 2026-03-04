@@ -822,7 +822,7 @@ fn operator_tokens_are_anonymous() {
 fn minimal_node_count() {
     let nodes = generate_parsed(&minimal_grammar());
     // At least the "expr" rule should appear
-    assert!(nodes.len() >= 1);
+    assert!(!nodes.is_empty());
 }
 
 #[test]

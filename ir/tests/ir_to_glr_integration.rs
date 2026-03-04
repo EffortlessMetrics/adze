@@ -653,7 +653,7 @@ fn goto_table_dimensions_match_state_count() {
 fn follow_sets_computed_alongside_first() {
     let g = arithmetic_grammar();
     let ff = FirstFollowSets::compute(&g).expect("compute FIRST/FOLLOW");
-    let start = g.start_symbol().unwrap();
+    let _start = g.start_symbol().unwrap();
     // All nonterminals should have FOLLOW sets computed
     for &rule_id in g.rules.keys() {
         let follow = ff.follow(rule_id);
@@ -673,10 +673,7 @@ fn follow_sets_include_eof_for_start_symbol() {
     let follow = ff.follow(start).unwrap();
     // Start symbol's FOLLOW should contain EOF (represented as an empty marker)
     // Verify FOLLOW set is non-empty
-    assert!(
-        follow.count_ones(..) >= 0,
-        "FOLLOW(start) should be computed"
-    );
+    let _ = follow.count_ones(..);
 }
 
 #[test]

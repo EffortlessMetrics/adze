@@ -14,7 +14,6 @@
 
 use adze_tool::generate_grammars;
 use proptest::prelude::*;
-use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tempfile::TempDir;
 use tree_sitter_generate::generate_parser_for_grammar;

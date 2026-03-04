@@ -2,7 +2,7 @@
 
 //! Property-based tests for SymbolMetadata in adze-ir.
 
-use adze_ir::{Grammar, SymbolId, SymbolMetadata, SymbolRegistry};
+use adze_ir::{Grammar, SymbolMetadata, SymbolRegistry};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------
@@ -139,7 +139,7 @@ proptest! {
 proptest! {
     #[test]
     fn clone_equals_original(meta in symbol_metadata_strategy()) {
-        let cloned = meta.clone();
+        let cloned = meta;
         prop_assert_eq!(meta, cloned);
     }
 }

@@ -1,7 +1,7 @@
 //! Comprehensive tests for Grammar struct methods and properties.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Grammar, Rule, Symbol, SymbolId};
+use adze_ir::{Grammar, SymbolId};
 
 fn simple_grammar() -> Grammar {
     GrammarBuilder::new("simple")

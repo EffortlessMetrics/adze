@@ -570,7 +570,7 @@ fn generated_code_with_uncompressed_tables() {
 
 #[test]
 fn generated_code_handles_unicode_symbol_names() {
-    let mut g = Grammar::new("unicode_test".to_string());
+    let g = Grammar::new("unicode_test".to_string());
 
     // Create tokens with unicode in names is not directly supported, but we can
     // verify symbol name generation handles existing unicode properly

@@ -28,7 +28,7 @@ fn extract(src: &str) -> Vec<Value> {
     adze_tool::generate_grammars(&path).unwrap()
 }
 
-fn try_extract(src: &str) -> adze_tool::ToolResult<Vec<Value>> {
+fn _try_extract(src: &str) -> adze_tool::ToolResult<Vec<Value>> {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("lib.rs");
     fs::write(&path, src).unwrap();
@@ -47,10 +47,10 @@ fn collect_typed_values(val: &Value, type_name: &str) -> Vec<String> {
     let mut out = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some(type_name) {
-                if let Some(v) = map.get("value").and_then(|v| v.as_str()) {
-                    out.push(v.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some(type_name)
+                && let Some(v) = map.get("value").and_then(|v| v.as_str())
+            {
+                out.push(v.to_string());
             }
             for v in map.values() {
                 out.extend(collect_typed_values(v, type_name));
@@ -71,10 +71,10 @@ fn collect_field_names(val: &Value) -> Vec<String> {
     let mut out = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("FIELD") {
-                if let Some(n) = map.get("name").and_then(|v| v.as_str()) {
-                    out.push(n.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some("FIELD")
+                && let Some(n) = map.get("name").and_then(|v| v.as_str())
+            {
+                out.push(n.to_string());
             }
             for v in map.values() {
                 out.extend(collect_field_names(v));
@@ -384,7 +384,7 @@ proptest! {
         let g = extract_one(&src);
         let enum_rule = &g["rules"][&ty];
         prop_assert_eq!(enum_rule["type"].as_str().unwrap(), "CHOICE");
-        prop_assert!(enum_rule["members"].as_array().unwrap().len() >= 1);
+        prop_assert!(!enum_rule["members"].as_array().unwrap().is_empty());
     }
 }
 

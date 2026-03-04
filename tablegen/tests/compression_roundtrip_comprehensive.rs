@@ -5,7 +5,7 @@
 
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{RuleId, StateId, SymbolId};
+use adze_ir::{RuleId, StateId};
 use adze_tablegen::compress::{CompressedGotoEntry, TableCompressor};
 use adze_tablegen::compression::{
     compress_action_table, compress_goto_table, decompress_action, decompress_goto,

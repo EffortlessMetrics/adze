@@ -1,10 +1,9 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     AliasSequence, Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId,
-    Grammar, GrammarError, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol,
-    SymbolId, SymbolMetadata, Token, TokenPattern,
+    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
+    SymbolMetadata, Token, TokenPattern,
 };
-use indexmap::IndexMap;
 use proptest::prelude::*;
 use std::collections::HashSet;
 
@@ -16,11 +15,11 @@ fn arb_symbol_id() -> impl Strategy<Value = SymbolId> {
     (0u16..=u16::MAX).prop_map(SymbolId)
 }
 
-fn arb_rule_id() -> impl Strategy<Value = RuleId> {
+fn _arb_rule_id() -> impl Strategy<Value = RuleId> {
     (0u16..=u16::MAX).prop_map(RuleId)
 }
 
-fn arb_state_id() -> impl Strategy<Value = StateId> {
+fn _arb_state_id() -> impl Strategy<Value = StateId> {
     (0u16..=u16::MAX).prop_map(StateId)
 }
 
@@ -620,7 +619,7 @@ proptest! {
     // 44
     #[test]
     fn builder_start_symbol_first(
-        seed in 0u32..100,
+        _seed in 0u32..100,
     ) {
         // With two rules the start should appear first in the map.
         let grammar = GrammarBuilder::new("g")

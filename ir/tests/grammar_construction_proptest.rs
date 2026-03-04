@@ -1,7 +1,7 @@
 //! Property-based tests for Grammar construction and invariants.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, PrecedenceKind, Symbol, SymbolId};
+use adze_ir::{Associativity, PrecedenceKind, Symbol};
 use proptest::prelude::*;
 
 /// Strategy for valid lowercase rule names.
@@ -57,8 +57,8 @@ proptest! {
         let grammar = builder.start("start").build();
 
         let total_rules: usize = grammar.rules.values().map(|v| v.len()).sum();
-        prop_assert!(total_rules >= rule_count + 1,
-            "Expected >= {} rules, got {}", rule_count + 1, total_rules);
+        prop_assert!(total_rules > rule_count,
+            "Expected > {} rules, got {}", rule_count, total_rules);
     }
 
     #[test]
@@ -110,7 +110,7 @@ proptest! {
         let grammar = GrammarBuilder::new("test")
             .token("num", "[0-9]+")
             .token("op", "\\+")
-            .rule_with_precedence("expr", vec!["num", "op", "num"], 1, assoc.clone())
+            .rule_with_precedence("expr", vec!["num", "op", "num"], 1, assoc)
             .start("expr")
             .build();
 

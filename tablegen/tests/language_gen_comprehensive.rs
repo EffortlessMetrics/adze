@@ -312,7 +312,7 @@ fn slg_node_types_entries_have_type_field() {
     let arr: Vec<serde_json::Value> = serde_json::from_str(&slg.generate_node_types()).unwrap();
     for entry in &arr {
         assert!(
-            entry["type"].is_string() || entry["type"].is_null() == false,
+            entry["type"].is_string() || !entry["type"].is_null(),
             "each node type entry needs 'type'"
         );
     }

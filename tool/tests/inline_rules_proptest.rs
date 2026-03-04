@@ -64,10 +64,10 @@ fn collect_symbol_names(val: &Value) -> Vec<String> {
     let mut out = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("SYMBOL") {
-                if let Some(n) = map.get("name").and_then(|v| v.as_str()) {
-                    out.push(n.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some("SYMBOL")
+                && let Some(n) = map.get("name").and_then(|v| v.as_str())
+            {
+                out.push(n.to_string());
             }
             for v in map.values() {
                 out.extend(collect_symbol_names(v));
@@ -582,7 +582,7 @@ proptest! {
     ) {
         let src = struct_only_src(&name, &ty, &pat);
         let g = extract_one(&src);
-        let choice_nodes = collect_nodes_of_type(&g["rules"], "CHOICE");
+        let _choice_nodes = collect_nodes_of_type(&g["rules"], "CHOICE");
         // No CHOICE at the top level for a struct grammar
         let root_rule = &g["rules"][&ty];
         prop_assert_ne!(root_rule["type"].as_str().unwrap(), "CHOICE",
@@ -1043,7 +1043,7 @@ proptest! {
     ) {
         let src = enum_with_seq_variant_src(&name, &ty, &pat, &tok);
         let g = extract_one(&src);
-        let members = g["rules"][&ty]["members"].as_array().unwrap();
+        let _members = g["rules"][&ty]["members"].as_array().unwrap();
         // First variant is SEQ; FIELD nodes reference named rules that have the PATTERN
         // Check the full grammar for the pattern and string values
         let all_patterns = collect_nodes_of_type(&g["rules"], "PATTERN");

@@ -10,7 +10,7 @@ use adze_common::NameValueExpr;
 use proptest::prelude::*;
 use quote::ToTokens;
 use syn::punctuated::Punctuated;
-use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct, Token, parse_quote};
+use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct, Token};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -48,10 +48,7 @@ fn module_items(m: &ItemMod) -> &Vec<Item> {
 
 fn extract_leaf_pattern(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params
-        .iter()
-        .find(|p| p.path.to_string() == "pattern")
-        .unwrap();
+    let nv = params.iter().find(|p| p.path == "pattern").unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..
@@ -65,10 +62,7 @@ fn extract_leaf_pattern(attr: &Attribute) -> String {
 
 fn extract_leaf_text(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params
-        .iter()
-        .find(|p| p.path.to_string() == "text")
-        .unwrap();
+    let nv = params.iter().find(|p| p.path == "text").unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..
@@ -578,18 +572,18 @@ proptest! {
         });
         let items = module_items(&m);
         let word_names: Vec<_> = items.iter().filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "word")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "word"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         }).collect();
         let extra_names: Vec<_> = items.iter().filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         }).collect();
@@ -965,7 +959,7 @@ proptest! {
 proptest! {
     #[test]
     fn word_with_multiple_keyword_variants(n in 2usize..=5) {
-        let keywords = ["if", "else", "while", "for", "return"];
+        let _keywords = ["if", "else", "while", "for", "return"];
         let m = parse_mod(quote::quote! {
             #[adze::grammar("kw_grammar")]
             mod grammar {
@@ -1218,7 +1212,7 @@ proptest! {
 
 proptest! {
     #[test]
-    fn word_among_many_non_word_structs(idx in 0usize..=1) {
+    fn word_among_many_non_word_structs(_idx in 0usize..=1) {
         let m = parse_mod(quote::quote! {
             #[adze::grammar("big_grammar")]
             mod grammar {
@@ -1563,7 +1557,7 @@ proptest! {
 
 proptest! {
     #[test]
-    fn word_module_with_keywords_deterministic(idx in 0usize..=1) {
+    fn word_module_with_keywords_deterministic(_idx in 0usize..=1) {
         let make = || {
             let m = parse_mod(quote::quote! {
                 #[adze::grammar("det_kw")]
@@ -1631,7 +1625,7 @@ fn word_struct_with_vec_field() {
 
 proptest! {
     #[test]
-    fn word_count_independent_of_module_attrs(idx in 0usize..=2) {
+    fn word_count_independent_of_module_attrs(_idx in 0usize..=2) {
         let m = parse_mod(quote::quote! {
             #[adze::grammar("count_test")]
             mod grammar {
@@ -1698,7 +1692,7 @@ proptest! {
 
 proptest! {
     #[test]
-    fn word_with_mixed_precedence_operators(idx in 0usize..=1) {
+    fn word_with_mixed_precedence_operators(_idx in 0usize..=1) {
         let m = parse_mod(quote::quote! {
             #[adze::grammar("prec_mix")]
             mod grammar {

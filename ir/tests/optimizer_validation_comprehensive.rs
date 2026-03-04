@@ -1,7 +1,7 @@
 // Wave 132: Comprehensive IR optimizer and validation tests
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
-use adze_ir::validation::{GrammarValidator, ValidationResult};
+use adze_ir::optimizer::{GrammarOptimizer, optimize_grammar};
+use adze_ir::validation::GrammarValidator;
 use adze_ir::*;
 
 // =====================================================================
@@ -109,7 +109,7 @@ fn optimization_stats_total() {
         .build();
     let mut optimizer = GrammarOptimizer::new();
     let stats = optimizer.optimize(&mut grammar);
-    assert!(stats.total() >= 0); // always true for usize
+    let _ = stats.total(); // usize is always >= 0
 }
 
 #[test]

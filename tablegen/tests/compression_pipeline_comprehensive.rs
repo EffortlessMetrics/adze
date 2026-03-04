@@ -1,7 +1,6 @@
 // Wave 132: Comprehensive tablegen compression pipeline tests
 use adze_glr_core::*;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::*;
 use adze_tablegen::compress::*;
 use adze_tablegen::helpers::*;
 
@@ -76,7 +75,7 @@ fn collect_token_indices_includes_eof() {
     let (grammar, table) = simple_grammar_and_table();
     let indices = collect_token_indices(&grammar, &table);
     // Should include at least one index (for tokens + EOF)
-    assert!(indices.len() >= 1);
+    assert!(!indices.is_empty());
 }
 
 #[test]

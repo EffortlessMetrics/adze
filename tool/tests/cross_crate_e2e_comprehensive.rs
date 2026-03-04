@@ -69,8 +69,10 @@ fn make_sequence_grammar(name: &str) -> adze_ir::Grammar {
 
 fn make_build_options() -> BuildOptions {
     let dir = TempDir::new().unwrap();
+    let path = dir.path().to_string_lossy().into_owned();
+    let _ = dir.keep();
     BuildOptions {
-        out_dir: dir.into_path().to_string_lossy().into_owned(),
+        out_dir: path,
         emit_artifacts: false,
         compress_tables: false,
     }
@@ -267,10 +269,8 @@ fn multi_alt_first_sets_have_both_tokens() {
     let mut g = make_two_alt_grammar("alt3");
     g.normalize();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    if let Some(start) = g.start_symbol() {
-        if let Some(first_set) = ff.first(start) {
-            assert!(first_set.count_ones(..) >= 2);
-        }
+    if let Some(first_set) = g.start_symbol().and_then(|start| ff.first(start)) {
+        assert!(first_set.count_ones(..) >= 2);
     }
 }
 

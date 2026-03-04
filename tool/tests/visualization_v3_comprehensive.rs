@@ -2,8 +2,8 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
-    Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, Grammar, PrecedenceKind,
-    ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+    Associativity, ConflictDeclaration, ConflictResolution, Grammar, ProductionId, Rule, Symbol,
+    SymbolId, Token, TokenPattern,
 };
 use adze_tool::GrammarVisualizer;
 

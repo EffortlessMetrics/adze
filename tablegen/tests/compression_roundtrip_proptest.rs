@@ -24,16 +24,13 @@
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
 use adze_ir::{Grammar, RuleId, StateId, SymbolId, Token, TokenPattern};
 use adze_tablegen::collect_token_indices;
-use adze_tablegen::compress::{
-    CompressedActionTable, CompressedGotoEntry, CompressedParseTable, TableCompressor,
-};
+use adze_tablegen::compress::{CompressedGotoEntry, CompressedParseTable, TableCompressor};
 use adze_tablegen::compression::{
     BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
     decompress_goto,
 };
 use adze_tablegen::eof_accepts_or_reduces;
 use proptest::prelude::*;
-use serde_json;
 use std::collections::BTreeMap;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -203,6 +200,7 @@ fn action_table_strategy(
     })
 }
 
+#[allow(dead_code)]
 fn flat_action_strategy() -> impl Strategy<Value = Action> {
     prop_oneof![
         3 => Just(Action::Error),
@@ -212,6 +210,7 @@ fn flat_action_strategy() -> impl Strategy<Value = Action> {
     ]
 }
 
+#[allow(dead_code)]
 fn flat_action_table_strategy(
     max_states: usize,
     max_symbols: usize,
@@ -779,7 +778,6 @@ fn goto_rle_row_offsets_nondecreasing() {
 
 fn pipeline(grammar_fn: impl FnOnce() -> Grammar) -> (ParseTable, adze_tablegen::CompressedTables) {
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::builder::GrammarBuilder;
 
     let mut grammar = grammar_fn();
     let ff =

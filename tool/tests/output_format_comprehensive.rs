@@ -11,9 +11,7 @@ use std::fs;
 use std::path::Path;
 
 use adze_tool::GrammarConverter;
-use adze_tool::pure_rust_builder::{
-    BuildOptions, BuildResult, build_parser, build_parser_from_grammar_js, build_parser_from_json,
-};
+use adze_tool::pure_rust_builder::{BuildOptions, BuildResult, build_parser_from_grammar_js};
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
@@ -68,7 +66,7 @@ fn build_js(js: &str, opts: BuildOptions) -> BuildResult {
     build_parser_from_grammar_js(&path, opts).unwrap()
 }
 
-fn build_js_in(js: &str, dir: &TempDir) -> BuildResult {
+fn _build_js_in(js: &str, dir: &TempDir) -> BuildResult {
     let path = dir.path().join("grammar.js");
     fs::write(&path, js).unwrap();
     build_parser_from_grammar_js(&path, temp_opts(dir)).unwrap()
@@ -160,7 +158,7 @@ fn json_grammar_rules_contain_language_type() {
     let rules = g["rules"].as_object().unwrap();
     // The language type should produce a rule entry
     assert!(
-        rules.len() >= 1,
+        !rules.is_empty(),
         "expected at least 1 rule, got {}",
         rules.len()
     );

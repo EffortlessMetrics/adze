@@ -13,7 +13,7 @@ use adze_ir::{Associativity, Grammar, SymbolId};
 // ===========================================================================
 
 /// Find a symbol ID by name in rule_names or tokens.
-fn find_sym(grammar: &Grammar, name: &str) -> Option<SymbolId> {
+fn _find_sym(grammar: &Grammar, name: &str) -> Option<SymbolId> {
     grammar
         .rule_names
         .iter()

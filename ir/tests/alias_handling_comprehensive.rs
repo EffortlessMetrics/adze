@@ -8,7 +8,6 @@
 //! and alias equality.
 
 use adze_ir::{AliasSequence, Grammar, ProductionId, RuleId};
-use indexmap::IndexMap;
 
 // ---------------------------------------------------------------------------
 // AliasSequence construction

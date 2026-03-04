@@ -19,7 +19,7 @@ fn symbol_id_max() {
 #[test]
 fn symbol_id_clone() {
     let s = SymbolId(42);
-    let c = s.clone();
+    let c = s;
     assert_eq!(s, c);
 }
 
@@ -79,7 +79,7 @@ fn field_id_max() {
 #[test]
 fn field_id_clone() {
     let f = FieldId(10);
-    let c = f.clone();
+    let c = f;
     assert_eq!(f, c);
 }
 
@@ -123,7 +123,7 @@ fn production_id_max() {
 #[test]
 fn production_id_clone() {
     let p = ProductionId(7);
-    let c = p.clone();
+    let c = p;
     assert_eq!(p, c);
 }
 

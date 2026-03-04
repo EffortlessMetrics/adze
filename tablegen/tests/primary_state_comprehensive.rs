@@ -24,6 +24,7 @@ use std::collections::BTreeMap;
 
 const INVALID: StateId = StateId(u16::MAX);
 
+#[allow(dead_code)]
 fn string_token(name: &str, literal: &str) -> Token {
     Token {
         name: name.to_string(),
@@ -32,6 +33,7 @@ fn string_token(name: &str, literal: &str) -> Token {
     }
 }
 
+#[allow(dead_code)]
 fn regex_token(name: &str, pattern: &str) -> Token {
     Token {
         name: name.to_string(),

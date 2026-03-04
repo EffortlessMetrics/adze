@@ -1,6 +1,6 @@
 //! Cross-crate integration: Grammar → IR → GLR → ParseTable → Tablegen full pipeline.
 
-use adze_glr_core::{FirstFollowSets, SymbolId, build_lr1_automaton};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::Associativity;
 use adze_ir::builder::GrammarBuilder;
 use adze_tablegen::{NodeTypesGenerator, StaticLanguageGenerator};
@@ -225,10 +225,8 @@ fn first_follow_multiple_rules() {
         .build();
     g.normalize();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    if let Some(start) = g.start_symbol() {
-        if let Some(first_set) = ff.first(start) {
-            assert!(first_set.count_ones(..) >= 2);
-        }
+    if let Some(first_set) = g.start_symbol().and_then(|start| ff.first(start)) {
+        assert!(first_set.count_ones(..) >= 2);
     }
 }
 

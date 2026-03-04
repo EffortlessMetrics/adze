@@ -33,7 +33,7 @@ fn token_list_strategy(max: usize) -> impl Strategy<Value = Vec<(String, String)
 }
 
 /// Generate a vec of unique rule-name strings.
-fn rule_name_list_strategy(max: usize) -> impl Strategy<Value = Vec<String>> {
+fn _rule_name_list_strategy(max: usize) -> impl Strategy<Value = Vec<String>> {
     prop::collection::vec(rule_name_strategy(), 1..=max).prop_map(|v| {
         let mut seen = std::collections::HashSet::new();
         v.into_iter().filter(|n| seen.insert(n.clone())).collect()

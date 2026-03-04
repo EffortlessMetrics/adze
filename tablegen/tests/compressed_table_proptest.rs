@@ -179,6 +179,7 @@ fn action_strategy() -> impl Strategy<Value = Action> {
     ]
 }
 
+#[allow(dead_code)]
 fn flat_action_strategy() -> impl Strategy<Value = Action> {
     prop_oneof![
         3 => Just(Action::Error),
@@ -204,6 +205,7 @@ fn action_table_strategy(
     })
 }
 
+#[allow(dead_code)]
 fn flat_action_table_strategy(
     max_states: usize,
     max_symbols: usize,

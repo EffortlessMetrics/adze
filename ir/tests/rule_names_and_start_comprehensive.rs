@@ -59,7 +59,7 @@ fn start_symbol_matches_name() {
         .start("start")
         .build();
     let start_id = g.start_symbol().unwrap();
-    assert!(g.rule_names.get(&start_id).map_or(false, |n| n == "start"));
+    assert!(g.rule_names.get(&start_id).is_some_and(|n| n == "start"));
 }
 
 // ── Token names ──

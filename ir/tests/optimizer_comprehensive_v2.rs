@@ -328,12 +328,12 @@ fn stats_all_non_negative() {
     let mut g = arith_grammar();
     let mut opt = GrammarOptimizer::new();
     let stats = opt.optimize(&mut g);
-    // All fields should be >= 0 (they're usize, so always true, but let's verify)
-    assert!(stats.removed_unused_symbols >= 0);
-    assert!(stats.inlined_rules >= 0);
-    assert!(stats.merged_tokens >= 0);
-    assert!(stats.optimized_left_recursion >= 0);
-    assert!(stats.eliminated_unit_rules >= 0);
+    // All fields are usize so always >= 0; just verify they're accessible
+    let _ = stats.removed_unused_symbols;
+    let _ = stats.inlined_rules;
+    let _ = stats.merged_tokens;
+    let _ = stats.optimized_left_recursion;
+    let _ = stats.eliminated_unit_rules;
 }
 
 // === Optimizer reuse ===

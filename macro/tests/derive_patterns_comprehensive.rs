@@ -16,8 +16,8 @@ use adze_common::{
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Attribute, Data, DeriveInput, Expr, ExprLit, Fields, GenericParam, Item, ItemEnum, ItemMod,
-    ItemStruct, Lit, Token, Type, parse_quote, parse2, punctuated::Punctuated,
+    Attribute, Expr, ExprLit, Fields, Item, ItemEnum, ItemMod, ItemStruct, Lit, Token, Type,
+    parse_quote, parse2, punctuated::Punctuated,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -914,7 +914,7 @@ fn quote_generates_impl_with_extract() {
 
 #[test]
 fn quote_variant_detection_pattern() {
-    let enum_name = format_ident!("Expr");
+    let _enum_name = format_ident!("Expr");
     let variant_name = "Number";
     let expected_symbol = format!("Expr_{variant_name}");
     let tokens = quote! {

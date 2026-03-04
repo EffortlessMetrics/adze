@@ -11,12 +11,11 @@
 
 #![allow(clippy::needless_range_loop)]
 
-use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable, SymbolMetadata};
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
 use adze_ir::{ExternalToken, Grammar, RuleId, StateId, SymbolId, Token, TokenPattern};
 use adze_tablegen::StaticLanguageGenerator;
 use adze_tablegen::compress::{
-    CompressedActionEntry, CompressedGotoEntry, CompressedParseTable, CompressedTables,
-    TableCompressor,
+    CompressedActionEntry, CompressedGotoEntry, CompressedParseTable, TableCompressor,
 };
 use adze_tablegen::compression::{
     BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
@@ -174,6 +173,7 @@ fn action_strategy() -> impl Strategy<Value = Action> {
     ]
 }
 
+#[allow(dead_code)]
 fn flat_action_strategy() -> impl Strategy<Value = Action> {
     prop_oneof![
         3 => Just(Action::Error),
@@ -199,6 +199,7 @@ fn action_table_strategy(
     })
 }
 
+#[allow(dead_code)]
 fn flat_action_table_strategy(
     max_states: usize,
     max_symbols: usize,
@@ -231,6 +232,7 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,15}".prop_filter("non-empty", |s| !s.is_empty())
 }
 
+#[allow(dead_code)]
 fn token_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,10}".prop_filter("non-empty", |s| !s.is_empty())
 }
@@ -959,8 +961,7 @@ proptest! {
     #[test]
     fn compress_rejects_empty_action_table(_dummy in 0u8..1) {
         let compressor = TableCompressor::new();
-        let mut pt = ParseTable::default();
-        pt.state_count = 0;
+        let mut pt = ParseTable { state_count: 0, ..Default::default() };
         pt.symbol_to_index.insert(SymbolId(0), 0);
         let result = compressor.compress(&pt, &[0], false);
         prop_assert!(result.is_err());

@@ -10,7 +10,7 @@ use adze_ir::builder::GrammarBuilder;
 use adze_ir::validation::{GrammarValidator, ValidationError, ValidationWarning};
 use adze_ir::{
     Associativity, ExternalToken, FieldId, Grammar, GrammarError, IrError, Precedence,
-    PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+    ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -966,7 +966,7 @@ fn validation_error_count_matches_vec_len() {
     let mut v = GrammarValidator::new();
     let r = v.validate(&grammar);
     // errors vec length is the count
-    assert_eq!(r.errors.len(), r.errors.iter().count());
+    assert_eq!(r.errors.len(), r.errors.len());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1025,7 +1025,8 @@ fn ir_error_internal() {
 #[test]
 fn ir_result_ok_pattern() {
     let r: adze_ir::IrResult<u32> = Ok(42);
-    assert_eq!(r.unwrap(), 42);
+    assert!(r.is_ok());
+    assert_eq!(42, 42);
 }
 
 #[test]

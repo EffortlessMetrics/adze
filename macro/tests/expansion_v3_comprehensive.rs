@@ -16,8 +16,8 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::punctuated::Punctuated;
 use syn::{
-    Attribute, Data, DeriveInput, Expr, ExprLit, Fields, FieldsNamed, FieldsUnnamed, Item,
-    ItemEnum, ItemMod, ItemStruct, Lit, Token, Type, Variant, parse_quote, parse_str,
+    Attribute, Expr, ExprLit, Fields, Item, ItemEnum, ItemMod, ItemStruct, Lit, Token, Type,
+    Variant, parse_quote, parse_str,
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ fn quote_repetition_pattern() {
 
 #[test]
 fn quote_nested_repetition_with_separator() {
-    let items = vec!["x", "y", "z"];
+    let items = ["x", "y", "z"];
     let idents: Vec<_> = items.iter().map(|i| format_ident!("{i}")).collect();
     let tokens = quote! { enum E { #(#idents),* } };
     let s = tokens.to_string();
@@ -894,10 +894,10 @@ fn grammar_module_extra_types_identified() {
     let extras: Vec<_> = module_items(&m)
         .iter()
         .filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         })

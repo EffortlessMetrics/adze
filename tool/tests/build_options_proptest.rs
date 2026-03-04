@@ -231,8 +231,7 @@ proptest! {
         segment in "[a-z]{1,10}",
         depth in 1usize..20,
     ) {
-        let out_dir: String = std::iter::repeat(segment.as_str())
-            .take(depth)
+        let out_dir: String = std::iter::repeat_n(segment.as_str(), depth)
             .collect::<Vec<_>>()
             .join("/");
         let opts = BuildOptions {

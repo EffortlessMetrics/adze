@@ -1,7 +1,7 @@
 // Comprehensive tests for GrammarBuilder → Grammar roundtrip and properties.
 
+use adze_ir::TokenPattern;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Grammar, Symbol, SymbolId, TokenPattern};
 
 // ===== Construction =====
 

@@ -350,10 +350,10 @@ fn three_extras_whitespace_line_comment_block_comment() {
     let extra_names: Vec<_> = items
         .iter()
         .filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         })
@@ -816,10 +816,10 @@ fn extra_struct_distinct_from_language() {
     let language_names: Vec<_> = items
         .iter()
         .filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "language"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         })
@@ -827,10 +827,10 @@ fn extra_struct_distinct_from_language() {
     let extra_names: Vec<_> = items
         .iter()
         .filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         })
@@ -908,10 +908,10 @@ fn extra_in_module_with_repeat_delimited() {
     });
     assert!(has_extra);
     let lang = items.iter().find_map(|i| {
-        if let Item::Struct(s) = i {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                return Some(s);
-            }
+        if let Item::Struct(s) = i
+            && s.attrs.iter().any(|a| is_adze_attr(a, "language"))
+        {
+            return Some(s);
         }
         None
     });
@@ -1031,10 +1031,10 @@ fn extra_with_all_annotation_types() {
                 }
             }
         }
-        if let Item::Enum(e) = item {
-            if e.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                *found.entry("language".to_string()).or_insert(0usize) += 1;
-            }
+        if let Item::Enum(e) = item
+            && e.attrs.iter().any(|a| is_adze_attr(a, "language"))
+        {
+            *found.entry("language".to_string()).or_insert(0usize) += 1;
         }
     }
     assert_eq!(found.get("language"), Some(&1));

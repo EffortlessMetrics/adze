@@ -24,15 +24,15 @@ fn grammar_name() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,10}".prop_filter("non-empty", |s| !s.is_empty())
 }
 
-fn token_name_upper() -> impl Strategy<Value = String> {
+fn _token_name_upper() -> impl Strategy<Value = String> {
     "[A-Z][A-Z0-9]{0,6}".prop_filter("non-empty", |s| !s.is_empty())
 }
 
-fn token_count() -> impl Strategy<Value = usize> {
+fn _token_count() -> impl Strategy<Value = usize> {
     1..=8usize
 }
 
-fn rule_depth() -> impl Strategy<Value = usize> {
+fn _rule_depth() -> impl Strategy<Value = usize> {
     1..=6usize
 }
 

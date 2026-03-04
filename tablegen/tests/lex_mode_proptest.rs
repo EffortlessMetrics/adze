@@ -111,6 +111,7 @@ fn lex_mode_strategy() -> impl Strategy<Value = LexMode> {
     })
 }
 
+#[allow(dead_code)]
 fn state_count_strategy() -> impl Strategy<Value = usize> {
     1usize..=32
 }
@@ -497,7 +498,7 @@ proptest! {
         for row in &pt.external_scanner_states {
             for &val in row {
                 // val is bool; just verify it's accessible (type system ensures bool).
-                prop_assert!(val || !val);
+                let _ = val; // verify accessible
             }
         }
     }

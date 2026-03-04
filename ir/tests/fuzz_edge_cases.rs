@@ -67,7 +67,7 @@ fn test_grammar_with_1000_rules() {
 fn test_symbol_names_with_unicode() {
     let mut grammar = Grammar::new("unicode_test".to_string());
 
-    let unicode_names = vec![
+    let unicode_names = [
         "ñame",
         "名前",
         "имя",
@@ -652,7 +652,7 @@ fn test_optimizer_on_no_optimization_grammar() {
             precedence: None,
             associativity: None,
             fields: vec![],
-            production_id: ProductionId(i as u16),
+            production_id: ProductionId(i),
         };
         grammar.add_rule(rule);
     }

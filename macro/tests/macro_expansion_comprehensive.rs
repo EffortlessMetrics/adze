@@ -8,7 +8,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Attribute, Error, Fields, ItemEnum, ItemStruct, parse2};
+use syn::{Attribute, Fields, ItemEnum, ItemStruct, parse2};
 
 // ── Helper Functions ────────────────────────────────────────────────────────
 

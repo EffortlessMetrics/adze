@@ -7,16 +7,12 @@
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar, RuleId, StateId};
-use adze_tablegen::compress::{
-    CompressedActionEntry, CompressedActionTable, CompressedGotoEntry, CompressedGotoTable,
-    CompressedParseTable, CompressedTables, TableCompressor,
-};
+use adze_tablegen::compress::{CompressedGotoEntry, CompressedTables, TableCompressor};
 use adze_tablegen::compression::{
     BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
     decompress_goto,
 };
-use adze_tablegen::node_types::NodeTypesGenerator;
-use adze_tablegen::{AbiLanguageBuilder, StaticLanguageGenerator, TableGenError};
+use adze_tablegen::{AbiLanguageBuilder, StaticLanguageGenerator};
 use adze_tablegen::{collect_token_indices, eof_accepts_or_reduces};
 use std::collections::BTreeMap;
 

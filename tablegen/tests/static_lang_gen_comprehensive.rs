@@ -1,7 +1,6 @@
 // Wave 131: Comprehensive tests for tablegen StaticLanguageGenerator
 use adze_glr_core::*;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::*;
 use adze_tablegen::*;
 
 // =====================================================================

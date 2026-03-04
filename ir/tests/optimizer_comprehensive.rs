@@ -1009,11 +1009,11 @@ fn optimization_preserves_field_mappings() {
         .build();
 
     // Manually set a field mapping for the rule
-    if let Some(rules) = grammar.rules.values_mut().next() {
-        if !rules.is_empty() {
-            rules[0].fields.push((FieldId(1), 0)); // ID at position 0
-            rules[0].fields.push((FieldId(2), 2)); // NUM at position 2
-        }
+    if let Some(rules) = grammar.rules.values_mut().next()
+        && !rules.is_empty()
+    {
+        rules[0].fields.push((FieldId(1), 0)); // ID at position 0
+        rules[0].fields.push((FieldId(2), 2)); // NUM at position 2
     }
 
     let optimized = optimize_grammar(grammar).unwrap();
@@ -1135,7 +1135,7 @@ fn empty_rhs_optimization_stable() {
 
     let mut g = grammar;
     let mut opt = GrammarOptimizer::new();
-    let stats1 = opt.optimize(&mut g);
+    let _stats1 = opt.optimize(&mut g);
 
     let mut opt2 = GrammarOptimizer::new();
     let stats2 = opt2.optimize(&mut g);
@@ -1360,14 +1360,14 @@ fn inlining_and_unit_elimination_compose() {
 
 #[test]
 fn production_ids_remain_valid_after_optimization() {
-    let mut grammar = GrammarBuilder::new("prod_ids")
+    let grammar = GrammarBuilder::new("prod_ids")
         .token("X", "x")
         .rule("expr", vec!["X"])
         .start("expr")
         .build();
 
     // Record production IDs before optimization
-    let original_prod_ids: Vec<_> = grammar.all_rules().map(|r| r.production_id).collect();
+    let _original_prod_ids: Vec<_> = grammar.all_rules().map(|r| r.production_id).collect();
 
     let optimized = optimize_grammar(grammar).unwrap();
     let optimized_prod_ids: Vec<_> = optimized.all_rules().map(|r| r.production_id).collect();

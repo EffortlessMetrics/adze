@@ -442,7 +442,7 @@ fn eof_symbol_present_in_generated_code() {
 #[test]
 fn eof_at_expected_index() {
     // EOF index = 1 + terms + externals for make_empty_table
-    let (grammar, table) = build_grammar_and_table("eof_idx", 2, 1, 0, 0, 1);
+    let (_grammar, table) = build_grammar_and_table("eof_idx", 2, 1, 0, 0, 1);
     let eof_idx = table.eof_symbol.0 as usize;
     assert!(
         eof_idx < table.symbol_count,

@@ -4,7 +4,6 @@ use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, PrecedenceKind, Symbol};
 use proptest::prelude::*;
 use std::collections::HashSet;
-use std::panic;
 
 // ---------------------------------------------------------------------------
 // Strategies

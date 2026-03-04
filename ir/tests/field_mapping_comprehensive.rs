@@ -231,13 +231,13 @@ fn field_id_copy_into_function() {
 #[test]
 fn field_id_clone_equals_original() {
     let a = FieldId(33);
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
 #[test]
 fn field_id_copy_in_vec() {
-    let ids = vec![FieldId(1), FieldId(2), FieldId(3)];
+    let ids = [FieldId(1), FieldId(2), FieldId(3)];
     let first = ids[0]; // Copy from indexing
     assert_eq!(first, FieldId(1));
     assert_eq!(ids.len(), 3); // Vec is still intact
@@ -724,7 +724,7 @@ fn field_id_used_as_tuple_first_element() {
 
 #[test]
 fn field_id_vec_of_tuples_lookup() {
-    let mappings = vec![(FieldId(0), 0usize), (FieldId(1), 1), (FieldId(2), 2)];
+    let mappings = [(FieldId(0), 0usize), (FieldId(1), 1), (FieldId(2), 2)];
     let found = mappings.iter().find(|&&(fid, _)| fid == FieldId(1));
     assert!(found.is_some());
     assert_eq!(found.unwrap().1, 1);

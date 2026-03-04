@@ -48,10 +48,7 @@ fn module_items(m: &ItemMod) -> &Vec<Item> {
 
 fn extract_leaf_pattern(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params
-        .iter()
-        .find(|p| p.path.to_string() == "pattern")
-        .unwrap();
+    let nv = params.iter().find(|p| p.path == "pattern").unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..
@@ -65,10 +62,7 @@ fn extract_leaf_pattern(attr: &Attribute) -> String {
 
 fn extract_leaf_text(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params
-        .iter()
-        .find(|p| p.path.to_string() == "text")
-        .unwrap();
+    let nv = params.iter().find(|p| p.path == "text").unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..
@@ -95,10 +89,10 @@ fn extra_struct_names(m: &ItemMod) -> Vec<String> {
     module_items(m)
         .iter()
         .filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "extra")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "extra"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         })
@@ -829,10 +823,10 @@ proptest! {
         });
         let items = module_items(&m);
         let lang_names: Vec<_> = items.iter().filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "language"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         }).collect();

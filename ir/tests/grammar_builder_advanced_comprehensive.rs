@@ -630,5 +630,5 @@ fn build_registry_includes_tokens_and_rules() {
 
     let registry = grammar.get_or_build_registry();
     // Registry should have been built
-    assert!(registry.len() > 0);
+    assert!(!registry.is_empty());
 }

@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 //! Comprehensive v2 tests for `AbiLanguageBuilder` covering construction,
 //! generation output, grammar sizes, precedence, determinism, keyword
 //! checks, `StaticLanguageGenerator` comparison, and complex grammars.

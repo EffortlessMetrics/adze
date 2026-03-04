@@ -245,7 +245,7 @@ fn test_debug_output_all_variants() {
 #[test]
 fn test_error_trait_source_for_io() {
     use std::error::Error;
-    let io_err = std::io::Error::new(std::io::ErrorKind::Other, "underlying");
+    let io_err = std::io::Error::other("underlying");
     let err: ToolError = io_err.into();
     // Just verify the trait is implemented
     let _ = err.source();

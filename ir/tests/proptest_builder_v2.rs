@@ -97,7 +97,7 @@ proptest! {
             .rule("s", vec!["a"])
             .start("s")
             .build();
-        prop_assert!(g.tokens.len() >= 1);
+        prop_assert!(!g.tokens.is_empty());
         prop_assert_eq!(&g.name, &name);
     }
 }
@@ -154,7 +154,7 @@ proptest! {
         }
         b = b.start("s");
         let g = b.build();
-        prop_assert!(g.all_rules().count() >= 1 + extra_rules);
+        prop_assert!(g.all_rules().count() > extra_rules);
     }
 }
 

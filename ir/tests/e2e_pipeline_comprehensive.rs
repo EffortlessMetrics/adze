@@ -4,8 +4,8 @@
 //! across a variety of grammar shapes.
 
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::Grammar;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Grammar, SymbolId};
 
 /// Helper: build a grammar through the full pipeline, returning the parse table.
 fn full_pipeline(grammar: &mut Grammar) -> ParseTable {

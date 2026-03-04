@@ -246,7 +246,8 @@ proptest! {
     #[test]
     fn eq_symmetric(cd in arb_conflict_declaration()) {
         let cd2 = cd.clone();
-        prop_assert!(cd == cd2 && cd2 == cd);
+        prop_assert!(cd == cd2);
+        prop_assert!(cd2 == cd);
     }
 
     // 19. Different resolutions produce inequality

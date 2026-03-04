@@ -75,7 +75,7 @@ fn normalize_single_rule() {
         .start("start")
         .build();
     g.normalize();
-    assert!(g.rules.len() >= 1);
+    assert!(!g.rules.is_empty());
 }
 
 #[test]

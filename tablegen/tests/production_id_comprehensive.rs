@@ -756,7 +756,7 @@ fn generated_map_values_are_valid_u16() {
 /// Verify different state counts don't affect production ID assignment.
 #[test]
 fn state_count_does_not_affect_production_ids() {
-    let (mut g1, start1, t1) = {
+    let (g1, start1, t1) = {
         let table = empty_table(1, 1, 1, 0);
         let (mut g, s, t) = base_grammar("s1", &table);
         g.add_rule(rule(s, vec![Symbol::Terminal(t)], 0));
@@ -765,7 +765,7 @@ fn state_count_does_not_affect_production_ids() {
     };
     let _ = (start1, t1);
 
-    let (mut g2, start2, t2) = {
+    let (g2, start2, t2) = {
         let table = empty_table(10, 1, 1, 0);
         let (mut g, s, t) = base_grammar("s1", &table);
         g.add_rule(rule(s, vec![Symbol::Terminal(t)], 0));

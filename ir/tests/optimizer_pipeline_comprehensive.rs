@@ -1182,7 +1182,7 @@ fn optimize_grammar_convenience_arith() {
 
 #[test]
 fn grammar_preserves_conflict_declarations() {
-    use adze_ir::{ConflictDeclaration, ConflictResolution, SymbolId};
+    use adze_ir::{ConflictDeclaration, ConflictResolution};
 
     let mut grammar = GrammarBuilder::new("conf")
         .token("A", "a")

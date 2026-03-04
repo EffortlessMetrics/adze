@@ -7,8 +7,8 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    Data, DeriveInput, Expr, Fields, FieldsNamed, FieldsUnnamed, GenericParam, Generics, Ident,
-    Type, Variant, Visibility, parse_quote, parse2,
+    Data, DeriveInput, Fields, FieldsNamed, GenericParam, Ident, Type, Visibility, parse_quote,
+    parse2,
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

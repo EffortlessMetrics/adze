@@ -297,7 +297,7 @@ fn symbol_in_hashset() {
 #[test]
 fn symbol_ordering_terminal_vs_nonterminal() {
     // Symbol derives Ord; just verify it doesn't panic
-    let mut syms = vec![
+    let mut syms = [
         Symbol::NonTerminal(SymbolId(1)),
         Symbol::Terminal(SymbolId(1)),
         Symbol::Epsilon,
@@ -405,7 +405,7 @@ fn symbol_metadata_clone() {
         hidden: true,
         terminal: true,
     };
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
@@ -642,7 +642,7 @@ fn symbol_id_adjacent_values_not_equal() {
 
 #[test]
 fn multiple_symbol_ids_vec_contains() {
-    let ids = vec![SymbolId(1), SymbolId(2), SymbolId(3)];
+    let ids = [SymbolId(1), SymbolId(2), SymbolId(3)];
     assert!(ids.contains(&SymbolId(2)));
     assert!(!ids.contains(&SymbolId(4)));
 }
@@ -747,7 +747,7 @@ fn builder_tokens_accessible() {
         .rule("op", vec!["PLUS"])
         .build();
     // At least one token should exist
-    assert!(grammar.tokens.len() >= 1);
+    assert!(!grammar.tokens.is_empty());
 }
 
 // ===========================================================================
@@ -877,7 +877,7 @@ fn build_registry_assigns_metadata_for_tokens() {
     );
     let registry = grammar.build_registry();
     // Registry should have at least one entry
-    assert!(registry.len() > 0);
+    assert!(!registry.is_empty());
 }
 
 #[test]

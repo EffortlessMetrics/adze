@@ -2,7 +2,7 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
-use adze_ir::{Associativity, Grammar, Symbol};
+use adze_ir::{Associativity, Grammar};
 
 // ---------------------------------------------------------------------------
 // Helper builders

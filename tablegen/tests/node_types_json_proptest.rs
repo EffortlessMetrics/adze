@@ -502,12 +502,12 @@ proptest! {
     #[test]
     fn children_types_have_type_and_named((grammar, ..) in grammar_strat()) {
         for e in generate_types(&grammar) {
-            if let Some(ch) = e.get("children") {
-                if let Some(ts) = ch.get("types").and_then(Value::as_array) {
-                    for t in ts {
-                        prop_assert!(t.get("type").is_some());
-                        prop_assert!(t.get("named").is_some());
-                    }
+            if let Some(ch) = e.get("children")
+                && let Some(ts) = ch.get("types").and_then(Value::as_array)
+            {
+                for t in ts {
+                    prop_assert!(t.get("type").is_some());
+                    prop_assert!(t.get("named").is_some());
                 }
             }
         }

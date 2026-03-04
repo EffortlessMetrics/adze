@@ -16,7 +16,7 @@ fn alias_vec_strategy(max_len: usize) -> impl Strategy<Value = Vec<Option<String
 }
 
 /// Strategy for an AliasSequence.
-fn alias_sequence_strategy() -> impl Strategy<Value = AliasSequence> {
+fn _alias_sequence_strategy() -> impl Strategy<Value = AliasSequence> {
     alias_vec_strategy(10).prop_map(|aliases| AliasSequence { aliases })
 }
 

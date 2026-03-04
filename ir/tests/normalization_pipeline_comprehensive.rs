@@ -1,7 +1,7 @@
 //! Comprehensive tests for Grammar normalization pipeline.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 
 fn make_rule(lhs: SymbolId, rhs: Vec<Symbol>) -> Rule {
     Rule {
@@ -28,7 +28,7 @@ fn normalize_single_token_grammar() {
     let mut g = GrammarBuilder::new("single").token("a", "a").build();
     g.normalize();
     // Token-only grammar should survive normalization
-    assert!(g.tokens.len() >= 1);
+    assert!(!g.tokens.is_empty());
 }
 
 #[test]
@@ -406,7 +406,7 @@ fn full_pipeline_simple_arithmetic() {
     g.normalize();
     assert!(g.start_symbol().is_some());
     assert!(g.tokens.len() >= 2);
-    assert!(g.rules.len() >= 1);
+    assert!(!g.rules.is_empty());
 }
 
 #[test]

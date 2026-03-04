@@ -319,7 +319,7 @@ fn symbol_id_ordering() {
 fn symbol_id_clone_and_copy() {
     let a = SymbolId(10);
     let b = a;
-    let c = a.clone();
+    let c = a;
     assert_eq!(a, b);
     assert_eq!(a, c);
 }

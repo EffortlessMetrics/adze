@@ -15,9 +15,7 @@ use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, wrap_leaf_t
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
-use syn::{
-    Attribute, Field, Fields, Item, ItemEnum, ItemMod, ItemStruct, Token, Type, parse_quote,
-};
+use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct, Token, Type, parse_quote};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

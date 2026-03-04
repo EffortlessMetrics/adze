@@ -1,7 +1,7 @@
 //! Comprehensive tests for IR Rule struct and rule manipulation.
 
+use adze_ir::Associativity;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Rule, SymbolId};
 
 // ── Rule from builder ──
 

@@ -287,7 +287,7 @@ fn collect_multiple_errors_in_vec() {
 
 #[test]
 fn errors_can_be_joined_into_combined_report() {
-    let errors = vec![
+    let errors = [
         ToolError::grammar_validation("missing start symbol"),
         ToolError::grammar_validation("unreachable rule `foo`"),
         ToolError::InvalidProduction {

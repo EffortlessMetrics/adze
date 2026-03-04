@@ -4,18 +4,16 @@
 //! (grammar, language, leaf, etc.), code generation building blocks,
 //! error handling for malformed attributes, and integration with syn parsing.
 
-use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, Ident, Span, TokenStream, TokenTree};
 use quote::{ToTokens, quote};
 use std::collections::HashSet;
 use std::str::FromStr;
 use syn::{
-    Attribute, Expr, Field, Fields, GenericParam, ItemEnum, ItemFn, ItemImpl, ItemMod, ItemStruct,
-    Type, Variant, parse_quote, parse2,
+    Attribute, Expr, Field, Fields, GenericParam, ItemEnum, ItemImpl, ItemMod, ItemStruct, Type,
+    parse_quote, parse2,
 };
 
-use adze_common::{
-    FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
-};
+use adze_common::{FieldThenParams, NameValueExpr, try_extract_inner_type, wrap_leaf_type};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -42,7 +40,7 @@ fn parse_enum(tokens: TokenStream) -> ItemEnum {
     parse2(tokens).expect("failed to parse enum")
 }
 
-fn parse_mod(tokens: TokenStream) -> ItemMod {
+fn _parse_mod(tokens: TokenStream) -> ItemMod {
     parse2(tokens).expect("failed to parse module")
 }
 

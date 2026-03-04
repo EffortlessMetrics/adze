@@ -286,7 +286,7 @@ fn extract_reference_not_extracted() {
 #[test]
 fn extract_tuple_not_extracted() {
     let ty: Type = parse_quote!((u8, u16));
-    let (inner, ok) = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+    let (_inner, ok) = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
     assert!(!ok);
 }
 

@@ -5,10 +5,10 @@
 
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar, RuleId, StateId, SymbolId};
+use adze_ir::{Associativity, Grammar, RuleId, StateId};
 use adze_tablegen::compress::{
     CompressedActionEntry, CompressedActionTable, CompressedGotoEntry, CompressedGotoTable,
-    CompressedParseTable, CompressedTables, TableCompressor,
+    CompressedParseTable, TableCompressor,
 };
 use adze_tablegen::node_types::NodeTypesGenerator;
 use adze_tablegen::{StaticLanguageGenerator, TableGenError};
@@ -184,7 +184,7 @@ fn t08_compress_chain() {
     let pt = pipeline(g.clone());
     let ti = token_ix(&g, &pt);
     let ct = TableCompressor::new().compress(&pt, &ti, false).unwrap();
-    assert!(ct.action_table.data.len() > 0);
+    assert!(!ct.action_table.data.is_empty());
 }
 
 #[test]
@@ -472,7 +472,7 @@ fn t32_node_types_multi_alt() {
     let ntg = NodeTypesGenerator::new(&g);
     let json = ntg.generate().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
-    assert!(parsed.as_array().unwrap().len() > 0);
+    assert!(!parsed.as_array().unwrap().is_empty());
 }
 
 #[test]
@@ -544,7 +544,7 @@ fn t38_node_types_named_for_regex_tokens() {
     let json = ntg.generate().unwrap();
     let arr: Vec<serde_json::Value> = serde_json::from_str(&json).unwrap();
     let named_types: Vec<_> = arr.iter().filter(|v| v["named"] == true).collect();
-    assert!(named_types.len() > 0);
+    assert!(!named_types.is_empty());
 }
 
 #[test]
@@ -638,7 +638,7 @@ fn t46_static_lang_gen_node_types_contains_rules() {
     let json = slg.generate_node_types();
     let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
     let arr = parsed.as_array().unwrap();
-    assert!(arr.len() > 0, "Should have node types for grammar rules");
+    assert!(!arr.is_empty(), "Should have node types for grammar rules");
 }
 
 #[test]

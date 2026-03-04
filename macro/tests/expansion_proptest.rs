@@ -463,7 +463,7 @@ fn struct_skip_field_detected() {
     let visited = s
         .fields
         .iter()
-        .find(|f| f.ident.as_ref().is_some_and(|i| i.to_string() == "visited"));
+        .find(|f| f.ident.as_ref().is_some_and(|i| *i == "visited"));
     assert!(
         visited
             .unwrap()

@@ -13,7 +13,7 @@ fn sym(g: &adze_ir::Grammar, name: &str) -> SymbolId {
         .unwrap_or_else(|| panic!("symbol '{name}' not found in rule_names"))
 }
 
-fn tok_id(g: &adze_ir::Grammar, name: &str) -> SymbolId {
+fn _tok_id(g: &adze_ir::Grammar, name: &str) -> SymbolId {
     g.tokens
         .iter()
         .find(|(_, t)| t.name == name)

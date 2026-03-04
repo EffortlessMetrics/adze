@@ -356,10 +356,7 @@ fn field_transform_closure_basic() {
     };
     let attr = find_leaf_attr(&s.fields.iter().next().unwrap().attrs);
     let params = leaf_params(attr);
-    let transform = params
-        .iter()
-        .find(|p| p.path.to_string() == "transform")
-        .unwrap();
+    let transform = params.iter().find(|p| p.path == "transform").unwrap();
     assert!(matches!(transform.expr, syn::Expr::Closure(_)));
 }
 
@@ -375,10 +372,7 @@ fn field_transform_closure_with_type_annotation() {
     };
     let attr = find_leaf_attr(&s.fields.iter().next().unwrap().attrs);
     let params = leaf_params(attr);
-    let transform = params
-        .iter()
-        .find(|p| p.path.to_string() == "transform")
-        .unwrap();
+    let transform = params.iter().find(|p| p.path == "transform").unwrap();
     if let syn::Expr::Closure(c) = &transform.expr {
         assert_eq!(c.inputs.len(), 1);
         assert!(c.body.to_token_stream().to_string().contains("i32"));
@@ -402,10 +396,7 @@ fn field_transform_closure_block_body() {
     };
     let attr = find_leaf_attr(&s.fields.iter().next().unwrap().attrs);
     let params = leaf_params(attr);
-    let transform = params
-        .iter()
-        .find(|p| p.path.to_string() == "transform")
-        .unwrap();
+    let transform = params.iter().find(|p| p.path == "transform").unwrap();
     assert!(matches!(transform.expr, syn::Expr::Closure(_)));
 }
 

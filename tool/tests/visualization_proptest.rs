@@ -14,8 +14,8 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
-    Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, Grammar, PrecedenceKind,
-    ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+    Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, Grammar, ProductionId,
+    Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 use adze_tool::visualization::GrammarVisualizer;
 use proptest::prelude::*;
@@ -35,7 +35,7 @@ fn token_name_strategy() -> impl Strategy<Value = String> {
 }
 
 /// A simple regex pattern for tokens.
-fn token_pattern_strategy() -> impl Strategy<Value = String> {
+fn _token_pattern_strategy() -> impl Strategy<Value = String> {
     prop_oneof![
         Just(r"[a-z]+".to_string()),
         Just(r"\d+".to_string()),
@@ -45,7 +45,7 @@ fn token_pattern_strategy() -> impl Strategy<Value = String> {
 }
 
 /// Number of rules to generate (1..=5).
-fn rule_count_strategy() -> impl Strategy<Value = usize> {
+fn _rule_count_strategy() -> impl Strategy<Value = usize> {
     1..=5usize
 }
 

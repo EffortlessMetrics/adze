@@ -86,7 +86,7 @@ fn full_pipeline_simple_grammar() {
 fn full_pipeline_through_tablegen() {
     let g = simple_expr_grammar();
     let pt = run_pipeline(&g);
-    let mut generator = StaticLanguageGenerator::new(g, pt);
+    let generator = StaticLanguageGenerator::new(g, pt);
     // Should not panic
     let _code = generator.generate_language_code();
 }
