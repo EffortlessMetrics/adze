@@ -497,12 +497,17 @@ proptest! {
         prop_assert_eq!(extract_str_value(&a.expr), extract_str_value(&b.expr));
     }
 
-    /// 35. Debug representation is deterministic.
+    /// 35. Debug representation is deterministic (modulo span byte offsets).
     #[test]
     fn debug_deterministic(val in safe_pattern_string(10)) {
         let src = format!(r#"text = "{val}""#);
         let a: NameValueExpr = syn::parse_str(&src).unwrap();
         let b: NameValueExpr = syn::parse_str(&src).unwrap();
-        prop_assert_eq!(format!("{a:?}"), format!("{b:?}"));
+        // Span byte offsets can differ between separate parse_str calls,
+        // so strip `bytes(N..M)` spans before comparing debug output.
+        let span_re = regex::Regex::new(r"bytes\(\d+\.\.\d+\)").unwrap();
+        let da = span_re.replace_all(&format!("{a:?}"), "bytes(..)").to_string();
+        let db = span_re.replace_all(&format!("{b:?}"), "bytes(..)").to_string();
+        prop_assert_eq!(da, db);
     }
 }
