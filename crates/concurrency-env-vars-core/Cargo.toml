@@ -1,25 +1,21 @@
 [package]
-name = "adze-concurrency-env-contract-core"
+name = "adze-concurrency-env-vars-core"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Shared contract for concurrency environment variables and defaults."
+description = "Canonical concurrency environment variable names and defaults."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
 categories = ["concurrency"]
 homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-concurrency-env-contract-core"
+documentation = "https://docs.rs/adze-concurrency-env-vars-core"
 
 [features]
 default = []
 strict_api = []
 strict_docs = []
-
-[dependencies]
-adze-concurrency-env-vars-core = { version = "0.1.0", path = "../concurrency-env-vars-core" }
-adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
 
 [dev-dependencies]
 proptest.workspace = true
