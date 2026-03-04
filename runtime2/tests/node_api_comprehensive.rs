@@ -674,3 +674,251 @@ fn adjacent_children_no_gaps() {
     }
     assert_eq!(reconstructed, "abcdef");
 }
+
+// ===== 33. Child iteration in order =====
+
+#[test]
+fn child_iteration_preserves_order() {
+    let children: Vec<Tree> = (1..=10)
+        .map(|i| leaf(i as u32, (i - 1) * 2, i * 2))
+        .collect();
+    let tree = branch(0, 0, 20, children);
+    let root = tree.root_node();
+
+    for i in 1..=10 {
+        let child = root.child((i - 1) as usize).unwrap();
+        assert_eq!(child.kind_id(), i as u16);
+    }
+}
+
+// ===== 34. Node with all methods called (comprehensive call) =====
+
+#[test]
+fn comprehensive_node_method_call() {
+    let tree = branch(
+        100,
+        5,
+        25,
+        vec![
+            leaf(101, 5, 10),
+            leaf(102, 10, 15),
+            leaf(103, 15, 20),
+            leaf(104, 20, 25),
+        ],
+    );
+    let root = tree.root_node();
+
+    // Call all read methods
+    let kind_id = root.kind_id();
+    let kind = root.kind();
+    let start = root.start_byte();
+    let end = root.end_byte();
+    let range = root.byte_range();
+    let start_pos = root.start_position();
+    let end_pos = root.end_position();
+    let is_named = root.is_named();
+    let is_missing = root.is_missing();
+    let is_error = root.is_error();
+    let child_cnt = root.child_count();
+    let named_cnt = root.named_child_count();
+
+    // Verify calls succeeded
+    assert_eq!(kind_id, 100);
+    assert_eq!(kind, "unknown");
+    assert_eq!(start, 5);
+    assert_eq!(end, 25);
+    assert_eq!(range, 5..25);
+    assert_eq!(start_pos.row, 0);
+    assert_eq!(end_pos.column, 0);
+    assert!(is_named);
+    assert!(!is_missing);
+    assert!(!is_error);
+    assert_eq!(child_cnt, 4);
+    assert_eq!(named_cnt, 4);
+
+    // Call child access methods
+    assert!(root.child(0).is_some());
+    assert!(root.child(4).is_none());
+    assert!(root.named_child(0).is_some());
+    assert!(root.child_by_field_name("test").is_none());
+    assert!(root.parent().is_none());
+    assert!(root.next_sibling().is_none());
+    assert!(root.prev_sibling().is_none());
+}
+
+// ===== 35. Empty and single-byte nodes =====
+
+#[test]
+fn empty_byte_range_nodes() {
+    let tree = branch(1, 0, 0, vec![leaf(2, 0, 0)]);
+    let root = tree.root_node();
+    assert!(root.byte_range().is_empty());
+    let child = root.child(0).unwrap();
+    assert!(child.byte_range().is_empty());
+}
+
+// ===== 36. Byte range consistency across methods =====
+
+#[test]
+fn byte_range_method_consistency() {
+    let tree = leaf(5, 100, 200);
+    let node = tree.root_node();
+    let start = node.start_byte();
+    let end = node.end_byte();
+    let range = node.byte_range();
+
+    assert_eq!(range.start, start);
+    assert_eq!(range.end, end);
+    assert_eq!(range.len(), end - start);
+}
+
+// ===== 37. Node equality via Copy =====
+
+#[test]
+fn node_copy_equality() {
+    let tree = branch(0, 0, 10, vec![leaf(1, 0, 5), leaf(2, 5, 10)]);
+    let node1 = tree.root_node();
+    let node2 = tree.root_node();
+
+    // Since Node is Copy, both should reference same data
+    assert_eq!(node1.kind_id(), node2.kind_id());
+    assert_eq!(node1.start_byte(), node2.start_byte());
+    assert_eq!(node1.end_byte(), node2.end_byte());
+}
+
+// ===== 38. Multiple sequential child access =====
+
+#[test]
+fn sequential_child_access_consistency() {
+    let tree = branch(
+        0,
+        0,
+        15,
+        vec![
+            leaf(10, 0, 3),
+            leaf(20, 3, 6),
+            leaf(30, 6, 9),
+            leaf(40, 9, 12),
+            leaf(50, 12, 15),
+        ],
+    );
+    let root = tree.root_node();
+
+    // Access same child multiple times
+    let c0a = root.child(0).unwrap();
+    let c0b = root.child(0).unwrap();
+    assert_eq!(c0a.kind_id(), c0b.kind_id());
+    assert_eq!(c0a.start_byte(), c0b.start_byte());
+
+    // Access different children
+    let c1 = root.child(1).unwrap();
+    assert_ne!(c0a.kind_id(), c1.kind_id());
+}
+
+// ===== 39. Tree with maximum practical size =====
+
+#[test]
+fn large_children_count() {
+    let children: Vec<Tree> = (0..100).map(|i| leaf((i % 256) as u32, i, i + 1)).collect();
+    let tree = branch(0, 0, 100, children);
+    let root = tree.root_node();
+
+    assert_eq!(root.child_count(), 100);
+    for i in 0..100 {
+        let child = root.child(i).unwrap();
+        assert_eq!(child.start_byte(), i);
+        assert_eq!(child.end_byte(), i + 1);
+    }
+}
+
+// ===== 40. Point struct comprehensive tests =====
+
+#[test]
+fn point_construction_and_access() {
+    let p = adze_runtime::Point::new(5, 10);
+    assert_eq!(p.row, 5);
+    assert_eq!(p.column, 10);
+}
+
+#[test]
+fn point_equality() {
+    let p1 = adze_runtime::Point::new(1, 2);
+    let p2 = adze_runtime::Point::new(1, 2);
+    assert_eq!(p1, p2);
+    let p3 = adze_runtime::Point::new(1, 3);
+    assert_ne!(p1, p3);
+}
+
+// ===== 41. Deeply nested tree with width at each level =====
+
+#[test]
+fn deep_and_wide_tree() {
+    // Build tree: root -> [3 children, each with 3 children]
+    let mut children = vec![];
+    for i in 0..3 {
+        let grandchildren: Vec<Tree> = (0..3).map(|j| leaf((i * 10 + j) as u32, 0, 1)).collect();
+        let child = branch(i as u32, 0, 3, grandchildren);
+        children.push(child);
+    }
+    let tree = branch(0, 0, 3, children);
+    let root = tree.root_node();
+
+    assert_eq!(root.child_count(), 3);
+    for i in 0..3 {
+        let child = root.child(i).unwrap();
+        assert_eq!(child.child_count(), 3);
+    }
+}
+
+// ===== 42. All siblings are siblings to each other =====
+
+#[test]
+fn siblings_are_at_same_level() {
+    let tree = branch(
+        0,
+        0,
+        12,
+        vec![leaf(1, 0, 3), leaf(2, 3, 6), leaf(3, 6, 9), leaf(4, 9, 12)],
+    );
+    let root = tree.root_node();
+
+    // All children have no parent, sibling, or parent
+    for i in 0..4 {
+        let child = root.child(i).unwrap();
+        assert!(child.parent().is_none());
+        assert!(child.next_sibling().is_none());
+        assert!(child.prev_sibling().is_none());
+    }
+}
+
+// ===== 43. utf8_text on all children of multilevel tree =====
+
+#[test]
+fn utf8_text_entire_nested_structure() {
+    let source = b"(a+b)";
+    let tree = branch(
+        0,
+        0,
+        5,
+        vec![branch(
+            1,
+            0,
+            5,
+            vec![
+                leaf(2, 0, 1),
+                leaf(3, 1, 2),
+                leaf(4, 2, 3),
+                leaf(5, 3, 4),
+                leaf(6, 4, 5),
+            ],
+        )],
+    );
+
+    let root = tree.root_node();
+    let inner = root.child(0).unwrap();
+    assert_eq!(inner.child(0).unwrap().utf8_text(source).unwrap(), "(");
+    assert_eq!(inner.child(1).unwrap().utf8_text(source).unwrap(), "a");
+    assert_eq!(inner.child(2).unwrap().utf8_text(source).unwrap(), "+");
+    assert_eq!(inner.child(3).unwrap().utf8_text(source).unwrap(), "b");
+    assert_eq!(inner.child(4).unwrap().utf8_text(source).unwrap(), ")");
+}
