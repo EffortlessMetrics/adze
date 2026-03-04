@@ -395,3 +395,352 @@ fn multi_rule_extract_vec_then_option_sequentially() {
     assert!(ok);
     assert_eq!(type_to_string(&after_opt), "Token");
 }
+
+// ===========================================================================
+// 11. Type Extraction from Reference Types (&T, &mut T)
+// ===========================================================================
+
+#[test]
+fn reference_type_immutable_extract_returns_unchanged() {
+    let ty: Type = parse_quote!(&String);
+    let (inner, extracted) = try_extract_inner_type(&ty, "String", &skip_set(&[]));
+    assert!(!extracted);
+    assert_eq!(type_to_string(&inner), "& String");
+}
+
+#[test]
+fn reference_type_mutable_extract_returns_unchanged() {
+    let ty: Type = parse_quote!(&mut String);
+    let (inner, extracted) = try_extract_inner_type(&ty, "String", &skip_set(&[]));
+    assert!(!extracted);
+    assert_eq!(type_to_string(&inner), "& mut String");
+}
+
+#[test]
+fn reference_type_filter_returns_unchanged() {
+    let ty: Type = parse_quote!(&String);
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "& String");
+}
+
+#[test]
+fn reference_type_wrap_wraps_entirely() {
+    let ty: Type = parse_quote!(&String);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < & String >");
+}
+
+#[test]
+fn mutable_reference_type_wrap_wraps_entirely() {
+    let ty: Type = parse_quote!(&mut String);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(
+        type_to_string(&wrapped),
+        "adze :: WithLeaf < & mut String >"
+    );
+}
+
+// ===========================================================================
+// 12. Tuple Type Handling
+// ===========================================================================
+
+#[test]
+fn tuple_type_extract_returns_unchanged() {
+    let ty: Type = parse_quote!((String, i32));
+    let (inner, extracted) = try_extract_inner_type(&ty, "String", &skip_set(&[]));
+    assert!(!extracted);
+    assert_eq!(type_to_string(&inner), "(String , i32)");
+}
+
+#[test]
+fn tuple_type_filter_returns_unchanged() {
+    let ty: Type = parse_quote!((String, i32));
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "(String , i32)");
+}
+
+#[test]
+fn tuple_type_wrap_wraps_entirely() {
+    let ty: Type = parse_quote!((String, i32));
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(
+        type_to_string(&wrapped),
+        "adze :: WithLeaf < (String , i32) >"
+    );
+}
+
+#[test]
+fn complex_tuple_with_containers_wrap() {
+    let ty: Type = parse_quote!((Vec<String>, Option<i32>));
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert!(type_to_string(&wrapped).contains("adze :: WithLeaf"));
+}
+
+// ===========================================================================
+// 13. Array Type Handling
+// ===========================================================================
+
+#[test]
+fn array_type_extract_returns_unchanged() {
+    let ty: Type = parse_quote!([u8; 4]);
+    let (inner, extracted) = try_extract_inner_type(&ty, "u8", &skip_set(&[]));
+    assert!(!extracted);
+    assert_eq!(type_to_string(&inner), "[u8 ; 4]");
+}
+
+#[test]
+fn array_type_filter_returns_unchanged() {
+    let ty: Type = parse_quote!([u8; 4]);
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "[u8 ; 4]");
+}
+
+#[test]
+fn array_type_wrap_wraps_entirely() {
+    let ty: Type = parse_quote!([u8; 4]);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < [u8 ; 4] >");
+}
+
+#[test]
+fn array_type_with_generic_element_wrap() {
+    let ty: Type = parse_quote!([T; N]);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < [T ; N] >");
+}
+
+// ===========================================================================
+// 14. Types with Lifetimes
+// ===========================================================================
+
+#[test]
+fn reference_with_lifetime_extract_returns_unchanged() {
+    let ty: Type = parse_quote!(&'a String);
+    let (inner, extracted) = try_extract_inner_type(&ty, "String", &skip_set(&[]));
+    assert!(!extracted);
+    assert_eq!(type_to_string(&inner), "& 'a String");
+}
+
+#[test]
+fn reference_with_lifetime_wrap_wraps_entirely() {
+    let ty: Type = parse_quote!(&'a String);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < & 'a String >");
+}
+
+#[test]
+fn generic_type_param_basic() {
+    let ty: Type = parse_quote!(T);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&[]));
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < T >");
+}
+
+// ===========================================================================
+// 15. Qualified Paths (std::vec::Vec<T>, std::option::Option<T>)
+// ===========================================================================
+
+#[test]
+fn qualified_vec_extract_inner() {
+    let ty: Type = parse_quote!(::std::vec::Vec<String>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&[]));
+    assert!(extracted);
+    assert_eq!(type_to_string(&inner), "String");
+}
+
+#[test]
+fn qualified_option_extract_inner() {
+    let ty: Type = parse_quote!(std::option::Option<i64>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+    assert!(extracted);
+    assert_eq!(type_to_string(&inner), "i64");
+}
+
+#[test]
+fn qualified_box_filter_inner() {
+    let ty: Type = parse_quote!(std::boxed::Box<String>);
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "String");
+}
+
+#[test]
+fn qualified_vec_wrap_with_skip() {
+    let ty: Type = parse_quote!(::std::vec::Vec<String>);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&["Vec"]));
+    assert_eq!(
+        type_to_string(&wrapped),
+        ":: std :: vec :: Vec < adze :: WithLeaf < String > >"
+    );
+}
+
+// ===========================================================================
+// 16. Complex Generic Types (Multiple Type Parameters)
+// ===========================================================================
+
+#[test]
+fn hashmap_like_extract_first_param() {
+    let ty: Type = parse_quote!(HashMap<String, i32>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "HashMap", &skip_set(&[]));
+    assert!(extracted);
+    assert_eq!(type_to_string(&inner), "String");
+}
+
+#[test]
+fn result_type_wrap_both_params() {
+    let ty: Type = parse_quote!(Result<String, i32>);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&["Result"]));
+    assert_eq!(
+        type_to_string(&wrapped),
+        "Result < adze :: WithLeaf < String > , adze :: WithLeaf < i32 > >"
+    );
+}
+
+#[test]
+fn custom_generic_extract_inner() {
+    let ty: Type = parse_quote!(CustomType<String>);
+    let (inner, extracted) = try_extract_inner_type(&ty, "CustomType", &skip_set(&[]));
+    assert!(extracted);
+    assert_eq!(type_to_string(&inner), "String");
+}
+
+#[test]
+fn triple_generic_param_wrap_all_params() {
+    let ty: Type = parse_quote!(Triple<A, B, C>);
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&["Triple"]));
+    let wrapped_str = type_to_string(&wrapped);
+    assert!(wrapped_str.contains("adze :: WithLeaf < A >"));
+    assert!(wrapped_str.contains("adze :: WithLeaf < B >"));
+    assert!(wrapped_str.contains("adze :: WithLeaf < C >"));
+}
+
+// ===========================================================================
+// 17. Comprehensive Pipeline Integration Tests
+// ===========================================================================
+
+#[test]
+fn pipeline_box_vec_extract_filter_wrap() {
+    let ty: Type = parse_quote!(Box<Vec<String>>);
+    let skip_extract = skip_set(&["Box"]);
+    let skip_filter = skip_set(&[]);
+    let skip_wrap = skip_set(&["Vec"]);
+
+    // Extract Vec inner type (String) through Box
+    let (extracted, ok) = try_extract_inner_type(&ty, "Vec", &skip_extract);
+    assert!(ok);
+    assert_eq!(type_to_string(&extracted), "String");
+
+    let filtered = filter_inner_type(&extracted, &skip_filter);
+    let wrapped = wrap_leaf_type(&filtered, &skip_wrap);
+
+    // Result is just the wrapped leaf type since we extracted the Vec element
+    assert_eq!(type_to_string(&wrapped), "adze :: WithLeaf < String >");
+}
+
+#[test]
+fn pipeline_option_vec_option_complex_nesting() {
+    let ty: Type = parse_quote!(Option<Vec<Option<String>>>);
+    let skip_extract = skip_set(&["Option"]);
+    let skip_wrap = skip_set(&["Vec", "Option"]);
+
+    // Extract Vec inner type through Option
+    let (extracted, ok) = try_extract_inner_type(&ty, "Vec", &skip_extract);
+    assert!(ok);
+    // When we extract Vec from Option<Vec<Option<String>>>, we get Option<String>
+    assert_eq!(type_to_string(&extracted), "Option < String >");
+
+    let wrapped = wrap_leaf_type(&extracted, &skip_wrap);
+    // When wrapping with Option in skip set, we only wrap the String leaf
+    assert_eq!(
+        type_to_string(&wrapped),
+        "Option < adze :: WithLeaf < String > >"
+    );
+}
+
+#[test]
+fn pipeline_deeply_nested_five_levels() {
+    let ty: Type = parse_quote!(Box<Arc<Rc<Option<Vec<String>>>>>);
+    let skip_extract = skip_set(&["Box", "Arc", "Rc", "Option"]);
+    let skip_filter = skip_set(&["Box", "Arc", "Rc", "Option"]);
+    let skip_wrap = skip_set(&["Vec"]);
+
+    // Extract Vec through all wrappers
+    let (extracted, ok) = try_extract_inner_type(&ty, "Vec", &skip_extract);
+    assert!(ok);
+    assert_eq!(type_to_string(&extracted), "String");
+
+    // Filter all wrappers
+    let filtered = filter_inner_type(&ty, &skip_filter);
+    assert_eq!(type_to_string(&filtered), "Vec < String >");
+
+    // Wrap result
+    let wrapped = wrap_leaf_type(&filtered, &skip_wrap);
+    assert_eq!(
+        type_to_string(&wrapped),
+        "Vec < adze :: WithLeaf < String > >"
+    );
+}
+
+#[test]
+fn pipeline_result_vec_result_multi_type_param() {
+    let ty: Type = parse_quote!(Result<Vec<String>, Box<Error>>);
+    let skip_wrap = skip_set(&["Vec", "Result"]);
+
+    // Wrap both type parameters of Result
+    let wrapped = wrap_leaf_type(&ty, &skip_wrap);
+    let wrapped_str = type_to_string(&wrapped);
+
+    assert!(wrapped_str.contains("Vec < adze :: WithLeaf < String > >"));
+    assert!(wrapped_str.contains("Box < Error >"));
+}
+
+#[test]
+fn pipeline_extract_nonexistent_target_returns_original() {
+    let ty: Type = parse_quote!(Box<Vec<String>>);
+    let skip_extract = skip_set(&["Box"]);
+
+    // Try to extract Option which doesn't exist
+    let (extracted, ok) = try_extract_inner_type(&ty, "Option", &skip_extract);
+    assert!(!ok);
+    assert_eq!(type_to_string(&extracted), "Box < Vec < String > >");
+}
+
+#[test]
+fn pipeline_sequential_filtering_stages() {
+    let ty: Type = parse_quote!(Box<Arc<Option<Vec<String>>>>);
+
+    // First filter stage: remove Box
+    let stage1 = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&stage1), "Arc < Option < Vec < String > > >");
+
+    // Second filter stage: remove Arc
+    let stage2 = filter_inner_type(&stage1, &skip_set(&["Arc"]));
+    assert_eq!(type_to_string(&stage2), "Option < Vec < String > >");
+
+    // Third filter stage: remove Option
+    let stage3 = filter_inner_type(&stage2, &skip_set(&["Option"]));
+    assert_eq!(type_to_string(&stage3), "Vec < String >");
+}
+
+#[test]
+fn pipeline_comprehensive_transform_scenario() {
+    // Real-world scenario: transform Option<Box<Vec<Identifier>>> for grammar processing
+    let ty: Type = parse_quote!(Option<Box<Vec<Identifier>>>);
+
+    // Check optionality
+    let (without_option, is_optional) = try_extract_inner_type(&ty, "Option", &skip_set(&["Box"]));
+    assert!(is_optional);
+
+    // Remove Box wrapper
+    let without_box = filter_inner_type(&without_option, &skip_set(&["Box"]));
+
+    // Extract Vec element type
+    let (element_type, has_vec) = try_extract_inner_type(&without_box, "Vec", &skip_set(&[]));
+    assert!(has_vec);
+    assert_eq!(type_to_string(&element_type), "Identifier");
+
+    // Wrap the final type
+    let final_type = wrap_leaf_type(&element_type, &skip_set(&[]));
+    assert_eq!(
+        type_to_string(&final_type),
+        "adze :: WithLeaf < Identifier >"
+    );
+}

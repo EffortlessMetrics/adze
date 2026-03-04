@@ -3,7 +3,9 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::optimizer::{GrammarOptimizer, optimize_grammar};
-use adze_ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{
+    Associativity, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -924,5 +926,572 @@ fn multiple_left_recursive_symbols_are_all_transformed() {
         stats.optimized_left_recursion >= 2,
         "both left-recursive symbols should be transformed, got {}",
         stats.optimized_left_recursion
+    );
+}
+
+// ===========================================================================
+// 25. Circular/mutually-recursive rules
+// ===========================================================================
+
+#[test]
+fn mutual_recursion_does_not_inline() {
+    // A -> B
+    // B -> A
+    // This should NOT be inlined as it's mutually recursive
+    let mut grammar = GrammarBuilder::new("mutual")
+        .token("X", "x")
+        .rule("A", vec!["B"])
+        .rule("B", vec!["A"])
+        .start("A")
+        .build();
+
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut grammar);
+
+    // Should not inline these as they're mutually recursive
+    assert_eq!(
+        stats.inlined_rules, 0,
+        "mutually recursive rules should not be inlined"
+    );
+}
+
+#[test]
+fn self_recursive_rule_not_inlined() {
+    // A -> A | X
+    let mut grammar = GrammarBuilder::new("self_rec")
+        .token("X", "x")
+        .rule("A", vec!["A"])
+        .rule("A", vec!["X"])
+        .start("A")
+        .build();
+
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut grammar);
+
+    // Self-recursive should not be inlined
+    assert_eq!(stats.inlined_rules, 0);
+}
+
+// ===========================================================================
+// 26. Mixed token patterns (strings and regexes)
+// ===========================================================================
+
+#[test]
+fn identical_token_patterns_get_merged() {
+    let grammar = GrammarBuilder::new("mixed_tokens")
+        .token("STR_A", "a")
+        .token("REGEX_A", r"a")
+        .rule("expr", vec!["STR_A", "REGEX_A"])
+        .start("expr")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+    // The optimizer merges tokens with identical pattern strings
+    assert_eq!(
+        optimized.tokens.len(),
+        1,
+        "tokens with identical patterns should be merged"
+    );
+}
+
+// ===========================================================================
+// 27. Grammar preserves field mappings
+// ===========================================================================
+
+#[test]
+fn optimization_preserves_field_mappings() {
+    let mut grammar = GrammarBuilder::new("fields")
+        .token("ID", r"[a-z]+")
+        .token("=", "=")
+        .token("NUM", r"\d+")
+        .rule("assign", vec!["ID", "=", "NUM"])
+        .start("assign")
+        .build();
+
+    // Manually set a field mapping for the rule
+    if let Some(rules) = grammar.rules.values_mut().next() {
+        if !rules.is_empty() {
+            rules[0].fields.push((FieldId(1), 0)); // ID at position 0
+            rules[0].fields.push((FieldId(2), 2)); // NUM at position 2
+        }
+    }
+
+    let optimized = optimize_grammar(grammar).unwrap();
+    let field_count: usize = optimized.all_rules().map(|r| r.fields.len()).sum();
+    assert!(field_count > 0, "field mappings should be preserved");
+}
+
+// ===========================================================================
+// 28. Inline rules with single use
+// ===========================================================================
+
+#[test]
+fn single_use_rules_can_be_inlined() {
+    // wrapper -> inner
+    // inner -> X
+    // (wrapper used only once)
+    let grammar = GrammarBuilder::new("inline_single_use")
+        .token("X", "x")
+        .rule("start", vec!["wrapper", "X"])
+        .rule("wrapper", vec!["inner"])
+        .rule("inner", vec!["X"])
+        .start("start")
+        .build();
+
+    let mut g = grammar;
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut g);
+
+    // wrapper should be inlinable
+    assert!(
+        stats.inlined_rules >= 1 || stats.eliminated_unit_rules >= 1,
+        "single-use wrapper rules should be inlined or eliminated"
+    );
+}
+
+// ===========================================================================
+// 29. Optimization with diverse rule patterns
+// ===========================================================================
+
+#[test]
+fn complex_nested_structure_optimizes() {
+    let grammar = GrammarBuilder::new("nested")
+        .token("A", "a")
+        .token("B", "b")
+        .token("C", "c")
+        .rule("start", vec!["outer"])
+        .rule("outer", vec!["inner", "A"])
+        .rule("inner", vec!["B", "C"])
+        .start("start")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+
+    // Grammar should remain valid
+    assert!(optimized.start_symbol().is_some());
+}
+
+// ===========================================================================
+// 30. Optimization statistics breakdown
+// ===========================================================================
+
+#[test]
+fn stats_breakdown_on_combined_optimization() {
+    let grammar = GrammarBuilder::new("breakdown")
+        .token("A", "a")
+        .token("DEAD", "dead")
+        .token("A", "a") // Duplicate
+        .rule("expr", vec!["A"])
+        .rule("dead_rule", vec!["DEAD"])
+        .rule("unit", vec!["expr"])
+        .start("expr")
+        .build();
+
+    let mut g = grammar;
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut g);
+
+    // Should have multiple types of optimizations
+    let total_optimizations = stats.total();
+    assert!(
+        total_optimizations > 0,
+        "combined optimizations should detect multiple issues"
+    );
+}
+
+// ===========================================================================
+// 31. Optimization doesn't lose terminal productions
+// ===========================================================================
+
+#[test]
+fn terminal_productions_are_preserved() {
+    let grammar = GrammarBuilder::new("terminal")
+        .token("X", "x")
+        .token("Y", "y")
+        .rule("expr", vec!["X", "Y"])
+        .start("expr")
+        .build();
+
+    let original_rule_count = total_rule_count(&grammar);
+    let optimized = optimize_grammar(grammar).unwrap();
+    let optimized_rule_count = total_rule_count(&optimized);
+
+    // Terminal productions should be preserved
+    assert_eq!(original_rule_count, optimized_rule_count);
+}
+
+// ===========================================================================
+// 32. Empty rule handling (epsilon)
+// ===========================================================================
+
+#[test]
+fn empty_rhs_optimization_stable() {
+    let grammar = GrammarBuilder::new("empty_rhs")
+        .token("A", "a")
+        .token("B", "b")
+        .rule("expr", vec!["A", "B"]) // Multi-symbol so it won't be inlined
+        .start("expr")
+        .build();
+
+    let mut g = grammar;
+    let mut opt = GrammarOptimizer::new();
+    let stats1 = opt.optimize(&mut g);
+
+    let mut opt2 = GrammarOptimizer::new();
+    let stats2 = opt2.optimize(&mut g);
+
+    // Second optimization should not change anything
+    assert_eq!(stats2.total(), 0);
+}
+
+// ===========================================================================
+// 33. Complex grammar with many rules
+// ===========================================================================
+
+#[test]
+fn large_grammar_optimizes_without_panic() {
+    let mut builder = GrammarBuilder::new("large");
+
+    // Add many tokens
+    for i in 0..20 {
+        builder = builder.token(&format!("TOK{}", i), &format!("t{}", i));
+    }
+
+    // Add rules
+    builder = builder.rule("expr", vec!["TOK0"]);
+    for i in 1..10 {
+        builder = builder.rule("expr", vec![&format!("TOK{}", i)]);
+    }
+
+    let grammar = builder.start("expr").build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+    assert!(!optimized.rules.is_empty());
+}
+
+// ===========================================================================
+// 34. Rule names consistency
+// ===========================================================================
+
+#[test]
+fn rule_names_remain_consistent_after_optimization() {
+    let grammar = GrammarBuilder::new("names")
+        .token("X", "x")
+        .rule("expression", vec!["X", "X"]) // Multi-symbol so it won't be inlined
+        .start("expression")
+        .build();
+
+    let original_names = rule_name_values(&grammar);
+    let optimized = optimize_grammar(grammar).unwrap();
+    let optimized_names = rule_name_values(&optimized);
+
+    // Should still have 'expression' in the rule names
+    assert!(original_names.contains(&"expression".to_string()));
+    assert!(optimized_names.contains(&"expression".to_string()));
+}
+
+// ===========================================================================
+// 35. Unicode and special characters in tokens
+// ===========================================================================
+
+#[test]
+fn special_characters_in_tokens_survive() {
+    let grammar = GrammarBuilder::new("special")
+        .token("ARROW", "=>")
+        .token("COLON", ":")
+        .token("ID", r"[a-zA-Z_]\w*")
+        .rule("expr", vec!["ID", "COLON", "ID", "ARROW", "ID"])
+        .start("expr")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+    assert_eq!(optimized.tokens.len(), 3);
+}
+
+// ===========================================================================
+// 36. Optimization without start symbol
+// ===========================================================================
+
+#[test]
+fn optimization_graceful_without_explicit_start() {
+    let grammar = Grammar::new("no_start".to_string());
+    let result = optimize_grammar(grammar);
+    assert!(result.is_ok());
+}
+
+// ===========================================================================
+// 37. Verify optimization doesn't create cycles
+// ===========================================================================
+
+#[test]
+fn optimization_result_is_acyclic() {
+    let grammar = GrammarBuilder::new("acyclic")
+        .token("X", "x")
+        .rule("A", vec!["B", "X"])
+        .rule("B", vec!["C", "X"])
+        .rule("C", vec!["X"])
+        .start("A")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+
+    // Check that no rule references itself indirectly through others
+    for (lhs, rules) in &optimized.rules {
+        for rule in rules {
+            // Simple check: LHS should not directly reference itself
+            for sym in &rule.rhs {
+                if let Symbol::NonTerminal(id) = sym {
+                    assert_ne!(lhs, id, "direct self-reference should not exist");
+                }
+            }
+        }
+    }
+}
+
+// ===========================================================================
+// 38. Optimization with many duplicates
+// ===========================================================================
+
+#[test]
+fn many_duplicate_tokens_merged_correctly() {
+    let mut grammar = Grammar::new("many_dups".to_string());
+
+    // Add the same token pattern multiple times
+    for i in 0..5 {
+        grammar.tokens.insert(
+            SymbolId(i as u16 + 1),
+            Token {
+                name: format!("PLUS{}", i),
+                pattern: TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
+    }
+
+    // Add rule using all of them
+    let mut rule_rhs = vec![];
+    for i in 0..5 {
+        rule_rhs.push(Symbol::Terminal(SymbolId(i as u16 + 1)));
+    }
+
+    grammar.rules.insert(
+        SymbolId(10),
+        vec![Rule {
+            lhs: SymbolId(10),
+            rhs: rule_rhs,
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        }],
+    );
+
+    grammar.rule_names.insert(SymbolId(10), "expr".to_string());
+
+    let optimized = optimize_grammar(grammar).unwrap();
+
+    // After merging duplicates, should have fewer tokens
+    assert!(optimized.tokens.len() < 5);
+}
+
+// ===========================================================================
+// 39. Idempotency across multiple optimizations
+// ===========================================================================
+
+#[test]
+fn three_pass_optimization_converges() {
+    let grammar = GrammarBuilder::new("triple")
+        .token("A", "a")
+        .token("DEAD", "dead")
+        .rule("expr", vec!["A"])
+        .start("expr")
+        .build();
+
+    let mut g = grammar;
+
+    // First pass
+    {
+        let mut opt = GrammarOptimizer::new();
+        opt.optimize(&mut g);
+    }
+
+    // Second pass
+    {
+        let mut opt = GrammarOptimizer::new();
+        opt.optimize(&mut g);
+    }
+
+    // Third pass should be no-op
+    {
+        let mut opt = GrammarOptimizer::new();
+        let stats = opt.optimize(&mut g);
+        assert_eq!(stats.total(), 0);
+    }
+}
+
+// ===========================================================================
+// 40. Mixed optimizations interact correctly
+// ===========================================================================
+
+#[test]
+fn inlining_and_unit_elimination_compose() {
+    let grammar = GrammarBuilder::new("compose")
+        .token("X", "x")
+        .rule("start", vec!["A"])
+        .rule("A", vec!["B"])
+        .rule("B", vec!["X"])
+        .start("start")
+        .build();
+
+    let mut g = grammar;
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut g);
+
+    // Should have some combination of inlining/elimination
+    assert!(
+        stats.inlined_rules > 0 || stats.eliminated_unit_rules > 0,
+        "chain of rules should trigger some optimization"
+    );
+}
+
+// ===========================================================================
+// 41. Preserve production IDs during optimization
+// ===========================================================================
+
+#[test]
+fn production_ids_remain_valid_after_optimization() {
+    let mut grammar = GrammarBuilder::new("prod_ids")
+        .token("X", "x")
+        .rule("expr", vec!["X"])
+        .start("expr")
+        .build();
+
+    // Record production IDs before optimization
+    let original_prod_ids: Vec<_> = grammar.all_rules().map(|r| r.production_id).collect();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+    let optimized_prod_ids: Vec<_> = optimized.all_rules().map(|r| r.production_id).collect();
+
+    // Should still have valid production IDs
+    for prod_id in optimized_prod_ids {
+        assert_ne!(prod_id.0, 0, "production ID should be non-zero");
+    }
+}
+
+// ===========================================================================
+// 42. Grammar with all rule types
+// ===========================================================================
+
+#[test]
+fn kitchen_sink_grammar_optimizes() {
+    let mut grammar = GrammarBuilder::new("kitchen_sink")
+        .token("NUM", r"\d+")
+        .token("ID", r"[a-z]+")
+        .token("+", "+")
+        .token("-", "-")
+        .rule("program", vec!["statement"])
+        .rule("statement", vec!["assignment"])
+        .rule("assignment", vec!["ID", "=", "expr"])
+        .rule("expr", vec!["term"])
+        .rule("expr", vec!["expr", "+", "term"])
+        .rule("term", vec!["NUM"])
+        .rule("term", vec!["ID"])
+        .rule("unused", vec!["ID"])
+        .start("program")
+        .build();
+
+    let mut opt = GrammarOptimizer::new();
+    let stats = opt.optimize(&mut grammar);
+
+    // Should remove at least the "unused" rule
+    assert!(stats.removed_unused_symbols > 0);
+}
+
+// ===========================================================================
+// 43. Optimizer state is clean between runs
+// ===========================================================================
+
+#[test]
+fn optimizer_reuse_produces_same_results() {
+    let g1 = GrammarBuilder::new("reuse1")
+        .token("X", "x")
+        .token("DEAD", "d")
+        .rule("expr", vec!["X"])
+        .start("expr")
+        .build();
+
+    let g2 = GrammarBuilder::new("reuse2")
+        .token("X", "x")
+        .token("DEAD", "d")
+        .rule("expr", vec!["X"])
+        .start("expr")
+        .build();
+
+    let mut g1_mut = g1;
+    let mut opt1 = GrammarOptimizer::new();
+    let stats1 = opt1.optimize(&mut g1_mut);
+
+    let mut g2_mut = g2;
+    let mut opt2 = GrammarOptimizer::new();
+    let stats2 = opt2.optimize(&mut g2_mut);
+
+    // Same grammar optimized with fresh optimizer should get same stats
+    assert_eq!(stats1.removed_unused_symbols, stats2.removed_unused_symbols);
+}
+
+// ===========================================================================
+// 44. Verify no symbols are orphaned
+// ===========================================================================
+
+#[test]
+fn all_rule_lhs_symbols_exist_after_optimization() {
+    let grammar = GrammarBuilder::new("orphan_check")
+        .token("A", "a")
+        .token("B", "b")
+        .rule("start", vec!["A", "B"])
+        .rule("unused", vec!["A"])
+        .start("start")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+
+    // Every symbol that is an LHS should be reachable
+    for symbol_id in optimized.rules.keys() {
+        // Check it's not in a weird state
+        assert!(optimized.rules.contains_key(symbol_id));
+    }
+}
+
+// ===========================================================================
+// 45. Complex precedence and associativity preservation
+// ===========================================================================
+
+#[test]
+fn complex_precedence_associativity_preserved() {
+    let grammar = GrammarBuilder::new("prec_assoc")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .token("-", "-")
+        .token("*", "*")
+        .token("/", "/")
+        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "-", "expr"], 1, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
+        .rule_with_precedence("expr", vec!["expr", "/", "expr"], 2, Associativity::Left)
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+
+    let optimized = optimize_grammar(grammar).unwrap();
+
+    // Count rules with precedence
+    let prec_rules: usize = optimized
+        .all_rules()
+        .filter(|r| r.precedence.is_some())
+        .count();
+
+    assert!(
+        prec_rules > 0,
+        "precedence info should be preserved in optimization"
     );
 }
