@@ -1,34 +1,40 @@
-// Tree-sitter compatible precedence comparison logic
 //! Tree-sitter compatible precedence comparison logic.
 
-// Direct port of precedence comparison from Tree-sitter's C implementation
+#![forbid(unsafe_op_in_unsafe_fn)]
+#![deny(missing_docs)]
+#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
+#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 use adze_ir::{Associativity, Grammar, PrecedenceKind, RuleId, Symbol, SymbolId};
 use std::collections::HashMap;
 
-/// Precedence information for a symbol or rule
+/// Precedence information for a symbol or rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PrecedenceInfo {
+    /// Numeric precedence level.
     pub level: i16,
+    /// Associativity for ties at the same precedence level.
     pub associativity: Associativity,
+    /// Whether this precedence is fragile.
     pub is_fragile: bool,
 }
 
-/// Static precedence resolver matching Tree-sitter's exact behavior
+/// Static precedence resolver matching Tree-sitter's behavior.
 pub struct StaticPrecedenceResolver {
-    /// Token precedences from grammar declarations
+    /// Token precedences from grammar declarations.
     token_precedences: HashMap<SymbolId, PrecedenceInfo>,
-    /// Rule precedences (by production ID)
+    /// Rule precedences (by production ID).
     rule_precedences: HashMap<RuleId, PrecedenceInfo>,
 }
 
 impl StaticPrecedenceResolver {
-    /// Build precedence tables from grammar
+    /// Build precedence tables from grammar.
     pub fn from_grammar(grammar: &Grammar) -> Self {
         let mut token_precedences = HashMap::new();
         let mut rule_precedences = HashMap::new();
 
-        // Extract token precedences from precedence declarations
         for prec_decl in &grammar.precedences {
             for &symbol_id in &prec_decl.symbols {
                 token_precedences.insert(
@@ -36,13 +42,12 @@ impl StaticPrecedenceResolver {
                     PrecedenceInfo {
                         level: prec_decl.level,
                         associativity: prec_decl.associativity,
-                        is_fragile: false, // Set based on grammar annotations
+                        is_fragile: false,
                     },
                 );
             }
         }
 
-        // Extract rule precedences
         for rules in grammar.rules.values() {
             for rule in rules {
                 if let Some(PrecedenceKind::Static(level)) = &rule.precedence {
@@ -56,21 +61,18 @@ impl StaticPrecedenceResolver {
                         },
                     );
 
-                    // Also extract token precedences from rules with precedence
-                    // This is how Tree-sitter determines token precedence - from the rules that use them
                     for symbol in &rule.rhs {
-                        if let Symbol::Terminal(token_id) = symbol {
-                            // Only set if not already set by explicit precedence declaration
-                            if !token_precedences.contains_key(token_id) {
-                                token_precedences.insert(
-                                    *token_id,
-                                    PrecedenceInfo {
-                                        level: *level,
-                                        associativity: assoc,
-                                        is_fragile: false,
-                                    },
-                                );
-                            }
+                        if let Symbol::Terminal(token_id) = symbol
+                            && !token_precedences.contains_key(token_id)
+                        {
+                            token_precedences.insert(
+                                *token_id,
+                                PrecedenceInfo {
+                                    level: *level,
+                                    associativity: assoc,
+                                    is_fragile: false,
+                                },
+                            );
                         }
                     }
                 }
@@ -83,32 +85,31 @@ impl StaticPrecedenceResolver {
         }
     }
 
-    /// Get precedence info for a token
+    /// Get precedence info for a token.
     pub fn token_precedence(&self, symbol: SymbolId) -> Option<PrecedenceInfo> {
         self.token_precedences.get(&symbol).copied()
     }
 
-    /// Get precedence info for a rule
+    /// Get precedence info for a rule.
     pub fn rule_precedence(&self, rule: RuleId) -> Option<PrecedenceInfo> {
         self.rule_precedences.get(&rule).copied()
     }
 }
 
-/// Result of precedence comparison
+/// Result of precedence comparison.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrecedenceComparison {
-    /// Shift action wins
+    /// Shift action wins.
     PreferShift,
-    /// Reduce action wins
+    /// Reduce action wins.
     PreferReduce,
-    /// Conflict is an error (non-associative)
+    /// Conflict is an error (non-associative).
     Error,
-    /// No precedence information to decide
+    /// No precedence information to decide.
     None,
 }
 
-/// Compare precedences for shift/reduce conflict resolution
-/// Direct port of Tree-sitter's precedence comparison logic
+/// Compare precedences for shift/reduce conflict resolution.
 pub fn compare_precedences(
     shift_prec: Option<PrecedenceInfo>,
     reduce_prec: Option<PrecedenceInfo>,
@@ -116,13 +117,11 @@ pub fn compare_precedences(
     match (shift_prec, reduce_prec) {
         (None, _) | (_, None) => PrecedenceComparison::None,
         (Some(shift), Some(reduce)) => {
-            // Higher precedence wins
             if shift.level > reduce.level {
                 PrecedenceComparison::PreferShift
             } else if reduce.level > shift.level {
                 PrecedenceComparison::PreferReduce
             } else {
-                // Same precedence - check associativity
                 match reduce.associativity {
                     Associativity::Left => PrecedenceComparison::PreferReduce,
                     Associativity::Right => PrecedenceComparison::PreferShift,
@@ -140,7 +139,6 @@ mod tests {
 
     #[test]
     fn test_precedence_comparison() {
-        // Higher precedence wins
         let shift = PrecedenceInfo {
             level: 2,
             associativity: Associativity::Left,
@@ -156,7 +154,6 @@ mod tests {
             PrecedenceComparison::PreferShift
         );
 
-        // Same level, left associative
         let shift = PrecedenceInfo {
             level: 1,
             associativity: Associativity::Left,
@@ -172,7 +169,6 @@ mod tests {
             PrecedenceComparison::PreferReduce
         );
 
-        // Same level, right associative
         let reduce_right = PrecedenceInfo {
             level: 1,
             associativity: Associativity::Right,
@@ -183,7 +179,6 @@ mod tests {
             PrecedenceComparison::PreferShift
         );
 
-        // Same level, non-associative
         let reduce_none = PrecedenceInfo {
             level: 1,
             associativity: Associativity::None,
@@ -199,7 +194,6 @@ mod tests {
     fn test_precedence_extraction() {
         let mut grammar = Grammar::new("test".to_string());
 
-        // Add precedence declarations
         grammar.precedences.push(Precedence {
             level: 1,
             associativity: Associativity::Left,
@@ -214,7 +208,6 @@ mod tests {
 
         let resolver = StaticPrecedenceResolver::from_grammar(&grammar);
 
-        // Check token precedences
         let prec10 = resolver.token_precedence(SymbolId(10)).unwrap();
         assert_eq!(prec10.level, 1);
         assert_eq!(prec10.associativity, Associativity::Left);
@@ -223,7 +216,6 @@ mod tests {
         assert_eq!(prec20.level, 2);
         assert_eq!(prec20.associativity, Associativity::Right);
 
-        // Non-existent token
         assert!(resolver.token_precedence(SymbolId(99)).is_none());
     }
 }

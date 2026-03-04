@@ -1,0 +1,18 @@
+[package]
+name = "adze-glr-precedence-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Tree-sitter compatible precedence comparison for GLR conflict resolution"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/adze-glr-precedence-core"
+publish = false
+
+[dependencies]
+adze-ir = { path = "../../ir", version = "0.8.0-dev" }
+
+[features]
+strict_docs = []
+strict_api = []

@@ -132,8 +132,6 @@ macro_rules! glr_trace {
 #[doc(hidden)]
 pub mod perf_optimizations;
 #[doc(hidden)]
-pub mod precedence_compare;
-#[doc(hidden)]
 pub mod symbol_comparison;
 #[doc(hidden)]
 pub mod version_info;
@@ -151,6 +149,10 @@ pub use advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
 #[doc(hidden)]
+pub use adze_glr_precedence_core::{
+    PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
+};
+#[doc(hidden)]
 pub use conflict_resolution::{RuntimeConflictResolver, VecWrapperResolver};
 #[doc(hidden)]
 pub use conflict_visualizer::{ConflictVisualizer, generate_dot_graph};
@@ -160,10 +162,6 @@ pub use gss::{GSSStats, GraphStructuredStack, StackNode};
 pub use parse_forest::{ForestNode, ParseError, ParseForest, ParseNode, ParseTree};
 #[doc(hidden)]
 pub use perf_optimizations::{ParseTableCache, PerfStats, StackDeduplicator, StackPool};
-#[doc(hidden)]
-pub use precedence_compare::{
-    PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
-};
 #[doc(hidden)]
 pub use symbol_comparison::{compare_symbols, compare_versions_with_symbols};
 #[doc(hidden)]

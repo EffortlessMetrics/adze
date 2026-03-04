@@ -356,6 +356,7 @@ name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
  "adze-bdd-scenario-fixtures",
+ "adze-glr-precedence-core",
  "adze-ir",
  "adze-parser-contract",
  "criterion",
@@ -374,6 +375,13 @@ dependencies = [
  "thiserror 2.0.18",
  "trybuild",
  "typed-arena",
+]
+
+[[package]]
+name = "adze-glr-precedence-core"
+version = "0.1.0"
+dependencies = [
+ "adze-ir",
 ]
 
 [[package]]
