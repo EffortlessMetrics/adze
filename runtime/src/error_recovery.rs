@@ -34,7 +34,7 @@ pub enum RecoveryStrategy {
 }
 
 /// Action to take for error recovery
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RecoveryAction {
     /// Insert a token to continue parsing
     InsertToken(adze_ir::SymbolId),
