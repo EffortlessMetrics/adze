@@ -988,3 +988,1240 @@ fn variant_leaf_multichar_keywords() {
         .collect();
     assert_eq!(keywords, vec!["function", "return", "const", "let"]);
 }
+
+// ── 36. Enum private (inherited) visibility ─────────────────────────────────
+
+#[test]
+fn enum_private_visibility() {
+    let e: ItemEnum = parse_quote! {
+        enum InternalExpr {
+            A,
+            B,
+        }
+    };
+    assert!(matches!(e.vis, syn::Visibility::Inherited));
+}
+
+// ── 37. Enum pub(crate) visibility ──────────────────────────────────────────
+
+#[test]
+fn enum_pub_crate_visibility() {
+    let e: ItemEnum = parse_quote! {
+        pub(crate) enum CrateExpr {
+            A,
+            B,
+        }
+    };
+    assert!(matches!(e.vis, syn::Visibility::Restricted(_)));
+}
+
+// ── 38. Enum pub(super) visibility ──────────────────────────────────────────
+
+#[test]
+fn enum_pub_super_visibility() {
+    let e: ItemEnum = parse_quote! {
+        pub(super) enum ParentExpr {
+            A,
+            B,
+        }
+    };
+    assert!(matches!(e.vis, syn::Visibility::Restricted(_)));
+}
+
+// ── 39. Doc comments on enum preserved ──────────────────────────────────────
+
+#[test]
+fn enum_doc_comments_preserved() {
+    let e: ItemEnum = parse_quote! {
+        /// Top-level expression
+        #[adze::language]
+        pub enum Expr {
+            Lit(i32),
+        }
+    };
+    let doc_count = e.attrs.iter().filter(|a| a.path().is_ident("doc")).count();
+    assert_eq!(doc_count, 1);
+    assert!(e.attrs.iter().any(|a| is_adze_attr(a, "language")));
+}
+
+// ── 40. Doc comments on variants preserved ──────────────────────────────────
+
+#[test]
+fn variant_doc_comments_preserved() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            /// A number literal
+            Number(#[adze::leaf(pattern = r"\d+")] String),
+            /// An addition expression
+            #[adze::prec_left(1)]
+            Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+        }
+    };
+    for variant in &e.variants {
+        let doc_attrs: Vec<_> = variant
+            .attrs
+            .iter()
+            .filter(|a| a.path().is_ident("doc"))
+            .collect();
+        assert_eq!(
+            doc_attrs.len(),
+            1,
+            "Variant {} should have 1 doc comment",
+            variant.ident
+        );
+    }
+}
+
+// ── 41. Multiple doc comments on same variant ───────────────────────────────
+
+#[test]
+fn variant_multiple_doc_comments() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            /// First line
+            /// Second line
+            #[adze::leaf(text = "nil")]
+            Nil,
+        }
+    };
+    let doc_count = e.variants[0]
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("doc"))
+        .count();
+    assert_eq!(doc_count, 2);
+}
+
+// ── 42. Enum with external attribute on variant struct context ───────────────
+
+#[test]
+fn enum_with_external_struct_in_grammar() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            #[adze::language]
+            pub enum Expr {
+                Lit(#[adze::leaf(pattern = r"\d+")] String),
+            }
+
+            #[adze::external]
+            struct IndentToken;
+        }
+    });
+    let items = module_items(&m);
+    let external_struct = items.iter().find_map(|i| {
+        if let Item::Struct(s) = i {
+            if s.attrs.iter().any(|a| is_adze_attr(a, "external")) {
+                Some(s)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    });
+    assert!(external_struct.is_some());
+    assert_eq!(external_struct.unwrap().ident, "IndentToken");
+}
+
+// ── 43. Enum with skip field inside named variant ───────────────────────────
+
+#[test]
+fn named_variant_with_skip_field() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Node {
+            Data {
+                #[adze::leaf(pattern = r"\w+")]
+                name: String,
+                #[adze::skip(0)]
+                count: i32,
+            },
+        }
+    };
+    if let Fields::Named(ref n) = e.variants[0].fields {
+        let skip_field = n
+            .named
+            .iter()
+            .find(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
+            .unwrap();
+        assert_eq!(skip_field.ident.as_ref().unwrap(), "count");
+    } else {
+        panic!("Expected named fields");
+    }
+}
+
+// ── 44. Enum with skip default expression ───────────────────────────────────
+
+#[test]
+fn named_variant_skip_default_expr() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Node {
+            Info {
+                #[adze::leaf(pattern = r"\w+")]
+                name: String,
+                #[adze::skip(Vec::new())]
+                children: Vec<String>,
+            },
+        }
+    };
+    if let Fields::Named(ref n) = e.variants[0].fields {
+        let skip_field = n
+            .named
+            .iter()
+            .find(|f| f.attrs.iter().any(|a| is_adze_attr(a, "skip")))
+            .unwrap();
+        let attr = skip_field
+            .attrs
+            .iter()
+            .find(|a| is_adze_attr(a, "skip"))
+            .unwrap();
+        let expr: syn::Expr = attr.parse_args().unwrap();
+        let expr_str = expr.to_token_stream().to_string();
+        assert!(expr_str.contains("Vec"));
+    } else {
+        panic!("Expected named fields");
+    }
+}
+
+// ── 45. Enum with derive Debug ──────────────────────────────────────────────
+
+#[test]
+fn enum_derive_debug() {
+    let e: ItemEnum = parse_quote! {
+        #[derive(Debug)]
+        pub enum Token {
+            #[adze::leaf(text = "x")]
+            X,
+        }
+    };
+    let derive = e
+        .attrs
+        .iter()
+        .find(|a| a.path().is_ident("derive"))
+        .unwrap();
+    let tokens = derive.to_token_stream().to_string();
+    assert!(tokens.contains("Debug"));
+}
+
+// ── 46. Enum with derive Clone ──────────────────────────────────────────────
+
+#[test]
+fn enum_derive_clone() {
+    let e: ItemEnum = parse_quote! {
+        #[derive(Clone)]
+        pub enum Token {
+            #[adze::leaf(text = "y")]
+            Y,
+        }
+    };
+    let derive = e
+        .attrs
+        .iter()
+        .find(|a| a.path().is_ident("derive"))
+        .unwrap();
+    let tokens = derive.to_token_stream().to_string();
+    assert!(tokens.contains("Clone"));
+}
+
+// ── 47. Enum with multiple derives in one attribute ─────────────────────────
+
+#[test]
+fn enum_multiple_derives_single_attr() {
+    let e: ItemEnum = parse_quote! {
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[adze::language]
+        pub enum Expr {
+            Lit(i32),
+        }
+    };
+    let derive = e
+        .attrs
+        .iter()
+        .find(|a| a.path().is_ident("derive"))
+        .unwrap();
+    let tokens = derive.to_token_stream().to_string();
+    assert!(tokens.contains("Debug"));
+    assert!(tokens.contains("Clone"));
+    assert!(tokens.contains("PartialEq"));
+    assert!(tokens.contains("Eq"));
+    assert!(tokens.contains("Hash"));
+}
+
+// ── 48. Enum with separate derive attributes ────────────────────────────────
+
+#[test]
+fn enum_separate_derive_attrs() {
+    let e: ItemEnum = parse_quote! {
+        #[derive(Debug)]
+        #[derive(Clone)]
+        #[derive(PartialEq)]
+        pub enum Token {
+            A,
+        }
+    };
+    let derive_count = e
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("derive"))
+        .count();
+    assert_eq!(derive_count, 3);
+}
+
+// ── 49. Variant with prec_left and leaf in named struct fields ──────────────
+
+#[test]
+fn variant_prec_left_with_named_fields() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(i32),
+            #[adze::prec_left(2)]
+            BinOp {
+                lhs: Box<Expr>,
+                #[adze::leaf(text = "+")]
+                _op: (),
+                rhs: Box<Expr>,
+            },
+        }
+    };
+    let binop = &e.variants[1];
+    assert!(binop.attrs.iter().any(|a| is_adze_attr(a, "prec_left")));
+    assert!(matches!(binop.fields, Fields::Named(_)));
+    if let Fields::Named(ref n) = binop.fields {
+        assert_eq!(n.named.len(), 3);
+        let op_field = &n.named[1];
+        assert!(op_field.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+    }
+}
+
+// ── 50. Variant with prec_right and named fields ────────────────────────────
+
+#[test]
+fn variant_prec_right_with_named_fields() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(i32),
+            #[adze::prec_right(1)]
+            Assign {
+                target: Box<Expr>,
+                #[adze::leaf(text = "=")]
+                _eq: (),
+                value: Box<Expr>,
+            },
+        }
+    };
+    let assign = &e.variants[1];
+    assert!(assign.attrs.iter().any(|a| is_adze_attr(a, "prec_right")));
+    let attr = assign
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "prec_right"))
+        .unwrap();
+    assert_eq!(prec_value(attr), 1);
+}
+
+// ── 51. Variant with zero precedence level ──────────────────────────────────
+
+#[test]
+fn variant_prec_zero_level() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(i32),
+            #[adze::prec_left(0)]
+            Low(Box<Expr>, Box<Expr>),
+        }
+    };
+    let attr = e.variants[1]
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "prec_left"))
+        .unwrap();
+    assert_eq!(prec_value(attr), 0);
+}
+
+// ── 52. Variant with high precedence level ──────────────────────────────────
+
+#[test]
+fn variant_prec_high_level() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(i32),
+            #[adze::prec_left(100)]
+            VeryHigh(Box<Expr>, Box<Expr>),
+        }
+    };
+    let attr = e.variants[1]
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "prec_left"))
+        .unwrap();
+    assert_eq!(prec_value(attr), 100);
+}
+
+// ── 53. Enum ident preserved ────────────────────────────────────────────────
+
+#[test]
+fn enum_ident_preserved() {
+    let e: ItemEnum = parse_quote! {
+        pub enum MyCustomExpression {
+            A,
+        }
+    };
+    assert_eq!(e.ident, "MyCustomExpression");
+}
+
+// ── 54. Empty variant list parses (edge case) ───────────────────────────────
+
+#[test]
+fn enum_empty_variants() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Empty {}
+    };
+    assert_eq!(e.variants.len(), 0);
+}
+
+// ── 55. Variant with tuple field containing Vec ─────────────────────────────
+
+#[test]
+fn variant_tuple_with_vec_and_repeat() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Args(
+                #[adze::leaf(text = "(")]
+                (),
+                #[adze::repeat(non_empty = true)]
+                #[adze::delimited(
+                    #[adze::leaf(text = ",")]
+                    ()
+                )]
+                Vec<Arg>,
+                #[adze::leaf(text = ")")]
+                (),
+            ),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        assert_eq!(u.unnamed.len(), 3);
+        let mid = &u.unnamed[1];
+        assert!(mid.attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+        assert!(mid.attrs.iter().any(|a| is_adze_attr(a, "delimited")));
+    } else {
+        panic!("Expected unnamed fields");
+    }
+}
+
+// ── 56. Variant leaf text empty string ──────────────────────────────────────
+
+#[test]
+fn variant_leaf_text_empty_string() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Token {
+            #[adze::leaf(text = "")]
+            Empty,
+        }
+    };
+    let attr = e.variants[0]
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "leaf"))
+        .unwrap();
+    let params = leaf_params(attr);
+    if let syn::Expr::Lit(syn::ExprLit {
+        lit: syn::Lit::Str(s),
+        ..
+    }) = &params[0].expr
+    {
+        assert_eq!(s.value(), "");
+    } else {
+        panic!("Expected string literal");
+    }
+}
+
+// ── 57. Variant leaf text with special characters ───────────────────────────
+
+#[test]
+fn variant_leaf_text_special_chars() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Op {
+            #[adze::leaf(text = "&&")]
+            And,
+            #[adze::leaf(text = "||")]
+            Or,
+            #[adze::leaf(text = "!=")]
+            NotEq,
+            #[adze::leaf(text = ">=")]
+            GtEq,
+            #[adze::leaf(text = "<=")]
+            LtEq,
+            #[adze::leaf(text = "==")]
+            EqEq,
+        }
+    };
+    let expected_texts = ["&&", "||", "!=", ">=", "<=", "=="];
+    for (i, variant) in e.variants.iter().enumerate() {
+        let attr = variant
+            .attrs
+            .iter()
+            .find(|a| is_adze_attr(a, "leaf"))
+            .unwrap();
+        let params = leaf_params(attr);
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = &params[0].expr
+        {
+            assert_eq!(s.value(), expected_texts[i]);
+        }
+    }
+}
+
+// ── 58. Variant leaf pattern with unicode character class ───────────────────
+
+#[test]
+fn variant_leaf_pattern_unicode() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Token {
+            Ident(#[adze::leaf(pattern = r"[\p{L}_][\p{L}\p{N}_]*")] String),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        let attr = u.unnamed[0]
+            .attrs
+            .iter()
+            .find(|a| is_adze_attr(a, "leaf"))
+            .unwrap();
+        let params = leaf_params(attr);
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = &params[0].expr
+        {
+            assert!(s.value().contains(r"\p{L}"));
+        }
+    }
+}
+
+// ── 59. Variant with only Box<Self> pattern ─────────────────────────────────
+
+#[test]
+fn variant_box_self_reference() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Tree {
+            Leaf(#[adze::leaf(pattern = r"\d+")] String),
+            Node(Box<Tree>, Box<Tree>),
+        }
+    };
+    let node_types = variant_field_types(&e.variants[1]);
+    assert_eq!(node_types, vec!["Box < Tree >", "Box < Tree >"]);
+}
+
+// ── 60. Enum variant with many tuple fields ─────────────────────────────────
+
+#[test]
+fn variant_many_tuple_fields() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Ternary(
+                Box<Expr>,
+                #[adze::leaf(text = "?")]
+                (),
+                Box<Expr>,
+                #[adze::leaf(text = ":")]
+                (),
+                Box<Expr>,
+            ),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        assert_eq!(u.unnamed.len(), 5);
+        let leaf_indices: Vec<usize> = u
+            .unnamed
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| f.attrs.iter().any(|a| is_adze_attr(a, "leaf")))
+            .map(|(i, _)| i)
+            .collect();
+        assert_eq!(leaf_indices, vec![1, 3]);
+    }
+}
+
+// ── 61. Named variant with underscore-prefixed punct fields ─────────────────
+
+#[test]
+fn named_variant_underscore_punct_fields() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Grouped {
+                #[adze::leaf(text = "(")]
+                _open: (),
+                inner: Box<Expr>,
+                #[adze::leaf(text = ")")]
+                _close: (),
+            },
+        }
+    };
+    if let Fields::Named(ref n) = e.variants[0].fields {
+        let names: Vec<_> = n
+            .named
+            .iter()
+            .map(|f| f.ident.as_ref().unwrap().to_string())
+            .collect();
+        assert_eq!(names, vec!["_open", "inner", "_close"]);
+        let unit_fields: Vec<_> = n
+            .named
+            .iter()
+            .filter(|f| f.ty.to_token_stream().to_string() == "()")
+            .map(|f| f.ident.as_ref().unwrap().to_string())
+            .collect();
+        assert_eq!(unit_fields, vec!["_open", "_close"]);
+    }
+}
+
+// ── 62. Enum with cfg attribute alongside adze ──────────────────────────────
+
+#[test]
+fn enum_cfg_attr_alongside_adze() {
+    let e: ItemEnum = parse_quote! {
+        #[cfg(feature = "full")]
+        #[adze::language]
+        pub enum Expr {
+            Lit(i32),
+        }
+    };
+    assert_eq!(e.attrs.len(), 2);
+    let adze_names = adze_attr_names(&e.attrs);
+    assert_eq!(adze_names, vec!["language"]);
+}
+
+// ── 63. Variant with cfg attribute ──────────────────────────────────────────
+
+#[test]
+fn variant_with_cfg_attribute() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            #[cfg(feature = "full")]
+            Extended(Box<Expr>),
+            Basic(#[adze::leaf(pattern = r"\d+")] String),
+        }
+    };
+    let extended = &e.variants[0];
+    assert!(extended.attrs.iter().any(|a| a.path().is_ident("cfg")));
+    assert_eq!(e.variants.len(), 2);
+}
+
+// ── 64. Variant with doc + prec + leaf on fields ────────────────────────────
+
+#[test]
+fn variant_doc_prec_leaf_combined() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(i32),
+            /// Addition
+            #[adze::prec_left(1)]
+            Add(
+                Box<Expr>,
+                #[adze::leaf(text = "+")]
+                (),
+                Box<Expr>,
+            ),
+        }
+    };
+    let add = &e.variants[1];
+    let doc_count = add
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("doc"))
+        .count();
+    assert_eq!(doc_count, 1);
+    assert!(add.attrs.iter().any(|a| is_adze_attr(a, "prec_left")));
+    if let Fields::Unnamed(ref u) = add.fields {
+        assert!(u.unnamed[1].attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+    }
+}
+
+// ── 65. Enum variant referencing Spanned<T> ─────────────────────────────────
+
+#[test]
+fn variant_with_spanned_wrapper() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(Spanned<Number>),
+        }
+    };
+    let types = variant_field_types(&e.variants[0]);
+    assert_eq!(types, vec!["Spanned < Number >"]);
+}
+
+// ── 66. Variant with multiple Box<T> fields ─────────────────────────────────
+
+#[test]
+fn variant_multiple_box_fields() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Stmt {
+            IfElse(
+                #[adze::leaf(text = "if")]
+                (),
+                Box<Expr>,
+                #[adze::leaf(text = "then")]
+                (),
+                Box<Stmt>,
+                #[adze::leaf(text = "else")]
+                (),
+                Box<Stmt>,
+            ),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        assert_eq!(u.unnamed.len(), 6);
+        let box_count = u
+            .unnamed
+            .iter()
+            .filter(|f| f.ty.to_token_stream().to_string().starts_with("Box"))
+            .count();
+        assert_eq!(box_count, 3);
+    }
+}
+
+// ── 67. Enum with all prec kinds on different variants ──────────────────────
+
+#[test]
+fn enum_all_prec_kinds() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(i32),
+            #[adze::prec(1)]
+            NoAssoc(Box<Expr>, Box<Expr>),
+            #[adze::prec_left(2)]
+            LeftAssoc(Box<Expr>, Box<Expr>),
+            #[adze::prec_right(3)]
+            RightAssoc(Box<Expr>, Box<Expr>),
+        }
+    };
+    let prec_kinds: Vec<(String, String)> = e
+        .variants
+        .iter()
+        .filter_map(|v| {
+            for kind in &["prec", "prec_left", "prec_right"] {
+                if v.attrs.iter().any(|a| is_adze_attr(a, kind)) {
+                    return Some((v.ident.to_string(), kind.to_string()));
+                }
+            }
+            None
+        })
+        .collect();
+    assert_eq!(prec_kinds.len(), 3);
+    assert_eq!(prec_kinds[0], ("NoAssoc".into(), "prec".into()));
+    assert_eq!(prec_kinds[1], ("LeftAssoc".into(), "prec_left".into()));
+    assert_eq!(prec_kinds[2], ("RightAssoc".into(), "prec_right".into()));
+}
+
+// ── 68. Variant with try_extract_inner_type on Vec ──────────────────────────
+
+#[test]
+fn variant_extract_vec_inner_type() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            List(Vec<Item>),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        let skip: HashSet<&str> = HashSet::new();
+        let (inner, extracted) = try_extract_inner_type(&u.unnamed[0].ty, "Vec", &skip);
+        assert!(extracted);
+        assert_eq!(inner.to_token_stream().to_string(), "Item");
+    }
+}
+
+// ── 69. Variant with try_extract_inner_type on Box<Vec<T>> ──────────────────
+
+#[test]
+fn variant_extract_vec_through_box() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Items(Box<Vec<Item>>),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        let skip: HashSet<&str> = ["Box"].into_iter().collect();
+        let (inner, extracted) = try_extract_inner_type(&u.unnamed[0].ty, "Vec", &skip);
+        assert!(extracted);
+        assert_eq!(inner.to_token_stream().to_string(), "Item");
+    }
+}
+
+// ── 70. Enum with generic type parameter ────────────────────────────────────
+
+#[test]
+fn enum_with_generic_type_param() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Tree<T> {
+            Leaf(T),
+            Node(Box<Tree<T>>, Box<Tree<T>>),
+        }
+    };
+    assert_eq!(e.generics.params.len(), 1);
+    assert_eq!(e.variants.len(), 2);
+    let node_types = variant_field_types(&e.variants[1]);
+    assert_eq!(node_types, vec!["Box < Tree < T > >", "Box < Tree < T > >"]);
+}
+
+// ── 71. Enum with multiple generic type parameters ──────────────────────────
+
+#[test]
+fn enum_with_multiple_generic_params() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Either<L, R> {
+            Left(L),
+            Right(R),
+        }
+    };
+    assert_eq!(e.generics.params.len(), 2);
+    let left_types = variant_field_types(&e.variants[0]);
+    let right_types = variant_field_types(&e.variants[1]);
+    assert_eq!(left_types, vec!["L"]);
+    assert_eq!(right_types, vec!["R"]);
+}
+
+// ── 72. Enum with lifetime parameter ────────────────────────────────────────
+
+#[test]
+fn enum_with_lifetime_param() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Ref<'a> {
+            Borrowed(&'a str),
+            Owned(String),
+        }
+    };
+    assert_eq!(e.generics.params.len(), 1);
+    assert_eq!(e.variants.len(), 2);
+}
+
+// ── 73. Enum with where clause ──────────────────────────────────────────────
+
+#[test]
+fn enum_with_where_clause() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Container<T> where T: Clone {
+            Single(T),
+            Multiple(Vec<T>),
+        }
+    };
+    assert!(e.generics.where_clause.is_some());
+    assert_eq!(e.variants.len(), 2);
+}
+
+// ── 74. Variant with leaf pattern on String type ────────────────────────────
+
+#[test]
+fn variant_leaf_pattern_string_type() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Token {
+            Ident(#[adze::leaf(pattern = r"[a-zA-Z_]\w*")] String),
+            Number(#[adze::leaf(pattern = r"\d+")] String),
+        }
+    };
+    for variant in &e.variants {
+        if let Fields::Unnamed(ref u) = variant.fields {
+            assert_eq!(u.unnamed[0].ty.to_token_stream().to_string(), "String");
+            assert!(u.unnamed[0].attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+        }
+    }
+}
+
+// ── 75. Variant field type is () for punctuation ────────────────────────────
+
+#[test]
+fn variant_unit_typed_punctuation_fields() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Group(
+                #[adze::leaf(text = "(")] (),
+                Box<Expr>,
+                #[adze::leaf(text = ")")] (),
+            ),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        let unit_count = u
+            .unnamed
+            .iter()
+            .filter(|f| f.ty.to_token_stream().to_string() == "()")
+            .count();
+        assert_eq!(unit_count, 2);
+    }
+}
+
+// ── 76. Enum in grammar with use statement ──────────────────────────────────
+
+#[test]
+fn enum_grammar_with_use_statement() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            use adze::Spanned;
+
+            #[adze::language]
+            pub enum Expr {
+                Lit(Spanned<Number>),
+            }
+
+            pub struct Number {
+                #[adze::leaf(pattern = r"\d+")]
+                value: String,
+            }
+        }
+    });
+    let items = module_items(&m);
+    let has_use = items.iter().any(|i| matches!(i, Item::Use(_)));
+    assert!(has_use);
+}
+
+// ── 77. Variant with leaf text single char ──────────────────────────────────
+
+#[test]
+fn variant_leaf_text_single_char() {
+    let chars = [
+        "+", "-", "*", "/", "(", ")", "{", "}", "[", "]", ";", ",", ".",
+    ];
+    for c in &chars {
+        let text = *c;
+        let tokens = quote! {
+            pub enum T {
+                #[adze::leaf(text = #text)]
+                V,
+            }
+        };
+        let e: ItemEnum = syn::parse2(tokens).unwrap();
+        let attr = e.variants[0]
+            .attrs
+            .iter()
+            .find(|a| is_adze_attr(a, "leaf"))
+            .unwrap();
+        let params = leaf_params(attr);
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = &params[0].expr
+        {
+            assert_eq!(s.value(), *c);
+        }
+    }
+}
+
+// ── 78. Variant with filter_inner_type stripping Box and Option ─────────────
+
+#[test]
+fn variant_filter_inner_strips_multiple_wrappers() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            A(Box<Inner>),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        let skip: HashSet<&str> = ["Box", "Option"].into_iter().collect();
+        let filtered = filter_inner_type(&u.unnamed[0].ty, &skip);
+        assert_eq!(filtered.to_token_stream().to_string(), "Inner");
+    }
+}
+
+// ── 79. Large enum variant names are unique ─────────────────────────────────
+
+#[test]
+fn enum_variant_names_unique() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Number(i32),
+            String(String),
+            Bool(bool),
+            Nil,
+            Add(Box<Expr>, Box<Expr>),
+            Sub(Box<Expr>, Box<Expr>),
+            Mul(Box<Expr>, Box<Expr>),
+            Div(Box<Expr>, Box<Expr>),
+            Neg(Box<Expr>),
+            Group(Box<Expr>),
+        }
+    };
+    let names: Vec<String> = e.variants.iter().map(|v| v.ident.to_string()).collect();
+    let unique: HashSet<String> = names.iter().cloned().collect();
+    assert_eq!(names.len(), unique.len());
+    assert_eq!(names.len(), 10);
+}
+
+// ── 80. Enum prec values are monotonically increasing ───────────────────────
+
+#[test]
+fn enum_prec_values_increasing() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Lit(i32),
+            #[adze::prec_left(1)]
+            Add(Box<Expr>, Box<Expr>),
+            #[adze::prec_left(2)]
+            Mul(Box<Expr>, Box<Expr>),
+            #[adze::prec_right(3)]
+            Pow(Box<Expr>, Box<Expr>),
+        }
+    };
+    let prec_values: Vec<i32> = e
+        .variants
+        .iter()
+        .filter_map(|v| {
+            for kind in &["prec", "prec_left", "prec_right"] {
+                if let Some(attr) = v.attrs.iter().find(|a| is_adze_attr(a, kind)) {
+                    return Some(prec_value(attr));
+                }
+            }
+            None
+        })
+        .collect();
+    assert_eq!(prec_values, vec![1, 2, 3]);
+    for i in 1..prec_values.len() {
+        assert!(prec_values[i] > prec_values[i - 1]);
+    }
+}
+
+// ── 81. Variant with Option<Box<T>> nested type ─────────────────────────────
+
+#[test]
+fn variant_option_box_nested_type() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            MaybeChild(Option<Box<Expr>>),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        let skip: HashSet<&str> = HashSet::new();
+        let (inner, extracted) = try_extract_inner_type(&u.unnamed[0].ty, "Option", &skip);
+        assert!(extracted);
+        assert_eq!(inner.to_token_stream().to_string(), "Box < Expr >");
+    }
+}
+
+// ── 82. Enum with only unit variants all having leaf ────────────────────────
+
+#[test]
+fn enum_all_unit_variants_with_leaf() {
+    let e: ItemEnum = parse_quote! {
+        pub enum BoolLit {
+            #[adze::leaf(text = "true")]
+            True,
+            #[adze::leaf(text = "false")]
+            False,
+        }
+    };
+    assert_eq!(e.variants.len(), 2);
+    for variant in &e.variants {
+        assert!(matches!(variant.fields, Fields::Unit));
+        assert!(variant.attrs.iter().any(|a| is_adze_attr(a, "leaf")));
+    }
+}
+
+// ── 83. Enum variant attribute ordering preserved ───────────────────────────
+
+#[test]
+fn variant_attribute_ordering_preserved() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            /// docs first
+            #[adze::prec_left(1)]
+            Add(Box<Expr>, Box<Expr>),
+        }
+    };
+    let attrs = &e.variants[0].attrs;
+    assert!(attrs[0].path().is_ident("doc"));
+    assert!(is_adze_attr(&attrs[1], "prec_left"));
+}
+
+// ── 84. Variant with no fields and no attributes ────────────────────────────
+
+#[test]
+fn variant_bare_unit_no_attrs() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Direction {
+            North,
+            South,
+            East,
+            West,
+        }
+    };
+    for variant in &e.variants {
+        assert!(matches!(variant.fields, Fields::Unit));
+        assert!(variant.attrs.is_empty());
+    }
+}
+
+// ── 85. Enum with mixed visibility variants in grammar ──────────────────────
+
+#[test]
+fn enum_in_grammar_module_with_struct_helper() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            #[adze::language]
+            pub enum Expr {
+                Lit(Number),
+                Neg(#[adze::leaf(text = "-")] (), Box<Expr>),
+            }
+
+            pub struct Number {
+                #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+                value: i32,
+            }
+
+            #[adze::extra]
+            struct Whitespace {
+                #[adze::leaf(pattern = r"\s")]
+                _ws: (),
+            }
+        }
+    });
+    let items = module_items(&m);
+    let enum_count = items.iter().filter(|i| matches!(i, Item::Enum(_))).count();
+    let struct_count = items
+        .iter()
+        .filter(|i| matches!(i, Item::Struct(_)))
+        .count();
+    assert_eq!(enum_count, 1);
+    assert_eq!(struct_count, 2);
+}
+
+// ── 86. Variant leaf pattern with anchors ───────────────────────────────────
+
+#[test]
+fn variant_leaf_pattern_with_anchors() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Token {
+            Line(#[adze::leaf(pattern = r"^[^\n]*$")] String),
+        }
+    };
+    if let Fields::Unnamed(ref u) = e.variants[0].fields {
+        let attr = u.unnamed[0]
+            .attrs
+            .iter()
+            .find(|a| is_adze_attr(a, "leaf"))
+            .unwrap();
+        let params = leaf_params(attr);
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = &params[0].expr
+        {
+            assert_eq!(s.value(), r"^[^\n]*$");
+        }
+    }
+}
+
+// ── 87. Named variant field with Vec and repeat ─────────────────────────────
+
+#[test]
+fn named_variant_vec_with_repeat() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Expr {
+            Block {
+                #[adze::leaf(text = "{")]
+                _open: (),
+                #[adze::repeat(non_empty = true)]
+                stmts: Vec<Stmt>,
+                #[adze::leaf(text = "}")]
+                _close: (),
+            },
+        }
+    };
+    if let Fields::Named(ref n) = e.variants[0].fields {
+        let stmts_field = n
+            .named
+            .iter()
+            .find(|f| f.ident.as_ref().unwrap() == "stmts")
+            .unwrap();
+        assert!(stmts_field.attrs.iter().any(|a| is_adze_attr(a, "repeat")));
+        assert_eq!(stmts_field.ty.to_token_stream().to_string(), "Vec < Stmt >");
+    }
+}
+
+// ── 88. Enum variant roundtrip through quote ────────────────────────────────
+
+#[test]
+fn variant_roundtrip_through_quote() {
+    let original: ItemEnum = parse_quote! {
+        #[adze::language]
+        pub enum Expr {
+            #[adze::leaf(text = "nil")]
+            Nil,
+            #[adze::prec_left(1)]
+            Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+        }
+    };
+    let tokens = original.to_token_stream();
+    let reparsed: ItemEnum = syn::parse2(tokens).unwrap();
+    assert_eq!(original.variants.len(), reparsed.variants.len());
+    assert_eq!(original.ident, reparsed.ident);
+    for (o, r) in original.variants.iter().zip(reparsed.variants.iter()) {
+        assert_eq!(o.ident, r.ident);
+    }
+}
+
+// ── 89. Enum variant discriminant is None ───────────────────────────────────
+
+#[test]
+fn variant_no_discriminant() {
+    let e: ItemEnum = parse_quote! {
+        pub enum Token {
+            #[adze::leaf(text = "a")]
+            A,
+            #[adze::leaf(text = "b")]
+            B,
+        }
+    };
+    for variant in &e.variants {
+        assert!(variant.discriminant.is_none());
+    }
+}
+
+// ── 90. Enum with three enums in grammar ────────────────────────────────────
+
+#[test]
+fn three_enums_in_grammar() {
+    let m = parse_mod(quote! {
+        #[adze::grammar("test")]
+        mod grammar {
+            #[adze::language]
+            pub enum Expr {
+                Lit(Literal),
+                BinOp(Box<Expr>, Op, Box<Expr>),
+                UnaryOp(UnaryOp, Box<Expr>),
+            }
+
+            pub enum Literal {
+                #[adze::leaf(text = "true")]
+                True,
+                #[adze::leaf(text = "false")]
+                False,
+            }
+
+            pub enum Op {
+                #[adze::leaf(text = "+")]
+                Plus,
+                #[adze::leaf(text = "-")]
+                Minus,
+            }
+
+            pub enum UnaryOp {
+                #[adze::leaf(text = "!")]
+                Not,
+                #[adze::leaf(text = "-")]
+                Neg,
+            }
+        }
+    });
+    let items = module_items(&m);
+    let enums: Vec<_> = items
+        .iter()
+        .filter_map(|i| if let Item::Enum(e) = i { Some(e) } else { None })
+        .collect();
+    assert_eq!(enums.len(), 4);
+    let names: Vec<_> = enums.iter().map(|e| e.ident.to_string()).collect();
+    assert!(names.contains(&"Expr".to_string()));
+    assert!(names.contains(&"Literal".to_string()));
+    assert!(names.contains(&"Op".to_string()));
+    assert!(names.contains(&"UnaryOp".to_string()));
+}
