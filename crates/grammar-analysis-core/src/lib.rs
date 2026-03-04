@@ -1,0 +1,60 @@
+//! Core helpers for panic-safe grammar analysis.
+
+#![forbid(unsafe_op_in_unsafe_fn)]
+#![deny(missing_docs)]
+#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
+#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
+#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
+#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+
+use adze_tool::pure_rust_builder::{BuildOptions, BuildResult, build_parser_for_crate};
+use anyhow::Result;
+use std::panic::AssertUnwindSafe;
+use std::path::Path;
+
+/// Analyze an adze grammar file and return parser-build metadata.
+///
+/// This operation runs parser generation in a panic boundary, returning an error
+/// if analysis panics or if no grammar definitions are found.
+pub fn analyze_grammar_file(grammar: &Path, compress_tables: bool) -> Result<Vec<BuildResult>> {
+    let temp_dir = tempfile::tempdir()?;
+    let options = BuildOptions {
+        out_dir: temp_dir.path().to_string_lossy().to_string(),
+        emit_artifacts: false,
+        compress_tables,
+    };
+
+    let grammar_path = grammar.to_owned();
+    let build_result = std::panic::catch_unwind(AssertUnwindSafe(move || {
+        build_parser_for_crate(&grammar_path, options)
+    }))
+    .map_err(|_| anyhow::anyhow!("Grammar analysis panicked"))?;
+
+    let results = build_result?;
+    if results.is_empty() {
+        anyhow::bail!("No adze grammar definitions found in {}", grammar.display());
+    }
+
+    Ok(results)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::analyze_grammar_file;
+    use std::fs;
+
+    #[test]
+    fn returns_error_when_no_grammars_present() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let path = temp_dir.path().join("not_a_grammar.rs");
+        fs::write(&path, "fn helper() {}\n").expect("write fixture");
+
+        let err = analyze_grammar_file(&path, false).expect_err("should fail");
+        let message = format!("{err:#}");
+        assert!(
+            message.contains("No adze grammar definitions found")
+                || message.contains("Could not find grammar file"),
+            "unexpected error: {message}"
+        );
+    }
+}
