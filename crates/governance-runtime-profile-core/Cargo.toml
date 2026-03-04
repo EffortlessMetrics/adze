@@ -1,0 +1,25 @@
+[package]
+name = "adze-governance-runtime-profile-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Runtime/runtime2 parser feature profile helpers for governance crates."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["governance", "parser", "runtime", "profile", "policy"]
+categories = ["development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-governance-runtime-profile-core"
+
+[features]
+default = []
+pure-rust = ["adze-feature-policy-core/pure-rust"]
+tree-sitter-c2rust = ["adze-feature-policy-core/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-feature-policy-core/tree-sitter-standard"]
+glr = ["pure-rust", "adze-feature-policy-core/glr"]
+strict_api = ["adze-feature-policy-core/strict_api"]
+strict_docs = ["adze-feature-policy-core/strict_docs"]
+
+[dependencies]
+adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
