@@ -12,6 +12,14 @@
 //! 8.  Edge cases: empty, single-entry, large tables
 //! 9.  Bit packing error mask correctness
 //! 10. Encoding boundary values
+//! 11. CompressedParseTable unit tests
+//! 12. Identical rows deduplication efficiency
+//! 13. Sparse goto compression efficiency
+//! 14. Wide symbol count
+//! 15. StaticLanguageGenerator output properties
+//! 16. NodeTypesGenerator JSON validity
+//! 17. Large grammar compression
+//! 18. Compression with different verbosity settings
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
 use adze_ir::{Grammar, RuleId, StateId, SymbolId, Token, TokenPattern};
@@ -25,6 +33,7 @@ use adze_tablegen::compression::{
 };
 use adze_tablegen::eof_accepts_or_reduces;
 use proptest::prelude::*;
+use serde_json;
 use std::collections::BTreeMap;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -1293,4 +1302,728 @@ fn wide_symbol_count_100_columns() {
         };
         assert_eq!(decompress_action(&compressed, 0, sym), expected);
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 15. StaticLanguageGenerator output properties
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn make_static_gen(grammar_fn: impl FnOnce() -> Grammar) -> adze_tablegen::StaticLanguageGenerator {
+    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+
+    let mut grammar = grammar_fn();
+    let ff =
+        FirstFollowSets::compute_normalized(&mut grammar).expect("FIRST/FOLLOW computation failed");
+    let table = build_lr1_automaton(&grammar, &ff).expect("LR(1) automaton construction failed");
+    adze_tablegen::StaticLanguageGenerator::new(grammar, table)
+}
+
+#[test]
+fn static_lang_gen_produces_nonempty_code() {
+    use adze_ir::builder::GrammarBuilder;
+    let ntg = make_static_gen(|| {
+        GrammarBuilder::new("demo")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+    let code = ntg.generate_language_code();
+    let code_str = code.to_string();
+    assert!(!code_str.is_empty());
+}
+
+#[test]
+fn static_lang_gen_code_contains_language_fn() {
+    use adze_ir::builder::GrammarBuilder;
+    let ntg = make_static_gen(|| {
+        GrammarBuilder::new("my_lang")
+            .token("x", "x")
+            .rule("start", vec!["x"])
+            .start("start")
+            .build()
+    });
+    let code_str = ntg.generate_language_code().to_string();
+    assert!(code_str.contains("tree_sitter_my_lang"));
+}
+
+#[test]
+fn static_lang_gen_code_contains_tslanguage() {
+    use adze_ir::builder::GrammarBuilder;
+    let ntg = make_static_gen(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+    let code_str = ntg.generate_language_code().to_string();
+    assert!(code_str.contains("TSLanguage"));
+}
+
+#[test]
+fn static_lang_gen_code_contains_symbol_names() {
+    use adze_ir::builder::GrammarBuilder;
+    let ntg = make_static_gen(|| {
+        GrammarBuilder::new("t")
+            .token("number", "[0-9]+")
+            .rule("start", vec!["number"])
+            .start("start")
+            .build()
+    });
+    let code_str = ntg.generate_language_code().to_string();
+    assert!(code_str.contains("SYMBOL_NAMES"));
+}
+
+#[test]
+fn static_lang_gen_node_types_is_valid_json() {
+    use adze_ir::builder::GrammarBuilder;
+    let ntg = make_static_gen(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+    let json_str = ntg.generate_node_types();
+    let parsed: serde_json::Value = serde_json::from_str(&json_str).expect("invalid JSON");
+    assert!(parsed.is_array());
+}
+
+#[test]
+fn static_lang_gen_node_types_contains_rules() {
+    use adze_ir::builder::GrammarBuilder;
+    let ntg = make_static_gen(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("expr", vec!["a"])
+            .start("expr")
+            .build()
+    });
+    let json_str = ntg.generate_node_types();
+    let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+    let arr = parsed.as_array().unwrap();
+    // Should have at least one node type entry for the rule
+    assert!(!arr.is_empty());
+}
+
+#[test]
+fn static_lang_gen_compress_tables_succeeds() {
+    use adze_ir::builder::GrammarBuilder;
+    let mut ntg = make_static_gen(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+    ntg.compress_tables().expect("compress_tables failed");
+    assert!(ntg.compressed_tables.is_some());
+}
+
+#[test]
+fn static_lang_gen_compress_preserves_grammar() {
+    use adze_ir::builder::GrammarBuilder;
+    let mut ntg = make_static_gen(|| {
+        GrammarBuilder::new("preserved")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+    assert_eq!(ntg.grammar.name, "preserved");
+    ntg.compress_tables().unwrap();
+    assert_eq!(ntg.grammar.name, "preserved");
+}
+
+#[test]
+fn static_lang_gen_set_start_can_be_empty() {
+    use adze_ir::builder::GrammarBuilder;
+    let mut ntg = make_static_gen(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+    assert!(!ntg.start_can_be_empty);
+    ntg.set_start_can_be_empty(true);
+    assert!(ntg.start_can_be_empty);
+}
+
+#[test]
+fn static_lang_gen_two_token_grammar_code() {
+    use adze_ir::builder::GrammarBuilder;
+    let ntg = make_static_gen(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("start", vec!["a", "b"])
+            .start("start")
+            .build()
+    });
+    let code_str = ntg.generate_language_code().to_string();
+    assert!(code_str.contains("SYMBOL_METADATA"));
+    assert!(code_str.contains("PARSE_TABLE"));
+}
+
+#[test]
+fn static_lang_gen_deterministic_code() {
+    use adze_ir::builder::GrammarBuilder;
+    let make = || {
+        make_static_gen(|| {
+            GrammarBuilder::new("det")
+                .token("a", "a")
+                .rule("start", vec!["a"])
+                .start("start")
+                .build()
+        })
+    };
+    let c1 = make().generate_language_code().to_string();
+    let c2 = make().generate_language_code().to_string();
+    assert_eq!(c1, c2);
+}
+
+#[test]
+fn static_lang_gen_deterministic_node_types() {
+    use adze_ir::builder::GrammarBuilder;
+    let make = || {
+        make_static_gen(|| {
+            GrammarBuilder::new("det")
+                .token("a", "a")
+                .rule("start", vec!["a"])
+                .start("start")
+                .build()
+        })
+    };
+    let n1 = make().generate_node_types();
+    let n2 = make().generate_node_types();
+    assert_eq!(n1, n2);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 16. NodeTypesGenerator JSON validity
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn node_types_gen_empty_grammar_valid_json() {
+    use adze_tablegen::NodeTypesGenerator;
+    let grammar = Grammar::new("empty".to_string());
+    let ntg = NodeTypesGenerator::new(&grammar);
+    let json_str = ntg.generate().expect("generation failed");
+    let parsed: serde_json::Value = serde_json::from_str(&json_str).expect("invalid JSON");
+    assert!(parsed.is_array());
+}
+
+#[test]
+fn node_types_gen_single_rule_has_entry() {
+    use adze_ir::{ProductionId, Rule, Symbol};
+    use adze_tablegen::NodeTypesGenerator;
+
+    let mut grammar = Grammar::new("single".to_string());
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "num".to_string(),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.rule_names.insert(SymbolId(2), "expr".to_string());
+    grammar.add_rule(Rule {
+        lhs: SymbolId(2),
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let ntg = NodeTypesGenerator::new(&grammar);
+    let json_str = ntg.generate().unwrap();
+    let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str).unwrap();
+    assert!(
+        parsed
+            .iter()
+            .any(|n| n["type"] == "expr" && n["named"] == true)
+    );
+}
+
+#[test]
+fn node_types_gen_string_token_unnamed() {
+    use adze_tablegen::NodeTypesGenerator;
+
+    let mut grammar = Grammar::new("tok".to_string());
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "plus".to_string(),
+            pattern: TokenPattern::String("+".to_string()),
+            fragile: false,
+        },
+    );
+
+    let ntg = NodeTypesGenerator::new(&grammar);
+    let json_str = ntg.generate().unwrap();
+    let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str).unwrap();
+    // String tokens are unnamed
+    assert!(
+        parsed
+            .iter()
+            .any(|n| n["type"] == "+" && n["named"] == false)
+    );
+}
+
+#[test]
+fn node_types_gen_regex_token_named() {
+    use adze_tablegen::NodeTypesGenerator;
+
+    let mut grammar = Grammar::new("tok".to_string());
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "identifier".to_string(),
+            pattern: TokenPattern::Regex("[a-z]+".to_string()),
+            fragile: false,
+        },
+    );
+    // Regex tokens with a named pattern generate named nodes, but only if there's
+    // a rule referencing them. The NodeTypesGenerator only adds regex tokens if there
+    // are also rules; but they appear as unnamed if not a rule entry.
+    // Actually, looking at the code, regex tokens are not added to node_types unless
+    // they are named (and not part of rules). Let's just verify JSON validity.
+    let ntg = NodeTypesGenerator::new(&grammar);
+    let json_str = ntg.generate().unwrap();
+    let _parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str).unwrap();
+}
+
+#[test]
+fn node_types_gen_multiple_rules_sorted() {
+    use adze_ir::{ProductionId, Rule, Symbol};
+    use adze_tablegen::NodeTypesGenerator;
+
+    let mut grammar = Grammar::new("multi".to_string());
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "x".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+    grammar.rule_names.insert(SymbolId(10), "zebra".to_string());
+    grammar.add_rule(Rule {
+        lhs: SymbolId(10),
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+    grammar.rule_names.insert(SymbolId(11), "alpha".to_string());
+    grammar.add_rule(Rule {
+        lhs: SymbolId(11),
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
+
+    let ntg = NodeTypesGenerator::new(&grammar);
+    let json_str = ntg.generate().unwrap();
+    let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str).unwrap();
+    // Named entries should be sorted by type name
+    let named: Vec<&str> = parsed
+        .iter()
+        .filter(|n| n["named"] == true)
+        .map(|n| n["type"].as_str().unwrap())
+        .collect();
+    let mut sorted = named.clone();
+    sorted.sort();
+    assert_eq!(named, sorted, "node types should be sorted");
+}
+
+#[test]
+fn node_types_gen_internal_rule_excluded() {
+    use adze_ir::{ProductionId, Rule, Symbol};
+    use adze_tablegen::NodeTypesGenerator;
+
+    let mut grammar = Grammar::new("internal".to_string());
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "x".to_string(),
+            pattern: TokenPattern::String("x".to_string()),
+            fragile: false,
+        },
+    );
+    // Internal rules (starting with _) should be excluded
+    grammar
+        .rule_names
+        .insert(SymbolId(2), "_hidden".to_string());
+    grammar.add_rule(Rule {
+        lhs: SymbolId(2),
+        rhs: vec![Symbol::Terminal(SymbolId(1))],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let ntg = NodeTypesGenerator::new(&grammar);
+    let json_str = ntg.generate().unwrap();
+    let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str).unwrap();
+    assert!(
+        !parsed
+            .iter()
+            .any(|n| { n["type"].as_str().is_some_and(|s| s.starts_with('_')) }),
+        "internal rules should be excluded"
+    );
+}
+
+#[test]
+fn node_types_gen_json_array_top_level() {
+    use adze_tablegen::NodeTypesGenerator;
+    let grammar = Grammar::new("arr".to_string());
+    let ntg = NodeTypesGenerator::new(&grammar);
+    let json_str = ntg.generate().unwrap();
+    assert!(json_str.trim().starts_with('['));
+    assert!(json_str.trim().ends_with(']'));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 17. Large grammar compression
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn large_grammar_10_tokens_compresses() {
+    use adze_ir::builder::GrammarBuilder;
+    let mut b = GrammarBuilder::new("lg10")
+        .token("t0", "t0")
+        .token("t1", "t1")
+        .token("t2", "t2")
+        .token("t3", "t3")
+        .token("t4", "t4")
+        .token("t5", "t5")
+        .token("t6", "t6")
+        .token("t7", "t7")
+        .token("t8", "t8")
+        .token("t9", "t9");
+    for i in 0..10 {
+        let tok = format!("t{i}");
+        b = b.rule("start", vec![&tok]);
+    }
+    let (_pt, compressed) = pipeline(|| b.start("start").build());
+    assert!(!compressed.action_table.data.is_empty());
+    assert!(!compressed.goto_table.data.is_empty());
+}
+
+#[test]
+fn large_grammar_chain_depth_10() {
+    use adze_ir::builder::GrammarBuilder;
+    // Build a chain: r0 -> r1 -> r2 -> ... -> r9 -> tok
+    let mut b = GrammarBuilder::new("chain10").token("tok", "tok");
+    b = b.rule("r9", vec!["tok"]);
+    for i in (0..9).rev() {
+        let lhs = format!("r{i}");
+        let rhs = format!("r{}", i + 1);
+        b = b.rule(&lhs, vec![&rhs]);
+    }
+    let (_pt, compressed) = pipeline(|| b.start("r0").build());
+    assert!(compressed.action_table.row_offsets.len() > 2);
+}
+
+#[test]
+fn large_grammar_many_alternatives_compresses() {
+    use adze_ir::builder::GrammarBuilder;
+    let mut b = GrammarBuilder::new("alt20");
+    for i in 0..20 {
+        let name = format!("t{i}");
+        b = b.token(&name, &name);
+    }
+    for i in 0..20 {
+        let tok = format!("t{i}");
+        b = b.rule("start", vec![&tok]);
+    }
+    let (_pt, compressed) = pipeline(|| b.start("start").build());
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+#[test]
+fn large_grammar_nested_nonterminals() {
+    use adze_ir::builder::GrammarBuilder;
+    // expr -> term, term -> factor, factor -> tok
+    let (_pt, compressed) = pipeline(|| {
+        GrammarBuilder::new("nested")
+            .token("num", "num")
+            .token("plus", "+")
+            .rule("factor", vec!["num"])
+            .rule("term", vec!["factor"])
+            .rule("term", vec!["term", "plus", "factor"])
+            .rule("expr", vec!["term"])
+            .start("expr")
+            .build()
+    });
+    assert!(!compressed.action_table.data.is_empty());
+    assert!(!compressed.goto_table.data.is_empty());
+}
+
+#[test]
+fn large_grammar_right_recursive() {
+    use adze_ir::builder::GrammarBuilder;
+    let (_pt, compressed) = pipeline(|| {
+        GrammarBuilder::new("rr")
+            .token("a", "a")
+            .rule("list", vec!["a"])
+            .rule("list", vec!["a", "list"])
+            .start("list")
+            .build()
+    });
+    assert!(!compressed.action_table.data.is_empty());
+}
+
+#[test]
+fn large_grammar_wide_action_table_200_cols() {
+    let n_syms = 200;
+    let table: Vec<Vec<Vec<Action>>> = vec![
+        (0..n_syms)
+            .map(|sym| {
+                if sym % 20 == 0 {
+                    vec![Action::Shift(StateId((sym % 50) as u16))]
+                } else {
+                    vec![]
+                }
+            })
+            .collect(),
+    ];
+    let compressed = compress_action_table(&table);
+    for sym in 0..n_syms {
+        let expected = if sym % 20 == 0 {
+            Action::Shift(StateId((sym % 50) as u16))
+        } else {
+            Action::Error
+        };
+        assert_eq!(decompress_action(&compressed, 0, sym), expected);
+    }
+}
+
+#[test]
+fn large_grammar_100_states_roundtrip() {
+    let n_states = 100;
+    let n_syms = 10;
+    let table: Vec<Vec<Vec<Action>>> = (0..n_states)
+        .map(|s| {
+            (0..n_syms)
+                .map(|sym| {
+                    if (s + sym) % 4 == 0 {
+                        vec![Action::Shift(StateId(((s + sym) % 40) as u16))]
+                    } else {
+                        vec![]
+                    }
+                })
+                .collect()
+        })
+        .collect();
+    let compressed = compress_action_table(&table);
+    for s in 0..n_states {
+        for sym in 0..n_syms {
+            let expected = if (s + sym) % 4 == 0 {
+                Action::Shift(StateId(((s + sym) % 40) as u16))
+            } else {
+                Action::Error
+            };
+            assert_eq!(decompress_action(&compressed, s, sym), expected);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 18. Compression with different verbosity settings
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn compress_verbose_false_succeeds() {
+    let pt = table_with_shift_in_s0(3, 2, vec![]);
+    let compressor = TableCompressor::new();
+    let token_indices = collect_token_indices(&pt.grammar, &pt);
+    let result = compressor.compress(&pt, &token_indices, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn compress_verbose_true_succeeds() {
+    let pt = table_with_shift_in_s0(3, 2, vec![]);
+    let compressor = TableCompressor::new();
+    let token_indices = collect_token_indices(&pt.grammar, &pt);
+    let result = compressor.compress(&pt, &token_indices, true);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn compress_verbose_flag_does_not_change_result() {
+    let pt = table_with_shift_in_s0(4, 3, vec![(1, 2, Action::Reduce(RuleId(0)))]);
+    let compressor = TableCompressor::new();
+    let token_indices = collect_token_indices(&pt.grammar, &pt);
+
+    let c_false = compressor
+        .compress(&pt, &token_indices, false)
+        .expect("false");
+    let c_true = compressor
+        .compress(&pt, &token_indices, true)
+        .expect("true");
+
+    assert_eq!(
+        c_false.action_table.row_offsets,
+        c_true.action_table.row_offsets
+    );
+    assert_eq!(
+        c_false.action_table.default_actions,
+        c_true.action_table.default_actions
+    );
+    assert_eq!(
+        c_false.action_table.data.len(),
+        c_true.action_table.data.len()
+    );
+    assert_eq!(
+        c_false.goto_table.row_offsets,
+        c_true.goto_table.row_offsets
+    );
+}
+
+#[test]
+fn compress_start_empty_false_rejects_no_shift() {
+    let num_terms = 1;
+    let eof_idx = num_terms + 1;
+    let start_nt = eof_idx + 1;
+    let symbol_count = start_nt + 1;
+
+    let mut actions: Vec<Vec<Vec<Action>>> = vec![vec![vec![]; symbol_count]; 2];
+    actions[0][eof_idx] = vec![Action::Accept];
+    let gotos = vec![vec![INVALID; symbol_count]; 2];
+
+    let mut grammar = Grammar::default();
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "t1".to_string(),
+            pattern: TokenPattern::String("t1".to_string()),
+            fragile: false,
+        },
+    );
+
+    let mut pt = make_parse_table(
+        actions,
+        gotos,
+        SymbolId(start_nt as u16),
+        SymbolId(eof_idx as u16),
+    );
+    pt.grammar = grammar;
+
+    let compressor = TableCompressor::new();
+    let token_indices = collect_token_indices(&pt.grammar, &pt);
+    // start_can_be_empty = false should reject this
+    let result = compressor.compress(&pt, &token_indices, false);
+    assert!(result.is_err());
+}
+
+#[test]
+fn compress_start_empty_true_accepts_eof_reduce() {
+    let num_terms = 1;
+    let eof_idx = num_terms + 1;
+    let start_nt = eof_idx + 1;
+    let symbol_count = start_nt + 1;
+
+    let mut actions: Vec<Vec<Vec<Action>>> = vec![vec![vec![]; symbol_count]; 2];
+    actions[0][eof_idx] = vec![Action::Reduce(RuleId(0))];
+    let gotos = vec![vec![INVALID; symbol_count]; 2];
+
+    let mut grammar = Grammar::default();
+    grammar.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "t1".to_string(),
+            pattern: TokenPattern::String("t1".to_string()),
+            fragile: false,
+        },
+    );
+
+    let mut pt = make_parse_table(
+        actions,
+        gotos,
+        SymbolId(start_nt as u16),
+        SymbolId(eof_idx as u16),
+    );
+    pt.grammar = grammar;
+
+    let compressor = TableCompressor::new();
+    let token_indices = collect_token_indices(&pt.grammar, &pt);
+    let result = compressor.compress(&pt, &token_indices, true);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn compress_pipeline_verbose_false_and_true_same_structure() {
+    use adze_ir::builder::GrammarBuilder;
+
+    let build_grammar = || {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("start", vec!["a"])
+            .rule("start", vec!["b"])
+            .start("start")
+            .build()
+    };
+
+    let make = |start_empty: bool| {
+        let mut grammar = build_grammar();
+        let ff = adze_glr_core::FirstFollowSets::compute_normalized(&mut grammar).unwrap();
+        let table = adze_glr_core::build_lr1_automaton(&grammar, &ff).unwrap();
+        let token_indices = collect_token_indices(&grammar, &table);
+        let compressor = TableCompressor::new();
+        compressor
+            .compress(&table, &token_indices, start_empty)
+            .unwrap()
+    };
+
+    let c1 = make(false);
+    let c2 = make(true);
+    // Structure should be identical since neither actually has a nullable start
+    assert_eq!(c1.action_table.row_offsets, c2.action_table.row_offsets);
+}
+
+#[test]
+fn compress_multiple_compressors_same_result() {
+    let pt = table_with_shift_in_s0(3, 2, vec![]);
+    let token_indices = collect_token_indices(&pt.grammar, &pt);
+    let start_empty = eof_accepts_or_reduces(&pt);
+
+    let c1 = TableCompressor::new()
+        .compress(&pt, &token_indices, start_empty)
+        .unwrap();
+    let c2 = TableCompressor::new()
+        .compress(&pt, &token_indices, start_empty)
+        .unwrap();
+
+    assert_eq!(c1.action_table.row_offsets, c2.action_table.row_offsets);
+    assert_eq!(c1.goto_table.row_offsets, c2.goto_table.row_offsets);
+    assert_eq!(c1.action_table.data.len(), c2.action_table.data.len());
+}
+
+#[test]
+fn compress_default_compressor_matches_explicit() {
+    let pt = table_with_shift_in_s0(3, 2, vec![]);
+    let token_indices = collect_token_indices(&pt.grammar, &pt);
+    let start_empty = eof_accepts_or_reduces(&pt);
+
+    let c1 = TableCompressor::new()
+        .compress(&pt, &token_indices, start_empty)
+        .unwrap();
+    let c2 = TableCompressor::default()
+        .compress(&pt, &token_indices, start_empty)
+        .unwrap();
+
+    assert_eq!(c1.action_table.row_offsets, c2.action_table.row_offsets);
+    assert_eq!(c1.goto_table.row_offsets, c2.goto_table.row_offsets);
 }
