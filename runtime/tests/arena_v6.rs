@@ -251,7 +251,7 @@ fn arena_handle_debug_format() {
 #[test]
 fn arena_handle_clone_equals_original() {
     let h = NodeHandle::new(1, 5);
-    let h2 = h.clone();
+    let h2 = h;
     assert_eq!(h, h2);
 }
 
