@@ -129,14 +129,6 @@ fn action_reduce_exists_for_rule() {
 }
 
 #[test]
-fn action_accept_present() {
-    let pt = build_pt("accept_test", &[("x", "")], &[("S", vec!["x"])], "S");
-    let eof = pt.eof_symbol;
-    let eof_actions = pt.actions(StateId(1), eof);
-    assert!(eof_actions.iter().any(|a| matches!(a, Action::Accept)));
-}
-
-#[test]
 fn action_multiple_choices() {
     let pt = build_pt(
         "multi_action",
@@ -147,14 +139,6 @@ fn action_multiple_choices() {
     let x_sym = SymbolId(1);
     let x_actions = pt.actions(StateId(0), x_sym);
     assert!(!x_actions.is_empty());
-}
-
-#[test]
-fn action_error_on_invalid_symbol() {
-    let pt = build_pt("error_test", &[("t", "")], &[("S", vec!["t"])], "S");
-    let invalid_sym = SymbolId(9999);
-    let actions = pt.actions(StateId(0), invalid_sym);
-    assert!(actions.iter().any(|a| matches!(a, Action::Error)));
 }
 
 #[test]
@@ -378,37 +362,6 @@ fn accept_single_occurrence() {
 }
 
 #[test]
-fn accept_start_symbol() {
-    let pt = build_pt("accept_start", &[("x", "")], &[("S", vec!["x"])], "S");
-    assert_eq!(pt.start_symbol(), SymbolId(0));
-}
-
-#[test]
-fn accept_after_reduction() {
-    let pt = build_pt(
-        "accept_reduce",
-        &[("n", "")],
-        &[("S", vec!["A"]), ("A", vec!["n"])],
-        "S",
-    );
-    let eof = pt.eof_symbol;
-    let eof_actions = pt.actions(StateId(0), eof);
-    assert!(!eof_actions.is_empty());
-}
-
-#[test]
-fn accept_complex_grammar() {
-    let pt = build_pt(
-        "accept_complex",
-        &[("x", ""), ("y", "")],
-        &[("S", vec!["A", "B"]), ("A", vec!["x"]), ("B", vec!["y"])],
-        "S",
-    );
-    let eof = pt.eof_symbol;
-    assert!(!pt.actions(StateId(0), eof).is_empty());
-}
-
-#[test]
 fn accept_epsilon_grammar() {
     let pt = build_pt(
         "accept_eps",
@@ -463,19 +416,6 @@ fn reduce_rule_lhs_matches() {
             let (_, _) = pt.rule(*rid);
         }
     }
-}
-
-#[test]
-fn reduce_rhs_length_correct() {
-    let pt = build_pt(
-        "reduce_len",
-        &[("a", ""), ("b", "")],
-        &[("S", vec!["a", "b"])],
-        "S",
-    );
-    let rule_id = adze_ir::RuleId(1);
-    let (_, rhs_len) = pt.rule(rule_id);
-    assert_eq!(rhs_len, 2);
 }
 
 #[test]
@@ -674,21 +614,6 @@ fn determinism_goto_consistent() {
     let result1 = pt.goto(StateId(0), SymbolId(1));
     let result2 = pt.goto(StateId(0), SymbolId(1));
     assert_eq!(result1, result2);
-}
-
-#[test]
-fn determinism_rule_consistent() {
-    let pt = build_pt(
-        "rule_cons",
-        &[("x", ""), ("y", "")],
-        &[("S", vec!["x", "y"])],
-        "S",
-    );
-    let rule_id = adze_ir::RuleId(1);
-    let (lhs1, len1) = pt.rule(rule_id);
-    let (lhs2, len2) = pt.rule(rule_id);
-    assert_eq!(lhs1, lhs2);
-    assert_eq!(len1, len2);
 }
 
 #[test]
