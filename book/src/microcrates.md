@@ -78,6 +78,7 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `parsetable-metadata` | `crates/parsetable-metadata/` | Parse-table metadata types |
 | `ts-format-core` | `crates/ts-format-core/` | Tree-sitter format utilities |
 | `stack-pool-core` | `crates/stack-pool-core/` | Stack-based object pooling |
+| `node-pool-core` | `crates/node-pool-core/` | Arc-backed thread-safe node pooling |
 | `glr-versioning` | `crates/glr-versioning/` | GLR version tracking |
 | `glr-test-support` | `glr-test-support/` | Test helpers for GLR crates |
 | `linecol-core` | `crates/linecol-core/` | Line/column position computation |

@@ -35,6 +35,7 @@ dependencies = [
  "adze-ir",
  "adze-linecol-core",
  "adze-macro",
+ "adze-node-pool-core",
  "adze-python",
  "adze-python-simple",
  "adze-runtime-governance-api",
@@ -515,6 +516,10 @@ dependencies = [
  "tempfile",
  "trybuild",
 ]
+
+[[package]]
+name = "adze-node-pool-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-parser-backend-core"

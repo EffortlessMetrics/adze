@@ -1,0 +1,18 @@
+[package]
+name = "adze-node-pool-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Thread-safe Arc-based node pool used by parser runtimes."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["pool", "arc", "parser", "memory", "reuse"]
+categories = ["data-structures", "memory-management"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-node-pool-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
