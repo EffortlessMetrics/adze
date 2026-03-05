@@ -1,0 +1,16 @@
+[package]
+name = "adze-node-pool-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+publish.workspace = true
+authors.workspace = true
+description = "Thread-safe object pool core extracted from runtime"
+
+[features]
+strict_docs = []
+strict_api = []
