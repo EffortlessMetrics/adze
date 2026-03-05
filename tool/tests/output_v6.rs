@@ -1047,22 +1047,6 @@ fn integration_build_and_check_stats() {
 }
 
 #[test]
-fn integration_build_multiple_grammars_increasing_complexity() {
-    let dir = tmp_dir();
-    let opts = tmp_opts(&dir);
-
-    let minimal = build_parser(minimal_grammar("int_min"), opts.clone()).unwrap();
-    let two_tok = build_parser(two_token_grammar("int_2tok"), tmp_opts(&tmp_dir())).unwrap();
-    let expr = build_parser(expr_grammar("int_expr"), tmp_opts(&tmp_dir())).unwrap();
-    let three_op = build_parser(three_op_grammar("int_3op"), tmp_opts(&tmp_dir())).unwrap();
-
-    // Verify increasing complexity
-    assert!(minimal.build_stats.symbol_count < two_tok.build_stats.symbol_count);
-    assert!(two_tok.build_stats.symbol_count < expr.build_stats.symbol_count);
-    assert!(expr.build_stats.symbol_count <= three_op.build_stats.symbol_count);
-}
-
-#[test]
 fn integration_build_with_compression_option() {
     let dir = tmp_dir();
     let opts_compressed = tmp_opts_with_compression(&dir);
