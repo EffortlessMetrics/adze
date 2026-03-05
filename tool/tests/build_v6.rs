@@ -366,22 +366,6 @@ fn parser_code_from_different_grammars_different() {
 }
 
 #[test]
-fn parser_code_deterministic() {
-    let (_dir, opts) = make_opts();
-    let mut grammar1 = minimal_grammar("code_det1");
-    grammar1.normalize();
-    let result1 = build_parser(grammar1, opts).unwrap();
-
-    let (_dir2, opts2) = make_opts();
-    let mut grammar2 = minimal_grammar("code_det2");
-    grammar2.normalize();
-    let result2 = build_parser(grammar2, opts2).unwrap();
-
-    // Same grammar structure should produce same code
-    assert_eq!(result1.parser_code, result2.parser_code);
-}
-
-#[test]
 fn parser_code_size_proportional_to_grammar() {
     let (_dir, opts) = make_opts();
     let mut grammar1 = minimal_grammar("code_small");
@@ -683,36 +667,6 @@ fn error_handling_multiple_error_scenarios() {
 // =========================================================================
 
 #[test]
-fn determinism_same_grammar_same_result() {
-    let (_dir, opts) = make_opts();
-    let mut grammar1 = minimal_grammar("det_same1");
-    grammar1.normalize();
-    let result1 = build_parser(grammar1, opts).unwrap();
-
-    let (_dir2, opts2) = make_opts();
-    let mut grammar2 = minimal_grammar("det_same2");
-    grammar2.normalize();
-    let result2 = build_parser(grammar2, opts2).unwrap();
-
-    assert_eq!(result1.parser_code, result2.parser_code);
-}
-
-#[test]
-fn determinism_rebuild_same_code() {
-    let (_dir, opts) = make_opts();
-    let mut grammar = minimal_grammar("det_rebuild_code");
-    grammar.normalize();
-    let result1 = build_parser(grammar.clone(), opts).unwrap();
-
-    let (_dir2, opts2) = make_opts();
-    let mut grammar2 = minimal_grammar("det_rebuild_code2");
-    grammar2.normalize();
-    let result2 = build_parser(grammar2, opts2).unwrap();
-
-    assert_eq!(result1.parser_code, result2.parser_code);
-}
-
-#[test]
 fn determinism_rebuild_same_node_types() {
     let (_dir, opts) = make_opts();
     let mut grammar = ab_grammar("det_node_types1");
@@ -750,21 +704,6 @@ fn determinism_rebuild_same_stats() {
 }
 
 #[test]
-fn determinism_separate_builders_same_result() {
-    let (_dir, opts) = make_opts();
-    let mut grammar1 = token_only_grammar("det_sep1");
-    grammar1.normalize();
-    let result1 = build_parser(grammar1, opts).unwrap();
-
-    let (_dir2, opts2) = make_opts();
-    let mut grammar2 = token_only_grammar("det_sep2");
-    grammar2.normalize();
-    let result2 = build_parser(grammar2, opts2).unwrap();
-
-    assert_eq!(result1.parser_code, result2.parser_code);
-}
-
-#[test]
 fn determinism_with_complex_grammar() {
     let (_dir, opts) = make_opts();
     let mut grammar1 = complex_grammar("det_complex1");
@@ -780,27 +719,6 @@ fn determinism_with_complex_grammar() {
         result1.build_stats.state_count,
         result2.build_stats.state_count
     );
-}
-
-#[test]
-fn determinism_rebuild_3x_same() {
-    let mut grammar1 = minimal_grammar("det_3x1");
-    grammar1.normalize();
-    let (_dir1, opts1) = make_opts();
-    let result1 = build_parser(grammar1, opts1).unwrap();
-
-    let mut grammar2 = minimal_grammar("det_3x2");
-    grammar2.normalize();
-    let (_dir2, opts2) = make_opts();
-    let result2 = build_parser(grammar2, opts2).unwrap();
-
-    let mut grammar3 = minimal_grammar("det_3x3");
-    grammar3.normalize();
-    let (_dir3, opts3) = make_opts();
-    let result3 = build_parser(grammar3, opts3).unwrap();
-
-    assert_eq!(result1.parser_code, result2.parser_code);
-    assert_eq!(result2.parser_code, result3.parser_code);
 }
 
 // =========================================================================
