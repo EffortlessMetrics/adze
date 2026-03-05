@@ -434,8 +434,10 @@ fn v5_action_clone_deep_equality() {
 
 #[test]
 fn v5_config_clone_independence() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_panic_skip = 100;
+    let mut cfg = ErrorRecoveryConfig {
+        max_panic_skip: 100,
+        ..Default::default()
+    };
     cfg.sync_tokens.push(SymbolId(5));
 
     let cloned = cfg.clone();
@@ -494,8 +496,10 @@ fn v5_state_new_zero_errors() {
 
 #[test]
 fn v5_state_increment_and_give_up() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_consecutive_errors = 3;
+    let cfg = ErrorRecoveryConfig {
+        max_consecutive_errors: 3,
+        ..Default::default()
+    };
     let mut state = ErrorRecoveryState::new(cfg);
     state.increment_error_count();
     state.increment_error_count();
@@ -506,8 +510,10 @@ fn v5_state_increment_and_give_up() {
 
 #[test]
 fn v5_state_reset_error_count() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_consecutive_errors = 2;
+    let cfg = ErrorRecoveryConfig {
+        max_consecutive_errors: 2,
+        ..Default::default()
+    };
     let mut state = ErrorRecoveryState::new(cfg);
     state.increment_error_count();
     state.increment_error_count();

@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{TreeArena, TreeNode};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

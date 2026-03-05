@@ -1,6 +1,6 @@
 //! Comprehensive stress tests for TreeArena and related types.
 
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 use std::collections::HashSet;
 
 // ============================================================

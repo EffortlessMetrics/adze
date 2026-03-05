@@ -360,36 +360,46 @@ fn builder_disable_phrase_and_scope_recovery() {
 
 #[test]
 fn config_zero_max_panic_skip() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_panic_skip = 0;
+    let cfg = ErrorRecoveryConfig {
+        max_panic_skip: 0,
+        ..Default::default()
+    };
     assert_eq!(cfg.max_panic_skip, 0);
 }
 
 #[test]
 fn config_zero_max_consecutive_errors() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_consecutive_errors = 0;
+    let cfg = ErrorRecoveryConfig {
+        max_consecutive_errors: 0,
+        ..Default::default()
+    };
     assert_eq!(cfg.max_consecutive_errors, 0);
 }
 
 #[test]
 fn config_zero_max_token_deletions() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_token_deletions = 0;
+    let cfg = ErrorRecoveryConfig {
+        max_token_deletions: 0,
+        ..Default::default()
+    };
     assert_eq!(cfg.max_token_deletions, 0);
 }
 
 #[test]
 fn config_zero_max_token_insertions() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_token_insertions = 0;
+    let cfg = ErrorRecoveryConfig {
+        max_token_insertions: 0,
+        ..Default::default()
+    };
     assert_eq!(cfg.max_token_insertions, 0);
 }
 
 #[test]
 fn config_large_max_panic_skip() {
-    let mut cfg = ErrorRecoveryConfig::default();
-    cfg.max_panic_skip = usize::MAX;
+    let cfg = ErrorRecoveryConfig {
+        max_panic_skip: usize::MAX,
+        ..Default::default()
+    };
     assert_eq!(cfg.max_panic_skip, usize::MAX);
 }
 
