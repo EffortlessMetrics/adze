@@ -1,5 +1,12 @@
 [package]
-authors = ["Steven Zimmerman, CPA <effortlesssteven@users.noreply.github.com>"}
+name = "adze-common"
+description = "Shared logic for the Adze macro and tool"
+readme = "../README.md"
+repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-common"
+version = "0.8.0-dev"
+authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
 edition = "2024"
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -14,13 +21,6 @@ include = [
 ]
 
 [lib]
-name = "adze-common"
-description = "Shared logic for the Adze macro and tool"
-readme = "../README.md"
-repository = "https://github.com/EffortlessMetrics/adze"
-homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-common"
-version = "0.8.0-dev"
 path = "src/lib.rs"
 
 [features]
