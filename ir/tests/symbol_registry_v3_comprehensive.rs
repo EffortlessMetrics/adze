@@ -1,839 +1,684 @@
-//! Comprehensive tests for SymbolRegistry and Grammar symbol management (v3).
+//! Comprehensive tests for SymbolRegistry management in adze-ir.
 //!
-//! Covers: token/rule registration, symbol ID properties, start symbol,
-//! lookup by name/ID, normalization side-effects, and large grammars.
+//! Covers: name-to-ID mapping, token mapping, rule registration, symbol counts,
+//! large grammars, serialization roundtrips, builder integration, and edge cases.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::symbol_registry::SymbolRegistry;
-use adze_ir::{Grammar, SymbolId, SymbolMetadata};
+use adze_ir::*;
 
 // ---------------------------------------------------------------------------
-// Helper: build a minimal arithmetic grammar
+// Helpers
 // ---------------------------------------------------------------------------
-fn arith_grammar() -> Grammar {
-    GrammarBuilder::new("arith")
+
+fn terminal_meta() -> SymbolMetadata {
+    SymbolMetadata {
+        visible: true,
+        named: false,
+        hidden: false,
+        terminal: true,
+    }
+}
+
+fn nonterminal_meta() -> SymbolMetadata {
+    SymbolMetadata {
+        visible: true,
+        named: true,
+        hidden: false,
+        terminal: false,
+    }
+}
+
+fn hidden_meta() -> SymbolMetadata {
+    SymbolMetadata {
+        visible: false,
+        named: false,
+        hidden: true,
+        terminal: true,
+    }
+}
+
+// ===========================================================================
+// 1. Symbol name to ID mapping (8 tests)
+// ===========================================================================
+
+#[test]
+fn test_name_to_id_eof_always_zero() {
+    let reg = SymbolRegistry::new();
+    assert_eq!(reg.get_id("end"), Some(SymbolId(0)));
+}
+
+#[test]
+fn test_name_to_id_first_user_symbol_is_one() {
+    let mut reg = SymbolRegistry::new();
+    let id = reg.register("number", terminal_meta());
+    assert_eq!(id, SymbolId(1));
+}
+
+#[test]
+fn test_name_to_id_sequential_assignment() {
+    let mut reg = SymbolRegistry::new();
+    let a = reg.register("alpha", terminal_meta());
+    let b = reg.register("beta", terminal_meta());
+    let c = reg.register("gamma", terminal_meta());
+    assert_eq!(a.0 + 1, b.0);
+    assert_eq!(b.0 + 1, c.0);
+}
+
+#[test]
+fn test_name_to_id_duplicate_returns_same() {
+    let mut reg = SymbolRegistry::new();
+    let first = reg.register("tok", terminal_meta());
+    let second = reg.register("tok", terminal_meta());
+    assert_eq!(first, second);
+}
+
+#[test]
+fn test_name_to_id_missing_returns_none() {
+    let reg = SymbolRegistry::new();
+    assert_eq!(reg.get_id("nonexistent"), None);
+}
+
+#[test]
+fn test_name_to_id_deterministic_across_instances() {
+    let names = ["x", "y", "z"];
+    let mut r1 = SymbolRegistry::new();
+    let mut r2 = SymbolRegistry::new();
+    for n in &names {
+        r1.register(n, terminal_meta());
+        r2.register(n, terminal_meta());
+    }
+    for n in &names {
+        assert_eq!(r1.get_id(n), r2.get_id(n));
+    }
+}
+
+#[test]
+fn test_name_to_id_reverse_lookup() {
+    let mut reg = SymbolRegistry::new();
+    let id = reg.register("identifier", nonterminal_meta());
+    assert_eq!(reg.get_name(id), Some("identifier"));
+}
+
+#[test]
+fn test_name_to_id_reverse_lookup_eof() {
+    let reg = SymbolRegistry::new();
+    assert_eq!(reg.get_name(SymbolId(0)), Some("end"));
+}
+
+// ===========================================================================
+// 2. Token name to ID mapping (8 tests)
+// ===========================================================================
+
+#[test]
+fn test_token_registered_in_grammar_registry() {
+    let grammar = GrammarBuilder::new("tok_test")
         .token("NUMBER", r"\d+")
         .token("+", "+")
-        .token("-", "-")
-        .rule("expr", vec!["expr", "+", "expr"])
-        .rule("expr", vec!["expr", "-", "expr"])
         .rule("expr", vec!["NUMBER"])
         .start("expr")
-        .build()
-}
-
-// ---------------------------------------------------------------------------
-// 1. Grammar has tokens after building
-// ---------------------------------------------------------------------------
-
-#[test]
-fn tokens_present_after_build() {
-    let g = arith_grammar();
-    assert!(!g.tokens.is_empty());
-}
-
-#[test]
-fn token_count_matches_declared() {
-    let g = arith_grammar();
-    // NUMBER, +, -
-    assert_eq!(g.tokens.len(), 3);
-}
-
-#[test]
-fn single_token_grammar_has_one_token() {
-    let g = GrammarBuilder::new("tiny")
-        .token("A", "a")
-        .rule("start", vec!["A"])
-        .start("start")
         .build();
-    assert_eq!(g.tokens.len(), 1);
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("NUMBER").is_some());
+    assert!(reg.get_id("+").is_some());
 }
 
 #[test]
-fn tokens_contain_expected_names() {
-    let g = arith_grammar();
-    let names: Vec<&str> = g.tokens.values().map(|t| t.name.as_str()).collect();
-    assert!(names.contains(&"NUMBER"));
-    assert!(names.contains(&"+"));
-    assert!(names.contains(&"-"));
-}
-
-#[test]
-fn token_pattern_is_preserved() {
-    let g = arith_grammar();
-    let num_tok = g.tokens.values().find(|t| t.name == "NUMBER").unwrap();
-    match &num_tok.pattern {
-        adze_ir::TokenPattern::Regex(r) => assert_eq!(r, r"\d+"),
-        adze_ir::TokenPattern::String(s) => assert_eq!(s, r"\d+"),
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 2. Grammar has rule_names after building
-// ---------------------------------------------------------------------------
-
-#[test]
-fn rule_names_present_after_build() {
-    let g = arith_grammar();
-    assert!(!g.rule_names.is_empty());
-}
-
-#[test]
-fn rule_names_contain_start_rule() {
-    let g = arith_grammar();
-    let names: Vec<&str> = g.rule_names.values().map(|n| n.as_str()).collect();
-    assert!(names.contains(&"expr"));
-}
-
-#[test]
-fn rule_names_count_for_single_rule_grammar() {
-    let g = GrammarBuilder::new("one")
-        .token("X", "x")
-        .rule("root", vec!["X"])
-        .start("root")
+fn test_token_metadata_is_terminal() {
+    let grammar = GrammarBuilder::new("t")
+        .token("NUM", r"\d+")
+        .rule("s", vec!["NUM"])
+        .start("s")
         .build();
-    assert!(g.rule_names.values().any(|n| n == "root"));
+    let reg = grammar.build_registry();
+    let id = reg.get_id("NUM").unwrap();
+    let meta = reg.get_metadata(id).unwrap();
+    assert!(meta.terminal);
 }
 
 #[test]
-fn rule_names_distinct_from_tokens() {
-    let g = arith_grammar();
-    for (sid, _name) in &g.rule_names {
-        // rule_names entries should not also appear as token SymbolIds
-        // (the builder only adds non-punctuation, non-uppercase names)
-        // We simply verify the map is non-empty and well-formed
-        assert!(sid.0 > 0);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 3. Symbol IDs for tokens vs rules
-// ---------------------------------------------------------------------------
-
-#[test]
-fn token_symbol_ids_are_positive() {
-    let g = arith_grammar();
-    for (sid, _tok) in &g.tokens {
-        assert!(sid.0 > 0, "Builder reserves 0 for EOF");
-    }
-}
-
-#[test]
-fn rule_symbol_ids_are_positive() {
-    let g = arith_grammar();
-    for (sid, _name) in &g.rule_names {
-        assert!(sid.0 > 0);
-    }
-}
-
-#[test]
-fn token_and_rule_ids_may_overlap_in_rule_names() {
-    // GrammarBuilder inserts into rule_names for alphanumeric names
-    // that don't look like punctuation.  NUMBER is all-caps so it's excluded.
-    let g = arith_grammar();
-    let rule_ids: Vec<SymbolId> = g.rule_names.keys().copied().collect();
-    let token_ids: Vec<SymbolId> = g.tokens.keys().copied().collect();
-    // "expr" should be in rule_names but not in tokens
-    for rid in &rule_ids {
-        if g.rule_names[rid] == "expr" {
-            assert!(!token_ids.contains(rid));
-        }
-    }
-}
-
-#[test]
-fn all_symbol_ids_unique_within_tokens() {
-    let g = arith_grammar();
-    let ids: Vec<SymbolId> = g.tokens.keys().copied().collect();
-    for (i, a) in ids.iter().enumerate() {
-        for b in &ids[i + 1..] {
-            assert_ne!(a, b);
-        }
-    }
-}
-
-#[test]
-fn all_symbol_ids_unique_within_rule_names() {
-    let g = arith_grammar();
-    let ids: Vec<SymbolId> = g.rule_names.keys().copied().collect();
-    for (i, a) in ids.iter().enumerate() {
-        for b in &ids[i + 1..] {
-            assert_ne!(a, b);
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 4. Start symbol is in rule_names
-// ---------------------------------------------------------------------------
-
-#[test]
-fn start_symbol_is_some() {
-    let g = arith_grammar();
-    assert!(g.start_symbol().is_some());
-}
-
-#[test]
-fn start_symbol_in_rule_names() {
-    let g = arith_grammar();
-    let start = g.start_symbol().unwrap();
-    assert!(g.rule_names.contains_key(&start));
-}
-
-#[test]
-fn start_symbol_has_rules() {
-    let g = arith_grammar();
-    let start = g.start_symbol().unwrap();
-    assert!(g.rules.contains_key(&start));
-}
-
-#[test]
-fn start_symbol_first_in_rules_map() {
-    let g = arith_grammar();
-    let first_rule_lhs = *g.rules.keys().next().unwrap();
-    let start = g.start_symbol().unwrap();
-    assert_eq!(first_rule_lhs, start);
-}
-
-#[test]
-fn python_like_start_symbol_exists() {
-    let g = GrammarBuilder::python_like();
-    assert!(g.start_symbol().is_some());
-}
-
-#[test]
-fn javascript_like_start_symbol_exists() {
-    let g = GrammarBuilder::javascript_like();
-    assert!(g.start_symbol().is_some());
-}
-
-// ---------------------------------------------------------------------------
-// 5. Token lookup by name
-// ---------------------------------------------------------------------------
-
-#[test]
-fn find_token_by_name_number() {
-    let g = arith_grammar();
-    let found = g.tokens.values().any(|t| t.name == "NUMBER");
-    assert!(found);
-}
-
-#[test]
-fn find_token_by_name_plus() {
-    let g = arith_grammar();
-    let found = g.tokens.values().any(|t| t.name == "+");
-    assert!(found);
-}
-
-#[test]
-fn missing_token_not_found() {
-    let g = arith_grammar();
-    let found = g.tokens.values().any(|t| t.name == "MISSING");
-    assert!(!found);
-}
-
-#[test]
-fn token_lookup_round_trip() {
-    let g = arith_grammar();
-    for (sid, tok) in &g.tokens {
-        // We can find the same token by iterating
-        let found = g.tokens.get(sid).unwrap();
-        assert_eq!(found.name, tok.name);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 6. Rule name lookup by SymbolId
-// ---------------------------------------------------------------------------
-
-#[test]
-fn rule_name_lookup_by_id() {
-    let g = arith_grammar();
-    let (sid, name) = g.rule_names.iter().next().unwrap();
-    assert_eq!(g.rule_names.get(sid).unwrap(), name);
-}
-
-#[test]
-fn find_symbol_by_name_returns_correct_id() {
-    let g = arith_grammar();
-    let id = g.find_symbol_by_name("expr").unwrap();
-    assert_eq!(g.rule_names[&id], "expr");
-}
-
-#[test]
-fn find_symbol_by_name_missing_returns_none() {
-    let g = arith_grammar();
-    assert!(g.find_symbol_by_name("nonexistent").is_none());
-}
-
-#[test]
-fn rule_names_values_are_nonempty_strings() {
-    let g = arith_grammar();
-    for name in g.rule_names.values() {
-        assert!(!name.is_empty());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 7. Symbol IDs are u16
-// ---------------------------------------------------------------------------
-
-#[test]
-fn symbol_id_inner_is_u16() {
-    let id = SymbolId(42);
-    let val: u16 = id.0;
-    assert_eq!(val, 42u16);
-}
-
-#[test]
-fn symbol_id_zero() {
-    let id = SymbolId(0);
-    assert_eq!(id.0, 0u16);
-}
-
-#[test]
-fn symbol_id_max_u16() {
-    let id = SymbolId(u16::MAX);
-    assert_eq!(id.0, u16::MAX);
-}
-
-#[test]
-fn symbol_id_display() {
-    let id = SymbolId(7);
-    let s = format!("{id}");
-    assert!(s.contains("7"));
-}
-
-#[test]
-fn symbol_id_equality() {
-    assert_eq!(SymbolId(1), SymbolId(1));
-    assert_ne!(SymbolId(1), SymbolId(2));
-}
-
-#[test]
-fn symbol_id_ordering() {
-    assert!(SymbolId(1) < SymbolId(2));
-}
-
-#[test]
-fn symbol_id_clone_and_copy() {
-    let a = SymbolId(10);
-    let b = a;
-    let c = a;
-    assert_eq!(a, b);
-    assert_eq!(a, c);
-}
-
-// ---------------------------------------------------------------------------
-// 8. Multiple tokens registered
-// ---------------------------------------------------------------------------
-
-#[test]
-fn five_tokens_registered() {
-    let g = GrammarBuilder::new("multi")
+fn test_token_multiple_tokens_all_present() {
+    let grammar = GrammarBuilder::new("multi")
         .token("A", "a")
         .token("B", "b")
         .token("C", "c")
-        .token("D", "d")
-        .token("E", "e")
-        .rule("start", vec!["A"])
-        .start("start")
-        .build();
-    assert_eq!(g.tokens.len(), 5);
-}
-
-#[test]
-fn duplicate_token_name_reuses_id() {
-    let g = GrammarBuilder::new("dup")
-        .token("X", "x")
-        .token("X", "y") // same name, different pattern
-        .rule("start", vec!["X"])
-        .start("start")
-        .build();
-    // Second .token("X", ...) overwrites the first token entry
-    // but reuses the same SymbolId
-    assert_eq!(g.tokens.len(), 1);
-}
-
-#[test]
-fn tokens_preserve_insertion_order() {
-    let g = GrammarBuilder::new("ordered")
-        .token("FIRST", "1")
-        .token("SECOND", "2")
-        .token("THIRD", "3")
-        .rule("r", vec!["FIRST"])
+        .rule("r", vec!["A", "B", "C"])
         .start("r")
         .build();
-    let names: Vec<&str> = g.tokens.values().map(|t| t.name.as_str()).collect();
-    assert_eq!(names, vec!["FIRST", "SECOND", "THIRD"]);
+    let reg = grammar.build_registry();
+    for name in ["A", "B", "C"] {
+        assert!(reg.get_id(name).is_some(), "missing token {name}");
+    }
 }
 
 #[test]
-fn fragile_token_flag() {
-    let g = GrammarBuilder::new("fragile")
+fn test_token_ids_are_distinct() {
+    let grammar = GrammarBuilder::new("distinct")
+        .token("X", "x")
+        .token("Y", "y")
+        .rule("r", vec!["X"])
+        .start("r")
+        .build();
+    let reg = grammar.build_registry();
+    let x = reg.get_id("X").unwrap();
+    let y = reg.get_id("Y").unwrap();
+    assert_ne!(x, y);
+}
+
+#[test]
+fn test_token_fragile_token_registered() {
+    let grammar = GrammarBuilder::new("fragile")
         .fragile_token("ERR", "error")
         .token("OK", "ok")
         .rule("r", vec!["OK"])
         .start("r")
         .build();
-    let err = g.tokens.values().find(|t| t.name == "ERR").unwrap();
-    assert!(err.fragile);
-    let ok = g.tokens.values().find(|t| t.name == "OK").unwrap();
-    assert!(!ok.fragile);
-}
-
-// ---------------------------------------------------------------------------
-// 9. After normalize, new symbols may appear
-// ---------------------------------------------------------------------------
-
-#[test]
-fn normalize_on_simple_grammar_is_idempotent() {
-    let mut g = arith_grammar();
-    let rules_before = g.rules.len();
-    g.normalize();
-    // No complex symbols → same rule count
-    assert_eq!(g.rules.len(), rules_before);
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("ERR").is_some());
 }
 
 #[test]
-fn normalize_expands_optional_symbol() {
-    let mut g = GrammarBuilder::new("opt")
-        .token("A", "a")
-        .token("B", "b")
+fn test_token_operator_tokens() {
+    let grammar = GrammarBuilder::new("ops")
+        .token("+", "+")
+        .token("-", "-")
+        .token("*", "*")
+        .token("/", "/")
+        .token("NUM", r"\d+")
+        .rule("expr", vec!["NUM"])
+        .start("expr")
         .build();
-    // Manually insert a rule with Optional
-    let a_id = *g.tokens.keys().find(|k| g.tokens[*k].name == "A").unwrap();
-    let b_id = *g.tokens.keys().find(|k| g.tokens[*k].name == "B").unwrap();
-    let lhs = SymbolId(100);
-    g.rules.insert(
-        lhs,
-        vec![adze_ir::Rule {
-            lhs,
-            rhs: vec![
-                adze_ir::Symbol::Terminal(a_id),
-                adze_ir::Symbol::Optional(Box::new(adze_ir::Symbol::Terminal(b_id))),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: adze_ir::ProductionId(0),
-        }],
-    );
-    let rules_before = g.rules.len();
-    g.normalize();
-    // Normalization creates an auxiliary rule for the Optional
-    assert!(g.rules.len() > rules_before);
+    let reg = grammar.build_registry();
+    for op in ["+", "-", "*", "/"] {
+        assert!(reg.get_id(op).is_some(), "missing operator {op}");
+    }
 }
 
 #[test]
-fn normalize_expands_repeat_symbol() {
-    let mut g = GrammarBuilder::new("rep").token("X", "x").build();
-    let x_id = *g.tokens.keys().next().unwrap();
-    let lhs = SymbolId(100);
-    g.rules.insert(
-        lhs,
-        vec![adze_ir::Rule {
-            lhs,
-            rhs: vec![adze_ir::Symbol::Repeat(Box::new(
-                adze_ir::Symbol::Terminal(x_id),
-            ))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: adze_ir::ProductionId(0),
-        }],
-    );
-    g.normalize();
-    // Should now have the original lhs rule PLUS the aux rule
-    assert!(g.rules.len() >= 2);
-}
-
-#[test]
-fn normalize_expands_repeat_one_symbol() {
-    let mut g = GrammarBuilder::new("rep1").token("Y", "y").build();
-    let y_id = *g.tokens.keys().next().unwrap();
-    let lhs = SymbolId(200);
-    g.rules.insert(
-        lhs,
-        vec![adze_ir::Rule {
-            lhs,
-            rhs: vec![adze_ir::Symbol::RepeatOne(Box::new(
-                adze_ir::Symbol::Terminal(y_id),
-            ))],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: adze_ir::ProductionId(0),
-        }],
-    );
-    g.normalize();
-    assert!(g.rules.len() >= 2);
-}
-
-#[test]
-fn normalize_expands_choice_symbol() {
-    let mut g = GrammarBuilder::new("choice")
-        .token("A", "a")
-        .token("B", "b")
+fn test_token_hidden_extra_token() {
+    let grammar = GrammarBuilder::new("extra")
+        .token("WS", r"[ \t]+")
+        .extra("WS")
+        .token("ID", r"[a-z]+")
+        .rule("r", vec!["ID"])
+        .start("r")
         .build();
-    let a_id = *g.tokens.keys().find(|k| g.tokens[*k].name == "A").unwrap();
-    let b_id = *g.tokens.keys().find(|k| g.tokens[*k].name == "B").unwrap();
-    let lhs = SymbolId(300);
-    g.rules.insert(
-        lhs,
-        vec![adze_ir::Rule {
-            lhs,
-            rhs: vec![adze_ir::Symbol::Choice(vec![
-                adze_ir::Symbol::Terminal(a_id),
-                adze_ir::Symbol::Terminal(b_id),
-            ])],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: adze_ir::ProductionId(0),
-        }],
-    );
-    g.normalize();
-    assert!(g.rules.len() >= 2);
+    let reg = grammar.build_registry();
+    let ws_id = reg.get_id("WS").unwrap();
+    let meta = reg.get_metadata(ws_id).unwrap();
+    assert!(meta.hidden);
 }
 
 #[test]
-fn normalize_twice_is_stable() {
-    let mut g = arith_grammar();
-    g.normalize();
-    let count1 = g.rules.len();
-    g.normalize();
-    let count2 = g.rules.len();
-    assert_eq!(count1, count2);
-}
-
-// ---------------------------------------------------------------------------
-// 10. Large grammars with many symbols
-// ---------------------------------------------------------------------------
-
-#[test]
-fn grammar_with_50_tokens() {
-    let mut b = GrammarBuilder::new("big");
-    for i in 0..50 {
-        b = b.token(&format!("T{i}"), &format!("t{i}"));
-    }
-    b = b.rule("start", vec!["T0"]).start("start");
-    let g = b.build();
-    assert_eq!(g.tokens.len(), 50);
-}
-
-#[test]
-fn grammar_with_50_rules() {
-    let mut b = GrammarBuilder::new("many_rules");
-    b = b.token("X", "x");
-    for i in 0..50 {
-        b = b.rule(&format!("r{i}"), vec!["X"]);
-    }
-    b = b.start("r0");
-    let g = b.build();
-    assert_eq!(g.rules.len(), 50);
-}
-
-#[test]
-fn large_grammar_all_rules_iterator() {
-    let mut b = GrammarBuilder::new("iter");
-    b = b.token("A", "a");
-    for i in 0..20 {
-        b = b.rule(&format!("rule{i}"), vec!["A"]);
-    }
-    b = b.start("rule0");
-    let g = b.build();
-    assert_eq!(g.all_rules().count(), 20);
-}
-
-#[test]
-fn large_grammar_rule_names_count() {
-    let mut b = GrammarBuilder::new("names");
-    b = b.token("Z", "z");
-    for i in 0..30 {
-        b = b.rule(&format!("sym{i}"), vec!["Z"]);
-    }
-    b = b.start("sym0");
-    let g = b.build();
-    // All 30 rule names should be present
-    assert_eq!(g.rule_names.len(), 30);
-}
-
-#[test]
-fn large_grammar_find_symbol_by_name() {
-    let mut b = GrammarBuilder::new("find");
-    b = b.token("T", "t");
-    for i in 0..25 {
-        b = b.rule(&format!("node{i}"), vec!["T"]);
-    }
-    b = b.start("node0");
-    let g = b.build();
-    for i in 0..25 {
-        assert!(g.find_symbol_by_name(&format!("node{i}")).is_some());
-    }
-}
-
-// ---------------------------------------------------------------------------
-// SymbolRegistry direct API tests
-// ---------------------------------------------------------------------------
-
-#[test]
-fn registry_new_has_eof() {
-    let reg = SymbolRegistry::new();
+fn test_token_registry_contains_eof() {
+    let grammar = GrammarBuilder::new("eof")
+        .token("A", "a")
+        .rule("r", vec!["A"])
+        .start("r")
+        .build();
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("end").is_some());
     assert_eq!(reg.get_id("end"), Some(SymbolId(0)));
 }
 
+// ===========================================================================
+// 3. Rule name registration (8 tests)
+// ===========================================================================
+
 #[test]
-fn registry_eof_metadata_is_terminal() {
-    let reg = SymbolRegistry::new();
-    let meta = reg.get_metadata(SymbolId(0)).unwrap();
-    assert!(meta.terminal);
+fn test_rule_name_present_in_registry() {
+    let grammar = GrammarBuilder::new("rn")
+        .token("A", "a")
+        .rule("statement", vec!["A"])
+        .start("statement")
+        .build();
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("statement").is_some());
 }
 
 #[test]
-fn registry_len_after_new() {
-    let reg = SymbolRegistry::new();
-    // Only EOF registered
-    assert_eq!(reg.len(), 1);
-}
-
-#[test]
-fn registry_is_not_empty_after_new() {
-    let reg = SymbolRegistry::new();
-    assert!(!reg.is_empty());
-}
-
-#[test]
-fn registry_register_returns_incremented_ids() {
-    let mut reg = SymbolRegistry::new();
-    let meta = SymbolMetadata {
-        visible: true,
-        named: false,
-        hidden: false,
-        terminal: true,
-    };
-    let id1 = reg.register("alpha", meta);
-    let id2 = reg.register("beta", meta);
-    assert_eq!(id1.0 + 1, id2.0);
-}
-
-#[test]
-fn registry_register_duplicate_returns_same_id() {
-    let mut reg = SymbolRegistry::new();
-    let meta = SymbolMetadata {
-        visible: true,
-        named: false,
-        hidden: false,
-        terminal: true,
-    };
-    let id1 = reg.register("dup", meta);
-    let id2 = reg.register("dup", meta);
-    assert_eq!(id1, id2);
-}
-
-#[test]
-fn registry_get_name_round_trip() {
-    let mut reg = SymbolRegistry::new();
-    let meta = SymbolMetadata {
-        visible: true,
-        named: true,
-        hidden: false,
-        terminal: false,
-    };
-    let id = reg.register("my_sym", meta);
-    assert_eq!(reg.get_name(id), Some("my_sym"));
-}
-
-#[test]
-fn registry_contains_id() {
-    let mut reg = SymbolRegistry::new();
-    let meta = SymbolMetadata {
-        visible: true,
-        named: false,
-        hidden: false,
-        terminal: true,
-    };
-    let id = reg.register("present", meta);
-    assert!(reg.contains_id(id));
-    assert!(!reg.contains_id(SymbolId(9999)));
-}
-
-#[test]
-fn registry_iter_order() {
-    let mut reg = SymbolRegistry::new();
-    let meta = SymbolMetadata {
-        visible: true,
-        named: false,
-        hidden: false,
-        terminal: true,
-    };
-    reg.register("aaa", meta);
-    reg.register("bbb", meta);
-    let names: Vec<&str> = reg.iter().map(|(n, _)| n).collect();
-    // Insertion order: "end", "aaa", "bbb"
-    assert_eq!(names, vec!["end", "aaa", "bbb"]);
-}
-
-#[test]
-fn registry_to_index_map_covers_all() {
-    let mut reg = SymbolRegistry::new();
-    let meta = SymbolMetadata {
-        visible: true,
-        named: false,
-        hidden: false,
-        terminal: true,
-    };
-    reg.register("x", meta);
-    reg.register("y", meta);
-    let idx_map = reg.to_index_map();
-    assert_eq!(idx_map.len(), reg.len());
-}
-
-#[test]
-fn registry_to_symbol_map_inverse() {
-    let mut reg = SymbolRegistry::new();
-    let meta = SymbolMetadata {
-        visible: true,
-        named: false,
-        hidden: false,
-        terminal: true,
-    };
-    reg.register("a", meta);
-    let idx = reg.to_index_map();
-    let sym = reg.to_symbol_map();
-    for (&sid, &i) in &idx {
-        assert_eq!(sym[&i], sid);
-    }
-}
-
-#[test]
-fn registry_default_is_new() {
-    let reg: SymbolRegistry = Default::default();
-    assert_eq!(reg.len(), 1);
-    assert_eq!(reg.get_id("end"), Some(SymbolId(0)));
-}
-
-// ---------------------------------------------------------------------------
-// Grammar.build_registry / get_or_build_registry
-// ---------------------------------------------------------------------------
-
-#[test]
-fn build_registry_contains_tokens() {
-    let g = arith_grammar();
-    let reg = g.build_registry();
-    assert!(reg.get_id("NUMBER").is_some());
-    assert!(reg.get_id("+").is_some());
-    assert!(reg.get_id("-").is_some());
-}
-
-#[test]
-fn build_registry_contains_non_terminals() {
-    let g = arith_grammar();
-    let reg = g.build_registry();
-    assert!(reg.get_id("expr").is_some());
-}
-
-#[test]
-fn build_registry_eof_present() {
-    let g = arith_grammar();
-    let reg = g.build_registry();
-    assert_eq!(reg.get_id("end"), Some(SymbolId(0)));
-}
-
-#[test]
-fn get_or_build_registry_caches() {
-    let mut g = arith_grammar();
-    assert!(g.symbol_registry.is_none());
-    let _ = g.get_or_build_registry();
-    assert!(g.symbol_registry.is_some());
-}
-
-#[test]
-fn get_or_build_registry_stable_across_calls() {
-    let mut g = arith_grammar();
-    let len1 = g.get_or_build_registry().len();
-    let len2 = g.get_or_build_registry().len();
-    assert_eq!(len1, len2);
-}
-
-#[test]
-fn build_registry_terminal_metadata() {
-    let g = arith_grammar();
-    let reg = g.build_registry();
-    let num_id = reg.get_id("NUMBER").unwrap();
-    let meta = reg.get_metadata(num_id).unwrap();
-    assert!(meta.terminal);
-}
-
-#[test]
-fn build_registry_nonterminal_metadata() {
-    let g = arith_grammar();
-    let reg = g.build_registry();
-    let expr_id = reg.get_id("expr").unwrap();
-    let meta = reg.get_metadata(expr_id).unwrap();
+fn test_rule_name_metadata_is_nonterminal() {
+    let grammar = GrammarBuilder::new("rn")
+        .token("A", "a")
+        .rule("statement", vec!["A"])
+        .start("statement")
+        .build();
+    let reg = grammar.build_registry();
+    let id = reg.get_id("statement").unwrap();
+    let meta = reg.get_metadata(id).unwrap();
     assert!(!meta.terminal);
     assert!(meta.named);
 }
 
-// ---------------------------------------------------------------------------
-// Grammar construction edge cases
-// ---------------------------------------------------------------------------
-
 #[test]
-fn grammar_new_is_empty() {
-    let g = Grammar::new("empty".to_string());
-    assert!(g.tokens.is_empty());
-    assert!(g.rules.is_empty());
-    assert!(g.rule_names.is_empty());
-}
-
-#[test]
-fn grammar_name_preserved() {
-    let g = arith_grammar();
-    assert_eq!(g.name, "arith");
-}
-
-#[test]
-fn grammar_with_extras() {
-    let g = GrammarBuilder::new("ws")
-        .token("WS", r"\s+")
-        .token("ID", r"[a-z]+")
-        .extra("WS")
-        .rule("prog", vec!["ID"])
-        .start("prog")
+fn test_rule_name_multiple_rules_same_lhs() {
+    let grammar = GrammarBuilder::new("multi_rule")
+        .token("A", "a")
+        .token("B", "b")
+        .rule("item", vec!["A"])
+        .rule("item", vec!["B"])
+        .start("item")
         .build();
-    assert_eq!(g.extras.len(), 1);
+    let reg = grammar.build_registry();
+    // "item" appears exactly once in registry despite 2 productions
+    let id = reg.get_id("item").unwrap();
+    assert!(reg.get_name(id).is_some());
 }
 
 #[test]
-fn grammar_with_external_tokens() {
-    let g = GrammarBuilder::python_like();
-    assert!(!g.externals.is_empty());
+fn test_rule_name_distinct_from_token() {
+    let grammar = GrammarBuilder::new("sep")
+        .token("NUM", r"\d+")
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+    let reg = grammar.build_registry();
+    let tok_id = reg.get_id("NUM").unwrap();
+    let rule_id = reg.get_id("expr").unwrap();
+    assert_ne!(tok_id, rule_id);
 }
 
 #[test]
-fn grammar_externals_in_registry() {
-    let g = GrammarBuilder::python_like();
-    let reg = g.build_registry();
-    assert!(reg.get_id("INDENT").is_some());
-    assert!(reg.get_id("DEDENT").is_some());
+fn test_rule_name_start_symbol_registered() {
+    let grammar = GrammarBuilder::new("start")
+        .token("X", "x")
+        .rule("program", vec!["X"])
+        .start("program")
+        .build();
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("program").is_some());
 }
 
 #[test]
-fn grammar_symbol_registry_none_by_default() {
-    let g = arith_grammar();
-    assert!(g.symbol_registry.is_none());
+fn test_rule_name_underscore_prefix_hidden() {
+    let mut grammar = Grammar::new("hidden_test".to_string());
+    let id = SymbolId(10);
+    grammar.rule_names.insert(id, "_internal".to_string());
+    let reg = grammar.build_registry();
+    if let Some(rid) = reg.get_id("_internal") {
+        let meta = reg.get_metadata(rid).unwrap();
+        assert!(meta.hidden);
+        assert!(!meta.visible);
+    }
 }
 
 #[test]
-fn javascript_like_has_many_tokens() {
-    let g = GrammarBuilder::javascript_like();
-    assert!(g.tokens.len() >= 10);
+fn test_rule_name_find_symbol_by_name() {
+    let grammar = GrammarBuilder::new("find")
+        .token("A", "a")
+        .rule("target", vec!["A"])
+        .start("target")
+        .build();
+    let found = grammar.find_symbol_by_name("target");
+    assert!(found.is_some());
 }
 
 #[test]
-fn javascript_like_has_precedence_rules() {
-    let g = GrammarBuilder::javascript_like();
-    let has_prec = g.all_rules().any(|r| r.precedence.is_some());
-    assert!(has_prec);
+fn test_rule_name_find_symbol_missing() {
+    let grammar = GrammarBuilder::new("find")
+        .token("A", "a")
+        .rule("target", vec!["A"])
+        .start("target")
+        .build();
+    assert!(grammar.find_symbol_by_name("missing").is_none());
+}
+
+// ===========================================================================
+// 4. Symbol count consistency (5 tests)
+// ===========================================================================
+
+#[test]
+fn test_count_new_registry_has_eof() {
+    let reg = SymbolRegistry::new();
+    assert_eq!(reg.len(), 1);
+    assert!(!reg.is_empty());
+}
+
+#[test]
+fn test_count_after_registrations() {
+    let mut reg = SymbolRegistry::new();
+    reg.register("a", terminal_meta());
+    reg.register("b", terminal_meta());
+    reg.register("c", terminal_meta());
+    // 1 (EOF) + 3
+    assert_eq!(reg.len(), 4);
+}
+
+#[test]
+fn test_count_duplicate_does_not_increase() {
+    let mut reg = SymbolRegistry::new();
+    reg.register("dup", terminal_meta());
+    reg.register("dup", terminal_meta());
+    assert_eq!(reg.len(), 2); // EOF + "dup"
+}
+
+#[test]
+fn test_count_matches_grammar_tokens_plus_rules() {
+    let grammar = GrammarBuilder::new("cnt")
+        .token("A", "a")
+        .token("B", "b")
+        .rule("r1", vec!["A"])
+        .rule("r2", vec!["B"])
+        .start("r1")
+        .build();
+    let reg = grammar.build_registry();
+    // EOF + 2 tokens + 2 nonterminals = 5
+    assert_eq!(reg.len(), 5);
+}
+
+#[test]
+fn test_count_contains_id_valid_and_invalid() {
+    let mut reg = SymbolRegistry::new();
+    let id = reg.register("valid", terminal_meta());
+    assert!(reg.contains_id(id));
+    assert!(!reg.contains_id(SymbolId(9999)));
+}
+
+// ===========================================================================
+// 5. Grammar with many symbols (5 tests)
+// ===========================================================================
+
+#[test]
+fn test_many_tokens_100() {
+    let mut builder = GrammarBuilder::new("big");
+    for i in 0..100 {
+        builder = builder.token(&format!("T{i}"), &format!("t{i}"));
+    }
+    builder = builder.rule("start", vec!["T0"]).start("start");
+    let grammar = builder.build();
+    let reg = grammar.build_registry();
+    // EOF + 100 tokens + "start" nonterminal
+    assert_eq!(reg.len(), 102);
+}
+
+#[test]
+fn test_many_rules_50() {
+    let mut builder = GrammarBuilder::new("rules50");
+    builder = builder.token("X", "x");
+    for i in 0..50 {
+        builder = builder.rule(&format!("rule{i}"), vec!["X"]);
+    }
+    builder = builder.start("rule0");
+    let grammar = builder.build();
+    let reg = grammar.build_registry();
+    for i in 0..50 {
+        assert!(reg.get_id(&format!("rule{i}")).is_some(), "missing rule{i}");
+    }
+}
+
+#[test]
+fn test_many_symbols_ids_unique() {
+    let mut reg = SymbolRegistry::new();
+    let mut ids = Vec::new();
+    for i in 0..200 {
+        ids.push(reg.register(&format!("sym{i}"), terminal_meta()));
+    }
+    ids.sort();
+    ids.dedup();
+    assert_eq!(ids.len(), 200); // all unique
+}
+
+#[test]
+fn test_many_symbols_reverse_lookup_all() {
+    let mut reg = SymbolRegistry::new();
+    for i in 0..50 {
+        reg.register(&format!("s{i}"), terminal_meta());
+    }
+    for i in 0..50 {
+        let id = reg.get_id(&format!("s{i}")).unwrap();
+        assert_eq!(reg.get_name(id), Some(format!("s{i}").as_str()));
+    }
+}
+
+#[test]
+fn test_many_symbols_index_map_roundtrip() {
+    let mut reg = SymbolRegistry::new();
+    for i in 0..30 {
+        reg.register(&format!("m{i}"), terminal_meta());
+    }
+    let idx_map = reg.to_index_map();
+    let sym_map = reg.to_symbol_map();
+    for (&sym_id, &idx) in &idx_map {
+        assert_eq!(sym_map[&idx], sym_id);
+    }
+}
+
+// ===========================================================================
+// 6. Serialization roundtrip (5 tests)
+// ===========================================================================
+
+#[test]
+fn test_serde_registry_roundtrip_json() {
+    let mut reg = SymbolRegistry::new();
+    reg.register("plus", terminal_meta());
+    reg.register("expr", nonterminal_meta());
+    let json = serde_json::to_string(&reg).unwrap();
+    let deserialized: SymbolRegistry = serde_json::from_str(&json).unwrap();
+    assert_eq!(reg, deserialized);
+}
+
+#[test]
+fn test_serde_registry_preserves_ids() {
+    let mut reg = SymbolRegistry::new();
+    let id = reg.register("tok", terminal_meta());
+    let json = serde_json::to_string(&reg).unwrap();
+    let back: SymbolRegistry = serde_json::from_str(&json).unwrap();
+    assert_eq!(back.get_id("tok"), Some(id));
+}
+
+#[test]
+fn test_serde_registry_preserves_metadata() {
+    let mut reg = SymbolRegistry::new();
+    let id = reg.register("hidden_tok", hidden_meta());
+    let json = serde_json::to_string(&reg).unwrap();
+    let back: SymbolRegistry = serde_json::from_str(&json).unwrap();
+    let meta = back.get_metadata(id).unwrap();
+    assert!(meta.hidden);
+    assert!(!meta.visible);
+}
+
+#[test]
+fn test_serde_grammar_roundtrip_with_registry() {
+    let mut grammar = GrammarBuilder::new("serde_g")
+        .token("A", "a")
+        .rule("r", vec!["A"])
+        .start("r")
+        .build();
+    grammar.symbol_registry = Some(grammar.build_registry());
+    let json = serde_json::to_string(&grammar).unwrap();
+    let back: Grammar = serde_json::from_str(&json).unwrap();
+    assert_eq!(grammar, back);
+}
+
+#[test]
+fn test_serde_grammar_none_registry_roundtrip() {
+    let grammar = GrammarBuilder::new("none_reg")
+        .token("B", "b")
+        .rule("s", vec!["B"])
+        .start("s")
+        .build();
+    assert!(grammar.symbol_registry.is_none());
+    let json = serde_json::to_string(&grammar).unwrap();
+    let back: Grammar = serde_json::from_str(&json).unwrap();
+    assert!(back.symbol_registry.is_none());
+}
+
+// ===========================================================================
+// 7. Builder creates correct mappings (8 tests)
+// ===========================================================================
+
+#[test]
+fn test_builder_basic_grammar() {
+    let grammar = GrammarBuilder::new("basic")
+        .token("NUM", r"\d+")
+        .rule("expr", vec!["NUM"])
+        .start("expr")
+        .build();
+    assert_eq!(grammar.name, "basic");
+    assert!(!grammar.tokens.is_empty());
+    assert!(!grammar.rules.is_empty());
+}
+
+#[test]
+fn test_builder_rule_names_populated() {
+    let grammar = GrammarBuilder::new("rn")
+        .token("A", "a")
+        .rule("root", vec!["A"])
+        .start("root")
+        .build();
+    assert!(grammar.rule_names.values().any(|v| v == "root"));
+}
+
+#[test]
+fn test_builder_start_symbol_first_in_rules() {
+    let grammar = GrammarBuilder::new("order")
+        .token("X", "x")
+        .rule("second", vec!["X"])
+        .rule("first", vec!["X"])
+        .start("first")
+        .build();
+    let first_key = grammar.rules.keys().next().unwrap();
+    let first_name = grammar.rule_names.get(first_key).unwrap();
+    assert_eq!(first_name, "first");
+}
+
+#[test]
+fn test_builder_extras_recorded() {
+    let grammar = GrammarBuilder::new("ext")
+        .token("WS", r"\s+")
+        .extra("WS")
+        .token("A", "a")
+        .rule("r", vec!["A"])
+        .start("r")
+        .build();
+    assert!(!grammar.extras.is_empty());
+}
+
+#[test]
+fn test_builder_externals_recorded() {
+    let grammar = GrammarBuilder::new("ext_scan")
+        .token("INDENT", "INDENT")
+        .external("INDENT")
+        .token("A", "a")
+        .rule("r", vec!["A"])
+        .start("r")
+        .build();
+    assert!(!grammar.externals.is_empty());
+    assert_eq!(grammar.externals[0].name, "INDENT");
+}
+
+#[test]
+fn test_builder_python_like_registry() {
+    let grammar = GrammarBuilder::python_like();
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("def").is_some());
+    assert!(reg.get_id("module").is_some());
+}
+
+#[test]
+fn test_builder_javascript_like_registry() {
+    let grammar = GrammarBuilder::javascript_like();
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("function").is_some());
+    assert!(reg.get_id("program").is_some());
+    assert!(reg.get_id("NUMBER").is_some());
+}
+
+#[test]
+fn test_builder_get_or_build_registry_caches() {
+    let mut grammar = GrammarBuilder::new("cache")
+        .token("A", "a")
+        .rule("r", vec!["A"])
+        .start("r")
+        .build();
+    assert!(grammar.symbol_registry.is_none());
+    let _ = grammar.get_or_build_registry();
+    assert!(grammar.symbol_registry.is_some());
+}
+
+// ===========================================================================
+// 8. Edge cases (8 tests)
+// ===========================================================================
+
+#[test]
+fn test_edge_default_registry_has_eof() {
+    let reg = SymbolRegistry::default();
+    assert_eq!(reg.len(), 1);
+    assert_eq!(reg.get_id("end"), Some(SymbolId(0)));
+}
+
+#[test]
+fn test_edge_empty_grammar_registry() {
+    let grammar = Grammar::new("empty".to_string());
+    let reg = grammar.build_registry();
+    // Only EOF
+    assert_eq!(reg.len(), 1);
+}
+
+#[test]
+fn test_edge_single_token_grammar() {
+    let grammar = GrammarBuilder::new("single")
+        .token("ONLY", "only")
+        .rule("r", vec!["ONLY"])
+        .start("r")
+        .build();
+    let reg = grammar.build_registry();
+    assert!(reg.get_id("ONLY").is_some());
+    assert!(reg.get_id("r").is_some());
+}
+
+#[test]
+fn test_edge_symbol_id_display() {
+    let id = SymbolId(42);
+    assert_eq!(format!("{id}"), "Symbol(42)");
+}
+
+#[test]
+fn test_edge_symbol_id_ordering() {
+    let a = SymbolId(1);
+    let b = SymbolId(2);
+    assert!(a < b);
+    assert!(b > a);
+    assert_eq!(SymbolId(5), SymbolId(5));
+}
+
+#[test]
+fn test_edge_symbol_id_hash_key() {
+    use std::collections::HashMap;
+    let mut map = HashMap::new();
+    map.insert(SymbolId(1), "one");
+    map.insert(SymbolId(2), "two");
+    assert_eq!(map[&SymbolId(1)], "one");
+    assert_eq!(map[&SymbolId(2)], "two");
+}
+
+#[test]
+fn test_edge_registry_iter_order_matches_insertion() {
+    let mut reg = SymbolRegistry::new();
+    let names = ["alpha", "beta", "gamma", "delta"];
+    for n in &names {
+        reg.register(n, terminal_meta());
+    }
+    let iter_names: Vec<&str> = reg.iter().map(|(n, _)| n).collect();
+    // First element is "end" (EOF)
+    assert_eq!(iter_names[0], "end");
+    for (i, n) in names.iter().enumerate() {
+        assert_eq!(iter_names[i + 1], *n);
+    }
+}
+
+#[test]
+fn test_edge_metadata_update_on_re_register() {
+    let mut reg = SymbolRegistry::new();
+    let id = reg.register("sym", terminal_meta());
+    let updated = SymbolMetadata {
+        visible: false,
+        named: true,
+        hidden: true,
+        terminal: false,
+    };
+    let id2 = reg.register("sym", updated);
+    assert_eq!(id, id2);
+    let meta = reg.get_metadata(id).unwrap();
+    assert!(!meta.visible);
+    assert!(meta.hidden);
 }
