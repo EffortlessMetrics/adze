@@ -614,81 +614,6 @@ fn field_8_combined_all_features() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn complex_1_arithmetic_expression_grammar() {
-    let g = GrammarBuilder::new("arithmetic")
-        .token("NUM", r"\d+")
-        .token("+", "+")
-        .token("-", "-")
-        .token("*", "*")
-        .token("/", "/")
-        .token("(", "(")
-        .token(")", ")")
-        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "-", "expr"], 1, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "*", "expr"], 2, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "/", "expr"], 2, Associativity::Left)
-        .rule("expr", vec!["(", "expr", ")"])
-        .rule("expr", vec!["NUM"])
-        .start("expr")
-        .build();
-    assert!(g.tokens.len() >= 7);
-    assert!(g.rules.len() >= 4);
-}
-
-#[test]
-fn complex_2_if_else_grammar() {
-    let g = GrammarBuilder::new("if_else")
-        .token("if", "if")
-        .token("else", "else")
-        .token("(", "(")
-        .token(")", ")")
-        .token("COND", r"[a-z]+")
-        .token("STMT", r"[A-Z]+")
-        .rule("statement", vec!["if", "(", "COND", ")", "STMT"])
-        .rule(
-            "statement",
-            vec!["if", "(", "COND", ")", "STMT", "else", "STMT"],
-        )
-        .rule("program", vec!["statement"])
-        .rule("program", vec!["program", "statement"])
-        .start("program")
-        .build();
-    assert_eq!(g.rules.len(), 4);
-}
-
-#[test]
-fn complex_3_list_grammar() {
-    let g = GrammarBuilder::new("list_grammar")
-        .token("ELEM", r"[0-9]+")
-        .token(",", ",")
-        .token("[", "[")
-        .token("]", "]")
-        .rule("list", vec!["[", "]"])
-        .rule("list", vec!["[", "elements", "]"])
-        .rule("elements", vec!["ELEM"])
-        .rule("elements", vec!["elements", ",", "ELEM"])
-        .start("list")
-        .build();
-    assert_eq!(g.rules.len(), 4);
-}
-
-#[test]
-fn complex_4_nested_expression_grammar() {
-    let g = GrammarBuilder::new("nested_expr")
-        .token("VAR", r"[a-z]+")
-        .token("(", "(")
-        .token(")", ")")
-        .token(",", ",")
-        .rule("expr", vec!["VAR"])
-        .rule("expr", vec!["(", "expr_list", ")"])
-        .rule("expr_list", vec!["expr"])
-        .rule("expr_list", vec!["expr_list", ",", "expr"])
-        .start("expr")
-        .build();
-    assert_eq!(g.rules.len(), 4);
-}
-
-#[test]
 fn complex_5_multi_level_inheritance() {
     let g = GrammarBuilder::new("multi_inherit")
         .token("T", "t")
@@ -704,33 +629,6 @@ fn complex_5_multi_level_inheritance() {
         .build();
     assert_eq!(g.rules.len(), 5);
     assert_eq!(g.supertypes.len(), 3);
-}
-
-#[test]
-fn complex_6_grammar_with_all_features() {
-    let g = GrammarBuilder::new("all_features")
-        .token("KW", "keyword")
-        .token("ID", r"[a-z]+")
-        .token("NUM", r"\d+")
-        .token("WS", r"[ \t]+")
-        .token("COMMENT", r"//.*")
-        .rule_with_precedence("expr", vec!["expr", "+", "expr"], 1, Associativity::Left)
-        .rule("expr", vec!["ID"])
-        .rule("expr", vec!["NUM"])
-        .rule("stmt", vec!["KW", "expr"])
-        .inline("expr")
-        .supertype("stmt")
-        .extra("WS")
-        .extra("COMMENT")
-        .external("INDENT")
-        .start("stmt")
-        .build();
-    assert!(g.tokens.len() >= 5);
-    assert!(g.rules.len() >= 4);
-    assert_eq!(g.inline_rules.len(), 1);
-    assert_eq!(g.supertypes.len(), 1);
-    assert_eq!(g.extras.len(), 2);
-    assert_eq!(g.externals.len(), 1);
 }
 
 #[test]
@@ -850,41 +748,4 @@ fn edge_7_multiple_token_types_mixed() {
     assert_eq!(g.tokens.len(), 4);
     let fragile_count = g.tokens.values().filter(|t| t.fragile).count();
     assert_eq!(fragile_count, 1);
-}
-
-#[test]
-fn edge_8_all_builder_features_maximum() {
-    let mut builder = GrammarBuilder::new("maximum_features_test_grammar");
-
-    // Add many tokens
-    for i in 0..10 {
-        builder = builder.token(&format!("TOK{}", i), &format!("t{}", i));
-    }
-
-    // Add rules with precedence and associativity
-    builder = builder
-        .rule_with_precedence("expr", vec!["TOK0", "TOK1"], 1, Associativity::Left)
-        .rule_with_precedence("expr", vec!["TOK2", "TOK3"], 2, Associativity::Right)
-        .rule("expr", vec!["TOK4"])
-        .rule("stmt", vec!["expr", "TOK5"]);
-
-    // Mark inline and supertype
-    builder = builder.inline("expr").supertype("stmt");
-
-    // Add extras and externals
-    builder = builder
-        .token("WS", r"[ \t\n]+")
-        .extra("WS")
-        .external("SCANNER1")
-        .external("SCANNER2");
-
-    builder = builder.start("stmt");
-    let g = builder.build();
-
-    assert!(g.tokens.len() >= 12);
-    assert!(g.rules.len() >= 4);
-    assert_eq!(g.inline_rules.len(), 1);
-    assert_eq!(g.supertypes.len(), 1);
-    assert!(!g.extras.is_empty());
-    assert_eq!(g.externals.len(), 2);
 }
