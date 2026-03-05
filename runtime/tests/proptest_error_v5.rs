@@ -312,9 +312,9 @@ proptest! {
         max in 1usize..20,
         overshoot in 1usize..10,
     ) {
-        let mut cfg = ErrorRecoveryConfig::default();
-        cfg.max_consecutive_errors = max;
-        cfg.enable_phrase_recovery = false;
+        let cfg = ErrorRecoveryConfig { max_consecutive_errors: max, enable_phrase_recovery: false, ..ErrorRecoveryConfig::default() };
+
+
         let mut state = ErrorRecoveryState::new(cfg);
 
         // Exhaust errors to exceed the limit
@@ -351,7 +351,7 @@ proptest! {
             .build();
         let mut state = ErrorRecoveryState::new(cfg);
         // expected doesn't contain actual, and actual not in sync tokens
-        let strategy = state.determine_recovery_strategy(
+        let _strategy = state.determine_recovery_strategy(
             &[actual.wrapping_add(100)],
             Some(actual),
             (0, 0),
