@@ -5,10 +5,12 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::validation::GrammarValidator;
+#[allow(unused_imports)]
 use adze_ir::{
     AliasSequence, Associativity, ExternalToken, FieldId, Grammar, Precedence, PrecedenceKind,
     ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
+#[allow(unused_imports)]
 use indexmap::IndexMap;
 use proptest::prelude::*;
 
@@ -20,6 +22,7 @@ fn arb_grammar_name() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{2,8}".prop_map(|s| s)
 }
 
+#[allow(dead_code)]
 fn arb_token_name() -> impl Strategy<Value = String> {
     "[A-Z][A-Z0-9_]{1,6}".prop_map(|s| s)
 }
@@ -217,12 +220,12 @@ fn merge_extras_into(dst: &mut Grammar, src: &Grammar) {
             .get(extra_id)
             .map(|t| t.name.clone())
             .or_else(|| src.rule_names.get(extra_id).cloned());
-        if let Some(name) = src_name {
-            if !dst_extra_names.contains(&name) {
-                // Find corresponding ID in dst
-                if let Some((did, _)) = dst.tokens.iter().find(|(_, t)| t.name == name) {
-                    dst.extras.push(*did);
-                }
+        if let Some(name) = src_name
+            && !dst_extra_names.contains(&name)
+        {
+            // Find corresponding ID in dst
+            if let Some((did, _)) = dst.tokens.iter().find(|(_, t)| t.name == name) {
+                dst.extras.push(*did);
             }
         }
     }
@@ -929,7 +932,7 @@ proptest! {
     ) {
         prop_assume!(name_a != name_b);
         let mut grammar = minimal_grammar("test");
-        let mut sorted_names = vec![name_a.clone(), name_b.clone()];
+        let mut sorted_names = [name_a.clone(), name_b.clone()];
         sorted_names.sort();
         grammar.fields.insert(FieldId(0), sorted_names[0].clone());
         grammar.fields.insert(FieldId(1), sorted_names[1].clone());
@@ -944,7 +947,7 @@ proptest! {
     ) {
         prop_assume!(name_a != name_b);
         let mut grammar = minimal_grammar("test");
-        let mut sorted_names = vec![name_a.clone(), name_b.clone()];
+        let mut sorted_names = [name_a.clone(), name_b.clone()];
         sorted_names.sort();
         // Insert in reverse lexicographic order (wrong)
         grammar
