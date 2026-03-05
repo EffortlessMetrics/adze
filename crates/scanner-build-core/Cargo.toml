@@ -1,0 +1,18 @@
+[package]
+name = "adze-scanner-build-core"
+version = "0.8.0-dev"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/adze-scanner-build-core"
+description = "Core build-time scanner discovery and integration utilities for Adze"
+publish = true
+
+[dependencies]
+anyhow.workspace = true
+cc = "1"
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -42,6 +42,7 @@ adze-common = { version = "0.8.0-dev", path = "../common" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
+adze-scanner-build-core = { version = "0.8.0-dev", path = "../crates/scanner-build-core" }
 regex.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true

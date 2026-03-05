@@ -649,6 +649,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-scanner-build-core"
+version = "0.8.0-dev"
+dependencies = [
+ "anyhow",
+ "cc",
+ "tempfile",
+]
+
+[[package]]
 name = "adze-stack-pool-core"
 version = "0.1.0"
 dependencies = [
@@ -707,6 +716,7 @@ dependencies = [
  "adze-common",
  "adze-glr-core",
  "adze-ir",
+ "adze-scanner-build-core",
  "adze-tablegen",
  "anyhow",
  "cc",
