@@ -24,10 +24,10 @@
 //!
 //! Run with: cargo test -p adze-glr-core --test conflict_resolve_v9 -- --test-threads=2
 
-use adze_glr_core::conflict_inspection::{classify_conflict, count_conflicts, ConflictType};
+use adze_glr_core::conflict_inspection::{ConflictType, classify_conflict, count_conflicts};
 use adze_glr_core::{
-    Action, ConflictResolver, FirstFollowSets, ItemSetCollection, ParseTable, build_lr1_automaton,
-    sanity_check_tables, GLRError,
+    Action, ConflictResolver, FirstFollowSets, GLRError, ItemSetCollection, ParseTable,
+    build_lr1_automaton, sanity_check_tables,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar, RuleId, StateId};
@@ -82,8 +82,6 @@ fn has_accept(table: &ParseTable) -> bool {
             .any(|cell| cell.iter().any(|a| matches!(a, Action::Accept)))
     })
 }
-
-
 
 /// Run ConflictResolver::detect_conflicts on a grammar.
 fn detect_all(grammar: &Grammar) -> Vec<adze_glr_core::Conflict> {
@@ -183,7 +181,12 @@ fn test_crv_v9_left_assoc_no_fork_cells() {
     let g = GrammarBuilder::new("crv_v9_la2")
         .token("NUM", r"\d+")
         .token("MINUS", r"-")
-        .rule_with_precedence("expr", vec!["expr", "MINUS", "expr"], 1, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "MINUS", "expr"],
+            1,
+            Associativity::Left,
+        )
         .rule("expr", vec!["NUM"])
         .start("expr")
         .build();
@@ -403,7 +406,12 @@ fn test_crv_v9_same_prec_left_two_ops_resolves() {
         .token("PLUS", r"\+")
         .token("MINUS", r"-")
         .rule_with_precedence("expr", vec!["expr", "PLUS", "expr"], 1, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "MINUS", "expr"], 1, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "MINUS", "expr"],
+            1,
+            Associativity::Left,
+        )
         .rule("expr", vec!["NUM"])
         .start("expr")
         .build();
@@ -954,7 +962,11 @@ fn test_crv_v9_non_conflict_cells_at_most_one_action_unambiguous() {
     let table = build_table(&g).unwrap();
     for row in &table.action_table {
         for cell in row {
-            assert!(cell.len() <= 1, "unambiguous grammar: cell has {} actions", cell.len());
+            assert!(
+                cell.len() <= 1,
+                "unambiguous grammar: cell has {} actions",
+                cell.len()
+            );
         }
     }
 }
@@ -971,7 +983,11 @@ fn test_crv_v9_resolved_grammar_cells_at_most_one_action() {
     let table = build_table(&g).unwrap();
     for row in &table.action_table {
         for cell in row {
-            assert!(cell.len() <= 1, "resolved grammar: cell has {} actions", cell.len());
+            assert!(
+                cell.len() <= 1,
+                "resolved grammar: cell has {} actions",
+                cell.len()
+            );
         }
     }
 }
@@ -1029,7 +1045,11 @@ fn test_crv_v9_fork_action_min_two_sub_actions() {
         for cell in row {
             for action in cell {
                 if let Action::Fork(sub) = action {
-                    assert!(sub.len() >= 2, "Fork must have ≥ 2 sub-actions, got {}", sub.len());
+                    assert!(
+                        sub.len() >= 2,
+                        "Fork must have ≥ 2 sub-actions, got {}",
+                        sub.len()
+                    );
                 }
             }
         }
@@ -1098,7 +1118,10 @@ fn test_crv_v9_multi_action_cells_have_distinct_actions() {
                 // Check at least two distinct actions
                 let first = &cell[0];
                 let others_differ = cell.iter().skip(1).any(|a| a != first);
-                assert!(others_differ, "multi-action cells must have distinct actions");
+                assert!(
+                    others_differ,
+                    "multi-action cells must have distinct actions"
+                );
             }
         }
     }
@@ -1185,7 +1208,12 @@ fn test_crv_v9_negative_prec_builds() {
     let g = GrammarBuilder::new("crv_v9_neg1")
         .token("NUM", r"\d+")
         .token("PLUS", r"\+")
-        .rule_with_precedence("expr", vec!["expr", "PLUS", "expr"], -1, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "PLUS", "expr"],
+            -1,
+            Associativity::Left,
+        )
         .rule("expr", vec!["NUM"])
         .start("expr")
         .build();
@@ -1198,7 +1226,12 @@ fn test_crv_v9_negative_prec_rule_stored() {
     let g = GrammarBuilder::new("crv_v9_neg2")
         .token("NUM", r"\d+")
         .token("PLUS", r"\+")
-        .rule_with_precedence("expr", vec!["expr", "PLUS", "expr"], -5, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "PLUS", "expr"],
+            -5,
+            Associativity::Left,
+        )
         .rule("expr", vec!["NUM"])
         .start("expr")
         .build();
@@ -1217,7 +1250,12 @@ fn test_crv_v9_negative_vs_positive_prec_ordering() {
         .token("NUM", r"\d+")
         .token("PLUS", r"\+")
         .token("STAR", r"\*")
-        .rule_with_precedence("expr", vec!["expr", "PLUS", "expr"], -1, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "PLUS", "expr"],
+            -1,
+            Associativity::Left,
+        )
         .rule_with_precedence("expr", vec!["expr", "STAR", "expr"], 1, Associativity::Left)
         .rule("expr", vec!["NUM"])
         .start("expr")
@@ -1232,7 +1270,12 @@ fn test_crv_v9_negative_prec_sanity() {
     let g = GrammarBuilder::new("crv_v9_neg4")
         .token("NUM", r"\d+")
         .token("PLUS", r"\+")
-        .rule_with_precedence("expr", vec!["expr", "PLUS", "expr"], -3, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "PLUS", "expr"],
+            -3,
+            Associativity::Left,
+        )
         .rule("expr", vec!["NUM"])
         .start("expr")
         .build();
@@ -1266,7 +1309,12 @@ fn test_crv_v9_prec_numeric_10_gt_5() {
         .token("PLUS", r"\+")
         .token("STAR", r"\*")
         .rule_with_precedence("expr", vec!["expr", "PLUS", "expr"], 5, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "STAR", "expr"], 10, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "STAR", "expr"],
+            10,
+            Associativity::Left,
+        )
         .rule("expr", vec!["NUM"])
         .start("expr")
         .build();
@@ -1282,7 +1330,12 @@ fn test_crv_v9_prec_equal_uses_assoc() {
         .token("PLUS", r"\+")
         .token("MINUS", r"-")
         .rule_with_precedence("expr", vec!["expr", "PLUS", "expr"], 3, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "MINUS", "expr"], 3, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "MINUS", "expr"],
+            3,
+            Associativity::Left,
+        )
         .rule("expr", vec!["NUM"])
         .start("expr")
         .build();
@@ -1585,18 +1638,12 @@ fn test_crv_v9_higher_prec_resolves_more_conflicts() {
 
 #[test]
 fn test_crv_v9_classify_sr_action_pair() {
-    let actions = vec![
-        Action::Shift(StateId(5)),
-        Action::Reduce(RuleId(2)),
-    ];
+    let actions = vec![Action::Shift(StateId(5)), Action::Reduce(RuleId(2))];
     assert_eq!(classify_conflict(&actions), ConflictType::ShiftReduce);
 }
 
 #[test]
 fn test_crv_v9_classify_rr_action_pair() {
-    let actions = vec![
-        Action::Reduce(RuleId(1)),
-        Action::Reduce(RuleId(3)),
-    ];
+    let actions = vec![Action::Reduce(RuleId(1)), Action::Reduce(RuleId(3))];
     assert_eq!(classify_conflict(&actions), ConflictType::ReduceReduce);
 }

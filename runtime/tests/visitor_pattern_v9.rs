@@ -246,8 +246,9 @@ fn stats_anon_single_unnamed_leaf_is_leaf() {
 #[test]
 fn stats_anon_five_unnamed_leaves_total() {
     let src = b"abcde".to_vec();
-    let children: Vec<ParsedNode> =
-        (0..5).map(|i| unnamed_leaf(i as u16 + 1, i, i + 1)).collect();
+    let children: Vec<ParsedNode> = (0..5)
+        .map(|i| unnamed_leaf(i as u16 + 1, i, i + 1))
+        .collect();
     let root = interior(50, children);
     let stats = walk_stats(&root, &src);
     // root + 5 unnamed = 6
@@ -257,8 +258,9 @@ fn stats_anon_five_unnamed_leaves_total() {
 #[test]
 fn stats_anon_five_unnamed_leaves_leaf_count() {
     let src = b"abcde".to_vec();
-    let children: Vec<ParsedNode> =
-        (0..5).map(|i| unnamed_leaf(i as u16 + 1, i, i + 1)).collect();
+    let children: Vec<ParsedNode> = (0..5)
+        .map(|i| unnamed_leaf(i as u16 + 1, i, i + 1))
+        .collect();
     let root = interior(50, children);
     let stats = walk_stats(&root, &src);
     assert_eq!(stats.leaf_nodes, 5);

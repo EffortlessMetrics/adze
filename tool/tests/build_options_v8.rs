@@ -133,7 +133,10 @@ fn test_emit_artifacts_true_succeeds() {
 
 #[test]
 fn test_emit_artifacts_false_succeeds() {
-    let r = build_parser(simple_grammar("bo_v8_ea2"), opts("target/test", false, true));
+    let r = build_parser(
+        simple_grammar("bo_v8_ea2"),
+        opts("target/test", false, true),
+    );
     assert!(r.is_ok());
 }
 
@@ -155,13 +158,19 @@ fn test_emit_artifacts_false_code_nonempty() {
 
 #[test]
 fn test_compress_true_succeeds() {
-    let r = build_parser(simple_grammar("bo_v8_ct1"), opts("target/test", false, true));
+    let r = build_parser(
+        simple_grammar("bo_v8_ct1"),
+        opts("target/test", false, true),
+    );
     assert!(r.is_ok());
 }
 
 #[test]
 fn test_compress_false_succeeds() {
-    let r = build_parser(simple_grammar("bo_v8_ct2"), opts("target/test", false, false));
+    let r = build_parser(
+        simple_grammar("bo_v8_ct2"),
+        opts("target/test", false, false),
+    );
     assert!(r.is_ok());
 }
 
@@ -252,10 +261,7 @@ fn test_deterministic_stats() {
     let r2 = build_ok("bo_v8_det3", opts("target/test", false, true));
     assert_eq!(r1.build_stats.state_count, r2.build_stats.state_count);
     assert_eq!(r1.build_stats.symbol_count, r2.build_stats.symbol_count);
-    assert_eq!(
-        r1.build_stats.conflict_cells,
-        r2.build_stats.conflict_cells
-    );
+    assert_eq!(r1.build_stats.conflict_cells, r2.build_stats.conflict_cells);
 }
 
 #[test]
@@ -447,7 +453,10 @@ fn test_stats_conflict_cells_same_grammar_both_modes() {
     let r_c = build_ok("bo_v8_st5", opts("target/test", false, true));
     let r_u = build_ok("bo_v8_st5", opts("target/test", false, false));
     // Conflict detection is grammar-inherent, not compression-dependent
-    assert_eq!(r_c.build_stats.conflict_cells, r_u.build_stats.conflict_cells);
+    assert_eq!(
+        r_c.build_stats.conflict_cells,
+        r_u.build_stats.conflict_cells
+    );
 }
 
 // ===========================================================================
@@ -462,13 +471,19 @@ fn test_out_dir_dot_succeeds() {
 
 #[test]
 fn test_out_dir_relative_succeeds() {
-    let r = build_parser(simple_grammar("bo_v8_vp2"), opts("relative/path", false, true));
+    let r = build_parser(
+        simple_grammar("bo_v8_vp2"),
+        opts("relative/path", false, true),
+    );
     assert!(r.is_ok());
 }
 
 #[test]
 fn test_out_dir_absolute_succeeds() {
-    let r = build_parser(simple_grammar("bo_v8_vp3"), opts("/tmp/bo_v8_abs_test", false, true));
+    let r = build_parser(
+        simple_grammar("bo_v8_vp3"),
+        opts("/tmp/bo_v8_abs_test", false, true),
+    );
     assert!(r.is_ok());
 }
 
@@ -487,7 +502,10 @@ fn test_out_dir_with_spaces_succeeds() {
 
 #[test]
 fn test_out_dir_trailing_slash_succeeds() {
-    let r = build_parser(simple_grammar("bo_v8_ts1"), opts("target/test/", false, true));
+    let r = build_parser(
+        simple_grammar("bo_v8_ts1"),
+        opts("target/test/", false, true),
+    );
     assert!(r.is_ok());
 }
 
@@ -501,7 +519,10 @@ fn test_out_dir_trailing_slash_same_code() {
 
 #[test]
 fn test_out_dir_double_trailing_slash_succeeds() {
-    let r = build_parser(simple_grammar("bo_v8_ts3"), opts("target/test//", false, true));
+    let r = build_parser(
+        simple_grammar("bo_v8_ts3"),
+        opts("target/test//", false, true),
+    );
     assert!(r.is_ok());
 }
 
@@ -553,13 +574,19 @@ fn test_grammar_name_propagation_arith() {
 
 #[test]
 fn test_two_rule_compressed_succeeds() {
-    let r = build_parser(two_rule_grammar("bo_v8_tr1"), opts("target/test", false, true));
+    let r = build_parser(
+        two_rule_grammar("bo_v8_tr1"),
+        opts("target/test", false, true),
+    );
     assert!(r.is_ok());
 }
 
 #[test]
 fn test_two_rule_uncompressed_succeeds() {
-    let r = build_parser(two_rule_grammar("bo_v8_tr2"), opts("target/test", false, false));
+    let r = build_parser(
+        two_rule_grammar("bo_v8_tr2"),
+        opts("target/test", false, false),
+    );
     assert!(r.is_ok());
 }
 
@@ -582,7 +609,10 @@ fn test_arith_compressed_succeeds() {
 
 #[test]
 fn test_arith_uncompressed_succeeds() {
-    let r = build_parser(arith_grammar("bo_v8_ar2"), opts("target/test", false, false));
+    let r = build_parser(
+        arith_grammar("bo_v8_ar2"),
+        opts("target/test", false, false),
+    );
     assert!(r.is_ok());
 }
 

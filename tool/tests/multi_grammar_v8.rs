@@ -79,7 +79,10 @@ fn if_then_else_grammar(name: &str) -> adze_ir::Grammar {
         .token("kw_else", "else")
         .token("cond", r"[a-z]+")
         .token("body", r"\d+")
-        .rule("start", vec!["kw_if", "cond", "kw_then", "body", "kw_else", "body"])
+        .rule(
+            "start",
+            vec!["kw_if", "cond", "kw_then", "body", "kw_else", "body"],
+        )
         .rule("start", vec!["kw_if", "cond", "kw_then", "body"])
         .start("start")
         .build()
@@ -209,9 +212,19 @@ fn arith_four_grammar(name: &str) -> adze_ir::Grammar {
         .token("star", r"\*")
         .token("slash", r"\/")
         .rule_with_precedence("expr", vec!["expr", "plus", "expr"], 1, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "minus", "expr"], 1, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "minus", "expr"],
+            1,
+            Associativity::Left,
+        )
         .rule_with_precedence("expr", vec!["expr", "star", "expr"], 2, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "slash", "expr"], 2, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "slash", "expr"],
+            2,
+            Associativity::Left,
+        )
         .rule("expr", vec!["num"])
         .rule("start", vec!["expr"])
         .start("start")
@@ -341,7 +354,10 @@ fn while_grammar(name: &str) -> adze_ir::Grammar {
         .token("lbrace", r"\{")
         .token("rbrace", r"\}")
         .token("body", r"\d+")
-        .rule("start", vec!["kw_while", "cond", "lbrace", "body", "rbrace"])
+        .rule(
+            "start",
+            vec!["kw_while", "cond", "lbrace", "body", "rbrace"],
+        )
         .start("start")
         .build()
 }
@@ -713,7 +729,12 @@ fn concat_grammar(name: &str) -> adze_ir::Grammar {
     GrammarBuilder::new(name)
         .token("str", r#""[^"]*""#)
         .token("plusplus", "++")
-        .rule_with_precedence("expr", vec!["expr", "plusplus", "expr"], 1, Associativity::Left)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "plusplus", "expr"],
+            1,
+            Associativity::Left,
+        )
         .rule("expr", vec!["str"])
         .rule("start", vec!["expr"])
         .start("start")
@@ -2170,7 +2191,11 @@ fn test_parser_path_nonempty_for_all_shapes() {
 #[test]
 fn test_grammar_name_preserved_in_result() {
     let names = [
-        "mg_v8_nm_a", "mg_v8_nm_b", "mg_v8_nm_c", "mg_v8_nm_d", "mg_v8_nm_e",
+        "mg_v8_nm_a",
+        "mg_v8_nm_b",
+        "mg_v8_nm_c",
+        "mg_v8_nm_d",
+        "mg_v8_nm_e",
     ];
     for nm in names {
         let r = build(minimal_grammar(nm));

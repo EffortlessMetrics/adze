@@ -547,7 +547,10 @@ fn ao_v9_different_names_different_output() {
     let (g2, t2) = build_grammar_and_table("ao_v9_diffb", 1, 1, 0, 0, 2);
     let c1 = generate_code(&g1, &t1);
     let c2 = generate_code(&g2, &t2);
-    assert_ne!(c1, c2, "different grammar names must produce different output");
+    assert_ne!(
+        c1, c2,
+        "different grammar names must produce different output"
+    );
 }
 
 #[test]
@@ -832,10 +835,8 @@ fn ao_v9_arithmetic_grammar_with_precedence() {
 #[test]
 fn ao_v9_arithmetic_grammar_with_fields() {
     let (mut g, t) = build_grammar_and_table("ao_v9_arithf", 3, 2, 2, 0, 5);
-    g.fields
-        .insert(FieldId(0), "left".to_string());
-    g.fields
-        .insert(FieldId(1), "right".to_string());
+    g.fields.insert(FieldId(0), "left".to_string());
+    g.fields.insert(FieldId(1), "right".to_string());
     let code = generate_code(&g, &t);
     assert!(code.contains("FIELD_NAME_PTRS"));
     assert!(code.contains("field_count"));

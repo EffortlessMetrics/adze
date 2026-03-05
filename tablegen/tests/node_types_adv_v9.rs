@@ -37,13 +37,7 @@ fn simple_rule(lhs: SymbolId, rhs: Vec<Symbol>, prod: u16) -> Rule {
     }
 }
 
-fn prec_rule(
-    lhs: SymbolId,
-    rhs: Vec<Symbol>,
-    prod: u16,
-    prec: i16,
-    assoc: Associativity,
-) -> Rule {
+fn prec_rule(lhs: SymbolId, rhs: Vec<Symbol>, prod: u16, prec: i16, assoc: Associativity) -> Rule {
     Rule {
         lhs,
         rhs,
@@ -54,12 +48,7 @@ fn prec_rule(
     }
 }
 
-fn field_rule(
-    lhs: SymbolId,
-    rhs: Vec<Symbol>,
-    prod: u16,
-    fields: Vec<(FieldId, usize)>,
-) -> Rule {
+fn field_rule(lhs: SymbolId, rhs: Vec<Symbol>, prod: u16, fields: Vec<(FieldId, usize)>) -> Rule {
     Rule {
         lhs,
         rhs,
@@ -205,11 +194,7 @@ fn inline_grammar() -> Grammar {
 
     let helper = SymbolId(10);
     g.rule_names.insert(helper, "_helper".to_string());
-    g.add_rule(simple_rule(
-        helper,
-        vec![Symbol::Terminal(SymbolId(0))],
-        0,
-    ));
+    g.add_rule(simple_rule(helper, vec![Symbol::Terminal(SymbolId(0))], 0));
     g.inline_rules.push(helper);
 
     let expr = SymbolId(11);
@@ -311,16 +296,8 @@ fn supertype_grammar() -> Grammar {
 
     let expr = SymbolId(12);
     g.rule_names.insert(expr, "expression".to_string());
-    g.add_rule(simple_rule(
-        expr,
-        vec![Symbol::NonTerminal(lit)],
-        2,
-    ));
-    g.add_rule(simple_rule(
-        expr,
-        vec![Symbol::NonTerminal(name)],
-        3,
-    ));
+    g.add_rule(simple_rule(expr, vec![Symbol::NonTerminal(lit)], 2));
+    g.add_rule(simple_rule(expr, vec![Symbol::NonTerminal(name)], 3));
     g.supertypes.push(expr);
     g
 }
@@ -477,11 +454,7 @@ fn right_assoc_grammar() -> Grammar {
         1,
         Associativity::Right,
     ));
-    g.add_rule(simple_rule(
-        assign,
-        vec![Symbol::Terminal(SymbolId(0))],
-        1,
-    ));
+    g.add_rule(simple_rule(assign, vec![Symbol::Terminal(SymbolId(0))], 1));
     g
 }
 
@@ -575,11 +548,7 @@ fn epsilon_rule_grammar() -> Grammar {
 
     let wrapper = SymbolId(11);
     g.rule_names.insert(wrapper, "wrapper".to_string());
-    g.add_rule(simple_rule(
-        wrapper,
-        vec![Symbol::Terminal(SymbolId(0))],
-        1,
-    ));
+    g.add_rule(simple_rule(wrapper, vec![Symbol::Terminal(SymbolId(0))], 1));
     g
 }
 
@@ -786,8 +755,7 @@ fn test_nta_v9_alternatives_grammar_generates() {
 fn test_nta_v9_inline_grammar_generates() {
     let arr = gen_arr(&inline_grammar());
     assert!(
-        arr.iter()
-            .any(|n| n["type"].as_str() == Some("expression")),
+        arr.iter().any(|n| n["type"].as_str() == Some("expression")),
         "inline grammar should produce 'expression' node"
     );
 }
@@ -811,8 +779,7 @@ fn test_nta_v9_inline_rule_skipped() {
 fn test_nta_v9_extras_grammar_generates() {
     let arr = gen_arr(&extras_grammar());
     assert!(
-        arr.iter()
-            .any(|n| n["type"].as_str() == Some("expression")),
+        arr.iter().any(|n| n["type"].as_str() == Some("expression")),
         "extras grammar should produce 'expression' node"
     );
 }
@@ -1031,8 +998,7 @@ fn test_nta_v9_epsilon_grammar_generates() {
 fn test_nta_v9_epsilon_empty_node() {
     let arr = gen_arr(&epsilon_rule_grammar());
     assert!(
-        arr.iter()
-            .any(|n| n["type"].as_str() == Some("empty_node")),
+        arr.iter().any(|n| n["type"].as_str() == Some("empty_node")),
         "epsilon grammar should produce 'empty_node'"
     );
 }
@@ -1135,8 +1101,7 @@ fn test_nta_v9_many_tokens_all_anon() {
 fn test_nta_v9_right_assoc_generates() {
     let arr = gen_arr(&right_assoc_grammar());
     assert!(
-        arr.iter()
-            .any(|n| n["type"].as_str() == Some("assignment")),
+        arr.iter().any(|n| n["type"].as_str() == Some("assignment")),
         "right-assoc grammar should produce 'assignment'"
     );
 }
@@ -1145,8 +1110,7 @@ fn test_nta_v9_right_assoc_generates() {
 fn test_nta_v9_dynamic_prec_generates() {
     let arr = gen_arr(&dynamic_prec_grammar());
     assert!(
-        arr.iter()
-            .any(|n| n["type"].as_str() == Some("expression")),
+        arr.iter().any(|n| n["type"].as_str() == Some("expression")),
         "dynamic-prec grammar should produce 'expression'"
     );
 }
@@ -1190,11 +1154,7 @@ fn test_nta_v9_named_true_for_all_rules() {
     for name in &rule_names {
         let node = arr.iter().find(|n| n["type"].as_str() == Some(name));
         assert!(node.is_some(), "expected node for rule '{name}'");
-        assert_eq!(
-            node.unwrap()["named"],
-            true,
-            "rule '{name}' must be named"
-        );
+        assert_eq!(node.unwrap()["named"], true, "rule '{name}' must be named");
     }
 }
 
@@ -1295,10 +1255,7 @@ fn test_nta_v9_alternatives_vs_choice_rhs_both_have_value() {
 fn test_nta_v9_extras_vs_no_extras_named_count() {
     let with_extras = gen_arr(&extras_grammar());
     let without = gen_arr(&minimal_grammar());
-    let extras_named: Vec<_> = with_extras
-        .iter()
-        .filter(|n| n["named"] == true)
-        .collect();
+    let extras_named: Vec<_> = with_extras.iter().filter(|n| n["named"] == true).collect();
     let min_named: Vec<_> = without.iter().filter(|n| n["named"] == true).collect();
     // Both should have at least one named node (expression)
     assert!(!extras_named.is_empty());
@@ -1348,8 +1305,7 @@ fn test_nta_v9_ten_rule_all_marked_named() {
 fn test_nta_v9_nested_has_atom_and_expression() {
     let arr = gen_arr(&nested_nonterminal_grammar());
     assert!(
-        arr.iter()
-            .any(|n| n["type"].as_str() == Some("expression")),
+        arr.iter().any(|n| n["type"].as_str() == Some("expression")),
         "'expression' must exist"
     );
     assert!(
@@ -1493,8 +1449,7 @@ fn test_nta_v9_minimal_vs_empty_different() {
 fn test_nta_v9_many_tokens_named_expression() {
     let arr = gen_arr(&many_tokens_grammar());
     assert!(
-        arr.iter()
-            .any(|n| n["type"].as_str() == Some("expression")),
+        arr.iter().any(|n| n["type"].as_str() == Some("expression")),
         "many-tokens grammar should produce 'expression'"
     );
 }

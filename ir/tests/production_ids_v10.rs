@@ -1243,10 +1243,7 @@ fn alias_sequences_varying_lengths() {
         vec![
             (0, vec![Some("short".to_string())]),
             (1, vec![None, None, Some("mid".to_string())]),
-            (
-                2,
-                vec![None, None, None, None, Some("long".to_string())],
-            ),
+            (2, vec![None, None, None, None, Some("long".to_string())]),
         ],
     );
     assert_eq!(g.max_alias_sequence_length, 5);

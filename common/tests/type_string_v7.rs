@@ -7,7 +7,7 @@
 
 use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use std::collections::HashSet;
-use syn::{parse_quote, Type};
+use syn::{Type, parse_quote};
 
 fn ty_str(ty: &Type) -> String {
     quote::quote!(#ty).to_string()
@@ -352,7 +352,10 @@ fn str_fully_qualified_option() {
 #[test]
 fn str_fully_qualified_hashmap() {
     let ty: Type = parse_quote!(std::collections::HashMap<String, i32>);
-    assert_eq!(ty_str(&ty), "std :: collections :: HashMap < String , i32 >");
+    assert_eq!(
+        ty_str(&ty),
+        "std :: collections :: HashMap < String , i32 >"
+    );
 }
 
 #[test]

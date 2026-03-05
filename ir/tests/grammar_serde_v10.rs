@@ -512,10 +512,7 @@ fn test_roundtrip_preserves_rule_names() {
 fn test_roundtrip_preserves_max_alias_sequence_length() {
     let g = make_simple();
     let g2 = roundtrip(&g);
-    assert_eq!(
-        g.max_alias_sequence_length,
-        g2.max_alias_sequence_length
-    );
+    assert_eq!(g.max_alias_sequence_length, g2.max_alias_sequence_length);
 }
 
 // ===========================================================================

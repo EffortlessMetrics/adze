@@ -4,7 +4,7 @@
 use adze_common::{filter_inner_type, try_extract_inner_type};
 use quote::quote;
 use std::collections::HashSet;
-use syn::{parse_quote, Type};
+use syn::{Type, parse_quote};
 
 /// Render a `Type` to its token string for comparison.
 fn type_str(ty: &Type) -> String {
@@ -523,16 +523,18 @@ fn filter_large_skip_5_entries_none_match() {
 #[test]
 fn filter_large_skip_10_entries_matching_nested() {
     let ty: Type = parse_quote!(Arc<Box<i32>>);
-    let skip: HashSet<&str> =
-        HashSet::from(["Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin"]);
+    let skip: HashSet<&str> = HashSet::from([
+        "Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin",
+    ]);
     assert_eq!(type_str(&filter_inner_type(&ty, &skip)), "i32");
 }
 
 #[test]
 fn filter_large_skip_10_entries_on_primitive() {
     let ty: Type = parse_quote!(u8);
-    let skip: HashSet<&str> =
-        HashSet::from(["Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin"]);
+    let skip: HashSet<&str> = HashSet::from([
+        "Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin",
+    ]);
     assert_eq!(type_str(&filter_inner_type(&ty, &skip)), "u8");
 }
 
@@ -547,8 +549,9 @@ fn filter_large_skip_deep_nesting() {
 fn filter_large_skip_irrelevant_entries_dont_affect_result() {
     let ty: Type = parse_quote!(Vec<i32>);
     let skip_small: HashSet<&str> = HashSet::from(["Vec"]);
-    let skip_large: HashSet<&str> =
-        HashSet::from(["Vec", "Foo", "Bar", "Baz", "Quux", "Waldo", "Fred", "Plugh", "Xyzzy", "Thud"]);
+    let skip_large: HashSet<&str> = HashSet::from([
+        "Vec", "Foo", "Bar", "Baz", "Quux", "Waldo", "Fred", "Plugh", "Xyzzy", "Thud",
+    ]);
     assert_eq!(
         type_str(&filter_inner_type(&ty, &skip_small)),
         type_str(&filter_inner_type(&ty, &skip_large)),
@@ -728,8 +731,14 @@ fn filter_same_type_different_skip_sets() {
     let skip_option: HashSet<&str> = HashSet::from(["Option"]);
     let skip_both: HashSet<&str> = HashSet::from(["Vec", "Option"]);
 
-    assert_eq!(type_str(&filter_inner_type(&ty, &skip_vec)), "Option < i32 >");
-    assert_eq!(type_str(&filter_inner_type(&ty, &skip_option)), type_str(&ty));
+    assert_eq!(
+        type_str(&filter_inner_type(&ty, &skip_vec)),
+        "Option < i32 >"
+    );
+    assert_eq!(
+        type_str(&filter_inner_type(&ty, &skip_option)),
+        type_str(&ty)
+    );
     assert_eq!(type_str(&filter_inner_type(&ty, &skip_both)), "i32");
 }
 
@@ -782,7 +791,10 @@ fn filter_order_of_nesting_matters() {
     let skip_vec_only: HashSet<&str> = HashSet::from(["Vec"]);
 
     // Vec<Option<i32>> with skip=Vec → Option<i32>
-    assert_eq!(type_str(&filter_inner_type(&ty_vo, &skip_vec_only)), "Option < i32 >");
+    assert_eq!(
+        type_str(&filter_inner_type(&ty_vo, &skip_vec_only)),
+        "Option < i32 >"
+    );
     // Option<Vec<i32>> with skip=Vec → unchanged (outer is Option, not in skip)
     assert_eq!(
         type_str(&filter_inner_type(&ty_ov, &skip_vec_only)),
@@ -825,16 +837,18 @@ fn filter_skip_size_5_no_match() {
 #[test]
 fn filter_skip_size_10_matching() {
     let ty: Type = parse_quote!(Pin<u16>);
-    let skip: HashSet<&str> =
-        HashSet::from(["Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin"]);
+    let skip: HashSet<&str> = HashSet::from([
+        "Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin",
+    ]);
     assert_eq!(type_str(&filter_inner_type(&ty, &skip)), "u16");
 }
 
 #[test]
 fn filter_skip_size_10_no_match() {
     let ty: Type = parse_quote!(Custom<u16>);
-    let skip: HashSet<&str> =
-        HashSet::from(["Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin"]);
+    let skip: HashSet<&str> = HashSet::from([
+        "Vec", "Option", "Box", "Arc", "Rc", "Mutex", "Cell", "RefCell", "Cow", "Pin",
+    ]);
     assert_eq!(type_str(&filter_inner_type(&ty, &skip)), type_str(&ty));
 }
 
@@ -860,7 +874,10 @@ fn filter_nested_vec_four_layers() {
 fn filter_nested_mixed_stops_at_first_non_skip() {
     let ty: Type = parse_quote!(Vec<HashMap<String, i32>>);
     let skip: HashSet<&str> = HashSet::from(["Vec"]);
-    assert_eq!(type_str(&filter_inner_type(&ty, &skip)), "HashMap < String , i32 >");
+    assert_eq!(
+        type_str(&filter_inner_type(&ty, &skip)),
+        "HashMap < String , i32 >"
+    );
 }
 
 #[test]
@@ -874,7 +891,10 @@ fn filter_nested_box_option_vec_string_all_skipped() {
 fn filter_result_preserves_inner_generics() {
     let ty: Type = parse_quote!(Vec<Result<i32, String>>);
     let skip: HashSet<&str> = HashSet::from(["Vec"]);
-    assert_eq!(type_str(&filter_inner_type(&ty, &skip)), "Result < i32 , String >");
+    assert_eq!(
+        type_str(&filter_inner_type(&ty, &skip)),
+        "Result < i32 , String >"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

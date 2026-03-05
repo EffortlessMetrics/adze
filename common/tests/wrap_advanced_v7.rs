@@ -1,6 +1,6 @@
 use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use std::collections::HashSet;
-use syn::{parse_quote, Type};
+use syn::{Type, parse_quote};
 
 /// Helper: convert a `syn::Type` to its token string for assertion.
 fn ty_str(ty: &Type) -> String {
@@ -272,10 +272,7 @@ fn wrap_skip_multi_box_vec_i64() {
     let ty: Type = parse_quote!(Box<Vec<i64>>);
     let skip: HashSet<&str> = HashSet::from(["Box", "Vec"]);
     let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(
-        ty_str(&result),
-        "Box < Vec < adze :: WithLeaf < i64 > > >"
-    );
+    assert_eq!(ty_str(&result), "Box < Vec < adze :: WithLeaf < i64 > > >");
 }
 
 #[test]
@@ -294,10 +291,7 @@ fn wrap_skip_multi_vec_box_u8() {
     let ty: Type = parse_quote!(Vec<Box<u8>>);
     let skip: HashSet<&str> = HashSet::from(["Vec", "Box"]);
     let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(
-        ty_str(&result),
-        "Vec < Box < adze :: WithLeaf < u8 > > >"
-    );
+    assert_eq!(ty_str(&result), "Vec < Box < adze :: WithLeaf < u8 > > >");
 }
 
 #[test]
@@ -316,10 +310,7 @@ fn wrap_skip_multi_rc_vec_char() {
     let ty: Type = parse_quote!(Rc<Vec<char>>);
     let skip: HashSet<&str> = HashSet::from(["Rc", "Vec"]);
     let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(
-        ty_str(&result),
-        "Rc < Vec < adze :: WithLeaf < char > > >"
-    );
+    assert_eq!(ty_str(&result), "Rc < Vec < adze :: WithLeaf < char > > >");
 }
 
 // ============================================================================
@@ -616,10 +607,7 @@ fn wrap_roundtrip_nested_extract() {
     let skip_extract = HashSet::new();
     let (vec_inner, found) = try_extract_inner_type(&wrapped, "Vec", &skip_extract);
     assert!(found);
-    assert_eq!(
-        ty_str(&vec_inner),
-        "Option < adze :: WithLeaf < u8 > >"
-    );
+    assert_eq!(ty_str(&vec_inner), "Option < adze :: WithLeaf < u8 > >");
 }
 
 #[test]
@@ -741,10 +729,7 @@ fn wrap_nesting_order_same_container_repeated() {
     let ty: Type = parse_quote!(Vec<Vec<i32>>);
     let skip: HashSet<&str> = HashSet::from(["Vec"]);
     let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(
-        ty_str(&result),
-        "Vec < Vec < adze :: WithLeaf < i32 > > >"
-    );
+    assert_eq!(ty_str(&result), "Vec < Vec < adze :: WithLeaf < i32 > > >");
 }
 
 // ============================================================================
@@ -892,7 +877,9 @@ fn wrap_interplay_filter_preserves_wrapping() {
 fn wrap_interplay_wrap_all_primitives_in_vec() {
     // Verify wrapping works identically for different primitives inside Vec.
     let skip: HashSet<&str> = HashSet::from(["Vec"]);
-    for prim in ["i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"] {
+    for prim in [
+        "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64",
+    ] {
         let ty: Type = syn::parse_str(&format!("Vec<{prim}>")).expect("valid type");
         let result = wrap_leaf_type(&ty, &skip);
         let s = ty_str(&result);

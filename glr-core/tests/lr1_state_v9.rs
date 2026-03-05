@@ -155,7 +155,11 @@ fn test_all_state_indices_valid() {
 fn test_minimal_grammar_small_state_count() {
     let t = minimal_grammar_table();
     // start -> a: should need very few states
-    assert!(t.state_count <= 10, "minimal grammar should have few states, got {}", t.state_count);
+    assert!(
+        t.state_count <= 10,
+        "minimal grammar should have few states, got {}",
+        t.state_count
+    );
 }
 
 // ===========================================================================
@@ -244,12 +248,7 @@ fn test_different_grammars_different_state_counts() {
 
 #[test]
 fn test_grammar_1_rule_state_count() {
-    let t = make_table(
-        "ls_v9_g1r",
-        &[("x", "x")],
-        &[("start", vec!["x"])],
-        "start",
-    );
+    let t = make_table("ls_v9_g1r", &[("x", "x")], &[("start", vec!["x"])], "start");
     assert!(t.state_count >= 2, "1-rule grammar needs at least 2 states");
 }
 
@@ -267,16 +266,18 @@ fn test_grammar_5_rules_state_count() {
         ],
         "start",
     );
-    assert!(t.state_count >= 3, "5-rule grammar needs more states, got {}", t.state_count);
+    assert!(
+        t.state_count >= 3,
+        "5-rule grammar needs more states, got {}",
+        t.state_count
+    );
 }
 
 #[test]
 fn test_grammar_10_rules_state_count() {
     let t = make_table(
         "ls_v9_g10r",
-        &[
-            ("a", "a"), ("b", "b"), ("c", "c"), ("d", "d"), ("e", "e"),
-        ],
+        &[("a", "a"), ("b", "b"), ("c", "c"), ("d", "d"), ("e", "e")],
         &[
             ("start", vec!["q"]),
             ("q", vec!["a"]),
@@ -291,7 +292,11 @@ fn test_grammar_10_rules_state_count() {
         ],
         "start",
     );
-    assert!(t.state_count >= 5, "10-rule grammar needs many states, got {}", t.state_count);
+    assert!(
+        t.state_count >= 5,
+        "10-rule grammar needs many states, got {}",
+        t.state_count
+    );
 }
 
 #[test]
@@ -316,7 +321,12 @@ fn test_state_count_monotonic_growth() {
         .collect();
     // Each grammar with more alts should have >= states as previous
     for w in counts.windows(2) {
-        assert!(w[1] >= w[0], "state count should not decrease: {} -> {}", w[0], w[1]);
+        assert!(
+            w[1] >= w[0],
+            "state count should not decrease: {} -> {}",
+            w[0],
+            w[1]
+        );
     }
 }
 
@@ -340,7 +350,10 @@ fn test_state_0_has_shift_on_first_token() {
 #[test]
 fn test_accept_action_exists_somewhere() {
     let t = minimal_grammar_table();
-    assert!(has_accept_anywhere(&t), "table should contain an Accept action");
+    assert!(
+        has_accept_anywhere(&t),
+        "table should contain an Accept action"
+    );
 }
 
 #[test]
@@ -430,8 +443,16 @@ fn test_arith_grammar_has_shifts() {
 fn test_arith_state_count_reasonable() {
     let t = arith_grammar_table();
     // Arithmetic grammar should have a moderate number of states
-    assert!(t.state_count >= 4, "arith needs multiple states, got {}", t.state_count);
-    assert!(t.state_count <= 50, "arith should not explode, got {}", t.state_count);
+    assert!(
+        t.state_count >= 4,
+        "arith needs multiple states, got {}",
+        t.state_count
+    );
+    assert!(
+        t.state_count <= 50,
+        "arith should not explode, got {}",
+        t.state_count
+    );
 }
 
 #[test]
@@ -454,14 +475,21 @@ fn test_arith_initial_state_goto() {
         .nonterminal_to_index
         .keys()
         .any(|&nt| t.goto(initial, nt).is_some());
-    assert!(has_goto, "initial state should have at least one goto transition");
+    assert!(
+        has_goto,
+        "initial state should have at least one goto transition"
+    );
 }
 
 #[test]
 fn test_arith_rules_count() {
     let t = arith_grammar_table();
     // We defined 3 rules + augmented start rule
-    assert!(t.rules.len() >= 3, "should have at least 3 rules, got {}", t.rules.len());
+    assert!(
+        t.rules.len() >= 3,
+        "should have at least 3 rules, got {}",
+        t.rules.len()
+    );
 }
 
 #[test]
@@ -477,14 +505,21 @@ fn test_arith_start_symbol_set() {
     let t = arith_grammar_table();
     let start = t.start_symbol();
     // Start symbol should exist
-    assert!(start.0 > 0 || t.state_count > 0, "start symbol should be set");
+    assert!(
+        start.0 > 0 || t.state_count > 0,
+        "start symbol should be set"
+    );
 }
 
 #[test]
 fn test_arith_symbol_count() {
     let t = arith_grammar_table();
     // At least: NUMBER, OP, expr, term, EOF, maybe augmented start
-    assert!(t.symbol_count >= 4, "should have enough symbols, got {}", t.symbol_count);
+    assert!(
+        t.symbol_count >= 4,
+        "should have enough symbols, got {}",
+        t.symbol_count
+    );
 }
 
 #[test]
@@ -538,7 +573,11 @@ fn test_rule_returns_valid_lhs() {
     for i in 0..t.rules.len() {
         let (lhs, _) = t.rule(RuleId(i as u16));
         // lhs should be a non-terminal that exists
-        assert!(lhs.0 < 1000, "lhs symbol id should be reasonable: {}", lhs.0);
+        assert!(
+            lhs.0 < 1000,
+            "lhs symbol id should be reasonable: {}",
+            lhs.0
+        );
     }
 }
 
@@ -603,7 +642,10 @@ fn test_goto_returns_none_for_terminal() {
     // Query goto with a symbol that isn't a nonterminal
     let result = t.goto(initial, t.eof());
     // EOF is typically not a nonterminal, so should be None
-    assert!(result.is_none() || result.is_some(), "goto should not panic");
+    assert!(
+        result.is_none() || result.is_some(),
+        "goto should not panic"
+    );
 }
 
 #[test]
@@ -644,24 +686,17 @@ fn test_goto_beyond_state_count_returns_none() {
     let t = minimal_grammar_table();
     let beyond = StateId(t.state_count as u16 + 10);
     for &nt in t.nonterminal_to_index.keys() {
-        assert!(t.goto(beyond, nt).is_none(), "goto beyond state_count should be None");
+        assert!(
+            t.goto(beyond, nt).is_none(),
+            "goto beyond state_count should be None"
+        );
     }
 }
 
 #[test]
 fn test_goto_deterministic() {
-    let t1 = make_table(
-        "ls_v9_gd1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
-    let t2 = make_table(
-        "ls_v9_gd2",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let t1 = make_table("ls_v9_gd1", &[("a", "a")], &[("start", vec!["a"])], "start");
+    let t2 = make_table("ls_v9_gd2", &[("a", "a")], &[("start", vec!["a"])], "start");
     for s in 0..t1.state_count {
         for &nt in t1.nonterminal_to_index.keys() {
             assert_eq!(
@@ -744,7 +779,10 @@ fn test_index_to_symbol_consistency() {
     let t = arith_grammar_table();
     for (&sym, &idx) in &t.symbol_to_index {
         if idx < t.index_to_symbol.len() {
-            assert_eq!(t.index_to_symbol[idx], sym, "index_to_symbol should be inverse of symbol_to_index");
+            assert_eq!(
+                t.index_to_symbol[idx], sym,
+                "index_to_symbol should be inverse of symbol_to_index"
+            );
         }
     }
 }
@@ -808,7 +846,11 @@ fn test_sequence_grammar() {
         &[("start", vec!["a", "b", "c"])],
         "start",
     );
-    assert!(t.state_count >= 4, "sequence of 3 needs at least 4 states, got {}", t.state_count);
+    assert!(
+        t.state_count >= 4,
+        "sequence of 3 needs at least 4 states, got {}",
+        t.state_count
+    );
 }
 
 #[test]
@@ -902,8 +944,12 @@ fn test_wide_alternative_grammar() {
     let t = make_table(
         "ls_v9_wide",
         &[
-            ("a", "a"), ("b", "b"), ("c", "c"),
-            ("d", "d"), ("e", "e"), ("f", "f"),
+            ("a", "a"),
+            ("b", "b"),
+            ("c", "c"),
+            ("d", "d"),
+            ("e", "e"),
+            ("f", "f"),
         ],
         &[
             ("start", vec!["a"]),
@@ -990,7 +1036,10 @@ fn test_shift_count_positive() {
         &[("start", vec!["a", "b"])],
         "start",
     );
-    assert!(count_shifts(&t) >= 2, "sequence of 2 tokens needs at least 2 shifts");
+    assert!(
+        count_shifts(&t) >= 2,
+        "sequence of 2 tokens needs at least 2 shifts"
+    );
 }
 
 #[test]
@@ -1011,7 +1060,10 @@ fn test_empty_actions_for_invalid_symbol() {
     // Query with a symbol that doesn't exist in the grammar
     let bogus = SymbolId(9999);
     let actions = t.actions(StateId(0), bogus);
-    assert!(actions.is_empty(), "unknown symbol should yield empty actions");
+    assert!(
+        actions.is_empty(),
+        "unknown symbol should yield empty actions"
+    );
 }
 
 #[test]
@@ -1020,7 +1072,10 @@ fn test_actions_beyond_state_count_empty() {
     let beyond = StateId(t.state_count as u16 + 5);
     for &sym in t.symbol_to_index.keys() {
         let actions = t.actions(beyond, sym);
-        assert!(actions.is_empty(), "actions beyond state_count should be empty");
+        assert!(
+            actions.is_empty(),
+            "actions beyond state_count should be empty"
+        );
     }
 }
 
@@ -1056,7 +1111,11 @@ fn test_precedence_grammar_builds() {
         .build();
     let ff = FirstFollowSets::compute(&g).expect("ff");
     let result = build_lr1_automaton(&g, &ff);
-    assert!(result.is_ok(), "precedence grammar should build: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "precedence grammar should build: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -1071,7 +1130,11 @@ fn test_right_assoc_grammar_builds() {
         .build();
     let ff = FirstFollowSets::compute(&g).expect("ff");
     let result = build_lr1_automaton(&g, &ff);
-    assert!(result.is_ok(), "right-assoc grammar should build: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "right-assoc grammar should build: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -1245,8 +1308,14 @@ fn test_deterministic_eof() {
 #[test]
 fn test_many_alternatives_grammar() {
     let toks: Vec<(&str, &str)> = vec![
-        ("t0", "0"), ("t1", "1"), ("t2", "2"), ("t3", "3"),
-        ("t4", "4"), ("t5", "5"), ("t6", "6"), ("t7", "7"),
+        ("t0", "0"),
+        ("t1", "1"),
+        ("t2", "2"),
+        ("t3", "3"),
+        ("t4", "4"),
+        ("t5", "5"),
+        ("t6", "6"),
+        ("t7", "7"),
     ];
     let rules: Vec<(&str, Vec<&str>)> = toks.iter().map(|(n, _)| ("start", vec![*n])).collect();
     let t = make_table("ls_v9_manyalt", &toks, &rules, "start");
@@ -1280,7 +1349,10 @@ fn test_deep_chain_grammar() {
                 .count()
         })
         .sum();
-    assert!(goto_count >= 4, "deep chain should have many gotos, got {goto_count}");
+    assert!(
+        goto_count >= 4,
+        "deep chain should have many gotos, got {goto_count}"
+    );
 }
 
 #[test]
@@ -1311,7 +1383,11 @@ fn test_long_sequence_grammar() {
         "start",
     );
     // A sequence of 5 tokens needs at least 6 states
-    assert!(t.state_count >= 6, "long sequence needs many states, got {}", t.state_count);
+    assert!(
+        t.state_count >= 6,
+        "long sequence needs many states, got {}",
+        t.state_count
+    );
 }
 
 #[test]

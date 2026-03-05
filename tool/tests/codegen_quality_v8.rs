@@ -11,7 +11,7 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar};
-use adze_tool::pure_rust_builder::{build_parser, BuildOptions, BuildResult};
+use adze_tool::pure_rust_builder::{BuildOptions, BuildResult, build_parser};
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
@@ -162,7 +162,10 @@ fn gram_keyword_heavy() -> Grammar {
         .token("IDENT", r"[a-z]+")
         .rule("source_file", vec!["if_stmt"])
         .rule("if_stmt", vec!["IF", "IDENT", "THEN", "IDENT", "END"])
-        .rule("if_stmt", vec!["IF", "IDENT", "THEN", "IDENT", "ELSE", "IDENT", "END"])
+        .rule(
+            "if_stmt",
+            vec!["IF", "IDENT", "THEN", "IDENT", "ELSE", "IDENT", "END"],
+        )
         .start("source_file")
         .build()
 }
@@ -506,15 +509,24 @@ fn cq36_expr_in_node_types_arith() {
 fn cq37_chain_rule_names_in_node_types() {
     let res = build_ok(gram_chain());
     let names = node_type_names(&res.node_types_json);
-    assert!(names.iter().any(|n| n == "middle"), "middle should be in node_types");
-    assert!(names.iter().any(|n| n == "leaf"), "leaf should be in node_types");
+    assert!(
+        names.iter().any(|n| n == "middle"),
+        "middle should be in node_types"
+    );
+    assert!(
+        names.iter().any(|n| n == "leaf"),
+        "leaf should be in node_types"
+    );
 }
 
 #[test]
 fn cq38_nested_rule_in_node_types() {
     let res = build_ok(gram_nested());
     let names = node_type_names(&res.node_types_json);
-    assert!(names.iter().any(|n| n == "sexp"), "sexp should be in node_types");
+    assert!(
+        names.iter().any(|n| n == "sexp"),
+        "sexp should be in node_types"
+    );
 }
 
 // ===========================================================================
@@ -524,13 +536,19 @@ fn cq38_nested_rule_in_node_types() {
 #[test]
 fn cq39_state_count_positive_minimal() {
     let res = build_ok(gram_minimal());
-    assert!(res.build_stats.state_count >= 2, "minimal grammar needs ≥2 states");
+    assert!(
+        res.build_stats.state_count >= 2,
+        "minimal grammar needs ≥2 states"
+    );
 }
 
 #[test]
 fn cq40_state_count_positive_arith() {
     let res = build_ok(gram_arith());
-    assert!(res.build_stats.state_count >= 2, "arith grammar needs ≥2 states");
+    assert!(
+        res.build_stats.state_count >= 2,
+        "arith grammar needs ≥2 states"
+    );
 }
 
 #[test]
@@ -889,9 +907,11 @@ fn cq85_all_grammars_produce_valid_json() {
     for g in grammars {
         let name = g.name.clone();
         let res = build_ok(g);
-        let parsed: Result<Vec<serde_json::Value>, _> =
-            serde_json::from_str(&res.node_types_json);
-        assert!(parsed.is_ok(), "grammar {name} should produce valid JSON array");
+        let parsed: Result<Vec<serde_json::Value>, _> = serde_json::from_str(&res.node_types_json);
+        assert!(
+            parsed.is_ok(),
+            "grammar {name} should produce valid JSON array"
+        );
     }
 }
 
@@ -1022,8 +1042,12 @@ fn cq92_node_types_type_is_string() {
 fn cq93_has_both_named_and_anonymous_types() {
     let res = build_ok(gram_arith());
     let arr: Vec<serde_json::Value> = serde_json::from_str(&res.node_types_json).unwrap();
-    let has_named = arr.iter().any(|e| e.get("named").and_then(|v| v.as_bool()) == Some(true));
-    let has_anon = arr.iter().any(|e| e.get("named").and_then(|v| v.as_bool()) == Some(false));
+    let has_named = arr
+        .iter()
+        .any(|e| e.get("named").and_then(|v| v.as_bool()) == Some(true));
+    let has_anon = arr
+        .iter()
+        .any(|e| e.get("named").and_then(|v| v.as_bool()) == Some(false));
     assert!(has_named, "arith grammar should have named node types");
     assert!(has_anon, "arith grammar should have anonymous node types");
 }
@@ -1070,12 +1094,18 @@ fn cq98_chain_deterministic() {
 fn cq99_parser_code_not_just_whitespace() {
     let res = build_ok(gram_minimal());
     let trimmed = res.parser_code.trim();
-    assert!(!trimmed.is_empty(), "parser_code should not be just whitespace");
+    assert!(
+        !trimmed.is_empty(),
+        "parser_code should not be just whitespace"
+    );
 }
 
 #[test]
 fn cq100_node_types_json_not_just_whitespace() {
     let res = build_ok(gram_minimal());
     let trimmed = res.node_types_json.trim();
-    assert!(!trimmed.is_empty(), "node_types_json should not be just whitespace");
+    assert!(
+        !trimmed.is_empty(),
+        "node_types_json should not be just whitespace"
+    );
 }

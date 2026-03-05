@@ -335,7 +335,16 @@ fn reset_error_count_does_not_clear_scope() {
 fn clear_errors_does_not_affect_scope() {
     let mut state = ErrorRecoveryState::new(config_parens());
     state.push_scope(LPAREN);
-    state.record_error(0, 1, (0, 0), (0, 1), vec![1], Some(2), RecoveryStrategy::PanicMode, vec![]);
+    state.record_error(
+        0,
+        1,
+        (0, 0),
+        (0, 1),
+        vec![1],
+        Some(2),
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     state.clear_errors();
     assert!(state.get_error_nodes().is_empty());
     // scope still has the paren
@@ -357,7 +366,10 @@ fn reset_consecutive_errors_zeroes_count() {
 
 #[test]
 fn scope_recovery_strategy_variant_equality() {
-    assert_eq!(RecoveryStrategy::ScopeRecovery, RecoveryStrategy::ScopeRecovery);
+    assert_eq!(
+        RecoveryStrategy::ScopeRecovery,
+        RecoveryStrategy::ScopeRecovery
+    );
     assert_ne!(RecoveryStrategy::ScopeRecovery, RecoveryStrategy::PanicMode);
 }
 
@@ -476,7 +488,10 @@ fn record_error_with_scope_recovery_strategy() {
     let mut state = ErrorRecoveryState::new(config_parens());
     state.push_scope(LPAREN);
     state.record_error(
-        10, 15, (1, 0), (1, 5),
+        10,
+        15,
+        (1, 0),
+        (1, 5),
         vec![RPAREN],
         Some(RBRACE),
         RecoveryStrategy::ScopeRecovery,
@@ -788,21 +803,31 @@ fn is_scope_delimiter_unregistered() {
 #[test]
 fn is_matching_delimiter_correct_pair() {
     let delims = vec![(LPAREN, RPAREN), (LBRACE, RBRACE)];
-    assert!(ErrorRecoveryState::is_matching_delimiter(LPAREN, RPAREN, &delims));
-    assert!(ErrorRecoveryState::is_matching_delimiter(LBRACE, RBRACE, &delims));
+    assert!(ErrorRecoveryState::is_matching_delimiter(
+        LPAREN, RPAREN, &delims
+    ));
+    assert!(ErrorRecoveryState::is_matching_delimiter(
+        LBRACE, RBRACE, &delims
+    ));
 }
 
 #[test]
 fn is_matching_delimiter_wrong_pair() {
     let delims = vec![(LPAREN, RPAREN), (LBRACE, RBRACE)];
-    assert!(!ErrorRecoveryState::is_matching_delimiter(LPAREN, RBRACE, &delims));
-    assert!(!ErrorRecoveryState::is_matching_delimiter(LBRACE, RPAREN, &delims));
+    assert!(!ErrorRecoveryState::is_matching_delimiter(
+        LPAREN, RBRACE, &delims
+    ));
+    assert!(!ErrorRecoveryState::is_matching_delimiter(
+        LBRACE, RPAREN, &delims
+    ));
 }
 
 #[test]
 fn is_matching_delimiter_empty_delims() {
     let delims: Vec<(u16, u16)> = vec![];
-    assert!(!ErrorRecoveryState::is_matching_delimiter(LPAREN, RPAREN, &delims));
+    assert!(!ErrorRecoveryState::is_matching_delimiter(
+        LPAREN, RPAREN, &delims
+    ));
 }
 
 // =====================================================================
@@ -861,7 +886,10 @@ fn update_recent_tokens_with_symbol_id() {
 fn error_node_records_expected_closing_delimiter() {
     let mut state = ErrorRecoveryState::new(config_parens());
     state.record_error(
-        0, 5, (0, 0), (0, 5),
+        0,
+        5,
+        (0, 0),
+        (0, 5),
         vec![RPAREN],
         Some(42),
         RecoveryStrategy::ScopeRecovery,
@@ -878,7 +906,10 @@ fn multiple_error_nodes_accumulated() {
     let mut state = ErrorRecoveryState::new(config_parens());
     for i in 0..5 {
         state.record_error(
-            i, i + 1, (0, i), (0, i + 1),
+            i,
+            i + 1,
+            (0, i),
+            (0, i + 1),
             vec![RPAREN],
             Some(i as u16),
             RecoveryStrategy::ScopeRecovery,
@@ -891,11 +922,29 @@ fn multiple_error_nodes_accumulated() {
 #[test]
 fn clear_errors_then_accumulate_again() {
     let mut state = ErrorRecoveryState::new(config_parens());
-    state.record_error(0, 1, (0, 0), (0, 1), vec![1], Some(2), RecoveryStrategy::PanicMode, vec![]);
+    state.record_error(
+        0,
+        1,
+        (0, 0),
+        (0, 1),
+        vec![1],
+        Some(2),
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     assert_eq!(state.get_error_nodes().len(), 1);
     state.clear_errors();
     assert!(state.get_error_nodes().is_empty());
-    state.record_error(2, 3, (0, 2), (0, 3), vec![3], Some(4), RecoveryStrategy::ScopeRecovery, vec![]);
+    state.record_error(
+        2,
+        3,
+        (0, 2),
+        (0, 3),
+        vec![3],
+        Some(4),
+        RecoveryStrategy::ScopeRecovery,
+        vec![],
+    );
     assert_eq!(state.get_error_nodes().len(), 1);
 }
 

@@ -346,7 +346,12 @@ fn test_precedence_right_generates() {
             .token("num", r"\d+")
             .token("caret", r"\^")
             .rule("expr", vec!["num"])
-            .rule_with_precedence("expr", vec!["expr", "caret", "expr"], 1, Associativity::Right)
+            .rule_with_precedence(
+                "expr",
+                vec!["expr", "caret", "expr"],
+                1,
+                Associativity::Right,
+            )
             .start("expr"),
     );
     let code = gen_code(g, t);
@@ -378,12 +383,7 @@ fn test_precedence_deterministic() {
                 .token("num", r"\d+")
                 .token("plus", r"\+")
                 .rule("expr", vec!["num"])
-                .rule_with_precedence(
-                    "expr",
-                    vec!["expr", "plus", "expr"],
-                    1,
-                    Associativity::Left,
-                )
+                .rule_with_precedence("expr", vec!["expr", "plus", "expr"], 1, Associativity::Left)
                 .start("expr"),
         );
         gen_code(g, t)
@@ -605,7 +605,12 @@ fn test_conflict_declared_generates() {
         .rule("start", vec!["num"])
         .start("start")
         .build();
-    let id_sym = *g.rule_names.iter().find(|(_, n)| n.as_str() == "start").unwrap().0;
+    let id_sym = *g
+        .rule_names
+        .iter()
+        .find(|(_, n)| n.as_str() == "start")
+        .unwrap()
+        .0;
     g.conflicts.push(ConflictDeclaration {
         symbols: vec![id_sym],
         resolution: ConflictResolution::GLR,
@@ -623,7 +628,12 @@ fn test_conflict_precedence_resolution_generates() {
         .rule("expr", vec!["expr", "plus", "expr"])
         .start("expr")
         .build();
-    let expr_sym = *g.rule_names.iter().find(|(_, n)| n.as_str() == "expr").unwrap().0;
+    let expr_sym = *g
+        .rule_names
+        .iter()
+        .find(|(_, n)| n.as_str() == "expr")
+        .unwrap()
+        .0;
     g.conflicts.push(ConflictDeclaration {
         symbols: vec![expr_sym],
         resolution: ConflictResolution::Associativity(Associativity::Left),

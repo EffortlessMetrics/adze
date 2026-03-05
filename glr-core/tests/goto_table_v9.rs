@@ -54,10 +54,7 @@ fn tok_id(grammar: &Grammar, name: &str) -> SymbolId {
 }
 
 /// Collect all (state, target) pairs where goto(state, nt) is defined.
-fn all_gotos_for(
-    table: &adze_glr_core::ParseTable,
-    nt: SymbolId,
-) -> Vec<(StateId, StateId)> {
+fn all_gotos_for(table: &adze_glr_core::ParseTable, nt: SymbolId) -> Vec<(StateId, StateId)> {
     (0..table.state_count)
         .filter_map(|s| {
             let st = StateId(s as u16);
@@ -99,7 +96,10 @@ fn goto_v9_valid_some_single_rule() {
     let table = build_table(&g);
     let start = nt_id(&g, "start");
     let gotos = all_gotos_for(&table, start);
-    assert!(!gotos.is_empty(), "start nonterminal must have at least one goto entry");
+    assert!(
+        !gotos.is_empty(),
+        "start nonterminal must have at least one goto entry"
+    );
 }
 
 #[test]
@@ -113,7 +113,10 @@ fn goto_v9_valid_some_two_nonterminals() {
     let table = build_table(&g);
     let inner = nt_id(&g, "inner");
     let gotos = all_gotos_for(&table, inner);
-    assert!(!gotos.is_empty(), "intermediate nonterminal must have goto entries");
+    assert!(
+        !gotos.is_empty(),
+        "intermediate nonterminal must have goto entries"
+    );
 }
 
 #[test]
@@ -146,7 +149,10 @@ fn goto_v9_valid_some_initial_state() {
     let table = build_table(&g);
     let start = nt_id(&g, "start");
     let target = table.goto(table.initial_state, start);
-    assert!(target.is_some(), "goto from initial state for start nonterminal must exist");
+    assert!(
+        target.is_some(),
+        "goto from initial state for start nonterminal must exist"
+    );
 }
 
 // ===========================================================================
@@ -155,12 +161,7 @@ fn goto_v9_valid_some_initial_state() {
 
 #[test]
 fn goto_v9_none_out_of_bounds_state() {
-    let table = make_table(
-        "gt_v9_no1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_no1", &[("a", "a")], &[("start", vec!["a"])], "start");
     let bogus_state = StateId(table.state_count as u16 + 100);
     // Use any nonterminal from the table
     let nts = goto_nonterminals(&table);
@@ -174,12 +175,7 @@ fn goto_v9_none_out_of_bounds_state() {
 
 #[test]
 fn goto_v9_none_unknown_symbol() {
-    let table = make_table(
-        "gt_v9_no2",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_no2", &[("a", "a")], &[("start", vec!["a"])], "start");
     let unknown = SymbolId(9999);
     for s in 0..table.state_count {
         assert!(
@@ -191,12 +187,7 @@ fn goto_v9_none_unknown_symbol() {
 
 #[test]
 fn goto_v9_none_max_state() {
-    let table = make_table(
-        "gt_v9_no3",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_no3", &[("a", "a")], &[("start", vec!["a"])], "start");
     let nts = goto_nonterminals(&table);
     for nt in nts {
         assert!(
@@ -208,12 +199,7 @@ fn goto_v9_none_max_state() {
 
 #[test]
 fn goto_v9_none_zero_symbol() {
-    let table = make_table(
-        "gt_v9_no4",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_no4", &[("a", "a")], &[("start", vec!["a"])], "start");
     // SymbolId(0) is typically ERROR, not a nonterminal
     let result = table.goto(StateId(0), SymbolId(0));
     // It may or may not be None depending on implementation, but shouldn't panic
@@ -226,12 +212,7 @@ fn goto_v9_none_zero_symbol() {
 
 #[test]
 fn goto_v9_target_valid_simple() {
-    let table = make_table(
-        "gt_v9_tv1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_tv1", &[("a", "a")], &[("start", vec!["a"])], "start");
     for s in 0..table.state_count {
         let st = StateId(s as u16);
         for &nt in table.nonterminal_to_index.keys() {
@@ -400,7 +381,10 @@ fn goto_v9_consistent_every_lhs_has_goto() {
     // Every nonterminal that appears as a rule LHS should have goto entries
     for &nt in table.nonterminal_to_index.keys() {
         let gotos = all_gotos_for(&table, nt);
-        assert!(!gotos.is_empty(), "nonterminal {nt:?} must have goto entries");
+        assert!(
+            !gotos.is_empty(),
+            "nonterminal {nt:?} must have goto entries"
+        );
     }
 }
 
@@ -410,13 +394,11 @@ fn goto_v9_consistent_every_lhs_has_goto() {
 
 #[test]
 fn goto_v9_simple_single_token() {
-    let table = make_table(
-        "gt_v9_sg1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
+    let table = make_table("gt_v9_sg1", &[("a", "a")], &[("start", vec!["a"])], "start");
+    assert!(
+        total_goto_entries(&table) > 0,
+        "must have at least one goto entry"
     );
-    assert!(total_goto_entries(&table) > 0, "must have at least one goto entry");
 }
 
 #[test]
@@ -438,7 +420,10 @@ fn goto_v9_simple_epsilon_rule() {
         &[("start", vec![]), ("start", vec!["a"])],
         "start",
     );
-    assert!(total_goto_entries(&table) > 0, "grammar with epsilon rule still needs gotos");
+    assert!(
+        total_goto_entries(&table) > 0,
+        "grammar with epsilon rule still needs gotos"
+    );
 }
 
 #[test]
@@ -452,7 +437,10 @@ fn goto_v9_simple_single_nonterminal_one_goto() {
     let start = nt_id(&g, "start");
     let gotos = all_gotos_for(&table, start);
     // Augmented grammar may have multiple goto entries; at least one must exist
-    assert!(!gotos.is_empty(), "single-rule grammar must have at least 1 goto for start");
+    assert!(
+        !gotos.is_empty(),
+        "single-rule grammar must have at least 1 goto for start"
+    );
 }
 
 // ===========================================================================
@@ -472,7 +460,10 @@ fn goto_v9_alt_two_alternatives() {
     let table = build_table(&g);
     let item = nt_id(&g, "item");
     let gotos = all_gotos_for(&table, item);
-    assert!(!gotos.is_empty(), "item with alternatives must have goto entries");
+    assert!(
+        !gotos.is_empty(),
+        "item with alternatives must have goto entries"
+    );
 }
 
 #[test]
@@ -605,12 +596,7 @@ fn goto_v9_state0_recursive_nonterminal() {
 
 #[test]
 fn goto_v9_determinism_repeated_call() {
-    let table = make_table(
-        "gt_v9_dt1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_dt1", &[("a", "a")], &[("start", vec!["a"])], "start");
     for s in 0..table.state_count {
         let st = StateId(s as u16);
         for &nt in table.nonterminal_to_index.keys() {
@@ -629,9 +615,15 @@ fn goto_v9_determinism_hundred_calls() {
         &[("item", vec!["a"]), ("start", vec!["item"])],
         "start",
     );
-    let first = table.goto(StateId(0), *table.nonterminal_to_index.keys().next().unwrap());
+    let first = table.goto(
+        StateId(0),
+        *table.nonterminal_to_index.keys().next().unwrap(),
+    );
     for _ in 0..100 {
-        let again = table.goto(StateId(0), *table.nonterminal_to_index.keys().next().unwrap());
+        let again = table.goto(
+            StateId(0),
+            *table.nonterminal_to_index.keys().next().unwrap(),
+        );
         assert_eq!(first, again);
     }
 }
@@ -709,7 +701,11 @@ fn goto_v9_diff_grammars_entry_count() {
     let t2 = make_table(
         "gt_v9_dg1b",
         &[("a", "a"), ("b", "b")],
-        &[("item", vec!["a"]), ("item", vec!["b"]), ("start", vec!["item"])],
+        &[
+            ("item", vec!["a"]),
+            ("item", vec!["b"]),
+            ("start", vec!["item"]),
+        ],
         "start",
     );
     let e1 = total_goto_entries(&t1);
@@ -868,12 +864,7 @@ fn goto_v9_prec_targets_valid() {
 
 #[test]
 fn goto_v9_bound_simple() {
-    let table = make_table(
-        "gt_v9_bd1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_bd1", &[("a", "a")], &[("start", vec!["a"])], "start");
     for s in 0..table.state_count {
         for &nt in table.nonterminal_to_index.keys() {
             if let Some(t) = table.goto(StateId(s as u16), nt) {
@@ -930,7 +921,13 @@ fn goto_v9_bound_multi_nt() {
 fn goto_v9_bound_arithmetic() {
     let table = make_table(
         "gt_v9_bd4",
-        &[("n", "n"), ("+", "\\+"), ("*", "\\*"), ("(", "\\("), (")", "\\)")],
+        &[
+            ("n", "n"),
+            ("+", "\\+"),
+            ("*", "\\*"),
+            ("(", "\\("),
+            (")", "\\)"),
+        ],
         &[
             ("factor", vec!["n"]),
             ("factor", vec!["(", "expr", ")"]),
@@ -957,12 +954,7 @@ fn goto_v9_bound_arithmetic() {
 
 #[test]
 fn goto_v9_nopanic_all_states_all_nts() {
-    let table = make_table(
-        "gt_v9_np1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_np1", &[("a", "a")], &[("start", vec!["a"])], "start");
     for s in 0..=table.state_count + 10 {
         for &nt in table.nonterminal_to_index.keys() {
             let _ = table.goto(StateId(s as u16), nt);
@@ -972,12 +964,7 @@ fn goto_v9_nopanic_all_states_all_nts() {
 
 #[test]
 fn goto_v9_nopanic_arbitrary_symbols() {
-    let table = make_table(
-        "gt_v9_np2",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_np2", &[("a", "a")], &[("start", vec!["a"])], "start");
     for sym_raw in 0..200u16 {
         let _ = table.goto(StateId(0), SymbolId(sym_raw));
     }
@@ -985,12 +972,7 @@ fn goto_v9_nopanic_arbitrary_symbols() {
 
 #[test]
 fn goto_v9_nopanic_large_state_ids() {
-    let table = make_table(
-        "gt_v9_np3",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_np3", &[("a", "a")], &[("start", vec!["a"])], "start");
     for s in [0u16, 1, 100, 1000, 10000, u16::MAX] {
         for &nt in table.nonterminal_to_index.keys() {
             let _ = table.goto(StateId(s), nt);
@@ -1165,12 +1147,7 @@ fn goto_v9_eof_none_in_arithmetic_grammar() {
 
 #[test]
 fn goto_v9_size_tiny() {
-    let table = make_table(
-        "gt_v9_sz1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_sz1", &[("a", "a")], &[("start", vec!["a"])], "start");
     assert!(total_goto_entries(&table) >= 1);
 }
 
@@ -1188,14 +1165,23 @@ fn goto_v9_size_small() {
         ],
         "start",
     );
-    assert!(total_goto_entries(&table) >= 3, "small grammar must have several goto entries");
+    assert!(
+        total_goto_entries(&table) >= 3,
+        "small grammar must have several goto entries"
+    );
 }
 
 #[test]
 fn goto_v9_size_medium() {
     let table = make_table(
         "gt_v9_sz3",
-        &[("n", "n"), ("+", "\\+"), ("*", "\\*"), ("(", "\\("), (")", "\\)")],
+        &[
+            ("n", "n"),
+            ("+", "\\+"),
+            ("*", "\\*"),
+            ("(", "\\("),
+            (")", "\\)"),
+        ],
         &[
             ("factor", vec!["n"]),
             ("factor", vec!["(", "expr", ")"]),
@@ -1308,8 +1294,14 @@ fn goto_v9_chain_goto_targets_differ() {
     let table = build_table(&g);
     let inner = nt_id(&g, "inner");
     let start = nt_id(&g, "start");
-    let inner_targets: Vec<_> = all_gotos_for(&table, inner).iter().map(|&(_, t)| t).collect();
-    let start_targets: Vec<_> = all_gotos_for(&table, start).iter().map(|&(_, t)| t).collect();
+    let inner_targets: Vec<_> = all_gotos_for(&table, inner)
+        .iter()
+        .map(|&(_, t)| t)
+        .collect();
+    let start_targets: Vec<_> = all_gotos_for(&table, start)
+        .iter()
+        .map(|&(_, t)| t)
+        .collect();
     // The goto targets for different nonterminals should generally differ
     assert_ne!(
         inner_targets, start_targets,
@@ -1333,7 +1325,10 @@ fn goto_v9_multi_nt_two() {
         .build();
     let table = build_table(&g);
     let nts = goto_nonterminals(&table);
-    assert!(nts.len() >= 3, "grammar with 3 nonterminals must register at least 3");
+    assert!(
+        nts.len() >= 3,
+        "grammar with 3 nonterminals must register at least 3"
+    );
 }
 
 #[test]
@@ -1349,7 +1344,10 @@ fn goto_v9_multi_nt_each_has_entries() {
     let table = build_table(&g);
     for name in &["alpha", "beta", "start"] {
         let nt = nt_id(&g, name);
-        assert!(!all_gotos_for(&table, nt).is_empty(), "'{name}' must have goto entries");
+        assert!(
+            !all_gotos_for(&table, nt).is_empty(),
+            "'{name}' must have goto entries"
+        );
     }
 }
 
@@ -1398,12 +1396,7 @@ fn goto_v9_multi_nt_total_count() {
 
 #[test]
 fn goto_v9_sparse_simple() {
-    let table = make_table(
-        "gt_v9_sp1",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_sp1", &[("a", "a")], &[("start", vec!["a"])], "start");
     let total_cells = table.state_count * table.nonterminal_to_index.len();
     let filled = total_goto_entries(&table);
     // Even a tiny grammar produces some None entries; but if all are filled that's
@@ -1464,7 +1457,13 @@ fn goto_v9_sparse_recursive() {
 fn goto_v9_sparse_fill_ratio() {
     let table = make_table(
         "gt_v9_sp4",
-        &[("n", "n"), ("+", "\\+"), ("*", "\\*"), ("(", "\\("), (")", "\\)")],
+        &[
+            ("n", "n"),
+            ("+", "\\+"),
+            ("*", "\\*"),
+            ("(", "\\("),
+            (")", "\\)"),
+        ],
         &[
             ("factor", vec!["n"]),
             ("factor", vec!["(", "expr", ")"]),
@@ -1540,12 +1539,7 @@ fn goto_v9_only_nonterminals_in_mixed_grammar() {
 
 #[test]
 fn goto_v9_only_nonterminals_eof_excluded() {
-    let table = make_table(
-        "gt_v9_on4",
-        &[("a", "a")],
-        &[("start", vec!["a"])],
-        "start",
-    );
+    let table = make_table("gt_v9_on4", &[("a", "a")], &[("start", vec!["a"])], "start");
     assert!(!table.nonterminal_to_index.contains_key(&table.eof_symbol));
 }
 
@@ -1602,10 +1596,7 @@ fn goto_v9_arith_factor_has_gotos() {
     let table = build_table(&g);
     let factor = nt_id(&g, "factor");
     let gotos = all_gotos_for(&table, factor);
-    assert!(
-        !gotos.is_empty(),
-        "factor must have goto entries"
-    );
+    assert!(!gotos.is_empty(), "factor must have goto entries");
 }
 
 #[test]

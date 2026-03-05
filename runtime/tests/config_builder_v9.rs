@@ -260,9 +260,7 @@ fn t27_config_debug_format() {
 
 #[test]
 fn t28_config_debug_contains_max_panic_skip() {
-    let config = ErrorRecoveryConfigBuilder::new()
-        .max_panic_skip(77)
-        .build();
+    let config = ErrorRecoveryConfigBuilder::new().max_panic_skip(77).build();
     let debug = format!("{config:?}");
     assert!(debug.contains("77"));
 }
@@ -282,9 +280,7 @@ fn t29_config_clone_is_equal() {
 
 #[test]
 fn t30_config_clone_is_independent() {
-    let config = ErrorRecoveryConfigBuilder::new()
-        .max_panic_skip(10)
-        .build();
+    let config = ErrorRecoveryConfigBuilder::new().max_panic_skip(10).build();
     let mut cloned = config.clone();
     cloned.max_panic_skip = 999;
     assert_eq!(config.max_panic_skip, 10);
@@ -412,9 +408,7 @@ fn t41_max_panic_skip_set() {
 
 #[test]
 fn t42_max_panic_skip_zero() {
-    let config = ErrorRecoveryConfigBuilder::new()
-        .max_panic_skip(0)
-        .build();
+    let config = ErrorRecoveryConfigBuilder::new().max_panic_skip(0).build();
     assert_eq!(config.max_panic_skip, 0);
 }
 
@@ -432,9 +426,7 @@ fn t43_max_panic_skip_usize_max() {
 
 #[test]
 fn t44_add_sync_token_single() {
-    let config = ErrorRecoveryConfigBuilder::new()
-        .add_sync_token(42)
-        .build();
+    let config = ErrorRecoveryConfigBuilder::new().add_sync_token(42).build();
     assert!(config.sync_tokens.contains(&SymbolId(42)));
     assert_eq!(config.sync_tokens.len(), 1);
 }
@@ -551,9 +543,7 @@ fn t55_can_delete_token_not_in_sync_tokens() {
 
 #[test]
 fn t56_can_delete_token_that_is_sync_token() {
-    let config = ErrorRecoveryConfigBuilder::new()
-        .add_sync_token(5)
-        .build();
+    let config = ErrorRecoveryConfigBuilder::new().add_sync_token(5).build();
     // Token 5 is in sync_tokens and not in deletable_tokens
     assert!(!config.can_delete_token(SymbolId(5)));
 }
@@ -576,9 +566,7 @@ fn t58_can_replace_token_not_sync() {
 
 #[test]
 fn t59_cannot_replace_sync_token() {
-    let config = ErrorRecoveryConfigBuilder::new()
-        .add_sync_token(42)
-        .build();
+    let config = ErrorRecoveryConfigBuilder::new().add_sync_token(42).build();
     assert!(!config.can_replace_token(SymbolId(42)));
 }
 
@@ -761,8 +749,14 @@ fn t76_state_clear_errors() {
     let config = ErrorRecoveryConfigBuilder::new().build();
     let mut state = ErrorRecoveryState::new(config);
     state.record_error(
-        0, 1, (0, 0), (0, 1), vec![], None,
-        RecoveryStrategy::TokenDeletion, vec![],
+        0,
+        1,
+        (0, 0),
+        (0, 1),
+        vec![],
+        None,
+        RecoveryStrategy::TokenDeletion,
+        vec![],
     );
     assert_eq!(state.get_error_nodes().len(), 1);
     state.clear_errors();
@@ -805,19 +799,31 @@ fn t80_is_scope_delimiter_not_found() {
 #[test]
 fn t81_is_matching_delimiter_true() {
     let delimiters = vec![(40, 41)];
-    assert!(ErrorRecoveryState::is_matching_delimiter(40, 41, &delimiters));
+    assert!(ErrorRecoveryState::is_matching_delimiter(
+        40,
+        41,
+        &delimiters
+    ));
 }
 
 #[test]
 fn t82_is_matching_delimiter_false() {
     let delimiters = vec![(40, 41)];
-    assert!(!ErrorRecoveryState::is_matching_delimiter(40, 93, &delimiters));
+    assert!(!ErrorRecoveryState::is_matching_delimiter(
+        40,
+        93,
+        &delimiters
+    ));
 }
 
 #[test]
 fn t83_is_matching_delimiter_empty() {
     let delimiters: Vec<(u16, u16)> = vec![];
-    assert!(!ErrorRecoveryState::is_matching_delimiter(40, 41, &delimiters));
+    assert!(!ErrorRecoveryState::is_matching_delimiter(
+        40,
+        41,
+        &delimiters
+    ));
 }
 
 // =====================================================================
@@ -966,11 +972,26 @@ fn t95_deletable_tokens_accumulate_unique() {
 #[test]
 fn t96_recovery_strategy_debug_all_variants() {
     assert_eq!(format!("{:?}", RecoveryStrategy::PanicMode), "PanicMode");
-    assert_eq!(format!("{:?}", RecoveryStrategy::TokenInsertion), "TokenInsertion");
-    assert_eq!(format!("{:?}", RecoveryStrategy::TokenDeletion), "TokenDeletion");
-    assert_eq!(format!("{:?}", RecoveryStrategy::TokenSubstitution), "TokenSubstitution");
-    assert_eq!(format!("{:?}", RecoveryStrategy::PhraseLevel), "PhraseLevel");
-    assert_eq!(format!("{:?}", RecoveryStrategy::ScopeRecovery), "ScopeRecovery");
+    assert_eq!(
+        format!("{:?}", RecoveryStrategy::TokenInsertion),
+        "TokenInsertion"
+    );
+    assert_eq!(
+        format!("{:?}", RecoveryStrategy::TokenDeletion),
+        "TokenDeletion"
+    );
+    assert_eq!(
+        format!("{:?}", RecoveryStrategy::TokenSubstitution),
+        "TokenSubstitution"
+    );
+    assert_eq!(
+        format!("{:?}", RecoveryStrategy::PhraseLevel),
+        "PhraseLevel"
+    );
+    assert_eq!(
+        format!("{:?}", RecoveryStrategy::ScopeRecovery),
+        "ScopeRecovery"
+    );
     assert_eq!(
         format!("{:?}", RecoveryStrategy::IndentationRecovery),
         "IndentationRecovery"
@@ -1051,8 +1072,14 @@ fn t100_multiple_error_nodes_accumulate() {
     let mut state = ErrorRecoveryState::new(config);
     for i in 0..5 {
         state.record_error(
-            i, i + 1, (0, i), (0, i + 1), vec![],
-            None, RecoveryStrategy::PanicMode, vec![],
+            i,
+            i + 1,
+            (0, i),
+            (0, i + 1),
+            vec![],
+            None,
+            RecoveryStrategy::PanicMode,
+            vec![],
         );
     }
     assert_eq!(state.get_error_nodes().len(), 5);

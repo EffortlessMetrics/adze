@@ -231,7 +231,10 @@ fn test_vr_v10_ten_rules() {
     for i in 0..10 {
         let tok_name = format!("T{i}");
         let tok_pat = format!("t{i}");
-        b = b.token(Box::leak(tok_name.into_boxed_str()), Box::leak(tok_pat.into_boxed_str()));
+        b = b.token(
+            Box::leak(tok_name.into_boxed_str()),
+            Box::leak(tok_pat.into_boxed_str()),
+        );
     }
     for i in 0..10 {
         let rule_name = format!("r{i}");
@@ -301,7 +304,12 @@ fn test_vr_v10_assoc_right() {
     let g = GrammarBuilder::new("vr_v10_assoc_r")
         .token("N", "n")
         .token("=", "=")
-        .rule_with_precedence("assign", vec!["assign", "=", "assign"], 1, Associativity::Right)
+        .rule_with_precedence(
+            "assign",
+            vec!["assign", "=", "assign"],
+            1,
+            Associativity::Right,
+        )
         .rule("assign", vec!["N"])
         .start("assign")
         .build();
@@ -610,7 +618,10 @@ fn test_vr_v10_twenty_tokens() {
         tok_names.push(name);
     }
     // Use first token in a rule
-    b = b.rule("root", vec![Box::leak(tok_names[0].clone().into_boxed_str())]);
+    b = b.rule(
+        "root",
+        vec![Box::leak(tok_names[0].clone().into_boxed_str())],
+    );
     b = b.start("root");
     let g = b.build();
     assert!(g.validate().is_ok());
@@ -827,20 +838,16 @@ fn test_vr_v10_unresolved_error_type() {
 #[test]
 fn test_vr_v10_field_ordering_valid() {
     let mut g = minimal_grammar("vr_v10_field_ok");
-    g.fields
-        .insert(adze_ir::FieldId(0), "alpha".to_string());
-    g.fields
-        .insert(adze_ir::FieldId(1), "beta".to_string());
+    g.fields.insert(adze_ir::FieldId(0), "alpha".to_string());
+    g.fields.insert(adze_ir::FieldId(1), "beta".to_string());
     assert!(g.validate().is_ok());
 }
 
 #[test]
 fn test_vr_v10_field_ordering_invalid() {
     let mut g = minimal_grammar("vr_v10_field_bad");
-    g.fields
-        .insert(adze_ir::FieldId(0), "zebra".to_string());
-    g.fields
-        .insert(adze_ir::FieldId(1), "alpha".to_string());
+    g.fields.insert(adze_ir::FieldId(0), "zebra".to_string());
+    g.fields.insert(adze_ir::FieldId(1), "alpha".to_string());
     match g.validate() {
         Err(GrammarError::InvalidFieldOrdering) => {}
         other => panic!("Expected InvalidFieldOrdering, got {:?}", other),
