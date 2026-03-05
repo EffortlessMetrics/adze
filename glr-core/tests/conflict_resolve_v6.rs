@@ -719,11 +719,11 @@ fn conflict_assoc_accept_on_eof_only() {
     let table = build_table(&g).unwrap();
     for row in &table.action_table {
         for (col, cell) in row.iter().enumerate() {
-            if cell.iter().any(|a| matches!(a, Action::Accept)) {
-                if col < table.index_to_symbol.len() {
-                    let sym = table.index_to_symbol[col];
-                    assert_eq!(sym, table.eof_symbol, "Accept on non-EOF column {col}");
-                }
+            if cell.iter().any(|a| matches!(a, Action::Accept))
+                && col < table.index_to_symbol.len()
+            {
+                let sym = table.index_to_symbol[col];
+                assert_eq!(sym, table.eof_symbol, "Accept on non-EOF column {col}");
             }
         }
     }
