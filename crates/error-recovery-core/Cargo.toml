@@ -1,0 +1,23 @@
+[package]
+name = "adze-error-recovery-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Error recovery strategies and state machine helpers for robust parsing."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["parser", "error-recovery", "glr", "grammar"]
+categories = ["parsing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-error-recovery-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }
+adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
+smallvec.workspace = true

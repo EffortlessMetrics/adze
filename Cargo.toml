@@ -14,6 +14,7 @@ members = [
   "crates/runtime-governance",
   "crates/runtime-governance-api",
   "crates/ts-format-core",
+  "crates/error-recovery-core",
   "crates/runtime-governance-matrix",
   "crates/runtime2-governance",
   "crates/stack-pool-core",
