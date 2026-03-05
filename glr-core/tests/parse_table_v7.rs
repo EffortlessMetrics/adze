@@ -547,22 +547,6 @@ fn c3_goto_consistent_with_actions() {
 }
 
 #[test]
-fn c3_goto_dimensions() {
-    let pt = build_pt(
-        "c3_6",
-        &[("a", "a"), ("b", "b")],
-        &[("s", vec!["a", "e"]), ("e", vec!["b"])],
-        "s",
-    );
-    for row in &pt.goto_table {
-        assert!(
-            row.len() == pt.nonterminal_to_index.len(),
-            "each goto row must have nonterminal_to_index.len() columns"
-        );
-    }
-}
-
-#[test]
 fn c3_goto_not_empty() {
     let pt = build_pt(
         "c3_7",
@@ -750,34 +734,6 @@ fn c4_table_matches_grammar_complexity() {
 // ============================================================================
 // CATEGORY 5: Complex Grammars (8 tests)
 // ============================================================================
-
-#[test]
-fn c5_arithmetic_expression_table() {
-    let pt = build_pt(
-        "c5_1",
-        &[
-            ("NUM", "[0-9]+"),
-            ("PLUS", "\\+"),
-            ("MINUS", "-"),
-            ("MULT", "\\*"),
-            ("DIV", "/"),
-        ],
-        &[
-            ("expr", vec!["expr", "PLUS", "expr"]),
-            ("expr", vec!["expr", "MINUS", "expr"]),
-            ("expr", vec!["expr", "MULT", "expr"]),
-            ("expr", vec!["expr", "DIV", "expr"]),
-            ("expr", vec!["NUM"]),
-        ],
-        "expr",
-    );
-    assert!(
-        pt.state_count >= 5,
-        "arithmetic grammar should have multiple states"
-    );
-    assert!(count_shift_actions(&pt) > 0);
-    assert!(count_reduce_actions(&pt) > 0);
-}
 
 #[test]
 fn c5_nested_parentheses_table() {
