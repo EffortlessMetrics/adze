@@ -809,7 +809,7 @@ fn test_registry_built_after_validation() {
     let _ = g.validate();
     // Build registry — should not panic.
     let reg = g.get_or_build_registry();
-    assert!(reg.len() > 0, "registry should have symbols");
+    assert!(!reg.is_empty(), "registry should have symbols");
 }
 
 #[test]
