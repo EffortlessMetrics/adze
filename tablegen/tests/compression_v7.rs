@@ -307,7 +307,7 @@ fn compress_bitpack_empty_table() {
 fn compress_ratio_identical_rows_collapse() {
     // Each row has 10 error cells, wrapped as Vec<Vec<Action>>
     let row: Vec<Vec<Action>> = vec![vec![Action::Error]; 10];
-    let table: Vec<Vec<Vec<Action>>> = std::iter::repeat(row).take(50).collect();
+    let table: Vec<Vec<Vec<Action>>> = std::iter::repeat_n(row, 50).collect();
     let c = compress_action_table(&table);
     assert_eq!(c.unique_rows.len(), 1);
     assert!(c.state_to_row.len() == 50);
