@@ -1,13 +1,14 @@
-//! FIRST/FOLLOW set computation tests using the GrammarBuilder API.
+//! FIRST/FOLLOW set computation tests (v5) using the GrammarBuilder API.
 //!
 //! Categories:
-//! 1. FIRST of terminal is itself
-//! 2. FIRST of nonterminal
-//! 3. FIRST with epsilon / nullable
-//! 4. FOLLOW of start symbol
-//! 5. FOLLOW propagation
-//! 6. compute vs compute_normalized
-//! 7. Complex grammar FIRST/FOLLOW
+//! 1. FIRST sets for terminal-only rules (single and multi-token)
+//! 2. FIRST sets for nonterminal rules (propagation through rule chains)
+//! 3. FIRST sets with epsilon (nullable nonterminals)
+//! 4. FOLLOW sets include EOF for start symbol
+//! 5. FOLLOW sets propagation through rules
+//! 6. Complex grammar FIRST/FOLLOW (arithmetic, JSON-like)
+//! 7. Edge cases: single rule, many alternatives, left recursion
+//! 8. Determinism: same grammar → same sets
 
 use adze_glr_core::FirstFollowSets;
 use adze_ir::builder::GrammarBuilder;
@@ -19,10 +20,10 @@ use adze_ir::{Grammar, SymbolId};
 
 const EOF: SymbolId = SymbolId(0);
 
-/// Look up a symbol by name in the grammar's rule_names map.
+/// Look up a symbol by name in the grammar.
 fn sym(g: &Grammar, name: &str) -> SymbolId {
     g.find_symbol_by_name(name)
-        .unwrap_or_else(|| panic!("symbol '{name}' not found in rule_names"))
+        .unwrap_or_else(|| panic!("symbol '{name}' not found"))
 }
 
 /// Assert that FIRST(symbol) contains exactly the given symbol IDs.
@@ -52,6 +53,19 @@ fn assert_first_contains(ff: &FirstFollowSets, id: SymbolId, expected: &[SymbolI
     }
 }
 
+/// Assert that FIRST(symbol) does NOT contain the given symbol IDs.
+fn assert_first_excludes(ff: &FirstFollowSets, id: SymbolId, excluded: &[SymbolId]) {
+    let set = ff
+        .first(id)
+        .unwrap_or_else(|| panic!("no FIRST set for {id:?}"));
+    for &e in excluded {
+        assert!(
+            !set.contains(e.0 as usize),
+            "FIRST({id:?}) should NOT contain {e:?}",
+        );
+    }
+}
+
 /// Assert that FOLLOW(symbol) contains at least the given symbol IDs.
 fn assert_follow_contains(ff: &FirstFollowSets, id: SymbolId, expected: &[SymbolId]) {
     let set = ff
@@ -63,6 +77,20 @@ fn assert_follow_contains(ff: &FirstFollowSets, id: SymbolId, expected: &[Symbol
             "FOLLOW({id:?}) should contain {e:?}",
         );
     }
+}
+
+/// Assert that FOLLOW(symbol) contains exactly the given symbol IDs.
+fn assert_follow_eq(ff: &FirstFollowSets, id: SymbolId, expected: &[SymbolId]) {
+    let set = ff
+        .follow(id)
+        .unwrap_or_else(|| panic!("no FOLLOW set for {id:?}"));
+    let actual: Vec<u16> = (0..set.len())
+        .filter(|&i| set.contains(i))
+        .map(|i| i as u16)
+        .collect();
+    let mut exp: Vec<u16> = expected.iter().map(|s| s.0).collect();
+    exp.sort();
+    assert_eq!(actual, exp, "FOLLOW({id:?}) mismatch");
 }
 
 /// Assert that FOLLOW(symbol) does NOT contain the given symbol IDs.
@@ -79,29 +107,38 @@ fn assert_follow_excludes(ff: &FirstFollowSets, id: SymbolId, excluded: &[Symbol
 }
 
 // ===========================================================================
-// 1. FIRST of terminal is itself (8 tests)
-//
-// Terminals are not tracked in the FIRST map; we verify the invariant
-// indirectly: a nonterminal whose sole production is a single terminal
-// must have FIRST = {that terminal}.
+// 1. FIRST sets for terminal-only rules (single and multi-token) — 7 tests
 // ===========================================================================
 
 #[test]
-fn first_terminal_single_token_via_nonterminal() {
-    // S -> a  =>  FIRST(S) = {a}, proving terminal a contributes itself
+fn first_terminal_single_token() {
+    // S -> a  =>  FIRST(S) = {a}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .rule("start", vec!["a"])
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    assert_first_eq(&ff, start, &[a]);
+    assert_first_eq(&ff, sym(&g, "start"), &[sym(&g, "a")]);
 }
 
 #[test]
-fn first_terminal_digit_via_nonterminal() {
+fn first_terminal_multi_token_only_leading() {
+    // S -> a b  =>  FIRST(S) = {a}, b excluded
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["a", "b"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let start = sym(&g, "start");
+    assert_first_contains(&ff, start, &[sym(&g, "a")]);
+    assert_first_excludes(&ff, start, &[sym(&g, "b")]);
+}
+
+#[test]
+fn first_terminal_regex_pattern() {
     // S -> num  =>  FIRST(S) = {num}
     let g = GrammarBuilder::new("t")
         .token("num", r"[0-9]+")
@@ -109,13 +146,11 @@ fn first_terminal_digit_via_nonterminal() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let num = sym(&g, "num");
-    assert_first_eq(&ff, start, &[num]);
+    assert_first_eq(&ff, sym(&g, "start"), &[sym(&g, "num")]);
 }
 
 #[test]
-fn first_terminal_keyword_via_nonterminal() {
+fn first_terminal_keyword() {
     // S -> kw_if  =>  FIRST(S) = {kw_if}
     let g = GrammarBuilder::new("t")
         .token("kw_if", "if")
@@ -123,14 +158,12 @@ fn first_terminal_keyword_via_nonterminal() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let kw = sym(&g, "kw_if");
-    assert_first_eq(&ff, start, &[kw]);
+    assert_first_eq(&ff, sym(&g, "start"), &[sym(&g, "kw_if")]);
 }
 
 #[test]
-fn first_terminal_each_contributes_itself() {
-    // S -> x,  A -> y,  B -> z  =>  FIRST matches respective terminal
+fn first_terminal_each_nonterminal_reflects_its_terminal() {
+    // S -> x, W -> y, V -> z  =>  each has its own terminal in FIRST
     let g = GrammarBuilder::new("t")
         .token("x", "x")
         .token("y", "y")
@@ -141,54 +174,13 @@ fn first_terminal_each_contributes_itself() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let wy = sym(&g, "wrap_y");
-    let wz = sym(&g, "wrap_z");
-    let x = sym(&g, "x");
-    let y = sym(&g, "y");
-    let z = sym(&g, "z");
-    assert_first_eq(&ff, start, &[x]);
-    assert_first_eq(&ff, wy, &[y]);
-    assert_first_eq(&ff, wz, &[z]);
+    assert_first_eq(&ff, sym(&g, "start"), &[sym(&g, "x")]);
+    assert_first_eq(&ff, sym(&g, "wrap_y"), &[sym(&g, "y")]);
+    assert_first_eq(&ff, sym(&g, "wrap_z"), &[sym(&g, "z")]);
 }
 
 #[test]
-fn first_terminal_regex_via_nonterminal() {
-    // S -> ident  =>  FIRST(S) = {ident}
-    let g = GrammarBuilder::new("t")
-        .token("ident", r"[a-z]+")
-        .rule("start", vec!["ident"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let id = sym(&g, "ident");
-    assert_first_eq(&ff, start, &[id]);
-}
-
-#[test]
-fn first_terminal_only_leading_contributes() {
-    // S -> a b  =>  FIRST(S) = {a} (b does NOT appear)
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .rule("start", vec!["a", "b"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    let b = sym(&g, "b");
-    assert_first_contains(&ff, start, &[a]);
-    let fs = ff.first(start).unwrap();
-    assert!(
-        !fs.contains(b.0 as usize),
-        "FIRST(start) must not contain b"
-    );
-}
-
-#[test]
-fn first_terminal_string_literal_via_nonterminal() {
+fn first_terminal_punctuation() {
     // S -> semi  =>  FIRST(S) = {semi}
     let g = GrammarBuilder::new("t")
         .token("semi", ";")
@@ -196,85 +188,44 @@ fn first_terminal_string_literal_via_nonterminal() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let semi = sym(&g, "semi");
-    assert_first_eq(&ff, start, &[semi]);
+    assert_first_eq(&ff, sym(&g, "start"), &[sym(&g, "semi")]);
 }
 
 #[test]
-fn first_terminal_operator_via_nonterminal() {
-    // S -> num plus num  =>  FIRST(S) = {num}, plus is not in FIRST
+fn first_terminal_three_token_rule() {
+    // S -> num plus num  =>  FIRST(S) = {num}, plus excluded
     let g = GrammarBuilder::new("t")
-        .token("plus", "+")
         .token("num", "0")
+        .token("plus", "+")
         .rule("start", vec!["num", "plus", "num"])
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
     let start = sym(&g, "start");
-    let num = sym(&g, "num");
-    let plus = sym(&g, "plus");
-    assert_first_contains(&ff, start, &[num]);
-    let fs = ff.first(start).unwrap();
-    assert!(
-        !fs.contains(plus.0 as usize),
-        "plus should not be in FIRST(start)"
-    );
+    assert_first_contains(&ff, start, &[sym(&g, "num")]);
+    assert_first_excludes(&ff, start, &[sym(&g, "plus")]);
 }
 
 // ===========================================================================
-// 2. FIRST of nonterminal (8 tests)
+// 2. FIRST sets for nonterminal rules (propagation through chains) — 7 tests
 // ===========================================================================
 
 #[test]
-fn first_nonterminal_single_production() {
-    // S -> a
+fn first_nonterminal_single_chain() {
+    // S -> A, A -> a  =>  FIRST(S) = {a}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
-        .rule("start", vec!["a"])
+        .rule("start", vec!["inner"])
+        .rule("inner", vec!["a"])
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    assert_first_contains(&ff, start, &[a]);
-}
-
-#[test]
-fn first_nonterminal_two_alternatives() {
-    // S -> a | b
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .rule("start", vec!["a"])
-        .rule("start", vec!["b"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    let b = sym(&g, "b");
-    assert_first_contains(&ff, start, &[a, b]);
-}
-
-#[test]
-fn first_nonterminal_chain() {
-    // S -> A, A -> a
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["item"])
-        .rule("item", vec!["a"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    assert_first_contains(&ff, start, &[a]);
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "a")]);
 }
 
 #[test]
 fn first_nonterminal_deep_chain() {
-    // S -> A, A -> B, B -> c
+    // S -> A, A -> B, B -> c  =>  FIRST(S) = {c}
     let g = GrammarBuilder::new("t")
         .token("c", "c")
         .rule("start", vec!["mid"])
@@ -283,30 +234,12 @@ fn first_nonterminal_deep_chain() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let c = sym(&g, "c");
-    assert_first_contains(&ff, start, &[c]);
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "c")]);
 }
 
 #[test]
-fn first_nonterminal_left_recursion() {
-    // S -> S a | b
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .rule("start", vec!["start", "a"])
-        .rule("start", vec!["b"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let b = sym(&g, "b");
-    assert_first_contains(&ff, start, &[b]);
-}
-
-#[test]
-fn first_nonterminal_multiple_levels() {
-    // S -> A | B,  A -> a,  B -> b
+fn first_nonterminal_two_alternatives_via_nonterminals() {
+    // S -> A | B, A -> a, B -> b  =>  FIRST(S) = {a, b}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .token("b", "b")
@@ -317,36 +250,51 @@ fn first_nonterminal_multiple_levels() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    let b = sym(&g, "b");
-    assert_first_contains(&ff, start, &[a, b]);
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "a"), sym(&g, "b")]);
 }
 
 #[test]
-fn first_nonterminal_skips_second_symbol() {
-    // S -> a b   =>  FIRST(S) = {a}, not {a, b}
+fn first_nonterminal_sequence_only_leading() {
+    // S -> A B c, A -> a, B -> b  =>  FIRST(S) = {a}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .token("b", "b")
-        .rule("start", vec!["a", "b"])
+        .token("c", "c")
+        .rule("start", vec!["left", "right", "c"])
+        .rule("left", vec!["a"])
+        .rule("right", vec!["b"])
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
     let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    let b = sym(&g, "b");
-    assert_first_contains(&ff, start, &[a]);
-    let fs = ff.first(start).unwrap();
-    assert!(
-        !fs.contains(b.0 as usize),
-        "FIRST(start) should not contain b"
-    );
+    assert_first_contains(&ff, start, &[sym(&g, "a")]);
+    assert_first_excludes(&ff, start, &[sym(&g, "b"), sym(&g, "c")]);
 }
 
 #[test]
-fn first_nonterminal_right_recursion() {
-    // S -> a S | a
+fn first_nonterminal_four_level_chain() {
+    // S -> A, A -> B, B -> C, C -> x | y
+    let g = GrammarBuilder::new("t")
+        .token("x", "x")
+        .token("y", "y")
+        .rule("start", vec!["la"])
+        .rule("la", vec!["lb"])
+        .rule("lb", vec!["lc"])
+        .rule("lc", vec!["x"])
+        .rule("lc", vec!["y"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let xy = &[sym(&g, "x"), sym(&g, "y")];
+    assert_first_contains(&ff, sym(&g, "start"), xy);
+    assert_first_contains(&ff, sym(&g, "la"), xy);
+    assert_first_contains(&ff, sym(&g, "lb"), xy);
+    assert_first_contains(&ff, sym(&g, "lc"), xy);
+}
+
+#[test]
+fn first_nonterminal_right_recursion_propagates() {
+    // S -> a S | a  =>  FIRST(S) = {a}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .rule("start", vec!["a", "start"])
@@ -354,18 +302,30 @@ fn first_nonterminal_right_recursion() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    assert_first_contains(&ff, start, &[a]);
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "a")]);
+}
+
+#[test]
+fn first_nonterminal_direct_alternatives() {
+    // S -> a | b  =>  FIRST(S) = {a, b}
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["a"])
+        .rule("start", vec!["b"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "a"), sym(&g, "b")]);
 }
 
 // ===========================================================================
-// 3. FIRST with epsilon / nullable (7 tests)
+// 3. FIRST sets with epsilon (nullable nonterminals) — 7 tests
 // ===========================================================================
 
 #[test]
-fn first_epsilon_nullable_rule() {
-    // S -> ε
+fn first_epsilon_nullable_with_terminal() {
+    // S -> ε | a  =>  S is nullable, FIRST(S) includes a
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .rule("start", vec![])
@@ -374,28 +334,13 @@ fn first_epsilon_nullable_rule() {
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
     let start = sym(&g, "start");
-    assert!(ff.is_nullable(start), "start should be nullable");
-}
-
-#[test]
-fn first_epsilon_nonterminal_also_has_terminal() {
-    // S -> a | ε  =>  FIRST(S) includes a, and S is nullable
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["a"])
-        .rule("start", vec![])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
     assert!(ff.is_nullable(start));
-    assert_first_contains(&ff, start, &[a]);
+    assert_first_contains(&ff, start, &[sym(&g, "a")]);
 }
 
 #[test]
 fn first_epsilon_chain_nullable() {
-    // S -> A, A -> ε   => S is nullable
+    // S -> A, A -> ε  =>  both nullable
     let g = GrammarBuilder::new("t")
         .token("x", "x")
         .rule("start", vec!["mid"])
@@ -403,15 +348,13 @@ fn first_epsilon_chain_nullable() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let mid = sym(&g, "mid");
-    assert!(ff.is_nullable(mid));
-    assert!(ff.is_nullable(start));
+    assert!(ff.is_nullable(sym(&g, "mid")));
+    assert!(ff.is_nullable(sym(&g, "start")));
 }
 
 #[test]
-fn first_through_nullable_prefix() {
-    // S -> A b,  A -> ε   => FIRST(S) includes b (through nullable A)
+fn first_epsilon_nullable_prefix_reveals_next() {
+    // S -> A b, A -> ε  =>  FIRST(S) includes b
     let g = GrammarBuilder::new("t")
         .token("b", "b")
         .rule("start", vec!["opt", "b"])
@@ -419,14 +362,12 @@ fn first_through_nullable_prefix() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let b = sym(&g, "b");
-    assert_first_contains(&ff, start, &[b]);
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "b")]);
 }
 
 #[test]
-fn first_through_two_nullable_prefixes() {
-    // S -> A B c,  A -> ε,  B -> ε   => FIRST(S) includes c
+fn first_epsilon_two_nullable_prefixes() {
+    // S -> A B c, A -> ε, B -> ε  =>  FIRST(S) includes c
     let g = GrammarBuilder::new("t")
         .token("c", "c")
         .rule("start", vec!["opt1", "opt2", "c"])
@@ -435,14 +376,12 @@ fn first_through_two_nullable_prefixes() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let c = sym(&g, "c");
-    assert_first_contains(&ff, start, &[c]);
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "c")]);
 }
 
 #[test]
-fn first_nullable_with_nonterminal_alternative() {
-    // S -> A | b,  A -> ε | c   =>  FIRST(S) includes {b, c}
+fn first_epsilon_nullable_alternative_union() {
+    // S -> A | b, A -> ε | c  =>  FIRST(S) includes {b, c}
     let g = GrammarBuilder::new("t")
         .token("b", "b")
         .token("c", "c")
@@ -453,15 +392,12 @@ fn first_nullable_with_nonterminal_alternative() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let b = sym(&g, "b");
-    let c = sym(&g, "c");
-    assert_first_contains(&ff, start, &[b, c]);
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "b"), sym(&g, "c")]);
 }
 
 #[test]
-fn first_all_rhs_nullable_makes_lhs_nullable() {
-    // S -> A B,  A -> ε,  B -> ε   => S is nullable
+fn first_epsilon_all_rhs_nullable() {
+    // S -> A B, A -> ε, B -> ε  =>  S is nullable
     let g = GrammarBuilder::new("t")
         .token("x", "x")
         .rule("start", vec!["opt_a", "opt_b"])
@@ -470,16 +406,30 @@ fn first_all_rhs_nullable_makes_lhs_nullable() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert!(ff.is_nullable(start));
+    assert!(ff.is_nullable(sym(&g, "start")));
+}
+
+#[test]
+fn first_epsilon_nullable_prefix_union_with_terminal() {
+    // S -> A b, A -> c | ε  =>  FIRST(S) = {c, b}
+    let g = GrammarBuilder::new("t")
+        .token("b", "b")
+        .token("c", "c")
+        .rule("start", vec!["opt", "b"])
+        .rule("opt", vec!["c"])
+        .rule("opt", vec![])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "b"), sym(&g, "c")]);
 }
 
 // ===========================================================================
-// 4. FOLLOW of start symbol (8 tests)
+// 4. FOLLOW sets include EOF for start symbol — 7 tests
 // ===========================================================================
 
 #[test]
-fn follow_start_has_eof_minimal() {
+fn follow_eof_minimal() {
     // S -> a
     let g = GrammarBuilder::new("t")
         .token("a", "a")
@@ -487,12 +437,11 @@ fn follow_start_has_eof_minimal() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[EOF]);
 }
 
 #[test]
-fn follow_start_has_eof_two_rules() {
+fn follow_eof_two_alternatives() {
     // S -> a | b
     let g = GrammarBuilder::new("t")
         .token("a", "a")
@@ -502,13 +451,12 @@ fn follow_start_has_eof_two_rules() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[EOF]);
 }
 
 #[test]
-fn follow_start_has_eof_chain() {
-    // S -> A,  A -> a
+fn follow_eof_through_chain() {
+    // S -> A, A -> a
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .rule("start", vec!["inner"])
@@ -516,12 +464,11 @@ fn follow_start_has_eof_chain() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[EOF]);
 }
 
 #[test]
-fn follow_start_has_eof_recursive() {
+fn follow_eof_left_recursive() {
     // S -> S a | b
     let g = GrammarBuilder::new("t")
         .token("a", "a")
@@ -531,12 +478,11 @@ fn follow_start_has_eof_recursive() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[EOF]);
 }
 
 #[test]
-fn follow_start_has_eof_nullable() {
+fn follow_eof_nullable_start() {
     // S -> ε | a
     let g = GrammarBuilder::new("t")
         .token("a", "a")
@@ -545,12 +491,11 @@ fn follow_start_has_eof_nullable() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[EOF]);
 }
 
 #[test]
-fn follow_start_has_eof_multi_token() {
+fn follow_eof_multi_token_rule() {
     // S -> a b c
     let g = GrammarBuilder::new("t")
         .token("a", "a")
@@ -560,27 +505,11 @@ fn follow_start_has_eof_multi_token() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[EOF]);
 }
 
 #[test]
-fn follow_start_has_eof_with_nonterminal_child() {
-    // S -> A b,  A -> a
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .rule("start", vec!["inner", "b"])
-        .rule("inner", vec!["a"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
-}
-
-#[test]
-fn follow_start_has_eof_right_recursive() {
+fn follow_eof_right_recursive() {
     // S -> a S | a
     let g = GrammarBuilder::new("t")
         .token("a", "a")
@@ -589,17 +518,16 @@ fn follow_start_has_eof_right_recursive() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    assert_follow_contains(&ff, start, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[EOF]);
 }
 
 // ===========================================================================
-// 5. FOLLOW propagation (8 tests)
+// 5. FOLLOW sets propagation through rules — 8 tests
 // ===========================================================================
 
 #[test]
-fn follow_from_trailing_terminal() {
-    // S -> A b   => FOLLOW(A) includes b
+fn follow_prop_trailing_terminal() {
+    // S -> A b  =>  FOLLOW(A) includes b
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .token("b", "b")
@@ -608,14 +536,12 @@ fn follow_from_trailing_terminal() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let inner = sym(&g, "inner");
-    let b = sym(&g, "b");
-    assert_follow_contains(&ff, inner, &[b]);
+    assert_follow_contains(&ff, sym(&g, "inner"), &[sym(&g, "b")]);
 }
 
 #[test]
-fn follow_from_trailing_nonterminal_first() {
-    // S -> A B,  B -> b   => FOLLOW(A) includes FIRST(B) = {b}
+fn follow_prop_nonterminal_first_set() {
+    // S -> A B, B -> b  =>  FOLLOW(A) includes FIRST(B) = {b}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .token("b", "b")
@@ -625,14 +551,12 @@ fn follow_from_trailing_nonterminal_first() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let left = sym(&g, "left");
-    let b = sym(&g, "b");
-    assert_follow_contains(&ff, left, &[b]);
+    assert_follow_contains(&ff, sym(&g, "left"), &[sym(&g, "b")]);
 }
 
 #[test]
-fn follow_propagates_from_parent_at_end() {
-    // S -> A,  A -> a   => FOLLOW(A) includes FOLLOW(S) = {EOF}
+fn follow_prop_end_of_rule_inherits_parent() {
+    // S -> A, A -> a  =>  FOLLOW(A) includes FOLLOW(S) = {EOF}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .rule("start", vec!["inner"])
@@ -640,13 +564,12 @@ fn follow_propagates_from_parent_at_end() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let inner = sym(&g, "inner");
-    assert_follow_contains(&ff, inner, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "inner"), &[EOF]);
 }
 
 #[test]
-fn follow_through_nullable_suffix() {
-    // S -> A B,  B -> ε   => FOLLOW(A) includes FOLLOW(S)={EOF}
+fn follow_prop_through_nullable_suffix() {
+    // S -> A B, B -> ε  =>  FOLLOW(A) includes FOLLOW(S) = {EOF}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .rule("start", vec!["left", "opt"])
@@ -655,13 +578,12 @@ fn follow_through_nullable_suffix() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let left = sym(&g, "left");
-    assert_follow_contains(&ff, left, &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "left"), &[EOF]);
 }
 
 #[test]
-fn follow_multiple_contexts() {
-    // S -> A b | A c   => FOLLOW(A) includes {b, c}
+fn follow_prop_multiple_contexts() {
+    // S -> A b | A c  =>  FOLLOW(A) includes {b, c}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .token("b", "b")
@@ -672,15 +594,12 @@ fn follow_multiple_contexts() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let inner = sym(&g, "inner");
-    let b = sym(&g, "b");
-    let c = sym(&g, "c");
-    assert_follow_contains(&ff, inner, &[b, c]);
+    assert_follow_contains(&ff, sym(&g, "inner"), &[sym(&g, "b"), sym(&g, "c")]);
 }
 
 #[test]
-fn follow_chain_propagation() {
-    // S -> A b,  A -> B,  B -> c   => FOLLOW(B) includes FOLLOW(A) which includes b
+fn follow_prop_chain_through_nonterminals() {
+    // S -> A b, A -> B, B -> c  =>  FOLLOW(B) includes b via chain
     let g = GrammarBuilder::new("t")
         .token("b", "b")
         .token("c", "c")
@@ -690,14 +609,12 @@ fn follow_chain_propagation() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let leaf = sym(&g, "leaf");
-    let b = sym(&g, "b");
-    assert_follow_contains(&ff, leaf, &[b]);
+    assert_follow_contains(&ff, sym(&g, "leaf"), &[sym(&g, "b")]);
 }
 
 #[test]
-fn follow_does_not_include_unrelated() {
-    // S -> A b,  A -> a   => FOLLOW(A) should NOT contain a
+fn follow_prop_excludes_unrelated() {
+    // S -> A b, A -> a  =>  FOLLOW(A) should NOT contain a
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .token("b", "b")
@@ -706,14 +623,12 @@ fn follow_does_not_include_unrelated() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let inner = sym(&g, "inner");
-    let a = sym(&g, "a");
-    assert_follow_excludes(&ff, inner, &[a]);
+    assert_follow_excludes(&ff, sym(&g, "inner"), &[sym(&g, "a")]);
 }
 
 #[test]
-fn follow_recursive_includes_self_context() {
-    // S -> S a | b   => FOLLOW(S) includes {a, EOF}
+fn follow_prop_recursive_includes_self_context() {
+    // S -> S a | b  =>  FOLLOW(S) includes {a, EOF}
     let g = GrammarBuilder::new("t")
         .token("a", "a")
         .token("b", "b")
@@ -722,195 +637,16 @@ fn follow_recursive_includes_self_context() {
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    assert_follow_contains(&ff, start, &[a, EOF]);
+    assert_follow_contains(&ff, sym(&g, "start"), &[sym(&g, "a"), EOF]);
 }
 
 // ===========================================================================
-// 6. compute vs compute_normalized (8 tests)
+// 6. Complex grammar FIRST/FOLLOW (arithmetic, JSON-like) — 8 tests
 // ===========================================================================
 
 #[test]
-fn compute_and_normalized_both_succeed() {
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["a"])
-        .start("start")
-        .build();
-
-    let ff1 = FirstFollowSets::compute(&g);
-    assert!(ff1.is_ok(), "compute should succeed");
-
-    let mut g2 = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["a"])
-        .start("start")
-        .build();
-    let ff2 = FirstFollowSets::compute_normalized(&mut g2);
-    assert!(ff2.is_ok(), "compute_normalized should succeed");
-}
-
-#[test]
-fn compute_and_normalized_agree_on_first_simple() {
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .rule("start", vec!["a"])
-        .rule("start", vec!["b"])
-        .start("start")
-        .build();
-
-    let ff1 = FirstFollowSets::compute(&g).unwrap();
-
-    let mut g2 = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .rule("start", vec!["a"])
-        .rule("start", vec!["b"])
-        .start("start")
-        .build();
-    let ff2 = FirstFollowSets::compute_normalized(&mut g2).unwrap();
-
-    let start1 = sym(&g, "start");
-    let start2 = sym(&g2, "start");
-    let a1 = sym(&g, "a");
-    let a2 = sym(&g2, "a");
-
-    assert_first_contains(&ff1, start1, &[a1]);
-    assert_first_contains(&ff2, start2, &[a2]);
-}
-
-#[test]
-fn compute_and_normalized_agree_on_nullable() {
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec![])
-        .rule("start", vec!["a"])
-        .start("start")
-        .build();
-
-    let ff1 = FirstFollowSets::compute(&g).unwrap();
-
-    let mut g2 = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec![])
-        .rule("start", vec!["a"])
-        .start("start")
-        .build();
-    let ff2 = FirstFollowSets::compute_normalized(&mut g2).unwrap();
-
-    let s1 = sym(&g, "start");
-    let s2 = sym(&g2, "start");
-    assert!(ff1.is_nullable(s1));
-    assert!(ff2.is_nullable(s2));
-}
-
-#[test]
-fn compute_and_normalized_agree_on_eof_in_follow() {
-    let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["a"])
-        .start("start")
-        .build();
-
-    let ff1 = FirstFollowSets::compute(&g).unwrap();
-
-    let mut g2 = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["a"])
-        .start("start")
-        .build();
-    let ff2 = FirstFollowSets::compute_normalized(&mut g2).unwrap();
-
-    let s1 = sym(&g, "start");
-    let s2 = sym(&g2, "start");
-    assert_follow_contains(&ff1, s1, &[EOF]);
-    assert_follow_contains(&ff2, s2, &[EOF]);
-}
-
-#[test]
-fn compute_and_normalized_chain_grammar() {
-    let g = GrammarBuilder::new("t")
-        .token("x", "x")
-        .rule("start", vec!["mid"])
-        .rule("mid", vec!["x"])
-        .start("start")
-        .build();
-
-    let ff1 = FirstFollowSets::compute(&g).unwrap();
-
-    let mut g2 = GrammarBuilder::new("t")
-        .token("x", "x")
-        .rule("start", vec!["mid"])
-        .rule("mid", vec!["x"])
-        .start("start")
-        .build();
-    let ff2 = FirstFollowSets::compute_normalized(&mut g2).unwrap();
-
-    let start1 = sym(&g, "start");
-    let start2 = sym(&g2, "start");
-    let x1 = sym(&g, "x");
-    let x2 = sym(&g2, "x");
-    assert_first_contains(&ff1, start1, &[x1]);
-    assert_first_contains(&ff2, start2, &[x2]);
-}
-
-#[test]
-fn normalized_handles_recursive_grammar() {
-    let mut g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .rule("start", vec!["start", "a"])
-        .rule("start", vec!["b"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
-    let start = sym(&g, "start");
-    let b = sym(&g, "b");
-    assert_first_contains(&ff, start, &[b]);
-}
-
-#[test]
-fn normalized_handles_nullable_grammar() {
-    let mut g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["opt", "a"])
-        .rule("opt", vec![])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    assert_first_contains(&ff, start, &[a]);
-}
-
-#[test]
-fn normalized_handles_multiple_alternatives() {
-    let mut g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .token("c", "c")
-        .rule("start", vec!["a"])
-        .rule("start", vec!["b"])
-        .rule("start", vec!["c"])
-        .start("start")
-        .build();
-    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    let b = sym(&g, "b");
-    let c = sym(&g, "c");
-    assert_first_contains(&ff, start, &[a, b, c]);
-}
-
-// ===========================================================================
-// 7. Complex grammar FIRST/FOLLOW (8 tests)
-// ===========================================================================
-
-#[test]
-fn complex_expr_grammar_first() {
-    // E -> E + T | T,  T -> T * F | F,  F -> num
+fn complex_arithmetic_first() {
+    // E -> E + T | T, T -> T * F | F, F -> num
     let g = GrammarBuilder::new("t")
         .token("num", r"[0-9]+")
         .token("plus", "+")
@@ -923,19 +659,15 @@ fn complex_expr_grammar_first() {
         .start("expr")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let expr = sym(&g, "expr");
-    let term = sym(&g, "term");
-    let factor = sym(&g, "factor");
     let num = sym(&g, "num");
-    // All nonterminals ultimately derive num first
-    assert_first_contains(&ff, expr, &[num]);
-    assert_first_contains(&ff, term, &[num]);
-    assert_first_contains(&ff, factor, &[num]);
+    assert_first_contains(&ff, sym(&g, "expr"), &[num]);
+    assert_first_contains(&ff, sym(&g, "term"), &[num]);
+    assert_first_contains(&ff, sym(&g, "factor"), &[num]);
 }
 
 #[test]
-fn complex_expr_grammar_follow() {
-    // E -> E + T | T,  T -> T * F | F,  F -> num
+fn complex_arithmetic_follow() {
+    // E -> E + T | T, T -> T * F | F, F -> num
     let g = GrammarBuilder::new("t")
         .token("num", r"[0-9]+")
         .token("plus", "+")
@@ -948,63 +680,80 @@ fn complex_expr_grammar_follow() {
         .start("expr")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let expr = sym(&g, "expr");
-    let term = sym(&g, "term");
-    let factor = sym(&g, "factor");
     let plus = sym(&g, "plus");
     let star = sym(&g, "star");
-    // FOLLOW(expr) = {+, EOF}
-    assert_follow_contains(&ff, expr, &[plus, EOF]);
-    // FOLLOW(term) = {+, *, EOF}
-    assert_follow_contains(&ff, term, &[plus, star, EOF]);
-    // FOLLOW(factor) should include {+, *, EOF}
-    assert_follow_contains(&ff, factor, &[plus, star, EOF]);
+    assert_follow_contains(&ff, sym(&g, "expr"), &[plus, EOF]);
+    assert_follow_contains(&ff, sym(&g, "term"), &[plus, star, EOF]);
+    assert_follow_contains(&ff, sym(&g, "factor"), &[plus, star, EOF]);
 }
 
 #[test]
-fn complex_optional_list() {
-    // S -> items,  items -> items item | ε,  item -> a
+fn complex_json_value_first() {
+    // value -> obj | arr | str_tok | num_tok | kw_true | kw_false
     let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .rule("start", vec!["items"])
-        .rule("items", vec!["items", "item"])
-        .rule("items", vec![])
-        .rule("item", vec!["a"])
-        .start("start")
+        .token("lbrace", "{")
+        .token("rbrace", "}")
+        .token("lbrack", "[")
+        .token("rbrack", "]")
+        .token("str_tok", r#""[^"]*""#)
+        .token("num_tok", r"[0-9]+")
+        .token("kw_true", "true")
+        .token("kw_false", "false")
+        .rule("value", vec!["obj"])
+        .rule("value", vec!["arr"])
+        .rule("value", vec!["str_tok"])
+        .rule("value", vec!["num_tok"])
+        .rule("value", vec!["kw_true"])
+        .rule("value", vec!["kw_false"])
+        .rule("obj", vec!["lbrace", "rbrace"])
+        .rule("arr", vec!["lbrack", "rbrack"])
+        .start("value")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let items = sym(&g, "items");
-    let a = sym(&g, "a");
-    assert!(ff.is_nullable(items));
-    assert_first_contains(&ff, items, &[a]);
+    assert_first_contains(
+        &ff,
+        sym(&g, "value"),
+        &[
+            sym(&g, "lbrace"),
+            sym(&g, "lbrack"),
+            sym(&g, "str_tok"),
+            sym(&g, "num_tok"),
+            sym(&g, "kw_true"),
+            sym(&g, "kw_false"),
+        ],
+    );
 }
 
 #[test]
-fn complex_mutual_first_propagation() {
-    // S -> A B c,  A -> a | ε,  B -> b | ε
-    // FIRST(S) = {a, b, c}
+fn complex_json_follow() {
+    // obj and arr at end of value rules => inherit FOLLOW(value)
     let g = GrammarBuilder::new("t")
-        .token("a", "a")
-        .token("b", "b")
-        .token("c", "c")
-        .rule("start", vec!["opt_a", "opt_b", "c"])
-        .rule("opt_a", vec!["a"])
-        .rule("opt_a", vec![])
-        .rule("opt_b", vec!["b"])
-        .rule("opt_b", vec![])
-        .start("start")
+        .token("lbrace", "{")
+        .token("rbrace", "}")
+        .token("lbrack", "[")
+        .token("rbrack", "]")
+        .token("str_tok", r#""[^"]*""#)
+        .token("num_tok", r"[0-9]+")
+        .token("kw_true", "true")
+        .token("kw_false", "false")
+        .rule("value", vec!["obj"])
+        .rule("value", vec!["arr"])
+        .rule("value", vec!["str_tok"])
+        .rule("value", vec!["num_tok"])
+        .rule("value", vec!["kw_true"])
+        .rule("value", vec!["kw_false"])
+        .rule("obj", vec!["lbrace", "rbrace"])
+        .rule("arr", vec!["lbrack", "rbrack"])
+        .start("value")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let start = sym(&g, "start");
-    let a = sym(&g, "a");
-    let b = sym(&g, "b");
-    let c = sym(&g, "c");
-    assert_first_contains(&ff, start, &[a, b, c]);
+    assert_follow_contains(&ff, sym(&g, "obj"), &[EOF]);
+    assert_follow_contains(&ff, sym(&g, "arr"), &[EOF]);
 }
 
 #[test]
-fn complex_statement_list_grammar() {
-    // program -> stmts,  stmts -> stmt stmts | stmt,  stmt -> kw semi
+fn complex_statement_list() {
+    // program -> stmts, stmts -> stmt stmts | stmt, stmt -> kw semi
     let g = GrammarBuilder::new("t")
         .token("kw", "return")
         .token("semi", ";")
@@ -1015,23 +764,18 @@ fn complex_statement_list_grammar() {
         .start("program")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
-    let program = sym(&g, "program");
-    let stmts = sym(&g, "stmts");
-    let stmt = sym(&g, "stmt");
     let kw = sym(&g, "kw");
-    // FIRST propagates through to kw
-    assert_first_contains(&ff, program, &[kw]);
-    assert_first_contains(&ff, stmts, &[kw]);
-    assert_first_contains(&ff, stmt, &[kw]);
-    // FOLLOW(stmt) should include FIRST(stmts)={kw} and FOLLOW(stmts)
-    assert_follow_contains(&ff, stmt, &[kw, EOF]);
+    assert_first_contains(&ff, sym(&g, "program"), &[kw]);
+    assert_first_contains(&ff, sym(&g, "stmts"), &[kw]);
+    assert_first_contains(&ff, sym(&g, "stmt"), &[kw]);
+    // stmt can be followed by another stmt (via stmts) or EOF
+    assert_follow_contains(&ff, sym(&g, "stmt"), &[kw, EOF]);
 }
 
 #[test]
-fn complex_if_else_grammar() {
+fn complex_if_else() {
     // S -> kw_if cond body else_part
     // else_part -> kw_else body | ε
-    // cond -> ident,  body -> ident
     let g = GrammarBuilder::new("t")
         .token("kw_if", "if")
         .token("kw_else", "else")
@@ -1045,15 +789,14 @@ fn complex_if_else_grammar() {
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
     let else_part = sym(&g, "else_part");
-    let kw_else = sym(&g, "kw_else");
     assert!(ff.is_nullable(else_part));
-    assert_first_contains(&ff, else_part, &[kw_else]);
+    assert_first_contains(&ff, else_part, &[sym(&g, "kw_else")]);
     assert_follow_contains(&ff, else_part, &[EOF]);
 }
 
 #[test]
-fn complex_nested_parens_grammar() {
-    // S -> lp S rp | a
+fn complex_nested_parens() {
+    // S -> ( S ) | a
     let g = GrammarBuilder::new("t")
         .token("lp", "(")
         .token("rp", ")")
@@ -1064,40 +807,357 @@ fn complex_nested_parens_grammar() {
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
     let start = sym(&g, "start");
-    let lp = sym(&g, "lp");
-    let a = sym(&g, "a");
-    let rp = sym(&g, "rp");
-    assert_first_contains(&ff, start, &[lp, a]);
-    assert_follow_contains(&ff, start, &[rp, EOF]);
+    assert_first_contains(&ff, start, &[sym(&g, "lp"), sym(&g, "a")]);
+    assert_follow_contains(&ff, start, &[sym(&g, "rp"), EOF]);
 }
 
 #[test]
-fn complex_three_level_delegation() {
-    // S -> A,  A -> B,  B -> C,  C -> x | y
-    // All nonterminals should have FIRST = {x, y}
+fn complex_optional_list_nullable_items() {
+    // S -> items, items -> items item | ε, item -> a
     let g = GrammarBuilder::new("t")
-        .token("x", "x")
-        .token("y", "y")
-        .rule("start", vec!["level_a"])
-        .rule("level_a", vec!["level_b"])
-        .rule("level_b", vec!["level_c"])
-        .rule("level_c", vec!["x"])
-        .rule("level_c", vec!["y"])
+        .token("a", "a")
+        .rule("start", vec!["items"])
+        .rule("items", vec!["items", "item"])
+        .rule("items", vec![])
+        .rule("item", vec!["a"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let items = sym(&g, "items");
+    assert!(ff.is_nullable(items));
+    assert_first_contains(&ff, items, &[sym(&g, "a")]);
+}
+
+// ===========================================================================
+// 7. Edge cases: single rule, many alternatives, left recursion — 8 tests
+// ===========================================================================
+
+#[test]
+fn edge_single_rule_grammar() {
+    // Simplest possible grammar: S -> a
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .rule("start", vec!["a"])
         .start("start")
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
     let start = sym(&g, "start");
-    let la = sym(&g, "level_a");
-    let lb = sym(&g, "level_b");
-    let lc = sym(&g, "level_c");
-    let x = sym(&g, "x");
-    let y = sym(&g, "y");
-    assert_first_contains(&ff, start, &[x, y]);
-    assert_first_contains(&ff, la, &[x, y]);
-    assert_first_contains(&ff, lb, &[x, y]);
-    assert_first_contains(&ff, lc, &[x, y]);
-    // FOLLOW propagates EOF through the chain
-    assert_follow_contains(&ff, la, &[EOF]);
-    assert_follow_contains(&ff, lb, &[EOF]);
-    assert_follow_contains(&ff, lc, &[EOF]);
+    let a = sym(&g, "a");
+    assert_first_eq(&ff, start, &[a]);
+    assert_follow_contains(&ff, start, &[EOF]);
+    assert!(!ff.is_nullable(start));
+}
+
+#[test]
+fn edge_many_alternatives() {
+    // S -> a | b | c | d | e | f
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .token("d", "d")
+        .token("e", "e")
+        .token("f", "f")
+        .rule("start", vec!["a"])
+        .rule("start", vec!["b"])
+        .rule("start", vec!["c"])
+        .rule("start", vec!["d"])
+        .rule("start", vec!["e"])
+        .rule("start", vec!["f"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let start = sym(&g, "start");
+    assert_first_contains(
+        &ff,
+        start,
+        &[
+            sym(&g, "a"),
+            sym(&g, "b"),
+            sym(&g, "c"),
+            sym(&g, "d"),
+            sym(&g, "e"),
+            sym(&g, "f"),
+        ],
+    );
+}
+
+#[test]
+fn edge_left_recursion_first_and_follow() {
+    // S -> S a | b  =>  FIRST(S) = {b}, FOLLOW(S) = {a, EOF}
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["start", "a"])
+        .rule("start", vec!["b"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let start = sym(&g, "start");
+    let a = sym(&g, "a");
+    let b = sym(&g, "b");
+    assert_first_contains(&ff, start, &[b]);
+    assert_first_excludes(&ff, start, &[a]);
+    assert_follow_contains(&ff, start, &[a, EOF]);
+}
+
+#[test]
+fn edge_mutual_recursion() {
+    // A -> B c, B -> A d | e  =>  both derive e first
+    let g = GrammarBuilder::new("t")
+        .token("c", "c")
+        .token("d", "d")
+        .token("e", "e")
+        .rule("aa", vec!["bb", "c"])
+        .rule("bb", vec!["aa", "d"])
+        .rule("bb", vec!["e"])
+        .start("aa")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let e = sym(&g, "e");
+    assert_first_contains(&ff, sym(&g, "aa"), &[e]);
+    assert_first_contains(&ff, sym(&g, "bb"), &[e]);
+}
+
+#[test]
+fn edge_epsilon_only_grammar() {
+    // S -> ε  =>  nullable, FOLLOW(S) = {EOF}
+    let g = GrammarBuilder::new("t")
+        .token("x", "x")
+        .rule("start", vec![])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let start = sym(&g, "start");
+    assert!(ff.is_nullable(start));
+    assert_follow_contains(&ff, start, &[EOF]);
+}
+
+#[test]
+fn edge_middle_recursion() {
+    // S -> a S b | c  =>  FIRST(S) = {a, c}, FOLLOW(S) = {b, EOF}
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .rule("start", vec!["a", "start", "b"])
+        .rule("start", vec!["c"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let start = sym(&g, "start");
+    assert_first_contains(&ff, start, &[sym(&g, "a"), sym(&g, "c")]);
+    assert_follow_contains(&ff, start, &[sym(&g, "b"), EOF]);
+}
+
+#[test]
+fn edge_nullable_chain_with_follow_propagation() {
+    // S -> A B c, A -> ε, B -> ε  =>  FIRST(S) = {c}, FOLLOW(A) includes {c}
+    let g = GrammarBuilder::new("t")
+        .token("c", "c")
+        .rule("start", vec!["opt_a", "opt_b", "c"])
+        .rule("opt_a", vec![])
+        .rule("opt_b", vec![])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    assert_first_contains(&ff, sym(&g, "start"), &[sym(&g, "c")]);
+    assert_follow_contains(&ff, sym(&g, "opt_a"), &[sym(&g, "c")]);
+}
+
+#[test]
+fn edge_long_rhs_follow() {
+    // S -> a b c d e  =>  FOLLOW(S) = {EOF}, FIRST(S) = {a}
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .token("d", "d")
+        .token("e", "e")
+        .rule("start", vec!["a", "b", "c", "d", "e"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute(&g).unwrap();
+    let start = sym(&g, "start");
+    assert_first_eq(&ff, start, &[sym(&g, "a")]);
+    assert_follow_eq(&ff, start, &[EOF]);
+}
+
+// ===========================================================================
+// 8. Determinism: same grammar → same sets — 7 tests
+// ===========================================================================
+
+#[test]
+fn determinism_first_simple() {
+    let build = || {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("start", vec!["a"])
+            .rule("start", vec!["b"])
+            .start("start")
+            .build()
+    };
+    let g1 = build();
+    let g2 = build();
+    let ff1 = FirstFollowSets::compute(&g1).unwrap();
+    let ff2 = FirstFollowSets::compute(&g2).unwrap();
+    assert_eq!(
+        ff1.first(sym(&g1, "start")).unwrap(),
+        ff2.first(sym(&g2, "start")).unwrap(),
+    );
+}
+
+#[test]
+fn determinism_follow_simple() {
+    let build = || {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("start", vec!["inner", "b"])
+            .rule("inner", vec!["a"])
+            .start("start")
+            .build()
+    };
+    let g1 = build();
+    let g2 = build();
+    let ff1 = FirstFollowSets::compute(&g1).unwrap();
+    let ff2 = FirstFollowSets::compute(&g2).unwrap();
+    assert_eq!(
+        ff1.follow(sym(&g1, "inner")).unwrap(),
+        ff2.follow(sym(&g2, "inner")).unwrap(),
+    );
+}
+
+#[test]
+fn determinism_nullable() {
+    let build = || {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec![])
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    };
+    let g1 = build();
+    let g2 = build();
+    let ff1 = FirstFollowSets::compute(&g1).unwrap();
+    let ff2 = FirstFollowSets::compute(&g2).unwrap();
+    assert_eq!(
+        ff1.is_nullable(sym(&g1, "start")),
+        ff2.is_nullable(sym(&g2, "start")),
+    );
+}
+
+#[test]
+fn determinism_arithmetic_grammar() {
+    let build = || {
+        GrammarBuilder::new("t")
+            .token("num", r"[0-9]+")
+            .token("plus", "+")
+            .token("star", "*")
+            .rule("expr", vec!["expr", "plus", "term"])
+            .rule("expr", vec!["term"])
+            .rule("term", vec!["term", "star", "factor"])
+            .rule("term", vec!["factor"])
+            .rule("factor", vec!["num"])
+            .start("expr")
+            .build()
+    };
+    let g1 = build();
+    let g2 = build();
+    let ff1 = FirstFollowSets::compute(&g1).unwrap();
+    let ff2 = FirstFollowSets::compute(&g2).unwrap();
+    for name in &["expr", "term", "factor"] {
+        let s1 = sym(&g1, name);
+        let s2 = sym(&g2, name);
+        assert_eq!(
+            ff1.first(s1).unwrap(),
+            ff2.first(s2).unwrap(),
+            "FIRST({name}) differs",
+        );
+        assert_eq!(
+            ff1.follow(s1).unwrap(),
+            ff2.follow(s2).unwrap(),
+            "FOLLOW({name}) differs",
+        );
+    }
+}
+
+#[test]
+fn determinism_chain_grammar() {
+    let build = || {
+        GrammarBuilder::new("t")
+            .token("x", "x")
+            .rule("start", vec!["mid"])
+            .rule("mid", vec!["leaf"])
+            .rule("leaf", vec!["x"])
+            .start("start")
+            .build()
+    };
+    let g1 = build();
+    let g2 = build();
+    let ff1 = FirstFollowSets::compute(&g1).unwrap();
+    let ff2 = FirstFollowSets::compute(&g2).unwrap();
+    for name in &["start", "mid", "leaf"] {
+        let s1 = sym(&g1, name);
+        let s2 = sym(&g2, name);
+        assert_eq!(ff1.first(s1).unwrap(), ff2.first(s2).unwrap());
+    }
+}
+
+#[test]
+fn determinism_nullable_complex() {
+    let build = || {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .token("b", "b")
+            .rule("start", vec!["opt", "b"])
+            .rule("opt", vec!["a"])
+            .rule("opt", vec![])
+            .start("start")
+            .build()
+    };
+    let g1 = build();
+    let g2 = build();
+    let ff1 = FirstFollowSets::compute(&g1).unwrap();
+    let ff2 = FirstFollowSets::compute(&g2).unwrap();
+    assert_eq!(
+        ff1.first(sym(&g1, "start")).unwrap(),
+        ff2.first(sym(&g2, "start")).unwrap(),
+    );
+    assert_eq!(
+        ff1.follow(sym(&g1, "opt")).unwrap(),
+        ff2.follow(sym(&g2, "opt")).unwrap(),
+    );
+    assert_eq!(
+        ff1.is_nullable(sym(&g1, "opt")),
+        ff2.is_nullable(sym(&g2, "opt")),
+    );
+}
+
+#[test]
+fn determinism_compute_vs_normalized() {
+    let g = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["a"])
+        .rule("start", vec!["b"])
+        .start("start")
+        .build();
+    let ff1 = FirstFollowSets::compute(&g).unwrap();
+
+    let mut g2 = GrammarBuilder::new("t")
+        .token("a", "a")
+        .token("b", "b")
+        .rule("start", vec!["a"])
+        .rule("start", vec!["b"])
+        .start("start")
+        .build();
+    let ff2 = FirstFollowSets::compute_normalized(&mut g2).unwrap();
+
+    assert_eq!(
+        ff1.first(sym(&g, "start")).unwrap(),
+        ff2.first(sym(&g2, "start")).unwrap(),
+    );
 }
