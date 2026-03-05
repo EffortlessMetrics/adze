@@ -2,7 +2,7 @@
 //! infrastructure across depth-first, breadth-first, stats, pretty-print,
 //! search, empty-tree, deeply-nested, and mixed visitor/walker scenarios.
 
-use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{TreeArena, TreeNode};
 use adze::pure_parser::{ParsedNode, Point};
 use adze::visitor::{
     BreadthFirstWalker, PrettyPrintVisitor, SearchVisitor, StatsVisitor, TransformVisitor,
