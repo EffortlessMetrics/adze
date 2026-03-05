@@ -19,11 +19,11 @@ use adze_ir::{
 };
 use adze_tool::grammar_js::GrammarJsConverter;
 use adze_tool::grammar_js::json_converter::from_tree_sitter_json;
+#[allow(unused_imports)]
+use adze_tool::pure_rust_builder::BuildStats;
 use adze_tool::pure_rust_builder::{
     BuildOptions, BuildResult, build_parser, build_parser_from_json,
 };
-#[allow(unused_imports)]
-use adze_tool::pure_rust_builder::BuildStats;
 use serde_json::json;
 use tempfile::TempDir;
 
