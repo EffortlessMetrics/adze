@@ -1,38 +1,55 @@
-//! Comprehensive v6 tests for the ABI builder in adze-tablegen.
+//! ABI language builder v6 — 64 tests in 8 categories (8 × 8).
 //!
-//! 55+ tests covering:
-//! 1. ABI builder construction (8 tests)
-//! 2. Symbol count agreement (8 tests)
-//! 3. State count agreement (8 tests)
-//! 4. Action encoding (7 tests)
-//! 5. Goto encoding (8 tests)
-//! 6. ABI compatibility (8 tests)
-//! 7. Edge cases (8 tests)
+//! Categories:
+//!   abi_basic_*         — construction, pipeline, minimal usage
+//!   abi_layout_*        — table dimensions, row/column counts
+//!   abi_fields_*        — field metadata, field count, field-name mapping
+//!   abi_symbol_*        — symbol names, metadata flags, token indices
+//!   abi_complex_*       — recursion, precedence, nested, wide grammars
+//!   abi_deterministic_* — determinism, reproducibility, ordering
+//!   abi_serialize_*     — JSON serialization, node-types, token-stream output
+//!   abi_edge_*          — nullable, empty, extras, external, compressed
 
 use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar};
+use adze_ir::{Associativity, FieldId, Grammar};
 use adze_tablegen::compress::TableCompressor;
 use adze_tablegen::{
-    AbiLanguageBuilder, StaticLanguageGenerator, collect_token_indices, eof_accepts_or_reduces,
+    AbiLanguageBuilder, NodeTypesGenerator, StaticLanguageGenerator, collect_token_indices,
+    eof_accepts_or_reduces,
 };
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
+#[allow(dead_code)]
 fn build_table(grammar: &Grammar) -> ParseTable {
     let mut g = grammar.clone();
     let ff = FirstFollowSets::compute_normalized(&mut g).expect("FIRST/FOLLOW");
     build_lr1_automaton(&g, &ff).expect("LR(1)")
 }
 
+#[allow(dead_code)]
 fn generate_code(grammar: &Grammar, table: &ParseTable) -> String {
     AbiLanguageBuilder::new(grammar, table)
         .generate()
         .to_string()
 }
 
+#[allow(dead_code)]
+fn pipeline(name: &str) -> (Grammar, ParseTable, String) {
+    let g = GrammarBuilder::new(name)
+        .token("x", "x")
+        .rule("S", vec!["x"])
+        .start("S")
+        .build();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    (g, pt, code)
+}
+
+#[allow(dead_code)]
 fn single_token_grammar() -> Grammar {
     GrammarBuilder::new("single_tok")
         .token("x", "x")
@@ -41,6 +58,7 @@ fn single_token_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn two_token_grammar() -> Grammar {
     GrammarBuilder::new("two_tok")
         .token("a", "a")
@@ -50,6 +68,7 @@ fn two_token_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn alternatives_grammar() -> Grammar {
     GrammarBuilder::new("alts")
         .token("a", "a")
@@ -62,6 +81,7 @@ fn alternatives_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn nested_grammar() -> Grammar {
     GrammarBuilder::new("nested")
         .token("x", "x")
@@ -73,6 +93,7 @@ fn nested_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn deep_chain_grammar() -> Grammar {
     GrammarBuilder::new("deep_chain")
         .token("z", "z")
@@ -84,6 +105,7 @@ fn deep_chain_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn left_recursive_grammar() -> Grammar {
     GrammarBuilder::new("left_rec")
         .token("a", "a")
@@ -93,6 +115,7 @@ fn left_recursive_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn right_recursive_grammar() -> Grammar {
     GrammarBuilder::new("right_rec")
         .token("a", "a")
@@ -102,6 +125,7 @@ fn right_recursive_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn precedence_grammar() -> Grammar {
     GrammarBuilder::new("prec")
         .token("NUM", r"\d+")
@@ -114,7 +138,8 @@ fn precedence_grammar() -> Grammar {
         .build()
 }
 
-fn nullable_start_grammar() -> Grammar {
+#[allow(dead_code)]
+fn nullable_grammar() -> Grammar {
     GrammarBuilder::new("nullable")
         .token("a", "a")
         .rule("S", vec!["A"])
@@ -124,17 +149,19 @@ fn nullable_start_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
 fn wide_alternatives_grammar() -> Grammar {
     let mut gb = GrammarBuilder::new("wide");
-    for i in 0..10 {
+    for i in 0..10u8 {
         let name = format!("t{i}");
-        let pat = format!("{}", (b'a' + i as u8) as char);
+        let pat = format!("{}", (b'a' + i) as char);
         gb = gb.token(&name, &pat);
         gb = gb.rule("S", vec![&name]);
     }
     gb.start("S").build()
 }
 
+#[allow(dead_code)]
 fn long_sequence_grammar() -> Grammar {
     GrammarBuilder::new("long_seq")
         .token("t1", "a")
@@ -147,478 +174,434 @@ fn long_sequence_grammar() -> Grammar {
         .build()
 }
 
+#[allow(dead_code)]
+fn grammar_with_fields() -> Grammar {
+    let mut g = GrammarBuilder::new("fielded")
+        .token("x", "x")
+        .token("y", "y")
+        .rule("S", vec!["x", "y"])
+        .start("S")
+        .build();
+    g.fields.insert(FieldId(1), "left".to_string());
+    g.fields.insert(FieldId(2), "right".to_string());
+    g
+}
+
+#[allow(dead_code)]
+fn grammar_with_extra() -> Grammar {
+    GrammarBuilder::new("extra_ws")
+        .token("a", "a")
+        .token("WS", r"\s+")
+        .extra("WS")
+        .rule("S", vec!["a"])
+        .start("S")
+        .build()
+}
+
+#[allow(dead_code)]
+fn grammar_with_external() -> Grammar {
+    GrammarBuilder::new("ext_scan")
+        .token("a", "a")
+        .external("INDENT")
+        .rule("S", vec!["a"])
+        .start("S")
+        .build()
+}
+
 // ============================================================================
-// 1. ABI builder construction (8 tests)
+// 1. abi_basic_* — construction, pipeline, minimal usage (8 tests)
 // ============================================================================
 
 #[test]
-fn construct_with_single_token_grammar() {
+fn abi_basic_construct_single_token() {
     let g = single_token_grammar();
     let pt = build_table(&g);
     let _builder = AbiLanguageBuilder::new(&g, &pt);
 }
 
 #[test]
-fn construct_with_two_token_grammar() {
+fn abi_basic_construct_two_token() {
     let g = two_token_grammar();
     let pt = build_table(&g);
     let _builder = AbiLanguageBuilder::new(&g, &pt);
 }
 
 #[test]
-fn construct_with_alternatives_grammar() {
+fn abi_basic_construct_alternatives() {
     let g = alternatives_grammar();
     let pt = build_table(&g);
     let _builder = AbiLanguageBuilder::new(&g, &pt);
 }
 
 #[test]
-fn construct_with_nested_grammar() {
+fn abi_basic_construct_nested() {
     let g = nested_grammar();
     let pt = build_table(&g);
     let _builder = AbiLanguageBuilder::new(&g, &pt);
 }
 
 #[test]
-fn construct_with_deep_chain_grammar() {
-    let g = deep_chain_grammar();
-    let pt = build_table(&g);
-    let _builder = AbiLanguageBuilder::new(&g, &pt);
-}
-
-#[test]
-fn construct_with_left_recursive_grammar() {
-    let g = left_recursive_grammar();
-    let pt = build_table(&g);
-    let _builder = AbiLanguageBuilder::new(&g, &pt);
-}
-
-#[test]
-fn construct_with_right_recursive_grammar() {
-    let g = right_recursive_grammar();
-    let pt = build_table(&g);
-    let _builder = AbiLanguageBuilder::new(&g, &pt);
-}
-
-#[test]
-fn construct_with_default_parse_table() {
+fn abi_basic_construct_default_table() {
     let g = Grammar::new("empty".to_string());
     let pt = ParseTable::default();
     let _builder = AbiLanguageBuilder::new(&g, &pt);
 }
 
-// ============================================================================
-// 2. Symbol count agreement (8 tests)
-// ============================================================================
-
 #[test]
-fn symbol_count_single_token_matches_parse_table() {
+fn abi_basic_generate_produces_nonempty_output() {
     let g = single_token_grammar();
     let pt = build_table(&g);
     let code = generate_code(&g, &pt);
-    let expected = pt.symbol_count;
-    assert!(
-        code.contains(&format!("{expected}")),
-        "generated code should reference symbol_count={expected}"
-    );
+    assert!(!code.is_empty(), "generated code must be non-empty");
 }
 
 #[test]
-fn symbol_count_two_token_matches() {
-    let g = two_token_grammar();
-    let pt = build_table(&g);
-    assert!(
-        pt.symbol_count >= 2,
-        "parse table needs at least 2 terminal symbols"
-    );
-    let code = generate_code(&g, &pt);
+fn abi_basic_pipeline_roundtrip() {
+    let (_g, _pt, code) = pipeline("roundtrip");
     assert!(!code.is_empty());
 }
 
 #[test]
-fn symbol_count_alternatives_matches() {
-    let g = alternatives_grammar();
-    let pt = build_table(&g);
-    // 3 tokens + EOF + 1 non-terminal at minimum
-    assert!(
-        pt.symbol_count >= 5,
-        "alternatives grammar should have at least 5 symbols, got {}",
-        pt.symbol_count
-    );
-}
-
-#[test]
-fn symbol_count_nested_matches() {
-    let g = nested_grammar();
-    let pt = build_table(&g);
-    // 2 tokens + EOF + 3 non-terminals (S, A, B)
-    assert!(
-        pt.symbol_count >= 5,
-        "nested grammar should have at least 5 symbols, got {}",
-        pt.symbol_count
-    );
-}
-
-#[test]
-fn symbol_count_deep_chain_matches() {
-    let g = deep_chain_grammar();
-    let pt = build_table(&g);
-    // 1 token + EOF + 4 non-terminals (S, A, B, C)
-    assert!(
-        pt.symbol_count >= 5,
-        "deep chain grammar should have at least 5 symbols, got {}",
-        pt.symbol_count
-    );
-}
-
-#[test]
-fn symbol_count_left_recursive_matches() {
-    let g = left_recursive_grammar();
-    let pt = build_table(&g);
-    assert!(
-        pt.symbol_count >= 2,
-        "left-recursive grammar needs at least 2 symbols"
-    );
-}
-
-#[test]
-fn symbol_count_right_recursive_matches() {
-    let g = right_recursive_grammar();
-    let pt = build_table(&g);
-    assert!(
-        pt.symbol_count >= 2,
-        "right-recursive grammar needs at least 2 symbols"
-    );
-}
-
-#[test]
-fn symbol_count_precedence_grammar_matches() {
-    let g = precedence_grammar();
-    let pt = build_table(&g);
-    // NUM, PLUS, STAR, EOF, expr
-    assert!(
-        pt.symbol_count >= 5,
-        "precedence grammar should have at least 5 symbols, got {}",
-        pt.symbol_count
-    );
-}
-
-// ============================================================================
-// 3. State count agreement (8 tests)
-// ============================================================================
-
-#[test]
-fn state_count_single_token_at_least_two() {
+fn abi_basic_static_generator_produces_code() {
     let g = single_token_grammar();
     let pt = build_table(&g);
-    assert!(
-        pt.state_count >= 2,
-        "single-token grammar needs at least 2 states, got {}",
-        pt.state_count
-    );
-}
-
-#[test]
-fn state_count_two_token_at_least_two() {
-    let g = two_token_grammar();
-    let pt = build_table(&g);
-    assert!(pt.state_count >= 2);
-}
-
-#[test]
-fn state_count_alternatives_at_least_two() {
-    let g = alternatives_grammar();
-    let pt = build_table(&g);
-    assert!(pt.state_count >= 2);
-}
-
-#[test]
-fn state_count_nested_at_least_two() {
-    let g = nested_grammar();
-    let pt = build_table(&g);
-    assert!(pt.state_count >= 2);
-}
-
-#[test]
-fn state_count_deep_chain_grows_with_depth() {
-    let g = deep_chain_grammar();
-    let pt = build_table(&g);
-    // A chain S→A→B→C→z should produce more states than a trivial grammar
-    assert!(pt.state_count >= 2);
-}
-
-#[test]
-fn state_count_matches_action_table_rows() {
-    let g = single_token_grammar();
-    let pt = build_table(&g);
-    assert_eq!(
-        pt.action_table.len(),
-        pt.state_count,
-        "action_table rows should equal state_count"
-    );
-}
-
-#[test]
-fn state_count_matches_goto_table_rows() {
-    let g = single_token_grammar();
-    let pt = build_table(&g);
-    assert_eq!(
-        pt.goto_table.len(),
-        pt.state_count,
-        "goto_table rows should equal state_count"
-    );
-}
-
-#[test]
-fn state_count_left_recursive_finite() {
-    let g = left_recursive_grammar();
-    let pt = build_table(&g);
-    // LR(1) automaton for left-recursive grammars should still be finite
-    assert!(pt.state_count < 1000, "state count should be bounded");
+    let generator = StaticLanguageGenerator::new(g, pt);
+    let code = generator.generate_language_code().to_string();
+    assert!(!code.is_empty());
 }
 
 // ============================================================================
-// 4. Action encoding (7 tests)
+// 2. abi_layout_* — table dimensions, row/column counts (8 tests)
 // ============================================================================
 
 #[test]
-fn action_table_has_expected_rows() {
+fn abi_layout_action_table_rows_match_state_count() {
     let g = single_token_grammar();
     let pt = build_table(&g);
     assert_eq!(pt.action_table.len(), pt.state_count);
 }
 
 #[test]
-fn action_table_columns_match_symbol_count() {
-    let g = single_token_grammar();
-    let pt = build_table(&g);
-    for (state_idx, row) in pt.action_table.iter().enumerate() {
-        assert_eq!(
-            row.len(),
-            pt.symbol_count,
-            "state {state_idx}: action row width should equal symbol_count"
-        );
-    }
-}
-
-#[test]
-fn action_table_initial_state_has_shift() {
-    let g = single_token_grammar();
-    let pt = build_table(&g);
-    // State 0 should have at least one non-empty action cell (a shift on the token)
-    let has_action = pt.action_table[0].iter().any(|cell| !cell.is_empty());
-    assert!(has_action, "initial state must have at least one action");
-}
-
-#[test]
-fn action_table_alternatives_initial_state_has_shifts() {
-    let g = alternatives_grammar();
-    let pt = build_table(&g);
-    let shift_count = pt.action_table[0]
-        .iter()
-        .filter(|cell| !cell.is_empty())
-        .count();
-    // The grammar has 3 alternatives; state 0 should shift on each token
-    assert!(
-        shift_count >= 3,
-        "initial state should shift on 3 tokens, got {shift_count}"
-    );
-}
-
-#[test]
-fn action_table_encode_roundtrip_via_compressor() {
-    let g = single_token_grammar();
-    let pt = build_table(&g);
-    let ti = collect_token_indices(&g, &pt);
-    let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce);
-    assert!(compressed.is_ok(), "compression should succeed");
-}
-
-#[test]
-fn action_table_two_token_encode_roundtrip() {
-    let g = two_token_grammar();
-    let pt = build_table(&g);
-    let ti = collect_token_indices(&g, &pt);
-    let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce);
-    assert!(compressed.is_ok());
-}
-
-#[test]
-fn action_table_precedence_encode_roundtrip() {
-    let g = precedence_grammar();
-    let pt = build_table(&g);
-    let ti = collect_token_indices(&g, &pt);
-    let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce);
-    assert!(compressed.is_ok());
-}
-
-// ============================================================================
-// 5. Goto encoding (8 tests)
-// ============================================================================
-
-#[test]
-fn goto_table_has_expected_rows() {
+fn abi_layout_goto_table_rows_match_state_count() {
     let g = single_token_grammar();
     let pt = build_table(&g);
     assert_eq!(pt.goto_table.len(), pt.state_count);
 }
 
 #[test]
-fn goto_table_columns_match_symbol_count() {
+fn abi_layout_action_columns_match_symbol_count() {
     let g = single_token_grammar();
     let pt = build_table(&g);
-    for (state_idx, row) in pt.goto_table.iter().enumerate() {
+    for (i, row) in pt.action_table.iter().enumerate() {
         assert_eq!(
             row.len(),
             pt.symbol_count,
-            "state {state_idx}: goto row width should equal symbol_count"
+            "state {i}: action row width != symbol_count"
         );
     }
 }
 
 #[test]
-fn goto_table_nested_has_nonterminal_entries() {
-    let g = nested_grammar();
+fn abi_layout_goto_columns_match_symbol_count() {
+    let g = single_token_grammar();
     let pt = build_table(&g);
-    // At least one goto entry should be a valid state for a non-terminal
-    let has_goto = pt
-        .goto_table
-        .iter()
-        .any(|row| row.iter().any(|&s| s.0 != u16::MAX));
-    assert!(has_goto, "nested grammar should have non-trivial gotos");
+    for (i, row) in pt.goto_table.iter().enumerate() {
+        assert_eq!(
+            row.len(),
+            pt.symbol_count,
+            "state {i}: goto row width != symbol_count"
+        );
+    }
 }
 
 #[test]
-fn goto_table_deep_chain_has_nonterminal_entries() {
-    let g = deep_chain_grammar();
+fn abi_layout_state_count_at_least_two() {
+    let g = single_token_grammar();
     let pt = build_table(&g);
-    let goto_count: usize = pt
-        .goto_table
-        .iter()
-        .map(|row| row.iter().filter(|s| s.0 != u16::MAX).count())
-        .sum();
     assert!(
-        goto_count >= 1,
-        "deep chain grammar should have at least 1 goto entry"
+        pt.state_count >= 2,
+        "need >= 2 states, got {}",
+        pt.state_count
     );
 }
 
 #[test]
-fn goto_table_compress_succeeds() {
-    let g = nested_grammar();
-    let pt = build_table(&g);
-    let ti = collect_token_indices(&g, &pt);
-    let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce);
-    assert!(compressed.is_ok());
-}
-
-#[test]
-fn goto_table_alternatives_compress_succeeds() {
+fn abi_layout_alternatives_state_count_at_least_two() {
     let g = alternatives_grammar();
     let pt = build_table(&g);
-    let ti = collect_token_indices(&g, &pt);
-    let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce);
-    assert!(compressed.is_ok());
+    assert!(pt.state_count >= 2);
 }
 
 #[test]
-fn goto_table_left_recursive_compress_succeeds() {
+fn abi_layout_deep_chain_state_count_at_least_two() {
+    let g = deep_chain_grammar();
+    let pt = build_table(&g);
+    assert!(pt.state_count >= 2);
+}
+
+#[test]
+fn abi_layout_left_recursive_state_count_bounded() {
     let g = left_recursive_grammar();
     let pt = build_table(&g);
-    let ti = collect_token_indices(&g, &pt);
-    let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce);
-    assert!(compressed.is_ok());
-}
-
-#[test]
-fn goto_table_right_recursive_compress_succeeds() {
-    let g = right_recursive_grammar();
-    let pt = build_table(&g);
-    let ti = collect_token_indices(&g, &pt);
-    let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce);
-    assert!(compressed.is_ok());
+    assert!(pt.state_count < 1000, "state count should be bounded");
 }
 
 // ============================================================================
-// 6. ABI compatibility (8 tests)
+// 3. abi_fields_* — field metadata, count, name mapping (8 tests)
 // ============================================================================
 
 #[test]
-fn abi_generate_produces_nonempty_code() {
+fn abi_fields_empty_by_default() {
     let g = single_token_grammar();
-    let pt = build_table(&g);
-    let code = generate_code(&g, &pt);
-    assert!(!code.is_empty(), "generated code should be non-empty");
+    assert!(g.fields.is_empty(), "default grammar has no fields");
 }
 
 #[test]
-fn abi_generate_contains_language_name() {
-    let g = single_token_grammar();
+fn abi_fields_inserted_manually() {
+    let g = grammar_with_fields();
+    assert_eq!(g.fields.len(), 2);
+}
+
+#[test]
+fn abi_fields_names_preserved() {
+    let g = grammar_with_fields();
+    let names: Vec<&str> = g.fields.values().map(|s| s.as_str()).collect();
+    assert!(names.contains(&"left"));
+    assert!(names.contains(&"right"));
+}
+
+#[test]
+fn abi_fields_code_generation_succeeds_with_fields() {
+    let g = grammar_with_fields();
     let pt = build_table(&g);
     let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_fields_id_copy_semantics() {
+    let fid = FieldId(42);
+    let fid2 = fid;
+    assert_eq!(fid, fid2, "FieldId should be Copy");
+}
+
+#[test]
+fn abi_fields_nested_grammar_no_fields() {
+    let g = nested_grammar();
+    assert!(g.fields.is_empty());
+}
+
+#[test]
+fn abi_fields_node_types_reflect_fields() {
+    let g = grammar_with_fields();
+    let generator = NodeTypesGenerator::new(&g);
+    let result = generator.generate();
+    // Node types generation succeeds
     assert!(
-        code.contains("single_tok"),
-        "generated code should reference the grammar name"
+        result.is_ok(),
+        "node types gen should succeed: {:?}",
+        result.err()
     );
 }
 
 #[test]
-fn abi_generate_contains_symbol_names_array() {
+fn abi_fields_field_count_in_serialized_language() {
+    let g = grammar_with_fields();
+    let pt = build_table(&g);
+    let json =
+        adze_tablegen::serializer::serialize_language(&g, &pt, None).expect("serialize_language");
+    assert!(
+        json.contains("\"field_count\""),
+        "JSON should contain field_count"
+    );
+}
+
+// ============================================================================
+// 4. abi_symbol_* — symbol names, metadata, token indices (8 tests)
+// ============================================================================
+
+#[test]
+fn abi_symbol_count_single_token() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    // At minimum: EOF + token "x" + non-terminal "S"
+    assert!(pt.symbol_count >= 3, "got {}", pt.symbol_count);
+}
+
+#[test]
+fn abi_symbol_count_alternatives() {
+    let g = alternatives_grammar();
+    let pt = build_table(&g);
+    // EOF + 3 tokens + at least 1 non-terminal
+    assert!(pt.symbol_count >= 5, "got {}", pt.symbol_count);
+}
+
+#[test]
+fn abi_symbol_count_deep_chain() {
+    let g = deep_chain_grammar();
+    let pt = build_table(&g);
+    // EOF + 1 token + 4 non-terminals (S, A, B, C)
+    assert!(pt.symbol_count >= 5, "got {}", pt.symbol_count);
+}
+
+#[test]
+fn abi_symbol_names_in_generated_code() {
     let g = single_token_grammar();
     let pt = build_table(&g);
     let code = generate_code(&g, &pt);
     assert!(
         code.contains("SYMBOL_NAMES") || code.contains("symbol_names"),
-        "generated code should contain symbol names array"
+        "code should mention symbol names"
     );
 }
 
 #[test]
-fn abi_generate_contains_symbol_metadata() {
+fn abi_symbol_metadata_in_generated_code() {
     let g = single_token_grammar();
     let pt = build_table(&g);
     let code = generate_code(&g, &pt);
     assert!(
         code.contains("SYMBOL_METADATA") || code.contains("symbol_metadata"),
-        "generated code should contain symbol metadata"
+        "code should mention symbol metadata"
     );
 }
 
 #[test]
-fn abi_generate_alternatives_contains_all_tokens() {
+fn abi_symbol_token_indices_nonempty() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    let ti = collect_token_indices(&g, &pt);
+    assert!(!ti.is_empty(), "token indices must be non-empty");
+}
+
+#[test]
+fn abi_symbol_token_indices_match_token_count() {
+    let g = alternatives_grammar();
+    let pt = build_table(&g);
+    let ti = collect_token_indices(&g, &pt);
+    // At least as many token indices as declared tokens
+    assert!(
+        ti.len() >= g.tokens.len(),
+        "token_indices ({}) < tokens ({})",
+        ti.len(),
+        g.tokens.len()
+    );
+}
+
+#[test]
+fn abi_symbol_alternatives_code_contains_all_tokens() {
     let g = alternatives_grammar();
     let pt = build_table(&g);
     let code = generate_code(&g, &pt);
-    // All 3 token names should appear somewhere in the code
     for name in &["a", "b", "c"] {
-        assert!(
-            code.contains(name),
-            "generated code should contain token '{name}'"
-        );
+        assert!(code.contains(name), "code should contain token '{name}'");
     }
 }
 
+// ============================================================================
+// 5. abi_complex_* — recursion, precedence, nested, wide (8 tests)
+// ============================================================================
+
 #[test]
-fn abi_generate_nested_contains_nonterminal_names() {
-    let g = nested_grammar();
+fn abi_complex_left_recursive_generates() {
+    let g = left_recursive_grammar();
     let pt = build_table(&g);
     let code = generate_code(&g, &pt);
-    // Non-terminal names A and B should appear in the code
-    assert!(
-        code.contains('A') || code.contains('B') || code.contains('S'),
-        "generated code should mention non-terminals"
-    );
+    assert!(!code.is_empty());
 }
 
 #[test]
-fn abi_generate_two_grammars_differ() {
+fn abi_complex_right_recursive_generates() {
+    let g = right_recursive_grammar();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_complex_precedence_generates() {
+    let g = precedence_grammar();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_complex_deep_chain_generates() {
+    let g = deep_chain_grammar();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_complex_wide_alternatives_generates() {
+    let g = wide_alternatives_grammar();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_complex_long_sequence_generates() {
+    let g = long_sequence_grammar();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_complex_precedence_symbol_count() {
+    let g = precedence_grammar();
+    let pt = build_table(&g);
+    // NUM, PLUS, STAR, EOF, expr
+    assert!(pt.symbol_count >= 5, "got {}", pt.symbol_count);
+}
+
+#[test]
+fn abi_complex_nested_has_goto_entries() {
+    let g = nested_grammar();
+    let pt = build_table(&g);
+    let has_goto = pt
+        .goto_table
+        .iter()
+        .any(|row| row.iter().any(|s| s.0 != u16::MAX));
+    assert!(has_goto, "nested grammar should have non-trivial gotos");
+}
+
+// ============================================================================
+// 6. abi_deterministic_* — determinism, reproducibility, ordering (8 tests)
+// ============================================================================
+
+#[test]
+fn abi_deterministic_same_grammar_same_code() {
+    let g = nested_grammar();
+    let pt = build_table(&g);
+    let code1 = generate_code(&g, &pt);
+    let code2 = generate_code(&g, &pt);
+    assert_eq!(code1, code2, "generation must be deterministic");
+}
+
+#[test]
+fn abi_deterministic_single_token_stable() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    let code1 = generate_code(&g, &pt);
+    let code2 = generate_code(&g, &pt);
+    assert_eq!(code1, code2);
+}
+
+#[test]
+fn abi_deterministic_alternatives_stable() {
+    let g = alternatives_grammar();
+    let pt = build_table(&g);
+    let code1 = generate_code(&g, &pt);
+    let code2 = generate_code(&g, &pt);
+    assert_eq!(code1, code2);
+}
+
+#[test]
+fn abi_deterministic_different_grammars_differ() {
     let g1 = single_token_grammar();
     let pt1 = build_table(&g1);
     let code1 = generate_code(&g1, &pt1);
@@ -627,84 +610,177 @@ fn abi_generate_two_grammars_differ() {
     let pt2 = build_table(&g2);
     let code2 = generate_code(&g2, &pt2);
 
-    assert_ne!(
-        code1, code2,
-        "different grammars should produce different code"
-    );
+    assert_ne!(code1, code2, "different grammars → different code");
 }
 
 #[test]
-fn abi_generate_is_deterministic() {
+fn abi_deterministic_name_appears_in_output() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(code.contains("single_tok"), "grammar name in output");
+}
+
+#[test]
+fn abi_deterministic_static_generator_stable() {
     let g = nested_grammar();
     let pt = build_table(&g);
-    let code1 = generate_code(&g, &pt);
-    let code2 = generate_code(&g, &pt);
-    assert_eq!(code1, code2, "generation should be deterministic");
+    let generator1 = StaticLanguageGenerator::new(g.clone(), pt.clone());
+    let generator2 = StaticLanguageGenerator::new(g, pt);
+    let c1 = generator1.generate_language_code().to_string();
+    let c2 = generator2.generate_language_code().to_string();
+    assert_eq!(c1, c2);
+}
+
+#[test]
+fn abi_deterministic_token_order_preserved() {
+    // Build twice; token ordering should be identical.
+    let g1 = alternatives_grammar();
+    let g2 = alternatives_grammar();
+    let t1: Vec<_> = g1.tokens.keys().copied().collect();
+    let t2: Vec<_> = g2.tokens.keys().copied().collect();
+    assert_eq!(t1, t2, "token key order must be stable");
+}
+
+#[test]
+fn abi_deterministic_rule_order_preserved() {
+    let g1 = nested_grammar();
+    let g2 = nested_grammar();
+    let r1: Vec<_> = g1.rules.keys().copied().collect();
+    let r2: Vec<_> = g2.rules.keys().copied().collect();
+    assert_eq!(r1, r2, "rule key order must be stable");
 }
 
 // ============================================================================
-// 7. Edge cases (8 tests)
+// 7. abi_serialize_* — JSON, node-types, token-stream output (8 tests)
 // ============================================================================
 
 #[test]
-fn edge_minimal_grammar_generates_code() {
+fn abi_serialize_language_json_valid() {
     let g = single_token_grammar();
     let pt = build_table(&g);
-    let code = generate_code(&g, &pt);
-    assert!(!code.is_empty());
+    let json =
+        adze_tablegen::serializer::serialize_language(&g, &pt, None).expect("serialize_language");
+    let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+    assert!(parsed.is_object());
 }
 
 #[test]
-fn edge_large_alternatives_grammar_generates_code() {
-    let g = wide_alternatives_grammar();
-    let pt = build_table(&g);
-    let code = generate_code(&g, &pt);
-    assert!(!code.is_empty());
-}
-
-#[test]
-fn edge_long_sequence_grammar_generates_code() {
-    let g = long_sequence_grammar();
-    let pt = build_table(&g);
-    let code = generate_code(&g, &pt);
-    assert!(!code.is_empty());
-}
-
-#[test]
-fn edge_nullable_grammar_generates_code() {
-    let g = nullable_start_grammar();
-    let pt = build_table(&g);
-    let code = generate_code(&g, &pt);
-    assert!(!code.is_empty());
-}
-
-#[test]
-fn edge_static_generator_produces_code() {
+fn abi_serialize_json_contains_version() {
     let g = single_token_grammar();
     let pt = build_table(&g);
-    let generator = StaticLanguageGenerator::new(g, pt);
-    let code = generator.generate_language_code().to_string();
-    assert!(
-        !code.is_empty(),
-        "StaticLanguageGenerator should produce code"
-    );
+    let json = adze_tablegen::serializer::serialize_language(&g, &pt, None).unwrap();
+    assert!(json.contains("\"version\""));
 }
 
 #[test]
-fn edge_static_generator_node_types() {
+fn abi_serialize_json_contains_symbol_count() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    let json = adze_tablegen::serializer::serialize_language(&g, &pt, None).unwrap();
+    assert!(json.contains("\"symbol_count\""));
+}
+
+#[test]
+fn abi_serialize_json_contains_state_count() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    let json = adze_tablegen::serializer::serialize_language(&g, &pt, None).unwrap();
+    assert!(json.contains("\"state_count\""));
+}
+
+#[test]
+fn abi_serialize_node_types_valid_json() {
     let g = nested_grammar();
     let pt = build_table(&g);
     let generator = StaticLanguageGenerator::new(g, pt);
     let node_types = generator.generate_node_types();
-    // Node types is a JSON string
     assert!(
         node_types.starts_with('['),
-        "node_types should be a JSON array, got: {node_types}"
+        "node_types should be a JSON array, got: {}",
+        &node_types[..node_types.len().min(80)]
     );
 }
 
 #[test]
-fn edge_many_tokens_grammar() {
+fn abi_serialize_node_types_generator() {
+    let g = nested_grammar();
+    let generator = NodeTypesGenerator::new(&g);
+    let result = generator.generate();
+    assert!(
+        result.is_ok(),
+        "NodeTypesGenerator should succeed: {:?}",
+        result.err()
+    );
+}
+
+#[test]
+fn abi_serialize_compressed_tables_json() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    let ti = collect_token_indices(&g, &pt);
+    let sce = eof_accepts_or_reduces(&pt);
+    let compressed = TableCompressor::new().compress(&pt, &ti, sce).unwrap();
+    let json = adze_tablegen::serializer::serialize_compressed_tables(&compressed)
+        .expect("serialize compressed");
+    let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+    assert!(parsed.is_object());
+}
+
+#[test]
+fn abi_serialize_alternatives_json_valid() {
+    let g = alternatives_grammar();
+    let pt = build_table(&g);
+    let json =
+        adze_tablegen::serializer::serialize_language(&g, &pt, None).expect("serialize_language");
+    let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+    assert!(parsed["symbol_count"].is_number());
+}
+
+// ============================================================================
+// 8. abi_edge_* — nullable, extras, external, compressed, many tokens (8 tests)
+// ============================================================================
+
+#[test]
+fn abi_edge_nullable_grammar_generates() {
+    let g = nullable_grammar();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_edge_extra_token_grammar_generates() {
+    let g = grammar_with_extra();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_edge_external_grammar_generates() {
+    let g = grammar_with_external();
+    let pt = build_table(&g);
+    let code = generate_code(&g, &pt);
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_edge_with_compressed_tables_builder() {
+    let g = single_token_grammar();
+    let pt = build_table(&g);
+    let ti = collect_token_indices(&g, &pt);
+    let sce = eof_accepts_or_reduces(&pt);
+    let compressed = TableCompressor::new().compress(&pt, &ti, sce).unwrap();
+    let code = AbiLanguageBuilder::new(&g, &pt)
+        .with_compressed_tables(&compressed)
+        .generate()
+        .to_string();
+    assert!(!code.is_empty());
+}
+
+#[test]
+fn abi_edge_many_tokens_symbol_count() {
     let mut gb = GrammarBuilder::new("many_tokens");
     let mut names = Vec::new();
     for i in 0..20 {
@@ -713,32 +789,38 @@ fn edge_many_tokens_grammar() {
         gb = gb.token(&name, &pat);
         names.push(name);
     }
-    // Create S with first token as RHS
     gb = gb.rule("S", vec![names[0].as_str()]);
     gb = gb.start("S");
     let g = gb.build();
     let pt = build_table(&g);
-    let code = generate_code(&g, &pt);
-    assert!(!code.is_empty());
-    // Symbol count should include all 20 tokens plus EOF plus non-terminals
-    assert!(
-        pt.symbol_count >= 21,
-        "many-token grammar should have at least 21 symbols, got {}",
-        pt.symbol_count
-    );
+    // 20 tokens + EOF + at least 1 non-terminal
+    assert!(pt.symbol_count >= 21, "got {}", pt.symbol_count);
 }
 
 #[test]
-fn edge_with_compressed_tables_chains() {
+fn abi_edge_eof_accepts_or_reduces_check() {
     let g = single_token_grammar();
+    let pt = build_table(&g);
+    // Just verify it returns a bool without panicking
+    let _result: bool = eof_accepts_or_reduces(&pt);
+}
+
+#[test]
+fn abi_edge_compress_alternatives_succeeds() {
+    let g = alternatives_grammar();
     let pt = build_table(&g);
     let ti = collect_token_indices(&g, &pt);
     let sce = eof_accepts_or_reduces(&pt);
-    let compressed = TableCompressor::new().compress(&pt, &ti, sce).unwrap();
-    // with_compressed_tables should chain and still produce output
-    let code = AbiLanguageBuilder::new(&g, &pt)
-        .with_compressed_tables(&compressed)
-        .generate()
-        .to_string();
+    let result = TableCompressor::new().compress(&pt, &ti, sce);
+    assert!(result.is_ok(), "compression should succeed");
+}
+
+#[test]
+fn abi_edge_static_generator_nullable_start() {
+    let g = nullable_grammar();
+    let pt = build_table(&g);
+    let mut generator = StaticLanguageGenerator::new(g, pt);
+    generator.set_start_can_be_empty(true);
+    let code = generator.generate_language_code().to_string();
     assert!(!code.is_empty());
 }

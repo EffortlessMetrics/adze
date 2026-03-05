@@ -394,10 +394,10 @@ proptest! {
         let field_types: Vec<Type> = (0..count).map(|_| parse_quote!(u32)).collect();
         let tokens = quote! { struct S(#(#field_types),*); };
         let di: DeriveInput = syn::parse2(tokens).unwrap();
-        if let syn::Data::Struct(ds) = &di.data {
-            if let Fields::Unnamed(uf) = &ds.fields {
-                prop_assert_eq!(uf.unnamed.len(), count);
-            }
+        if let syn::Data::Struct(ds) = &di.data
+            && let Fields::Unnamed(uf) = &ds.fields
+        {
+            prop_assert_eq!(uf.unnamed.len(), count);
         }
     }
 
@@ -437,13 +437,13 @@ proptest! {
         let fi = format_ident!("{}", fname);
         let ty_parsed: Type = parse_str(&ty).unwrap();
         let di: DeriveInput = parse_quote! { struct S { #fi: #ty_parsed } };
-        if let syn::Data::Struct(ds) = &di.data {
-            if let Fields::Named(nf) = &ds.fields {
-                let field = nf.named.first().unwrap();
-                let field_ty = ty_str(&field.ty);
-                // Token-stream normalization may add spaces; compare content
-                prop_assert!(!field_ty.is_empty());
-            }
+        if let syn::Data::Struct(ds) = &di.data
+            && let Fields::Named(nf) = &ds.fields
+        {
+            let field = nf.named.first().unwrap();
+            let field_ty = ty_str(&field.ty);
+            // Token-stream normalization may add spaces; compare content
+            prop_assert!(!field_ty.is_empty());
         }
     }
 }
