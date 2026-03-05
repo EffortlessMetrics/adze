@@ -5,7 +5,6 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
-use serde_json;
 
 // ---------------------------------------------------------------------------
 // Helpers

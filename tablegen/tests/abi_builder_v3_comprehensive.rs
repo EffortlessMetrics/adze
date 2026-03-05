@@ -10,8 +10,7 @@
 use adze_glr_core::{FirstFollowSets, GotoIndexing, LexMode, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
-    Associativity, ExternalToken, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
+    ExternalToken, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 use adze_tablegen::{AbiLanguageBuilder, StaticLanguageGenerator};
 use std::collections::BTreeMap;
@@ -459,7 +458,7 @@ fn symbol_count_matches_table_for_two_tokens() {
     let (g, t) = make_two_token_grammar("sym2tok");
     let code = gen_code(&g, &t);
     // symbol_count should appear in the generated code with the right value
-    let count_str = format!("symbol_count : {}", t.symbol_count);
+    let _count_str = format!("symbol_count : {}", t.symbol_count);
     // proc-macro2 output may have spaces around colons; just check the value is present
     assert!(
         code.contains(&format!("{}", t.symbol_count))

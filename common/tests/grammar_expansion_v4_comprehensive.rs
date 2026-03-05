@@ -633,7 +633,7 @@ fn multi_field_struct_expansion() {
         parse_quote!(Vec<Statement>),
     ];
 
-    let results: Vec<_> = fields.iter().map(|f| pipeline(f)).collect();
+    let results: Vec<_> = fields.iter().map(pipeline).collect();
 
     // Identifier: not optional, not repeated
     assert!(!results[0].0 && !results[0].1);
