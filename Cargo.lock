@@ -437,6 +437,7 @@ version = "0.1.0"
 dependencies = [
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
+ "adze-parser-feature-profile-snapshot-core",
  "insta",
  "serde",
  "serde_json",
@@ -535,6 +536,15 @@ name = "adze-parser-feature-contract"
 version = "0.1.0"
 dependencies = [
  "adze-feature-policy-contract",
+]
+
+[[package]]
+name = "adze-parser-feature-profile-snapshot-core"
+version = "0.1.0"
+dependencies = [
+ "adze-feature-policy-core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
