@@ -81,6 +81,7 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `glr-versioning` | `crates/glr-versioning/` | GLR version tracking |
 | `glr-test-support` | `glr-test-support/` | Test helpers for GLR crates |
 | `linecol-core` | `crates/linecol-core/` | Line/column position computation |
+| `error-location-core` | `crates/error-location-core/` | Shared parse error location type and offset conversion |
 | `common-syntax-core` | `crates/common-syntax-core/` | Shared syntax utilities |
 
 ## Application and tooling crates

@@ -1,7 +1,8 @@
 //! Error types for parsing operations
 
-use std::fmt;
 use thiserror::Error;
+
+pub use adze_error_location_core::ErrorLocation;
 
 /// Parse error with details about what went wrong
 #[derive(Debug, Error)]
@@ -59,17 +60,6 @@ pub enum ParseErrorKind {
     Other(String),
 }
 
-/// Location information for an error
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ErrorLocation {
-    /// Byte offset in the input
-    pub byte_offset: usize,
-    /// Line number (1-indexed)
-    pub line: usize,
-    /// Column number (1-indexed)
-    pub column: usize,
-}
-
 impl ParseError {
     /// Create a "no language" error
     pub fn no_language() -> Self {
@@ -107,12 +97,6 @@ impl ParseError {
             kind: ParseErrorKind::Other(msg.to_string()),
             location: None,
         }
-    }
-}
-
-impl fmt::Display for ErrorLocation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.line, self.column)
     }
 }
 
