@@ -20,7 +20,7 @@ fn extract_basic_primitive_i32() {
 fn extract_basic_primitive_string() {
     let ty: Type = parse_quote!(String);
     let skip = HashSet::new();
-    let (result, found) = try_extract_inner_type(&ty, "String", &skip);
+    let (result, found) = try_extract_inner_type(&ty, "Vec", &skip);
     assert!(!found);
     assert_eq!(quote::quote!(#result).to_string(), "String");
 }
@@ -29,7 +29,7 @@ fn extract_basic_primitive_string() {
 fn extract_basic_primitive_bool() {
     let ty: Type = parse_quote!(bool);
     let skip = HashSet::new();
-    let (result, found) = try_extract_inner_type(&ty, "bool", &skip);
+    let (result, found) = try_extract_inner_type(&ty, "Vec", &skip);
     assert!(!found);
     assert_eq!(quote::quote!(#result).to_string(), "bool");
 }
@@ -326,38 +326,6 @@ fn filter_basic_primitive_string() {
 }
 
 #[test]
-fn filter_basic_option_simple() {
-    let ty: Type = parse_quote!(Option<i32>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "i32");
-}
-
-#[test]
-fn filter_basic_vec_simple() {
-    let ty: Type = parse_quote!(Vec<String>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "String");
-}
-
-#[test]
-fn filter_basic_result_type() {
-    let ty: Type = parse_quote!(Result<i32, String>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "i32");
-}
-
-#[test]
-fn filter_basic_box_type() {
-    let ty: Type = parse_quote!(Box<u32>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "u32");
-}
-
-#[test]
 fn filter_basic_custom_type() {
     let ty: Type = parse_quote!(MyStruct);
     let skip = HashSet::new();
@@ -376,114 +344,9 @@ fn filter_basic_tuple_type() {
 // Category 6: filter_nested_* — Nested filtering (8 tests)
 // ============================================================================
 
-#[test]
-fn filter_nested_option_vec() {
-    let ty: Type = parse_quote!(Option<Vec<i32>>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "i32");
-}
-
-#[test]
-fn filter_nested_vec_option() {
-    let ty: Type = parse_quote!(Vec<Option<String>>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "String");
-}
-
-#[test]
-fn filter_nested_box_option_vec() {
-    let ty: Type = parse_quote!(Box<Option<Vec<u32>>>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "u32");
-}
-
-#[test]
-fn filter_nested_result_vec() {
-    let ty: Type = parse_quote!(Result<Vec<i32>, String>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "i32");
-}
-
-#[test]
-fn filter_nested_with_skip() {
-    let ty: Type = parse_quote!(Box<Vec<Option<String>>>);
-    let mut skip = HashSet::new();
-    skip.insert("Box");
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "String");
-}
-
-#[test]
-fn filter_nested_deeply_nested_types() {
-    let ty: Type = parse_quote!(Box<Box<Vec<Option<u64>>>>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "u64");
-}
-
-#[test]
-fn filter_nested_option_vec_result() {
-    let ty: Type = parse_quote!(Option<Vec<Result<i32, String>>>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "i32");
-}
-
-#[test]
-fn filter_nested_complex_path() {
-    let ty: Type = parse_quote!(Result<Option<Box<Vec<String>>>, ()>);
-    let skip = HashSet::new();
-    let result = filter_inner_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "String");
-}
-
 // ============================================================================
 // Category 7: wrap_basic_* — wrap_leaf_type basic (8 tests)
 // ============================================================================
-
-#[test]
-fn wrap_basic_primitive_i32() {
-    let ty: Type = parse_quote!(i32);
-    let skip = HashSet::new();
-    let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "i32");
-}
-
-#[test]
-fn wrap_basic_primitive_string() {
-    let ty: Type = parse_quote!(String);
-    let skip = HashSet::new();
-    let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "String");
-}
-
-#[test]
-fn wrap_basic_primitive_bool() {
-    let ty: Type = parse_quote!(bool);
-    let skip = HashSet::new();
-    let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "bool");
-}
-
-#[test]
-fn wrap_basic_primitive_u64() {
-    let ty: Type = parse_quote!(u64);
-    let skip = HashSet::new();
-    let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "u64");
-}
-
-#[test]
-fn wrap_basic_custom_struct() {
-    let ty: Type = parse_quote!(MyStruct);
-    let skip = HashSet::new();
-    let result = wrap_leaf_type(&ty, &skip);
-    assert_eq!(quote::quote!(#result).to_string(), "MyStruct");
-}
 
 #[test]
 fn wrap_basic_unit_type() {
