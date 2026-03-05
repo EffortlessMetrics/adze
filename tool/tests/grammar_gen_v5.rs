@@ -12,6 +12,7 @@
 //!   8. gen_deterministic_*   — deterministic output verification
 
 use adze_ir::builder::GrammarBuilder;
+#[allow(unused_imports)]
 use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
@@ -19,8 +20,10 @@ use adze_ir::{
 use adze_tool::grammar_js::GrammarJsConverter;
 use adze_tool::grammar_js::json_converter::from_tree_sitter_json;
 use adze_tool::pure_rust_builder::{
-    BuildOptions, BuildResult, BuildStats, build_parser, build_parser_from_json,
+    BuildOptions, BuildResult, build_parser, build_parser_from_json,
 };
+#[allow(unused_imports)]
+use adze_tool::pure_rust_builder::BuildStats;
 use serde_json::json;
 use tempfile::TempDir;
 
@@ -139,6 +142,7 @@ fn do_build(grammar: Grammar) -> BuildResult {
     build_parser(grammar, opts).expect("build should succeed")
 }
 
+#[allow(dead_code)]
 fn find_regex_token(grammar: &Grammar, regex: &str) -> bool {
     grammar.tokens.values().any(|t| match &t.pattern {
         TokenPattern::Regex(r) => r == regex,
@@ -146,6 +150,7 @@ fn find_regex_token(grammar: &Grammar, regex: &str) -> bool {
     })
 }
 
+#[allow(dead_code)]
 fn find_string_token(grammar: &Grammar, literal: &str) -> bool {
     grammar.tokens.values().any(|t| match &t.pattern {
         TokenPattern::String(s) => s == literal,
