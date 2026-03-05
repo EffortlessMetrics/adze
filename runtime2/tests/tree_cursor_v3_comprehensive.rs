@@ -35,9 +35,9 @@ fn chain_tree(depth: usize) -> Tree {
     if depth == 0 {
         return leaf(0, 0, 1);
     }
-    let mut current = leaf(depth as u32, 0, (depth + 1) as usize);
+    let mut current = leaf(depth as u32, 0, depth + 1);
     for i in (0..depth).rev() {
-        current = Tree::new_for_testing(i as u32, 0, (depth + 1) as usize, vec![current]);
+        current = Tree::new_for_testing(i as u32, 0, depth + 1, vec![current]);
     }
     current
 }
