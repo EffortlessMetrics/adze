@@ -17,6 +17,7 @@ members = [
   "crates/runtime-governance-matrix",
   "crates/runtime2-governance",
   "crates/stack-pool-core",
+  "crates/node-pool-core",
   "crates/glr-versioning",
   "crates/governance-matrix-contract",
   "crates/governance-matrix-core-impl",
