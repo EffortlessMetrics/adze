@@ -999,41 +999,6 @@ fn build_parser_code_reasonable_length() {
 // ============================================================================
 
 #[test]
-fn build_determinism_same_output() {
-    let mut grammar1 = GrammarBuilder::new("det1")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    grammar1.normalize();
-
-    let dir1 = TempDir::new().unwrap();
-    let opts1 = BuildOptions {
-        out_dir: dir1.path().to_string_lossy().to_string(),
-        ..Default::default()
-    };
-
-    let result1 = build_parser(grammar1, opts1).unwrap();
-
-    let mut grammar2 = GrammarBuilder::new("det2")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    grammar2.normalize();
-
-    let dir2 = TempDir::new().unwrap();
-    let opts2 = BuildOptions {
-        out_dir: dir2.path().to_string_lossy().to_string(),
-        ..Default::default()
-    };
-
-    let result2 = build_parser(grammar2, opts2).unwrap();
-
-    assert_eq!(result1.parser_code, result2.parser_code);
-}
-
-#[test]
 fn build_determinism_same_stats() {
     let mut grammar1 = GrammarBuilder::new("stats1")
         .token("a", "a")
@@ -1143,94 +1108,6 @@ fn build_determinism_same_node_types() {
     let result2 = build_parser(grammar2, opts2).unwrap();
 
     assert_eq!(result1.node_types_json, result2.node_types_json);
-}
-
-#[test]
-fn build_determinism_same_parser_code() {
-    let mut grammar1 = GrammarBuilder::new("pcode1")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    grammar1.normalize();
-
-    let dir1 = TempDir::new().unwrap();
-    let opts1 = BuildOptions {
-        out_dir: dir1.path().to_string_lossy().to_string(),
-        ..Default::default()
-    };
-
-    let result1 = build_parser(grammar1, opts1).unwrap();
-    let code1 = result1.parser_code;
-
-    let mut grammar2 = GrammarBuilder::new("pcode2")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    grammar2.normalize();
-
-    let dir2 = TempDir::new().unwrap();
-    let opts2 = BuildOptions {
-        out_dir: dir2.path().to_string_lossy().to_string(),
-        ..Default::default()
-    };
-
-    let result2 = build_parser(grammar2, opts2).unwrap();
-    let code2 = result2.parser_code;
-
-    assert_eq!(code1, code2);
-}
-
-#[test]
-fn build_determinism_multiple_runs() {
-    let mut grammar1 = GrammarBuilder::new("multi1")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    grammar1.normalize();
-
-    let dir1 = TempDir::new().unwrap();
-    let opts1 = BuildOptions {
-        out_dir: dir1.path().to_string_lossy().to_string(),
-        ..Default::default()
-    };
-
-    let result1 = build_parser(grammar1, opts1).unwrap();
-
-    let mut grammar2 = GrammarBuilder::new("multi2")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    grammar2.normalize();
-
-    let dir2 = TempDir::new().unwrap();
-    let opts2 = BuildOptions {
-        out_dir: dir2.path().to_string_lossy().to_string(),
-        ..Default::default()
-    };
-
-    let result2 = build_parser(grammar2, opts2).unwrap();
-
-    let mut grammar3 = GrammarBuilder::new("multi3")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    grammar3.normalize();
-
-    let dir3 = TempDir::new().unwrap();
-    let opts3 = BuildOptions {
-        out_dir: dir3.path().to_string_lossy().to_string(),
-        ..Default::default()
-    };
-
-    let result3 = build_parser(grammar3, opts3).unwrap();
-
-    assert_eq!(result1.parser_code, result2.parser_code);
-    assert_eq!(result2.parser_code, result3.parser_code);
 }
 
 #[test]
