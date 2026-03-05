@@ -1,5 +1,5 @@
-use adze_tool::pure_rust_builder::{build_parser, BuildOptions};
 use adze_ir::builder::GrammarBuilder;
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser};
 use tempfile::TempDir;
 
 // ============================================================================
@@ -658,7 +658,10 @@ fn codegen_determinism_same_stats() {
     grammar2.normalize();
     let result2 = build_parser(grammar2, opts).unwrap();
 
-    assert_eq!(result1.build_stats.state_count, result2.build_stats.state_count);
+    assert_eq!(
+        result1.build_stats.state_count,
+        result2.build_stats.state_count
+    );
 }
 
 #[test]

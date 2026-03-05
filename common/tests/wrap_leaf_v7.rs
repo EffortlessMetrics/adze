@@ -1,7 +1,7 @@
 #![allow(unused_variables)]
-use adze_common::{try_extract_inner_type, filter_inner_type, wrap_leaf_type};
-use syn::{parse_quote, Type};
+use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use std::collections::HashSet;
+use syn::{Type, parse_quote};
 
 // ============================================================================
 // Category 1: extract_basic_* — Basic type extraction (8 tests)

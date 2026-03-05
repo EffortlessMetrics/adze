@@ -5,7 +5,8 @@ use adze_ir::{Grammar, SymbolId};
 const EOF: SymbolId = SymbolId(0);
 
 fn sym(g: &Grammar, name: &str) -> SymbolId {
-    g.find_symbol_by_name(name).unwrap_or_else(|| panic!("symbol '{name}' not found"))
+    g.find_symbol_by_name(name)
+        .unwrap_or_else(|| panic!("symbol '{name}' not found"))
 }
 
 fn build_ff(
@@ -515,12 +516,7 @@ fn follow_basic_8() {
 
 #[test]
 fn follow_eof_1() {
-    let (g, ff) = build_ff(
-        "test1",
-        &[("a", "[a]")],
-        &[("S", vec!["a"])],
-        "S",
-    );
+    let (g, ff) = build_ff("test1", &[("a", "[a]")], &[("S", vec!["a"])], "S");
     let s = sym(&g, "S");
     let follow_s = ff.follow(s).expect("S has FOLLOW set");
     assert!(follow_s.contains(EOF.0 as usize), "S FOLLOW contains EOF");
@@ -528,12 +524,7 @@ fn follow_eof_1() {
 
 #[test]
 fn follow_eof_2() {
-    let (g, ff) = build_ff(
-        "test2",
-        &[("x", "[x]")],
-        &[("E", vec!["x"])],
-        "E",
-    );
+    let (g, ff) = build_ff("test2", &[("x", "[x]")], &[("E", vec!["x"])], "E");
     let e = sym(&g, "E");
     let follow_e = ff.follow(e).expect("E has FOLLOW set");
     assert!(follow_e.contains(EOF.0 as usize));
@@ -541,12 +532,7 @@ fn follow_eof_2() {
 
 #[test]
 fn follow_eof_3() {
-    let (g, ff) = build_ff(
-        "test3",
-        &[("p", "[p]")],
-        &[("A", vec!["p"])],
-        "A",
-    );
+    let (g, ff) = build_ff("test3", &[("p", "[p]")], &[("A", vec!["p"])], "A");
     let a = sym(&g, "A");
     let follow_a = ff.follow(a).expect("A has FOLLOW set");
     assert!(follow_a.contains(EOF.0 as usize));
@@ -554,12 +540,7 @@ fn follow_eof_3() {
 
 #[test]
 fn follow_eof_4() {
-    let (g, ff) = build_ff(
-        "test4",
-        &[("m", "[m]")],
-        &[("T", vec!["m"])],
-        "T",
-    );
+    let (g, ff) = build_ff("test4", &[("m", "[m]")], &[("T", vec!["m"])], "T");
     let t = sym(&g, "T");
     let follow_t = ff.follow(t).expect("T has FOLLOW set");
     assert!(follow_t.contains(EOF.0 as usize));
@@ -567,12 +548,7 @@ fn follow_eof_4() {
 
 #[test]
 fn follow_eof_5() {
-    let (g, ff) = build_ff(
-        "test5",
-        &[("i", "[i]")],
-        &[("U", vec!["i"])],
-        "U",
-    );
+    let (g, ff) = build_ff("test5", &[("i", "[i]")], &[("U", vec!["i"])], "U");
     let u = sym(&g, "U");
     let follow_u = ff.follow(u).expect("U has FOLLOW set");
     assert!(follow_u.contains(EOF.0 as usize));
@@ -580,12 +556,7 @@ fn follow_eof_5() {
 
 #[test]
 fn follow_eof_6() {
-    let (g, ff) = build_ff(
-        "test6",
-        &[("c", "[c]")],
-        &[("V", vec!["c"])],
-        "V",
-    );
+    let (g, ff) = build_ff("test6", &[("c", "[c]")], &[("V", vec!["c"])], "V");
     let v = sym(&g, "V");
     let follow_v = ff.follow(v).expect("V has FOLLOW set");
     assert!(follow_v.contains(EOF.0 as usize));
@@ -593,12 +564,7 @@ fn follow_eof_6() {
 
 #[test]
 fn follow_eof_7() {
-    let (g, ff) = build_ff(
-        "test7",
-        &[("f", "[f]")],
-        &[("W", vec!["f"])],
-        "W",
-    );
+    let (g, ff) = build_ff("test7", &[("f", "[f]")], &[("W", vec!["f"])], "W");
     let w = sym(&g, "W");
     let follow_w = ff.follow(w).expect("W has FOLLOW set");
     assert!(follow_w.contains(EOF.0 as usize));
@@ -606,12 +572,7 @@ fn follow_eof_7() {
 
 #[test]
 fn follow_eof_8() {
-    let (g, ff) = build_ff(
-        "test8",
-        &[("h", "[h]")],
-        &[("X", vec!["h"])],
-        "X",
-    );
+    let (g, ff) = build_ff("test8", &[("h", "[h]")], &[("X", vec!["h"])], "X");
     let x = sym(&g, "X");
     let follow_x = ff.follow(x).expect("X has FOLLOW set");
     assert!(follow_x.contains(EOF.0 as usize));
@@ -626,13 +587,20 @@ fn follow_chain_1() {
     let (g, ff) = build_ff(
         "test1",
         &[("a", "[a]"), ("b", "[b]"), ("c", "[c]")],
-        &[("S", vec!["A", "b"]), ("A", vec!["a", "B"]), ("B", vec!["c"])],
+        &[
+            ("S", vec!["A", "b"]),
+            ("A", vec!["a", "B"]),
+            ("B", vec!["c"]),
+        ],
         "S",
     );
     let b_nt = sym(&g, "B");
     let c = sym(&g, "c");
     let follow_b = ff.follow(b_nt).expect("B has FOLLOW set");
-    assert!(follow_b.contains(c.0 as usize), "B FOLLOW includes c from second alternative");
+    assert!(
+        follow_b.contains(c.0 as usize),
+        "B FOLLOW includes c from second alternative"
+    );
 }
 
 #[test]
@@ -640,7 +608,11 @@ fn follow_chain_2() {
     let (g, ff) = build_ff(
         "test2",
         &[("x", "[x]"), ("y", "[y]"), ("z", "[z]")],
-        &[("E", vec!["A", "y"]), ("A", vec!["x", "B"]), ("B", vec!["z"])],
+        &[
+            ("E", vec!["A", "y"]),
+            ("A", vec!["x", "B"]),
+            ("B", vec!["z"]),
+        ],
         "E",
     );
     let b_nt = sym(&g, "B");
@@ -659,7 +631,10 @@ fn follow_chain_3() {
     );
     let b_nt = sym(&g, "B");
     let follow_b = ff.follow(b_nt).expect("B has FOLLOW set");
-    assert!(follow_b.contains(EOF.0 as usize), "B FOLLOW contains EOF from start symbol");
+    assert!(
+        follow_b.contains(EOF.0 as usize),
+        "B FOLLOW contains EOF from start symbol"
+    );
 }
 
 #[test]
@@ -738,12 +713,7 @@ fn follow_chain_8() {
 
 #[test]
 fn nullable_1() {
-    let (g, ff) = build_ff(
-        "test1",
-        &[("a", "[a]")],
-        &[("N", vec![])],
-        "N",
-    );
+    let (g, ff) = build_ff("test1", &[("a", "[a]")], &[("N", vec![])], "N");
     let n = sym(&g, "N");
     assert!(ff.is_nullable(n), "empty production makes N nullable");
 }
@@ -804,12 +774,7 @@ fn nullable_5() {
 
 #[test]
 fn nullable_6() {
-    let (g, ff) = build_ff(
-        "test6",
-        &[("c", "[c]")],
-        &[("N", vec![])],
-        "N",
-    );
+    let (g, ff) = build_ff("test6", &[("c", "[c]")], &[("N", vec![])], "N");
     let n = sym(&g, "N");
     assert!(ff.is_nullable(n));
 }
@@ -956,11 +921,7 @@ fn combined_8() {
     let (g, ff) = build_ff(
         "test8",
         &[("h", "[h]"), ("k", "[k]"), ("l", "[l]")],
-        &[
-            ("S", vec!["X", "l"]),
-            ("X", vec!["h"]),
-            ("X", vec!["k"]),
-        ],
+        &[("S", vec!["X", "l"]), ("X", vec!["h"]), ("X", vec!["k"])],
         "S",
     );
     let x = sym(&g, "X");
