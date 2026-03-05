@@ -67,6 +67,7 @@ fn err_node(start: usize, end: usize) -> ParsedNode {
 }
 
 /// Count every node in a tree recursively (including the root).
+#[allow(dead_code)]
 fn count_all(node: &ParsedNode) -> usize {
     1 + node.children().iter().map(count_all).sum::<usize>()
 }
@@ -106,6 +107,7 @@ fn tree_depth(node: &ParsedNode) -> usize {
 }
 
 /// Count leaf nodes in a tree.
+#[allow(dead_code)]
 fn count_leaves(node: &ParsedNode) -> usize {
     if node.children().is_empty() {
         1
