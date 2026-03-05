@@ -1,4 +1,14 @@
 [package]
+authors = ["Steven Zimmerman, CPA <effortlesssteven@users.noreply.github.com>"}
+license = "MIT OR Apache-2.0"
+publish = true
+edition = "2024"
+rust-version.workspace = true
+keywords = ["parsing", "codegen"]
+categories = ["development-tools"]
+include = ["Cargo.toml", "/LICENSE*", "/README*", "src/**"]
+
+[features]
 name = "adze-tool"
 description = "The external tool for Adze that extracts grammars from Rust definitions"
 readme = "../README.md"
@@ -6,36 +16,21 @@ repository = "https://github.com/EffortlessMetrics/adze"
 homepage = "https://github.com/EffortlessMetrics/adze"
 documentation = "https://docs.rs/adze-tool"
 version = "0.8.0-dev"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
-license = "MIT OR Apache-2.0"
-publish = true
-edition = "2024"
-rust-version.workspace = true
-keywords = ["parsing", "codegen"]
-categories = ["development-tools"]
-include = [
-    "Cargo.toml",
-    "/LICENSE*",
-    "/README*",
-    "src/**"
-]
-
-[features]
 default = ["build_parsers", "serialization"]
 build_parsers = [
-    "dep:tempfile",
-    "dep:tree-sitter",
-    "dep:tree-sitter-generate",
-    "dep:cc",
+  "dep:tempfile",
+  "dep:tree-sitter",
+  "dep:tree-sitter-generate",
+  "dep:cc",
 ]
 serialization = ["adze-tablegen/serialization", "adze-glr-core/serialization"]
-no_opt = []   # compile without the optimizer for debugging
+no_opt = [] # compile without the optimizer for debugging
 optimize = ["adze-ir/optimize"]
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
 syn.workspace = true
-syn-inline-mod = "0.6"
+syn-inline-mod = "0.6.0"
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
 adze-common = { version = "0.8.0-dev", path = "../common" }
@@ -47,15 +42,15 @@ anyhow.workspace = true
 thiserror.workspace = true
 indexmap.workspace = true
 clap.workspace = true
-glob = "0.3"
-prettyplease = "0.2"
+glob = "0.3.3"
+prettyplease = "0.2.37"
 proc-macro2.workspace = true
 quote.workspace = true
 
 tempfile = { workspace = true, optional = true }
-tree-sitter = { version = "0.25.2", optional = true }
-tree-sitter-generate = { version = "0.25.1", optional = true }
-cc = { version = "1", optional = true }
+tree-sitter = { version = "0.26.6", optional = true }
+tree-sitter-generate = { version = "0.26.6", optional = true }
+cc = { version = "1.2.56", optional = true }
 
 [[bin]]
 name = "adze-gen"
@@ -64,5 +59,5 @@ path = "src/bin/adze.rs"
 [dev-dependencies]
 insta.workspace = true
 proptest.workspace = true
-tree-sitter-generate = "0.25.1"
+tree-sitter-generate = "0.26.6"
 tempfile.workspace = true
