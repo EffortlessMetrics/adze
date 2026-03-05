@@ -774,7 +774,7 @@ proptest! {
         let table = build_table(&grammar);
         if let Some(first) = table.goto_table.first() {
             let width = first.len();
-            for (i, row) in table.goto_table.iter().enumerate() {
+            for row in table.goto_table.iter() {
                 prop_assert_eq!(row.len(), width, "goto row width mismatch");
             }
         }
@@ -906,10 +906,10 @@ proptest! {
         for s in 0..table.state_count {
             let st = StateId(s as u16);
             for &nt in table.nonterminal_to_index.keys() {
-                if let Some(tgt) = table.goto(st, nt) {
-                    if tgt == st {
-                        self_loop_count += 1;
-                    }
+                if let Some(tgt) = table.goto(st, nt)
+                    && tgt == st
+                {
+                    self_loop_count += 1;
                 }
             }
         }
