@@ -283,7 +283,10 @@ fn rule_count_grows_with_repeat() {
     let mut g = with_complex(sym);
     let before = total_rules(&g);
     g.normalize();
-    assert!(total_rules(&g) > before, "repeat should add auxiliary rules");
+    assert!(
+        total_rules(&g) > before,
+        "repeat should add auxiliary rules"
+    );
 }
 
 #[test]
@@ -295,7 +298,10 @@ fn rule_count_grows_with_choice() {
     let mut g = with_complex(sym);
     let before = total_rules(&g);
     g.normalize();
-    assert!(total_rules(&g) > before, "choice should add auxiliary rules");
+    assert!(
+        total_rules(&g) > before,
+        "choice should add auxiliary rules"
+    );
 }
 
 #[test]
@@ -621,7 +627,10 @@ fn complex_sequence_of_three() {
     // Sequence flattens: root → A, A, B, A (original A + 3 from seq)
     let root_id = g.find_symbol_by_name("root").unwrap();
     let rhs_len = g.rules[&root_id][0].rhs.len();
-    assert!(rhs_len >= 4, "flattened sequence should be long, got {rhs_len}");
+    assert!(
+        rhs_len >= 4,
+        "flattened sequence should be long, got {rhs_len}"
+    );
 }
 
 #[test]

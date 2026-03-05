@@ -81,8 +81,6 @@ fn assert_follow_contains(ff: &FirstFollowSets, sym: SymbolId, expected: &[Symbo
     }
 }
 
-
-
 // ---------------------------------------------------------------------------
 // Symbol ID constants — terminals low, non-terminals high
 // ---------------------------------------------------------------------------
@@ -109,7 +107,6 @@ const NT_D: SymbolId = SymbolId(34);
 const NT_E: SymbolId = SymbolId(35);
 const NT_T: SymbolId = SymbolId(36);
 const NT_F: SymbolId = SymbolId(37);
-
 
 // =========================================================================
 // 1. FIRST — single terminal production
@@ -632,8 +629,14 @@ fn determinism_first_sets() {
     let ff1 = FirstFollowSets::compute(&build()).unwrap();
     let ff2 = FirstFollowSets::compute(&build()).unwrap();
 
-    assert_eq!(bitset_ids(ff1.first(NT_S).unwrap()), bitset_ids(ff2.first(NT_S).unwrap()));
-    assert_eq!(bitset_ids(ff1.first(NT_A).unwrap()), bitset_ids(ff2.first(NT_A).unwrap()));
+    assert_eq!(
+        bitset_ids(ff1.first(NT_S).unwrap()),
+        bitset_ids(ff2.first(NT_S).unwrap())
+    );
+    assert_eq!(
+        bitset_ids(ff1.first(NT_A).unwrap()),
+        bitset_ids(ff2.first(NT_A).unwrap())
+    );
 }
 
 // =========================================================================
@@ -663,8 +666,14 @@ fn determinism_follow_sets() {
     let ff1 = FirstFollowSets::compute(&build()).unwrap();
     let ff2 = FirstFollowSets::compute(&build()).unwrap();
 
-    assert_eq!(bitset_ids(ff1.follow(NT_S).unwrap()), bitset_ids(ff2.follow(NT_S).unwrap()));
-    assert_eq!(bitset_ids(ff1.follow(NT_A).unwrap()), bitset_ids(ff2.follow(NT_A).unwrap()));
+    assert_eq!(
+        bitset_ids(ff1.follow(NT_S).unwrap()),
+        bitset_ids(ff2.follow(NT_S).unwrap())
+    );
+    assert_eq!(
+        bitset_ids(ff1.follow(NT_A).unwrap()),
+        bitset_ids(ff2.follow(NT_A).unwrap())
+    );
 }
 
 // =========================================================================
@@ -1152,11 +1161,7 @@ fn edge_duplicate_terminal_in_alternatives() {
         NT_S,
         vec![
             rule(NT_S, vec![Symbol::Terminal(T_A)], 0),
-            rule(
-                NT_S,
-                vec![Symbol::Terminal(T_A), Symbol::Terminal(T_B)],
-                1,
-            ),
+            rule(NT_S, vec![Symbol::Terminal(T_A), Symbol::Terminal(T_B)], 1),
         ],
     );
 
@@ -1888,10 +1893,22 @@ fn determinism_stable_iterations() {
     let ff3 = FirstFollowSets::compute(&g).unwrap();
 
     for sym in [NT_S, NT_A, NT_B] {
-        assert_eq!(bitset_ids(ff1.first(sym).unwrap()), bitset_ids(ff2.first(sym).unwrap()));
-        assert_eq!(bitset_ids(ff2.first(sym).unwrap()), bitset_ids(ff3.first(sym).unwrap()));
-        assert_eq!(bitset_ids(ff1.follow(sym).unwrap()), bitset_ids(ff2.follow(sym).unwrap()));
-        assert_eq!(bitset_ids(ff2.follow(sym).unwrap()), bitset_ids(ff3.follow(sym).unwrap()));
+        assert_eq!(
+            bitset_ids(ff1.first(sym).unwrap()),
+            bitset_ids(ff2.first(sym).unwrap())
+        );
+        assert_eq!(
+            bitset_ids(ff2.first(sym).unwrap()),
+            bitset_ids(ff3.first(sym).unwrap())
+        );
+        assert_eq!(
+            bitset_ids(ff1.follow(sym).unwrap()),
+            bitset_ids(ff2.follow(sym).unwrap())
+        );
+        assert_eq!(
+            bitset_ids(ff2.follow(sym).unwrap()),
+            bitset_ids(ff3.follow(sym).unwrap())
+        );
     }
 }
 
