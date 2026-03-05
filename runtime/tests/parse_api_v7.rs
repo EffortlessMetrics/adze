@@ -11,7 +11,10 @@
 //! 8. Integration (8 tests)
 
 use adze::arena_allocator::{TreeArena, TreeNode};
-use adze::error_recovery::{ErrorNode, ErrorRecoveryConfig, ErrorRecoveryState, RecoveryStrategy};
+use adze::error_recovery::{
+    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
+    RecoveryStrategy,
+};
 use adze::visitor::{
     BreadthFirstWalker, PrettyPrintVisitor, SearchVisitor, StatsVisitor, TreeWalker, VisitorAction,
 };
@@ -154,7 +157,9 @@ fn error_recovery_state_push_scope() {
 
 #[test]
 fn error_recovery_state_pop_scope() {
-    let config = ErrorRecoveryConfig::default();
+    let config = ErrorRecoveryConfigBuilder::new()
+        .add_scope_delimiter(10, 11)
+        .build();
     let mut state = ErrorRecoveryState::new(config);
     state.push_scope(10);
     let popped = state.pop_scope_test();
@@ -163,7 +168,10 @@ fn error_recovery_state_pop_scope() {
 
 #[test]
 fn error_recovery_state_multiple_scopes() {
-    let config = ErrorRecoveryConfig::default();
+    let config = ErrorRecoveryConfigBuilder::new()
+        .add_scope_delimiter(10, 11)
+        .add_scope_delimiter(20, 21)
+        .build();
     let mut state = ErrorRecoveryState::new(config);
     state.push_scope(10);
     state.push_scope(20);
