@@ -5,10 +5,10 @@
 //!
 //! Run with: cargo test -p adze-glr-core --test conflict_resolution_v5 -- --test-threads=2
 
-use adze_glr_core::conflict_inspection::{count_conflicts, ConflictType};
+use adze_glr_core::conflict_inspection::{ConflictType, count_conflicts};
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use adze_ir::builder::GrammarBuilder;
 use adze_ir::Associativity;
+use adze_ir::builder::GrammarBuilder;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,7 +47,10 @@ fn has_shift_reduce(table: &adze_glr_core::ParseTable) -> bool {
 fn has_reduce_reduce(table: &adze_glr_core::ParseTable) -> bool {
     for state in &table.action_table {
         for cell in state {
-            let reduce_count = cell.iter().filter(|a| matches!(a, Action::Reduce(_))).count();
+            let reduce_count = cell
+                .iter()
+                .filter(|a| matches!(a, Action::Reduce(_)))
+                .count();
             if reduce_count > 1 {
                 return true;
             }
@@ -72,10 +75,10 @@ fn has_fork_action(table: &adze_glr_core::ParseTable) -> bool {
 
 /// True if at least one cell contains Accept.
 fn has_accept(table: &adze_glr_core::ParseTable) -> bool {
-    table
-        .action_table
-        .iter()
-        .any(|row| row.iter().any(|cell| cell.iter().any(|a| matches!(a, Action::Accept))))
+    table.action_table.iter().any(|row| {
+        row.iter()
+            .any(|cell| cell.iter().any(|a| matches!(a, Action::Accept)))
+    })
 }
 
 /// Count total number of actions across the entire table.
@@ -169,7 +172,10 @@ fn sr_dangling_else_detected() {
         .start("stmt")
         .build();
     let table = build_table(&g).unwrap();
-    assert!(has_shift_reduce(&table), "dangling-else must produce S/R conflict");
+    assert!(
+        has_shift_reduce(&table),
+        "dangling-else must produce S/R conflict"
+    );
 }
 
 #[test]
@@ -205,7 +211,10 @@ fn sr_conflict_detail_actions_contain_shift_and_reduce() {
     for detail in &summary.conflict_details {
         if detail.conflict_type == ConflictType::ShiftReduce {
             let has_s = detail.actions.iter().any(|a| matches!(a, Action::Shift(_)));
-            let has_r = detail.actions.iter().any(|a| matches!(a, Action::Reduce(_)));
+            let has_r = detail
+                .actions
+                .iter()
+                .any(|a| matches!(a, Action::Reduce(_)));
             assert!(has_s, "S/R detail must include Shift");
             assert!(has_r, "S/R detail must include Reduce");
         }
@@ -335,7 +344,10 @@ fn prec_higher_wins_over_lower() {
         .build();
     let table = build_table(&g).unwrap();
     let summary = count_conflicts(&table);
-    assert_eq!(summary.shift_reduce, 0, "precedence levels should resolve all S/R");
+    assert_eq!(
+        summary.shift_reduce, 0,
+        "precedence levels should resolve all S/R"
+    );
 }
 
 #[test]
@@ -385,7 +397,10 @@ fn prec_mixed_assoc_same_level() {
         .build();
     let table = build_table(&g).unwrap();
     let summary = count_conflicts(&table);
-    assert_eq!(summary.shift_reduce, 0, "same level left-assoc resolves all S/R");
+    assert_eq!(
+        summary.shift_reduce, 0,
+        "same level left-assoc resolves all S/R"
+    );
 }
 
 #[test]
@@ -492,7 +507,10 @@ fn fork_not_generated_when_prec_resolves() {
         .start("expr")
         .build();
     let table = build_table(&g).unwrap();
-    assert!(!has_fork_action(&table), "fully resolved grammar should not have Fork actions");
+    assert!(
+        !has_fork_action(&table),
+        "fully resolved grammar should not have Fork actions"
+    );
     assert_eq!(count_fork_cells(&table), 0);
 }
 
@@ -550,7 +568,10 @@ fn conflict_free_has_accept_action() {
         .start("start_sym")
         .build();
     let table = build_table(&g).unwrap();
-    assert!(has_accept(&table), "every valid grammar should produce Accept");
+    assert!(
+        has_accept(&table),
+        "every valid grammar should produce Accept"
+    );
 }
 
 #[test]
@@ -627,7 +648,11 @@ fn conflict_free_fully_annotated_two_ops() {
         .start("expr")
         .build();
     let table = build_table(&g).unwrap();
-    assert_eq!(count_fork_cells(&table), 0, "fully annotated → deterministic");
+    assert_eq!(
+        count_fork_cells(&table),
+        0,
+        "fully annotated → deterministic"
+    );
 }
 
 #[test]
@@ -1122,7 +1147,10 @@ fn precedence_does_not_affect_accept() {
         .start("expr")
         .build();
     let table = build_table(&g).unwrap();
-    assert!(has_accept(&table), "precedence resolution must not remove Accept");
+    assert!(
+        has_accept(&table),
+        "precedence resolution must not remove Accept"
+    );
 }
 
 #[test]

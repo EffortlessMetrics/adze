@@ -4,12 +4,12 @@
 //! symbol preservation, state counts, token/non-terminal separation, and edge cases
 //! across `AbiLanguageBuilder`, `StaticLanguageGenerator`, and `NodeTypesGenerator`.
 
-use adze_glr_core::{build_lr1_automaton, FirstFollowSets};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_tablegen::abi::{
-    self, create_symbol_metadata, ExternalScanner, TSFieldId, TSLanguage, TSLexState,
-    TSParseAction, TSStateId, TSSymbol, TREE_SITTER_LANGUAGE_VERSION,
-    TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
+    self, ExternalScanner, TREE_SITTER_LANGUAGE_VERSION,
+    TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION, TSFieldId, TSLanguage, TSLexState, TSParseAction,
+    TSStateId, TSSymbol, create_symbol_metadata,
 };
 use adze_tablegen::{AbiLanguageBuilder, NodeTypesGenerator, StaticLanguageGenerator};
 
@@ -162,7 +162,10 @@ fn abi_builder_generate_contains_tslanguage() {
     let (grammar, table) = build_pipeline(single_token_grammar);
     let builder = AbiLanguageBuilder::new(&grammar, &table);
     let code = builder.generate().to_string();
-    assert!(code.contains("TSLanguage"), "output must contain TSLanguage struct reference");
+    assert!(
+        code.contains("TSLanguage"),
+        "output must contain TSLanguage struct reference"
+    );
 }
 
 #[test]
@@ -181,7 +184,10 @@ fn static_gen_code_contains_language() {
     let (grammar, table) = build_pipeline(single_token_grammar);
     let ntg = StaticLanguageGenerator::new(grammar, table);
     let code = ntg.generate_language_code().to_string();
-    assert!(code.contains("language"), "StaticLanguageGenerator output must mention 'language'");
+    assert!(
+        code.contains("language"),
+        "StaticLanguageGenerator output must mention 'language'"
+    );
 }
 
 #[test]
@@ -190,7 +196,10 @@ fn static_gen_code_nonempty_for_expression() {
     let ntg = StaticLanguageGenerator::new(grammar, table);
     let code = ntg.generate_language_code().to_string();
     assert!(!code.is_empty());
-    assert!(code.len() > 100, "expression grammar should produce substantial code");
+    assert!(
+        code.len() > 100,
+        "expression grammar should produce substantial code"
+    );
 }
 
 #[test]
@@ -198,7 +207,10 @@ fn abi_builder_code_references_version_15() {
     let (grammar, table) = build_pipeline(two_token_grammar);
     let builder = AbiLanguageBuilder::new(&grammar, &table);
     let code = builder.generate().to_string();
-    assert!(code.contains("15"), "generated code should embed ABI version 15");
+    assert!(
+        code.contains("15"),
+        "generated code should embed ABI version 15"
+    );
 }
 
 #[test]
@@ -366,7 +378,10 @@ fn static_gen_preserves_rule_name_in_node_types() {
     let json_str = StaticLanguageGenerator::new(grammar, table).generate_node_types();
     // StaticLanguageGenerator uses "rule_{id}" format for rule names
     let has_rule_ref = json_str.contains("rule_");
-    assert!(has_rule_ref, "rule references should be in node types output");
+    assert!(
+        has_rule_ref,
+        "rule references should be in node types output"
+    );
 }
 
 #[test]
@@ -375,7 +390,8 @@ fn node_types_gen_preserves_rule_names_chain() {
     let ntg = NodeTypesGenerator::new(&grammar);
     let json_str = ntg.generate().expect("generate should succeed");
     // Chain grammar has inner, mid, start rules
-    let has_names = json_str.contains("start") || json_str.contains("inner") || json_str.contains("mid");
+    let has_names =
+        json_str.contains("start") || json_str.contains("inner") || json_str.contains("mid");
     assert!(has_names, "rule names should appear in node types");
 }
 
@@ -438,7 +454,10 @@ fn abi_builder_state_count_in_code_expression() {
 #[test]
 fn static_gen_state_count_positive_single() {
     let (_grammar, table) = build_pipeline(single_token_grammar);
-    assert!(table.state_count > 0, "parse table must have at least one state");
+    assert!(
+        table.state_count > 0,
+        "parse table must have at least one state"
+    );
 }
 
 #[test]
@@ -512,7 +531,8 @@ fn abi_builder_output_has_metadata() {
     let (grammar, table) = build_pipeline(alternatives_grammar);
     let builder = AbiLanguageBuilder::new(&grammar, &table);
     let code = builder.generate().to_string();
-    let has_meta = code.contains("metadata") || code.contains("METADATA") || code.contains("symbol_metadata");
+    let has_meta =
+        code.contains("metadata") || code.contains("METADATA") || code.contains("symbol_metadata");
     assert!(has_meta, "generated code must include symbol metadata");
 }
 
@@ -522,7 +542,10 @@ fn abi_builder_output_differentiates_grammars() {
     let (g2, t2) = build_pipeline(expression_grammar);
     let code1 = AbiLanguageBuilder::new(&g1, &t1).generate().to_string();
     let code2 = AbiLanguageBuilder::new(&g2, &t2).generate().to_string();
-    assert_ne!(code1, code2, "different grammars must produce different code");
+    assert_ne!(
+        code1, code2,
+        "different grammars must produce different code"
+    );
 }
 
 #[test]
@@ -531,7 +554,10 @@ fn static_gen_different_grammars_different_node_types() {
     let (g2, t2) = build_pipeline(statement_grammar);
     let n1 = StaticLanguageGenerator::new(g1, t1).generate_node_types();
     let n2 = StaticLanguageGenerator::new(g2, t2).generate_node_types();
-    assert_ne!(n1, n2, "different grammars must produce different node types");
+    assert_ne!(
+        n1, n2,
+        "different grammars must produce different node types"
+    );
 }
 
 #[test]
@@ -560,7 +586,10 @@ fn static_gen_single_rule_node_types() {
     let (grammar, table) = build_pipeline(single_token_grammar);
     let json_str = StaticLanguageGenerator::new(grammar, table).generate_node_types();
     let arr: Vec<serde_json::Value> = serde_json::from_str(&json_str).expect("valid JSON");
-    assert!(!arr.is_empty(), "single rule grammar should produce node types");
+    assert!(
+        !arr.is_empty(),
+        "single rule grammar should produce node types"
+    );
 }
 
 #[test]
@@ -577,7 +606,10 @@ fn abi_builder_many_symbols_20() {
     let (grammar, table) = build_pipeline(|| many_symbols_grammar(20));
     let builder = AbiLanguageBuilder::new(&grammar, &table);
     let code = builder.generate().to_string();
-    assert!(code.len() > 500, "20-symbol grammar should produce large code");
+    assert!(
+        code.len() > 500,
+        "20-symbol grammar should produce large code"
+    );
 }
 
 #[test]
@@ -585,7 +617,10 @@ fn static_gen_many_symbols_node_types_valid() {
     let (grammar, table) = build_pipeline(|| many_symbols_grammar(15));
     let json_str = StaticLanguageGenerator::new(grammar, table).generate_node_types();
     let arr: Vec<serde_json::Value> = serde_json::from_str(&json_str).expect("valid JSON");
-    assert!(arr.len() >= 5, "many symbols should produce multiple node type entries");
+    assert!(
+        arr.len() >= 5,
+        "many symbols should produce multiple node type entries"
+    );
 }
 
 #[test]
@@ -602,7 +637,10 @@ fn abi_builder_deterministic_single() {
     let (g2, t2) = build_pipeline(single_token_grammar);
     let c1 = AbiLanguageBuilder::new(&g1, &t1).generate().to_string();
     let c2 = AbiLanguageBuilder::new(&g2, &t2).generate().to_string();
-    assert_eq!(c1, c2, "same grammar must produce identical ABI builder output");
+    assert_eq!(
+        c1, c2,
+        "same grammar must produce identical ABI builder output"
+    );
 }
 
 #[test]
@@ -618,8 +656,14 @@ fn abi_builder_deterministic_expression() {
 fn abi_builder_scales_with_grammar_size() {
     let (g1, t1) = build_pipeline(single_token_grammar);
     let (g2, t2) = build_pipeline(expression_grammar);
-    let len1 = AbiLanguageBuilder::new(&g1, &t1).generate().to_string().len();
-    let len2 = AbiLanguageBuilder::new(&g2, &t2).generate().to_string().len();
+    let len1 = AbiLanguageBuilder::new(&g1, &t1)
+        .generate()
+        .to_string()
+        .len();
+    let len2 = AbiLanguageBuilder::new(&g2, &t2)
+        .generate()
+        .to_string()
+        .len();
     assert!(
         len2 > len1,
         "expression grammar ({len2}) should produce more code than single ({len1})"
@@ -629,11 +673,16 @@ fn abi_builder_scales_with_grammar_size() {
 #[test]
 fn symbol_metadata_flags_roundtrip() {
     let meta = create_symbol_metadata(true, true, false, false, false);
-    assert_eq!(meta, abi::symbol_metadata::VISIBLE | abi::symbol_metadata::NAMED);
+    assert_eq!(
+        meta,
+        abi::symbol_metadata::VISIBLE | abi::symbol_metadata::NAMED
+    );
     let meta2 = create_symbol_metadata(false, false, true, true, true);
     assert_eq!(
         meta2,
-        abi::symbol_metadata::HIDDEN | abi::symbol_metadata::AUXILIARY | abi::symbol_metadata::SUPERTYPE
+        abi::symbol_metadata::HIDDEN
+            | abi::symbol_metadata::AUXILIARY
+            | abi::symbol_metadata::SUPERTYPE
     );
 }
 

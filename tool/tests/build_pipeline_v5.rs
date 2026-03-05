@@ -467,8 +467,14 @@ fn v5_stats_consistent_across_compress_modes() {
     let (_d2, o2) = tmp_opts_no_compress();
     let r_comp = build_parser(single_token_grammar(), o1).unwrap();
     let r_nocomp = build_parser(single_token_grammar(), o2).unwrap();
-    assert_eq!(r_comp.build_stats.state_count, r_nocomp.build_stats.state_count);
-    assert_eq!(r_comp.build_stats.symbol_count, r_nocomp.build_stats.symbol_count);
+    assert_eq!(
+        r_comp.build_stats.state_count,
+        r_nocomp.build_stats.state_count
+    );
+    assert_eq!(
+        r_comp.build_stats.symbol_count,
+        r_nocomp.build_stats.symbol_count
+    );
 }
 
 #[test]

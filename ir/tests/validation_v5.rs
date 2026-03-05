@@ -16,9 +16,7 @@ use adze_ir::{Associativity, Grammar};
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn validator_result(
-    grammar: &Grammar,
-) -> adze_ir::validation::ValidationResult {
+fn validator_result(grammar: &Grammar) -> adze_ir::validation::ValidationResult {
     let mut v = GrammarValidator::new();
     v.validate(grammar)
 }
@@ -271,8 +269,7 @@ fn test_multiple_undefined_symbols_detected() {
     let r = validator_result(&g);
     let grammar_result = g.validate();
     assert!(
-        grammar_result.is_err()
-            || !r.errors.is_empty(),
+        grammar_result.is_err() || !r.errors.is_empty(),
         "should detect multiple undefined symbols"
     );
 }
@@ -289,7 +286,10 @@ fn test_unreachable_rule_produces_warning() {
     let r = validator_result(&g);
     assert!(
         has_warning(&r, |w| matches!(w, ValidationWarning::UnusedToken { .. }))
-            || has_error(&r, |e| matches!(e, ValidationError::UnreachableSymbol { .. }))
+            || has_error(&r, |e| matches!(
+                e,
+                ValidationError::UnreachableSymbol { .. }
+            ))
             || r.warnings.iter().any(|w| {
                 let msg = format!("{w}");
                 msg.contains("orphan") || msg.contains("unreachable")
@@ -381,8 +381,7 @@ fn test_non_productive_symbol_detected() {
     assert!(
         has_error(&r, |e| matches!(
             e,
-            ValidationError::NonProductiveSymbol { .. }
-                | ValidationError::CyclicRule { .. }
+            ValidationError::NonProductiveSymbol { .. } | ValidationError::CyclicRule { .. }
         )),
         "non-productive / cyclic symbol should be caught: {:?}",
         r.errors
@@ -399,8 +398,7 @@ fn test_cycle_detection_direct() {
     assert!(
         has_error(&r, |e| matches!(
             e,
-            ValidationError::CyclicRule { .. }
-                | ValidationError::NonProductiveSymbol { .. }
+            ValidationError::CyclicRule { .. } | ValidationError::NonProductiveSymbol { .. }
         )),
         "direct self-cycle should be detected"
     );
@@ -417,8 +415,7 @@ fn test_cycle_detection_mutual() {
     assert!(
         has_error(&r, |e| matches!(
             e,
-            ValidationError::CyclicRule { .. }
-                | ValidationError::NonProductiveSymbol { .. }
+            ValidationError::CyclicRule { .. } | ValidationError::NonProductiveSymbol { .. }
         )),
         "mutual cycle should be detected"
     );
@@ -436,8 +433,7 @@ fn test_cycle_detection_three_nodes() {
     assert!(
         has_error(&r, |e| matches!(
             e,
-            ValidationError::CyclicRule { .. }
-                | ValidationError::NonProductiveSymbol { .. }
+            ValidationError::CyclicRule { .. } | ValidationError::NonProductiveSymbol { .. }
         )),
         "three-node cycle should be detected"
     );
@@ -479,7 +475,11 @@ fn test_normalize_then_grammar_validate_still_ok() {
     g.normalize();
     // Grammar.validate() should still pass after normalization.
     let result = g.validate();
-    assert!(result.is_ok(), "grammar.validate() after normalize: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "grammar.validate() after normalize: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -507,7 +507,11 @@ fn test_normalize_preserves_tokens() {
         .build();
     let token_count_before = g.tokens.len();
     g.normalize();
-    assert_eq!(g.tokens.len(), token_count_before, "normalize should not alter tokens");
+    assert_eq!(
+        g.tokens.len(),
+        token_count_before,
+        "normalize should not alter tokens"
+    );
 }
 
 #[test]
@@ -523,7 +527,10 @@ fn test_normalize_arithmetic_still_validates() {
         .start("expr")
         .build();
     g.normalize();
-    assert!(g.validate().is_ok(), "arithmetic after normalize should validate");
+    assert!(
+        g.validate().is_ok(),
+        "arithmetic after normalize should validate"
+    );
 }
 
 #[test]
@@ -540,7 +547,10 @@ fn test_normalize_json_like_still_validates() {
         .start("value")
         .build();
     g.normalize();
-    assert!(g.validate().is_ok(), "json-like after normalize should validate");
+    assert!(
+        g.validate().is_ok(),
+        "json-like after normalize should validate"
+    );
 }
 
 #[test]
@@ -553,7 +563,10 @@ fn test_normalize_does_not_remove_rules() {
         .build();
     let rule_count_before = g.rules.len();
     g.normalize();
-    assert!(g.rules.len() >= rule_count_before, "normalize may add rules but should not remove them");
+    assert!(
+        g.rules.len() >= rule_count_before,
+        "normalize may add rules but should not remove them"
+    );
 }
 
 // ===========================================================================
@@ -570,7 +583,11 @@ fn test_optimize_then_grammar_validate_still_ok() {
         .start("expr")
         .build();
     g.optimize();
-    assert!(g.validate().is_ok(), "grammar.validate() after optimize: {:?}", g.validate());
+    assert!(
+        g.validate().is_ok(),
+        "grammar.validate() after optimize: {:?}",
+        g.validate()
+    );
 }
 
 #[test]
@@ -606,7 +623,11 @@ fn test_optimize_preserves_start_symbol() {
         .build();
     let start_before = g.start_symbol();
     g.optimize();
-    assert_eq!(g.start_symbol(), start_before, "optimize should preserve start");
+    assert_eq!(
+        g.start_symbol(),
+        start_before,
+        "optimize should preserve start"
+    );
 }
 
 #[test]
@@ -618,7 +639,10 @@ fn test_optimize_then_normalize_still_validates() {
         .build();
     g.optimize();
     g.normalize();
-    assert!(g.validate().is_ok(), "optimize then normalize should still validate");
+    assert!(
+        g.validate().is_ok(),
+        "optimize then normalize should still validate"
+    );
 }
 
 #[test]
@@ -630,7 +654,10 @@ fn test_normalize_then_optimize_still_validates() {
         .build();
     g.normalize();
     g.optimize();
-    assert!(g.validate().is_ok(), "normalize then optimize should still validate");
+    assert!(
+        g.validate().is_ok(),
+        "normalize then optimize should still validate"
+    );
 }
 
 // ===========================================================================
@@ -641,7 +668,11 @@ fn test_normalize_then_optimize_still_validates() {
 fn test_edge_single_rule_single_token() {
     let g = minimal_grammar();
     let r = validator_result(&g);
-    assert!(r.errors.is_empty(), "minimal grammar should validate: {:?}", r.errors);
+    assert!(
+        r.errors.is_empty(),
+        "minimal grammar should validate: {:?}",
+        r.errors
+    );
 }
 
 #[test]
@@ -671,7 +702,11 @@ fn test_edge_many_tokens() {
     b = b.start("root");
     let g = b.build();
     let r = validator_result(&g);
-    assert!(r.errors.is_empty(), "many-token grammar should validate: {:?}", r.errors);
+    assert!(
+        r.errors.is_empty(),
+        "many-token grammar should validate: {:?}",
+        r.errors
+    );
     assert_eq!(r.stats.total_tokens, 50);
 }
 
@@ -692,7 +727,11 @@ fn test_edge_deeply_nested_chain() {
     b = b.start("level_0");
     let g = b.build();
     let r = validator_result(&g);
-    assert!(r.errors.is_empty(), "deep chain should validate: {:?}", r.errors);
+    assert!(
+        r.errors.is_empty(),
+        "deep chain should validate: {:?}",
+        r.errors
+    );
 }
 
 #[test]
@@ -705,7 +744,10 @@ fn test_edge_grammar_validate_method() {
 fn test_edge_default_grammar_is_empty() {
     let g = Grammar::default();
     let r = validator_result(&g);
-    assert!(has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 #[test]
@@ -744,7 +786,11 @@ fn test_edge_multiple_alternatives_same_lhs() {
         .start("root")
         .build();
     let r = validator_result(&g);
-    assert!(r.errors.is_empty(), "alternatives should validate: {:?}", r.errors);
+    assert!(
+        r.errors.is_empty(),
+        "alternatives should validate: {:?}",
+        r.errors
+    );
     assert!(r.stats.total_rules >= 3);
 }
 
@@ -789,7 +835,10 @@ fn test_registry_contains_nonterminals() {
         .build();
     let reg = g.get_or_build_registry();
     assert!(reg.get_id("root").is_some(), "registry should contain root");
-    assert!(reg.get_id("child").is_some(), "registry should contain child");
+    assert!(
+        reg.get_id("child").is_some(),
+        "registry should contain child"
+    );
 }
 
 #[test]
@@ -805,7 +854,10 @@ fn test_registry_deterministic_across_calls() {
     };
     let r1 = build();
     let r2 = build();
-    assert_eq!(r1, r2, "registry should be deterministic across identical builds");
+    assert_eq!(
+        r1, r2,
+        "registry should be deterministic across identical builds"
+    );
 }
 
 #[test]
@@ -987,5 +1039,10 @@ fn test_grammar_with_multiple_issues() {
     let r = validator_result(&g);
     // Should report multiple problems.
     let total = r.errors.len() + r.warnings.len();
-    assert!(total >= 2, "should find multiple issues: errors={:?}, warnings={:?}", r.errors, r.warnings);
+    assert!(
+        total >= 2,
+        "should find multiple issues: errors={:?}, warnings={:?}",
+        r.errors,
+        r.warnings
+    );
 }

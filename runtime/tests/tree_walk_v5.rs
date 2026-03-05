@@ -303,10 +303,7 @@ fn search_single_match() {
 #[test]
 fn search_multiple_matches_all_found() {
     let src = b"abcdef";
-    let root = interior(
-        5,
-        vec![leaf(1, 0, 2), leaf(1, 2, 4), leaf(1, 4, 6)],
-    );
+    let root = interior(5, vec![leaf(1, 0, 2), leaf(1, 2, 4), leaf(1, 4, 6)]);
     let mut sv = SearchVisitor::new(|n: &ParsedNode| n.symbol == 1);
     TreeWalker::new(src).walk(&root, &mut sv);
     assert_eq!(sv.matches.len(), 3);
@@ -333,10 +330,7 @@ fn search_always_true_finds_all_entered() {
 #[test]
 fn search_by_byte_range() {
     let src = b"abcdef";
-    let root = interior(
-        5,
-        vec![leaf(1, 0, 2), leaf(2, 2, 4), leaf(3, 4, 6)],
-    );
+    let root = interior(5, vec![leaf(1, 0, 2), leaf(2, 2, 4), leaf(3, 4, 6)]);
     let mut sv = SearchVisitor::new(|n: &ParsedNode| n.start_byte >= 2 && n.end_byte <= 4);
     TreeWalker::new(src).walk(&root, &mut sv);
     assert_eq!(sv.matches.len(), 1);
@@ -426,7 +420,14 @@ fn dfs_bfs_same_error_count() {
 #[test]
 fn dfs_bfs_search_same_result_count() {
     let src = b"aaa";
-    let root = interior(5, vec![leaf(1, 0, 1), interior(2, vec![leaf(1, 1, 2)]), leaf(1, 2, 3)]);
+    let root = interior(
+        5,
+        vec![
+            leaf(1, 0, 1),
+            interior(2, vec![leaf(1, 1, 2)]),
+            leaf(1, 2, 3),
+        ],
+    );
     let mut dfs_sv = SearchVisitor::new(|n: &ParsedNode| n.symbol == 1);
     TreeWalker::new(src).walk(&root, &mut dfs_sv);
     let mut bfs_sv = SearchVisitor::new(|n: &ParsedNode| n.symbol == 1);

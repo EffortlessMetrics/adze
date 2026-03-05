@@ -353,7 +353,9 @@ fn param_unit_not_parameterized() {
 
 #[test]
 fn edge_all_numeric_primitives_not_parameterized() {
-    for name in &["i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128"] {
+    for name in &[
+        "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128",
+    ] {
         let ty = syn::parse_str::<Type>(name).unwrap();
         assert!(!is_parameterized(&ty), "{name} should not be parameterized");
     }
