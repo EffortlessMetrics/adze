@@ -310,7 +310,7 @@ fn test_handle_debug_format() {
 
 #[test]
 fn test_handle_new_roundtrip() {
-    let h = NodeHandle::new(3, 7);
+    let _h = NodeHandle::new(3, 7);
     // Verify through arena with matching layout
     let mut arena = TreeArena::with_capacity(1);
     // Fill chunks 0..3 with dummy nodes
