@@ -40,6 +40,7 @@ fn unique_tokens(max_len: usize) -> impl Strategy<Value = Vec<(String, String)>>
 }
 
 /// Exactly `n` unique token pairs (retried until we get `n` distinct names).
+#[allow(dead_code)]
 fn exact_tokens(n: usize) -> impl Strategy<Value = Vec<(String, String)>> {
     prop::collection::vec((alpha_name(), safe_pattern()), n..=n + 10).prop_map(move |pairs| {
         let mut seen = std::collections::HashSet::new();
