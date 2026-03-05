@@ -18,6 +18,7 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
+adze-bdd-runtime-fixtures-core = { version = "0.1.0", path = "../bdd-runtime-fixtures-core" }
 adze-bdd-grammar-analysis-core = { version = "0.1.0", path = "../bdd-grammar-analysis-core" }
 adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
 adze-ir = { version = "0.8.0-dev", path = "../../ir" }
