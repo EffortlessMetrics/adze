@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"skip: found={found_skip} inner={via_skip} | manual: found={found_manual} inner={}\",\nfmt(&s2))"
+---
+skip: found=true inner=u16 | manual: found=true inner=u16

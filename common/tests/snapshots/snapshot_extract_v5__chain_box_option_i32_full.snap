@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"step1: found={f1} ty={} | step2: found={f2} ty={}\", fmt(&step1),\nfmt(&step2))"
+---
+step1: found=true ty=Option < i32 > | step2: found=true ty=i32

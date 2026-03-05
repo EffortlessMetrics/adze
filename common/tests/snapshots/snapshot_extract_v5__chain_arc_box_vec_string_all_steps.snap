@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"f1={f1} s1={} | f2={f2} s2={} | f3={f3} s3={}\", fmt(&s1), fmt(&s2),\nfmt(&s3))"
+---
+f1=true s1=Box < Vec < String > > | f2=true s2=Vec < String > | f3=true s3=String

@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"step1: found={found} inner={inner}\")"
+---
+step1: found=true inner=Vec < String >
