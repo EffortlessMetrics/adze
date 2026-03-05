@@ -156,14 +156,9 @@ fn many_tok_06_token_with_regex_pattern() {
 
 #[test]
 fn many_tok_07_token_with_string_literal_pattern() {
-    let g = GrammarBuilder::new("t")
-        .token("kw_if", "if")
-        .build();
+    let g = GrammarBuilder::new("t").token("kw_if", "if").build();
     let tok = g.tokens.values().next().unwrap();
-    assert_eq!(
-        tok.pattern,
-        adze_ir::TokenPattern::String("if".to_string())
-    );
+    assert_eq!(tok.pattern, adze_ir::TokenPattern::String("if".to_string()));
 }
 
 #[test]
@@ -177,9 +172,7 @@ fn many_tok_08_fragile_token_flag() {
 
 #[test]
 fn many_tok_09_normal_token_not_fragile() {
-    let g = GrammarBuilder::new("t")
-        .token("OK", "ok")
-        .build();
+    let g = GrammarBuilder::new("t").token("OK", "ok").build();
     let tok = g.tokens.values().next().unwrap();
     assert!(!tok.fragile);
 }
@@ -304,7 +297,7 @@ fn multi_alt_09_left_and_right_recursion() {
         .token("X", "x")
         .rule("lr", vec!["lr", "X"]) // left recursive
         .rule("lr", vec!["X", "lr"]) // right recursive
-        .rule("lr", vec!["X"])       // base case
+        .rule("lr", vec!["X"]) // base case
         .build();
     let rules = g.rules.values().next().unwrap();
     assert_eq!(rules.len(), 3);
@@ -316,9 +309,7 @@ fn multi_alt_09_left_and_right_recursion() {
 
 #[test]
 fn epsilon_01_empty_vec_produces_epsilon() {
-    let g = GrammarBuilder::new("t")
-        .rule("empty", vec![])
-        .build();
+    let g = GrammarBuilder::new("t").rule("empty", vec![]).build();
     let rules = g.rules.values().next().unwrap();
     assert_eq!(rules[0].rhs.len(), 1);
     assert!(matches!(rules[0].rhs[0], Symbol::Epsilon));
@@ -372,9 +363,11 @@ fn epsilon_05_nullable_start_like_python() {
         .map(|(id, _)| *id)
         .unwrap();
     let rules = &g.rules[&module_id];
-    assert!(rules
-        .iter()
-        .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
+    assert!(
+        rules
+            .iter()
+            .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
+    );
 }
 
 #[test]
@@ -387,16 +380,16 @@ fn epsilon_06_nonnullable_start_like_javascript() {
         .map(|(id, _)| *id)
         .unwrap();
     let rules = &g.rules[&program_id];
-    assert!(!rules
-        .iter()
-        .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon)));
+    assert!(
+        !rules
+            .iter()
+            .any(|r| r.rhs.len() == 1 && matches!(r.rhs[0], Symbol::Epsilon))
+    );
 }
 
 #[test]
 fn epsilon_07_epsilon_lhs_has_name() {
-    let g = GrammarBuilder::new("t")
-        .rule("nullable", vec![])
-        .build();
+    let g = GrammarBuilder::new("t").rule("nullable", vec![]).build();
     let lhs = *g.rules.keys().next().unwrap();
     assert_eq!(g.rule_names[&lhs], "nullable");
 }
@@ -494,7 +487,10 @@ fn long_rhs_05_function_def_pattern() {
         .token("RPAREN", ")")
         .token("COLON", ":")
         .token("pass", "pass")
-        .rule("funcdef", vec!["def", "IDENT", "LPAREN", "RPAREN", "COLON", "pass"])
+        .rule(
+            "funcdef",
+            vec!["def", "IDENT", "LPAREN", "RPAREN", "COLON", "pass"],
+        )
         .build();
     let rules = g.rules.values().next().unwrap();
     assert_eq!(rules[0].rhs.len(), 6);
@@ -540,7 +536,10 @@ fn long_rhs_08_if_else_chain() {
         .token("BODY", r".+")
         .rule(
             "if_stmt",
-            vec!["kw_if", "EXPR", "COLON", "BODY", "kw_elif", "EXPR", "COLON", "BODY", "kw_else", "COLON", "BODY"],
+            vec![
+                "kw_if", "EXPR", "COLON", "BODY", "kw_elif", "EXPR", "COLON", "BODY", "kw_else",
+                "COLON", "BODY",
+            ],
         )
         .build();
     let rules = g.rules.values().next().unwrap();
@@ -698,10 +697,7 @@ fn dup_03_same_rule_added_twice_creates_two_alternatives() {
 
 #[test]
 fn dup_04_duplicate_extra_adds_twice() {
-    let g = GrammarBuilder::new("t")
-        .extra("WS")
-        .extra("WS")
-        .build();
+    let g = GrammarBuilder::new("t").extra("WS").extra("WS").build();
     assert_eq!(g.extras.len(), 2);
 }
 
@@ -793,9 +789,7 @@ fn marker_04_supertype_id_matches_rule_id() {
 
 #[test]
 fn marker_05_external_populates_externals() {
-    let g = GrammarBuilder::new("t")
-        .external("INDENT")
-        .build();
+    let g = GrammarBuilder::new("t").external("INDENT").build();
     assert_eq!(g.externals.len(), 1);
     assert_eq!(g.externals[0].name, "INDENT");
 }
@@ -816,9 +810,7 @@ fn marker_06_multiple_externals() {
 
 #[test]
 fn marker_07_extra_populates_extras() {
-    let g = GrammarBuilder::new("t")
-        .extra("WS")
-        .build();
+    let g = GrammarBuilder::new("t").extra("WS").build();
     assert!(!g.extras.is_empty());
 }
 
@@ -846,9 +838,7 @@ fn marker_09_inline_and_supertype_coexist() {
 
 #[test]
 fn marker_10_external_has_symbol_id() {
-    let g = GrammarBuilder::new("t")
-        .external("SCAN")
-        .build();
+    let g = GrammarBuilder::new("t").external("SCAN").build();
     // External token should have a non-zero symbol id
     assert_ne!(g.externals[0].symbol_id, SymbolId(0));
 }
@@ -879,18 +869,14 @@ fn query_02_find_symbol_by_name_nonexistent_returns_none() {
 #[test]
 fn query_03_find_symbol_by_name_uppercase_token_not_in_rule_names() {
     // All-uppercase names are not added to rule_names by the builder
-    let g = GrammarBuilder::new("t")
-        .token("NUMBER", r"\d+")
-        .build();
+    let g = GrammarBuilder::new("t").token("NUMBER", r"\d+").build();
     assert!(g.find_symbol_by_name("NUMBER").is_none());
 }
 
 #[test]
 fn query_04_find_symbol_by_name_lowercase_token_in_rule_names() {
     // Mixed/lowercase names ARE added to rule_names
-    let g = GrammarBuilder::new("t")
-        .token("kw_if", "if")
-        .build();
+    let g = GrammarBuilder::new("t").token("kw_if", "if").build();
     assert!(g.find_symbol_by_name("kw_if").is_some());
 }
 
