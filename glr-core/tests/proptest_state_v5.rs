@@ -676,7 +676,7 @@ proptest! {
         // For grammars that are not nullable (S → ε), the initial state
         // should not contain Accept on a non-EOF terminal.
         let initial = table.initial_state;
-        for (&sym, _) in &table.symbol_to_index {
+        for &sym in table.symbol_to_index.keys() {
             if sym == table.eof_symbol {
                 continue;
             }
@@ -831,7 +831,7 @@ proptest! {
     /// All symbol indices in symbol_to_index are < symbol_count.
     #[test]
     fn prop_state_bounded_symbol_indices(table in arb_grammar_table()) {
-        for (_, &idx) in &table.symbol_to_index {
+        for &idx in table.symbol_to_index.values() {
             prop_assert!(idx < table.symbol_count);
         }
     }
