@@ -232,6 +232,20 @@ impl GrammarBuilder {
         self
     }
 
+    /// Mark a rule as inline (should not create AST nodes)
+    pub fn inline(mut self, name: &str) -> Self {
+        let id = self.get_or_create_symbol(name);
+        self.inline_rules.push(id);
+        self
+    }
+
+    /// Mark a symbol as a supertype (union type node)
+    pub fn supertype(mut self, name: &str) -> Self {
+        let id = self.get_or_create_symbol(name);
+        self.supertypes.push(id);
+        self
+    }
+
     /// Add an external scanner token
     pub fn external(mut self, name: &str) -> Self {
         let symbol_id = self.get_or_create_symbol(name);
