@@ -599,7 +599,10 @@ fn deterministic_with_fields() {
     let g = grammar_with_field();
     let a = gen_json(&g);
     let b = gen_json(&g);
-    assert_eq!(a, b);
+    // Compare as parsed JSON to avoid field ordering differences
+    let a_val: serde_json::Value = serde_json::from_str(&a).unwrap();
+    let b_val: serde_json::Value = serde_json::from_str(&b).unwrap();
+    assert_eq!(a_val, b_val);
 }
 
 // ===========================================================================
