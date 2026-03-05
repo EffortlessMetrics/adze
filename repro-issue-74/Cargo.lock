@@ -6,13 +6,18 @@ version = 4
 name = "adze"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-concurrency-caps-core",
  "adze-glr-core",
  "adze-ir",
+ "adze-linecol-core",
  "adze-macro",
  "adze-runtime-governance-api",
+ "adze-stack-pool-core",
  "adze-tablegen",
+ "adze-ts-format-core",
  "ahash",
  "anyhow",
+ "getrandom 0.3.4",
  "indexmap",
  "log",
  "once_cell",
@@ -38,19 +43,129 @@ version = "0.1.0"
 name = "adze-common"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-common-syntax-core",
+]
+
+[[package]]
+name = "adze-common-syntax-core"
+version = "0.1.0"
+dependencies = [
  "quote",
  "syn 2.0.117",
 ]
 
 [[package]]
+name = "adze-concurrency-bounded-map-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-plan-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-caps-contract-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-caps-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-caps-contract-core",
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-core",
+ "adze-concurrency-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-env-contract-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-parse-core",
+]
+
+[[package]]
+name = "adze-concurrency-env-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-contract-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-policy-core",
+ "adze-concurrency-init-rayon-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-policy-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-normalize-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-classifier-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-init-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-env-core",
+ "adze-concurrency-init-bootstrap-core",
+ "adze-concurrency-init-rayon-core",
+]
+
+[[package]]
+name = "adze-concurrency-init-rayon-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-init-classifier-core",
+ "rayon",
+]
+
+[[package]]
+name = "adze-concurrency-map-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-bounded-map-core",
+]
+
+[[package]]
+name = "adze-concurrency-normalize-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-parse-core"
+version = "0.1.0"
+
+[[package]]
+name = "adze-concurrency-plan-core"
+version = "0.1.0"
+dependencies = [
+ "adze-concurrency-normalize-core",
+]
+
+[[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
+dependencies = [
+ "adze-parser-backend-core",
+]
 
 [[package]]
 name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
- "adze-glr-versioning",
  "adze-ir",
  "fixedbitset",
  "indexmap",
@@ -61,10 +176,6 @@ dependencies = [
  "thiserror",
  "typed-arena",
 ]
-
-[[package]]
-name = "adze-glr-versioning"
-version = "0.8.0-dev"
 
 [[package]]
 name = "adze-governance-matrix-contract"
@@ -122,6 +233,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-linecol-core"
+version = "0.1.0"
+
+[[package]]
 name = "adze-macro"
 version = "0.8.0-dev"
 dependencies = [
@@ -130,6 +245,10 @@ dependencies = [
  "quote",
  "syn 2.0.117",
 ]
+
+[[package]]
+name = "adze-parser-backend-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-parsetable-metadata"
@@ -161,6 +280,10 @@ version = "0.1.0"
 dependencies = [
  "adze-governance-runtime-core",
 ]
+
+[[package]]
+name = "adze-stack-pool-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-tablegen"
@@ -208,6 +331,14 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-generate",
+]
+
+[[package]]
+name = "adze-ts-format-core"
+version = "0.1.0"
+dependencies = [
+ "adze-glr-core",
+ "serde",
 ]
 
 [[package]]
@@ -602,9 +733,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi",
  "wasip2",
+ "wasm-bindgen",
 ]
 
 [[package]]

@@ -1,0 +1,21 @@
+[package]
+name = "adze-bdd-token-fixtures"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Shared token-pattern and symbol-metadata fixtures for GLR BDD runtime tests."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["bdd", "testing", "fixtures", "parser", "tokens"]
+categories = ["development-tools::testing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-bdd-token-fixtures"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }

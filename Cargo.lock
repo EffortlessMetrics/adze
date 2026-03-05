@@ -111,6 +111,7 @@ name = "adze-bdd-grammar-fixtures"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-grammar-analysis-core",
+ "adze-bdd-token-fixtures",
  "adze-glr-core",
  "adze-ir",
 ]
@@ -132,6 +133,13 @@ version = "0.1.0"
 dependencies = [
  "adze-bdd-governance-fixtures",
  "adze-bdd-grammar-fixtures",
+]
+
+[[package]]
+name = "adze-bdd-token-fixtures"
+version = "0.1.0"
+dependencies = [
+ "adze-ir",
 ]
 
 [[package]]
