@@ -824,6 +824,27 @@ fn code_gen_quote_deterministic() {
     assert_eq!(gen1.to_string(), gen2.to_string());
 }
 
+#[test]
+fn code_gen_quote_with_conditional() {
+    let include_debug = true;
+    let struct_name = Ident::new("Config", Span::call_site());
+
+    let generated = if include_debug {
+        quote! {
+            #[derive(Debug)]
+            struct #struct_name;
+        }
+    } else {
+        quote! {
+            struct #struct_name;
+        }
+    };
+
+    let output = generated.to_string();
+    assert!(output.contains("Config"));
+    assert!(output.contains("derive"));
+}
+
 // ============================================================================
 // Helper functions (marked with allow(dead_code) for test infrastructure)
 // ============================================================================
