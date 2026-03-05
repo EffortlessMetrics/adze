@@ -86,6 +86,7 @@ fn assert_follow_excludes(ff: &FirstFollowSets, id: SymbolId, excluded: &[Symbol
     }
 }
 
+#[allow(dead_code)]
 fn assert_follow_eq(ff: &FirstFollowSets, id: SymbolId, expected: &[SymbolId]) {
     let set = ff
         .follow(id)
