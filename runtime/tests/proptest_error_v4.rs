@@ -42,6 +42,7 @@ fn arb_scope_delimiters() -> impl Strategy<Value = Vec<(u16, u16)>> {
 }
 
 /// Helper: record one error and return the collected nodes.
+#[allow(clippy::too_many_arguments)]
 fn record_one(
     state: &mut ErrorRecoveryState,
     start_byte: usize,
@@ -404,8 +405,8 @@ proptest! {
         }
         let nodes = state.get_error_nodes();
         prop_assert_eq!(nodes.len(), n);
-        for i in 0..n {
-            prop_assert_eq!(nodes[i].start_byte, i * 10);
+        for (i, node) in nodes.iter().enumerate().take(n) {
+            prop_assert_eq!(node.start_byte, i * 10);
         }
     }
 
