@@ -15,6 +15,7 @@ use adze::error_recovery::{
     RecoveryStrategy,
 };
 use adze_ir::SymbolId;
+#[allow(unused_imports)]
 use std::sync::atomic::Ordering;
 
 // ===========================================================================
@@ -244,7 +245,7 @@ fn recovery_mode_phrase_level_as_fallback() {
         ..Default::default()
     };
     let mut state = ErrorRecoveryState::new(cfg);
-    let strat = state.determine_recovery_strategy(&[10, 11], Some(99), (0, 0), 0);
+    let _strat = state.determine_recovery_strategy(&[10, 11], Some(99), (0, 0), 0);
     // No insertion candidates, clearly wrong → deletion tried first for multi-expected...
     // Actually with 2 expected and token clearly wrong → TokenDeletion
     // Let's use a sync token as actual so it's not clearly wrong and not substitutable

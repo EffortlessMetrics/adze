@@ -11,6 +11,7 @@
 //! 8. merge_roundtrip_*   — merge then validate roundtrip
 
 use adze_ir::builder::GrammarBuilder;
+#[allow(unused_imports)]
 use adze_ir::{
     Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId, Grammar,
     PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
@@ -32,6 +33,7 @@ fn sym(g: &Grammar, name: &str) -> SymbolId {
 }
 
 /// Look up a SymbolId in token definitions by token name.
+#[allow(dead_code)]
 fn tok_id(g: &Grammar, name: &str) -> SymbolId {
     g.tokens
         .iter()
