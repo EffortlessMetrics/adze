@@ -19,9 +19,7 @@ use adze_tablegen::abi::{
     TREE_SITTER_LANGUAGE_VERSION, TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
 };
 use adze_tablegen::serializer::serialize_language;
-use adze_tablegen::{
-    AbiLanguageBuilder, NodeTypesGenerator, StaticLanguageGenerator,
-};
+use adze_tablegen::{AbiLanguageBuilder, NodeTypesGenerator, StaticLanguageGenerator};
 use proptest::prelude::*;
 use serde_json::Value;
 
