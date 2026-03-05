@@ -354,6 +354,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-feature-profile-snapshot-core"
+version = "0.1.0"
+dependencies = [
+ "adze-feature-policy-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
@@ -437,6 +446,7 @@ version = "0.1.0"
 dependencies = [
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
+ "adze-feature-profile-snapshot-core",
  "insta",
  "serde",
  "serde_json",

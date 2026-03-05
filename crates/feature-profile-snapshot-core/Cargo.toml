@@ -1,0 +1,25 @@
+[package]
+name = "adze-feature-profile-snapshot-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Parser feature profile snapshot type for metadata and diagnostics."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["parser", "feature-flags", "metadata", "governance"]
+categories = ["parser-implementations", "development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-feature-profile-snapshot-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

@@ -44,6 +44,7 @@ members = [
   "crates/bdd-scenario-fixtures",
   "crates/bdd-grid-contract",
   "crates/bdd-grid-core",
+  "crates/feature-profile-snapshot-core",
   "crates/feature-policy-core",
   "crates/concurrency-bounded-map-core",
   "crates/concurrency-caps-contract-core",

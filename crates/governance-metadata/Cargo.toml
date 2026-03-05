@@ -20,6 +20,7 @@ strict_docs = []
 [dependencies]
 adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
 adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
+adze-feature-profile-snapshot-core = { version = "0.1.0", path = "../feature-profile-snapshot-core" }
 serde.workspace = true
 
 [dev-dependencies]
