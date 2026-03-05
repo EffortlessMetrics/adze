@@ -599,3 +599,62 @@ fn test_node_handle_equality() {
     assert_eq!(h1, h2);
     assert_ne!(h1, h3);
 }
+
+// ===========================================================================
+// 9. Additional proptest coverage (5+ tests)
+// ===========================================================================
+
+proptest! {
+    #[test]
+    fn pt_capacity_never_less_than_len(n in 1..=128usize) {
+        let mut arena = TreeArena::with_capacity(4);
+        for i in 0..n {
+            arena.alloc(TreeNode::leaf(i as i32));
+        }
+        prop_assert!(arena.capacity() >= arena.len());
+    }
+
+    #[test]
+    fn pt_metrics_consistent(n in 1..=64usize) {
+        let mut arena = TreeArena::new();
+        for i in 0..n {
+            arena.alloc(TreeNode::leaf(i as i32));
+        }
+        let m = arena.metrics();
+        prop_assert_eq!(m.len(), arena.len());
+        prop_assert_eq!(m.capacity(), arena.capacity());
+        prop_assert_eq!(m.num_chunks(), arena.num_chunks());
+        prop_assert_eq!(m.memory_usage(), arena.memory_usage());
+    }
+
+    #[test]
+    fn pt_reset_then_reset_still_empty(n in small_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.reset();
+        arena.reset();
+        prop_assert!(arena.is_empty());
+        prop_assert_eq!(arena.len(), 0);
+    }
+
+    #[test]
+    fn pt_handle_hash_unique(n in 2..=32usize) {
+        use std::collections::HashSet;
+        let mut arena = TreeArena::new();
+        let handles: HashSet<_> = (0..n)
+            .map(|i| arena.alloc(TreeNode::leaf(i as i32)))
+            .collect();
+        prop_assert_eq!(handles.len(), n);
+    }
+
+    #[test]
+    fn pt_memory_usage_positive_after_alloc(n in small_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert!(arena.memory_usage() > 0);
+    }
+}
