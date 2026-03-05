@@ -14,15 +14,29 @@ documentation = "https://docs.rs/adze-feature-policy-core"
 
 [features]
 default = []
-pure-rust = ["adze-parser-backend-core/pure-rust"]
-tree-sitter-c2rust = ["adze-parser-backend-core/tree-sitter-c2rust"]
-tree-sitter-standard = ["adze-parser-backend-core/tree-sitter-standard"]
-glr = ["pure-rust", "adze-parser-backend-core/glr"]
-strict_docs = []
-strict_api = []
+pure-rust = [
+  "adze-parser-backend-core/pure-rust",
+  "adze-parser-feature-profile-core/pure-rust",
+]
+tree-sitter-c2rust = [
+  "adze-parser-backend-core/tree-sitter-c2rust",
+  "adze-parser-feature-profile-core/tree-sitter-c2rust",
+]
+tree-sitter-standard = [
+  "adze-parser-backend-core/tree-sitter-standard",
+  "adze-parser-feature-profile-core/tree-sitter-standard",
+]
+glr = [
+  "pure-rust",
+  "adze-parser-backend-core/glr",
+  "adze-parser-feature-profile-core/glr",
+]
+strict_docs = ["adze-parser-feature-profile-core/strict_docs"]
+strict_api = ["adze-parser-feature-profile-core/strict_api"]
 
 [dependencies]
 adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }
+adze-parser-feature-profile-core = { version = "0.1.0", path = "../parser-feature-profile-core" }
 
 [dev-dependencies]
 adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }
