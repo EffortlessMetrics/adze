@@ -16,7 +16,7 @@ use adze_common::{
     FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::ToTokens;
 use syn::{Attribute, DeriveInput, Fields, ItemEnum, ItemStruct, Meta, Type, parse_quote, parse2};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
