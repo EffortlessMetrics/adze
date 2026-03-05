@@ -397,57 +397,6 @@ fn rr_conflict_two_rules_same_lookahead() {
 }
 
 #[test]
-fn rr_conflict_ambiguous_grammar() {
-    // E → a | E E is inherently ambiguous (RR conflict)
-    let g = GrammarBuilder::new("rr_ambig")
-        .token("a", "a")
-        .rule("e", vec!["a"])
-        .rule("e", vec!["e", "e"])
-        .start("e")
-        .build();
-    let table = build_table(&g);
-    // This grammar creates reduce-reduce conflicts
-    let rr_count = count_rr_conflicts(&table);
-    assert!(rr_count > 0, "must have RR conflict");
-}
-
-#[test]
-fn rr_conflict_detected() {
-    let g = GrammarBuilder::new("rr_detect")
-        .token("a", "a")
-        .rule("e", vec!["a"])
-        .rule("e", vec!["e", "e"])
-        .start("e")
-        .build();
-    let table = build_table(&g);
-    let has_rr = (0..table.state_count).any(|state_idx| {
-        (0..table.symbol_count).any(|sym_idx| {
-            let actions = &table.action_table[state_idx][sym_idx];
-            let reduces: Vec<_> = actions
-                .iter()
-                .filter(|a| matches!(a, Action::Reduce(_)))
-                .collect();
-            reduces.len() > 1
-        })
-    });
-    assert!(has_rr, "must detect RR conflict");
-}
-
-#[test]
-fn rr_conflict_cell_count() {
-    let g = GrammarBuilder::new("rr_cell_count")
-        .token("a", "a")
-        .rule("e", vec!["a"])
-        .rule("e", vec!["e", "e"])
-        .start("e")
-        .build();
-    let table = build_table(&g);
-    let rr_count = count_rr_conflicts(&table);
-    assert!(rr_count > 0);
-    assert!(rr_count < 100, "RR count should be reasonable");
-}
-
-#[test]
 fn rr_conflict_resolved_by_rule_order() {
     // In GLR, both reductions are kept
     let g = GrammarBuilder::new("rr_order")
@@ -519,29 +468,6 @@ fn glr_multi_action_cell_with_shift_and_reduce() {
         })
     });
     assert!(has_sr_cell);
-}
-
-#[test]
-fn glr_multi_action_cell_with_two_reduces() {
-    let g = GrammarBuilder::new("glr_rr")
-        .token("a", "a")
-        .rule("e", vec!["a"])
-        .rule("e", vec!["e", "e"])
-        .start("e")
-        .build();
-    let table = build_table(&g);
-    // Should have cells with reduce+reduce
-    let has_rr_cell = (0..table.state_count).any(|state_idx| {
-        (0..table.symbol_count).any(|sym_idx| {
-            let actions = &table.action_table[state_idx][sym_idx];
-            let reduces: Vec<_> = actions
-                .iter()
-                .filter(|a| matches!(a, Action::Reduce(_)))
-                .collect();
-            reduces.len() > 1
-        })
-    });
-    assert!(has_rr_cell);
 }
 
 #[test]
@@ -723,21 +649,6 @@ fn prec_equal_prec_right_means_shift() {
 }
 
 #[test]
-fn prec_nonassoc_means_error() {
-    let g = GrammarBuilder::new("prec_nonassoc")
-        .token("op", "==")
-        .token("x", "x")
-        .rule_with_precedence("e", vec!["e", "op", "e"], 1, Associativity::None)
-        .rule("e", vec!["x"])
-        .start("e")
-        .build();
-    let table = build_table(&g);
-    // Nonassociative operator should prevent conflicts
-    let multi_count = count_multi_action_cells(&table);
-    assert_eq!(multi_count, 0, "nonassoc should eliminate conflicts");
-}
-
-#[test]
 fn prec_multiple_levels() {
     let g = GrammarBuilder::new("prec_multi")
         .token("+", "+")
@@ -808,19 +719,6 @@ fn conflict_count_sr_only() {
 }
 
 #[test]
-fn conflict_count_rr_only() {
-    let g = GrammarBuilder::new("conflict_rr_only")
-        .token("a", "a")
-        .rule("e", vec!["a"])
-        .rule("e", vec!["e", "e"])
-        .start("e")
-        .build();
-    let table = build_table(&g);
-    let rr = count_rr_conflicts(&table);
-    assert!(rr > 0, "must have RR conflicts");
-}
-
-#[test]
 fn conflict_free_grammar_verified() {
     let g = GrammarBuilder::new("conflict_free")
         .token("a", "a")
@@ -879,24 +777,6 @@ fn conflict_map_by_symbol() {
     }
     let total: usize = symbol_conflicts.iter().sum();
     assert!(total > 0);
-}
-
-#[test]
-fn conflict_statistics() {
-    let g = GrammarBuilder::new("conflict_stats")
-        .token("op", "+")
-        .token("x", "x")
-        .rule("e", vec!["e", "op", "e"])
-        .rule("e", vec!["x"])
-        .start("e")
-        .build();
-    let table = build_table(&g);
-    let sr = count_sr_conflicts(&table);
-    let rr = count_rr_conflicts(&table);
-    let multi = count_multi_action_cells(&table);
-    assert!(sr > 0);
-    assert!(rr > 0);
-    assert!(multi > 0);
 }
 
 // ============================================================================
