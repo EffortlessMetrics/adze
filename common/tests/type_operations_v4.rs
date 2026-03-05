@@ -328,10 +328,7 @@ fn filter_option_not_in_skip() {
 #[test]
 fn filter_empty_skip_set() {
     let ty: Type = parse_quote!(Vec<u8>);
-    assert_eq!(
-        ty_str(&filter_inner_type(&ty, &skip(&[]))),
-        "Vec < u8 >"
-    );
+    assert_eq!(ty_str(&filter_inner_type(&ty, &skip(&[]))), "Vec < u8 >");
 }
 
 #[test]
@@ -469,9 +466,14 @@ fn extract_from_custom_generic() {
 
 #[test]
 fn primitives_are_not_parameterized() {
-    for ty_text in &["i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"] {
+    for ty_text in &[
+        "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64",
+    ] {
         let ty = syn::parse_str::<Type>(ty_text).unwrap();
-        assert!(!is_parameterized(&ty), "expected {ty_text} not parameterized");
+        assert!(
+            !is_parameterized(&ty),
+            "expected {ty_text} not parameterized"
+        );
     }
 }
 

@@ -7,8 +7,8 @@
 //! Run with: cargo test -p adze-glr-core --test conflict_detection_v4 -- --test-threads=2
 
 use adze_glr_core::conflict_inspection::{
-    classify_conflict, count_conflicts, find_conflicts_for_symbol, get_state_conflicts,
-    state_has_conflicts, ConflictType as CIConflictType,
+    ConflictType as CIConflictType, classify_conflict, count_conflicts, find_conflicts_for_symbol,
+    get_state_conflicts, state_has_conflicts,
 };
 use adze_glr_core::{
     Action, ConflictResolver, ConflictType, FirstFollowSets, GotoIndexing, ItemSetCollection,
@@ -272,7 +272,10 @@ fn test_sr_dangling_else() {
         .start("s")
         .build();
     let table = build_table(&g);
-    assert!(has_shift_reduce(&table), "Dangling-else must produce S/R conflict");
+    assert!(
+        has_shift_reduce(&table),
+        "Dangling-else must produce S/R conflict"
+    );
 }
 
 #[test]
@@ -815,7 +818,10 @@ fn test_count_two_ops_more_than_one() {
 
     let c1 = total_conflicts(&build_table(&one_op));
     let c2 = total_conflicts(&build_table(&two_ops));
-    assert!(c2 > c1, "Two ops ({c2}) should have more conflicts than one ({c1})");
+    assert!(
+        c2 > c1,
+        "Two ops ({c2}) should have more conflicts than one ({c1})"
+    );
 }
 
 #[test]
@@ -1034,10 +1040,7 @@ fn test_single_action_cell_is_not_conflict() {
 fn test_multiple_states_only_one_conflicting() {
     let table = make_table(vec![
         vec![vec![Action::Shift(StateId(1))]],
-        vec![vec![
-            Action::Shift(StateId(2)),
-            Action::Reduce(RuleId(0)),
-        ]],
+        vec![vec![Action::Shift(StateId(2)), Action::Reduce(RuleId(0))]],
         vec![vec![Action::Accept]],
     ]);
     let summary = count_conflicts(&table);
@@ -1059,7 +1062,10 @@ fn test_sr_conflict_cell_has_both_action_types() {
     for detail in &summary.conflict_details {
         if detail.conflict_type == CIConflictType::ShiftReduce {
             let has_s = detail.actions.iter().any(|a| matches!(a, Action::Shift(_)));
-            let has_r = detail.actions.iter().any(|a| matches!(a, Action::Reduce(_)));
+            let has_r = detail
+                .actions
+                .iter()
+                .any(|a| matches!(a, Action::Reduce(_)));
             assert!(has_s && has_r, "S/R detail must have both shift and reduce");
         }
     }

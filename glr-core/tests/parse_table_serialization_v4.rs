@@ -390,9 +390,7 @@ fn serialized_size_bounded() {
 
 #[test]
 fn different_grammars_different_bytes() {
-    let b1 = build_table(&single_token_grammar())
-        .to_bytes()
-        .expect("s1");
+    let b1 = build_table(&single_token_grammar()).to_bytes().expect("s1");
     let b2 = build_table(&expr_grammar()).to_bytes().expect("s2");
     assert_ne!(b1, b2);
 }
@@ -479,7 +477,9 @@ fn error_all_ones() {
 
 #[test]
 fn error_random_garbage() {
-    let garbage: Vec<u8> = (0u8..128).map(|i| i.wrapping_mul(37).wrapping_add(13)).collect();
+    let garbage: Vec<u8> = (0u8..128)
+        .map(|i| i.wrapping_mul(37).wrapping_add(13))
+        .collect();
     assert!(ParseTable::from_bytes(&garbage).is_err());
 }
 
@@ -764,7 +764,11 @@ fn symbol_metadata_length_preserved() {
 fn symbol_metadata_fields_preserved() {
     let table = build_table(&two_nt_grammar());
     let restored = roundtrip(&table);
-    for (a, b) in table.symbol_metadata.iter().zip(restored.symbol_metadata.iter()) {
+    for (a, b) in table
+        .symbol_metadata
+        .iter()
+        .zip(restored.symbol_metadata.iter())
+    {
         assert_eq!(a.name, b.name);
         assert_eq!(a.is_visible, b.is_visible);
         assert_eq!(a.is_named, b.is_named);

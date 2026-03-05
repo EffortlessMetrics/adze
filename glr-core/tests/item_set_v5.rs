@@ -4,8 +4,8 @@
 //! LR(1) item properties, item equality/hashing, complex item sets, and edge cases.
 
 use adze_glr_core::*;
-use adze_ir::builder::GrammarBuilder;
 use adze_ir::Symbol;
+use adze_ir::builder::GrammarBuilder;
 use std::collections::{BTreeSet, HashSet};
 
 // ---------------------------------------------------------------------------
@@ -135,7 +135,10 @@ fn lr_item_mid_position_has_next_symbol() {
     let rule = g.get_rules_for_symbol(start).unwrap()[0].clone();
     let item = LRItem::new(RuleId(rule.production_id.0), 1, SymbolId(0));
     let sym = item.next_symbol(&g);
-    assert!(sym.is_some(), "position 1 of 3-element RHS should have next_symbol");
+    assert!(
+        sym.is_some(),
+        "position 1 of 3-element RHS should have next_symbol"
+    );
 }
 
 #[test]
@@ -284,7 +287,11 @@ fn closure_terminal_only_adds_nothing() {
     set.add_item(LRItem::new(RuleId(rule.production_id.0), 0, SymbolId(0)));
     let before = set.items.len();
     set.closure(&g, &ff).unwrap();
-    assert_eq!(set.items.len(), before, "terminal-only rule should not expand");
+    assert_eq!(
+        set.items.len(),
+        before,
+        "terminal-only rule should not expand"
+    );
 }
 
 #[test]
@@ -394,7 +401,10 @@ fn closure_propagates_lookahead() {
 
     let b_sym = g.find_symbol_by_name("b");
     if let Some(b_id) = b_sym {
-        let has_b_lookahead = set.items.iter().any(|i| i.position == 0 && i.lookahead == b_id);
+        let has_b_lookahead = set
+            .items
+            .iter()
+            .any(|i| i.position == 0 && i.lookahead == b_id);
         assert!(
             has_b_lookahead,
             "closure should propagate lookahead 'b' to A items"
@@ -478,7 +488,10 @@ fn kernel_items_shifted_state_has_advanced_positions() {
     let a_sym = g.find_symbol_by_name("a").unwrap();
     let goto_set = col.sets[0].goto(&Symbol::Terminal(a_sym), &g, &ff);
     let has_advanced = goto_set.items.iter().any(|i| i.position >= 1);
-    assert!(has_advanced, "goto on 'a' should produce items with position ≥ 1");
+    assert!(
+        has_advanced,
+        "goto on 'a' should produce items with position ≥ 1"
+    );
 }
 
 #[test]
@@ -511,7 +524,10 @@ fn kernel_items_reduce_state_has_item_at_end() {
     let (col, _) = build(&mut g);
 
     let has_reduce_state = col.sets.iter().any(|s| reduce_items_in(s, &g) > 0);
-    assert!(has_reduce_state, "grammar S→a should have at least one reduce state");
+    assert!(
+        has_reduce_state,
+        "grammar S→a should have at least one reduce state"
+    );
 }
 
 #[test]
@@ -525,7 +541,10 @@ fn kernel_items_shift_state_has_next_symbol() {
     let (col, _) = build(&mut g);
 
     let has_shift_state = col.sets.iter().any(|s| shift_items_in(s, &g) > 0);
-    assert!(has_shift_state, "grammar should have at least one shift state");
+    assert!(
+        has_shift_state,
+        "grammar should have at least one shift state"
+    );
 }
 
 // ===========================================================================
@@ -639,7 +658,12 @@ fn canonical_collection_no_duplicate_items_per_state() {
     for set in &col.sets {
         let vec: Vec<_> = set.items.iter().collect();
         let deduped: BTreeSet<_> = vec.iter().collect();
-        assert_eq!(vec.len(), deduped.len(), "state {} has duplicate items", set.id.0);
+        assert_eq!(
+            vec.len(),
+            deduped.len(),
+            "state {} has duplicate items",
+            set.id.0
+        );
     }
 }
 
@@ -661,8 +685,16 @@ fn expr_grammar_state_count_in_range() {
         .start("E")
         .build();
     let (col, _) = build(&mut g);
-    assert!(col.sets.len() >= 8, "expression grammar ≥8 states, got {}", col.sets.len());
-    assert!(col.sets.len() <= 30, "expression grammar ≤30 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 8,
+        "expression grammar ≥8 states, got {}",
+        col.sets.len()
+    );
+    assert!(
+        col.sets.len() <= 30,
+        "expression grammar ≤30 states, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -680,10 +712,24 @@ fn expr_grammar_has_shift_reduce_potential() {
         .build();
     let (col, _) = build(&mut g);
 
-    let total_reduce = col.sets.iter().map(|s| reduce_items_in(s, &g)).sum::<usize>();
-    let total_shift = col.sets.iter().map(|s| shift_items_in(s, &g)).sum::<usize>();
-    assert!(total_reduce > 0, "expression grammar should have reduce items");
-    assert!(total_shift > 0, "expression grammar should have shift items");
+    let total_reduce = col
+        .sets
+        .iter()
+        .map(|s| reduce_items_in(s, &g))
+        .sum::<usize>();
+    let total_shift = col
+        .sets
+        .iter()
+        .map(|s| shift_items_in(s, &g))
+        .sum::<usize>();
+    assert!(
+        total_reduce > 0,
+        "expression grammar should have reduce items"
+    );
+    assert!(
+        total_shift > 0,
+        "expression grammar should have shift items"
+    );
 }
 
 #[test]
@@ -741,7 +787,11 @@ fn left_recursive_terminates_and_bounded() {
         .build();
     let (col, _) = build(&mut g);
     assert!(col.sets.len() >= 3);
-    assert!(col.sets.len() <= 20, "left-recursive bounded, got {}", col.sets.len());
+    assert!(
+        col.sets.len() <= 20,
+        "left-recursive bounded, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -754,7 +804,11 @@ fn right_recursive_terminates_and_bounded() {
         .build();
     let (col, _) = build(&mut g);
     assert!(col.sets.len() >= 3);
-    assert!(col.sets.len() <= 20, "right-recursive bounded, got {}", col.sets.len());
+    assert!(
+        col.sets.len() <= 20,
+        "right-recursive bounded, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -787,7 +841,10 @@ fn left_recursive_initial_has_nonterminal_item() {
         .items
         .iter()
         .any(|i| matches!(i.next_symbol(&g), Some(Symbol::NonTerminal(_))));
-    assert!(has_nt_next, "initial state should have item with NT next symbol");
+    assert!(
+        has_nt_next,
+        "initial state should have item with NT next symbol"
+    );
 }
 
 // ===========================================================================
@@ -905,7 +962,11 @@ fn diamond_grammar_all_paths_covered() {
         .start("S")
         .build();
     let (col, _) = build(&mut g);
-    assert!(col.sets.len() >= 4, "diamond ≥4 states, got {}", col.sets.len());
+    assert!(
+        col.sets.len() >= 4,
+        "diamond ≥4 states, got {}",
+        col.sets.len()
+    );
 }
 
 #[test]
@@ -921,7 +982,10 @@ fn goto_on_absent_symbol_produces_empty_set() {
 
     let b_sym = g.find_symbol_by_name("b").unwrap();
     let goto_set = col.sets[0].goto(&Symbol::Terminal(b_sym), &g, &ff);
-    assert!(goto_set.items.is_empty(), "goto on absent symbol should be empty");
+    assert!(
+        goto_set.items.is_empty(),
+        "goto on absent symbol should be empty"
+    );
 }
 
 #[test]
@@ -980,8 +1044,7 @@ fn targets_from_initial_are_distinct() {
     let tgts = targets_from(&col, StateId(0));
     // Each transition should go to a distinct state
     assert!(
-        tgts.len() == transitions_from(&col, StateId(0))
-            || !tgts.is_empty(),
+        tgts.len() == transitions_from(&col, StateId(0)) || !tgts.is_empty(),
         "transitions from state 0 should target distinct states"
     );
 }

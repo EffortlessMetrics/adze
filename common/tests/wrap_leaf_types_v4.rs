@@ -39,37 +39,55 @@ fn is_parameterized(ty: &Type) -> bool {
 #[test]
 fn wrap_leaf_i8() {
     let ty: Type = parse_quote!(i8);
-    assert_eq!(ty_str(&wrap_leaf_type(&ty, &skip(&[]))), "adze :: WithLeaf < i8 >");
+    assert_eq!(
+        ty_str(&wrap_leaf_type(&ty, &skip(&[]))),
+        "adze :: WithLeaf < i8 >"
+    );
 }
 
 #[test]
 fn wrap_leaf_u16() {
     let ty: Type = parse_quote!(u16);
-    assert_eq!(ty_str(&wrap_leaf_type(&ty, &skip(&[]))), "adze :: WithLeaf < u16 >");
+    assert_eq!(
+        ty_str(&wrap_leaf_type(&ty, &skip(&[]))),
+        "adze :: WithLeaf < u16 >"
+    );
 }
 
 #[test]
 fn wrap_leaf_f32() {
     let ty: Type = parse_quote!(f32);
-    assert_eq!(ty_str(&wrap_leaf_type(&ty, &skip(&[]))), "adze :: WithLeaf < f32 >");
+    assert_eq!(
+        ty_str(&wrap_leaf_type(&ty, &skip(&[]))),
+        "adze :: WithLeaf < f32 >"
+    );
 }
 
 #[test]
 fn wrap_leaf_char() {
     let ty: Type = parse_quote!(char);
-    assert_eq!(ty_str(&wrap_leaf_type(&ty, &skip(&[]))), "adze :: WithLeaf < char >");
+    assert_eq!(
+        ty_str(&wrap_leaf_type(&ty, &skip(&[]))),
+        "adze :: WithLeaf < char >"
+    );
 }
 
 #[test]
 fn wrap_leaf_usize() {
     let ty: Type = parse_quote!(usize);
-    assert_eq!(ty_str(&wrap_leaf_type(&ty, &skip(&[]))), "adze :: WithLeaf < usize >");
+    assert_eq!(
+        ty_str(&wrap_leaf_type(&ty, &skip(&[]))),
+        "adze :: WithLeaf < usize >"
+    );
 }
 
 #[test]
 fn wrap_leaf_isize() {
     let ty: Type = parse_quote!(isize);
-    assert_eq!(ty_str(&wrap_leaf_type(&ty, &skip(&[]))), "adze :: WithLeaf < isize >");
+    assert_eq!(
+        ty_str(&wrap_leaf_type(&ty, &skip(&[]))),
+        "adze :: WithLeaf < isize >"
+    );
 }
 
 // ===========================================================================
@@ -179,20 +197,14 @@ fn vec_option_skip_both() {
 fn box_vec_option_skip_all() {
     let ty: Type = parse_quote!(Box<Vec<Option<bool>>>);
     let out = ty_str(&wrap_leaf_type(&ty, &skip(&["Box", "Vec", "Option"])));
-    assert_eq!(
-        out,
-        "Box < Vec < Option < adze :: WithLeaf < bool > > > >"
-    );
+    assert_eq!(out, "Box < Vec < Option < adze :: WithLeaf < bool > > > >");
 }
 
 #[test]
 fn three_levels_skip_only_outer_two() {
     let ty: Type = parse_quote!(Option<Box<Vec<i32>>>);
     let out = ty_str(&wrap_leaf_type(&ty, &skip(&["Option", "Box"])));
-    assert_eq!(
-        out,
-        "Option < Box < adze :: WithLeaf < Vec < i32 > > > >"
-    );
+    assert_eq!(out, "Option < Box < adze :: WithLeaf < Vec < i32 > > > >");
 }
 
 #[test]
@@ -200,10 +212,7 @@ fn three_levels_skip_only_inner_two() {
     let ty: Type = parse_quote!(Option<Vec<Box<i32>>>);
     // Option not in skip, so entire thing is wrapped
     let out = ty_str(&wrap_leaf_type(&ty, &skip(&["Vec", "Box"])));
-    assert_eq!(
-        out,
-        "adze :: WithLeaf < Option < Vec < Box < i32 > > > >"
-    );
+    assert_eq!(out, "adze :: WithLeaf < Option < Vec < Box < i32 > > > >");
 }
 
 // ===========================================================================
@@ -257,10 +266,7 @@ fn qualified_path_last_segment_matched_for_skip() {
     // Skip matches last segment "Vec"
     let ty: Type = parse_quote!(std::vec::Vec<i32>);
     let out = ty_str(&wrap_leaf_type(&ty, &skip(&["Vec"])));
-    assert_eq!(
-        out,
-        "std :: vec :: Vec < adze :: WithLeaf < i32 > >"
-    );
+    assert_eq!(out, "std :: vec :: Vec < adze :: WithLeaf < i32 > >");
 }
 
 #[test]
@@ -670,11 +676,23 @@ fn batch_containers_inner_always_wrapped() {
     let ss = skip(&["Vec", "Option", "Box"]);
     let cases: Vec<(Type, &str)> = vec![
         (parse_quote!(Vec<i32>), "Vec < adze :: WithLeaf < i32 > >"),
-        (parse_quote!(Vec<String>), "Vec < adze :: WithLeaf < String > >"),
-        (parse_quote!(Option<f64>), "Option < adze :: WithLeaf < f64 > >"),
-        (parse_quote!(Option<bool>), "Option < adze :: WithLeaf < bool > >"),
+        (
+            parse_quote!(Vec<String>),
+            "Vec < adze :: WithLeaf < String > >",
+        ),
+        (
+            parse_quote!(Option<f64>),
+            "Option < adze :: WithLeaf < f64 > >",
+        ),
+        (
+            parse_quote!(Option<bool>),
+            "Option < adze :: WithLeaf < bool > >",
+        ),
         (parse_quote!(Box<char>), "Box < adze :: WithLeaf < char > >"),
-        (parse_quote!(Box<usize>), "Box < adze :: WithLeaf < usize > >"),
+        (
+            parse_quote!(Box<usize>),
+            "Box < adze :: WithLeaf < usize > >",
+        ),
     ];
     for (ty, expected) in &cases {
         assert_eq!(ty_str(&wrap_leaf_type(ty, &ss)), *expected);
@@ -698,10 +716,7 @@ fn nested_option_box_vec_skip_option_vec() {
     let ty: Type = parse_quote!(Option<Box<Vec<u16>>>);
     // Option skipped → recurse into Box. Box NOT skipped → wrap Box<Vec<u16>>
     let out = ty_str(&wrap_leaf_type(&ty, &skip(&["Option", "Vec"])));
-    assert_eq!(
-        out,
-        "Option < adze :: WithLeaf < Box < Vec < u16 > > > >"
-    );
+    assert_eq!(out, "Option < adze :: WithLeaf < Box < Vec < u16 > > > >");
 }
 
 // ===========================================================================
@@ -745,7 +760,11 @@ fn all_primitives_wrapped_consistently() {
     let ss = skip(&[]);
     for ty in &primitives {
         let out = ty_str(&wrap_leaf_type(ty, &ss));
-        assert!(out.starts_with("adze :: WithLeaf <"), "Failed for {}", ty_str(ty));
+        assert!(
+            out.starts_with("adze :: WithLeaf <"),
+            "Failed for {}",
+            ty_str(ty)
+        );
         assert!(out.ends_with('>'), "Failed for {}", ty_str(ty));
     }
     assert!(!primitives.is_empty());

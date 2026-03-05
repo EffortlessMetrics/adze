@@ -272,7 +272,10 @@ fn mixed_grammar_has_both_named_and_anonymous() {
         .build();
     let nodes = gen_parsed(&grammar);
     assert!(!named_types(&nodes).is_empty(), "should have named entries");
-    assert!(!anon_types(&nodes).is_empty(), "should have anonymous entries");
+    assert!(
+        !anon_types(&nodes).is_empty(),
+        "should have anonymous entries"
+    );
 }
 
 #[test]
@@ -297,8 +300,7 @@ fn anonymous_node_has_no_fields() {
     let nodes = gen_parsed(&grammar);
     let comma = find_node(&nodes, ",").expect("missing ','");
     assert!(
-        comma.get("fields").is_none()
-            || comma["fields"].as_object().is_none_or(|f| f.is_empty()),
+        comma.get("fields").is_none() || comma["fields"].as_object().is_none_or(|f| f.is_empty()),
         "anonymous node should have no fields"
     );
 }
@@ -309,7 +311,10 @@ fn all_named_nodes_have_type_string() {
     let named: Vec<_> = nodes.iter().filter(|n| n["named"] == true).collect();
     assert!(!named.is_empty());
     for node in &named {
-        assert!(node["type"].as_str().is_some(), "named node must have 'type' string");
+        assert!(
+            node["type"].as_str().is_some(),
+            "named node must have 'type' string"
+        );
     }
 }
 
@@ -483,7 +488,10 @@ fn nonterminal_with_fields_has_fields_key() {
     let grammar = grammar_with_fields();
     let nodes = gen_parsed(&grammar);
     let expr = find_node(&nodes, "binary_expr").expect("missing binary_expr");
-    assert!(expr.get("fields").is_some(), "binary_expr should have fields");
+    assert!(
+        expr.get("fields").is_some(),
+        "binary_expr should have fields"
+    );
 }
 
 #[test]
@@ -525,8 +533,14 @@ fn internal_underscore_rule_excluded_from_output() {
     });
 
     let nodes = gen_parsed(&grammar);
-    assert!(find_node(&nodes, "_internal").is_none(), "_internal should be excluded");
-    assert!(find_node(&nodes, "visible").is_some(), "visible should be present");
+    assert!(
+        find_node(&nodes, "_internal").is_none(),
+        "_internal should be excluded"
+    );
+    assert!(
+        find_node(&nodes, "visible").is_some(),
+        "visible should be present"
+    );
 }
 
 // ===========================================================================
@@ -609,7 +623,10 @@ fn single_field_appears_in_output() {
 
     let nodes = gen_parsed(&grammar);
     let wrapper = find_node(&nodes, "wrapper").expect("missing wrapper");
-    assert!(wrapper["fields"].get("content").is_some(), "missing 'content' field");
+    assert!(
+        wrapper["fields"].get("content").is_some(),
+        "missing 'content' field"
+    );
 }
 
 #[test]
@@ -887,7 +904,10 @@ fn complex_hundred_rules_entry_count() {
     let grammar = scaled_grammar("cx7", 100);
     let nodes = gen_parsed(&grammar);
     // 100 rules + 100 literal tokens = 200 entries
-    assert!(nodes.len() >= 100, "100-rule grammar should have >= 100 entries");
+    assert!(
+        nodes.len() >= 100,
+        "100-rule grammar should have >= 100 entries"
+    );
 }
 
 // ===========================================================================
@@ -908,7 +928,10 @@ fn edge_single_token_single_rule() {
         .rule("root", vec!["only"])
         .build();
     let nodes = gen_parsed(&grammar);
-    assert!(!nodes.is_empty(), "single-token grammar should produce entries");
+    assert!(
+        !nodes.is_empty(),
+        "single-token grammar should produce entries"
+    );
 }
 
 #[test]
@@ -937,7 +960,10 @@ fn edge_alternative_productions_produce_one_entry() {
         .iter()
         .filter(|n| n["type"].as_str() == Some("multi"))
         .count();
-    assert_eq!(multi_count, 1, "'multi' should appear once despite 3 alternatives");
+    assert_eq!(
+        multi_count, 1,
+        "'multi' should appear once despite 3 alternatives"
+    );
 }
 
 #[test]
@@ -954,7 +980,11 @@ fn edge_grammar_name_does_not_affect_structure() {
     let n1 = gen_parsed(&g1);
     let n2 = gen_parsed(&g2);
 
-    assert_eq!(n1.len(), n2.len(), "grammar name should not affect entry count");
+    assert_eq!(
+        n1.len(),
+        n2.len(),
+        "grammar name should not affect entry count"
+    );
     let types1: Vec<_> = n1.iter().filter_map(|n| n["type"].as_str()).collect();
     let types2: Vec<_> = n2.iter().filter_map(|n| n["type"].as_str()).collect();
     assert_eq!(types1, types2, "grammar name should not affect types");

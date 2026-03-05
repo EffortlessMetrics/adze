@@ -223,10 +223,7 @@ fn filter_plain_ident_unchanged() {
 
 #[test]
 fn filter_triple_nested() {
-    let filtered = filter_inner_type(
-        &ty("Box<Arc<Box<bool>>>"),
-        &skip_set(&["Box", "Arc"]),
-    );
+    let filtered = filter_inner_type(&ty("Box<Arc<Box<bool>>>"), &skip_set(&["Box", "Arc"]));
     assert_eq!(ts(&filtered), "bool");
 }
 
@@ -261,10 +258,7 @@ fn wrap_option_skips_option_wraps_inner() {
 #[test]
 fn wrap_nested_vec_option() {
     let wrapped = wrap_leaf_type(&ty("Vec<Option<bool>>"), &skip_set(&["Vec", "Option"]));
-    assert_eq!(
-        ts(&wrapped),
-        "Vec < Option < adze :: WithLeaf < bool > > >"
-    );
+    assert_eq!(ts(&wrapped), "Vec < Option < adze :: WithLeaf < bool > > >");
 }
 
 #[test]
@@ -638,9 +632,16 @@ fn enum_prec_left_attr_value() {
         }
     };
     let v = e.variants.iter().next().unwrap();
-    let attr = v.attrs.iter().find(|a| is_adze_attr(a, "prec_left")).unwrap();
+    let attr = v
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "prec_left"))
+        .unwrap();
     let expr: Expr = attr.parse_args().unwrap();
-    if let Expr::Lit(ExprLit { lit: Lit::Int(i), .. }) = expr {
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Int(i), ..
+    }) = expr
+    {
         assert_eq!(i.base10_parse::<i32>().unwrap(), 2);
     } else {
         panic!("Expected integer literal");
@@ -656,9 +657,16 @@ fn enum_prec_right_attr_value() {
         }
     };
     let v = e.variants.iter().next().unwrap();
-    let attr = v.attrs.iter().find(|a| is_adze_attr(a, "prec_right")).unwrap();
+    let attr = v
+        .attrs
+        .iter()
+        .find(|a| is_adze_attr(a, "prec_right"))
+        .unwrap();
     let expr: Expr = attr.parse_args().unwrap();
-    if let Expr::Lit(ExprLit { lit: Lit::Int(i), .. }) = expr {
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Int(i), ..
+    }) = expr
+    {
         assert_eq!(i.base10_parse::<i32>().unwrap(), 7);
     } else {
         panic!("Expected integer literal");
@@ -676,7 +684,10 @@ fn enum_prec_no_assoc_attr_value() {
     let v = e.variants.iter().next().unwrap();
     let attr = v.attrs.iter().find(|a| is_adze_attr(a, "prec")).unwrap();
     let expr: Expr = attr.parse_args().unwrap();
-    if let Expr::Lit(ExprLit { lit: Lit::Int(i), .. }) = expr {
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Int(i), ..
+    }) = expr
+    {
         assert_eq!(i.base10_parse::<i32>().unwrap(), 4);
     } else {
         panic!("Expected integer literal");
@@ -739,7 +750,10 @@ fn grammar_module_extracts_name() {
     });
     let name_attr = m.attrs.iter().find(|a| is_adze_attr(a, "grammar")).unwrap();
     let expr: Expr = name_attr.parse_args().unwrap();
-    if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = expr {
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Str(s), ..
+    }) = expr
+    {
         assert_eq!(s.value(), "calc");
     } else {
         panic!("Expected string literal");
@@ -835,10 +849,7 @@ fn grammar_module_multi_type_count() {
         .iter()
         .filter(|i| matches!(i, Item::Struct(_)))
         .count();
-    let enum_count = items
-        .iter()
-        .filter(|i| matches!(i, Item::Enum(_)))
-        .count();
+    let enum_count = items.iter().filter(|i| matches!(i, Item::Enum(_))).count();
     assert_eq!(struct_count, 2);
     assert_eq!(enum_count, 1);
 }
@@ -879,10 +890,7 @@ fn filter_then_wrap() {
 fn wrap_preserves_vec_option_nesting() {
     let skip = skip_set(&["Vec", "Option"]);
     let wrapped = wrap_leaf_type(&ty("Vec<Option<i32>>"), &skip);
-    assert_eq!(
-        ts(&wrapped),
-        "Vec < Option < adze :: WithLeaf < i32 > > >"
-    );
+    assert_eq!(ts(&wrapped), "Vec < Option < adze :: WithLeaf < i32 > > >");
 }
 
 #[test]

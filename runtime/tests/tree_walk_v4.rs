@@ -126,9 +126,7 @@ struct DepthEvents {
 
 impl DepthEvents {
     fn new() -> Self {
-        Self {
-            events: Vec::new(),
-        }
+        Self { events: Vec::new() }
     }
 }
 
@@ -211,7 +209,9 @@ fn bfs_visits_level_by_level() {
 #[test]
 fn bfs_wide_tree_order() {
     let source = b"abcde";
-    let children: Vec<_> = (0u16..5).map(|i| leaf(i + 1, i as usize, i as usize + 1)).collect();
+    let children: Vec<_> = (0u16..5)
+        .map(|i| leaf(i + 1, i as usize, i as usize + 1))
+        .collect();
     let root = interior(10, children);
     let mut rec = OrderRecorder::new();
     BreadthFirstWalker::new(source).walk(&root, &mut rec);

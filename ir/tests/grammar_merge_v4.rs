@@ -177,7 +177,10 @@ fn construct_rule_with_nonterminal() {
         .start("expr")
         .build();
     let expr_id = sym(&g, "expr");
-    assert!(matches!(g.rules[&expr_id][0].rhs[0], Symbol::NonTerminal(_)));
+    assert!(matches!(
+        g.rules[&expr_id][0].rhs[0],
+        Symbol::NonTerminal(_)
+    ));
 }
 
 #[test]
@@ -603,7 +606,11 @@ fn normalize_epsilon_preserved() {
     let _ = g.normalize();
     let id = g.find_symbol_by_name("empty").unwrap();
     let rules = g.get_rules_for_symbol(id).unwrap();
-    assert!(rules.iter().any(|r| r.rhs.iter().any(|s| matches!(s, Symbol::Epsilon))));
+    assert!(
+        rules
+            .iter()
+            .any(|r| r.rhs.iter().any(|s| matches!(s, Symbol::Epsilon)))
+    );
 }
 
 #[test]
@@ -685,7 +692,10 @@ fn rule_with_precedence_left() {
         .start("e")
         .build();
     let eid = sym(&g, "e");
-    let prec_rule = g.rules[&eid].iter().find(|r| r.precedence.is_some()).unwrap();
+    let prec_rule = g.rules[&eid]
+        .iter()
+        .find(|r| r.precedence.is_some())
+        .unwrap();
     assert_eq!(prec_rule.precedence, Some(PrecedenceKind::Static(1)));
     assert_eq!(prec_rule.associativity, Some(Associativity::Left));
 }
@@ -700,7 +710,10 @@ fn rule_with_precedence_right() {
         .start("e")
         .build();
     let eid = sym(&g, "e");
-    let prec_rule = g.rules[&eid].iter().find(|r| r.precedence.is_some()).unwrap();
+    let prec_rule = g.rules[&eid]
+        .iter()
+        .find(|r| r.precedence.is_some())
+        .unwrap();
     assert_eq!(prec_rule.associativity, Some(Associativity::Right));
 }
 
@@ -728,10 +741,7 @@ fn multiple_precedence_levels_on_different_rules() {
         .start("e")
         .build();
     let eid = sym(&g, "e");
-    let precs: Vec<_> = g.rules[&eid]
-        .iter()
-        .filter_map(|r| r.precedence)
-        .collect();
+    let precs: Vec<_> = g.rules[&eid].iter().filter_map(|r| r.precedence).collect();
     assert_eq!(precs.len(), 2);
     assert!(precs.contains(&PrecedenceKind::Static(1)));
     assert!(precs.contains(&PrecedenceKind::Static(2)));
@@ -747,7 +757,10 @@ fn precedence_associativity_none() {
         .start("e")
         .build();
     let eid = sym(&g, "e");
-    let prec_rule = g.rules[&eid].iter().find(|r| r.precedence.is_some()).unwrap();
+    let prec_rule = g.rules[&eid]
+        .iter()
+        .find(|r| r.precedence.is_some())
+        .unwrap();
     assert_eq!(prec_rule.associativity, Some(Associativity::None));
 }
 
@@ -761,7 +774,11 @@ fn python_like_factory_has_nullable_start() {
     let module_id = g.find_symbol_by_name("module").unwrap();
     let rules = g.get_rules_for_symbol(module_id).unwrap();
     // One alternative is epsilon (empty module)
-    assert!(rules.iter().any(|r| r.rhs.iter().any(|s| matches!(s, Symbol::Epsilon))));
+    assert!(
+        rules
+            .iter()
+            .any(|r| r.rhs.iter().any(|s| matches!(s, Symbol::Epsilon)))
+    );
 }
 
 #[test]

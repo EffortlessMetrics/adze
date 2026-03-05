@@ -4,8 +4,8 @@
 //! state tracking, error node construction, config validation, and edge cases.
 
 use adze::error_recovery::{
-    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
-    RecoveryAction, RecoveryStrategy,
+    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
+    RecoveryStrategy,
 };
 use adze_ir::SymbolId;
 use smallvec::SmallVec;
@@ -361,7 +361,16 @@ fn test_state_reset_error_count() {
 fn test_state_record_error_and_retrieve() {
     let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
 
-    state.record_error(0, 5, (0, 0), (0, 5), vec![1, 2], Some(3), RecoveryStrategy::PanicMode, vec![]);
+    state.record_error(
+        0,
+        5,
+        (0, 0),
+        (0, 5),
+        vec![1, 2],
+        Some(3),
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].start_byte, 0);
@@ -372,9 +381,36 @@ fn test_state_record_error_and_retrieve() {
 fn test_state_record_multiple_errors() {
     let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
 
-    state.record_error(0, 3, (0, 0), (0, 3), vec![1], None, RecoveryStrategy::TokenInsertion, vec![]);
-    state.record_error(5, 8, (0, 5), (0, 8), vec![2], Some(9), RecoveryStrategy::TokenDeletion, vec![9]);
-    state.record_error(10, 15, (1, 0), (1, 5), vec![], Some(7), RecoveryStrategy::PhraseLevel, vec![]);
+    state.record_error(
+        0,
+        3,
+        (0, 0),
+        (0, 3),
+        vec![1],
+        None,
+        RecoveryStrategy::TokenInsertion,
+        vec![],
+    );
+    state.record_error(
+        5,
+        8,
+        (0, 5),
+        (0, 8),
+        vec![2],
+        Some(9),
+        RecoveryStrategy::TokenDeletion,
+        vec![9],
+    );
+    state.record_error(
+        10,
+        15,
+        (1, 0),
+        (1, 5),
+        vec![],
+        Some(7),
+        RecoveryStrategy::PhraseLevel,
+        vec![],
+    );
 
     let nodes = state.get_error_nodes();
     assert_eq!(nodes.len(), 3);
@@ -384,7 +420,16 @@ fn test_state_record_multiple_errors() {
 fn test_state_clear_errors() {
     let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
 
-    state.record_error(0, 1, (0, 0), (0, 1), vec![], None, RecoveryStrategy::PanicMode, vec![]);
+    state.record_error(
+        0,
+        1,
+        (0, 0),
+        (0, 1),
+        vec![],
+        None,
+        RecoveryStrategy::PanicMode,
+        vec![],
+    );
     assert_eq!(state.get_error_nodes().len(), 1);
 
     state.clear_errors();
@@ -580,12 +625,30 @@ fn test_config_builder_default_matches_config_default() {
     let from_builder = ErrorRecoveryConfigBuilder::new().build();
     let from_default = ErrorRecoveryConfig::default();
     assert_eq!(from_builder.max_panic_skip, from_default.max_panic_skip);
-    assert_eq!(from_builder.max_consecutive_errors, from_default.max_consecutive_errors);
-    assert_eq!(from_builder.max_token_deletions, from_default.max_token_deletions);
-    assert_eq!(from_builder.max_token_insertions, from_default.max_token_insertions);
-    assert_eq!(from_builder.enable_phrase_recovery, from_default.enable_phrase_recovery);
-    assert_eq!(from_builder.enable_scope_recovery, from_default.enable_scope_recovery);
-    assert_eq!(from_builder.enable_indentation_recovery, from_default.enable_indentation_recovery);
+    assert_eq!(
+        from_builder.max_consecutive_errors,
+        from_default.max_consecutive_errors
+    );
+    assert_eq!(
+        from_builder.max_token_deletions,
+        from_default.max_token_deletions
+    );
+    assert_eq!(
+        from_builder.max_token_insertions,
+        from_default.max_token_insertions
+    );
+    assert_eq!(
+        from_builder.enable_phrase_recovery,
+        from_default.enable_phrase_recovery
+    );
+    assert_eq!(
+        from_builder.enable_scope_recovery,
+        from_default.enable_scope_recovery
+    );
+    assert_eq!(
+        from_builder.enable_indentation_recovery,
+        from_default.enable_indentation_recovery
+    );
 }
 
 #[test]
@@ -754,7 +817,10 @@ fn test_recovery_strategy_copy_semantics() {
 #[test]
 fn test_recovery_strategy_equality() {
     assert_eq!(RecoveryStrategy::PanicMode, RecoveryStrategy::PanicMode);
-    assert_ne!(RecoveryStrategy::PanicMode, RecoveryStrategy::TokenInsertion);
+    assert_ne!(
+        RecoveryStrategy::PanicMode,
+        RecoveryStrategy::TokenInsertion
+    );
 }
 
 #[test]
@@ -818,10 +884,26 @@ fn test_is_scope_delimiter_static() {
 #[test]
 fn test_is_matching_delimiter_static() {
     let delimiters = vec![(10, 20), (30, 40)];
-    assert!(ErrorRecoveryState::is_matching_delimiter(10, 20, &delimiters));
-    assert!(ErrorRecoveryState::is_matching_delimiter(30, 40, &delimiters));
-    assert!(!ErrorRecoveryState::is_matching_delimiter(10, 40, &delimiters));
-    assert!(!ErrorRecoveryState::is_matching_delimiter(30, 20, &delimiters));
+    assert!(ErrorRecoveryState::is_matching_delimiter(
+        10,
+        20,
+        &delimiters
+    ));
+    assert!(ErrorRecoveryState::is_matching_delimiter(
+        30,
+        40,
+        &delimiters
+    ));
+    assert!(!ErrorRecoveryState::is_matching_delimiter(
+        10,
+        40,
+        &delimiters
+    ));
+    assert!(!ErrorRecoveryState::is_matching_delimiter(
+        30,
+        20,
+        &delimiters
+    ));
 }
 
 #[test]

@@ -160,8 +160,7 @@ fn test_distinct_ids_are_separate_entries() {
 fn test_unique_ids_after_many_insertions() {
     let mut g = minimal_grammar();
     for i in 0..20 {
-        g.fields
-            .insert(FieldId(i), format!("field_{i}"));
+        g.fields.insert(FieldId(i), format!("field_{i}"));
     }
     let ids: HashSet<FieldId> = g.fields.keys().copied().collect();
     assert_eq!(ids.len(), 20);
@@ -245,10 +244,7 @@ fn test_lookup_find_id_by_name() {
 #[test]
 fn test_lookup_find_name_not_present() {
     let g = grammar_with_fields();
-    let found = g
-        .fields
-        .iter()
-        .find(|(_, name)| name.as_str() == "missing");
+    let found = g.fields.iter().find(|(_, name)| name.as_str() == "missing");
     assert!(found.is_none());
 }
 
@@ -357,11 +353,7 @@ fn test_collect_pairs_preserves_order() {
     g.fields.insert(FieldId(7), "seven".to_string());
     g.fields.insert(FieldId(3), "three".to_string());
     g.fields.insert(FieldId(9), "nine".to_string());
-    let pairs: Vec<(FieldId, String)> = g
-        .fields
-        .iter()
-        .map(|(k, v)| (*k, v.clone()))
-        .collect();
+    let pairs: Vec<(FieldId, String)> = g.fields.iter().map(|(k, v)| (*k, v.clone())).collect();
     assert_eq!(pairs[0], (FieldId(7), "seven".to_string()));
     assert_eq!(pairs[1], (FieldId(3), "three".to_string()));
     assert_eq!(pairs[2], (FieldId(9), "nine".to_string()));

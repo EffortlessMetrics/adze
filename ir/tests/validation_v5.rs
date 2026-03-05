@@ -167,7 +167,10 @@ fn test_valid_grammar_with_supertypes_passes() {
 fn test_empty_grammar_reports_error() {
     let g = Grammar::default();
     let r = validate(&g);
-    assert!(has_error(&r, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 #[test]
@@ -243,7 +246,10 @@ fn test_multiple_undefined_symbols() {
         .iter()
         .filter(|e| matches!(e, ValidationError::UndefinedSymbol { .. }))
         .count();
-    assert!(undef_count >= 2, "expected >=2 undefined, got {undef_count}");
+    assert!(
+        undef_count >= 2,
+        "expected >=2 undefined, got {undef_count}"
+    );
 }
 
 #[test]
@@ -369,10 +375,10 @@ fn test_cycle_with_base_case_still_flagged() {
         .build();
     let r = validate(&g);
     // The cycle a -> b -> a should still be flagged.
-    assert!(has_error(
-        &r,
-        |e| matches!(e, ValidationError::CyclicRule { .. })
-    ));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::CyclicRule { .. }
+    )));
 }
 
 #[test]
@@ -384,10 +390,10 @@ fn test_three_node_cycle_detected() {
         .start("a")
         .build();
     let r = validate(&g);
-    assert!(has_error(
-        &r,
-        |e| matches!(e, ValidationError::CyclicRule { .. })
-    ));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::CyclicRule { .. }
+    )));
 }
 
 #[test]
@@ -399,10 +405,10 @@ fn test_no_cycle_in_linear_chain() {
         .start("a")
         .build();
     let r = validate(&g);
-    assert!(!has_error(
-        &r,
-        |e| matches!(e, ValidationError::CyclicRule { .. })
-    ));
+    assert!(!has_error(&r, |e| matches!(
+        e,
+        ValidationError::CyclicRule { .. }
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -419,10 +425,10 @@ fn test_duplicate_token_pattern_produces_warning() {
         .build();
     let r = validate(&g);
     assert!(
-        has_warning(
-            &r,
-            |w| matches!(w, ValidationWarning::DuplicateTokenPattern { .. })
-        ),
+        has_warning(&r, |w| matches!(
+            w,
+            ValidationWarning::DuplicateTokenPattern { .. }
+        )),
         "expected DuplicateTokenPattern warning, got: {:?}",
         r.warnings
     );
@@ -438,10 +444,10 @@ fn test_distinct_token_patterns_no_warning() {
         .start("root")
         .build();
     let r = validate(&g);
-    assert!(!has_warning(
-        &r,
-        |w| matches!(w, ValidationWarning::DuplicateTokenPattern { .. })
-    ));
+    assert!(!has_warning(&r, |w| matches!(
+        w,
+        ValidationWarning::DuplicateTokenPattern { .. }
+    )));
 }
 
 #[test]
@@ -475,10 +481,10 @@ fn test_non_productive_symbol_error() {
         .start("root")
         .build();
     let r = validate(&g);
-    assert!(has_error(
-        &r,
-        |e| matches!(e, ValidationError::NonProductiveSymbol { .. })
-    ));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::NonProductiveSymbol { .. }
+    )));
 }
 
 #[test]
@@ -490,10 +496,10 @@ fn test_all_productive_no_error() {
         .start("root")
         .build();
     let r = validate(&g);
-    assert!(!has_error(
-        &r,
-        |e| matches!(e, ValidationError::NonProductiveSymbol { .. })
-    ));
+    assert!(!has_error(&r, |e| matches!(
+        e,
+        ValidationError::NonProductiveSymbol { .. }
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -514,10 +520,10 @@ fn test_conflicting_precedence_error() {
         .precedence(2, Associativity::Left, vec!["+"])
         .build();
     let r = validate(&g);
-    assert!(has_error(
-        &r,
-        |e| matches!(e, ValidationError::ConflictingPrecedence { .. })
-    ));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::ConflictingPrecedence { .. }
+    )));
 }
 
 #[test]
@@ -534,10 +540,10 @@ fn test_same_precedence_repeated_no_conflict() {
         .precedence(1, Associativity::Left, vec!["+"])
         .build();
     let r = validate(&g);
-    assert!(!has_error(
-        &r,
-        |e| matches!(e, ValidationError::ConflictingPrecedence { .. })
-    ));
+    assert!(!has_error(&r, |e| matches!(
+        e,
+        ValidationError::ConflictingPrecedence { .. }
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -554,10 +560,10 @@ fn test_duplicate_external_name_error() {
         .external("INDENT")
         .build();
     let r = validate(&g);
-    assert!(has_error(
-        &r,
-        |e| matches!(e, ValidationError::ExternalTokenConflict { .. })
-    ));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::ExternalTokenConflict { .. }
+    )));
 }
 
 #[test]
@@ -570,10 +576,10 @@ fn test_distinct_externals_no_conflict() {
         .external("DEDENT")
         .build();
     let r = validate(&g);
-    assert!(!has_error(
-        &r,
-        |e| matches!(e, ValidationError::ExternalTokenConflict { .. })
-    ));
+    assert!(!has_error(&r, |e| matches!(
+        e,
+        ValidationError::ExternalTokenConflict { .. }
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -659,7 +665,10 @@ fn test_validator_can_be_reused() {
 
     let g2 = Grammar::default();
     let r2 = v.validate(&g2);
-    assert!(has_error(&r2, |e| matches!(e, ValidationError::EmptyGrammar)));
+    assert!(has_error(&r2, |e| matches!(
+        e,
+        ValidationError::EmptyGrammar
+    )));
 }
 
 #[test]
@@ -693,10 +702,10 @@ fn test_trivial_unit_rule_inefficiency_warning() {
         .start("root")
         .build();
     let r = validate(&g);
-    assert!(has_warning(
-        &r,
-        |w| matches!(w, ValidationWarning::InefficientRule { .. })
-    ));
+    assert!(has_warning(&r, |w| matches!(
+        w,
+        ValidationWarning::InefficientRule { .. }
+    )));
 }
 
 #[test]
@@ -708,10 +717,10 @@ fn test_missing_field_names_warning_on_multi_rhs() {
         .start("root")
         .build();
     let r = validate(&g);
-    assert!(has_warning(
-        &r,
-        |w| matches!(w, ValidationWarning::MissingFieldNames { .. })
-    ));
+    assert!(has_warning(&r, |w| matches!(
+        w,
+        ValidationWarning::MissingFieldNames { .. }
+    )));
 }
 
 // ---------------------------------------------------------------------------
@@ -895,10 +904,10 @@ fn test_grammar_with_multiple_issues() {
         .start("root")
         .build();
     let r = validate(&g);
-    assert!(has_error(
-        &r,
-        |e| matches!(e, ValidationError::UndefinedSymbol { .. })
-    ));
+    assert!(has_error(&r, |e| matches!(
+        e,
+        ValidationError::UndefinedSymbol { .. }
+    )));
     // "island" is unreachable.
     assert!(!r.warnings.is_empty());
 }

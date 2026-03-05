@@ -82,11 +82,7 @@ fn test_list_single_atom() {
 
 #[test]
 fn test_list_multiple_atoms() {
-    let l = SExpr::list(vec![
-        SExpr::atom("a"),
-        SExpr::atom("b"),
-        SExpr::atom("c"),
-    ]);
+    let l = SExpr::list(vec![SExpr::atom("a"), SExpr::atom("b"), SExpr::atom("c")]);
     let items = l.as_list().unwrap();
     assert_eq!(items.len(), 3);
 }
@@ -234,11 +230,7 @@ fn test_display_list_single() {
 
 #[test]
 fn test_display_list_multiple() {
-    let l = SExpr::list(vec![
-        SExpr::atom("a"),
-        SExpr::atom("b"),
-        SExpr::atom("c"),
-    ]);
+    let l = SExpr::list(vec![SExpr::atom("a"), SExpr::atom("b"), SExpr::atom("c")]);
     assert_eq!(format!("{l}"), "(a b c)");
 }
 
@@ -251,7 +243,9 @@ fn test_display_nested_list() {
 
 #[test]
 fn test_display_deeply_nested() {
-    let l = SExpr::list(vec![SExpr::list(vec![SExpr::list(vec![SExpr::atom("deep")])])]);
+    let l = SExpr::list(vec![SExpr::list(vec![SExpr::list(vec![SExpr::atom(
+        "deep",
+    )])])]);
     assert_eq!(format!("{l}"), "(((deep)))");
 }
 
@@ -474,10 +468,7 @@ fn test_display_wide_list() {
 
 #[test]
 fn test_list_of_empty_lists() {
-    let l = SExpr::list(vec![
-        SExpr::list(vec![]),
-        SExpr::list(vec![]),
-    ]);
+    let l = SExpr::list(vec![SExpr::list(vec![]), SExpr::list(vec![])]);
     assert_eq!(format!("{l}"), "(() ())");
 }
 
@@ -518,11 +509,7 @@ fn test_sexpr_lisp_like_expression() {
         SExpr::atom("defun"),
         SExpr::atom("add"),
         SExpr::list(vec![SExpr::atom("x"), SExpr::atom("y")]),
-        SExpr::list(vec![
-            SExpr::atom("+"),
-            SExpr::atom("x"),
-            SExpr::atom("y"),
-        ]),
+        SExpr::list(vec![SExpr::atom("+"), SExpr::atom("x"), SExpr::atom("y")]),
     ]);
     assert_eq!(format!("{expr}"), "(defun add (x y) (+ x y))");
 }

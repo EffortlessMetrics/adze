@@ -21,11 +21,8 @@ use adze_tablegen::external_scanner_v2::ExternalScannerGenerator as V2Generator;
 // ---------------------------------------------------------------------------
 
 /// Build a grammar with GrammarBuilder and compute a real parse table.
-fn build_table(
-    grammar: &mut Grammar,
-) -> adze_glr_core::ParseTable {
-    let ff = FirstFollowSets::compute_normalized(grammar)
-        .expect("FIRST/FOLLOW computation failed");
+fn build_table(grammar: &mut Grammar) -> adze_glr_core::ParseTable {
+    let ff = FirstFollowSets::compute_normalized(grammar).expect("FIRST/FOLLOW computation failed");
     build_lr1_automaton(grammar, &ff).expect("LR(1) automaton construction failed")
 }
 
@@ -843,7 +840,10 @@ fn test_v2_compute_state_validity_matches_bitmap() {
     let mut table = minimal_table(&g);
     table.external_scanner_states = vec![vec![true, false], vec![false, true]];
     let scanner = V2Generator::new(g, table);
-    assert_eq!(scanner.compute_state_validity(), scanner.generate_state_bitmap());
+    assert_eq!(
+        scanner.compute_state_validity(),
+        scanner.generate_state_bitmap()
+    );
 }
 
 #[test]

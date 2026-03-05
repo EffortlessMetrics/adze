@@ -95,7 +95,10 @@ fn goto_exists_for_start_nonterminal() {
     let table = build_table(&g);
     let start = nt_id(&g, "start");
     let gotos = all_gotos_for(&table, start);
-    assert!(!gotos.is_empty(), "start nonterminal must have goto entries");
+    assert!(
+        !gotos.is_empty(),
+        "start nonterminal must have goto entries"
+    );
 }
 
 #[test]
@@ -722,10 +725,7 @@ fn goto_targets_productive_in_chain() {
     let table = build_table(&g);
     for &nt in table.nonterminal_to_index.keys() {
         for (_, tgt) in all_gotos_for(&table, nt) {
-            assert!(
-                (tgt.0 as usize) < table.state_count,
-                "target must be valid"
-            );
+            assert!((tgt.0 as usize) < table.state_count, "target must be valid");
             let has_actions = table
                 .symbol_to_index
                 .keys()
@@ -771,10 +771,7 @@ fn goto_all_productive_states_covered() {
         .build();
     let table = build_table(&g);
     let prod = productive_states(&table);
-    assert!(
-        prod > 0,
-        "must have productive states"
-    );
+    assert!(prod > 0, "must have productive states");
     assert!(
         prod <= table.state_count,
         "productive states must not exceed total"
@@ -795,7 +792,10 @@ fn goto_reachable_from_initial_state() {
         .nonterminal_to_index
         .keys()
         .any(|&nt| table.goto(table.initial_state, nt).is_some());
-    assert!(has_goto_from_init, "initial state must have at least one goto");
+    assert!(
+        has_goto_from_init,
+        "initial state must have at least one goto"
+    );
 }
 
 #[test]
@@ -974,10 +974,7 @@ fn goto_recursive_grammar_has_self_goto() {
     let table = build_table(&g);
     let list = nt_id(&g, "list");
     let gotos = all_gotos_for(&table, list);
-    assert!(
-        !gotos.is_empty(),
-        "recursive 'list' must have goto entries"
-    );
+    assert!(!gotos.is_empty(), "recursive 'list' must have goto entries");
 }
 
 #[test]
@@ -1160,7 +1157,10 @@ fn goto_five_nonterminal_chain() {
     let table = build_table(&g);
     for name in &["e", "d", "c", "b", "start"] {
         let nt = nt_id(&g, name);
-        assert!(!all_gotos_for(&table, nt).is_empty(), "chain '{name}' missing goto");
+        assert!(
+            !all_gotos_for(&table, nt).is_empty(),
+            "chain '{name}' missing goto"
+        );
     }
 }
 

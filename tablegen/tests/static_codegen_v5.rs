@@ -5,7 +5,7 @@
 //! combinations, determinism, real parse tables via `build_lr1_automaton`,
 //! NodeTypesGenerator, LanguageBuilder, and edge cases.
 
-use adze_glr_core::{build_lr1_automaton, FirstFollowSets, ParseTable};
+use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, FieldId, Grammar};
 use adze_tablegen::{NodeTypesGenerator, StaticLanguageGenerator};
@@ -318,7 +318,10 @@ fn node_types_excludes_hidden_rules() {
         .start("visible")
         .build();
     let json = gen_node_types(g, ParseTable::default());
-    assert!(!json.contains("\"_secret\""), "hidden rules must be excluded");
+    assert!(
+        !json.contains("\"_secret\""),
+        "hidden rules must be excluded"
+    );
 }
 
 #[test]
@@ -376,8 +379,7 @@ fn node_types_generator_entries_have_required_fields() {
 fn node_types_generator_and_static_generator_both_produce_valid_json() {
     let g = arith_grammar();
     let standalone = NodeTypesGenerator::new(&g).generate().expect("generate");
-    let via_slg =
-        StaticLanguageGenerator::new(g, ParseTable::default()).generate_node_types();
+    let via_slg = StaticLanguageGenerator::new(g, ParseTable::default()).generate_node_types();
     // Both must parse as JSON arrays.
     let a: serde_json::Value = serde_json::from_str(&standalone).unwrap();
     let b: serde_json::Value = serde_json::from_str(&via_slg).unwrap();
@@ -736,7 +738,12 @@ fn right_associative_precedence_generates() {
         .token("num", r"\d+")
         .token("caret", r"\^")
         .rule("expr", vec!["num"])
-        .rule_with_precedence("expr", vec!["expr", "caret", "expr"], 1, Associativity::Right)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "caret", "expr"],
+            1,
+            Associativity::Right,
+        )
         .start("expr")
         .build();
     let code = gen_code(g, ParseTable::default());
@@ -751,7 +758,12 @@ fn mixed_associativity_generates() {
         .token("caret", r"\^")
         .rule("expr", vec!["num"])
         .rule_with_precedence("expr", vec!["expr", "plus", "expr"], 1, Associativity::Left)
-        .rule_with_precedence("expr", vec!["expr", "caret", "expr"], 2, Associativity::Right)
+        .rule_with_precedence(
+            "expr",
+            vec!["expr", "caret", "expr"],
+            2,
+            Associativity::Right,
+        )
         .start("expr")
         .build();
     let code = gen_code(g, ParseTable::default());

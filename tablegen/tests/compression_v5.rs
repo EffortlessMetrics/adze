@@ -198,10 +198,7 @@ fn nullable_grammar() -> Grammar {
 
 #[test]
 fn v5_action_01_all_error_roundtrip() {
-    let table = vec![
-        vec![vec![], vec![]],
-        vec![vec![], vec![]],
-    ];
+    let table = vec![vec![vec![], vec![]], vec![vec![], vec![]]];
     let compressed = compress_action_table(&table);
     assert_eq!(decompress_action(&compressed, 0, 0), Action::Error);
     assert_eq!(decompress_action(&compressed, 0, 1), Action::Error);
@@ -212,34 +209,56 @@ fn v5_action_01_all_error_roundtrip() {
 #[test]
 fn v5_action_02_shift_roundtrip() {
     let table = vec![
-        vec![vec![Action::Shift(StateId(1))], vec![Action::Shift(StateId(2))]],
+        vec![
+            vec![Action::Shift(StateId(1))],
+            vec![Action::Shift(StateId(2))],
+        ],
         vec![vec![Action::Error], vec![Action::Shift(StateId(3))]],
     ];
     let compressed = compress_action_table(&table);
-    assert_eq!(decompress_action(&compressed, 0, 0), Action::Shift(StateId(1)));
-    assert_eq!(decompress_action(&compressed, 0, 1), Action::Shift(StateId(2)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 0),
+        Action::Shift(StateId(1))
+    );
+    assert_eq!(
+        decompress_action(&compressed, 0, 1),
+        Action::Shift(StateId(2))
+    );
     assert_eq!(decompress_action(&compressed, 1, 0), Action::Error);
-    assert_eq!(decompress_action(&compressed, 1, 1), Action::Shift(StateId(3)));
+    assert_eq!(
+        decompress_action(&compressed, 1, 1),
+        Action::Shift(StateId(3))
+    );
 }
 
 #[test]
 fn v5_action_03_reduce_roundtrip() {
     let table = vec![
-        vec![vec![Action::Reduce(RuleId(0))], vec![Action::Reduce(RuleId(1))]],
+        vec![
+            vec![Action::Reduce(RuleId(0))],
+            vec![Action::Reduce(RuleId(1))],
+        ],
         vec![vec![Action::Reduce(RuleId(2))], vec![Action::Error]],
     ];
     let compressed = compress_action_table(&table);
-    assert_eq!(decompress_action(&compressed, 0, 0), Action::Reduce(RuleId(0)));
-    assert_eq!(decompress_action(&compressed, 0, 1), Action::Reduce(RuleId(1)));
-    assert_eq!(decompress_action(&compressed, 1, 0), Action::Reduce(RuleId(2)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 0),
+        Action::Reduce(RuleId(0))
+    );
+    assert_eq!(
+        decompress_action(&compressed, 0, 1),
+        Action::Reduce(RuleId(1))
+    );
+    assert_eq!(
+        decompress_action(&compressed, 1, 0),
+        Action::Reduce(RuleId(2))
+    );
     assert_eq!(decompress_action(&compressed, 1, 1), Action::Error);
 }
 
 #[test]
 fn v5_action_04_accept_roundtrip() {
-    let table = vec![
-        vec![vec![Action::Accept], vec![Action::Error]],
-    ];
+    let table = vec![vec![vec![Action::Accept], vec![Action::Error]]];
     let compressed = compress_action_table(&table);
     assert_eq!(decompress_action(&compressed, 0, 0), Action::Accept);
     assert_eq!(decompress_action(&compressed, 0, 1), Action::Error);
@@ -260,12 +279,24 @@ fn v5_action_05_mixed_actions_roundtrip() {
         ],
     ];
     let compressed = compress_action_table(&table);
-    assert_eq!(decompress_action(&compressed, 0, 0), Action::Shift(StateId(5)));
-    assert_eq!(decompress_action(&compressed, 0, 1), Action::Reduce(RuleId(3)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 0),
+        Action::Shift(StateId(5))
+    );
+    assert_eq!(
+        decompress_action(&compressed, 0, 1),
+        Action::Reduce(RuleId(3))
+    );
     assert_eq!(decompress_action(&compressed, 0, 2), Action::Accept);
     assert_eq!(decompress_action(&compressed, 1, 0), Action::Error);
-    assert_eq!(decompress_action(&compressed, 1, 1), Action::Shift(StateId(7)));
-    assert_eq!(decompress_action(&compressed, 1, 2), Action::Reduce(RuleId(0)));
+    assert_eq!(
+        decompress_action(&compressed, 1, 1),
+        Action::Shift(StateId(7))
+    );
+    assert_eq!(
+        decompress_action(&compressed, 1, 2),
+        Action::Reduce(RuleId(0))
+    );
 }
 
 #[test]
@@ -293,15 +324,16 @@ fn v5_action_07_no_duplicates_preserves_all_rows() {
 
 #[test]
 fn v5_action_08_glr_multi_action_cell() {
-    let table = vec![
-        vec![
-            vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))],
-            vec![Action::Error],
-        ],
-    ];
+    let table = vec![vec![
+        vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))],
+        vec![Action::Error],
+    ]];
     let compressed = compress_action_table(&table);
     // decompress_action returns first action from the cell
-    assert_eq!(decompress_action(&compressed, 0, 0), Action::Shift(StateId(1)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 0),
+        Action::Shift(StateId(1))
+    );
 }
 
 #[test]
@@ -315,12 +347,13 @@ fn v5_action_09_single_cell_table() {
 
 #[test]
 fn v5_action_10_recover_action_roundtrip() {
-    let table = vec![
-        vec![vec![Action::Recover], vec![Action::Shift(StateId(1))]],
-    ];
+    let table = vec![vec![vec![Action::Recover], vec![Action::Shift(StateId(1))]]];
     let compressed = compress_action_table(&table);
     assert_eq!(decompress_action(&compressed, 0, 0), Action::Recover);
-    assert_eq!(decompress_action(&compressed, 0, 1), Action::Shift(StateId(1)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 1),
+        Action::Shift(StateId(1))
+    );
 }
 
 // ============================================================================
@@ -329,10 +362,7 @@ fn v5_action_10_recover_action_roundtrip() {
 
 #[test]
 fn v5_goto_01_all_none_roundtrip() {
-    let table: Vec<Vec<Option<StateId>>> = vec![
-        vec![None, None],
-        vec![None, None],
-    ];
+    let table: Vec<Vec<Option<StateId>>> = vec![vec![None, None], vec![None, None]];
     let compressed = compress_goto_table(&table);
     assert!(compressed.entries.is_empty());
     assert_eq!(decompress_goto(&compressed, 0, 0), None);
@@ -371,10 +401,7 @@ fn v5_goto_03_fully_populated_roundtrip() {
 
 #[test]
 fn v5_goto_04_single_entry_roundtrip() {
-    let table = vec![
-        vec![None, None, None],
-        vec![None, Some(StateId(42)), None],
-    ];
+    let table = vec![vec![None, None, None], vec![None, Some(StateId(42)), None]];
     let compressed = compress_goto_table(&table);
     assert_eq!(compressed.entries.len(), 1);
     assert_eq!(decompress_goto(&compressed, 1, 1), Some(StateId(42)));
@@ -394,9 +421,7 @@ fn v5_goto_05_large_state_ids() {
 
 #[test]
 fn v5_goto_06_single_row_roundtrip() {
-    let table = vec![
-        vec![Some(StateId(10)), None, Some(StateId(20))],
-    ];
+    let table = vec![vec![Some(StateId(10)), None, Some(StateId(20))]];
     let compressed = compress_goto_table(&table);
     assert_eq!(compressed.entries.len(), 2);
     assert_eq!(decompress_goto(&compressed, 0, 0), Some(StateId(10)));
@@ -459,9 +484,7 @@ fn v5_bitpack_01_all_error() {
 
 #[test]
 fn v5_bitpack_02_all_shift() {
-    let table = vec![
-        vec![Action::Shift(StateId(1)), Action::Shift(StateId(2))],
-    ];
+    let table = vec![vec![Action::Shift(StateId(1)), Action::Shift(StateId(2))]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Shift(StateId(1)));
     assert_eq!(packed.decompress(0, 1), Action::Shift(StateId(2)));
@@ -469,9 +492,7 @@ fn v5_bitpack_02_all_shift() {
 
 #[test]
 fn v5_bitpack_03_all_reduce() {
-    let table = vec![
-        vec![Action::Reduce(RuleId(0)), Action::Reduce(RuleId(1))],
-    ];
+    let table = vec![vec![Action::Reduce(RuleId(0)), Action::Reduce(RuleId(1))]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Reduce(RuleId(0)));
     assert_eq!(packed.decompress(0, 1), Action::Reduce(RuleId(1)));
@@ -479,9 +500,7 @@ fn v5_bitpack_03_all_reduce() {
 
 #[test]
 fn v5_bitpack_04_error_then_shift() {
-    let table = vec![
-        vec![Action::Error, Action::Shift(StateId(5))],
-    ];
+    let table = vec![vec![Action::Error, Action::Shift(StateId(5))]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Error);
     assert_eq!(packed.decompress(0, 1), Action::Shift(StateId(5)));
@@ -489,9 +508,7 @@ fn v5_bitpack_04_error_then_shift() {
 
 #[test]
 fn v5_bitpack_05_shift_then_error() {
-    let table = vec![
-        vec![Action::Shift(StateId(3)), Action::Error],
-    ];
+    let table = vec![vec![Action::Shift(StateId(3)), Action::Error]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Shift(StateId(3)));
     assert_eq!(packed.decompress(0, 1), Action::Error);
@@ -499,9 +516,7 @@ fn v5_bitpack_05_shift_then_error() {
 
 #[test]
 fn v5_bitpack_06_shift_then_reduce() {
-    let table = vec![
-        vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))],
-    ];
+    let table = vec![vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Shift(StateId(1)));
     assert_eq!(packed.decompress(0, 1), Action::Reduce(RuleId(0)));
@@ -510,9 +525,7 @@ fn v5_bitpack_06_shift_then_reduce() {
 #[test]
 fn v5_bitpack_07_accept_roundtrip() {
     // Accept is encoded as special reduce with u32::MAX
-    let table = vec![
-        vec![Action::Shift(StateId(1)), Action::Accept],
-    ];
+    let table = vec![vec![Action::Shift(StateId(1)), Action::Accept]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Shift(StateId(1)));
     assert_eq!(packed.decompress(0, 1), Action::Accept);
@@ -521,9 +534,7 @@ fn v5_bitpack_07_accept_roundtrip() {
 #[test]
 fn v5_bitpack_08_fork_roundtrip() {
     let fork_actions = vec![Action::Shift(StateId(1)), Action::Reduce(RuleId(0))];
-    let table = vec![
-        vec![Action::Fork(fork_actions.clone()), Action::Error],
-    ];
+    let table = vec![vec![Action::Fork(fork_actions.clone()), Action::Error]];
     let packed = BitPackedActionTable::from_table(&table);
     assert_eq!(packed.decompress(0, 0), Action::Fork(fork_actions));
     assert_eq!(packed.decompress(0, 1), Action::Error);
@@ -531,9 +542,7 @@ fn v5_bitpack_08_fork_roundtrip() {
 
 #[test]
 fn v5_bitpack_09_recover_treated_as_error() {
-    let table = vec![
-        vec![Action::Recover, Action::Shift(StateId(1))],
-    ];
+    let table = vec![vec![Action::Recover, Action::Shift(StateId(1))]];
     let packed = BitPackedActionTable::from_table(&table);
     // Recover is stored as error in bit-packed format
     assert_eq!(packed.decompress(0, 0), Action::Error);
@@ -543,7 +552,11 @@ fn v5_bitpack_09_recover_treated_as_error() {
 #[test]
 fn v5_bitpack_10_multi_row_mixed() {
     let table = vec![
-        vec![Action::Shift(StateId(1)), Action::Error, Action::Shift(StateId(2))],
+        vec![
+            Action::Shift(StateId(1)),
+            Action::Error,
+            Action::Shift(StateId(2)),
+        ],
         vec![Action::Error, Action::Reduce(RuleId(0)), Action::Error],
     ];
     let packed = BitPackedActionTable::from_table(&table);
@@ -597,9 +610,7 @@ fn v5_size_03_all_same_rows_maximal_dedup() {
 #[test]
 fn v5_size_04_all_unique_rows_no_dedup() {
     let table: Vec<Vec<Vec<Action>>> = (0..5)
-        .map(|i| {
-            vec![vec![Action::Shift(StateId(i))], vec![Action::Error]]
-        })
+        .map(|i| vec![vec![Action::Shift(StateId(i))], vec![Action::Error]])
         .collect();
     let compressed = compress_action_table(&table);
     assert_eq!(compressed.unique_rows.len(), 5);
@@ -623,11 +634,7 @@ fn v5_size_05_half_duplicate_rows() {
 
 #[test]
 fn v5_size_06_empty_goto_zero_entries() {
-    let table: Vec<Vec<Option<StateId>>> = vec![
-        vec![None; 10],
-        vec![None; 10],
-        vec![None; 10],
-    ];
+    let table: Vec<Vec<Option<StateId>>> = vec![vec![None; 10], vec![None; 10], vec![None; 10]];
     let compressed = compress_goto_table(&table);
     assert!(compressed.entries.is_empty());
 }
@@ -648,7 +655,13 @@ fn v5_size_08_action_dedup_ratio_with_pattern() {
     let row_even = vec![vec![Action::Shift(StateId(0))], vec![Action::Error]];
     let row_odd = vec![vec![Action::Error], vec![Action::Reduce(RuleId(1))]];
     let table: Vec<Vec<Vec<Action>>> = (0..100)
-        .map(|i| if i % 2 == 0 { row_even.clone() } else { row_odd.clone() })
+        .map(|i| {
+            if i % 2 == 0 {
+                row_even.clone()
+            } else {
+                row_odd.clone()
+            }
+        })
         .collect();
     let compressed = compress_action_table(&table);
     assert_eq!(compressed.unique_rows.len(), 2);
@@ -810,7 +823,10 @@ fn v5_edge_03_single_state_single_symbol_action() {
     let table = vec![vec![vec![Action::Shift(StateId(0))]]];
     let compressed = compress_action_table(&table);
     assert_eq!(compressed.unique_rows.len(), 1);
-    assert_eq!(decompress_action(&compressed, 0, 0), Action::Shift(StateId(0)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 0),
+        Action::Shift(StateId(0))
+    );
 }
 
 #[test]
@@ -823,9 +839,7 @@ fn v5_edge_04_single_state_single_symbol_goto() {
 
 #[test]
 fn v5_edge_05_state_id_zero_preserved() {
-    let table = vec![
-        vec![None, Some(StateId(0))],
-    ];
+    let table = vec![vec![None, Some(StateId(0))]];
     let compressed = compress_goto_table(&table);
     assert_eq!(decompress_goto(&compressed, 0, 0), None);
     assert_eq!(decompress_goto(&compressed, 0, 1), Some(StateId(0)));
@@ -854,9 +868,15 @@ fn v5_edge_07_wide_row_roundtrip() {
     let table = vec![wide_row];
     let compressed = compress_action_table(&table);
     assert_eq!(compressed.unique_rows.len(), 1);
-    assert_eq!(decompress_action(&compressed, 0, 0), Action::Shift(StateId(0)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 0),
+        Action::Shift(StateId(0))
+    );
     assert_eq!(decompress_action(&compressed, 0, 1), Action::Error);
-    assert_eq!(decompress_action(&compressed, 0, 3), Action::Shift(StateId(3)));
+    assert_eq!(
+        decompress_action(&compressed, 0, 3),
+        Action::Shift(StateId(3))
+    );
 }
 
 #[test]

@@ -237,7 +237,10 @@ fn test_metadata_hidden_via_underscore_prefix_in_grammar() {
     if let Some(rid) = reg.get_id("_helper") {
         let meta = reg.get_metadata(rid).unwrap();
         assert!(meta.hidden, "underscore-prefixed rule should be hidden");
-        assert!(!meta.visible, "underscore-prefixed rule should not be visible");
+        assert!(
+            !meta.visible,
+            "underscore-prefixed rule should not be visible"
+        );
     }
 }
 

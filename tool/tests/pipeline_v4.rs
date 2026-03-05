@@ -612,10 +612,7 @@ fn v4_determinism_stats_single_token() {
     let r2 = build_parser(single_token_grammar(), o2).unwrap();
     assert_eq!(r1.build_stats.state_count, r2.build_stats.state_count);
     assert_eq!(r1.build_stats.symbol_count, r2.build_stats.symbol_count);
-    assert_eq!(
-        r1.build_stats.conflict_cells,
-        r2.build_stats.conflict_cells
-    );
+    assert_eq!(r1.build_stats.conflict_cells, r2.build_stats.conflict_cells);
 }
 
 #[test]

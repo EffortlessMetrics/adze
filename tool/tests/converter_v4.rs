@@ -10,12 +10,14 @@
 //! 7. Extras, externals, inline, supertype (6 tests)
 //! 8. Error and edge cases (6 tests)
 
-use adze_ir::builder::GrammarBuilder;
 use adze_ir::Associativity;
 use adze_ir::Grammar;
-use adze_tool::pure_rust_builder::{BuildOptions, BuildResult, build_parser, build_parser_from_json};
-use adze_tool::visualization::GrammarVisualizer;
+use adze_ir::builder::GrammarBuilder;
 use adze_tool::GrammarConverter;
+use adze_tool::pure_rust_builder::{
+    BuildOptions, BuildResult, build_parser, build_parser_from_json,
+};
+use adze_tool::visualization::GrammarVisualizer;
 use serde_json::json;
 
 // ---------------------------------------------------------------------------
@@ -419,9 +421,10 @@ fn sample_grammar_has_fields() {
 #[test]
 fn sample_grammar_has_precedence_on_addition() {
     let grammar = GrammarConverter::create_sample_grammar();
-    let has_prec = grammar.rules.values().any(|rules| {
-        rules.iter().any(|r| r.precedence.is_some())
-    });
+    let has_prec = grammar
+        .rules
+        .values()
+        .any(|rules| rules.iter().any(|r| r.precedence.is_some()));
     assert!(has_prec);
 }
 
