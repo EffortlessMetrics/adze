@@ -408,7 +408,7 @@ fn registry_rule_hidden_rule_starts_with_underscore() {
 
 #[test]
 fn registry_rule_registry_contains_all_rule_names() {
-    let mut grammar = GrammarBuilder::new("all_rules")
+    let grammar = GrammarBuilder::new("all_rules")
         .token("A", "a")
         .token("B", "b")
         .rule("first", vec!["A"])
