@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: "format!(\"found={found} inner={inner}\")"
+---
+found=true inner=bool

@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: "filter(&parse_quote!(&str), &[\"Box\"])"
+---
+& str
