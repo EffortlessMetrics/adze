@@ -20,7 +20,7 @@ use adze_tablegen::abi::{
 };
 use adze_tablegen::serializer::serialize_language;
 use adze_tablegen::{
-    AbiLanguageBuilder, NodeTypesGenerator, StaticLanguageGenerator, TableCompressor,
+    AbiLanguageBuilder, NodeTypesGenerator, StaticLanguageGenerator,
 };
 use proptest::prelude::*;
 use serde_json::Value;
@@ -35,16 +35,19 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
 }
 
 /// Token name: lowercase ASCII, 1–11 chars.
+#[allow(dead_code)]
 fn token_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,10}".prop_filter("non-empty", |s| !s.is_empty())
 }
 
 /// Number of extra tokens to add (beyond the mandatory first one).
+#[allow(dead_code)]
 fn extra_token_count() -> impl Strategy<Value = usize> {
     0usize..=5
 }
 
 /// Number of rule alternatives (each referencing the first token).
+#[allow(dead_code)]
 fn rule_alt_count() -> impl Strategy<Value = usize> {
     1usize..=4
 }
