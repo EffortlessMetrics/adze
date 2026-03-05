@@ -1,11 +1,11 @@
 //! Comprehensive v3 tests for `NodeTypesGenerator`.
 //!
-//! 50+ tests covering: construction, generation, JSON structure, named/anonymous
-//! flags, grammar shapes (simple, chains, recursive, alternatives), multi-token,
-//! multi-nonterminal, and edge cases.
+//! 57 tests covering: simple grammar node types, JSON structure validity,
+//! named/anonymous node types, fields, children, determinism, complex grammars,
+//! and edge cases.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar};
+use adze_ir::{Associativity, FieldId, Grammar};
 use adze_tablegen::NodeTypesGenerator;
 use serde_json::Value;
 
@@ -13,14 +13,14 @@ use serde_json::Value;
 // Helpers
 // ===========================================================================
 
-fn gen_json(grammar: &Grammar) -> String {
+fn generate_json(grammar: &Grammar) -> String {
     NodeTypesGenerator::new(grammar)
         .generate()
         .expect("generate failed")
 }
 
-fn gen_parsed(grammar: &Grammar) -> Vec<Value> {
-    let json = gen_json(grammar);
+fn generate_parsed(grammar: &Grammar) -> Vec<Value> {
+    let json = generate_json(grammar);
     serde_json::from_str::<Value>(&json)
         .unwrap()
         .as_array()
@@ -174,242 +174,271 @@ fn many_tokens_grammar() -> Grammar {
         .build()
 }
 
-// ===========================================================================
-// 1. Construction
-// ===========================================================================
-
-#[test]
-fn new_takes_grammar_ref() {
-    let g = simple_grammar();
-    let _ntg = NodeTypesGenerator::new(&g);
-}
-
-#[test]
-fn new_with_empty_rules_grammar() {
-    let g = GrammarBuilder::new("empty")
-        .token("x", "x")
-        .rule("s", vec!["x"])
-        .start("s")
+/// Build a grammar where a rule has a single field pointing at a terminal.
+fn grammar_with_single_field() -> Grammar {
+    let mut g = GrammarBuilder::new("single_field")
+        .token("NUM", r"\d+")
+        .rule("value", vec!["NUM"])
+        .start("value")
         .build();
-    let _ntg = NodeTypesGenerator::new(&g);
+
+    g.fields.insert(FieldId(0), "operand".to_string());
+
+    let value_id = g
+        .rule_names
+        .iter()
+        .find(|(_, name)| name.as_str() == "value")
+        .map(|(id, _)| *id)
+        .unwrap();
+
+    if let Some(rules) = g.rules.get_mut(&value_id) {
+        rules[0].fields = vec![(FieldId(0), 0)];
+    }
+    g
+}
+
+/// Build a grammar where a rule has two fields.
+fn grammar_with_two_fields() -> Grammar {
+    let mut g = GrammarBuilder::new("two_fields")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .rule("add", vec!["NUM", "+", "NUM"])
+        .start("add")
+        .build();
+
+    g.fields.insert(FieldId(0), "left".to_string());
+    g.fields.insert(FieldId(1), "right".to_string());
+
+    let add_id = g
+        .rule_names
+        .iter()
+        .find(|(_, name)| name.as_str() == "add")
+        .map(|(id, _)| *id)
+        .unwrap();
+
+    if let Some(rules) = g.rules.get_mut(&add_id) {
+        // left → position 0 (NUM), right → position 2 (NUM)
+        rules[0].fields = vec![(FieldId(0), 0), (FieldId(1), 2)];
+    }
+    g
+}
+
+/// Build a grammar where a field points at a non-terminal.
+fn grammar_with_nonterminal_field() -> Grammar {
+    let mut g = GrammarBuilder::new("nt_field")
+        .token("NUM", r"\d+")
+        .rule("wrapper", vec!["inner"])
+        .rule("inner", vec!["NUM"])
+        .start("wrapper")
+        .build();
+
+    g.fields.insert(FieldId(0), "body".to_string());
+
+    let wrapper_id = g
+        .rule_names
+        .iter()
+        .find(|(_, name)| name.as_str() == "wrapper")
+        .map(|(id, _)| *id)
+        .unwrap();
+
+    if let Some(rules) = g.rules.get_mut(&wrapper_id) {
+        rules[0].fields = vec![(FieldId(0), 0)];
+    }
+    g
 }
 
 // ===========================================================================
-// 2. generate() returns Ok
+// 1. Simple grammar node types (10 tests)
 // ===========================================================================
 
 #[test]
-fn generate_returns_ok_simple() {
+fn simple_grammar_generates_ok() {
     let g = simple_grammar();
     assert!(NodeTypesGenerator::new(&g).generate().is_ok());
 }
 
 #[test]
-fn generate_returns_ok_regex_token() {
-    let g = regex_token_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn simple_grammar_has_rule_and_token() {
+    let nodes = generate_parsed(&simple_grammar());
+    assert!(find_by_type(&nodes, "s").is_some());
+    assert!(find_by_type(&nodes, "a").is_some());
 }
 
 #[test]
-fn generate_returns_ok_alternatives() {
-    let g = alternative_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn simple_grammar_exactly_two_entries() {
+    let nodes = generate_parsed(&simple_grammar());
+    assert_eq!(nodes.len(), 2);
 }
 
 #[test]
-fn generate_returns_ok_chain() {
-    let g = chain_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn two_token_grammar_generates_ok() {
+    assert!(
+        NodeTypesGenerator::new(&two_token_grammar())
+            .generate()
+            .is_ok()
+    );
 }
 
 #[test]
-fn generate_returns_ok_recursive() {
-    let g = recursive_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn two_token_grammar_has_rule_and_both_tokens() {
+    let nodes = generate_parsed(&two_token_grammar());
+    assert!(find_by_type(&nodes, "s").is_some());
+    assert!(find_by_type(&nodes, "a").is_some());
+    assert!(find_by_type(&nodes, "b").is_some());
 }
 
 #[test]
-fn generate_returns_ok_arithmetic() {
-    let g = arithmetic_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn regex_token_grammar_generates_ok() {
+    assert!(
+        NodeTypesGenerator::new(&regex_token_grammar())
+            .generate()
+            .is_ok()
+    );
 }
 
 #[test]
-fn generate_returns_ok_many_rules() {
-    let g = many_rules_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn alternative_grammar_generates_ok() {
+    assert!(
+        NodeTypesGenerator::new(&alternative_grammar())
+            .generate()
+            .is_ok()
+    );
 }
 
 #[test]
-fn generate_returns_ok_deep_chain() {
-    let g = deep_chain_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn alternative_grammar_single_rule_entry() {
+    let nodes = generate_parsed(&alternative_grammar());
+    let count = nodes
+        .iter()
+        .filter(|n| n["type"].as_str() == Some("s"))
+        .count();
+    assert_eq!(
+        count, 1,
+        "multiple productions should produce one node type"
+    );
 }
 
 #[test]
-fn generate_returns_ok_multi_nonterminal() {
-    let g = multi_nonterminal_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn chain_grammar_generates_ok() {
+    assert!(NodeTypesGenerator::new(&chain_grammar()).generate().is_ok());
 }
 
 #[test]
-fn generate_returns_ok_many_tokens() {
-    let g = many_tokens_grammar();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
+fn chain_grammar_has_all_nonterminals_and_leaf() {
+    let nodes = generate_parsed(&chain_grammar());
+    for name in &["a", "b", "c"] {
+        assert!(find_by_type(&nodes, name).is_some(), "missing '{name}'");
+    }
+    assert!(find_by_type(&nodes, "x").is_some());
 }
 
 // ===========================================================================
-// 3. JSON structure
+// 2. JSON structure validity (8 tests)
 // ===========================================================================
 
 #[test]
 fn output_is_valid_json() {
-    let g = simple_grammar();
-    let json = gen_json(&g);
+    let json = generate_json(&simple_grammar());
     assert!(serde_json::from_str::<Value>(&json).is_ok());
 }
 
 #[test]
 fn output_is_json_array() {
-    let g = simple_grammar();
-    let v: Value = serde_json::from_str(&gen_json(&g)).unwrap();
+    let v: Value = serde_json::from_str(&generate_json(&simple_grammar())).unwrap();
     assert!(v.is_array());
 }
 
 #[test]
 fn each_entry_has_type_field() {
-    let nodes = gen_parsed(&simple_grammar());
-    for n in &nodes {
+    for n in &generate_parsed(&multi_nonterminal_grammar()) {
         assert!(n.get("type").is_some(), "missing 'type' in {n}");
     }
 }
 
 #[test]
 fn each_entry_has_named_field() {
-    let nodes = gen_parsed(&simple_grammar());
-    for n in &nodes {
+    for n in &generate_parsed(&multi_nonterminal_grammar()) {
         assert!(n.get("named").is_some(), "missing 'named' in {n}");
     }
 }
 
 #[test]
 fn type_field_is_string() {
-    let nodes = gen_parsed(&simple_grammar());
-    for n in &nodes {
+    for n in &generate_parsed(&arithmetic_grammar()) {
         assert!(n["type"].is_string(), "type should be string in {n}");
     }
 }
 
 #[test]
 fn named_field_is_boolean() {
-    let nodes = gen_parsed(&simple_grammar());
-    for n in &nodes {
+    for n in &generate_parsed(&arithmetic_grammar()) {
         assert!(n["named"].is_boolean(), "named should be bool in {n}");
     }
 }
 
 #[test]
-fn output_array_non_empty_simple() {
-    let nodes = gen_parsed(&simple_grammar());
-    assert!(!nodes.is_empty());
+fn output_is_pretty_printed() {
+    let json = generate_json(&simple_grammar());
+    assert!(json.contains('\n'), "output should be pretty-printed");
 }
 
 #[test]
 fn output_sorted_by_type_name() {
-    let nodes = gen_parsed(&many_tokens_grammar());
+    let nodes = generate_parsed(&many_tokens_grammar());
     let names: Vec<&str> = nodes.iter().filter_map(|n| n["type"].as_str()).collect();
     let mut sorted = names.clone();
     sorted.sort();
-    assert_eq!(names, sorted);
-}
-
-#[test]
-fn json_structure_multi_nonterminal() {
-    let nodes = gen_parsed(&multi_nonterminal_grammar());
-    for n in &nodes {
-        assert!(n["type"].is_string());
-        assert!(n["named"].is_boolean());
-    }
-}
-
-#[test]
-fn json_pretty_printed() {
-    let json = gen_json(&simple_grammar());
-    // Pretty-printed JSON has newlines
-    assert!(json.contains('\n'));
+    assert_eq!(names, sorted, "entries should be sorted by type name");
 }
 
 // ===========================================================================
-// 4. Named / anonymous flags
+// 3. Named / anonymous node types (8 tests)
 // ===========================================================================
 
 #[test]
 fn string_token_is_anonymous() {
-    // token("a", "a") → TokenPattern::String → named: false
-    let nodes = gen_parsed(&simple_grammar());
-    let a = find_by_type(&nodes, "a");
-    assert!(a.is_some(), "should contain token 'a'");
-    assert_eq!(a.unwrap()["named"], false);
+    let nodes = generate_parsed(&simple_grammar());
+    let a = find_by_type(&nodes, "a").expect("should contain token 'a'");
+    assert_eq!(a["named"], false);
 }
 
 #[test]
-fn regex_token_is_named() {
-    // token("NUMBER", r"\d+") → TokenPattern::Regex → named: true
-    // Regex tokens are NOT added to the anonymous list; they only appear
-    // via their rule. The rule "expr" is named: true.
-    let nodes = gen_parsed(&regex_token_grammar());
-    let expr = find_by_type(&nodes, "expr");
-    assert!(expr.is_some());
-    assert_eq!(expr.unwrap()["named"], true);
+fn regex_token_rule_is_named() {
+    let nodes = generate_parsed(&regex_token_grammar());
+    let expr = find_by_type(&nodes, "expr").expect("should contain rule 'expr'");
+    assert_eq!(expr["named"], true);
 }
 
 #[test]
-fn rule_nonterminal_is_named() {
-    let nodes = gen_parsed(&simple_grammar());
-    let s = find_by_type(&nodes, "s");
-    assert!(s.is_some(), "should contain rule 's'");
-    assert_eq!(s.unwrap()["named"], true);
-}
-
-#[test]
-fn all_nonterminals_are_named() {
-    let nodes = gen_parsed(&chain_grammar());
+fn nonterminal_rules_are_named() {
+    let nodes = generate_parsed(&chain_grammar());
     for name in &["a", "b", "c"] {
-        let n = find_by_type(&nodes, name).unwrap_or_else(|| panic!("missing {name}"));
-        assert_eq!(n["named"], true, "{name} should be named");
+        let n = find_by_type(&nodes, name).unwrap();
+        assert_eq!(n["named"], true, "'{name}' should be named");
     }
 }
 
 #[test]
-fn string_literal_tokens_are_anonymous() {
-    let nodes = gen_parsed(&two_token_grammar());
-    for name in &["a", "b"] {
-        let n = find_by_type(&nodes, name).unwrap_or_else(|| panic!("missing {name}"));
-        assert_eq!(n["named"], false, "token '{name}' should be anonymous");
-    }
-}
-
-#[test]
-fn punctuation_tokens_anonymous() {
-    let nodes = gen_parsed(&recursive_grammar());
+fn punctuation_tokens_are_anonymous() {
+    let nodes = generate_parsed(&recursive_grammar());
     for tok in &["(", ")"] {
-        let n = find_by_type(&nodes, tok).unwrap_or_else(|| panic!("missing {tok}"));
+        let n = find_by_type(&nodes, tok).unwrap();
         assert_eq!(n["named"], false, "'{tok}' should be anonymous");
     }
 }
 
 #[test]
-fn operator_tokens_anonymous() {
-    let nodes = gen_parsed(&arithmetic_grammar());
+fn operator_tokens_are_anonymous() {
+    let nodes = generate_parsed(&arithmetic_grammar());
     for tok in &["+", "*"] {
-        let n = find_by_type(&nodes, tok).unwrap_or_else(|| panic!("missing {tok}"));
+        let n = find_by_type(&nodes, tok).unwrap();
         assert_eq!(n["named"], false, "'{tok}' should be anonymous");
     }
 }
 
 #[test]
 fn named_entries_for_multi_nonterminal() {
-    let nodes = gen_parsed(&multi_nonterminal_grammar());
+    let nodes = generate_parsed(&multi_nonterminal_grammar());
     let named = named_entries(&nodes);
     for nt in &["program", "stmt", "assign", "val"] {
         assert!(
@@ -421,330 +450,210 @@ fn named_entries_for_multi_nonterminal() {
 
 #[test]
 fn anonymous_entries_for_multi_nonterminal() {
-    let nodes = gen_parsed(&multi_nonterminal_grammar());
+    let nodes = generate_parsed(&multi_nonterminal_grammar());
     let anon = anonymous_entries(&nodes);
     for tok in &[";", "="] {
         assert!(
             anon.contains(&tok.to_string()),
-            "missing anonymous entry '{tok}'"
+            "missing anon entry '{tok}'"
+        );
+    }
+}
+
+#[test]
+fn named_count_matches_nonterminal_count() {
+    let nodes = generate_parsed(&simple_grammar());
+    let named = named_entries(&nodes);
+    assert_eq!(named.len(), 1);
+    assert_eq!(named[0], "s");
+}
+
+// ===========================================================================
+// 4. Node types with fields (5 tests)
+// ===========================================================================
+
+#[test]
+fn field_appears_in_output() {
+    let nodes = generate_parsed(&grammar_with_single_field());
+    let value_node = find_by_type(&nodes, "value").expect("should contain 'value'");
+    assert!(value_node.get("fields").is_some(), "should have fields key");
+}
+
+#[test]
+fn field_has_required_and_multiple_flags() {
+    let nodes = generate_parsed(&grammar_with_single_field());
+    let fields = &find_by_type(&nodes, "value").unwrap()["fields"];
+    let operand = &fields["operand"];
+    assert_eq!(operand["required"], true);
+    assert_eq!(operand["multiple"], false);
+}
+
+#[test]
+fn field_has_types_array() {
+    let nodes = generate_parsed(&grammar_with_single_field());
+    let fields = &find_by_type(&nodes, "value").unwrap()["fields"];
+    let types = fields["operand"]["types"]
+        .as_array()
+        .expect("types should be array");
+    assert!(!types.is_empty());
+}
+
+#[test]
+fn two_fields_both_present() {
+    let nodes = generate_parsed(&grammar_with_two_fields());
+    let fields = &find_by_type(&nodes, "add").unwrap()["fields"];
+    assert!(fields.get("left").is_some(), "should have 'left' field");
+    assert!(fields.get("right").is_some(), "should have 'right' field");
+}
+
+#[test]
+fn nonterminal_field_type_is_named() {
+    let nodes = generate_parsed(&grammar_with_nonterminal_field());
+    let fields = &find_by_type(&nodes, "wrapper").unwrap()["fields"];
+    let body_types = fields["body"]["types"].as_array().unwrap();
+    assert_eq!(body_types.len(), 1);
+    assert_eq!(body_types[0]["named"], true);
+}
+
+// ===========================================================================
+// 5. Node types with children (5 tests)
+// ===========================================================================
+
+#[test]
+fn simple_grammar_no_children_key() {
+    let nodes = generate_parsed(&simple_grammar());
+    for n in &nodes {
+        assert!(
+            n.get("children").is_none(),
+            "children should be absent: {n}"
+        );
+    }
+}
+
+#[test]
+fn chain_grammar_no_children_key() {
+    let nodes = generate_parsed(&chain_grammar());
+    for n in &nodes {
+        assert!(
+            n.get("children").is_none(),
+            "children should be absent: {n}"
+        );
+    }
+}
+
+#[test]
+fn recursive_grammar_no_children_key() {
+    let nodes = generate_parsed(&recursive_grammar());
+    for n in &nodes {
+        assert!(
+            n.get("children").is_none(),
+            "children should be absent: {n}"
+        );
+    }
+}
+
+#[test]
+fn multi_rule_grammar_no_children_key() {
+    let nodes = generate_parsed(&many_rules_grammar());
+    for n in &nodes {
+        assert!(
+            n.get("children").is_none(),
+            "children should be absent: {n}"
+        );
+    }
+}
+
+#[test]
+fn grammar_with_fields_still_no_children_key() {
+    let nodes = generate_parsed(&grammar_with_two_fields());
+    for n in &nodes {
+        assert!(
+            n.get("children").is_none(),
+            "children should be absent: {n}"
         );
     }
 }
 
 // ===========================================================================
-// 5. Grammar shapes — simple
+// 6. Determinism (5 tests)
 // ===========================================================================
 
 #[test]
-fn simple_grammar_has_rule_and_token() {
-    let nodes = gen_parsed(&simple_grammar());
-    assert!(find_by_type(&nodes, "s").is_some());
-    assert!(find_by_type(&nodes, "a").is_some());
+fn same_grammar_same_output() {
+    let g = arithmetic_grammar();
+    assert_eq!(generate_json(&g), generate_json(&g));
 }
 
 #[test]
-fn simple_grammar_exactly_two_entries() {
-    let nodes = gen_parsed(&simple_grammar());
-    // rule "s" (named) + token "a" (anonymous)
-    assert_eq!(nodes.len(), 2);
+fn identical_grammars_same_output() {
+    assert_eq!(
+        generate_json(&simple_grammar()),
+        generate_json(&simple_grammar())
+    );
+}
+
+#[test]
+fn deterministic_with_alternatives() {
+    let g1 = alternative_grammar();
+    let g2 = alternative_grammar();
+    assert_eq!(generate_json(&g1), generate_json(&g2));
+}
+
+#[test]
+fn deterministic_with_many_rules() {
+    let g1 = many_rules_grammar();
+    let g2 = many_rules_grammar();
+    assert_eq!(generate_json(&g1), generate_json(&g2));
+}
+
+#[test]
+fn deterministic_with_fields() {
+    let g1 = grammar_with_two_fields();
+    let g2 = grammar_with_two_fields();
+    let v1: Value = serde_json::from_str(&generate_json(&g1)).unwrap();
+    let v2: Value = serde_json::from_str(&generate_json(&g2)).unwrap();
+    assert_eq!(v1, v2);
 }
 
 // ===========================================================================
-// 6. Grammar shapes — alternatives
+// 7. Complex grammars (8 tests)
 // ===========================================================================
 
 #[test]
-fn alternative_grammar_has_single_rule() {
-    let nodes = gen_parsed(&alternative_grammar());
-    // "s" appears once despite two productions
+fn arithmetic_expr_is_named() {
+    let nodes = generate_parsed(&arithmetic_grammar());
+    assert_eq!(find_by_type(&nodes, "expr").unwrap()["named"], true);
+}
+
+#[test]
+fn arithmetic_single_expr_entry() {
+    let nodes = generate_parsed(&arithmetic_grammar());
     let count = nodes
         .iter()
-        .filter(|n| n["type"].as_str() == Some("s"))
+        .filter(|n| n["type"].as_str() == Some("expr"))
         .count();
     assert_eq!(count, 1);
 }
 
 #[test]
-fn alternative_grammar_rule_is_named() {
-    let nodes = gen_parsed(&alternative_grammar());
-    let s = find_by_type(&nodes, "s").unwrap();
-    assert_eq!(s["named"], true);
-}
-
-#[test]
-fn alternative_grammar_contains_both_tokens() {
-    let nodes = gen_parsed(&alternative_grammar());
-    assert!(find_by_type(&nodes, "a").is_some());
-    assert!(find_by_type(&nodes, "b").is_some());
-}
-
-// ===========================================================================
-// 7. Grammar shapes — chains
-// ===========================================================================
-
-#[test]
-fn chain_grammar_has_all_nonterminals() {
-    let nodes = gen_parsed(&chain_grammar());
-    for name in &["a", "b", "c"] {
-        assert!(find_by_type(&nodes, name).is_some(), "missing '{name}'");
-    }
-}
-
-#[test]
-fn chain_grammar_has_leaf_token() {
-    let nodes = gen_parsed(&chain_grammar());
-    let x = find_by_type(&nodes, "x");
-    assert!(x.is_some());
-    assert_eq!(x.unwrap()["named"], false);
-}
-
-#[test]
-fn deep_chain_all_nonterminals_present() {
-    let nodes = gen_parsed(&deep_chain_grammar());
+fn deep_chain_all_nonterminals_present_and_named() {
+    let nodes = generate_parsed(&deep_chain_grammar());
     for name in &["n1", "n2", "n3", "n4", "n5"] {
-        assert!(find_by_type(&nodes, name).is_some(), "missing '{name}'");
-    }
-}
-
-#[test]
-fn deep_chain_all_nonterminals_named() {
-    let nodes = gen_parsed(&deep_chain_grammar());
-    for name in &["n1", "n2", "n3", "n4", "n5"] {
-        let n = find_by_type(&nodes, name).unwrap();
+        let n = find_by_type(&nodes, name).unwrap_or_else(|| panic!("missing {name}"));
         assert_eq!(n["named"], true);
     }
 }
 
-// ===========================================================================
-// 8. Grammar shapes — recursive
-// ===========================================================================
-
 #[test]
-fn recursive_grammar_rule_present() {
-    let nodes = gen_parsed(&recursive_grammar());
-    assert!(find_by_type(&nodes, "expr").is_some());
-}
-
-#[test]
-fn recursive_grammar_rule_named() {
-    let nodes = gen_parsed(&recursive_grammar());
+fn recursive_grammar_rule_and_parens() {
+    let nodes = generate_parsed(&recursive_grammar());
     assert_eq!(find_by_type(&nodes, "expr").unwrap()["named"], true);
-}
-
-#[test]
-fn recursive_grammar_parens_anonymous() {
-    let nodes = gen_parsed(&recursive_grammar());
     assert_eq!(find_by_type(&nodes, "(").unwrap()["named"], false);
     assert_eq!(find_by_type(&nodes, ")").unwrap()["named"], false);
 }
 
-// ===========================================================================
-// 9. Arithmetic / precedence
-// ===========================================================================
-
-#[test]
-fn arithmetic_grammar_expr_named() {
-    let nodes = gen_parsed(&arithmetic_grammar());
-    assert_eq!(find_by_type(&nodes, "expr").unwrap()["named"], true);
-}
-
-#[test]
-fn arithmetic_grammar_operators_anonymous() {
-    let nodes = gen_parsed(&arithmetic_grammar());
-    let anon = anonymous_entries(&nodes);
-    assert!(anon.contains(&"+".to_string()));
-    assert!(anon.contains(&"*".to_string()));
-}
-
-#[test]
-fn arithmetic_single_expr_entry() {
-    let nodes = gen_parsed(&arithmetic_grammar());
-    let expr_count = nodes
-        .iter()
-        .filter(|n| n["type"].as_str() == Some("expr"))
-        .count();
-    assert_eq!(expr_count, 1, "expr should appear exactly once");
-}
-
-// ===========================================================================
-// 10. Many rules / many tokens
-// ===========================================================================
-
-#[test]
-fn many_rules_all_nonterminals_present() {
-    let nodes = gen_parsed(&many_rules_grammar());
-    for name in &["s", "r1", "r2"] {
-        assert!(find_by_type(&nodes, name).is_some(), "missing '{name}'");
-    }
-}
-
-#[test]
-fn many_rules_all_tokens_present() {
-    let nodes = gen_parsed(&many_rules_grammar());
-    for tok in &["a", "b", "c", "d"] {
-        assert!(find_by_type(&nodes, tok).is_some(), "missing '{tok}'");
-    }
-}
-
-#[test]
-fn many_tokens_all_present() {
-    let nodes = gen_parsed(&many_tokens_grammar());
-    for tok in &["a", "b", "c", "d", "e", "f"] {
-        assert!(find_by_type(&nodes, tok).is_some(), "missing '{tok}'");
-    }
-}
-
-#[test]
-fn many_tokens_all_anonymous() {
-    let nodes = gen_parsed(&many_tokens_grammar());
-    for tok in &["a", "b", "c", "d", "e", "f"] {
-        let n = find_by_type(&nodes, tok).unwrap();
-        assert_eq!(n["named"], false, "'{tok}' should be anonymous");
-    }
-}
-
-// ===========================================================================
-// 11. Determinism
-// ===========================================================================
-
-#[test]
-fn generate_is_deterministic() {
-    let g = arithmetic_grammar();
-    let a = gen_json(&g);
-    let b = gen_json(&g);
-    assert_eq!(a, b);
-}
-
-#[test]
-fn deterministic_across_identical_grammars() {
-    let g1 = simple_grammar();
-    let g2 = simple_grammar();
-    assert_eq!(gen_json(&g1), gen_json(&g2));
-}
-
-// ===========================================================================
-// 12. Two-token grammar
-// ===========================================================================
-
-#[test]
-fn two_token_grammar_has_rule() {
-    let nodes = gen_parsed(&two_token_grammar());
-    assert!(find_by_type(&nodes, "s").is_some());
-}
-
-#[test]
-fn two_token_grammar_both_tokens() {
-    let nodes = gen_parsed(&two_token_grammar());
-    assert!(find_by_type(&nodes, "a").is_some());
-    assert!(find_by_type(&nodes, "b").is_some());
-}
-
-// ===========================================================================
-// 13. No duplicate entries
-// ===========================================================================
-
-#[test]
-fn no_duplicate_type_names_simple() {
-    let nodes = gen_parsed(&simple_grammar());
-    let names: Vec<&str> = nodes.iter().filter_map(|n| n["type"].as_str()).collect();
-    let unique: std::collections::HashSet<&str> = names.iter().copied().collect();
-    assert_eq!(names.len(), unique.len(), "duplicate entries found");
-}
-
-#[test]
-fn no_duplicate_type_names_many_rules() {
-    let nodes = gen_parsed(&many_rules_grammar());
-    let names: Vec<&str> = nodes.iter().filter_map(|n| n["type"].as_str()).collect();
-    let unique: std::collections::HashSet<&str> = names.iter().copied().collect();
-    assert_eq!(names.len(), unique.len(), "duplicate entries found");
-}
-
-// ===========================================================================
-// 14. Extra grammar configurations
-// ===========================================================================
-
-#[test]
-fn grammar_with_extra_token_generates_ok() {
-    let g = GrammarBuilder::new("ws")
-        .token("WS", r"\s+")
-        .token("a", "a")
-        .rule("s", vec!["a"])
-        .start("s")
-        .extra("WS")
-        .build();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
-}
-
-#[test]
-fn grammar_with_fragile_token_generates_ok() {
-    let g = GrammarBuilder::new("frag")
-        .token("a", "a")
-        .fragile_token("ERR", r".")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
-}
-
-#[test]
-fn grammar_with_external_generates_ok() {
-    let g = GrammarBuilder::new("ext")
-        .token("a", "a")
-        .external("INDENT")
-        .rule("s", vec!["a"])
-        .start("s")
-        .build();
-    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
-}
-
-// ===========================================================================
-// 15. Wider grammar shapes
-// ===========================================================================
-
-#[test]
-fn wide_alternatives_grammar() {
-    let g = GrammarBuilder::new("wide")
-        .token("a", "a")
-        .token("b", "b")
-        .token("c", "c")
-        .token("d", "d")
-        .token("e", "e")
-        .rule("s", vec!["a"])
-        .rule("s", vec!["b"])
-        .rule("s", vec!["c"])
-        .rule("s", vec!["d"])
-        .rule("s", vec!["e"])
-        .start("s")
-        .build();
-    let nodes = gen_parsed(&g);
-    assert!(find_by_type(&nodes, "s").is_some());
-    // All five tokens present
-    for tok in &["a", "b", "c", "d", "e"] {
-        assert!(find_by_type(&nodes, tok).is_some());
-    }
-}
-
-#[test]
-fn mixed_regex_and_string_tokens() {
-    let g = GrammarBuilder::new("mixed")
-        .token("NUM", r"\d+")
-        .token("+", "+")
-        .token(";", ";")
-        .rule("s", vec!["NUM", "+", "NUM", ";"])
-        .start("s")
-        .build();
-    let nodes = gen_parsed(&g);
-    // "s" is named
-    assert_eq!(find_by_type(&nodes, "s").unwrap()["named"], true);
-    // "+" and ";" are anonymous
-    assert_eq!(find_by_type(&nodes, "+").unwrap()["named"], false);
-    assert_eq!(find_by_type(&nodes, ";").unwrap()["named"], false);
-    // NUM (regex) does not appear as a separate anonymous entry
-}
-
 #[test]
 fn diamond_grammar_shape() {
-    // s -> a | b; a -> x; b -> x
     let g = GrammarBuilder::new("diamond")
         .token("x", "x")
         .rule("s", vec!["a"])
@@ -753,47 +662,15 @@ fn diamond_grammar_shape() {
         .rule("b", vec!["x"])
         .start("s")
         .build();
-    let nodes = gen_parsed(&g);
+    let nodes = generate_parsed(&g);
     for name in &["s", "a", "b"] {
-        let n = find_by_type(&nodes, name).unwrap();
-        assert_eq!(n["named"], true);
+        assert_eq!(find_by_type(&nodes, name).unwrap()["named"], true);
     }
     assert_eq!(find_by_type(&nodes, "x").unwrap()["named"], false);
 }
 
 #[test]
-fn single_token_single_rule() {
-    let g = GrammarBuilder::new("single")
-        .token("z", "z")
-        .rule("root", vec!["z"])
-        .start("root")
-        .build();
-    let nodes = gen_parsed(&g);
-    assert_eq!(nodes.len(), 2);
-    assert!(find_by_type(&nodes, "root").is_some());
-    assert!(find_by_type(&nodes, "z").is_some());
-}
-
-#[test]
-fn multiple_regex_tokens() {
-    let g = GrammarBuilder::new("multi_regex")
-        .token("ID", r"[a-z]+")
-        .token("NUM", r"\d+")
-        .token("STR", r#""[^"]*""#)
-        .rule("val", vec!["ID"])
-        .rule("val", vec!["NUM"])
-        .rule("val", vec!["STR"])
-        .start("val")
-        .build();
-    let nodes = gen_parsed(&g);
-    // "val" is the only named nonterminal; regex tokens don't produce
-    // separate anonymous entries.
-    assert!(find_by_type(&nodes, "val").is_some());
-    assert_eq!(find_by_type(&nodes, "val").unwrap()["named"], true);
-}
-
-#[test]
-fn ten_nonterminals_grammar() {
+fn ten_nonterminals_all_present() {
     let g = GrammarBuilder::new("ten")
         .token("t", "t")
         .rule("r0", vec!["r1"])
@@ -808,61 +685,102 @@ fn ten_nonterminals_grammar() {
         .rule("r9", vec!["t"])
         .start("r0")
         .build();
-    let nodes = gen_parsed(&g);
+    let nodes = generate_parsed(&g);
     for i in 0..10 {
         let name = format!("r{i}");
-        assert!(find_by_type(&nodes, &name).is_some(), "missing {name}");
-        assert_eq!(find_by_type(&nodes, &name).unwrap()["named"], true);
+        let n = find_by_type(&nodes, &name).unwrap_or_else(|| panic!("missing {name}"));
+        assert_eq!(n["named"], true);
     }
 }
 
 #[test]
-fn right_recursive_list_grammar() {
-    // list -> item list | item
+fn right_recursive_list() {
     let g = GrammarBuilder::new("rlist")
         .token("ITEM", r"[a-z]+")
         .rule("list", vec!["ITEM", "list"])
         .rule("list", vec!["ITEM"])
         .start("list")
         .build();
-    let nodes = gen_parsed(&g);
-    assert!(find_by_type(&nodes, "list").is_some());
+    let nodes = generate_parsed(&g);
     assert_eq!(find_by_type(&nodes, "list").unwrap()["named"], true);
 }
 
 #[test]
-fn left_recursive_list_grammar() {
-    // list -> list item | item
+fn left_recursive_list() {
     let g = GrammarBuilder::new("llist")
         .token("ITEM", r"[a-z]+")
         .rule("list", vec!["list", "ITEM"])
         .rule("list", vec!["ITEM"])
         .start("list")
         .build();
-    let nodes = gen_parsed(&g);
-    assert!(find_by_type(&nodes, "list").is_some());
+    let nodes = generate_parsed(&g);
+    assert_eq!(find_by_type(&nodes, "list").unwrap()["named"], true);
+}
+
+// ===========================================================================
+// 8. Edge cases (6 tests)
+// ===========================================================================
+
+#[test]
+fn grammar_with_extra_token() {
+    let g = GrammarBuilder::new("ws")
+        .token("WS", r"\s+")
+        .token("a", "a")
+        .rule("s", vec!["a"])
+        .start("s")
+        .extra("WS")
+        .build();
+    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
 }
 
 #[test]
-fn grammar_with_semicolons_and_equals() {
-    let nodes = gen_parsed(&multi_nonterminal_grammar());
-    assert!(find_by_type(&nodes, ";").is_some());
-    assert!(find_by_type(&nodes, "=").is_some());
+fn grammar_with_fragile_token() {
+    let g = GrammarBuilder::new("frag")
+        .token("a", "a")
+        .fragile_token("ERR", r".")
+        .rule("s", vec!["a"])
+        .start("s")
+        .build();
+    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
 }
 
 #[test]
-fn named_count_matches_nonterminal_count_simple() {
-    let nodes = gen_parsed(&simple_grammar());
-    let named = named_entries(&nodes);
-    // Only "s" is a named nonterminal
-    assert_eq!(named.len(), 1);
-    assert_eq!(named[0], "s");
+fn grammar_with_external_token() {
+    let g = GrammarBuilder::new("ext")
+        .token("a", "a")
+        .external("INDENT")
+        .rule("s", vec!["a"])
+        .start("s")
+        .build();
+    assert!(NodeTypesGenerator::new(&g).generate().is_ok());
 }
 
 #[test]
-fn anonymous_count_matches_string_token_count() {
-    let nodes = gen_parsed(&two_token_grammar());
-    let anon = anonymous_entries(&nodes);
-    // "a" and "b" are string tokens
-    assert_eq!(anon.len(), 2);
+fn no_duplicate_type_names() {
+    let nodes = generate_parsed(&many_rules_grammar());
+    let names: Vec<&str> = nodes.iter().filter_map(|n| n["type"].as_str()).collect();
+    let unique: std::collections::HashSet<&str> = names.iter().copied().collect();
+    assert_eq!(names.len(), unique.len(), "duplicate entries found");
+}
+
+#[test]
+fn mixed_regex_and_string_tokens() {
+    let g = GrammarBuilder::new("mixed")
+        .token("NUM", r"\d+")
+        .token("+", "+")
+        .token(";", ";")
+        .rule("s", vec!["NUM", "+", "NUM", ";"])
+        .start("s")
+        .build();
+    let nodes = generate_parsed(&g);
+    assert_eq!(find_by_type(&nodes, "s").unwrap()["named"], true);
+    assert_eq!(find_by_type(&nodes, "+").unwrap()["named"], false);
+    assert_eq!(find_by_type(&nodes, ";").unwrap()["named"], false);
+}
+
+#[test]
+fn empty_grammar_output_is_empty_array() {
+    let g = Grammar::new("empty".to_string());
+    let nodes = generate_parsed(&g);
+    assert!(nodes.is_empty(), "empty grammar should produce empty array");
 }
