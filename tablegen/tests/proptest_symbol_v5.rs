@@ -12,7 +12,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
-use adze_glr_core::{GotoIndexing, LexMode, ParseTable, SymbolMetadata};
+use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
 use adze_ir::{
     ExternalToken, FieldId, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token,
     TokenPattern,
