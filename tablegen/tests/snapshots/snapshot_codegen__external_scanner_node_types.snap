@@ -4,28 +4,28 @@ expression: json
 ---
 [
   {
+    "type": "rule_6",
+    "named": true,
     "children": {
       "multiple": false,
       "required": true,
       "types": []
-    },
-    "named": true,
-    "type": "rule_6"
+    }
   },
   {
-    "named": true,
-    "type": "identifier"
+    "type": "identifier",
+    "named": true
   },
   {
-    "named": true,
-    "type": "INDENT"
+    "type": "INDENT",
+    "named": true
   },
   {
-    "named": true,
-    "type": "DEDENT"
+    "type": "DEDENT",
+    "named": true
   },
   {
-    "named": true,
-    "type": "NEWLINE"
+    "type": "NEWLINE",
+    "named": true
   }
 ]

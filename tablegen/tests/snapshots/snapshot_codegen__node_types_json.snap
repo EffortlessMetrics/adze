@@ -4,16 +4,16 @@ expression: json
 ---
 [
   {
+    "type": "rule_3",
+    "named": true,
     "children": {
       "multiple": false,
       "required": true,
       "types": []
-    },
-    "named": true,
-    "type": "rule_3"
+    }
   },
   {
-    "named": true,
-    "type": "number"
+    "type": "number",
+    "named": true
   }
 ]
