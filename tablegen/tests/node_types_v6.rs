@@ -735,7 +735,10 @@ fn determinism_simple_grammar_twice() {
 fn determinism_fields_grammar_twice() {
     let a = gen_json(&grammar_with_fields());
     let b = gen_json(&grammar_with_fields());
-    assert_eq!(a, b);
+    // Compare parsed JSON to avoid HashMap ordering nondeterminism
+    let va: Value = serde_json::from_str(&a).unwrap();
+    let vb: Value = serde_json::from_str(&b).unwrap();
+    assert_eq!(va, vb);
 }
 
 #[test]
