@@ -8,7 +8,7 @@ use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{Type, parse_quote, parse_str};
+use syn::{Type, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
