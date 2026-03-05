@@ -1,13 +1,14 @@
 //! Comprehensive v5 tests for NODE_TYPES JSON generation in adze-tablegen.
 //!
 //! Categories:
-//!   1. Node types is valid JSON (8 tests)
-//!   2. Node types contain grammar symbols (8 tests)
-//!   3. Named vs anonymous (8 tests)
-//!   4. Field information (7 tests)
-//!   5. Node types determinism (8 tests)
-//!   6. Node types scale (8 tests)
-//!   7. Edge cases (8 tests)
+//!   1. Node types output — valid JSON, non-empty (8 tests)
+//!   2. Named/anonymous nodes — correct categorization (7 tests)
+//!   3. Token types — leaf nodes in node types (7 tests)
+//!   4. Nonterminal types — interior nodes in node types (7 tests)
+//!   5. Children info — child types per node (7 tests)
+//!   6. Determinism — same grammar → same node types (8 tests)
+//!   7. Complex grammars — expressions, recursive, many types (7 tests)
+//!   8. Edge cases — minimal grammar, many rules (8 tests)
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
@@ -18,12 +19,16 @@ use serde_json::Value;
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Generate node types JSON from a grammar and parse into a Vec of JSON values.
-fn generate_and_parse(grammar: &Grammar) -> Vec<Value> {
-    let generator = NodeTypesGenerator::new(grammar);
-    let json = generator
+/// Generate node types JSON string from a grammar.
+fn gen_json(grammar: &Grammar) -> String {
+    NodeTypesGenerator::new(grammar)
         .generate()
-        .expect("NodeTypesGenerator::generate() failed");
+        .expect("NodeTypesGenerator::generate() failed")
+}
+
+/// Generate node types JSON from a grammar and parse into a Vec of JSON values.
+fn gen_parsed(grammar: &Grammar) -> Vec<Value> {
+    let json = gen_json(grammar);
     let val: Value = serde_json::from_str(&json).expect("output is not valid JSON");
     val.as_array().expect("output is not a JSON array").to_vec()
 }
@@ -33,9 +38,27 @@ fn find_node<'a>(nodes: &'a [Value], type_name: &str) -> Option<&'a Value> {
     nodes.iter().find(|n| n["type"].as_str() == Some(type_name))
 }
 
-/// Build a simple arithmetic-like grammar with the given name.
-fn arithmetic_grammar(name: &str) -> Grammar {
-    GrammarBuilder::new(name)
+/// Collect type names of all named entries.
+fn named_types(nodes: &[Value]) -> Vec<String> {
+    nodes
+        .iter()
+        .filter(|n| n["named"] == true)
+        .filter_map(|n| n["type"].as_str().map(String::from))
+        .collect()
+}
+
+/// Collect type names of all anonymous entries.
+fn anon_types(nodes: &[Value]) -> Vec<String> {
+    nodes
+        .iter()
+        .filter(|n| n["named"] == false)
+        .filter_map(|n| n["type"].as_str().map(String::from))
+        .collect()
+}
+
+/// Build a simple arithmetic-like grammar.
+fn arithmetic_grammar() -> Grammar {
+    GrammarBuilder::new("arith")
         .token("number", r"\d+")
         .token("+", "+")
         .token("*", "*")
@@ -46,327 +69,7 @@ fn arithmetic_grammar(name: &str) -> Grammar {
         .build()
 }
 
-// ===========================================================================
-// 1. Node types is valid JSON (8 tests)
-// ===========================================================================
-
-#[test]
-fn valid_json_single_token() {
-    let grammar = GrammarBuilder::new("vj1")
-        .token("a", "a")
-        .rule("start", vec!["a"])
-        .build();
-    let generator = NodeTypesGenerator::new(&grammar);
-    let json = generator.generate().unwrap();
-    let val: Value = serde_json::from_str(&json).expect("must be valid JSON");
-    assert!(val.is_array());
-}
-
-#[test]
-fn valid_json_multiple_tokens() {
-    let grammar = GrammarBuilder::new("vj2")
-        .token("x", "x")
-        .token("y", "y")
-        .token("z", "z")
-        .rule("start", vec!["x", "y", "z"])
-        .build();
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
-    let val: Value = serde_json::from_str(&json).unwrap();
-    assert!(val.is_array());
-}
-
-#[test]
-fn valid_json_with_regex_tokens() {
-    let grammar = GrammarBuilder::new("vj3")
-        .token("ident", r"[a-z]+")
-        .token("num", r"\d+")
-        .rule("pair", vec!["ident", "num"])
-        .build();
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
-    assert!(serde_json::from_str::<Value>(&json).is_ok());
-}
-
-#[test]
-fn valid_json_with_multiple_rules() {
-    let grammar = arithmetic_grammar("vj4");
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
-    let val: Value = serde_json::from_str(&json).unwrap();
-    assert!(val.as_array().is_some());
-}
-
-#[test]
-fn valid_json_empty_grammar() {
-    let grammar = Grammar::new("vj5".to_string());
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
-    let val: Value = serde_json::from_str(&json).unwrap();
-    assert!(val.is_array());
-}
-
-#[test]
-fn valid_json_entries_have_type_and_named() {
-    let grammar = GrammarBuilder::new("vj6")
-        .token("lit", "lit")
-        .rule("root", vec!["lit"])
-        .build();
-    for entry in generate_and_parse(&grammar) {
-        assert!(entry.get("type").and_then(Value::as_str).is_some());
-        assert!(entry.get("named").and_then(Value::as_bool).is_some());
-    }
-}
-
-#[test]
-fn valid_json_no_null_entries() {
-    let grammar = GrammarBuilder::new("vj7")
-        .token("a", "a")
-        .token("b", r"b+")
-        .rule("ab", vec!["a", "b"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    for entry in &nodes {
-        assert!(!entry.is_null(), "null entry found");
-    }
-}
-
-#[test]
-fn valid_json_all_entries_are_objects() {
-    let grammar = GrammarBuilder::new("vj8")
-        .token("k", "k")
-        .token("v", r"\d+")
-        .rule("kv", vec!["k", "v"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    for entry in &nodes {
-        assert!(entry.is_object(), "expected object, got: {entry}");
-    }
-}
-
-// ===========================================================================
-// 2. Node types contain grammar symbols (8 tests)
-// ===========================================================================
-
-#[test]
-fn contains_token_name_via_rule() {
-    let grammar = GrammarBuilder::new("cs1")
-        .token("identifier", r"[a-z]+")
-        .rule("start", vec!["identifier"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    // Token names appear indirectly through rule references; the rule using
-    // the token must be present.
-    assert!(
-        find_node(&nodes, "start").is_some(),
-        "rule referencing token should be in output"
-    );
-}
-
-#[test]
-fn contains_rule_name() {
-    let grammar = GrammarBuilder::new("cs2")
-        .token("num", r"\d+")
-        .rule("expression", vec!["num"])
-        .build();
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
-    assert!(
-        json.contains("expression"),
-        "output should mention rule name"
-    );
-}
-
-#[test]
-fn contains_literal_token() {
-    let grammar = GrammarBuilder::new("cs3")
-        .token("+", "+")
-        .token("n", r"\d+")
-        .rule("sum", vec!["n", "+", "n"])
-        .build();
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
-    assert!(json.contains("+"), "output should contain literal '+'");
-}
-
-#[test]
-fn contains_all_rule_names() {
-    let grammar = arithmetic_grammar("cs4");
-    let nodes = generate_and_parse(&grammar);
-    assert!(find_node(&nodes, "expr").is_some(), "missing 'expr'");
-    assert!(find_node(&nodes, "add").is_some(), "missing 'add'");
-    assert!(find_node(&nodes, "mul").is_some(), "missing 'mul'");
-}
-
-#[test]
-fn contains_rule_using_regex_token() {
-    let grammar = GrammarBuilder::new("cs5")
-        .token("float", r"\d+\.\d+")
-        .rule("value", vec!["float"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    assert!(
-        find_node(&nodes, "value").is_some(),
-        "rule 'value' using regex token should be present"
-    );
-}
-
-#[test]
-fn contains_multiple_string_tokens() {
-    let grammar = GrammarBuilder::new("cs6")
-        .token("(", "(")
-        .token(")", ")")
-        .token("id", r"[a-z]+")
-        .rule("paren", vec!["(", "id", ")"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    assert!(find_node(&nodes, "(").is_some(), "missing '('");
-    assert!(find_node(&nodes, ")").is_some(), "missing ')'");
-}
-
-#[test]
-fn contains_start_rule_name() {
-    let grammar = GrammarBuilder::new("cs7")
-        .token("tok", "tok")
-        .rule("program", vec!["tok"])
-        .start("program")
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    assert!(find_node(&nodes, "program").is_some(), "missing 'program'");
-}
-
-#[test]
-fn contains_alternative_rule_productions() {
-    let grammar = GrammarBuilder::new("cs8")
-        .token("num", r"\d+")
-        .token("str", r#""[^"]*""#)
-        .rule("literal", vec!["num"])
-        .rule("literal", vec!["str"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    assert!(
-        find_node(&nodes, "literal").is_some(),
-        "missing 'literal' with alternatives"
-    );
-}
-
-// ===========================================================================
-// 3. Named vs anonymous (8 tests)
-// ===========================================================================
-
-#[test]
-fn named_rule_is_named() {
-    let grammar = GrammarBuilder::new("na1")
-        .token("n", r"\d+")
-        .rule("expression", vec!["n"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    let expr = find_node(&nodes, "expression").expect("missing expression");
-    assert_eq!(expr["named"], true, "rule should be named");
-}
-
-#[test]
-fn string_literal_token_is_anonymous() {
-    let grammar = GrammarBuilder::new("na2")
-        .token(";", ";")
-        .token("id", r"[a-z]+")
-        .rule("stmt", vec!["id", ";"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    let semi = find_node(&nodes, ";").expect("missing ';'");
-    assert_eq!(semi["named"], false, "literal ';' should be anonymous");
-}
-
-#[test]
-fn regex_token_is_named() {
-    let grammar = GrammarBuilder::new("na3")
-        .token("word", r"[a-z]+")
-        .rule("doc", vec!["word"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    let anon_words: Vec<_> = nodes
-        .iter()
-        .filter(|n| n["type"].as_str() == Some("word") && n["named"] == false)
-        .collect();
-    assert!(
-        anon_words.is_empty(),
-        "regex token 'word' should not be anonymous"
-    );
-}
-
-#[test]
-fn multiple_literal_tokens_all_anonymous() {
-    let grammar = GrammarBuilder::new("na4")
-        .token("(", "(")
-        .token(")", ")")
-        .token("{", "{")
-        .token("}", "}")
-        .token("id", r"[a-z]+")
-        .rule("block", vec!["{", "id", "}"])
-        .rule("group", vec!["(", "id", ")"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    for lit in ["(", ")", "{", "}"] {
-        if let Some(node) = find_node(&nodes, lit) {
-            assert_eq!(node["named"], false, "literal '{lit}' should be anonymous");
-        }
-    }
-}
-
-#[test]
-fn mixed_named_and_anonymous() {
-    let grammar = GrammarBuilder::new("na5")
-        .token("num", r"\d+")
-        .token("+", "+")
-        .rule("sum", vec!["num", "+", "num"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    let named_count = nodes.iter().filter(|n| n["named"] == true).count();
-    let anon_count = nodes.iter().filter(|n| n["named"] == false).count();
-    assert!(named_count > 0, "should have named entries");
-    assert!(anon_count > 0, "should have anonymous entries");
-}
-
-#[test]
-fn rule_with_only_literals_still_named() {
-    let grammar = GrammarBuilder::new("na6")
-        .token("(", "(")
-        .token(")", ")")
-        .rule("parens", vec!["(", ")"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    let parens = find_node(&nodes, "parens").expect("missing 'parens'");
-    assert_eq!(parens["named"], true, "rule node should be named");
-}
-
-#[test]
-fn anonymous_entries_have_no_fields_key() {
-    let grammar = GrammarBuilder::new("na7")
-        .token(",", ",")
-        .token("n", r"\d+")
-        .rule("list", vec!["n", ",", "n"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    let comma = find_node(&nodes, ",").expect("missing ','");
-    assert!(
-        comma.get("fields").is_none() || comma["fields"].as_object().is_none_or(|f| f.is_empty()),
-        "anonymous node should have no fields"
-    );
-}
-
-#[test]
-fn all_named_nodes_are_objects_with_type() {
-    let grammar = arithmetic_grammar("na8");
-    let nodes = generate_and_parse(&grammar);
-    let named: Vec<_> = nodes.iter().filter(|n| n["named"] == true).collect();
-    assert!(!named.is_empty(), "should have some named nodes");
-    for node in &named {
-        assert!(
-            node["type"].as_str().is_some(),
-            "named node must have 'type' string"
-        );
-    }
-}
-
-// ===========================================================================
-// 4. Field information (7 tests)
-// ===========================================================================
-
-/// Helper: build a grammar with fields using raw Grammar API.
+/// Build a grammar with fields using the raw Grammar API.
 fn grammar_with_fields() -> Grammar {
     let mut grammar = Grammar::new("fields_grammar".to_string());
 
@@ -416,10 +119,424 @@ fn grammar_with_fields() -> Grammar {
     grammar
 }
 
+/// Build a scaled grammar with `n` distinct literal tokens and one rule per token.
+fn scaled_grammar(name: &str, n: usize) -> Grammar {
+    let mut builder = GrammarBuilder::new(name);
+    for i in 0..n {
+        let tok_name = format!("tok_{i}");
+        let rule_name = format!("rule_{i}");
+        builder = builder.token(&tok_name, &tok_name);
+        builder = builder.rule(&rule_name, vec![&tok_name]);
+    }
+    builder.build()
+}
+
+// ===========================================================================
+// 1. Node types output — valid JSON, non-empty (8 tests)
+// ===========================================================================
+
 #[test]
-fn field_names_appear_in_output() {
+fn output_single_token_is_valid_json() {
+    let grammar = GrammarBuilder::new("o1")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .build();
+    let json = gen_json(&grammar);
+    let val: Value = serde_json::from_str(&json).expect("must be valid JSON");
+    assert!(val.is_array());
+}
+
+#[test]
+fn output_multiple_tokens_is_valid_json() {
+    let grammar = GrammarBuilder::new("o2")
+        .token("x", "x")
+        .token("y", "y")
+        .token("z", "z")
+        .rule("start", vec!["x", "y", "z"])
+        .build();
+    let val: Value = serde_json::from_str(&gen_json(&grammar)).unwrap();
+    assert!(val.is_array());
+}
+
+#[test]
+fn output_with_regex_tokens_is_valid_json() {
+    let grammar = GrammarBuilder::new("o3")
+        .token("ident", r"[a-z]+")
+        .token("num", r"\d+")
+        .rule("pair", vec!["ident", "num"])
+        .build();
+    assert!(serde_json::from_str::<Value>(&gen_json(&grammar)).is_ok());
+}
+
+#[test]
+fn output_arithmetic_grammar_is_array() {
+    let val: Value = serde_json::from_str(&gen_json(&arithmetic_grammar())).unwrap();
+    assert!(val.as_array().is_some());
+}
+
+#[test]
+fn output_empty_grammar_is_valid_json() {
+    let grammar = Grammar::new("o5".to_string());
+    let val: Value = serde_json::from_str(&gen_json(&grammar)).unwrap();
+    assert!(val.is_array());
+}
+
+#[test]
+fn output_entries_have_type_and_named() {
+    let grammar = GrammarBuilder::new("o6")
+        .token("lit", "lit")
+        .rule("root", vec!["lit"])
+        .build();
+    for entry in gen_parsed(&grammar) {
+        assert!(entry.get("type").and_then(Value::as_str).is_some());
+        assert!(entry.get("named").and_then(Value::as_bool).is_some());
+    }
+}
+
+#[test]
+fn output_contains_no_null_entries() {
+    let grammar = GrammarBuilder::new("o7")
+        .token("a", "a")
+        .token("b", r"b+")
+        .rule("ab", vec!["a", "b"])
+        .build();
+    for entry in &gen_parsed(&grammar) {
+        assert!(!entry.is_null(), "null entry found");
+    }
+}
+
+#[test]
+fn output_all_entries_are_objects() {
+    let grammar = GrammarBuilder::new("o8")
+        .token("k", "k")
+        .token("v", r"\d+")
+        .rule("kv", vec!["k", "v"])
+        .build();
+    for entry in &gen_parsed(&grammar) {
+        assert!(entry.is_object(), "expected object, got: {entry}");
+    }
+}
+
+// ===========================================================================
+// 2. Named/anonymous nodes — correct categorization (7 tests)
+// ===========================================================================
+
+#[test]
+fn named_rule_appears_as_named() {
+    let grammar = GrammarBuilder::new("na1")
+        .token("n", r"\d+")
+        .rule("expression", vec!["n"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let expr = find_node(&nodes, "expression").expect("missing expression");
+    assert_eq!(expr["named"], true);
+}
+
+#[test]
+fn string_literal_token_appears_as_anonymous() {
+    let grammar = GrammarBuilder::new("na2")
+        .token(";", ";")
+        .token("id", r"[a-z]+")
+        .rule("stmt", vec!["id", ";"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let semi = find_node(&nodes, ";").expect("missing ';'");
+    assert_eq!(semi["named"], false);
+}
+
+#[test]
+fn multiple_literals_all_anonymous() {
+    let grammar = GrammarBuilder::new("na3")
+        .token("(", "(")
+        .token(")", ")")
+        .token("{", "{")
+        .token("}", "}")
+        .token("id", r"[a-z]+")
+        .rule("block", vec!["{", "id", "}"])
+        .rule("group", vec!["(", "id", ")"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    for lit in ["(", ")", "{", "}"] {
+        if let Some(node) = find_node(&nodes, lit) {
+            assert_eq!(node["named"], false, "literal '{lit}' should be anonymous");
+        }
+    }
+}
+
+#[test]
+fn mixed_grammar_has_both_named_and_anonymous() {
+    let grammar = GrammarBuilder::new("na4")
+        .token("num", r"\d+")
+        .token("+", "+")
+        .rule("sum", vec!["num", "+", "num"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    assert!(!named_types(&nodes).is_empty(), "should have named entries");
+    assert!(!anon_types(&nodes).is_empty(), "should have anonymous entries");
+}
+
+#[test]
+fn rule_with_only_literals_is_still_named() {
+    let grammar = GrammarBuilder::new("na5")
+        .token("(", "(")
+        .token(")", ")")
+        .rule("parens", vec!["(", ")"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let parens = find_node(&nodes, "parens").expect("missing 'parens'");
+    assert_eq!(parens["named"], true, "rule node should be named");
+}
+
+#[test]
+fn anonymous_node_has_no_fields() {
+    let grammar = GrammarBuilder::new("na6")
+        .token(",", ",")
+        .token("n", r"\d+")
+        .rule("list", vec!["n", ",", "n"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let comma = find_node(&nodes, ",").expect("missing ','");
+    assert!(
+        comma.get("fields").is_none()
+            || comma["fields"].as_object().is_none_or(|f| f.is_empty()),
+        "anonymous node should have no fields"
+    );
+}
+
+#[test]
+fn all_named_nodes_have_type_string() {
+    let nodes = gen_parsed(&arithmetic_grammar());
+    let named: Vec<_> = nodes.iter().filter(|n| n["named"] == true).collect();
+    assert!(!named.is_empty());
+    for node in &named {
+        assert!(node["type"].as_str().is_some(), "named node must have 'type' string");
+    }
+}
+
+// ===========================================================================
+// 3. Token types — leaf nodes in node types (7 tests)
+// ===========================================================================
+
+#[test]
+fn literal_token_appears_in_output() {
+    let grammar = GrammarBuilder::new("tk1")
+        .token("+", "+")
+        .token("n", r"\d+")
+        .rule("sum", vec!["n", "+", "n"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    assert!(find_node(&nodes, "+").is_some(), "literal '+' must appear");
+}
+
+#[test]
+fn literal_token_is_leaf_with_no_children() {
+    let grammar = GrammarBuilder::new("tk2")
+        .token(";", ";")
+        .token("id", r"[a-z]+")
+        .rule("stmt", vec!["id", ";"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let semi = find_node(&nodes, ";").expect("missing ';'");
+    assert!(
+        semi.get("children").is_none(),
+        "token leaf should have no children"
+    );
+}
+
+#[test]
+fn literal_token_has_no_subtypes() {
+    let grammar = GrammarBuilder::new("tk3")
+        .token(".", ".")
+        .token("id", r"[a-z]+")
+        .rule("access", vec!["id", ".", "id"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let dot = find_node(&nodes, ".").expect("missing '.'");
+    assert!(
+        dot.get("subtypes").is_none(),
+        "token leaf should have no subtypes"
+    );
+}
+
+#[test]
+fn multiple_literal_tokens_all_present() {
+    let grammar = GrammarBuilder::new("tk4")
+        .token("(", "(")
+        .token(")", ")")
+        .token("id", r"[a-z]+")
+        .rule("paren", vec!["(", "id", ")"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    assert!(find_node(&nodes, "(").is_some(), "missing '('");
+    assert!(find_node(&nodes, ")").is_some(), "missing ')'");
+}
+
+#[test]
+fn regex_token_not_top_level_anonymous() {
+    // Regex tokens are named=true and don't appear as top-level anonymous nodes.
+    let grammar = GrammarBuilder::new("tk5")
+        .token("word", r"[a-z]+")
+        .rule("doc", vec!["word"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let anon_words: Vec<_> = nodes
+        .iter()
+        .filter(|n| n["type"].as_str() == Some("word") && n["named"] == false)
+        .collect();
+    assert!(anon_words.is_empty(), "regex token should not be anonymous");
+}
+
+#[test]
+fn special_char_tokens_appear() {
+    let grammar = GrammarBuilder::new("tk6")
+        .token("!=", "!=")
+        .token("==", "==")
+        .token("id", r"[a-z]+")
+        .rule("cmp", vec!["id", "!=", "id"])
+        .rule("eq", vec!["id", "==", "id"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    assert!(find_node(&nodes, "!=").is_some(), "missing '!='");
+    assert!(find_node(&nodes, "==").is_some(), "missing '=='");
+}
+
+#[test]
+fn unused_literal_token_still_appears() {
+    // String-pattern tokens appear even if no rule references them.
+    let grammar = GrammarBuilder::new("tk7")
+        .token("used", "used")
+        .token("unused", "unused")
+        .rule("r", vec!["used"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    // Both are string-literal tokens so both should appear as anonymous
+    assert!(find_node(&nodes, "used").is_some(), "missing 'used'");
+    assert!(find_node(&nodes, "unused").is_some(), "missing 'unused'");
+}
+
+// ===========================================================================
+// 4. Nonterminal types — interior nodes in node types (7 tests)
+// ===========================================================================
+
+#[test]
+fn nonterminal_rule_appears_as_named() {
+    let grammar = GrammarBuilder::new("nt1")
+        .token("num", r"\d+")
+        .rule("expression", vec!["num"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let expr = find_node(&nodes, "expression").expect("missing 'expression'");
+    assert_eq!(expr["named"], true);
+}
+
+#[test]
+fn all_rules_appear_in_output() {
+    let nodes = gen_parsed(&arithmetic_grammar());
+    assert!(find_node(&nodes, "expr").is_some(), "missing 'expr'");
+    assert!(find_node(&nodes, "add").is_some(), "missing 'add'");
+    assert!(find_node(&nodes, "mul").is_some(), "missing 'mul'");
+}
+
+#[test]
+fn rule_with_start_symbol_appears() {
+    let grammar = GrammarBuilder::new("nt3")
+        .token("tok", "tok")
+        .rule("program", vec!["tok"])
+        .start("program")
+        .build();
+    let nodes = gen_parsed(&grammar);
+    assert!(find_node(&nodes, "program").is_some(), "missing 'program'");
+}
+
+#[test]
+fn alternative_productions_yield_single_entry() {
+    let grammar = GrammarBuilder::new("nt4")
+        .token("num", r"\d+")
+        .token("str", r#""[^"]*""#)
+        .rule("literal", vec!["num"])
+        .rule("literal", vec!["str"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let count = nodes
+        .iter()
+        .filter(|n| n["type"].as_str() == Some("literal"))
+        .count();
+    assert_eq!(count, 1, "'literal' should appear exactly once");
+}
+
+#[test]
+fn nonterminal_without_fields_has_no_fields_key() {
+    let grammar = GrammarBuilder::new("nt5")
+        .token("tok", "tok")
+        .rule("simple", vec!["tok"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let simple = find_node(&nodes, "simple").expect("missing 'simple'");
+    if let Some(fields) = simple.get("fields") {
+        let obj = fields.as_object().expect("fields should be object");
+        assert!(obj.is_empty(), "fieldless rule should have empty fields");
+    }
+}
+
+#[test]
+fn nonterminal_with_fields_has_fields_key() {
     let grammar = grammar_with_fields();
-    let nodes = generate_and_parse(&grammar);
+    let nodes = gen_parsed(&grammar);
+    let expr = find_node(&nodes, "binary_expr").expect("missing binary_expr");
+    assert!(expr.get("fields").is_some(), "binary_expr should have fields");
+}
+
+#[test]
+fn internal_underscore_rule_excluded_from_output() {
+    let mut grammar = Grammar::new("nt7".to_string());
+
+    let tok_id = SymbolId(0);
+    grammar.tokens.insert(
+        tok_id,
+        Token {
+            name: "a".to_string(),
+            pattern: TokenPattern::String("a".to_string()),
+            fragile: false,
+        },
+    );
+
+    let visible_id = SymbolId(1);
+    grammar.rule_names.insert(visible_id, "visible".to_string());
+    grammar.add_rule(Rule {
+        lhs: visible_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(0),
+    });
+
+    let hidden_id = SymbolId(2);
+    grammar
+        .rule_names
+        .insert(hidden_id, "_internal".to_string());
+    grammar.add_rule(Rule {
+        lhs: hidden_id,
+        rhs: vec![Symbol::Terminal(tok_id)],
+        precedence: None,
+        associativity: None,
+        fields: vec![],
+        production_id: ProductionId(1),
+    });
+
+    let nodes = gen_parsed(&grammar);
+    assert!(find_node(&nodes, "_internal").is_none(), "_internal should be excluded");
+    assert!(find_node(&nodes, "visible").is_some(), "visible should be present");
+}
+
+// ===========================================================================
+// 5. Children info — child types per node (7 tests)
+// ===========================================================================
+
+#[test]
+fn field_names_appear_in_node_with_fields() {
+    let grammar = grammar_with_fields();
+    let nodes = gen_parsed(&grammar);
     let expr = find_node(&nodes, "binary_expr").expect("missing binary_expr");
     let fields = expr.get("fields").expect("binary_expr should have fields");
     assert!(fields.get("left").is_some(), "missing 'left' field");
@@ -427,19 +544,18 @@ fn field_names_appear_in_output() {
 }
 
 #[test]
-fn field_types_are_arrays() {
+fn field_types_entry_is_array() {
     let grammar = grammar_with_fields();
-    let nodes = generate_and_parse(&grammar);
+    let nodes = gen_parsed(&grammar);
     let expr = find_node(&nodes, "binary_expr").expect("missing binary_expr");
-    let fields = &expr["fields"];
-    let left_types = fields["left"]["types"].as_array();
+    let left_types = expr["fields"]["left"]["types"].as_array();
     assert!(left_types.is_some(), "'left' field types should be array");
 }
 
 #[test]
-fn field_type_entries_have_type_and_named() {
+fn field_type_entry_has_type_and_named() {
     let grammar = grammar_with_fields();
-    let nodes = generate_and_parse(&grammar);
+    let nodes = gen_parsed(&grammar);
     let expr = find_node(&nodes, "binary_expr").expect("missing binary_expr");
     let left_types = expr["fields"]["left"]["types"]
         .as_array()
@@ -451,35 +567,20 @@ fn field_type_entries_have_type_and_named() {
 }
 
 #[test]
-fn field_references_correct_symbol() {
+fn field_references_correct_child_symbol() {
     let grammar = grammar_with_fields();
-    let nodes = generate_and_parse(&grammar);
+    let nodes = gen_parsed(&grammar);
     let expr = find_node(&nodes, "binary_expr").expect("missing binary_expr");
     let left_types = expr["fields"]["left"]["types"]
         .as_array()
         .expect("types array");
     assert!(!left_types.is_empty(), "field types should not be empty");
-    let first = &left_types[0];
-    assert_eq!(first["type"].as_str(), Some("number"));
+    assert_eq!(left_types[0]["type"].as_str(), Some("number"));
 }
 
 #[test]
-fn rule_without_fields_has_empty_or_no_fields() {
-    let grammar = GrammarBuilder::new("nf1")
-        .token("tok", "tok")
-        .rule("simple", vec!["tok"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    let simple = find_node(&nodes, "simple").expect("missing 'simple'");
-    if let Some(fields) = simple.get("fields") {
-        let obj = fields.as_object().expect("fields should be object");
-        assert!(obj.is_empty(), "fieldless rule should have empty fields");
-    }
-}
-
-#[test]
-fn single_field_grammar() {
-    let mut grammar = Grammar::new("single_field".to_string());
+fn single_field_appears_in_output() {
+    let mut grammar = Grammar::new("ch5".to_string());
 
     let tok_id = SymbolId(0);
     grammar.tokens.insert(
@@ -506,17 +607,14 @@ fn single_field_grammar() {
         production_id: ProductionId(0),
     });
 
-    let nodes = generate_and_parse(&grammar);
+    let nodes = gen_parsed(&grammar);
     let wrapper = find_node(&nodes, "wrapper").expect("missing wrapper");
-    assert!(
-        wrapper["fields"].get("content").is_some(),
-        "missing 'content' field"
-    );
+    assert!(wrapper["fields"].get("content").is_some(), "missing 'content' field");
 }
 
 #[test]
-fn multiple_fields_all_present() {
-    let mut grammar = Grammar::new("multi_field".to_string());
+fn three_fields_all_present() {
+    let mut grammar = Grammar::new("ch6".to_string());
 
     let a_id = SymbolId(0);
     grammar.tokens.insert(
@@ -569,7 +667,7 @@ fn multiple_fields_all_present() {
         production_id: ProductionId(0),
     });
 
-    let nodes = generate_and_parse(&grammar);
+    let nodes = gen_parsed(&grammar);
     let triple = find_node(&nodes, "triple").expect("missing triple");
     let fields = triple["fields"]
         .as_object()
@@ -579,8 +677,24 @@ fn multiple_fields_all_present() {
     assert!(fields.contains_key("third"));
 }
 
+#[test]
+fn field_required_flag_is_present() {
+    let grammar = grammar_with_fields();
+    let nodes = gen_parsed(&grammar);
+    let expr = find_node(&nodes, "binary_expr").expect("missing binary_expr");
+    let left = &expr["fields"]["left"];
+    assert!(
+        left.get("required").is_some(),
+        "field should have 'required' flag"
+    );
+    assert!(
+        left.get("multiple").is_some(),
+        "field should have 'multiple' flag"
+    );
+}
+
 // ===========================================================================
-// 5. Node types determinism (8 tests)
+// 6. Determinism — same grammar → same node types (8 tests)
 // ===========================================================================
 
 #[test]
@@ -591,26 +705,22 @@ fn deterministic_single_token() {
             .rule("s", vec!["x"])
             .build()
     };
-    let j1 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    let j2 = NodeTypesGenerator::new(&make()).generate().unwrap();
+    let j1 = gen_json(&make());
+    let j2 = gen_json(&make());
     assert_eq!(j1, j2);
 }
 
 #[test]
 fn deterministic_multiple_rules() {
-    let make = || arithmetic_grammar("det2");
-    let j1 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    let j2 = NodeTypesGenerator::new(&make()).generate().unwrap();
+    let j1 = gen_json(&arithmetic_grammar());
+    let j2 = gen_json(&arithmetic_grammar());
     assert_eq!(j1, j2);
 }
 
 #[test]
 fn deterministic_json_value_equality() {
-    let make = || arithmetic_grammar("det3");
-    let v1: Value =
-        serde_json::from_str(&NodeTypesGenerator::new(&make()).generate().unwrap()).unwrap();
-    let v2: Value =
-        serde_json::from_str(&NodeTypesGenerator::new(&make()).generate().unwrap()).unwrap();
+    let v1: Value = serde_json::from_str(&gen_json(&arithmetic_grammar())).unwrap();
+    let v2: Value = serde_json::from_str(&gen_json(&arithmetic_grammar())).unwrap();
     assert_eq!(v1, v2);
 }
 
@@ -623,10 +733,9 @@ fn deterministic_across_ten_invocations() {
             .rule("ab", vec!["a", "b"])
             .build()
     };
-    let baseline = NodeTypesGenerator::new(&make()).generate().unwrap();
+    let baseline = gen_json(&make());
     for _ in 0..10 {
-        let output = NodeTypesGenerator::new(&make()).generate().unwrap();
-        assert_eq!(baseline, output, "output must be identical every time");
+        assert_eq!(baseline, gen_json(&make()), "must be identical every time");
     }
 }
 
@@ -639,9 +748,7 @@ fn deterministic_with_regex_tokens() {
             .rule("pair", vec!["ident", "num"])
             .build()
     };
-    let j1 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    let j2 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    assert_eq!(j1, j2);
+    assert_eq!(gen_json(&make()), gen_json(&make()));
 }
 
 #[test]
@@ -653,9 +760,7 @@ fn deterministic_with_start_symbol() {
             .start("root")
             .build()
     };
-    let j1 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    let j2 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    assert_eq!(j1, j2);
+    assert_eq!(gen_json(&make()), gen_json(&make()));
 }
 
 #[test]
@@ -668,15 +773,12 @@ fn deterministic_with_alternatives() {
             .rule("choice", vec!["b"])
             .build()
     };
-    let j1 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    let j2 = NodeTypesGenerator::new(&make()).generate().unwrap();
-    assert_eq!(j1, j2);
+    assert_eq!(gen_json(&make()), gen_json(&make()));
 }
 
 #[test]
 fn deterministic_roundtrip_preserves_equality() {
-    let grammar = arithmetic_grammar("det8");
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
+    let json = gen_json(&arithmetic_grammar());
     let v1: Value = serde_json::from_str(&json).unwrap();
     let reserialized = serde_json::to_string_pretty(&v1).unwrap();
     let v2: Value = serde_json::from_str(&reserialized).unwrap();
@@ -684,178 +786,20 @@ fn deterministic_roundtrip_preserves_equality() {
 }
 
 // ===========================================================================
-// 6. Node types scale (8 tests)
-// ===========================================================================
-
-/// Build a grammar with `n` distinct tokens and one rule per token.
-fn scaled_grammar(name: &str, n: usize) -> Grammar {
-    let mut builder = GrammarBuilder::new(name);
-    for i in 0..n {
-        let tok_name = format!("tok_{i}");
-        let rule_name = format!("rule_{i}");
-        builder = builder.token(&tok_name, &tok_name);
-        builder = builder.rule(&rule_name, vec![&tok_name]);
-    }
-    builder.build()
-}
-
-#[test]
-fn scale_two_rules_produce_entries() {
-    let grammar = scaled_grammar("sc1", 2);
-    let nodes = generate_and_parse(&grammar);
-    assert!(!nodes.is_empty());
-}
-
-#[test]
-fn scale_five_rules_more_than_two() {
-    let nodes_2 = generate_and_parse(&scaled_grammar("sc2a", 2));
-    let nodes_5 = generate_and_parse(&scaled_grammar("sc2b", 5));
-    assert!(
-        nodes_5.len() > nodes_2.len(),
-        "5 rules should produce more entries than 2"
-    );
-}
-
-#[test]
-fn scale_ten_rules_more_than_five() {
-    let nodes_5 = generate_and_parse(&scaled_grammar("sc3a", 5));
-    let nodes_10 = generate_and_parse(&scaled_grammar("sc3b", 10));
-    assert!(
-        nodes_10.len() > nodes_5.len(),
-        "10 rules should produce more entries than 5"
-    );
-}
-
-#[test]
-fn scale_twenty_rules() {
-    let grammar = scaled_grammar("sc4", 20);
-    let nodes = generate_and_parse(&grammar);
-    // At minimum, 20 rules + 20 tokens = 40 entries
-    assert!(
-        nodes.len() >= 20,
-        "20-rule grammar should have many entries"
-    );
-}
-
-#[test]
-fn scale_fifty_rules_still_valid_json() {
-    let grammar = scaled_grammar("sc5", 50);
-    let json = NodeTypesGenerator::new(&grammar).generate().unwrap();
-    let val: Value = serde_json::from_str(&json).expect("50-rule JSON must be valid");
-    assert!(val.is_array());
-}
-
-#[test]
-fn scale_entries_monotonically_increase() {
-    let counts: Vec<usize> = [1, 3, 7, 15]
-        .iter()
-        .map(|&n| generate_and_parse(&scaled_grammar(&format!("sc6_{n}"), n)).len())
-        .collect();
-    for window in counts.windows(2) {
-        assert!(
-            window[1] > window[0],
-            "entry count should increase: {counts:?}"
-        );
-    }
-}
-
-#[test]
-fn scale_named_entries_grow_with_rules() {
-    let count_named = |n: usize| -> usize {
-        generate_and_parse(&scaled_grammar(&format!("sc7_{n}"), n))
-            .iter()
-            .filter(|e| e["named"] == true)
-            .count()
-    };
-    assert!(count_named(10) > count_named(3));
-}
-
-#[test]
-fn scale_hundred_rules_all_objects() {
-    let grammar = scaled_grammar("sc8", 100);
-    let nodes = generate_and_parse(&grammar);
-    for entry in &nodes {
-        assert!(entry.is_object(), "all entries must be objects");
-    }
-}
-
-// ===========================================================================
-// 7. Edge cases (8 tests)
+// 7. Complex grammars — expressions, recursive, many types (7 tests)
 // ===========================================================================
 
 #[test]
-fn edge_empty_grammar_produces_empty_array() {
-    let grammar = Grammar::new("edge1".to_string());
-    let nodes = generate_and_parse(&grammar);
-    assert!(nodes.is_empty(), "empty grammar should yield []");
-}
-
-#[test]
-fn edge_single_token_single_rule() {
-    let grammar = GrammarBuilder::new("edge2")
-        .token("only", "only")
-        .rule("root", vec!["only"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    assert!(
-        !nodes.is_empty(),
-        "single-token grammar should produce entries"
-    );
-}
-
-#[test]
-fn edge_many_tokens_no_rules() {
-    let mut builder = GrammarBuilder::new("edge3");
-    for i in 0..20 {
-        builder = builder.token(&format!("t{i}"), &format!("t{i}"));
+fn complex_arithmetic_has_all_rules() {
+    let nodes = gen_parsed(&arithmetic_grammar());
+    for name in ["expr", "add", "mul"] {
+        assert!(find_node(&nodes, name).is_some(), "missing '{name}'");
     }
-    // No rules, just tokens — build without rules
-    let grammar = builder.build();
-    let generator = NodeTypesGenerator::new(&grammar);
-    // Should not panic
-    let result = generator.generate();
-    assert!(result.is_ok(), "many tokens, no rules should not panic");
 }
 
 #[test]
-fn edge_token_name_with_special_chars() {
-    let grammar = GrammarBuilder::new("edge4")
-        .token("!=", "!=")
-        .token("==", "==")
-        .token("id", r"[a-z]+")
-        .rule("cmp", vec!["id", "!=", "id"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    assert!(find_node(&nodes, "!=").is_some(), "missing '!='");
-    // "==" may or may not appear depending on whether it's referenced in a rule
-    let _eq_node = find_node(&nodes, "==");
-}
-
-#[test]
-fn edge_alternative_productions_same_lhs() {
-    let grammar = GrammarBuilder::new("edge5")
-        .token("a", "a")
-        .token("b", "b")
-        .token("c", "c")
-        .rule("multi", vec!["a"])
-        .rule("multi", vec!["b"])
-        .rule("multi", vec!["c"])
-        .build();
-    let nodes = generate_and_parse(&grammar);
-    // 'multi' should appear exactly once
-    let multi_count = nodes
-        .iter()
-        .filter(|n| n["type"].as_str() == Some("multi"))
-        .count();
-    assert_eq!(
-        multi_count, 1,
-        "'multi' should appear once despite 3 alternatives"
-    );
-}
-
-#[test]
-fn edge_deeply_nested_rules() {
-    let grammar = GrammarBuilder::new("edge6")
+fn complex_deeply_nested_rules_all_present() {
+    let grammar = GrammarBuilder::new("cx2")
         .token("x", "x")
         .rule("level0", vec!["x"])
         .rule("level1", vec!["level0"])
@@ -863,7 +807,7 @@ fn edge_deeply_nested_rules() {
         .rule("level3", vec!["level2"])
         .rule("level4", vec!["level3"])
         .build();
-    let nodes = generate_and_parse(&grammar);
+    let nodes = gen_parsed(&grammar);
     for i in 0..5 {
         let name = format!("level{i}");
         assert!(find_node(&nodes, &name).is_some(), "missing '{name}'");
@@ -871,52 +815,129 @@ fn edge_deeply_nested_rules() {
 }
 
 #[test]
-fn edge_internal_underscore_rule_excluded() {
-    let mut grammar = Grammar::new("edge7".to_string());
+fn complex_many_operators() {
+    let grammar = GrammarBuilder::new("cx3")
+        .token("num", r"\d+")
+        .token("+", "+")
+        .token("-", "-")
+        .token("*", "*")
+        .token("/", "/")
+        .token("%", "%")
+        .rule("expr", vec!["num"])
+        .rule("add", vec!["expr", "+", "expr"])
+        .rule("sub", vec!["expr", "-", "expr"])
+        .rule("mul", vec!["expr", "*", "expr"])
+        .rule("div", vec!["expr", "/", "expr"])
+        .rule("modulo", vec!["expr", "%", "expr"])
+        .start("add")
+        .build();
+    let nodes = gen_parsed(&grammar);
+    for rule in ["expr", "add", "sub", "mul", "div", "modulo"] {
+        assert!(find_node(&nodes, rule).is_some(), "missing '{rule}'");
+    }
+    for op in ["+", "-", "*", "/", "%"] {
+        assert!(find_node(&nodes, op).is_some(), "missing '{op}'");
+    }
+}
 
-    let tok_id = SymbolId(0);
-    grammar.tokens.insert(
-        tok_id,
-        Token {
-            name: "a".to_string(),
-            pattern: TokenPattern::String("a".to_string()),
-            fragile: false,
-        },
-    );
+#[test]
+fn complex_statement_grammar() {
+    let grammar = GrammarBuilder::new("cx4")
+        .token("id", r"[a-z]+")
+        .token("num", r"\d+")
+        .token("=", "=")
+        .token(";", ";")
+        .token("if", "if")
+        .token("else", "else")
+        .token("{", "{")
+        .token("}", "}")
+        .rule("assign", vec!["id", "=", "num", ";"])
+        .rule("block", vec!["{", "assign", "}"])
+        .rule("if_stmt", vec!["if", "id", "block"])
+        .rule("if_else", vec!["if", "id", "block", "else", "block"])
+        .start("if_else")
+        .build();
+    let nodes = gen_parsed(&grammar);
+    for rule in ["assign", "block", "if_stmt", "if_else"] {
+        assert!(find_node(&nodes, rule).is_some(), "missing '{rule}'");
+    }
+}
 
-    let visible_id = SymbolId(1);
-    grammar.rule_names.insert(visible_id, "visible".to_string());
-    grammar.add_rule(Rule {
-        lhs: visible_id,
-        rhs: vec![Symbol::Terminal(tok_id)],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(0),
-    });
-
-    let hidden_id = SymbolId(2);
-    grammar
-        .rule_names
-        .insert(hidden_id, "_internal".to_string());
-    grammar.add_rule(Rule {
-        lhs: hidden_id,
-        rhs: vec![Symbol::Terminal(tok_id)],
-        precedence: None,
-        associativity: None,
-        fields: vec![],
-        production_id: ProductionId(1),
-    });
-
-    let nodes = generate_and_parse(&grammar);
+#[test]
+fn complex_twenty_rules_valid_json() {
+    let grammar = scaled_grammar("cx5", 20);
+    let nodes = gen_parsed(&grammar);
     assert!(
-        find_node(&nodes, "_internal").is_none(),
-        "_internal should be excluded"
+        nodes.len() >= 20,
+        "20-rule grammar should have many entries"
     );
-    assert!(
-        find_node(&nodes, "visible").is_some(),
-        "visible should be present"
-    );
+}
+
+#[test]
+fn complex_fifty_rules_all_objects() {
+    let grammar = scaled_grammar("cx6", 50);
+    let nodes = gen_parsed(&grammar);
+    for entry in &nodes {
+        assert!(entry.is_object(), "all entries must be objects");
+    }
+}
+
+#[test]
+fn complex_hundred_rules_entry_count() {
+    let grammar = scaled_grammar("cx7", 100);
+    let nodes = gen_parsed(&grammar);
+    // 100 rules + 100 literal tokens = 200 entries
+    assert!(nodes.len() >= 100, "100-rule grammar should have >= 100 entries");
+}
+
+// ===========================================================================
+// 8. Edge cases — minimal grammar, many rules (8 tests)
+// ===========================================================================
+
+#[test]
+fn edge_empty_grammar_produces_empty_array() {
+    let grammar = Grammar::new("e1".to_string());
+    let nodes = gen_parsed(&grammar);
+    assert!(nodes.is_empty(), "empty grammar should yield []");
+}
+
+#[test]
+fn edge_single_token_single_rule() {
+    let grammar = GrammarBuilder::new("e2")
+        .token("only", "only")
+        .rule("root", vec!["only"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    assert!(!nodes.is_empty(), "single-token grammar should produce entries");
+}
+
+#[test]
+fn edge_many_tokens_no_rules_does_not_panic() {
+    let mut builder = GrammarBuilder::new("e3");
+    for i in 0..20 {
+        builder = builder.token(&format!("t{i}"), &format!("t{i}"));
+    }
+    let grammar = builder.build();
+    let result = NodeTypesGenerator::new(&grammar).generate();
+    assert!(result.is_ok(), "many tokens, no rules should not panic");
+}
+
+#[test]
+fn edge_alternative_productions_produce_one_entry() {
+    let grammar = GrammarBuilder::new("e4")
+        .token("a", "a")
+        .token("b", "b")
+        .token("c", "c")
+        .rule("multi", vec!["a"])
+        .rule("multi", vec!["b"])
+        .rule("multi", vec!["c"])
+        .build();
+    let nodes = gen_parsed(&grammar);
+    let multi_count = nodes
+        .iter()
+        .filter(|n| n["type"].as_str() == Some("multi"))
+        .count();
+    assert_eq!(multi_count, 1, "'multi' should appear once despite 3 alternatives");
 }
 
 #[test]
@@ -930,16 +951,52 @@ fn edge_grammar_name_does_not_affect_structure() {
         .rule("r", vec!["t"])
         .build();
 
-    let n1 = generate_and_parse(&g1);
-    let n2 = generate_and_parse(&g2);
+    let n1 = gen_parsed(&g1);
+    let n2 = gen_parsed(&g2);
 
-    // Same structure: same number of entries, same types
-    assert_eq!(
-        n1.len(),
-        n2.len(),
-        "grammar name should not affect entry count"
-    );
+    assert_eq!(n1.len(), n2.len(), "grammar name should not affect entry count");
     let types1: Vec<_> = n1.iter().filter_map(|n| n["type"].as_str()).collect();
     let types2: Vec<_> = n2.iter().filter_map(|n| n["type"].as_str()).collect();
     assert_eq!(types1, types2, "grammar name should not affect types");
+}
+
+#[test]
+fn edge_output_is_sorted_by_type_name() {
+    let nodes = gen_parsed(&arithmetic_grammar());
+    let types: Vec<_> = nodes
+        .iter()
+        .filter_map(|n| n["type"].as_str().map(String::from))
+        .collect();
+    let mut sorted = types.clone();
+    sorted.sort();
+    assert_eq!(types, sorted, "output should be sorted by type name");
+}
+
+#[test]
+fn edge_entries_monotonically_increase_with_grammar_size() {
+    let counts: Vec<usize> = [1, 3, 7, 15]
+        .iter()
+        .map(|&n| gen_parsed(&scaled_grammar(&format!("e7_{n}"), n)).len())
+        .collect();
+    for window in counts.windows(2) {
+        assert!(
+            window[1] > window[0],
+            "entry count should increase: {counts:?}"
+        );
+    }
+}
+
+#[test]
+fn edge_different_grammars_produce_different_output() {
+    let g1 = GrammarBuilder::new("d1")
+        .token("a", "a")
+        .rule("r1", vec!["a"])
+        .build();
+    let g2 = GrammarBuilder::new("d2")
+        .token("b", "b")
+        .rule("r2", vec!["b"])
+        .build();
+    let v1: Value = serde_json::from_str(&gen_json(&g1)).unwrap();
+    let v2: Value = serde_json::from_str(&gen_json(&g2)).unwrap();
+    assert_ne!(v1, v2, "different grammars should produce different output");
 }
