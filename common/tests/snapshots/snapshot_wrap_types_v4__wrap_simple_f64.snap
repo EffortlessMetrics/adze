@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_wrap_types_v4.rs
+expression: "wrap(&ty, &[])"
+---
+adze :: WithLeaf < f64 >

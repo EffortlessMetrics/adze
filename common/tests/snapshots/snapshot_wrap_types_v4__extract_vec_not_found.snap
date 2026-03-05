@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_wrap_types_v4.rs
+expression: "extract(&ty, \"Vec\", &[])"
+---
+found=false inner=Option < String >
