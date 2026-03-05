@@ -89,6 +89,16 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
                 | "static"
                 | "unsafe"
                 | "extern"
+                | "gen"
+                | "do"
+                | "abstract"
+                | "become"
+                | "final"
+                | "override"
+                | "priv"
+                | "typeof"
+                | "unsized"
+                | "virtual"
         )
     })
 }

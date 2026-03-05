@@ -111,7 +111,7 @@ fn is_rust_keyword(s: &str) -> bool {
             | "in" | "let" | "loop" | "match" | "mod" | "move" | "mut" | "pub"
             | "ref" | "return" | "self" | "Self" | "static" | "struct" | "super"
             | "trait" | "true" | "type" | "unsafe" | "use" | "where" | "while"
-            | "yield" | "do"
+            | "yield" | "do" | "gen"
             // Reserved but not yet used keywords
             | "abstract" | "become" | "box" | "final" | "macro" | "override"
             | "priv" | "try" | "typeof" | "unsized" | "virtual"
