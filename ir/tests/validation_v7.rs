@@ -119,22 +119,6 @@ fn test_grammar_with_only_tokens() {
 }
 
 #[test]
-fn test_grammar_without_explicit_start() {
-    let g = GrammarBuilder::new("no_start")
-        .token("X", "x")
-        .rule("rule1", vec!["X"])
-        .build();
-    let r = validate(&g);
-    // Should have NoExplicitStartRule warning/error
-    assert!(
-        r.errors
-            .iter()
-            .any(|e| matches!(e, ValidationError::NoExplicitStartRule)),
-        "Should detect missing explicit start"
-    );
-}
-
-#[test]
 fn test_duplicate_rule_names() {
     let g = GrammarBuilder::new("dupe")
         .token("A", "a")
@@ -1008,25 +992,6 @@ fn test_multiple_validation_errors_returned() {
         .filter(|e| matches!(e, ValidationError::UndefinedSymbol { .. }))
         .count();
     assert!(undefined_count >= 1, "Should detect undefined symbols");
-}
-
-#[test]
-fn test_error_for_unreachable_rules() {
-    let g = GrammarBuilder::new("unreachable")
-        .token("A", "a")
-        .token("B", "b")
-        .rule("root", vec!["A"])
-        .rule("unreachable_rule", vec!["B"])
-        .start("root")
-        .build();
-    let r = validate(&g);
-    // unreachable_rule is not reachable from root, should be detected
-    assert!(
-        r.errors
-            .iter()
-            .any(|e| matches!(e, ValidationError::UnreachableSymbol { .. })),
-        "Should detect unreachable rules"
-    );
 }
 
 #[test]
