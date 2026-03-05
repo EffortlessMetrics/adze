@@ -1,0 +1,20 @@
+[package]
+name = "adze-grammar-json-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Grammar.json token-pattern loading helpers for runtime serialization paths."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["grammar", "json", "parser", "tree-sitter"]
+categories = ["parsing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-grammar-json-core"
+
+[dependencies]
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

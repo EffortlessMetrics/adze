@@ -32,6 +32,7 @@ dependencies = [
  "adze-concurrency-plan-core",
  "adze-example",
  "adze-glr-core",
+ "adze-grammar-json-core",
  "adze-ir",
  "adze-linecol-core",
  "adze-macro",
@@ -454,6 +455,15 @@ name = "adze-governance-runtime-reporting"
 version = "0.1.0"
 dependencies = [
  "adze-governance-matrix-contract",
+]
+
+[[package]]
+name = "adze-grammar-json-core"
+version = "0.1.0"
+dependencies = [
+ "adze-ir",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
