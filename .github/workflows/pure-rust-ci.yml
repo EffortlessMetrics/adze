@@ -57,14 +57,20 @@ jobs:
       run: cargo build --verbose
     
     - name: Run tests
-      run: cargo test --workspace --exclude adze-wasm-demo --verbose
+      run: cargo test --workspace --exclude adze-wasm-demo --exclude test-vec-wrapper --verbose
+
+    - name: Test test-vec-wrapper (isolated)
+      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+      env:
+        CARGO_TARGET_DIR: target/test-vec-wrapper-ci
+      run: cargo test -p test-vec-wrapper --verbose
 
     - name: Run example crate tests
       if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
       run: cargo test --manifest-path example/Cargo.toml --test verify_fixture_parsing -- --test-threads=1
 
     - name: Run benchmarks (check compilation)
-      run: cargo bench --workspace --exclude adze-wasm-demo --no-run
+      run: cargo bench --workspace --exclude adze-wasm-demo --exclude test-vec-wrapper --no-run
   
   test-wasm:
     name: Test WASM Build
