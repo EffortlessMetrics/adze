@@ -188,7 +188,7 @@ jobs:
     
     - name: Generate coverage
       run: |
-        cargo llvm-cov --workspace --exclude adze-wasm-demo --features "pure-rust,glr,incremental_glr,external_scanners,serialization,ts-compat" --lcov --output-path lcov.info
+        cargo llvm-cov --workspace --exclude adze-wasm-demo --exclude test-vec-wrapper --features "pure-rust,glr,incremental_glr,external_scanners,serialization,ts-compat" --lcov --output-path lcov.info
     
     - name: Upload to codecov
       uses: codecov/codecov-action@v4
