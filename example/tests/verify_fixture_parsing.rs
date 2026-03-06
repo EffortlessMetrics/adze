@@ -4,13 +4,13 @@
 use adze_example::arithmetic::grammar::parse;
 
 // Load the same fixtures used in the benchmark
-const PYTHON_SMALL: &str = include_str!("../fixtures/python/small.py");
-const PYTHON_MEDIUM: &str = include_str!("../fixtures/python/medium.py");
-const PYTHON_LARGE: &str = include_str!("../fixtures/python/large.py");
+const PYTHON_SMALL: &str = include_str!("../../benchmarks/fixtures/python/small.py");
+const PYTHON_MEDIUM: &str = include_str!("../../benchmarks/fixtures/python/medium.py");
+const PYTHON_LARGE: &str = include_str!("../../benchmarks/fixtures/python/large.py");
 
-const JS_SMALL: &str = include_str!("../fixtures/javascript/small.js");
-const JS_MEDIUM: &str = include_str!("../fixtures/javascript/medium.js");
-const JS_LARGE: &str = include_str!("../fixtures/javascript/large.js");
+const JS_SMALL: &str = include_str!("../../benchmarks/fixtures/javascript/small.js");
+const JS_MEDIUM: &str = include_str!("../../benchmarks/fixtures/javascript/medium.js");
+const JS_LARGE: &str = include_str!("../../benchmarks/fixtures/javascript/large.js");
 
 #[test]
 fn verify_python_fixtures_do_not_parse_with_arithmetic_grammar() {
@@ -29,7 +29,6 @@ fn verify_python_fixtures_do_not_parse_with_arithmetic_grammar() {
 
         match result {
             Ok(expr) => {
-                // Parser "succeeded" but likely with error recovery
                 println!("{}: Parsed with error recovery: {:?}", label, expr);
                 println!("WARNING: Benchmark is measuring error recovery, not valid parsing!");
             }
