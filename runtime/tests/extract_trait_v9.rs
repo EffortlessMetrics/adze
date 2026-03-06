@@ -806,10 +806,10 @@ fn test_extract_i32_from_none_returns_default() {
 
 #[test]
 fn test_extract_f64_from_node() {
-    let source = b"3.14";
+    let source = b"4.25";
     let node = leaf_node(1, 0, 4);
     let result = f64::extract(Some(&node), source, 0, None);
-    assert!((result - 3.14_f64).abs() < 0.001);
+    assert!((result - 4.25).abs() < f64::EPSILON * 100.0);
 }
 
 #[test]
