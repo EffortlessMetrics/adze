@@ -158,7 +158,7 @@ fn stats_node_counts_populated() {
     let mut sv = StatsVisitor::default();
     walker.walk(&root, &mut sv);
     // symbol 1 -> "*", symbol 5 -> "Expression"
-    assert!(sv.node_counts.len() >= 1);
+    assert!(!sv.node_counts.is_empty());
 }
 
 #[test]

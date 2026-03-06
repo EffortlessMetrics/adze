@@ -1155,7 +1155,7 @@ fn extra_and_external_together() {
         "#,
     );
     assert!(g["extras"].as_array().unwrap().len() >= 2);
-    assert!(g["externals"].as_array().unwrap().len() >= 1);
+    assert!(!g["externals"].as_array().unwrap().is_empty());
 }
 
 #[test]

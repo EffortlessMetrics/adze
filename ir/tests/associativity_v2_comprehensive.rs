@@ -17,14 +17,14 @@ fn v2_assoc_right_debug() {
 #[test]
 fn v2_assoc_left_clone() {
     let a = Associativity::Left;
-    let c = a.clone();
+    let c = a;
     assert_eq!(format!("{:?}", a), format!("{:?}", c));
 }
 
 #[test]
 fn v2_assoc_right_clone() {
     let a = Associativity::Right;
-    let c = a.clone();
+    let c = a;
     assert_eq!(format!("{:?}", a), format!("{:?}", c));
 }
 
@@ -58,7 +58,7 @@ fn v2_assoc_roundtrip_right() {
 
 #[test]
 fn v2_assoc_in_vec() {
-    let v = vec![Associativity::Left, Associativity::Right];
+    let v = [Associativity::Left, Associativity::Right];
     assert_eq!(v.len(), 2);
 }
 

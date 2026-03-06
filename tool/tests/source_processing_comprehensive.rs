@@ -37,7 +37,7 @@ fn extract_one(src: &str) -> serde_json::Value {
 }
 
 /// Try to extract grammars, returning the Result.
-fn try_extract(src: &str) -> adze_tool::ToolResult<Vec<serde_json::Value>> {
+fn _try_extract(src: &str) -> adze_tool::ToolResult<Vec<serde_json::Value>> {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("lib.rs");
     fs::write(&path, src).unwrap();
@@ -45,7 +45,7 @@ fn try_extract(src: &str) -> adze_tool::ToolResult<Vec<serde_json::Value>> {
 }
 
 /// Build options pointing at a temp dir.
-fn opts_in(dir: &TempDir) -> BuildOptions {
+fn _opts_in(dir: &TempDir) -> BuildOptions {
     BuildOptions {
         out_dir: dir.path().to_string_lossy().into(),
         emit_artifacts: false,

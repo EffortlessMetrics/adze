@@ -521,7 +521,7 @@ fn empty_grammar_exactly_one_error() {
     let g = Grammar::new("empty".into());
     let r = validate(&g);
     // At least one error (EmptyGrammar)
-    assert!(r.errors.len() >= 1);
+    assert!(!r.errors.is_empty());
 }
 
 #[test]

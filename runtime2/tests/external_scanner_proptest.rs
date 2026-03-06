@@ -83,10 +83,6 @@ impl ExternalScanner for IndentationScanner {
 // Strategies
 // ---------------------------------------------------------------------------
 
-fn arb_indent_level() -> impl Strategy<Value = u32> {
-    0..64u32
-}
-
 fn arb_indent_stack() -> impl Strategy<Value = Vec<u32>> {
     prop::collection::vec(0..128u32, 1..16).prop_map(|mut v| {
         v.sort();

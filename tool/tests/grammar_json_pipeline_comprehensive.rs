@@ -13,9 +13,7 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar};
 use adze_tool::GrammarConverter;
-use adze_tool::pure_rust_builder::{
-    BuildOptions, BuildResult, build_parser, build_parser_from_json,
-};
+use adze_tool::pure_rust_builder::{BuildOptions, build_parser, build_parser_from_json};
 use serde_json::json;
 use tempfile::TempDir;
 
@@ -854,7 +852,7 @@ fn t63_error_from_invalid_json_is_context_wrapped() {
     let err = build_parser_from_json("{invalid".into(), o).unwrap_err();
     // anyhow errors have context chains
     let chain: Vec<String> = err.chain().map(|e| e.to_string()).collect();
-    assert!(chain.len() >= 1, "should have at least one error in chain");
+    assert!(!chain.is_empty(), "should have at least one error in chain");
 }
 
 #[test]

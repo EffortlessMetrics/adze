@@ -80,7 +80,7 @@ fn point_copy() {
 #[test]
 fn point_clone() {
     let a = Point::new(3, 4);
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
@@ -144,7 +144,7 @@ fn point_const_new() {
 
 #[test]
 fn point_vec_sort() {
-    let mut points = vec![
+    let mut points = [
         Point::new(2, 3),
         Point::new(0, 0),
         Point::new(1, 5),

@@ -93,7 +93,7 @@ pub struct BuildResult {
     pub build_stats: BuildStats,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BuildStats {
     /// Number of states in the generated parse table
     pub state_count: usize,

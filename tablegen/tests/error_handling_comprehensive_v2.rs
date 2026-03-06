@@ -111,7 +111,7 @@ fn gen_new() {
 #[test]
 fn gen_debug() {
     let g = make_gen("gd");
-    assert!(!format!("{}", g.generate_node_types()).is_empty());
+    assert!(!g.generate_node_types().is_empty());
 }
 
 #[test]

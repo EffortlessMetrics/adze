@@ -616,7 +616,7 @@ fn stats_node_counts_per_kind() {
     walker.walk(&root, &mut stats);
     // All nodes have no language, so kind() uses fallback
     // symbol 10 => "rule_10", symbol 11 => "unknown", etc.
-    assert!(stats.node_counts.len() >= 1);
+    assert!(!stats.node_counts.is_empty());
 }
 
 #[test]

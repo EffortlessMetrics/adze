@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"extracted={found} ty={} | filtered={after_filter}\",\nfmt(&after_extract))"
+---
+extracted=true ty=Box < Arc < u32 > > | filtered=u32

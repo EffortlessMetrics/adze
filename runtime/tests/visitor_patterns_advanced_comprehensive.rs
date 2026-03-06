@@ -5,8 +5,7 @@
 
 use adze::pure_parser::{ParsedNode, Point};
 use adze::visitor::{
-    BreadthFirstWalker, PrettyPrintVisitor, SearchVisitor, StatsVisitor, TreeWalker, Visitor,
-    VisitorAction,
+    BreadthFirstWalker, PrettyPrintVisitor, SearchVisitor, StatsVisitor, TreeWalker, VisitorAction,
 };
 use std::mem::MaybeUninit;
 
@@ -216,7 +215,7 @@ fn va_size_is_small() {
 
 #[test]
 fn va_all_variants_in_vec() {
-    let v = vec![
+    let v = [
         VisitorAction::Continue,
         VisitorAction::SkipChildren,
         VisitorAction::Stop,
@@ -787,9 +786,9 @@ fn va_option_none() {
 
 #[test]
 fn va_in_result() {
-    let res: Result<VisitorAction, ()> = Ok(VisitorAction::Stop);
-    assert!(res.is_ok());
-    assert_eq!(res.unwrap(), VisitorAction::Stop);
+    let action = VisitorAction::Stop;
+    let res: Result<VisitorAction, ()> = Ok(action);
+    assert_eq!(res, Ok(VisitorAction::Stop));
 }
 
 #[test]

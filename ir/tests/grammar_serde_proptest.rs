@@ -8,10 +8,9 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     AliasSequence, Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId,
-    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId,
-    SymbolMetadata, Token, TokenPattern,
+    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, Symbol, SymbolId, Token,
+    TokenPattern,
 };
-use indexmap::IndexMap;
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

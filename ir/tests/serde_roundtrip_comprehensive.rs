@@ -19,16 +19,15 @@ use adze_ir::{
     Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
     SymbolMetadata, Token, TokenPattern, builder::GrammarBuilder,
 };
-use indexmap::IndexMap;
 
 // Helper function to perform JSON roundtrip test
 fn assert_json_roundtrip(grammar: &Grammar, test_name: &str) {
     let json_str = serde_json::to_string(grammar)
-        .expect(&format!("{}: failed to serialize to JSON", test_name));
+        .unwrap_or_else(|_| panic!("{}: failed to serialize to JSON", test_name));
     let deserialized: Grammar = serde_json::from_str(&json_str)
-        .expect(&format!("{}: failed to deserialize from JSON", test_name));
+        .unwrap_or_else(|_| panic!("{}: failed to deserialize from JSON", test_name));
     let roundtrip_json = serde_json::to_string(&deserialized)
-        .expect(&format!("{}: failed to re-serialize to JSON", test_name));
+        .unwrap_or_else(|_| panic!("{}: failed to re-serialize to JSON", test_name));
 
     // Both JSON strings should be identical
     assert_eq!(
@@ -41,15 +40,11 @@ fn assert_json_roundtrip(grammar: &Grammar, test_name: &str) {
 // Helper function to perform bincode roundtrip test
 fn assert_bincode_roundtrip(grammar: &Grammar, test_name: &str) {
     let bytes = bincode::serialize(grammar)
-        .expect(&format!("{}: failed to serialize with bincode", test_name));
-    let deserialized: Grammar = bincode::deserialize(&bytes).expect(&format!(
-        "{}: failed to deserialize from bincode",
-        test_name
-    ));
-    let roundtrip_bytes = bincode::serialize(&deserialized).expect(&format!(
-        "{}: failed to re-serialize with bincode",
-        test_name
-    ));
+        .unwrap_or_else(|_| panic!("{}: failed to serialize with bincode", test_name));
+    let deserialized: Grammar = bincode::deserialize(&bytes)
+        .unwrap_or_else(|_| panic!("{}: failed to deserialize from bincode", test_name));
+    let roundtrip_bytes = bincode::serialize(&deserialized)
+        .unwrap_or_else(|_| panic!("{}: failed to re-serialize with bincode", test_name));
 
     assert_eq!(
         bytes, roundtrip_bytes,
@@ -1191,7 +1186,7 @@ fn test_all_precedence_levels_json_roundtrip() {
 fn test_externals_with_various_names_json_roundtrip() {
     let mut grammar = Grammar::new("external_names".to_string());
 
-    let names = vec!["INDENT", "DEDENT", "NEWLINE", "newline", "comment_token"];
+    let names = ["INDENT", "DEDENT", "NEWLINE", "newline", "comment_token"];
 
     for (idx, name) in names.iter().enumerate() {
         let id = SymbolId(idx as u16);
@@ -1314,9 +1309,9 @@ fn test_all_symbol_types_bincode_roundtrip() {
     ];
 
     for (idx, symbol) in symbols.into_iter().enumerate() {
-        let bytes = bincode::serialize(&symbol).expect(&format!("serialize {}", idx));
+        let bytes = bincode::serialize(&symbol).unwrap_or_else(|_| panic!("serialize {}", idx));
         let deserialized: Symbol =
-            bincode::deserialize(&bytes).expect(&format!("deserialize {}", idx));
+            bincode::deserialize(&bytes).unwrap_or_else(|_| panic!("deserialize {}", idx));
         assert_eq!(symbol, deserialized, "Symbol roundtrip failed for {}", idx);
     }
 }

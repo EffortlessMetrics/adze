@@ -163,7 +163,7 @@ fn error_source_none_for_simple() {
 
 #[test]
 fn error_source_for_io() {
-    let io_err = std::io::Error::new(std::io::ErrorKind::Other, "io");
+    let io_err = std::io::Error::other("io");
     let e: TableGenError = io_err.into();
     // #[error(transparent)] delegates Display and source; the inner io::Error
     // may or may not have its own source depending on construction
@@ -272,7 +272,8 @@ fn message_with_tabs() {
 #[test]
 fn result_ok() {
     let r: adze_tablegen::error::Result<i32> = Ok(42);
-    assert_eq!(r.unwrap(), 42);
+    assert!(r.is_ok());
+    assert_eq!(r.ok(), Some(42));
 }
 
 #[test]

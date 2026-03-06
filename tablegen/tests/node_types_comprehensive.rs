@@ -2203,7 +2203,7 @@ fn precedence_rules_produce_node_types() {
 // These tests verify the parse table compression pipeline which is essential
 // for generating efficient Tree-sitter grammars with minimal memory overhead.
 
-use adze_glr_core::{Action, FirstFollowSets, ParseTable};
+use adze_glr_core::{Action, ParseTable};
 use adze_ir::RuleId;
 use adze_tablegen::compress::TableCompressor;
 use std::collections::BTreeMap;
@@ -2428,7 +2428,7 @@ fn small_grammar_compression() {
 
     assert!(result.is_ok());
     let compressed = result.unwrap();
-    assert!(compressed.action_table.row_offsets.len() > 0);
+    assert!(!compressed.action_table.row_offsets.is_empty());
 }
 
 // TEST 8: Large grammar compression (10+ tokens)
@@ -2451,7 +2451,7 @@ fn large_grammar_compression_many_tokens() {
 
     assert!(result.is_ok());
     let compressed = result.unwrap();
-    assert!(compressed.action_table.data.len() > 0);
+    assert!(!compressed.action_table.data.is_empty());
 }
 
 // TEST 9: Compression with alternatives (mixed shifts and reduces)
@@ -2774,7 +2774,7 @@ fn error_action_skipping() {
     let compressed = compressor.compress(&table, &indices, false).unwrap();
 
     // Error actions are typically omitted, so data should only have the shift
-    assert!(compressed.action_table.data.len() >= 1);
+    assert!(!compressed.action_table.data.is_empty());
 }
 
 // TEST 23: Multiple symbol columns compression

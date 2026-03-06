@@ -10,7 +10,7 @@ use adze_common::NameValueExpr;
 use proptest::prelude::*;
 use quote::ToTokens;
 use syn::punctuated::Punctuated;
-use syn::{Attribute, Fields, ItemEnum, ItemStruct, Token, parse_quote};
+use syn::{Attribute, Fields, ItemEnum, ItemStruct, Token};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -30,10 +30,7 @@ fn find_leaf_attr(attrs: &[Attribute]) -> &Attribute {
 
 fn extract_pattern_value(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params
-        .iter()
-        .find(|p| p.path.to_string() == "pattern")
-        .unwrap();
+    let nv = params.iter().find(|p| p.path == "pattern").unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..
@@ -1508,10 +1505,10 @@ proptest! {
         let reparsed_nv: NameValueExpr = syn::parse2(quote::quote! { pattern = #pat }).unwrap();
         prop_assert_eq!(nv.path.to_string(), reparsed_nv.path.to_string());
         // Value matches
-        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s1), .. }) = &nv.expr {
-            if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s2), .. }) = &reparsed_nv.expr {
-                prop_assert_eq!(s1.value(), s2.value());
-            }
+        if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s1), .. }) = &nv.expr
+            && let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s2), .. }) = &reparsed_nv.expr
+        {
+            prop_assert_eq!(s1.value(), s2.value());
         }
     }
 }

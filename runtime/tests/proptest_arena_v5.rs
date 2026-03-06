@@ -1,90 +1,58 @@
-//! Property-based tests (v5) for TreeArena.
+//! Property-based tests (v5) for `TreeArena`.
 //!
-//! 55 property tests covering capacity ranges, allocation patterns, handle
-//! validity, kind preservation, uniqueness, growth, interleaved ops, large
-//! allocations, sequential validity, and invariants under random operations.
+//! 62 proptest properties organized into 15 categories:
+//!  1. Allocate N nodes → len() == N (4)
+//!  2. Allocate N nodes → !is_empty() (4)
+//!  3. Get allocated handle → correct symbol (4)
+//!  4. Get allocated handle → correct value roundtrip (4)
+//!  5. with_capacity(C) then alloc N → len() == N (4)
+//!  6. After clear → is_empty() (4)
+//!  7. After clear → len() == 0 (4)
+//!  8. Re-alloc after clear works (4)
+//!  9. num_chunks >= ceil(N / capacity) (4)
+//! 10. Symbol roundtrip for edge values (5)
+//! 11. Branch children preserved (4)
+//! 12. Leaf/branch kind flags preserved (4)
+//! 13. Multiple alloc/clear cycles → len() correct (5)
+//! 14. Handles from different allocs are different (4)
+//! 15. Edge cases and misc (8)
 
 use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 use proptest::prelude::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 // ============================================================================
-// Helpers
+// Strategies
 // ============================================================================
 
-fn arb_symbol() -> impl Strategy<Value = i32> {
-    prop::num::i32::ANY
+fn symbol_val() -> impl Strategy<Value = i32> {
+    prop_oneof![
+        Just(0),
+        Just(1),
+        Just(-1),
+        Just(i32::MAX),
+        Just(i32::MIN),
+        -10_000..10_000i32,
+    ]
 }
 
-fn arb_capacity() -> impl Strategy<Value = usize> {
-    1usize..=1000
+fn alloc_count() -> impl Strategy<Value = usize> {
+    1_usize..500
 }
 
-fn arb_alloc_count() -> impl Strategy<Value = usize> {
-    1usize..=300
-}
-
-fn arb_small_count() -> impl Strategy<Value = usize> {
-    1usize..=50
+fn small_count() -> impl Strategy<Value = usize> {
+    1_usize..50
 }
 
 // ============================================================================
-// 1. Random capacity always works (1..1000)
+// 1. Allocate N nodes → len() == N (4 properties)
 // ============================================================================
 
 proptest! {
-    #[test]
-    fn v5_capacity_range_valid(cap in 1usize..=1000) {
-        let arena = TreeArena::with_capacity(cap);
-        prop_assert_eq!(arena.capacity(), cap);
-        prop_assert!(arena.is_empty());
-    }
+    #![proptest_config(ProptestConfig::with_cases(64))]
 
     #[test]
-    fn v5_capacity_alloc_one(cap in arb_capacity()) {
-        let mut arena = TreeArena::with_capacity(cap);
-        let h = arena.alloc(TreeNode::leaf(7));
-        prop_assert_eq!(arena.len(), 1);
-        prop_assert_eq!(arena.get(h).value(), 7);
-    }
-
-    #[test]
-    fn v5_capacity_fill_exact(cap in 1usize..=128) {
-        let mut arena = TreeArena::with_capacity(cap);
-        let mut handles = Vec::with_capacity(cap);
-        for i in 0..cap {
-            handles.push(arena.alloc(TreeNode::leaf(i as i32)));
-        }
-        prop_assert_eq!(arena.len(), cap);
-        for (i, h) in handles.iter().enumerate() {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
-        }
-    }
-
-    #[test]
-    fn v5_capacity_overflow_by_one(cap in 1usize..=128) {
-        let mut arena = TreeArena::with_capacity(cap);
-        for i in 0..=cap {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        prop_assert_eq!(arena.len(), cap + 1);
-        prop_assert!(arena.capacity() >= cap + 1);
-    }
-
-    #[test]
-    fn v5_capacity_memory_positive(cap in arb_capacity()) {
-        let arena = TreeArena::with_capacity(cap);
-        prop_assert!(arena.memory_usage() > 0);
-    }
-}
-
-// ============================================================================
-// 2. Random number of allocations
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn v5_random_alloc_count_leaves(n in arb_alloc_count()) {
+    fn v5_len_equals_leaf_count(n in alloc_count()) {
         let mut arena = TreeArena::new();
         for i in 0..n {
             arena.alloc(TreeNode::leaf(i as i32));
@@ -93,575 +61,560 @@ proptest! {
     }
 
     #[test]
-    fn v5_random_alloc_count_branches(n in 1usize..=100) {
+    fn v5_len_equals_branch_count(n in 1_usize..200) {
         let mut arena = TreeArena::new();
-        let mut prev_handles = Vec::new();
-        for i in 0..n {
-            let children = prev_handles.clone();
-            let h = arena.alloc(TreeNode::branch_with_symbol(i as i32, children));
-            prev_handles.push(h);
+        for _ in 0..n {
+            arena.alloc(TreeNode::branch(vec![]));
         }
         prop_assert_eq!(arena.len(), n);
     }
 
     #[test]
-    fn v5_random_mixed_leaf_branch(ops in prop::collection::vec(prop::bool::ANY, 1..200)) {
+    fn v5_len_equals_mixed_count(
+        leaves in 0_usize..250,
+        branches in 0_usize..250,
+    ) {
+        prop_assume!(leaves + branches > 0);
         let mut arena = TreeArena::new();
-        let mut leaf_handles = Vec::new();
-        for is_leaf in &ops {
-            if *is_leaf || leaf_handles.is_empty() {
-                leaf_handles.push(arena.alloc(TreeNode::leaf(0)));
-            } else {
-                let child = *leaf_handles.last().unwrap();
-                arena.alloc(TreeNode::branch(vec![child]));
-            }
-        }
-        prop_assert_eq!(arena.len(), ops.len());
-    }
-
-    #[test]
-    fn v5_alloc_count_with_varied_capacity(cap in 1usize..=64, n in 1usize..=200) {
-        let mut arena = TreeArena::with_capacity(cap);
-        for i in 0..n {
+        for i in 0..leaves {
             arena.alloc(TreeNode::leaf(i as i32));
         }
-        prop_assert_eq!(arena.len(), n);
-        prop_assert!(arena.capacity() >= n);
+        for _ in 0..branches {
+            arena.alloc(TreeNode::branch(vec![]));
+        }
+        prop_assert_eq!(arena.len(), leaves + branches);
     }
 
     #[test]
-    fn v5_alloc_preserves_count_after_get(n in arb_alloc_count()) {
+    fn v5_len_increments_by_one(n in alloc_count()) {
         let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        // Access all handles — should not change len
-        for h in &handles {
-            let _ = arena.get(*h).value();
+        for expected in 1..=n {
+            arena.alloc(TreeNode::leaf(0));
+            prop_assert_eq!(arena.len(), expected);
         }
-        prop_assert_eq!(arena.len(), n);
     }
 }
 
 // ============================================================================
-// 3. All allocated handles are valid
+// 2. Allocate N nodes → !is_empty() (4 properties)
 // ============================================================================
 
 proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
     #[test]
-    fn v5_all_handles_valid_leaves(n in arb_alloc_count()) {
+    fn v5_not_empty_after_leaf_allocs(n in alloc_count()) {
         let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        for h in &handles {
-            let node = arena.get(*h);
-            prop_assert!(node.is_leaf());
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
         }
+        prop_assert!(!arena.is_empty());
     }
 
     #[test]
-    fn v5_all_handles_valid_branches(n in arb_small_count()) {
+    fn v5_not_empty_after_branch_allocs(n in 1_usize..200) {
         let mut arena = TreeArena::new();
-        let leaf = arena.alloc(TreeNode::leaf(0));
-        let handles: Vec<_> = (0..n)
-            .map(|i| arena.alloc(TreeNode::branch_with_symbol(i as i32, vec![leaf])))
-            .collect();
-        for h in &handles {
-            let node = arena.get(*h);
-            prop_assert!(node.is_branch());
-            prop_assert_eq!(node.children().len(), 1);
+        for _ in 0..n {
+            arena.alloc(TreeNode::branch(vec![]));
         }
+        prop_assert!(!arena.is_empty());
     }
 
     #[test]
-    fn v5_handle_valid_after_many_allocs(n in arb_alloc_count()) {
+    fn v5_not_empty_after_single_alloc(sym in symbol_val()) {
         let mut arena = TreeArena::new();
-        let first = arena.alloc(TreeNode::leaf(-999));
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        prop_assert_eq!(arena.get(first).value(), -999);
+        arena.alloc(TreeNode::leaf(sym));
+        prop_assert!(!arena.is_empty());
     }
 
     #[test]
-    fn v5_handles_valid_across_chunk_boundary(cap in 1usize..=8, n in 10usize..=100) {
-        let mut arena = TreeArena::with_capacity(cap);
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        for (i, h) in handles.iter().enumerate() {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
-        }
-    }
-
-    #[test]
-    fn v5_get_mut_does_not_invalidate_other_handles(n in 2usize..=100) {
+    fn v5_is_empty_iff_len_zero(n in 0_usize..200) {
         let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        // Mutate the first handle
-        arena.get_mut(handles[0]).set_value(9999);
-        // All other handles remain valid
-        for (i, h) in handles.iter().enumerate().skip(1) {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
         }
-        prop_assert_eq!(arena.get(handles[0]).value(), 9999);
+        prop_assert_eq!(arena.is_empty(), n == 0);
     }
 }
 
 // ============================================================================
-// 4. Kind values preserved after allocation
+// 3. Get allocated handle → correct symbol (4 properties)
 // ============================================================================
 
 proptest! {
-    #[test]
-    fn v5_leaf_value_roundtrip(sym in arb_symbol()) {
-        let mut arena = TreeArena::new();
-        let h = arena.alloc(TreeNode::leaf(sym));
-        prop_assert_eq!(arena.get(h).value(), sym);
-        prop_assert_eq!(arena.get(h).symbol(), sym);
-    }
+    #![proptest_config(ProptestConfig::with_cases(64))]
 
     #[test]
-    fn v5_branch_symbol_roundtrip(sym in arb_symbol()) {
-        let mut arena = TreeArena::new();
-        let h = arena.alloc(TreeNode::branch_with_symbol(sym, vec![]));
-        prop_assert_eq!(arena.get(h).symbol(), sym);
-    }
-
-    #[test]
-    fn v5_many_distinct_values(vals in prop::collection::vec(arb_symbol(), 1..200)) {
+    fn v5_leaf_symbol_preserved(vals in prop::collection::vec(symbol_val(), 1..200)) {
         let mut arena = TreeArena::new();
         let handles: Vec<_> = vals.iter().map(|&v| arena.alloc(TreeNode::leaf(v))).collect();
-        for (&v, &h) in vals.iter().zip(handles.iter()) {
-            prop_assert_eq!(arena.get(h).value(), v);
+        for (h, &v) in handles.iter().zip(vals.iter()) {
+            prop_assert_eq!(arena.get(*h).symbol(), v);
         }
     }
 
     #[test]
-    fn v5_extreme_symbol_values(sym in prop::sample::select(vec![
-        i32::MIN, i32::MIN + 1, -1, 0, 1, i32::MAX - 1, i32::MAX
-    ])) {
+    fn v5_branch_symbol_preserved(vals in prop::collection::vec(symbol_val(), 1..100)) {
         let mut arena = TreeArena::new();
-        let h = arena.alloc(TreeNode::leaf(sym));
-        prop_assert_eq!(arena.get(h).value(), sym);
+        let handles: Vec<_> = vals.iter()
+            .map(|&v| arena.alloc(TreeNode::branch_with_symbol(v, vec![])))
+            .collect();
+        for (h, &v) in handles.iter().zip(vals.iter()) {
+            prop_assert_eq!(arena.get(*h).symbol(), v);
+        }
     }
 
     #[test]
-    fn v5_set_value_preserves_kind(original in arb_symbol(), replacement in arb_symbol()) {
+    fn v5_symbol_random_access_order(
+        vals in prop::collection::vec(symbol_val(), 2..200),
+        seed in prop::num::u64::ANY,
+    ) {
         let mut arena = TreeArena::new();
-        let h = arena.alloc(TreeNode::leaf(original));
-        prop_assert!(arena.get(h).is_leaf());
-        arena.get_mut(h).set_value(replacement);
-        prop_assert!(arena.get(h).is_leaf());
-        prop_assert_eq!(arena.get(h).value(), replacement);
-    }
-}
-
-// ============================================================================
-// 5. Handles are unique
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn v5_handles_unique_set(n in arb_alloc_count()) {
-        let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        let set: HashSet<_> = handles.iter().copied().collect();
-        prop_assert_eq!(set.len(), n);
-    }
-
-    #[test]
-    fn v5_handles_unique_small_capacity(n in 1usize..=150) {
-        let mut arena = TreeArena::with_capacity(2);
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        let set: HashSet<_> = handles.iter().copied().collect();
-        prop_assert_eq!(set.len(), n);
-    }
-
-    #[test]
-    fn v5_consecutive_handles_differ(n in 2usize..=200) {
-        let mut arena = TreeArena::new();
-        let mut prev = arena.alloc(TreeNode::leaf(0));
-        for i in 1..n {
-            let cur = arena.alloc(TreeNode::leaf(i as i32));
-            prop_assert_ne!(prev, cur);
-            prev = cur;
+        let handles: Vec<_> = vals.iter().map(|&v| arena.alloc(TreeNode::leaf(v))).collect();
+        let n = handles.len();
+        for step in 0..n {
+            let idx = (seed as usize).wrapping_add(step.wrapping_mul(7)) % n;
+            prop_assert_eq!(arena.get(handles[idx]).symbol(), vals[idx]);
         }
     }
 
     #[test]
-    fn v5_handles_hashmap_usable(n in arb_small_count()) {
-        let mut arena = TreeArena::new();
-        let mut map = HashMap::new();
-        for i in 0..n {
-            let h = arena.alloc(TreeNode::leaf(i as i32));
-            map.insert(h, i);
-        }
-        prop_assert_eq!(map.len(), n);
-    }
-
-    #[test]
-    fn v5_handle_copy_semantics(sym in arb_symbol()) {
-        let mut arena = TreeArena::new();
-        let h1 = arena.alloc(TreeNode::leaf(sym));
-        let h2 = h1; // Copy
-        let h3 = h1; // Copy again
-        prop_assert_eq!(h1, h2);
-        prop_assert_eq!(h2, h3);
-        prop_assert_eq!(arena.get(h1).value(), arena.get(h3).value());
-    }
-}
-
-// ============================================================================
-// 6. Arena grows on demand
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn v5_grows_past_initial_capacity(cap in 1usize..=32, extra in 1usize..=100) {
-        let mut arena = TreeArena::with_capacity(cap);
-        for i in 0..(cap + extra) {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        prop_assert_eq!(arena.len(), cap + extra);
-        prop_assert!(arena.capacity() >= cap + extra);
-    }
-
-    #[test]
-    fn v5_chunk_count_increases(cap in 1usize..=4, n in 20usize..=100) {
-        let mut arena = TreeArena::with_capacity(cap);
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        prop_assert!(arena.num_chunks() > 1);
-    }
-
-    #[test]
-    fn v5_capacity_monotonic(n in arb_alloc_count()) {
-        let mut arena = TreeArena::new();
-        let mut caps = Vec::with_capacity(n);
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-            caps.push(arena.capacity());
-        }
-        for window in caps.windows(2) {
-            prop_assert!(window[1] >= window[0]);
-        }
-    }
-
-    #[test]
-    fn v5_num_chunks_monotonic(n in arb_alloc_count()) {
-        let mut arena = TreeArena::with_capacity(4);
-        let mut chunks = Vec::with_capacity(n);
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-            chunks.push(arena.num_chunks());
-        }
-        for window in chunks.windows(2) {
-            prop_assert!(window[1] >= window[0]);
-        }
-    }
-
-    #[test]
-    fn v5_memory_grows_with_allocs(n in 2usize..=200) {
-        let mut arena = TreeArena::new();
-        arena.alloc(TreeNode::leaf(0));
-        let mem_after_one = arena.memory_usage();
-        for i in 1..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        prop_assert!(arena.memory_usage() >= mem_after_one);
-    }
-}
-
-// ============================================================================
-// 7. Random alloc/get interleaved patterns
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn v5_interleaved_alloc_get(ops in prop::collection::vec(0u8..10, 1..200)) {
-        let mut arena = TreeArena::new();
-        let mut handles = Vec::new();
-        for op in &ops {
-            if *op < 7 || handles.is_empty() {
-                // Allocate
-                let h = arena.alloc(TreeNode::leaf(handles.len() as i32));
-                handles.push(h);
-            } else {
-                // Read a random existing handle
-                let idx = (*op as usize) % handles.len();
-                let node = arena.get(handles[idx]);
-                prop_assert!(node.is_leaf());
-            }
-        }
-        prop_assert_eq!(arena.len(), handles.len());
-    }
-
-    #[test]
-    fn v5_alloc_get_mut_interleaved(n in arb_small_count()) {
+    fn v5_handles_valid_after_interleaved_alloc(n in 1_usize..100) {
         let mut arena = TreeArena::new();
         let mut handles = Vec::new();
         for i in 0..n {
             let h = arena.alloc(TreeNode::leaf(i as i32));
             handles.push(h);
-            // Immediately mutate previous if exists
-            if i > 0 {
-                arena.get_mut(handles[i - 1]).set_value(-(i as i32));
-            }
+            prop_assert_eq!(arena.get(h).symbol(), i as i32);
         }
-        // Verify mutations
         for (i, h) in handles.iter().enumerate() {
-            if i < n - 1 {
-                prop_assert_eq!(arena.get(*h).value(), -((i + 1) as i32));
-            } else {
-                prop_assert_eq!(arena.get(*h).value(), i as i32);
-            }
+            prop_assert_eq!(arena.get(*h).symbol(), i as i32);
         }
     }
+}
+
+// ============================================================================
+// 4. Get allocated handle → correct value roundtrip (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
 
     #[test]
-    fn v5_alloc_branch_then_read_children(depth in 1usize..=20) {
+    fn v5_leaf_value_roundtrip(sym in symbol_val()) {
         let mut arena = TreeArena::new();
-        let mut current = arena.alloc(TreeNode::leaf(0));
-        for i in 1..=depth {
-            current = arena.alloc(TreeNode::branch_with_symbol(i as i32, vec![current]));
-        }
-        // Walk back down
-        let mut node_h = current;
-        for i in (1..=depth).rev() {
-            let node = arena.get(node_h);
-            prop_assert!(node.is_branch());
-            prop_assert_eq!(node.symbol(), i as i32);
-            prop_assert_eq!(node.children().len(), 1);
-            node_h = node.children()[0];
-        }
-        prop_assert!(arena.get(node_h).is_leaf());
-        prop_assert_eq!(arena.get(node_h).value(), 0);
+        let h = arena.alloc(TreeNode::leaf(sym));
+        prop_assert_eq!(arena.get(h).value(), sym);
     }
 
     #[test]
-    fn v5_wide_branch_random_width(width in 1usize..=100) {
+    fn v5_branch_value_roundtrip(sym in symbol_val()) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::branch_with_symbol(sym, vec![]));
+        prop_assert_eq!(arena.get(h).value(), sym);
+    }
+
+    #[test]
+    fn v5_value_equals_symbol(sym in symbol_val()) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::leaf(sym));
+        let node_ref = arena.get(h);
+        prop_assert_eq!(node_ref.value(), node_ref.symbol());
+    }
+
+    #[test]
+    fn v5_handles_survive_chunk_growth(cap in 1_usize..8, n in 20_usize..100) {
+        let mut arena = TreeArena::with_capacity(cap);
+        let handles: Vec<_> = (0..n)
+            .map(|i| arena.alloc(TreeNode::leaf(i as i32)))
+            .collect();
+        for (i, h) in handles.iter().enumerate() {
+            prop_assert_eq!(arena.get(*h).value(), i as i32);
+        }
+    }
+}
+
+// ============================================================================
+// 5. with_capacity(C) then alloc N → len() == N (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_with_capacity_len_correct(cap in 1_usize..200, n in alloc_count()) {
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert_eq!(arena.len(), n);
+    }
+
+    #[test]
+    fn v5_with_capacity_small_cap_large_n(cap in 1_usize..4, n in 100_usize..300) {
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(42));
+        }
+        prop_assert_eq!(arena.len(), n);
+    }
+
+    #[test]
+    fn v5_with_capacity_large_cap_small_n(cap in 500_usize..2000, n in 1_usize..50) {
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert_eq!(arena.len(), n);
+    }
+
+    #[test]
+    fn v5_with_capacity_exact_fill(cap in 1_usize..100) {
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..cap {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert_eq!(arena.len(), cap);
+    }
+}
+
+// ============================================================================
+// 6. After clear → is_empty() (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_clear_makes_empty(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.clear();
+        prop_assert!(arena.is_empty());
+    }
+
+    #[test]
+    fn v5_clear_with_branches_makes_empty(n in 1_usize..100) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::branch(vec![]));
+        }
+        arena.clear();
+        prop_assert!(arena.is_empty());
+    }
+
+    #[test]
+    fn v5_clear_custom_capacity_makes_empty(
+        cap in 1_usize..100,
+        n in 1_usize..200,
+    ) {
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.clear();
+        prop_assert!(arena.is_empty());
+    }
+
+    #[test]
+    fn v5_reset_makes_empty(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.reset();
+        prop_assert!(arena.is_empty());
+    }
+}
+
+// ============================================================================
+// 7. After clear → len() == 0 (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_clear_len_zero(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.clear();
+        prop_assert_eq!(arena.len(), 0);
+    }
+
+    #[test]
+    fn v5_reset_len_zero(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.reset();
+        prop_assert_eq!(arena.len(), 0);
+    }
+
+    #[test]
+    fn v5_clear_custom_cap_len_zero(cap in 1_usize..50, n in 1_usize..200) {
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.clear();
+        prop_assert_eq!(arena.len(), 0);
+    }
+
+    #[test]
+    fn v5_clear_mixed_nodes_len_zero(
+        leaves in 1_usize..100,
+        branches in 1_usize..100,
+    ) {
+        let mut arena = TreeArena::new();
+        for i in 0..leaves {
+            arena.alloc(TreeNode::leaf(i as i32));
+        }
+        for _ in 0..branches {
+            arena.alloc(TreeNode::branch(vec![]));
+        }
+        arena.clear();
+        prop_assert_eq!(arena.len(), 0);
+    }
+}
+
+// ============================================================================
+// 8. Re-alloc after clear works (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_realloc_after_clear(
+        first in 1_usize..200,
+        second_vals in prop::collection::vec(symbol_val(), 1..100),
+    ) {
+        let mut arena = TreeArena::new();
+        for _ in 0..first {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.clear();
+        let handles: Vec<_> = second_vals.iter()
+            .map(|&v| arena.alloc(TreeNode::leaf(v)))
+            .collect();
+        prop_assert_eq!(arena.len(), second_vals.len());
+        for (h, &v) in handles.iter().zip(second_vals.iter()) {
+            prop_assert_eq!(arena.get(*h).value(), v);
+        }
+    }
+
+    #[test]
+    fn v5_realloc_after_reset(
+        first in 1_usize..200,
+        second_vals in prop::collection::vec(symbol_val(), 1..100),
+    ) {
+        let mut arena = TreeArena::new();
+        for _ in 0..first {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.reset();
+        let handles: Vec<_> = second_vals.iter()
+            .map(|&v| arena.alloc(TreeNode::leaf(v)))
+            .collect();
+        prop_assert_eq!(arena.len(), second_vals.len());
+        for (h, &v) in handles.iter().zip(second_vals.iter()) {
+            prop_assert_eq!(arena.get(*h).value(), v);
+        }
+    }
+
+    #[test]
+    fn v5_realloc_branches_after_clear(n in 1_usize..50) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::branch(vec![]));
+        }
+        arena.clear();
+        let mut handles = Vec::new();
+        for i in 0..n {
+            let h = arena.alloc(TreeNode::branch_with_symbol(i as i32, vec![]));
+            handles.push(h);
+        }
+        prop_assert_eq!(arena.len(), n);
+        for (i, h) in handles.iter().enumerate() {
+            prop_assert_eq!(arena.get(*h).symbol(), i as i32);
+        }
+    }
+
+    #[test]
+    fn v5_realloc_more_after_clear(first in 1_usize..100, second in 1_usize..200) {
+        let mut arena = TreeArena::new();
+        for _ in 0..first {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.clear();
+        for _ in 0..second {
+            arena.alloc(TreeNode::leaf(1));
+        }
+        prop_assert_eq!(arena.len(), second);
+    }
+}
+
+// ============================================================================
+// 9. num_chunks >= ceil(N / capacity) (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_num_chunks_at_least_one(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert!(arena.num_chunks() >= 1);
+    }
+
+    #[test]
+    fn v5_num_chunks_grows_past_capacity(cap in 1_usize..8, n in 10_usize..100) {
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        // With exponential growth we must have at least 1 chunk,
+        // and capacity must cover all nodes.
+        prop_assert!(arena.capacity() >= n);
+        prop_assert!(arena.num_chunks() >= 1);
+    }
+
+    #[test]
+    fn v5_single_chunk_within_capacity(cap in 50_usize..500, n in 1_usize..50) {
+        prop_assume!(n <= cap);
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert_eq!(arena.num_chunks(), 1);
+    }
+
+    #[test]
+    fn v5_multiple_chunks_when_exceeding_cap(cap in 1_usize..10) {
+        let n = cap + 1;
+        let mut arena = TreeArena::with_capacity(cap);
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert!(arena.num_chunks() >= 2);
+    }
+}
+
+// ============================================================================
+// 10. Symbol roundtrip for edge values (5 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_symbol_roundtrip_positive(sym in 0..1000i32) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::leaf(sym));
+        prop_assert_eq!(arena.get(h).value(), sym);
+    }
+
+    #[test]
+    fn v5_symbol_roundtrip_negative(sym in -1000..0i32) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::leaf(sym));
+        prop_assert_eq!(arena.get(h).value(), sym);
+    }
+
+    #[test]
+    fn v5_symbol_roundtrip_extremes(sym in prop::sample::select(
+        vec![i32::MIN, i32::MAX, 0, 1, -1, i32::MIN + 1, i32::MAX - 1],
+    )) {
+        let mut arena = TreeArena::new();
+        let h_leaf = arena.alloc(TreeNode::leaf(sym));
+        let h_branch = arena.alloc(TreeNode::branch_with_symbol(sym, vec![]));
+        prop_assert_eq!(arena.get(h_leaf).value(), sym);
+        prop_assert_eq!(arena.get(h_branch).symbol(), sym);
+    }
+
+    #[test]
+    fn v5_symbol_roundtrip_full_range(sym in prop::num::i32::ANY) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::leaf(sym));
+        prop_assert_eq!(arena.get(h).value(), sym);
+    }
+
+    #[test]
+    fn v5_branch_symbol_roundtrip_full_range(sym in prop::num::i32::ANY) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::branch_with_symbol(sym, vec![]));
+        prop_assert_eq!(arena.get(h).symbol(), sym);
+    }
+}
+
+// ============================================================================
+// 11. Branch children preserved (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_branch_children_count(width in 1_usize..50) {
         let mut arena = TreeArena::new();
         let children: Vec<_> = (0..width)
             .map(|i| arena.alloc(TreeNode::leaf(i as i32)))
             .collect();
-        let parent = arena.alloc(TreeNode::branch(children.clone()));
-        let node = arena.get(parent);
-        prop_assert_eq!(node.children().len(), width);
-        for (i, ch) in node.children().iter().enumerate() {
-            prop_assert_eq!(arena.get(*ch).value(), i as i32);
+        let expected = children.to_vec();
+        let parent = arena.alloc(TreeNode::branch(children));
+        prop_assert_eq!(arena.get(parent).children().len(), width);
+        for (i, &ch) in arena.get(parent).children().iter().enumerate() {
+            prop_assert_eq!(ch, expected[i]);
+        }
+    }
+
+    #[test]
+    fn v5_branch_empty_children(_dummy in Just(())) {
+        let mut arena = TreeArena::new();
+        let parent = arena.alloc(TreeNode::branch(vec![]));
+        prop_assert!(arena.get(parent).children().is_empty());
+    }
+
+    #[test]
+    fn v5_leaf_has_no_children(sym in symbol_val()) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::leaf(sym));
+        prop_assert!(arena.get(h).children().is_empty());
+    }
+
+    #[test]
+    fn v5_nested_branches_children(depth in 2_usize..20) {
+        let mut arena = TreeArena::new();
+        let mut current = arena.alloc(TreeNode::leaf(0));
+        for d in 1..depth {
+            let parent = arena.alloc(TreeNode::branch_with_symbol(d as i32, vec![current]));
+            let node_ref = arena.get(parent);
+            let children = node_ref.children();
+            prop_assert_eq!(children.len(), 1);
+            prop_assert_eq!(children[0], current);
+            current = parent;
         }
     }
 }
 
 // ============================================================================
-// 8. Large numbers of allocations
+// 12. Leaf/branch kind flags preserved (4 properties)
 // ============================================================================
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(10))]
+    #![proptest_config(ProptestConfig::with_cases(64))]
 
     #[test]
-    fn v5_large_alloc_1000(n in 800usize..=1200) {
-        let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        prop_assert_eq!(arena.len(), n);
-        // Spot-check first, middle, last
-        prop_assert_eq!(arena.get(handles[0]).value(), 0);
-        prop_assert_eq!(arena.get(handles[n / 2]).value(), (n / 2) as i32);
-        prop_assert_eq!(arena.get(handles[n - 1]).value(), (n - 1) as i32);
-    }
-
-    #[test]
-    fn v5_large_alloc_all_unique(n in 500usize..=1000) {
-        let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        let set: HashSet<_> = handles.iter().copied().collect();
-        prop_assert_eq!(set.len(), n);
-    }
-
-    #[test]
-    fn v5_large_alloc_all_retrievable(n in 500usize..=1000) {
-        let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        for (i, h) in handles.iter().enumerate() {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
-        }
-    }
-
-    #[test]
-    fn v5_large_alloc_metrics_consistent(n in 500usize..=1000) {
-        let mut arena = TreeArena::new();
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        let m = arena.metrics();
-        prop_assert_eq!(m.len(), n);
-        prop_assert!(!m.is_empty());
-        prop_assert!(m.capacity() >= n);
-        prop_assert!(m.num_chunks() >= 1);
-        prop_assert!(m.memory_usage() > 0);
-    }
-}
-
-// ============================================================================
-// 9. Sequential handle validity
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn v5_sequential_allocs_order_preserved(n in arb_alloc_count()) {
-        let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        // Reading in forward order
-        for (i, h) in handles.iter().enumerate() {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
-        }
-    }
-
-    #[test]
-    fn v5_sequential_allocs_reverse_read(n in arb_alloc_count()) {
-        let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        // Reading in reverse order
-        for (i, h) in handles.iter().enumerate().rev() {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
-        }
-    }
-
-    #[test]
-    fn v5_first_handle_always_valid(n in arb_alloc_count()) {
-        let mut arena = TreeArena::new();
-        let first = arena.alloc(TreeNode::leaf(42));
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        prop_assert_eq!(arena.get(first).value(), 42);
-    }
-
-    #[test]
-    fn v5_last_handle_always_valid(n in arb_alloc_count()) {
-        let mut arena = TreeArena::new();
-        for i in 0..n.saturating_sub(1) {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        let last = arena.alloc(TreeNode::leaf(-1));
-        prop_assert_eq!(arena.get(last).value(), -1);
-    }
-
-    #[test]
-    fn v5_random_access_order(
-        n in 10usize..=200,
-        indices in prop::collection::vec(0usize..10, 1..50),
-    ) {
-        let mut arena = TreeArena::new();
-        let handles: Vec<_> = (0..n).map(|i| arena.alloc(TreeNode::leaf(i as i32))).collect();
-        for idx in &indices {
-            let actual_idx = *idx % n;
-            prop_assert_eq!(arena.get(handles[actual_idx]).value(), actual_idx as i32);
-        }
-    }
-}
-
-// ============================================================================
-// 10. Arena invariants under random operations
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn v5_invariant_len_le_capacity(cap in 1usize..=64, n in arb_alloc_count()) {
-        let mut arena = TreeArena::with_capacity(cap);
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-            prop_assert!(arena.len() <= arena.capacity());
-        }
-    }
-
-    #[test]
-    fn v5_invariant_not_empty_iff_len_gt_zero(n in 0usize..=100) {
-        let mut arena = TreeArena::new();
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        prop_assert_eq!(!arena.is_empty(), arena.len() > 0);
-    }
-
-    #[test]
-    fn v5_invariant_metrics_agree(n in arb_alloc_count()) {
-        let mut arena = TreeArena::new();
-        for i in 0..n {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        let m = arena.metrics();
-        prop_assert_eq!(m.len(), arena.len());
-        prop_assert_eq!(m.capacity(), arena.capacity());
-        prop_assert_eq!(m.num_chunks(), arena.num_chunks());
-        prop_assert_eq!(m.memory_usage(), arena.memory_usage());
-        prop_assert_eq!(m.is_empty(), arena.is_empty());
-    }
-
-    #[test]
-    fn v5_invariant_reset_then_reuse(
-        n1 in arb_small_count(),
-        n2 in arb_small_count(),
-    ) {
-        let mut arena = TreeArena::new();
-        for i in 0..n1 {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        arena.reset();
-        let handles: Vec<_> = (0..n2)
-            .map(|i| arena.alloc(TreeNode::leaf(i as i32)))
-            .collect();
-        prop_assert_eq!(arena.len(), n2);
-        for (i, h) in handles.iter().enumerate() {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
-        }
-    }
-
-    #[test]
-    fn v5_invariant_clear_then_reuse(
-        n1 in arb_small_count(),
-        n2 in arb_small_count(),
-    ) {
-        let mut arena = TreeArena::new();
-        for i in 0..n1 {
-            arena.alloc(TreeNode::leaf(i as i32));
-        }
-        arena.clear();
-        prop_assert_eq!(arena.num_chunks(), 1);
-        let handles: Vec<_> = (0..n2)
-            .map(|i| arena.alloc(TreeNode::leaf(i as i32)))
-            .collect();
-        prop_assert_eq!(arena.len(), n2);
-        for (i, h) in handles.iter().enumerate() {
-            prop_assert_eq!(arena.get(*h).value(), i as i32);
-        }
-    }
-
-    #[test]
-    fn v5_invariant_multiple_resets(cycles in 1usize..=5, per_cycle in arb_small_count()) {
-        let mut arena = TreeArena::new();
-        for _ in 0..cycles {
-            for i in 0..per_cycle {
-                arena.alloc(TreeNode::leaf(i as i32));
-            }
-            prop_assert_eq!(arena.len(), per_cycle);
-            arena.reset();
-            prop_assert!(arena.is_empty());
-        }
-    }
-
-    #[test]
-    fn v5_invariant_deterministic_across_arenas(n in arb_alloc_count()) {
-        let mut a = TreeArena::new();
-        let mut b = TreeArena::new();
-        for i in 0..n {
-            let ha = a.alloc(TreeNode::leaf(i as i32));
-            let hb = b.alloc(TreeNode::leaf(i as i32));
-            prop_assert_eq!(ha, hb);
-            prop_assert_eq!(a.get(ha).value(), b.get(hb).value());
-        }
-    }
-
-    #[test]
-    fn v5_invariant_leaf_is_not_branch(sym in arb_symbol()) {
+    fn v5_leaf_is_leaf(sym in symbol_val()) {
         let mut arena = TreeArena::new();
         let h = arena.alloc(TreeNode::leaf(sym));
         prop_assert!(arena.get(h).is_leaf());
@@ -669,7 +622,7 @@ proptest! {
     }
 
     #[test]
-    fn v5_invariant_branch_is_not_leaf(sym in arb_symbol()) {
+    fn v5_branch_is_branch(sym in symbol_val()) {
         let mut arena = TreeArena::new();
         let h = arena.alloc(TreeNode::branch_with_symbol(sym, vec![]));
         prop_assert!(arena.get(h).is_branch());
@@ -677,9 +630,267 @@ proptest! {
     }
 
     #[test]
-    fn v5_invariant_children_empty_for_leaf(sym in arb_symbol()) {
+    fn v5_mixed_kinds_preserved(n in 1_usize..100) {
         let mut arena = TreeArena::new();
-        let h = arena.alloc(TreeNode::leaf(sym));
-        prop_assert!(arena.get(h).children().is_empty());
+        let mut leaf_handles = Vec::new();
+        let mut branch_handles = Vec::new();
+        for i in 0..n {
+            if i % 2 == 0 {
+                leaf_handles.push(arena.alloc(TreeNode::leaf(i as i32)));
+            } else {
+                branch_handles.push(arena.alloc(TreeNode::branch(vec![])));
+            }
+        }
+        for h in &leaf_handles {
+            prop_assert!(arena.get(*h).is_leaf());
+        }
+        for h in &branch_handles {
+            prop_assert!(arena.get(*h).is_branch());
+        }
+    }
+
+    #[test]
+    fn v5_set_value_preserves_leaf_kind(
+        original in symbol_val(),
+        replacement in symbol_val(),
+    ) {
+        let mut arena = TreeArena::new();
+        let h = arena.alloc(TreeNode::leaf(original));
+        arena.get_mut(h).set_value(replacement);
+        prop_assert!(arena.get(h).is_leaf());
+        prop_assert_eq!(arena.get(h).value(), replacement);
+    }
+}
+
+// ============================================================================
+// 13. Multiple alloc/clear cycles → len() correct (5 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    #[test]
+    fn v5_multiple_clear_cycles(
+        cycles in 1_usize..6,
+        per_cycle in small_count(),
+    ) {
+        let mut arena = TreeArena::new();
+        for _ in 0..cycles {
+            for _ in 0..per_cycle {
+                arena.alloc(TreeNode::leaf(0));
+            }
+            prop_assert_eq!(arena.len(), per_cycle);
+            arena.clear();
+            prop_assert_eq!(arena.len(), 0);
+        }
+    }
+
+    #[test]
+    fn v5_multiple_reset_cycles(
+        cycles in 1_usize..6,
+        per_cycle in small_count(),
+    ) {
+        let mut arena = TreeArena::new();
+        for _ in 0..cycles {
+            for _ in 0..per_cycle {
+                arena.alloc(TreeNode::leaf(0));
+            }
+            prop_assert_eq!(arena.len(), per_cycle);
+            arena.reset();
+            prop_assert_eq!(arena.len(), 0);
+        }
+    }
+
+    #[test]
+    fn v5_alternating_clear_reset_cycles(cycles in 1_usize..6, per_cycle in small_count()) {
+        let mut arena = TreeArena::new();
+        for c in 0..cycles {
+            for _ in 0..per_cycle {
+                arena.alloc(TreeNode::leaf(0));
+            }
+            if c % 2 == 0 {
+                arena.clear();
+            } else {
+                arena.reset();
+            }
+            prop_assert_eq!(arena.len(), 0);
+            prop_assert!(arena.is_empty());
+        }
+    }
+
+    #[test]
+    fn v5_growing_cycles(cycles in 2_usize..5) {
+        let mut arena = TreeArena::new();
+        for c in 1..=cycles {
+            let count = c * 20;
+            for _ in 0..count {
+                arena.alloc(TreeNode::leaf(0));
+            }
+            prop_assert_eq!(arena.len(), count);
+            arena.reset();
+        }
+    }
+
+    #[test]
+    fn v5_cycle_values_independent(
+        first_vals in prop::collection::vec(symbol_val(), 1..50),
+        second_vals in prop::collection::vec(symbol_val(), 1..50),
+    ) {
+        let mut arena = TreeArena::new();
+        for &v in &first_vals {
+            arena.alloc(TreeNode::leaf(v));
+        }
+        arena.clear();
+        let handles: Vec<_> = second_vals.iter()
+            .map(|&v| arena.alloc(TreeNode::leaf(v)))
+            .collect();
+        for (h, &v) in handles.iter().zip(second_vals.iter()) {
+            prop_assert_eq!(arena.get(*h).value(), v);
+        }
+    }
+}
+
+// ============================================================================
+// 14. Handles from different allocs are different (4 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_all_handles_unique(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        let mut set = HashSet::new();
+        for _ in 0..n {
+            let h = arena.alloc(TreeNode::leaf(0));
+            prop_assert!(set.insert(h));
+        }
+        prop_assert_eq!(set.len(), n);
+    }
+
+    #[test]
+    fn v5_consecutive_handles_differ(n in 2_usize..300) {
+        let mut arena = TreeArena::new();
+        let mut prev = arena.alloc(TreeNode::leaf(0));
+        for _ in 1..n {
+            let cur = arena.alloc(TreeNode::leaf(0));
+            prop_assert_ne!(prev, cur);
+            prev = cur;
+        }
+    }
+
+    #[test]
+    fn v5_handle_copy_semantics(sym in symbol_val()) {
+        let mut arena = TreeArena::new();
+        let h1 = arena.alloc(TreeNode::leaf(sym));
+        let h2 = h1; // Copy, not move
+        prop_assert_eq!(h1, h2);
+        prop_assert_eq!(arena.get(h1).value(), arena.get(h2).value());
+    }
+
+    #[test]
+    fn v5_handle_set_size(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        let handles: Vec<_> = (0..n)
+            .map(|_| arena.alloc(TreeNode::leaf(0)))
+            .collect();
+        let set: HashSet<_> = handles.iter().copied().collect();
+        prop_assert_eq!(set.len(), n);
+    }
+}
+
+// ============================================================================
+// 15. Edge cases and misc (8 properties)
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn v5_edge_capacity_one(n in 1_usize..50) {
+        let mut arena = TreeArena::with_capacity(1);
+        let handles: Vec<_> = (0..n)
+            .map(|i| arena.alloc(TreeNode::leaf(i as i32)))
+            .collect();
+        prop_assert_eq!(arena.len(), n);
+        for (i, h) in handles.iter().enumerate() {
+            prop_assert_eq!(arena.get(*h).value(), i as i32);
+        }
+    }
+
+    #[test]
+    fn v5_edge_deep_chain(depth in 1_usize..30) {
+        let mut arena = TreeArena::new();
+        let mut current = arena.alloc(TreeNode::leaf(0));
+        for d in 1..depth {
+            current = arena.alloc(TreeNode::branch_with_symbol(d as i32, vec![current]));
+        }
+        prop_assert_eq!(arena.len(), depth);
+        prop_assert_eq!(arena.get(current).symbol(), (depth - 1) as i32);
+    }
+
+    #[test]
+    fn v5_edge_wide_branch(width in 1_usize..200) {
+        let mut arena = TreeArena::new();
+        let children: Vec<_> = (0..width)
+            .map(|i| arena.alloc(TreeNode::leaf(i as i32)))
+            .collect();
+        let parent = arena.alloc(TreeNode::branch(children));
+        prop_assert_eq!(arena.get(parent).children().len(), width);
+    }
+
+    #[test]
+    fn v5_capacity_ge_len_always(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+            prop_assert!(arena.capacity() >= arena.len());
+        }
+    }
+
+    #[test]
+    fn v5_capacity_ge_len_after_reset_realloc(
+        first in 1_usize..100,
+        second in 1_usize..100,
+    ) {
+        let mut arena = TreeArena::new();
+        for _ in 0..first {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        arena.reset();
+        for _ in 0..second {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        prop_assert!(arena.capacity() >= arena.len());
+    }
+
+    #[test]
+    fn v5_metrics_consistent(n in alloc_count()) {
+        let mut arena = TreeArena::new();
+        for _ in 0..n {
+            arena.alloc(TreeNode::leaf(0));
+        }
+        let m = arena.metrics();
+        prop_assert_eq!(m.len(), n);
+        prop_assert!(m.capacity() >= n);
+        prop_assert!(m.num_chunks() >= 1);
+        prop_assert!(m.memory_usage() > 0);
+    }
+
+    #[test]
+    fn v5_new_arena_is_empty(cap in 1_usize..1000) {
+        let arena = TreeArena::with_capacity(cap);
+        prop_assert!(arena.is_empty());
+        prop_assert_eq!(arena.len(), 0);
+    }
+
+    #[test]
+    fn v5_node_handle_new_roundtrip(
+        chunk_idx in 0..100u32,
+        node_idx in 0..1000u32,
+    ) {
+        let h1 = NodeHandle::new(chunk_idx, node_idx);
+        let h2 = NodeHandle::new(chunk_idx, node_idx);
+        prop_assert_eq!(h1, h2);
     }
 }

@@ -118,7 +118,7 @@ fn item_set_add_multiple() {
     let mut is = ItemSet::new(StateId(1));
     is.add_item(LRItem::new(RuleId(0), 0, SymbolId(0)));
     is.add_item(LRItem::new(RuleId(1), 0, SymbolId(0)));
-    assert!(is.items.len() >= 1);
+    assert!(!is.items.is_empty());
 }
 
 // === ParseTable construction and methods ===
@@ -575,7 +575,7 @@ fn lex_mode_clone() {
         lex_state: 1,
         external_lex_state: 2,
     };
-    let b = a.clone();
+    let b = a;
     assert_eq!(a.lex_state, b.lex_state);
 }
 

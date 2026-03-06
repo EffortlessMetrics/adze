@@ -119,14 +119,14 @@ fn multiple_testing_trees_different() {
 fn debug_stub() {
     let t = Tree::new_stub();
     let s = format!("{:?}", t);
-    assert!(s.len() > 0);
+    assert!(!s.is_empty());
 }
 
 #[test]
 fn debug_testing_tree() {
     let t = Tree::new_for_testing(5, 10, 20, vec![]);
     let s = format!("{:?}", t);
-    assert!(s.len() > 0);
+    assert!(!s.is_empty());
 }
 
 #[test]
@@ -134,7 +134,7 @@ fn debug_with_children() {
     let child = Tree::new_for_testing(2, 0, 1, vec![]);
     let parent = Tree::new_for_testing(1, 0, 1, vec![child]);
     let s = format!("{:?}", parent);
-    assert!(s.len() > 0);
+    assert!(!s.is_empty());
 }
 
 // ── Various symbol IDs ──

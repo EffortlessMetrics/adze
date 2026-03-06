@@ -7,7 +7,7 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, Grammar, Precedence,
-    PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+    ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 use adze_tool::visualization::GrammarVisualizer;
 

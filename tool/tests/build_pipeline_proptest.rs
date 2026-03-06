@@ -271,7 +271,7 @@ mod grammar {{
 }
 
 /// Struct with Optional field.
-fn src_optional(name: &str) -> String {
+fn _src_optional(name: &str) -> String {
     format!(
         r#"
 #[adze::grammar("{name}")]
@@ -289,7 +289,7 @@ mod grammar {{
 }
 
 /// Struct with Vec field.
-fn src_vec(name: &str) -> String {
+fn _src_vec(name: &str) -> String {
     format!(
         r#"
 #[adze::grammar("{name}")]
@@ -349,7 +349,7 @@ mod wrapper {{
 }
 
 /// Enum with text-literal leaves.
-fn src_text_leaves(name: &str) -> String {
+fn _src_text_leaves(name: &str) -> String {
     format!(
         r#"
 #[adze::grammar("{name}")]

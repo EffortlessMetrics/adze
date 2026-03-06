@@ -479,7 +479,7 @@ proptest! {
         for l in 0..n_lhs {
             let lhs = (l as u16) + 1;
             g.rule_names.insert(SymbolId(lhs), format!("r{lhs}"));
-            for a in 0..n_alt {
+            for _a in 0..n_alt {
                 g.add_rule(Rule {
                     lhs: SymbolId(lhs),
                     rhs: vec![Symbol::Epsilon],

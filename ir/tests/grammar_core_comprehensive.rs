@@ -19,7 +19,7 @@ fn grammar_new_has_name() {
 #[test]
 fn grammar_default_is_empty() {
     let g = Grammar::default();
-    assert!(g.name.is_empty() || g.name == "");
+    assert!(g.name.is_empty() || g.name.is_empty());
     assert!(g.rules.is_empty());
 }
 

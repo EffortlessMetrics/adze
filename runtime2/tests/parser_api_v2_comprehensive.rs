@@ -505,7 +505,7 @@ fn two_parsers_independent_language() {
 #[test]
 fn two_parsers_independent_timeout() {
     let mut p1 = Parser::new();
-    let mut p2 = Parser::new();
+    let p2 = Parser::new();
     p1.set_timeout(Duration::from_millis(100));
     assert_eq!(p1.timeout(), Some(Duration::from_millis(100)));
     assert_eq!(p2.timeout(), None);

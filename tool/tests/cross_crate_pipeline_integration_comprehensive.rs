@@ -584,7 +584,7 @@ fn token_with_regex_pattern() {
         .rule("s", vec!["ident"])
         .start("s")
         .build();
-    assert!(g.tokens.len() >= 1);
+    assert!(!g.tokens.is_empty());
 }
 
 #[test]
@@ -594,7 +594,7 @@ fn token_with_single_char() {
         .rule("s", vec!["x"])
         .start("s")
         .build();
-    assert!(g.tokens.len() >= 1);
+    assert!(!g.tokens.is_empty());
 }
 
 #[test]

@@ -6,7 +6,6 @@
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{RuleId, StateId, SymbolId};
-use std::collections::BTreeMap;
 
 // ── Helpers ──
 

@@ -947,7 +947,7 @@ fn collection_integrates_with_parse_table() {
     let col = ItemSetCollection::build_canonical_collection(&g, &ff);
     let table = build_lr1_automaton(&g, &ff).expect("parse table should build");
 
-    assert!(col.sets.len() > 0);
+    assert!(!col.sets.is_empty());
     assert!(table.state_count > 0);
     sanity_check_tables(&table).expect("sanity check failed");
 }
@@ -960,7 +960,7 @@ fn augmented_collection_uses_eof_lookahead() {
         .start("S")
         .build();
 
-    let ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
+    let _ff = FirstFollowSets::compute_normalized(&mut g).unwrap();
 
     // Determine a safe eof/augmented-start ID: use max existing + 1, +2
     let max_existing = g

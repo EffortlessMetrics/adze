@@ -249,7 +249,7 @@ fn test_compressed_table_roundtrip_data_preserved() {
         build_parse_table_from_grammar(&grammar).expect("Failed to build parse table");
 
     let original_state_count = parse_table.state_count;
-    let original_symbol_count = parse_table.symbol_count;
+    let _original_symbol_count = parse_table.symbol_count;
 
     let compressor = TableCompressor::new();
     let token_indices = helpers::collect_token_indices(&grammar, &parse_table);
@@ -369,7 +369,7 @@ fn test_abi_output_version() {
 
     // Verify code contains language-related content
     assert!(
-        code_str.contains("TSLanguage") || code_str.len() > 0,
+        code_str.contains("TSLanguage") || !code_str.is_empty(),
         "Generated code should contain language information"
     );
 }
@@ -496,7 +496,7 @@ fn test_compression_with_empty_goto_table() {
 
     // Goto table may be sparse or empty for simple grammars
     assert!(
-        compressed.goto_table.row_offsets.len() > 0,
+        !compressed.goto_table.row_offsets.is_empty(),
         "Goto table should have row offsets"
     );
 }
@@ -733,14 +733,14 @@ fn test_full_pipeline_grammar_to_abi() {
 
     // Verify all steps succeeded
     assert!(!code_str.is_empty());
-    assert!(code_str.len() > 0);
+    assert!(!code_str.is_empty());
 }
 
 /// Test 27: Full pipeline preserves state information
 #[test]
 fn test_full_pipeline_preserves_states() {
     let grammar = create_grammar_with_nonterminals();
-    let original_state_count = 5; // Approximate for this grammar
+    let _original_state_count = 5; // Approximate for this grammar
 
     let parse_table =
         build_parse_table_from_grammar(&grammar).expect("Failed to build parse table");

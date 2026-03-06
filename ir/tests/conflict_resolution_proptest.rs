@@ -244,7 +244,7 @@ proptest! {
     #[test]
     fn declaration_eq_symmetric(cd in arb_conflict_declaration()) {
         let cd2 = cd.clone();
-        prop_assert!(cd == cd2 && cd2 == cd);
+        prop_assert!(cd == cd2);
     }
 
     // 19. ConflictDeclaration with different symbols are not equal

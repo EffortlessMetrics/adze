@@ -4,7 +4,7 @@
 //! multi-byte UTF-8, long strings, special characters, timeout interaction,
 //! and multiple parse attempts.
 
-use adze_runtime::error::{ParseError, ParseErrorKind};
+use adze_runtime::error::ParseErrorKind;
 use adze_runtime::language::{Language, SymbolMetadata};
 use adze_runtime::parser::Parser;
 use adze_runtime::tree::Tree;

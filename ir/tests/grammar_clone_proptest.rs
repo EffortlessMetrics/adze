@@ -2,11 +2,9 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
-    AliasSequence, Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId,
-    Grammar, Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, SymbolMetadata,
-    Token, TokenPattern,
+    Associativity, ConflictDeclaration, ConflictResolution, ExternalToken, FieldId, Grammar,
+    Precedence, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
-use indexmap::IndexMap;
 
 /// Helper: build a minimal grammar with one rule and one token.
 fn simple_grammar(name: &str) -> Grammar {

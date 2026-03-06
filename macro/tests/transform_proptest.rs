@@ -380,10 +380,10 @@ proptest! {
 
         let mut transform_count = 0;
         for v in &e.variants {
-            if let Fields::Unnamed(ref u) = v.fields {
-                if has_transform_param(find_leaf_attr(&u.unnamed[0].attrs)) {
-                    transform_count += 1;
-                }
+            if let Fields::Unnamed(ref u) = v.fields
+                && has_transform_param(find_leaf_attr(&u.unnamed[0].attrs))
+            {
+                transform_count += 1;
             }
         }
         prop_assert_eq!(transform_count, n_transform);

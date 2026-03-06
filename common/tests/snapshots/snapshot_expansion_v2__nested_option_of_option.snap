@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: wrapped
+---
+Option < Option < adze :: WithLeaf < bool > > >

@@ -5,7 +5,6 @@
 //! Covers construction, position validity, comparison, display, clone/debug
 //! behaviour, position arithmetic, and usage with various inner types.
 
-use std::fmt;
 use std::panic;
 
 use adze::{SpanError, SpanErrorReason, Spanned};
@@ -214,6 +213,9 @@ proptest! {
         let mut cl = sp.clone();
         cl.value = v.wrapping_add(1);
         cl.span = (s.wrapping_add(1), e.wrapping_add(1));
+        // Clone was mutated independently
+        prop_assert_eq!(cl.value, v.wrapping_add(1));
+        prop_assert_eq!(cl.span, (s.wrapping_add(1), e.wrapping_add(1)));
         // Original is unchanged
         prop_assert_eq!(sp.value, v);
         prop_assert_eq!(sp.span, (s, e));

@@ -218,7 +218,7 @@ fn fm_emit_false_no_ir_json() {
 
 #[test]
 fn fm_emit_false_still_writes_parser_file() {
-    let (d, o) = opts(true, false);
+    let (_d, o) = opts(true, false);
     let r = build_parser(single_token_grammar("pf"), o).unwrap();
     let parser = std::path::Path::new(&r.parser_path);
     assert!(parser.exists(), "Parser module is always written");

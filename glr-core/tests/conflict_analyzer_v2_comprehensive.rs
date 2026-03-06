@@ -134,7 +134,7 @@ fn analyze_right_recursive() {
 
 #[test]
 fn analyze_with_precedence() {
-    let mut b = GrammarBuilder::new("prec")
+    let b = GrammarBuilder::new("prec")
         .token("x", "x")
         .token("y", "y")
         .rule_with_precedence("s", vec!["x"], 1, Associativity::Left)

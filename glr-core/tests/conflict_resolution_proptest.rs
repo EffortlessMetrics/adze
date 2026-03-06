@@ -6,9 +6,7 @@
 use adze_glr_core::advanced_conflict::{
     ConflictAnalyzer, ConflictStats, PrecedenceDecision, PrecedenceResolver,
 };
-use adze_glr_core::conflict_inspection::{
-    ConflictSummary, ConflictType, classify_conflict, count_conflicts,
-};
+use adze_glr_core::conflict_inspection::{ConflictType, classify_conflict, count_conflicts};
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::{
     Associativity, Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, StateId,
@@ -347,29 +345,6 @@ fn ambiguous_concat_grammar() -> Grammar {
         ],
     );
     g
-}
-
-/// Helper: Check if any cell contains only Reduce actions with count > 1.
-fn has_reduce_reduce(table: &ParseTable) -> bool {
-    for state in &table.action_table {
-        for cell in state {
-            if cell.len() > 1 && cell.iter().all(|a| matches!(a, Action::Reduce(_))) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-/// Helper: Collect all ConflictType values from a ConflictSummary.
-fn conflict_types_in_summary(summary: &ConflictSummary) -> Vec<ConflictType> {
-    let mut types: Vec<ConflictType> = summary
-        .conflict_details
-        .iter()
-        .map(|d| d.conflict_type)
-        .collect();
-    types.dedup();
-    types
 }
 
 // ============================================================================

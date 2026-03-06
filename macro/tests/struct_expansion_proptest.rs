@@ -52,10 +52,10 @@ fn struct_field_type_strings(s: &ItemStruct) -> Vec<String> {
 
 fn find_language_struct(m: &ItemMod) -> Option<String> {
     module_items(m).iter().find_map(|item| {
-        if let Item::Struct(s) = item {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                return Some(s.ident.to_string());
-            }
+        if let Item::Struct(s) = item
+            && s.attrs.iter().any(|a| is_adze_attr(a, "language"))
+        {
+            return Some(s.ident.to_string());
         }
         None
     })
@@ -1175,8 +1175,8 @@ proptest! {
 
 proptest! {
     #[test]
-    fn single_field_struct_field_count(idx in 0usize..=3) {
-        let patterns = [r"\d+", r"[a-z]+", r"\w+", r"[A-Z][a-z]*"];
+    fn single_field_struct_field_count(_idx in 0usize..=3) {
+        let _patterns = [r"\d+", r"[a-z]+", r"\w+", r"[A-Z][a-z]*"];
         let m = parse_mod(quote! {
             #[adze::grammar("test")]
             mod grammar {

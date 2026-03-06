@@ -12,16 +12,14 @@
 //!
 //! NO private methods are called.
 
-use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
+use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
 use adze_ir::{
     ExternalToken, FieldId, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token,
     TokenPattern,
 };
 use adze_tablegen::compress::CompressedParseTable;
 use adze_tablegen::serializer::serialize_language;
-use adze_tablegen::{
-    AbiLanguageBuilder, CompressedTables, StaticLanguageGenerator, TableCompressor,
-};
+use adze_tablegen::{AbiLanguageBuilder, StaticLanguageGenerator, TableCompressor};
 use std::collections::BTreeMap;
 
 // ---------------------------------------------------------------------------

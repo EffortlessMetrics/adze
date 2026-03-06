@@ -14,7 +14,7 @@
 //! 9. FixedBitSet properties
 //! 10. FirstFollowSets after normalize
 
-use adze_glr_core::{FirstFollowSets, GLRError};
+use adze_glr_core::FirstFollowSets;
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
 

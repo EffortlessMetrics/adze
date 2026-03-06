@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"is_option={}\", is_generic_container(&ty, \"Option\"))"
+---
+is_option=true

@@ -8,7 +8,7 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::optimizer::{GrammarOptimizer, optimize_grammar};
-use adze_ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

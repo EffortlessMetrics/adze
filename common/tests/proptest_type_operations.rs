@@ -88,7 +88,7 @@ fn container_name() -> impl Strategy<Value = &'static str> {
 }
 
 /// Wrapper<Leaf> string
-fn wrapped_type_string() -> impl Strategy<Value = (String, String)> {
+fn _wrapped_type_string() -> impl Strategy<Value = (String, String)> {
     (container_name(), leaf_type()).prop_map(|(c, l)| (c.to_string(), format!("{c}<{l}>")))
 }
 
@@ -173,8 +173,8 @@ proptest! {
         let parsed: NameValueExpr = syn::parse_str(&src).unwrap();
         let reparsed_src = format!(
             "{} = {}",
-            parsed.path.to_string(),
-            parsed.expr.to_token_stream().to_string()
+            parsed.path,
+            parsed.expr.to_token_stream()
         );
         let reparsed: NameValueExpr = syn::parse_str(&reparsed_src).unwrap();
         prop_assert_eq!(parsed.path.to_string(), reparsed.path.to_string());

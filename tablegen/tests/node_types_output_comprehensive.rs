@@ -72,7 +72,7 @@ fn node_types_has_entries() {
     let gen_instance = NodeTypesGenerator::new(&g);
     let json = gen_instance.generate().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
-    assert!(parsed.as_array().unwrap().len() > 0);
+    assert!(!parsed.as_array().unwrap().is_empty());
 }
 
 #[test]
@@ -234,7 +234,7 @@ fn many_tokens_grammar() {
     let gen_instance = NodeTypesGenerator::new(&g);
     let json = gen_instance.generate().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
-    assert!(parsed.as_array().unwrap().len() > 0);
+    assert!(!parsed.as_array().unwrap().is_empty());
 }
 
 #[test]

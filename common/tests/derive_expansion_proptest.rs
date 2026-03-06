@@ -31,7 +31,7 @@ fn container() -> impl Strategy<Value = &'static str> {
     prop::sample::select(&["Option", "Vec", "Box"][..])
 }
 
-fn skip_name() -> impl Strategy<Value = &'static str> {
+fn _skip_name() -> impl Strategy<Value = &'static str> {
     prop::sample::select(&["Box", "Arc", "Rc", "Cell"][..])
 }
 

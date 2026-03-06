@@ -691,7 +691,7 @@ fn grammar_with_many_alternatives() {
             precedence: None,
             associativity: None,
             fields: vec![],
-            production_id: ProductionId(i as u16),
+            production_id: ProductionId(i),
         });
     }
 

@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"found={found} inner={inner}\")"
+---
+found=true inner=Mutex < T >

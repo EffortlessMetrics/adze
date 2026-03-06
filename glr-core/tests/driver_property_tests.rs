@@ -288,7 +288,7 @@ proptest! {
 fn parse_single_token_handcrafted() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
-    let r = d.parse_tokens(vec![(1u32, 0, 1)].into_iter());
+    let r = d.parse_tokens(vec![(1u32, 0, 1)]);
     assert!(r.is_ok());
     let f = r.unwrap();
     assert_eq!(f.view().roots().len(), 1);
@@ -298,7 +298,7 @@ fn parse_single_token_handcrafted() {
 fn parse_two_tokens_handcrafted() {
     let table = table_a_b();
     let mut d = Driver::new(&table);
-    let r = d.parse_tokens(vec![(1, 0, 1), (2, 1, 2)].into_iter());
+    let r = d.parse_tokens(vec![(1, 0, 1), (2, 1, 2)]);
     assert!(r.is_ok());
     let f = r.unwrap();
     let v = f.view();
@@ -421,7 +421,7 @@ fn fork_action_does_not_panic() {
     go[0][2] = StateId(2);
     let tbl = build_table(act, go, rules, s, eof, 2);
     let mut d = Driver::new(&tbl);
-    let r = d.parse_tokens(vec![(1, 0, 1)].into_iter());
+    let r = d.parse_tokens(vec![(1, 0, 1)]);
     assert!(r.is_ok(), "Fork action should not cause panic");
 }
 
@@ -502,7 +502,7 @@ fn fork_with_reduce_action() {
     let tbl = build_table(act, go, rules, s, eof, 2);
     let mut d = Driver::new(&tbl);
     // Must not panic — result may be Ok or Err depending on driver internals
-    let _ = d.parse_tokens(vec![(1, 0, 1)].into_iter());
+    let _ = d.parse_tokens(vec![(1, 0, 1)]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -521,7 +521,7 @@ fn reject_completely_wrong_token() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
     // symbol 99 has no entry
-    let r = d.parse_tokens(vec![(99, 0, 1)].into_iter());
+    let r = d.parse_tokens(vec![(99, 0, 1)]);
     // Must not panic; should be Err or recovered
     let _ = r;
 }
@@ -545,7 +545,7 @@ fn reject_wrong_sequence() {
     let table = table_a_b();
     let mut d = Driver::new(&table);
     // Expects 'a' 'b' but gets 'b' 'a'
-    let r = d.parse_tokens(vec![(2, 0, 1), (1, 1, 2)].into_iter());
+    let r = d.parse_tokens(vec![(2, 0, 1), (1, 1, 2)]);
     // Should not panic
     let _ = r;
 }
@@ -564,7 +564,7 @@ fn accept_empty_on_epsilon() {
 fn reject_nonempty_on_epsilon() {
     let table = table_epsilon();
     let mut d = Driver::new(&table);
-    let r = d.parse_tokens(vec![(1, 0, 1)].into_iter());
+    let r = d.parse_tokens(vec![(1, 0, 1)]);
     // S->ε has no shift for terminal 1; must terminate
     let _ = r;
 }
@@ -573,7 +573,7 @@ fn reject_nonempty_on_epsilon() {
 fn accept_right_recursive_1_token() {
     let table = table_right_rec();
     let mut d = Driver::new(&table);
-    let r = d.parse_tokens(vec![(1, 0, 1)].into_iter());
+    let r = d.parse_tokens(vec![(1, 0, 1)]);
     assert!(r.is_ok());
 }
 
@@ -581,7 +581,7 @@ fn accept_right_recursive_1_token() {
 fn accept_right_recursive_3_tokens() {
     let table = table_right_rec();
     let mut d = Driver::new(&table);
-    let r = d.parse_tokens(vec![(1, 0, 1), (1, 1, 2), (1, 2, 3)].into_iter());
+    let r = d.parse_tokens(vec![(1, 0, 1), (1, 1, 2), (1, 2, 3)]);
     assert!(r.is_ok());
     let v = r.unwrap();
     assert_eq!(v.view().span(v.view().roots()[0]).end, 3);
@@ -591,7 +591,7 @@ fn accept_right_recursive_3_tokens() {
 fn forest_root_kind_is_start_symbol() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
-    let f = d.parse_tokens(vec![(1, 0, 1)].into_iter()).unwrap();
+    let f = d.parse_tokens(vec![(1, 0, 1)]).unwrap();
     let v = f.view();
     // root kind should be S (SymbolId 2)
     assert_eq!(v.kind(v.roots()[0]), 2);
@@ -601,7 +601,7 @@ fn forest_root_kind_is_start_symbol() {
 fn forest_root_has_children() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
-    let f = d.parse_tokens(vec![(1, 0, 1)].into_iter()).unwrap();
+    let f = d.parse_tokens(vec![(1, 0, 1)]).unwrap();
     let v = f.view();
     let kids = v.best_children(v.roots()[0]);
     // S -> 'a' has exactly 1 child
@@ -612,7 +612,7 @@ fn forest_root_has_children() {
 fn forest_child_is_terminal() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
-    let f = d.parse_tokens(vec![(1, 0, 1)].into_iter()).unwrap();
+    let f = d.parse_tokens(vec![(1, 0, 1)]).unwrap();
     let v = f.view();
     let kids = v.best_children(v.roots()[0]);
     // Child should be 'a' (SymbolId 1)
@@ -625,9 +625,7 @@ fn forest_child_is_terminal() {
 fn two_terminal_rule_has_two_children() {
     let table = table_a_b();
     let mut d = Driver::new(&table);
-    let f = d
-        .parse_tokens(vec![(1, 0, 1), (2, 1, 2)].into_iter())
-        .unwrap();
+    let f = d.parse_tokens(vec![(1, 0, 1), (2, 1, 2)]).unwrap();
     let v = f.view();
     let kids = v.best_children(v.roots()[0]);
     assert_eq!(kids.len(), 2);
@@ -813,21 +811,21 @@ fn empty_input_on_non_epsilon_grammar_terminates() {
 fn single_token_on_two_token_grammar_terminates() {
     let table = table_a_b();
     let mut d = Driver::new(&table);
-    let _ = d.parse_tokens(vec![(1, 0, 1)].into_iter());
+    let _ = d.parse_tokens(vec![(1, 0, 1)]);
 }
 
 #[test]
 fn zero_width_token_does_not_panic() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
-    let _ = d.parse_tokens(vec![(1, 0, 0)].into_iter());
+    let _ = d.parse_tokens(vec![(1, 0, 0)]);
 }
 
 #[test]
 fn very_large_byte_offset_does_not_panic() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
-    let _ = d.parse_tokens(vec![(1, u32::MAX - 1, u32::MAX)].into_iter());
+    let _ = d.parse_tokens(vec![(1, u32::MAX - 1, u32::MAX)]);
 }
 
 #[test]
@@ -835,7 +833,7 @@ fn token_kind_zero_does_not_panic() {
     // Kind 0 is typically EOF — driver must not crash
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
-    let _ = d.parse_tokens(vec![(0, 0, 1)].into_iter());
+    let _ = d.parse_tokens(vec![(0, 0, 1)]);
 }
 
 #[test]
@@ -844,7 +842,7 @@ fn repeated_single_valid_token_terminates() {
     let table = table_s_to_a();
     let mut d = Driver::new(&table);
     let tokens: Vec<(u32, u32, u32)> = (0..20).map(|i| (1, i, i + 1)).collect();
-    let _ = d.parse_tokens(tokens.into_iter());
+    let _ = d.parse_tokens(tokens);
 }
 
 proptest! {

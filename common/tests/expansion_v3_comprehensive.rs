@@ -10,7 +10,7 @@ use adze_common::{
     FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
 use quote::ToTokens;
-use syn::{Expr, Field, Type, parse_quote};
+use syn::{Expr, Type, parse_quote};
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -17,6 +17,7 @@ use adze_runtime::{EditError, InputEdit};
 // ===== Helpers =====
 
 /// Build a point helper for edit construction.
+#[cfg(feature = "incremental_glr")]
 fn pt(row: usize, col: usize) -> Point {
     Point::new(row, col)
 }
@@ -107,7 +108,7 @@ fn point_copy_semantics() {
 #[test]
 fn point_clone_equals_copy() {
     let p = Point::new(5, 15);
-    let q = p.clone();
+    let q = p;
     assert_eq!(p, q);
 }
 

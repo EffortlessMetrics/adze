@@ -14,6 +14,7 @@ fn pt(row: u32, col: u32) -> Point {
 
 /// Create a `ParsedNode` using `MaybeUninit` + `write_bytes` to safely handle
 /// the `pub(crate)` `language` field (zeroed → `None`).
+#[allow(clippy::too_many_arguments)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,
@@ -126,7 +127,6 @@ fn default_leave_node_does_not_panic() {
     let mut v = NoopVisitor;
     let node = leaf(0, 0, 1, false);
     v.leave_node(&node); // should not panic
-    assert!(true);
 }
 
 #[test]
@@ -134,7 +134,6 @@ fn default_visit_leaf_does_not_panic() {
     let mut v = NoopVisitor;
     let node = leaf(0, 0, 1, false);
     v.visit_leaf(&node, "x");
-    assert!(true);
 }
 
 #[test]
@@ -142,7 +141,6 @@ fn default_visit_error_does_not_panic() {
     let mut v = NoopVisitor;
     let node = error_node(0, 1);
     v.visit_error(&node);
-    assert!(true);
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +151,6 @@ fn default_visit_error_does_not_panic() {
 fn tree_walker_new() {
     let src = b"hello";
     let _w = TreeWalker::new(src);
-    assert!(true);
 }
 
 // ---------------------------------------------------------------------------
@@ -584,7 +581,6 @@ fn pretty_print_error_node() {
 fn breadth_first_walker_new() {
     let src = b"hello";
     let _w = BreadthFirstWalker::new(src);
-    assert!(true);
 }
 
 #[test]

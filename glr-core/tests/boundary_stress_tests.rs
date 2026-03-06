@@ -5,8 +5,8 @@
 )]
 
 use adze_glr_core::{
-    Action, ActionCell, Conflict, ConflictResolver, ConflictType, GotoIndexing, ParseRule,
-    ParseTable, RuleId, StateId, SymbolId, SymbolMetadata,
+    Action, ActionCell, Conflict, ConflictResolver, ConflictType, ParseRule, ParseTable, RuleId,
+    StateId, SymbolId, SymbolMetadata,
 };
 use std::collections::BTreeMap;
 
@@ -32,11 +32,13 @@ fn test_parse_table_zero_states_zero_symbols() {
 
 #[test]
 fn test_parse_table_one_state_one_symbol() {
-    let mut table = ParseTable::default();
-    table.state_count = 1;
-    table.symbol_count = 1;
-    table.action_table = vec![vec![vec![]]];
-    table.goto_table = vec![vec![]];
+    let mut table = ParseTable {
+        state_count: 1,
+        symbol_count: 1,
+        action_table: vec![vec![vec![]]],
+        goto_table: vec![vec![]],
+        ..Default::default()
+    };
 
     let sym = SymbolId(0);
     table.symbol_to_index.insert(sym, 0);
@@ -151,11 +153,13 @@ fn test_action_reduce_max_production_id() {
 
 #[test]
 fn test_parse_table_structure_preservation() {
-    let mut table1 = ParseTable::default();
-    table1.state_count = 50;
-    table1.symbol_count = 20;
-    table1.action_table = vec![vec![vec![Action::Accept]; 20]; 50];
-    table1.goto_table = vec![vec![]; 50];
+    let mut table1 = ParseTable {
+        state_count: 50,
+        symbol_count: 20,
+        action_table: vec![vec![vec![Action::Accept]; 20]; 50],
+        goto_table: vec![vec![]; 50],
+        ..Default::default()
+    };
 
     for i in 0..20 {
         let sym = SymbolId(i as u16);
@@ -248,11 +252,13 @@ fn test_symbol_metadata_all_combinations() {
 
 #[test]
 fn test_parse_table_empty_goto_table() {
-    let mut table = ParseTable::default();
-    table.state_count = 10;
-    table.symbol_count = 5;
-    table.action_table = vec![vec![vec![]; 5]; 10];
-    table.goto_table = vec![vec![]; 10];
+    let table = ParseTable {
+        state_count: 10,
+        symbol_count: 5,
+        action_table: vec![vec![vec![]; 5]; 10],
+        goto_table: vec![vec![]; 10],
+        ..Default::default()
+    };
 
     assert_eq!(table.goto_table.len(), 10);
     for row in &table.goto_table {
@@ -305,7 +311,7 @@ fn test_large_production_many_symbols() {
 
 #[test]
 fn test_state_only_shift_actions() {
-    let mut table = ParseTable::default();
+    let _table = ParseTable::default();
     let num_symbols = 8;
 
     // Create a state with only shift actions
@@ -454,7 +460,7 @@ fn test_multiple_conflicts_same_state() {
 
 #[test]
 fn test_action_cell_ordering() {
-    let mut cell: ActionCell = vec![
+    let cell: ActionCell = vec![
         Action::Reduce(RuleId(1)),
         Action::Shift(StateId(5)),
         Action::Error,
@@ -478,8 +484,10 @@ fn test_action_cell_ordering() {
 
 #[test]
 fn test_empty_symbol_to_index_mapping() {
-    let mut table = ParseTable::default();
-    table.symbol_to_index = BTreeMap::new();
+    let table = ParseTable {
+        symbol_to_index: BTreeMap::new(),
+        ..Default::default()
+    };
 
     assert!(table.symbol_to_index.is_empty());
     assert_eq!(table.symbol_to_index.len(), 0);
@@ -528,9 +536,11 @@ fn test_goto_table_with_holes() {
 
 #[test]
 fn test_accept_action_placement() {
-    let mut table = ParseTable::default();
-    table.state_count = 5;
-    table.symbol_count = 3;
+    let mut table = ParseTable {
+        state_count: 5,
+        symbol_count: 3,
+        ..Default::default()
+    };
 
     // Create action table where only the final state has Accept
     for state_idx in 0..5 {
@@ -563,11 +573,13 @@ fn test_accept_action_placement() {
 
 #[test]
 fn test_parse_table_clone_preserves_structure() {
-    let mut table1 = ParseTable::default();
-    table1.state_count = 15;
-    table1.symbol_count = 8;
-    table1.action_table = vec![vec![vec![Action::Accept]; 8]; 15];
-    table1.goto_table = vec![vec![]; 15];
+    let mut table1 = ParseTable {
+        state_count: 15,
+        symbol_count: 8,
+        action_table: vec![vec![vec![Action::Accept]; 8]; 15],
+        goto_table: vec![vec![]; 15],
+        ..Default::default()
+    };
 
     for i in 0..8 {
         let sym = SymbolId(i as u16);
@@ -642,8 +654,10 @@ fn test_action_error() {
 
 #[test]
 fn test_parse_table_many_metadata() {
-    let mut table = ParseTable::default();
-    table.symbol_count = 50;
+    let mut table = ParseTable {
+        symbol_count: 50,
+        ..Default::default()
+    };
 
     for i in 0..50 {
         let meta = SymbolMetadata {
@@ -730,9 +744,11 @@ fn test_stress_large_action_table() {
     let num_states = 100;
     let num_symbols = 50;
 
-    let mut table = ParseTable::default();
-    table.state_count = num_states;
-    table.symbol_count = num_symbols;
+    let mut table = ParseTable {
+        state_count: num_states,
+        symbol_count: num_symbols,
+        ..Default::default()
+    };
 
     // Build a large action table
     for state_idx in 0..num_states {

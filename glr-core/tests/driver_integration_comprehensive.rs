@@ -6,7 +6,6 @@
 #![allow(clippy::needless_range_loop)]
 
 use adze_glr_core::driver::GlrError;
-use adze_glr_core::forest_view::ForestView;
 use adze_glr_core::{
     Action, Driver, FirstFollowSets, Forest, GotoIndexing, LexMode, ParseRule, ParseTable,
     build_lr1_automaton, sanity_check_tables,
@@ -134,7 +133,7 @@ fn construct_driver_from_pipeline_table() {
 #[test]
 fn construct_driver_from_hand_crafted_table() {
     let eof = SymbolId(0);
-    let t = SymbolId(1);
+    let _t = SymbolId(1);
     let s = SymbolId(3);
     let rules = vec![ParseRule { lhs: s, rhs_len: 1 }];
     let mut actions = vec![vec![vec![]; 4]; 3];
@@ -245,8 +244,8 @@ fn parse_five_token_chain() {
 fn error_on_unexpected_token() {
     // S → 'a' 'b', feed 'a' 'a'
     let eof = SymbolId(0);
-    let a = SymbolId(1);
-    let b = SymbolId(2);
+    let _a = SymbolId(1);
+    let _b = SymbolId(2);
     let s = SymbolId(3);
     let rules = vec![ParseRule { lhs: s, rhs_len: 2 }];
     let mut actions = vec![vec![vec![]; 4]; 4];
@@ -266,8 +265,8 @@ fn error_on_unexpected_token() {
 #[test]
 fn error_message_contains_byte_offset() {
     let eof = SymbolId(0);
-    let a = SymbolId(1);
-    let b = SymbolId(2);
+    let _a = SymbolId(1);
+    let _b = SymbolId(2);
     let s = SymbolId(3);
     let rules = vec![ParseRule { lhs: s, rhs_len: 2 }];
     let mut actions = vec![vec![vec![]; 4]; 4];
@@ -705,8 +704,8 @@ fn eof_symbol_in_symbol_to_index() {
 fn hand_crafted_shift_reduce_accept_cycle() {
     // S → 'a' 'b'
     let eof = SymbolId(0);
-    let a = SymbolId(1);
-    let b = SymbolId(2);
+    let _a = SymbolId(1);
+    let _b = SymbolId(2);
     let s = SymbolId(3);
     let rules = vec![ParseRule { lhs: s, rhs_len: 2 }];
     let mut actions = vec![vec![vec![]; 4]; 4];

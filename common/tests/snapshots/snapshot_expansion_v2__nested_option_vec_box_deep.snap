@@ -1,0 +1,6 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: "format!(\"wrap: {wrapped}\\nextract: found={found} inner={inner}\")"
+---
+wrap: Option < Vec < Box < adze :: WithLeaf < Node > > > >
+extract: found=true inner=Vec < Box < Node > >

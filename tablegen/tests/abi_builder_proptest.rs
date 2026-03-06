@@ -945,7 +945,7 @@ fn with_compressed_tables_generates_code() {
 fn abi_version_constant_value() {
     assert_eq!(TREE_SITTER_LANGUAGE_VERSION, 15);
     assert_eq!(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION, 13);
-    assert!(TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION);
+    const { assert!(TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION) };
 }
 
 #[test]

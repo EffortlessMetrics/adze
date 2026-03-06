@@ -7,10 +7,10 @@
 //! renumber_symbols) and verifies its invariants in isolation and in combination.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
+use adze_ir::optimizer::{GrammarOptimizer, optimize_grammar};
 use adze_ir::{
-    Associativity, ExternalToken, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId,
-    Token, TokenPattern,
+    Associativity, ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token,
+    TokenPattern,
 };
 use proptest::prelude::*;
 use std::collections::HashSet;
@@ -121,8 +121,8 @@ fn make_unit_rule_grammar(name: &str, chain_len: usize) -> Grammar {
     );
 
     let mut prev_id = None;
-    let mut prod = 0u16;
-    for i in 0..=chain_len {
+    for (prod, i) in (0..=chain_len).enumerate() {
+        let prod = prod as u16;
         let id = SymbolId((i as u16) + 50);
         let rname = format!("r{i}");
         grammar.rule_names.insert(id, rname);
@@ -149,7 +149,6 @@ fn make_unit_rule_grammar(name: &str, chain_len: usize) -> Grammar {
                 production_id: ProductionId(prod),
             });
         }
-        prod += 1;
         if i == 0 {
             prev_id = Some(id);
         }
@@ -554,7 +553,7 @@ proptest! {
         ops in 1usize..3,
     ) {
         let g = make_left_rec_grammar(&gn, ops);
-        let before_keys: HashSet<_> = g.rules.keys().copied().collect();
+        let _before_keys: HashSet<_> = g.rules.keys().copied().collect();
         let opt = optimize_grammar(g).unwrap();
         // Renumbering changes IDs, but the count of distinct rule-LHS entries
         // must be >= 2 (original + helper).

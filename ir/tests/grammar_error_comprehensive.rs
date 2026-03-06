@@ -475,8 +475,10 @@ fn validation_stats_default_is_zero() {
 
 #[test]
 fn validation_stats_clone() {
-    let mut s = ValidationStats::default();
-    s.total_symbols = 42;
+    let s = ValidationStats {
+        total_symbols: 42,
+        ..Default::default()
+    };
     let c = s.clone();
     assert_eq!(c.total_symbols, 42);
 }

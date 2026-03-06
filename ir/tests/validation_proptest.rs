@@ -5,8 +5,8 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::validation::{GrammarValidator, ValidationError, ValidationWarning};
 use adze_ir::{
-    Associativity, ExternalToken, FieldId, Grammar, Precedence, PrecedenceKind, ProductionId, Rule,
-    Symbol, SymbolId, Token, TokenPattern,
+    Associativity, ExternalToken, FieldId, Grammar, Precedence, ProductionId, Rule, Symbol,
+    SymbolId, Token, TokenPattern,
 };
 use proptest::prelude::*;
 
@@ -14,11 +14,11 @@ use proptest::prelude::*;
 // Strategies
 // ---------------------------------------------------------------------------
 
-fn arb_symbol_id() -> impl Strategy<Value = SymbolId> {
+fn _arb_symbol_id() -> impl Strategy<Value = SymbolId> {
     (1u16..200).prop_map(SymbolId)
 }
 
-fn arb_token_pattern() -> impl Strategy<Value = TokenPattern> {
+fn _arb_token_pattern() -> impl Strategy<Value = TokenPattern> {
     prop_oneof![
         "[a-zA-Z_][a-zA-Z0-9_]*".prop_map(|_| TokenPattern::Regex(r"[a-z]+".to_string())),
         any::<String>()
@@ -34,8 +34,8 @@ fn arb_token_pattern() -> impl Strategy<Value = TokenPattern> {
     ]
 }
 
-fn arb_token() -> impl Strategy<Value = (String, Token)> {
-    ("[a-z]{1,8}", arb_token_pattern()).prop_map(|(name, pattern)| {
+fn _arb_token() -> impl Strategy<Value = (String, Token)> {
+    ("[a-z]{1,8}", _arb_token_pattern()).prop_map(|(name, pattern)| {
         (
             name.clone(),
             Token {
@@ -567,10 +567,10 @@ fn test_32_stats_populated_for_valid_grammar() {
 fn test_33_invalid_field_index_detected() {
     let mut g = minimal_valid_grammar("fields");
     // Patch a rule to have an out-of-bounds field index
-    if let Some(rules) = g.rules.values_mut().next() {
-        if let Some(rule) = rules.first_mut() {
-            rule.fields.push((FieldId(0), 999)); // index 999 >> rhs.len()
-        }
+    if let Some(rules) = g.rules.values_mut().next()
+        && let Some(rule) = rules.first_mut()
+    {
+        rule.fields.push((FieldId(0), 999)); // index 999 >> rhs.len()
     }
     let mut v = GrammarValidator::new();
     let r = v.validate(&g);

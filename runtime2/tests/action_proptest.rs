@@ -20,17 +20,6 @@ fn arb_action() -> impl Strategy<Value = Action> {
     ]
 }
 
-fn arb_shift() -> impl Strategy<Value = Action> {
-    any::<u16>().prop_map(Action::Shift)
-}
-
-fn arb_reduce() -> impl Strategy<Value = Action> {
-    (any::<u16>(), any::<u8>()).prop_map(|(symbol, child_count)| Action::Reduce {
-        symbol,
-        child_count,
-    })
-}
-
 fn arb_action_sequence(max_len: usize) -> impl Strategy<Value = Vec<Action>> {
     prop::collection::vec(arb_action(), 0..max_len)
 }
@@ -152,7 +141,7 @@ proptest! {
 
     #[test]
     fn clone_equals_original(a in arb_action()) {
-        let cloned = a.clone();
+        let cloned = a;
         prop_assert_eq!(a, cloned);
     }
 
@@ -330,7 +319,7 @@ proptest! {
 proptest! {
     #[test]
     fn action_sequence_preserves_order(actions in arb_action_sequence(100)) {
-        let collected: Vec<Action> = actions.iter().copied().collect();
+        let collected: Vec<Action> = actions.to_vec();
         prop_assert_eq!(collected.len(), actions.len());
         for i in 0..actions.len() {
             prop_assert_eq!(collected[i], actions[i]);
@@ -360,11 +349,9 @@ proptest! {
         symbol in any::<u16>(),
         child_count in any::<u8>(),
     ) {
-        let seq = vec![
-            Action::Shift(state),
+        let seq = [Action::Shift(state),
             Action::Reduce { symbol, child_count },
-            Action::Accept,
-        ];
+            Action::Accept];
         prop_assert_eq!(seq.len(), 3);
         prop_assert!(matches!(seq[0], Action::Shift(_)));
         let is_reduce = matches!(seq[1], Action::Reduce { .. });

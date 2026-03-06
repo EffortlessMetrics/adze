@@ -197,7 +197,7 @@ fn test_16_non_container_type_handling() {
 fn test_17_type_with_lifetime_parameter() {
     // Test: Type with lifetime parameter
     let ty: Type = parse_quote!(&'a str);
-    let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip(&[]));
+    let (_inner, extracted) = try_extract_inner_type(&ty, "Option", &skip(&[]));
     assert!(!extracted);
     // Reference types are not Type::Path, so they're not extracted
 }

@@ -4,10 +4,7 @@
 //! grammar shapes, edge cases, determinism, multiple grammars, and large grammars.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{
-    Associativity, ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
-};
+use adze_ir::{Associativity, Grammar, SymbolId, Token, TokenPattern};
 use adze_tool::GrammarVisualizer;
 
 // ---------------------------------------------------------------------------

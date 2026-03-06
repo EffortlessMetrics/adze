@@ -59,7 +59,7 @@ fn scan_result_clone() {
         token_type: 3,
         bytes_consumed: 7,
     };
-    let c = r.clone();
+    let c = r;
     assert_eq!(c.token_type, 3);
     assert_eq!(c.bytes_consumed, 7);
 }

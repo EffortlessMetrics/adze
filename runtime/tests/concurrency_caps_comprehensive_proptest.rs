@@ -174,8 +174,11 @@ fn caps_default_values() {
 
 #[test]
 fn caps_default_constants_are_positive() {
-    assert!(DEFAULT_RAYON_NUM_THREADS >= 1);
-    assert!(DEFAULT_TOKIO_WORKER_THREADS >= 1);
+    #[allow(clippy::assertions_on_constants)]
+    {
+        assert!(DEFAULT_RAYON_NUM_THREADS >= 1);
+        assert!(DEFAULT_TOKIO_WORKER_THREADS >= 1);
+    }
 }
 
 #[test]

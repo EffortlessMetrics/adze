@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_type_ops_v3.rs
+expression: "filter(&ty, &[\"Box\", \"Option\"])"
+---
+Vec < u8 >

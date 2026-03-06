@@ -219,7 +219,7 @@ fn min_compatible_version_is_13() {
 
 #[test]
 fn version_at_least_min_compatible() {
-    assert!(TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION);
+    const { assert!(TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION) };
 }
 
 #[test]

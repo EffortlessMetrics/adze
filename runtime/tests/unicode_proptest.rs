@@ -191,7 +191,7 @@ proptest! {
     fn each_char_utf8_len_1_to_4(s in any_utf8()) {
         for ch in s.chars() {
             let len = ch.len_utf8();
-            prop_assert!(len >= 1 && len <= 4, "char {:?} has len {}", ch, len);
+            prop_assert!((1..=4).contains(&len), "char {:?} has len {}", ch, len);
         }
     }
 }

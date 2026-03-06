@@ -57,6 +57,62 @@ pub enum SExpr {
     List(Vec<SExpr>),
 }
 
+impl SExpr {
+    /// Create an atom S-expression
+    pub fn atom(s: &str) -> SExpr {
+        SExpr::Atom(s.to_string())
+    }
+
+    /// Create a list S-expression
+    pub fn list(items: Vec<SExpr>) -> SExpr {
+        SExpr::List(items)
+    }
+
+    /// Returns true if this is an atom
+    pub fn is_atom(&self) -> bool {
+        matches!(self, SExpr::Atom(_))
+    }
+
+    /// Returns true if this is a list
+    pub fn is_list(&self) -> bool {
+        matches!(self, SExpr::List(_))
+    }
+
+    /// Returns the atom string if this is an atom
+    pub fn as_atom(&self) -> Option<&str> {
+        match self {
+            SExpr::Atom(s) => Some(s),
+            SExpr::List(_) => None,
+        }
+    }
+
+    /// Returns the list contents if this is a list
+    pub fn as_list(&self) -> Option<&[SExpr]> {
+        match self {
+            SExpr::Atom(_) => None,
+            SExpr::List(items) => Some(items),
+        }
+    }
+}
+
+impl std::fmt::Display for SExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SExpr::Atom(s) => write!(f, "{s}"),
+            SExpr::List(items) => {
+                write!(f, "(")?;
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{item}")?;
+                }
+                write!(f, ")")
+            }
+        }
+    }
+}
+
 /// Parse an S-expression from string
 pub fn parse_sexpr(_input: &str) -> Result<SExpr, String> {
     // Minimal stub for now to satisfy tests

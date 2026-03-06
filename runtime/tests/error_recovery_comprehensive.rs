@@ -863,7 +863,7 @@ fn test_recovery_strategy_all_variants_distinct() {
 fn test_recovery_strategy_copy_clone() {
     let original = RecoveryStrategy::TokenDeletion;
     let copied = original;
-    let cloned = original.clone();
+    let cloned = original;
 
     assert_eq!(copied, original);
     assert_eq!(cloned, original);
@@ -1359,7 +1359,7 @@ fn test_error_recovery_state_with_all_strategy_types() {
     let config = ErrorRecoveryConfig::default();
     let mut state = ErrorRecoveryState::new(config);
 
-    let strategies = vec![
+    let strategies = [
         RecoveryStrategy::PanicMode,
         RecoveryStrategy::TokenInsertion,
         RecoveryStrategy::TokenDeletion,
@@ -1444,7 +1444,7 @@ fn test_complex_position_tracking() {
     let mut state = ErrorRecoveryState::new(config);
 
     // Record errors with various positions
-    let positions = vec![
+    let positions = [
         (0, 0, (0, 0), (0, 10)),
         (10, 20, (1, 0), (1, 10)),
         (30, 50, (2, 5), (2, 25)),

@@ -12,11 +12,12 @@ use std::collections::BTreeMap;
 
 /// Build a minimal ParseTable with sensible defaults for testing.
 fn make_table(num_states: usize, num_terminal_cols: usize, num_goto_cols: usize) -> ParseTable {
-    let mut pt = ParseTable::default();
-    pt.state_count = num_states;
-    pt.action_table = vec![vec![vec![]; num_terminal_cols]; num_states];
-    pt.goto_table = vec![vec![StateId(u16::MAX); num_goto_cols]; num_states];
-    pt
+    ParseTable {
+        state_count: num_states,
+        action_table: vec![vec![vec![]; num_terminal_cols]; num_states],
+        goto_table: vec![vec![StateId(u16::MAX); num_goto_cols]; num_states],
+        ..Default::default()
+    }
 }
 
 /// Build symbol_to_index / index_to_symbol pair for terminal IDs.
@@ -540,16 +541,20 @@ fn terminal_boundary_default() {
 
 #[test]
 fn terminal_boundary_with_tokens() {
-    let mut pt = ParseTable::default();
-    pt.token_count = 5;
-    pt.external_token_count = 3;
+    let pt = ParseTable {
+        token_count: 5,
+        external_token_count: 3,
+        ..Default::default()
+    };
     assert_eq!(pt.terminal_boundary(), 8);
 }
 
 #[test]
 fn is_terminal_below_boundary() {
-    let mut pt = ParseTable::default();
-    pt.token_count = 3;
+    let pt = ParseTable {
+        token_count: 3,
+        ..Default::default()
+    };
     assert!(pt.is_terminal(SymbolId(0)));
     assert!(pt.is_terminal(SymbolId(2)));
     assert!(!pt.is_terminal(SymbolId(3)));

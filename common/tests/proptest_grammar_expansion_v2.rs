@@ -89,7 +89,7 @@ fn container_name() -> impl Strategy<Value = &'static str> {
 }
 
 /// Wrapper<Leaf> string and its parts.
-fn single_wrapped() -> impl Strategy<Value = (String, String)> {
+fn _single_wrapped() -> impl Strategy<Value = (String, String)> {
     (container_name(), leaf_type_name()).prop_map(|(c, l)| (c.to_string(), format!("{c}<{l}>")))
 }
 

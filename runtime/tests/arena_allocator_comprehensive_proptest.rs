@@ -1,5 +1,5 @@
 // Comprehensive property tests for TreeArena
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

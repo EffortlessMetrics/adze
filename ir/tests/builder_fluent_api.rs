@@ -39,7 +39,7 @@ fn builder_with_single_rule() {
         .build();
 
     assert_eq!(grammar.rules.len(), 1);
-    assert!(grammar.rules.values().next().unwrap().len() >= 1);
+    assert!(!grammar.rules.values().next().unwrap().is_empty());
 }
 
 #[test]
@@ -424,7 +424,7 @@ fn builder_fluent_arithmetic_grammar() {
         .build();
 
     assert_eq!(grammar.tokens.len(), 7);
-    assert!(grammar.rules.len() >= 1);
+    assert!(!grammar.rules.is_empty());
 }
 
 #[test]

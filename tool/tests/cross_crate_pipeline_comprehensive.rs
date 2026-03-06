@@ -105,8 +105,8 @@ fn optimizer_stats_then_visualize() {
     let mut opt = GrammarOptimizer::new();
     let stats = opt.optimize(&mut g);
     let total = stats.total();
-    // Stats should be non-negative
-    assert!(total >= 0 || total == 0);
+    // Stats should be non-negative (always true for unsigned)
+    let _ = total;
     let viz = GrammarVisualizer::new(g);
     let dot = viz.to_dot();
     assert!(dot.contains("digraph"));

@@ -185,15 +185,6 @@ fn compute_depth(forest: &ParseForest, node_id: usize) -> usize {
 
 // ─── Proptest strategies ─────────────────────────────────────────────
 
-fn arb_symbol_id() -> impl Strategy<Value = SymbolId> {
-    (1u16..1000).prop_map(SymbolId)
-}
-
-fn arb_span(max_end: usize) -> impl Strategy<Value = (usize, usize)> {
-    (0..max_end)
-        .prop_flat_map(move |start| (Just(start), start..=max_end).prop_map(|(s, e)| (s, e)))
-}
-
 fn arb_error_meta_valid() -> impl Strategy<Value = ErrorMeta> {
     // Generate only valid combos: either missing or is_error, not both
     prop_oneof![

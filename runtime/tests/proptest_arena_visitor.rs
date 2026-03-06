@@ -63,10 +63,6 @@ fn pn_error(start: usize, end: usize) -> ParsedNode {
     make_node(0, vec![], start, end, true, false)
 }
 
-fn count_all_nodes(node: &ParsedNode) -> usize {
-    1 + node.children().iter().map(count_all_nodes).sum::<usize>()
-}
-
 fn count_non_error(node: &ParsedNode) -> usize {
     if node.is_error() {
         0

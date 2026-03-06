@@ -9,7 +9,7 @@
 
 use proptest::prelude::*;
 use quote::ToTokens;
-use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct, parse_quote};
+use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -729,10 +729,10 @@ proptest! {
         // The helper should NOT have language attr
         let items = module_items(&m);
         for item in items {
-            if let Item::Struct(s) = item {
-                if s.ident == helper.to_string() {
-                    prop_assert!(!s.attrs.iter().any(|a| is_adze_attr(a, "language")));
-                }
+            if let Item::Struct(s) = item
+                && s.ident == helper_names[idx]
+            {
+                prop_assert!(!s.attrs.iter().any(|a| is_adze_attr(a, "language")));
             }
         }
     }
@@ -923,11 +923,11 @@ proptest! {
         // word-annotated type is not the language type
         let items = module_items(&m);
         for item in items {
-            if let Item::Struct(s) = item {
-                if s.ident == "Identifier" {
-                    prop_assert!(!s.attrs.iter().any(|a| is_adze_attr(a, "language")));
-                    prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
-                }
+            if let Item::Struct(s) = item
+                && s.ident == "Identifier"
+            {
+                prop_assert!(!s.attrs.iter().any(|a| is_adze_attr(a, "language")));
+                prop_assert!(s.attrs.iter().any(|a| is_adze_attr(a, "word")));
             }
         }
     }

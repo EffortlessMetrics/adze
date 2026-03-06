@@ -9,7 +9,7 @@
 //! - Edge cases: empty trees, single child, many children, deeply nested
 //! - Memory and cloning semantics
 
-use adze_runtime::{Point, Tree, tree::TreeCursor};
+use adze_runtime::{Tree, tree::TreeCursor};
 
 // ============================================================================
 // Test 1: Tree::new_stub() creates valid stub tree
@@ -450,7 +450,7 @@ fn test_tree_clone_preserves_structure() {
 #[test]
 fn test_tree_clone_deep_copy() {
     // Create a multi-level tree
-    let mut tree = Tree::new_for_testing(
+    let tree = Tree::new_for_testing(
         1,
         0,
         10,
@@ -531,7 +531,7 @@ fn test_multiple_cursors_independent_movement() {
     let tree = Tree::new_for_testing(1, 0, 5, vec![child]);
 
     let mut cursor1 = TreeCursor::new(&tree);
-    let mut cursor2 = TreeCursor::new(&tree);
+    let cursor2 = TreeCursor::new(&tree);
 
     cursor1.goto_first_child();
     cursor1.goto_first_child();

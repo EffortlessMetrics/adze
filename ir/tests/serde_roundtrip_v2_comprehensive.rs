@@ -8,7 +8,6 @@ use adze_ir::{
     Grammar, Precedence, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
     SymbolMetadata, Token, TokenPattern, builder::GrammarBuilder,
 };
-use indexmap::IndexMap;
 
 // ---------------------------------------------------------------------------
 // Helpers

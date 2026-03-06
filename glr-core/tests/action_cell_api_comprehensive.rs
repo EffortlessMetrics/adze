@@ -1,7 +1,6 @@
 //! Comprehensive tests for ActionCell, Action, and related ID types in adze-glr-core.
 
 use adze_glr_core::*;
-use adze_ir::*;
 use std::collections::BTreeMap;
 
 // ============================================================================

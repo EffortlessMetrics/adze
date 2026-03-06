@@ -1508,7 +1508,8 @@ fn rule_accessor_returns_valid_data() {
     let table = build_table(&g);
     for i in 0..table.rules.len() {
         let (lhs, rhs_len) = table.rule(RuleId(i as u16));
-        assert!(lhs.0 > 0 || lhs.0 == 0, "lhs must be valid SymbolId");
+        // SymbolId uses u16, so it's always >= 0
+        let _ = lhs;
         assert!(rhs_len <= 100, "rhs_len {} is unreasonably large", rhs_len);
     }
 }

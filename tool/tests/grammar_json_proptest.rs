@@ -47,7 +47,26 @@ fn extract_one(src: &str) -> Value {
 
 /// A valid Rust identifier that is also a safe Tree-sitter grammar name.
 fn grammar_name_strategy() -> impl Strategy<Value = String> {
-    "[a-z][a-z0-9_]{0,12}".prop_filter("must not be empty", |s| !s.is_empty())
+    "[a-z][a-z0-9_]{0,12}".prop_filter("must not be keyword or empty", |s| {
+        !s.is_empty()
+            && !matches!(
+                s.as_str(),
+                "do" | "gen"
+                    | "fn"
+                    | "if"
+                    | "in"
+                    | "as"
+                    | "for"
+                    | "let"
+                    | "mod"
+                    | "ref"
+                    | "try"
+                    | "use"
+                    | "box"
+                    | "dyn"
+                    | "pub"
+            )
+    })
 }
 
 /// A valid Rust type-name (PascalCase).
@@ -99,6 +118,16 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
                 | "static"
                 | "unsafe"
                 | "extern"
+                | "do"
+                | "gen"
+                | "abstract"
+                | "become"
+                | "final"
+                | "override"
+                | "priv"
+                | "typeof"
+                | "unsized"
+                | "virtual"
         )
     })
 }

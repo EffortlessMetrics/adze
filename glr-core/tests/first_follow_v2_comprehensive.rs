@@ -501,7 +501,7 @@ fn test_fixedbitset_len_nonzero() {
         .build();
     let ff = FirstFollowSets::compute(&g).unwrap();
     let first_s = ff.first(sym_id(&g, "s")).unwrap();
-    assert!(first_s.len() > 0);
+    assert!(!first_s.is_empty());
 }
 
 // ===== 30. FIRST of nonterminal with single terminal rule is singleton =====

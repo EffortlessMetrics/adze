@@ -8,7 +8,7 @@ use quote::{ToTokens, quote};
 use syn::{
     Attribute, DeriveInput, Expr, Field, Fields, GenericParam, ItemEnum, ItemFn, ItemMod,
     ItemStruct, ItemTrait, Lifetime, Meta, Pat, ReturnType, Type, TypePath, Visibility,
-    WhereClause, parse_quote, parse2,
+    parse_quote, parse2,
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -615,9 +615,9 @@ fn literal_integer() {
 
 #[test]
 fn literal_float() {
-    let lit = Literal::f64_suffixed(3.14);
+    let lit = Literal::f64_suffixed(3.15);
     let s = lit.to_string();
-    assert!(s.contains("3.14"));
+    assert!(s.contains("3.15"));
 }
 
 #[test]

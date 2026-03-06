@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_type_ops_v3.rs
+expression: "format!(\"no_skip={found_no_skip} one_skip={found_one_skip} both_skip={found_both_skip}\")"
+---
+no_skip=false one_skip=false both_skip=true

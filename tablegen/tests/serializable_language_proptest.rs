@@ -14,9 +14,7 @@
 use std::collections::BTreeMap;
 
 use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
-use adze_ir::{
-    ExternalToken, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
-};
+use adze_ir::{ExternalToken, FieldId, Grammar, ProductionId, Rule, SymbolId, Token, TokenPattern};
 use adze_tablegen::serializer::{SerializableLanguage, serialize_language};
 use proptest::prelude::*;
 

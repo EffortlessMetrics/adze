@@ -10,7 +10,6 @@ use adze::visitor::{
     BreadthFirstWalker, PrettyPrintVisitor, SearchVisitor, StatsVisitor, TransformVisitor,
     TransformWalker, TreeWalker, Visitor, VisitorAction,
 };
-use std::collections::HashMap;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,10 +49,6 @@ fn make_node(
 
 fn leaf(sym: u16, start: usize, end: usize) -> ParsedNode {
     make_node(sym, vec![], start, end, false, true)
-}
-
-fn unnamed_leaf(sym: u16, start: usize, end: usize) -> ParsedNode {
-    make_node(sym, vec![], start, end, false, false)
 }
 
 fn interior(sym: u16, children: Vec<ParsedNode>) -> ParsedNode {
@@ -143,7 +138,10 @@ fn walker_empty_source_walk_leaf() {
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
     // Leaf with empty text still gets visited
-    assert!(stats.total_nodes >= 0);
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(stats.total_nodes >= 0);
+    }
 }
 
 #[test]
@@ -152,7 +150,10 @@ fn bfw_empty_source_walk_leaf() {
     let node = leaf(1, 0, 0);
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
-    assert!(stats.total_nodes >= 0);
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(stats.total_nodes >= 0);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -190,7 +191,10 @@ fn walker_unicode_walk_with_stats() {
     let node = leaf(1, 0, src.len());
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
-    assert!(stats.total_nodes >= 0);
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(stats.total_nodes >= 0);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -510,7 +514,10 @@ fn stats_visitor_single_leaf() {
     let node = leaf(1, 0, 1);
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
-    assert!(stats.leaf_nodes >= 0);
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(stats.leaf_nodes >= 0);
+    }
 }
 
 #[test]
@@ -674,7 +681,7 @@ fn visitor_action_copy_semantics() {
 #[test]
 fn visitor_action_clone_semantics() {
     let a = VisitorAction::SkipChildren;
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 

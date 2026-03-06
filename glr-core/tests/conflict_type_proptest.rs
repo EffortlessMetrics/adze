@@ -360,11 +360,7 @@ proptest! {
 proptest! {
     #[test]
     fn pattern_match_consistent_with_eq(a in arb_conflict_type(), b in arb_conflict_type()) {
-        let same_branch = match (&a, &b) {
-            (ConflictType::ShiftReduce, ConflictType::ShiftReduce) => true,
-            (ConflictType::ReduceReduce, ConflictType::ReduceReduce) => true,
-            _ => false,
-        };
+        let same_branch = matches!((&a, &b), (ConflictType::ShiftReduce, ConflictType::ShiftReduce) | (ConflictType::ReduceReduce, ConflictType::ReduceReduce));
         prop_assert_eq!(a == b, same_branch);
     }
 }
@@ -428,7 +424,7 @@ proptest! {
     fn collecting_into_set_deduplicates(types in prop::collection::vec(arb_conflict_type(), 1..=20)) {
         let set: HashSet<String> = types.iter().map(|ct| format!("{:?}", ct)).collect();
         prop_assert!(set.len() <= 2);
-        prop_assert!(set.len() >= 1);
+        prop_assert!(!set.is_empty());
     }
 }
 

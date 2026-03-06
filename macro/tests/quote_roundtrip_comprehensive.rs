@@ -11,12 +11,12 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Attribute, DeriveInput, Error, ItemEnum, ItemStruct, Result, parse_quote};
+use syn::{Attribute, DeriveInput, ItemEnum, ItemStruct};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /// Helper to compare token streams by parsing both as DeriveInput
-fn roundtrip_derive_input(original: TokenStream) -> DeriveInput {
+fn _roundtrip_derive_input(original: TokenStream) -> DeriveInput {
     let parsed: DeriveInput = syn::parse2(original).expect("failed to parse DeriveInput");
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: DeriveInput = syn::parse2(requoted).expect("failed to reparse after quote!");
@@ -24,7 +24,7 @@ fn roundtrip_derive_input(original: TokenStream) -> DeriveInput {
 }
 
 /// Helper to compare token streams by parsing both as ItemStruct
-fn roundtrip_item_struct(original: TokenStream) -> ItemStruct {
+fn _roundtrip_item_struct(original: TokenStream) -> ItemStruct {
     let parsed: ItemStruct = syn::parse2(original).expect("failed to parse ItemStruct");
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: ItemStruct = syn::parse2(requoted).expect("failed to reparse ItemStruct");
@@ -32,7 +32,7 @@ fn roundtrip_item_struct(original: TokenStream) -> ItemStruct {
 }
 
 /// Helper to compare token streams by parsing both as ItemEnum
-fn roundtrip_item_enum(original: TokenStream) -> ItemEnum {
+fn _roundtrip_item_enum(original: TokenStream) -> ItemEnum {
     let parsed: ItemEnum = syn::parse2(original).expect("failed to parse ItemEnum");
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: ItemEnum = syn::parse2(requoted).expect("failed to reparse ItemEnum");
@@ -48,7 +48,7 @@ fn has_attr(attrs: &[Attribute], name: &str) -> bool {
 }
 
 /// Helper to count attributes with a specific path
-fn count_attrs(attrs: &[Attribute], name: &str) -> usize {
+fn _count_attrs(attrs: &[Attribute], name: &str) -> usize {
     attrs
         .iter()
         .filter(|attr| {
@@ -218,8 +218,8 @@ fn test_attribute_with_string_argument() {
     let item: ItemStruct = syn::parse2(tokens).expect("failed to parse struct");
     if let syn::Fields::Named(fields) = &item.fields {
         let field = &fields.named[0];
-        let attr_str = quote!(#[adze::leaf(pattern = "test_pattern")]).to_string();
-        let field_attr_str = quote!(&field.attrs[0]).to_string();
+        let _attr_str = quote!(#[adze::leaf(pattern = "test_pattern")]).to_string();
+        let _field_attr_str = quote!(&field.attrs[0]).to_string();
         // Verify attribute exists
         assert!(!field.attrs.is_empty());
     } else {
@@ -242,13 +242,13 @@ fn test_roundtrip_attribute_with_string_argument() {
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: ItemStruct = syn::parse2(requoted).expect("parse 2");
 
-    if let syn::Fields::Named(parsed_fields) = &parsed.fields {
-        if let syn::Fields::Named(reparsed_fields) = &reparsed.fields {
-            assert_eq!(
-                parsed_fields.named[0].attrs.len(),
-                reparsed_fields.named[0].attrs.len()
-            );
-        }
+    if let syn::Fields::Named(parsed_fields) = &parsed.fields
+        && let syn::Fields::Named(reparsed_fields) = &reparsed.fields
+    {
+        assert_eq!(
+            parsed_fields.named[0].attrs.len(),
+            reparsed_fields.named[0].attrs.len()
+        );
     }
 }
 
@@ -546,12 +546,12 @@ fn test_roundtrip_multiple_fields_different_attributes() {
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: ItemStruct = syn::parse2(requoted).expect("parse 2");
 
-    if let syn::Fields::Named(parsed_fields) = &parsed.fields {
-        if let syn::Fields::Named(reparsed_fields) = &reparsed.fields {
-            assert_eq!(parsed_fields.named.len(), reparsed_fields.named.len());
-            for (p, r) in parsed_fields.named.iter().zip(reparsed_fields.named.iter()) {
-                assert_eq!(p.attrs.len(), r.attrs.len());
-            }
+    if let syn::Fields::Named(parsed_fields) = &parsed.fields
+        && let syn::Fields::Named(reparsed_fields) = &reparsed.fields
+    {
+        assert_eq!(parsed_fields.named.len(), reparsed_fields.named.len());
+        for (p, r) in parsed_fields.named.iter().zip(reparsed_fields.named.iter()) {
+            assert_eq!(p.attrs.len(), r.attrs.len());
         }
     }
 }
@@ -590,13 +590,13 @@ fn test_roundtrip_stacked_attributes() {
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: ItemStruct = syn::parse2(requoted).expect("parse 2");
 
-    if let syn::Fields::Named(parsed_fields) = &parsed.fields {
-        if let syn::Fields::Named(reparsed_fields) = &reparsed.fields {
-            assert_eq!(
-                parsed_fields.named[0].attrs.len(),
-                reparsed_fields.named[0].attrs.len()
-            );
-        }
+    if let syn::Fields::Named(parsed_fields) = &parsed.fields
+        && let syn::Fields::Named(reparsed_fields) = &reparsed.fields
+    {
+        assert_eq!(
+            parsed_fields.named[0].attrs.len(),
+            reparsed_fields.named[0].attrs.len()
+        );
     }
 }
 
@@ -652,7 +652,7 @@ fn test_complex_type_parameters_in_fields() {
 
     let item: ItemStruct = syn::parse2(tokens).expect("failed to parse struct");
     assert_eq!(item.generics.params.len(), 2);
-    assert!(!item.generics.where_clause.is_none());
+    assert!(item.generics.where_clause.is_some());
 }
 
 // ── Test 33: Roundtrip complex type parameters ────────────────────────────
@@ -711,13 +711,13 @@ fn test_roundtrip_attribute_with_nested_parentheses() {
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: ItemStruct = syn::parse2(requoted).expect("parse 2");
 
-    if let syn::Fields::Named(parsed_fields) = &parsed.fields {
-        if let syn::Fields::Named(reparsed_fields) = &reparsed.fields {
-            assert_eq!(
-                parsed_fields.named[0].attrs.len(),
-                reparsed_fields.named[0].attrs.len()
-            );
-        }
+    if let syn::Fields::Named(parsed_fields) = &parsed.fields
+        && let syn::Fields::Named(reparsed_fields) = &reparsed.fields
+    {
+        assert_eq!(
+            parsed_fields.named[0].attrs.len(),
+            reparsed_fields.named[0].attrs.len()
+        );
     }
 }
 
@@ -894,10 +894,10 @@ fn test_roundtrip_complex_nested_generics() {
     let requoted: TokenStream = quote!(#parsed);
     let reparsed: ItemStruct = syn::parse2(requoted).expect("parse 2");
 
-    if let syn::Fields::Named(parsed_fields) = &parsed.fields {
-        if let syn::Fields::Named(reparsed_fields) = &reparsed.fields {
-            assert_eq!(parsed_fields.named.len(), reparsed_fields.named.len());
-        }
+    if let syn::Fields::Named(parsed_fields) = &parsed.fields
+        && let syn::Fields::Named(reparsed_fields) = &reparsed.fields
+    {
+        assert_eq!(parsed_fields.named.len(), reparsed_fields.named.len());
     }
 }
 

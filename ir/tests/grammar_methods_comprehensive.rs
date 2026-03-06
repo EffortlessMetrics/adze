@@ -5,7 +5,7 @@
 //! normalize, validate, optimize.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{FieldId, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId};
+use adze_ir::{Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId};
 
 fn simple_grammar() -> Grammar {
     GrammarBuilder::new("simple")
@@ -167,7 +167,7 @@ fn test_build_registry_returns_registry() {
     let g = simple_grammar();
     let registry = g.build_registry();
     // Registry should have symbols
-    assert!(registry.len() > 0, "registry should have symbols");
+    assert!(!registry.is_empty(), "registry should have symbols");
 }
 
 #[test]

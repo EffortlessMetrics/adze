@@ -19,13 +19,13 @@ fn first_follow_simple_expr() {
         // Just verify we can query FIRST sets
     }
     // Start symbol should have EOF in its FOLLOW set
-    if let Some(start) = g.start_symbol() {
-        if let Some(follow) = ff.follow(start) {
-            assert!(
-                follow.len() > 0,
-                "start symbol should have non-empty FOLLOW"
-            );
-        }
+    if let Some(start) = g.start_symbol()
+        && let Some(follow) = ff.follow(start)
+    {
+        assert!(
+            !follow.is_empty(),
+            "start symbol should have non-empty FOLLOW"
+        );
     }
 }
 

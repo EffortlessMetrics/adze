@@ -1171,7 +1171,7 @@ fn sequence_with_nested_nonterminals() {
     let big_a = nt_id(&g, "big_a");
 
     // Shift 'a'
-    let s1 = table
+    let _s1 = table
         .actions(table.initial_state, a)
         .iter()
         .find_map(|act| match act {

@@ -238,7 +238,7 @@ fn point_large_values() {
 
 #[test]
 fn point_sort_vec() {
-    let mut points = vec![
+    let mut points = [
         Point { row: 3, column: 5 },
         Point { row: 1, column: 10 },
         Point { row: 3, column: 2 },

@@ -124,7 +124,7 @@ fn pipeline_parse(
 /// Symbols: 0=EOF, 1='a', 2=S(NT)
 fn simple_s_to_a_table() -> ParseTable {
     let eof = SymbolId(0);
-    let a = SymbolId(1);
+    let _a = SymbolId(1);
     let s = SymbolId(2);
 
     let rules = vec![ParseRule { lhs: s, rhs_len: 1 }];

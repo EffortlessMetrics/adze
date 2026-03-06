@@ -3,8 +3,8 @@
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::validation::{GrammarValidator, ValidationError, ValidationWarning};
 use adze_ir::{
-    Associativity, ExternalToken, FieldId, Grammar, Precedence, PrecedenceKind, ProductionId, Rule,
-    Symbol, SymbolId, Token, TokenPattern,
+    Associativity, ExternalToken, FieldId, Grammar, Precedence, ProductionId, Rule, Symbol,
+    SymbolId, Token, TokenPattern,
 };
 
 // ---------------------------------------------------------------------------
@@ -1047,7 +1047,7 @@ fn large_grammar_chain() {
 
 #[test]
 fn large_grammar_stats_external_tokens() {
-    let mut g = GrammarBuilder::new("ext")
+    let g = GrammarBuilder::new("ext")
         .token("A", "a")
         .rule("start", vec!["A"])
         .start("start")

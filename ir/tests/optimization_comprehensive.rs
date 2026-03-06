@@ -9,8 +9,7 @@ use adze_ir::builder::GrammarBuilder;
 use adze_ir::optimizer::{GrammarOptimizer, OptimizationStats, optimize_grammar};
 use adze_ir::validation::{GrammarValidator, ValidationError, ValidationWarning};
 use adze_ir::{
-    Associativity, FieldId, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
-    TokenPattern,
+    Associativity, FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
 };
 
 // ---------------------------------------------------------------------------
@@ -1270,7 +1269,7 @@ fn edge_check_empty_string_terminal() {
 
     let result = grammar.check_empty_terminals();
     assert!(result.is_err());
-    assert!(result.unwrap_err().len() >= 1);
+    assert!(!result.unwrap_err().is_empty());
 }
 
 #[test]
@@ -1590,7 +1589,7 @@ fn edge_optimizer_default() {
     let mut grammar = build_simple_expr_grammar();
     let mut opt = optimizer;
     let stats = opt.optimize(&mut grammar);
-    assert!(stats.total() >= 0);
+    let _ = stats.total();
 }
 
 // --- 3.14 GrammarValidator default trait ---
@@ -1628,8 +1627,6 @@ fn edge_validator_reuse() {
 
 #[test]
 fn edge_validation_stats_default() {
-    use adze_ir::validation::ValidationResult;
-
     let stats = adze_ir::validation::ValidationStats::default();
     assert_eq!(stats.total_symbols, 0);
     assert_eq!(stats.total_tokens, 0);
@@ -1678,7 +1675,7 @@ fn edge_multiple_precedence_levels() {
         .build();
 
     let mut validator = GrammarValidator::new();
-    let result = validator.validate(&grammar);
+    let _result = validator.validate(&grammar);
 
     // Should have rules at both precedence levels
     let prec_rules: Vec<_> = grammar

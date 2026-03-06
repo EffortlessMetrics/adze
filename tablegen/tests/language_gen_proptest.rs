@@ -35,10 +35,7 @@
 //! 30. Different grammar names produce different output
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
-use adze_ir::{
-    ExternalToken, FieldId, Grammar, ProductionId, Rule, StateId, Symbol, SymbolId, Token,
-    TokenPattern, builder::GrammarBuilder,
-};
+use adze_ir::{FieldId, Grammar, StateId, SymbolId, builder::GrammarBuilder};
 use adze_tablegen::language_gen::LanguageGenerator;
 use proptest::prelude::*;
 use std::collections::BTreeMap;
@@ -222,6 +219,7 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,12}".prop_filter("non-empty", |s| !s.is_empty())
 }
 
+#[allow(dead_code)]
 fn token_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{0,10}".prop_filter("non-empty", |s| !s.is_empty())
 }

@@ -80,7 +80,7 @@ fn warnings_for_unused_tokens() {
     );
     // "b" is unused
     assert!(
-        result.warnings.len() > 0 || result.errors.is_empty(),
+        !result.warnings.is_empty() || result.errors.is_empty(),
         "Should either warn about unused token or be clean"
     );
 }

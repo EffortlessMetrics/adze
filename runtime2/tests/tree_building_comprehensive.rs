@@ -642,7 +642,7 @@ fn point_new_const() {
 fn point_clone_and_copy() {
     let p1 = Point::new(1, 2);
     let p2 = p1; // Copy
-    let p3 = p1.clone();
+    let p3 = p1;
     assert_eq!(p1, p2);
     assert_eq!(p1, p3);
 }

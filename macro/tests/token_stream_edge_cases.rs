@@ -4,19 +4,18 @@
 //! syn::parse2, quote::quote!, and proc_macro2::TokenStream.
 //! Each test focuses on a specific edge case or feature.
 
-use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, Ident, Punct, Spacing, TokenStream, TokenTree};
 use quote::{ToTokens, quote};
 use std::str::FromStr;
 use syn::{
-    Attribute, Expr, ExprClosure, Field, Fields, GenericParam, ImplItem, ItemEnum, ItemFn,
-    ItemImpl, ItemMod, ItemStruct, ItemTrait, Lifetime, PredicateType, TraitBound, TypeParamBound,
-    Variant, WherePredicate, parse_quote, parse2,
+    Expr, GenericParam, ItemEnum, ItemFn, ItemImpl, ItemMod, ItemStruct, ItemTrait, parse_quote,
+    parse2,
 };
 
 // ── Helper Functions ───────────────────────────────────────────────────────
 
 /// Parse a token stream as a single `syn::Item`.
-fn parse_item(tokens: TokenStream) -> syn::Item {
+fn _parse_item(tokens: TokenStream) -> syn::Item {
     parse2(tokens).expect("failed to parse item")
 }
 
@@ -335,7 +334,7 @@ fn parse_token_stream_with_trait_bounds() {
     };
     let f = parse_fn(tokens);
     let gen_params = &f.sig.generics.params;
-    assert!(gen_params.len() > 0);
+    assert!(!gen_params.is_empty());
 }
 
 // ── 15: Associated Types ───────────────────────────────────────────────────

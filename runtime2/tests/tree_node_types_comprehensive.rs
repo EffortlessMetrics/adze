@@ -74,7 +74,7 @@ fn point_ordering_row_priority() {
 
 #[test]
 fn point_sort() {
-    let mut pts = vec![
+    let mut pts = [
         Point { row: 3, column: 0 },
         Point { row: 0, column: 5 },
         Point { row: 1, column: 2 },
@@ -100,7 +100,7 @@ fn point_copy() {
 #[test]
 fn point_clone() {
     let a = Point { row: 7, column: 3 };
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
@@ -356,7 +356,7 @@ fn point_thousand_sort() {
 
 #[test]
 fn point_boundary_ordering() {
-    let pts = vec![
+    let pts = [
         Point {
             row: 0,
             column: usize::MAX,

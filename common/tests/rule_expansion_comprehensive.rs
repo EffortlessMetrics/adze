@@ -382,7 +382,7 @@ fn full_struct_expansion_function_decl() {
     ];
 
     let extract_skip = skip(&["Box"]);
-    let wrap_skip = skip(&["Vec", "Option"]);
+    let _wrap_skip = skip(&["Vec", "Option"]);
 
     let mut expanded = Vec::new();
     for (name, ty) in &fields {

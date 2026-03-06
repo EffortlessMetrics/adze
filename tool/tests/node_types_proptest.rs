@@ -25,17 +25,17 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
 }
 
 /// A simple token name (uppercase letters + underscores).
-fn token_name_strategy() -> impl Strategy<Value = String> {
+fn _token_name_strategy() -> impl Strategy<Value = String> {
     "[A-Z][A-Z0-9_]{0,8}".prop_filter("must not be empty", |s| !s.is_empty())
 }
 
 /// A rule name (lowercase letters, no underscore prefix so it's not internal).
-fn rule_name_strategy() -> impl Strategy<Value = String> {
+fn _rule_name_strategy() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9]{0,8}".prop_filter("must not be empty", |s| !s.is_empty())
 }
 
 /// A simple regex pattern for tokens.
-fn token_pattern_strategy() -> impl Strategy<Value = String> {
+fn _token_pattern_strategy() -> impl Strategy<Value = String> {
     prop_oneof![
         Just(r"[a-z]+".to_string()),
         Just(r"\d+".to_string()),
@@ -747,9 +747,8 @@ fn only_string_tokens_means_only_unnamed() {
     let result = generator.generate().unwrap();
     let entries = parse_node_types(&result);
     for entry in &entries {
-        assert_eq!(
-            entry.get("named").unwrap().as_bool().unwrap(),
-            false,
+        assert!(
+            !entry.get("named").unwrap().as_bool().unwrap(),
             "String-only grammar should have only unnamed entries"
         );
     }

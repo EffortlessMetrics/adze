@@ -317,12 +317,11 @@ proptest! {
     fn empty_cell_implies_no_actions(pt in arb_parse_table()) {
         for s in 0..pt.state_count {
             for col in 0..pt.action_table[s].len() {
-                if pt.action_table[s][col].is_empty() {
-                    if let Some((&sym, _)) = pt.symbol_to_index.iter().find(|&(_, &c)| c == col) {
+                if pt.action_table[s][col].is_empty()
+                    && let Some((&sym, _)) = pt.symbol_to_index.iter().find(|&(_, &c)| c == col) {
                         let actions = pt.actions(StateId(s as u16), sym);
                         prop_assert!(actions.is_empty());
                     }
-                }
             }
         }
     }
@@ -713,10 +712,7 @@ proptest! {
         for row in &pt.action_table {
             for cell in row {
                 for action in cell {
-                    match action {
-                        Action::Reduce(_) => prop_assert!(false, "unexpected reduce"),
-                        _ => {}
-                    }
+                    if let Action::Reduce(_) = action { prop_assert!(false, "unexpected reduce") }
                 }
             }
         }
@@ -747,10 +743,7 @@ proptest! {
         for row in &pt.action_table {
             for cell in row {
                 for action in cell {
-                    match action {
-                        Action::Shift(_) => prop_assert!(false, "unexpected shift"),
-                        _ => {}
-                    }
+                    if let Action::Shift(_) = action { prop_assert!(false, "unexpected shift") }
                 }
             }
         }

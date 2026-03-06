@@ -2,7 +2,6 @@
 
 use adze_ir::Associativity;
 use adze_ir::builder::GrammarBuilder;
-use std::panic::catch_unwind;
 
 // ── Basic builder patterns ──
 

@@ -737,9 +737,11 @@ fn reexport_span_error_types_accessible() {
 
 #[test]
 fn has_conflicts_default_is_false() {
-    assert!(!<String as Extract<String>>::HAS_CONFLICTS);
-    assert!(!<i32 as Extract<i32>>::HAS_CONFLICTS);
-    assert!(!<() as Extract<()>>::HAS_CONFLICTS);
+    const _: () = {
+        assert!(!<String as Extract<String>>::HAS_CONFLICTS);
+        assert!(!<i32 as Extract<i32>>::HAS_CONFLICTS);
+        assert!(!<() as Extract<()>>::HAS_CONFLICTS);
+    };
 }
 
 // ---------------------------------------------------------------------------

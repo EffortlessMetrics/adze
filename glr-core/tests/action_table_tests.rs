@@ -599,7 +599,7 @@ fn build_lr1_simple_grammar_has_reduce() {
     let table = build_lr1_automaton(&g, &ff).unwrap();
 
     let has_reduce = (0..table.state_count).any(|s| {
-        table.action_table.get(s).map_or(false, |row| {
+        table.action_table.get(s).is_some_and(|row| {
             row.iter()
                 .any(|cell| cell.iter().any(|a| matches!(a, Action::Reduce(_))))
         })

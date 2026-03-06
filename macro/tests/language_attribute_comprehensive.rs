@@ -69,7 +69,7 @@ fn find_struct_in_mod<'a>(m: &'a ItemMod, name: &str) -> Option<&'a ItemStruct> 
     })
 }
 
-fn find_enum_in_mod<'a>(m: &'a ItemMod, name: &str) -> Option<&'a ItemEnum> {
+fn _find_enum_in_mod<'a>(m: &'a ItemMod, name: &str) -> Option<&'a ItemEnum> {
     module_items(m).iter().find_map(|i| match i {
         Item::Enum(e) if e.ident == name => Some(e),
         _ => None,

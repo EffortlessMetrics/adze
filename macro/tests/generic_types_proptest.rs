@@ -17,7 +17,7 @@ use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, ItemStruct, Type, parse_qu
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-fn is_adze_attr(attr: &Attribute, name: &str) -> bool {
+fn _is_adze_attr(attr: &Attribute, name: &str) -> bool {
     let segs: Vec<_> = attr.path().segments.iter().collect();
     segs.len() == 2 && segs[0].ident == "adze" && segs[1].ident == name
 }
@@ -454,7 +454,7 @@ proptest! {
 proptest! {
     #[test]
     fn option_field_preserved_in_struct(idx in 0usize..=2) {
-        let inner_names = ["i32", "String", "Number"];
+        let _inner_names = ["i32", "String", "Number"];
         let inner_types: Vec<proc_macro2::TokenStream> = vec![
             quote!(i32), quote!(String), quote!(Number),
         ];

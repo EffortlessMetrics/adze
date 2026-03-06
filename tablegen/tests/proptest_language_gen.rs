@@ -24,6 +24,7 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
 }
 
 /// Token names: [a-z]{1,5} — must be unique, so we generate a base and append index
+#[allow(dead_code)]
 fn token_name_strategy() -> impl Strategy<Value = String> {
     "[a-z]{1,5}"
 }
@@ -80,7 +81,7 @@ fn build_grammar_and_table(
 
 /// Build a more complex grammar with chained non-terminals.
 fn build_complex_grammar(name: &str, depth: usize) -> Grammar {
-    let depth = depth.max(1).min(5);
+    let depth = depth.clamp(1, 5);
     let mut builder = GrammarBuilder::new(name);
     builder = builder.token("leaf", "leaf");
 

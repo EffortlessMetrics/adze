@@ -79,10 +79,10 @@ fn special_char_pattern() -> impl Strategy<Value = &'static str> {
 
 /// Extract the string value from an `Expr::Lit(LitStr)`.
 fn extract_str_value(expr: &Expr) -> Option<String> {
-    if let Expr::Lit(lit) = expr {
-        if let syn::Lit::Str(s) = &lit.lit {
-            return Some(s.value());
-        }
+    if let Expr::Lit(lit) = expr
+        && let syn::Lit::Str(s) = &lit.lit
+    {
+        return Some(s.value());
     }
     None
 }

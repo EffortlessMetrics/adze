@@ -573,8 +573,10 @@ proptest! {
     // 46. push_scope / pop_scope do not affect error nodes
     #[test]
     fn test_scope_ops_no_error_side_effect(_ in 0u8..1) {
-        let mut cfg = ErrorRecoveryConfig::default();
-        cfg.scope_delimiters = vec![(40, 41)]; // '(' / ')'
+        let cfg = ErrorRecoveryConfig {
+            scope_delimiters: vec![(40, 41)], // '(' / ')'
+            ..Default::default()
+        };
         let mut state = ErrorRecoveryState::new(cfg);
         state.push_scope(40);
         state.pop_scope(41);

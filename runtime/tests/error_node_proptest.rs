@@ -1,9 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 //! Property-based tests for error node handling in the adze runtime.
 
-use adze::error_recovery::{
-    ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryStrategy,
-};
+use adze::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryState, RecoveryStrategy};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

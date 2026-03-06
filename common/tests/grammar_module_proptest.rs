@@ -6,11 +6,11 @@
 //! grammar name derivation, and handling of various item types within
 //! modules annotated with `#[adze::grammar]`.
 
-use adze_common::{NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type};
+use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::HashSet;
-use syn::{Attribute, Ident, Item, ItemMod, Type, parse_str};
+use syn::{Attribute, Item, ItemMod, parse_str};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -124,10 +124,10 @@ fn extract_grammar_name(attr: &Attribute) -> Option<String> {
     }
     let tokens = attr.meta.to_token_stream().to_string();
     // Look for the string literal in the attribute
-    if let Some(start) = tokens.find('"') {
-        if let Some(end) = tokens[start + 1..].find('"') {
-            return Some(tokens[start + 1..start + 1 + end].to_string());
-        }
+    if let Some(start) = tokens.find('"')
+        && let Some(end) = tokens[start + 1..].find('"')
+    {
+        return Some(tokens[start + 1..start + 1 + end].to_string());
     }
     None
 }
@@ -143,10 +143,7 @@ fn capitalize_first(s: &str) -> String {
 
 /// Derive a PascalCase grammar type name from a snake_case module name.
 fn derive_grammar_type_name(mod_name: &str) -> String {
-    mod_name
-        .split('_')
-        .map(|part| capitalize_first(part))
-        .collect()
+    mod_name.split('_').map(capitalize_first).collect()
 }
 
 // ---------------------------------------------------------------------------

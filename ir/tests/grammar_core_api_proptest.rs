@@ -182,7 +182,7 @@ proptest! {
         let mut reg = SymbolRegistry::new();
         let meta = SymbolMetadata { visible: true, named: true, hidden: false, terminal: true };
         let ids: Vec<SymbolId> = (0..n)
-            .map(|i| reg.register(&format!("s{}", i), meta.clone()))
+            .map(|i| reg.register(&format!("s{}", i), meta))
             .collect();
         let unique: std::collections::HashSet<SymbolId> = ids.iter().copied().collect();
         prop_assert_eq!(unique.len(), n);
@@ -194,7 +194,7 @@ proptest! {
         let initial = reg.len();
         let meta = SymbolMetadata { visible: true, named: true, hidden: false, terminal: true };
         for i in 0..n {
-            reg.register(&format!("s{}", i), meta.clone());
+            reg.register(&format!("s{}", i), meta);
         }
         prop_assert_eq!(reg.len(), initial + n);
     }

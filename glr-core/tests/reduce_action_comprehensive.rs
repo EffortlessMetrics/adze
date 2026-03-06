@@ -204,7 +204,7 @@ fn parse_rule_lhs_and_rhs_len() {
 
 #[test]
 fn parse_rule_multiple_productions() {
-    let rules = vec![
+    let rules = [
         ParseRule {
             lhs: SymbolId(10),
             rhs_len: 1,
@@ -251,7 +251,7 @@ fn table_rule_lookup_by_rule_id() {
 
 #[test]
 fn reduce_action_references_correct_rule() {
-    let rules = vec![
+    let rules = [
         ParseRule {
             lhs: SymbolId(10),
             rhs_len: 1,
@@ -368,7 +368,7 @@ fn epsilon_and_nonempty_productions_coexist() {
 
 #[test]
 fn multiple_epsilon_reduces_in_cell() {
-    let rules = vec![
+    let rules = [
         ParseRule {
             lhs: SymbolId(10),
             rhs_len: 0,

@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_type_ops_v3.rs
+expression: "format!(\"found={found} inner={inner} wrapped={wrapped}\")"
+---
+found=true inner=Vec < Token > wrapped=Vec < adze :: WithLeaf < Token > >

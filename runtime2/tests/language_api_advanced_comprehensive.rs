@@ -544,14 +544,14 @@ fn parse_emoji_catch_unwind() {
 fn parse_binary_zeros_catch_unwind() {
     let mut parser = Parser::new();
     parser.set_language(stub_language()).unwrap();
-    let _result = catch_unwind(AssertUnwindSafe(|| parser.parse(&[0u8; 16], None)));
+    let _result = catch_unwind(AssertUnwindSafe(|| parser.parse([0u8; 16], None)));
 }
 
 #[test]
 fn parse_binary_high_bytes_catch_unwind() {
     let mut parser = Parser::new();
     parser.set_language(stub_language()).unwrap();
-    let _result = catch_unwind(AssertUnwindSafe(|| parser.parse(&[0xFF; 32], None)));
+    let _result = catch_unwind(AssertUnwindSafe(|| parser.parse([0xFF; 32], None)));
 }
 
 #[test]

@@ -92,7 +92,7 @@ fn node_handle_inequality() {
 #[test]
 fn node_handle_clone() {
     let h = NodeHandle::new(3, 4);
-    let cloned = h.clone();
+    let cloned = h;
     assert_eq!(h, cloned);
 }
 
@@ -161,7 +161,7 @@ fn arena_get_mut() {
     let mut arena = TreeArena::new();
     let handle = arena.alloc(TreeNode::leaf(1));
     {
-        let mut node_mut = arena.get_mut(handle);
+        let node_mut = arena.get_mut(handle);
         // TreeNodeRefMut exists; just verify it works
         let _ = node_mut.value();
     }
@@ -191,7 +191,10 @@ fn arena_clear() {
 #[test]
 fn arena_num_chunks() {
     let arena = TreeArena::new();
-    assert!(arena.num_chunks() >= 0);
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    {
+        assert!(arena.num_chunks() >= 0);
+    }
 }
 
 #[test]

@@ -1,7 +1,7 @@
 // Comprehensive tests for LRItem, ItemSet, ItemSetCollection, Action, GLRError, etc.
 use adze_glr_core::*;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{RuleId, StateId, Symbol, SymbolId};
+use adze_ir::{RuleId, StateId, SymbolId};
 
 // ---------------------------------------------------------------------------
 // LRItem tests
@@ -538,6 +538,6 @@ fn lex_mode_clone() {
         lex_state: 42,
         external_lex_state: 0,
     };
-    let cloned = lm.clone();
+    let cloned = lm;
     assert_eq!(cloned.lex_state, 42);
 }

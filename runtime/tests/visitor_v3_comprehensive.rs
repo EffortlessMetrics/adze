@@ -445,7 +445,7 @@ fn visitor_action_ne() {
 fn visitor_action_clone_copy() {
     let a = VisitorAction::Continue;
     let b = a; // Copy
-    let c = a.clone();
+    let c = a;
     assert_eq!(a, b);
     assert_eq!(a, c);
 }

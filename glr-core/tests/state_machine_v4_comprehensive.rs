@@ -102,14 +102,6 @@ fn has_any_shift(pt: &ParseTable, sym: SymbolId) -> bool {
     })
 }
 
-fn has_any_reduce(pt: &ParseTable, sym: SymbolId) -> bool {
-    (0..pt.state_count).any(|s| {
-        pt.actions(StateId(s as u16), sym)
-            .iter()
-            .any(|a| matches!(a, Action::Reduce(_)))
-    })
-}
-
 fn has_any_goto(pt: &ParseTable, ntsym: SymbolId) -> bool {
     (0..pt.state_count).any(|s| pt.goto(StateId(s as u16), ntsym).is_some())
 }

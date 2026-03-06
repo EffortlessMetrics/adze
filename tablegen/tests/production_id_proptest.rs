@@ -288,11 +288,13 @@ fn grammar_with_nonterminals(n_rules: usize, nt_count: usize) -> (Grammar, Parse
 // ---------------------------------------------------------------------------
 
 /// Strategy for rule count in [1, 50].
+#[allow(dead_code)]
 fn rule_count_strategy() -> impl Strategy<Value = usize> {
     1..=50usize
 }
 
 /// Strategy for nonterminal count in [1, 10].
+#[allow(dead_code)]
 fn nt_count_strategy() -> impl Strategy<Value = usize> {
     1..=10usize
 }
@@ -609,7 +611,8 @@ proptest! {
         let code = gen_code(&g, &table);
         let map = extract_production_id_map(&code);
         for val in &map {
-            prop_assert!(*val < 0xFFFF || *val == u16::MAX, "unexpected value: {}", val);
+            // val is u16, so it's always <= u16::MAX
+            let _ = val;
         }
     }
 
@@ -933,12 +936,10 @@ proptest! {
 
         let mut g = Grammar::new("eps_multi".to_string());
         g.tokens.insert(t, tok("t", "t"));
-        let mut prod_id = 0u16;
-        for off in 0..nt_count {
+        for (prod_id, off) in (0..nt_count).enumerate() {
             let nt = SymbolId(start.0 + off as u16);
             g.rule_names.insert(nt, format!("nt_{}", off));
-            g.add_rule(make_rule(nt, vec![], prod_id));
-            prod_id += 1;
+            g.add_rule(make_rule(nt, vec![], prod_id as u16));
         }
 
         let code = gen_code(&g, &table);

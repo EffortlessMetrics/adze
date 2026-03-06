@@ -264,7 +264,7 @@ fn node_types_json_is_nonempty_array() {
     let json_str = generator.generate().unwrap();
     let val: serde_json::Value = serde_json::from_str(&json_str).unwrap();
     // At minimum the grammar has rule(s) and token(s)
-    assert!(val.as_array().unwrap().len() > 0);
+    assert!(!val.as_array().unwrap().is_empty());
 }
 
 // ===========================================================================

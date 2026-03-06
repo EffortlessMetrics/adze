@@ -1,7 +1,5 @@
 //! Comprehensive tests for GLR error types and error handling patterns.
 
-use adze_glr_core::GLRError;
-
 // ── GLRError construction and display ──
 
 #[test]

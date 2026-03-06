@@ -9,7 +9,7 @@
 //! - State count edge cases
 
 use adze_glr_core::Action;
-use adze_ir::{RuleId, StateId, SymbolId};
+use adze_ir::{RuleId, StateId};
 use adze_tablegen::compress::{
     CompressedActionEntry, CompressedGotoEntry, CompressedParseTable, TableCompressor,
 };
@@ -644,7 +644,7 @@ fn compressed_parse_table_large_dims() {
 
 #[test]
 fn compressed_entry_preserves_variants() {
-    let actions = vec![
+    let actions = [
         Action::Shift(StateId(0)),
         Action::Shift(StateId(u16::MAX)),
         Action::Reduce(RuleId(0)),

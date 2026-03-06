@@ -124,7 +124,7 @@ fn symbol_roundtrip_nonterminal() {
 
 #[test]
 fn symbol_in_vec() {
-    let v = vec![
+    let v = [
         Symbol::Terminal(SymbolId(1)),
         Symbol::NonTerminal(SymbolId(2)),
         Symbol::Terminal(SymbolId(3)),
@@ -134,7 +134,7 @@ fn symbol_in_vec() {
 
 #[test]
 fn symbol_vec_contains() {
-    let v = vec![
+    let v = [
         Symbol::Terminal(SymbolId(1)),
         Symbol::NonTerminal(SymbolId(2)),
     ];

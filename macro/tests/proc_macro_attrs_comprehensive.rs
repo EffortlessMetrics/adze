@@ -58,7 +58,7 @@ fn construct_grammar_attribute_tokenstream() {
     let attr_stream = quote! {
         #[adze::grammar("test_grammar")]
     };
-    let tokens: TokenStream = attr_stream.into();
+    let tokens: TokenStream = attr_stream;
     assert!(
         !tokens.is_empty(),
         "grammar attribute token stream should not be empty"
@@ -71,7 +71,7 @@ fn construct_language_attribute_tokenstream() {
     let attr_stream = quote! {
         #[adze::language]
     };
-    let tokens: TokenStream = attr_stream.into();
+    let tokens: TokenStream = attr_stream;
     assert!(
         !tokens.is_empty(),
         "language attribute token stream should not be empty"
@@ -84,7 +84,7 @@ fn construct_leaf_attribute_with_pattern() {
     let attr_stream = quote! {
         #[adze::leaf(pattern = r"\d+")]
     };
-    let tokens: TokenStream = attr_stream.into();
+    let tokens: TokenStream = attr_stream;
     assert!(
         !tokens.is_empty(),
         "leaf attribute token stream should not be empty"
@@ -97,7 +97,7 @@ fn construct_word_attribute_tokenstream() {
     let attr_stream = quote! {
         #[adze::word]
     };
-    let tokens: TokenStream = attr_stream.into();
+    let tokens: TokenStream = attr_stream;
     assert!(
         !tokens.is_empty(),
         "word attribute token stream should not be empty"
@@ -110,7 +110,7 @@ fn construct_skip_attribute_tokenstream() {
     let attr_stream = quote! {
         #[adze::skip(true)]
     };
-    let tokens: TokenStream = attr_stream.into();
+    let tokens: TokenStream = attr_stream;
     assert!(
         !tokens.is_empty(),
         "skip attribute token stream should not be empty"
@@ -123,7 +123,7 @@ fn construct_extra_attribute_tokenstream() {
     let attr_stream = quote! {
         #[adze::extra]
     };
-    let tokens: TokenStream = attr_stream.into();
+    let tokens: TokenStream = attr_stream;
     assert!(
         !tokens.is_empty(),
         "extra attribute token stream should not be empty"
@@ -136,7 +136,7 @@ fn construct_precedence_attribute_with_value() {
     let attr_stream = quote! {
         #[adze::prec_left(2)]
     };
-    let tokens: TokenStream = attr_stream.into();
+    let tokens: TokenStream = attr_stream;
     assert!(
         !tokens.is_empty(),
         "precedence attribute token stream should not be empty"
@@ -661,7 +661,7 @@ fn attribute_on_struct_with_lifetime_parameters() {
         }
     };
     let item_struct = parse_struct(tokens);
-    assert!(!item_struct.generics.lifetimes().next().is_none());
+    assert!(item_struct.generics.lifetimes().next().is_some());
 }
 
 /// Test 44: Word attribute on enum variant

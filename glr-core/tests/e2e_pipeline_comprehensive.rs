@@ -3,7 +3,6 @@
 #![cfg(feature = "test-api")]
 
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use adze_ir::SymbolId;
 use adze_ir::builder::GrammarBuilder;
 
 fn build_table(builder: GrammarBuilder) -> (adze_ir::Grammar, adze_glr_core::ParseTable) {

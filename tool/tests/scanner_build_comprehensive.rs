@@ -60,7 +60,7 @@ fn test_scanner_language_copy_semantics() {
 #[test]
 fn test_scanner_language_clone_semantics() {
     let lang = ScannerLanguage::Rust;
-    let cloned = lang.clone();
+    let cloned = lang;
     assert_eq!(lang, cloned);
 }
 
@@ -610,7 +610,6 @@ fn test_build_rust_scanner_unreadable_file_errors() {
     // Make file unreadable
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
         let perms = <fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o000);
         fs::set_permissions(&scanner_path, perms).unwrap();
     }
@@ -643,7 +642,6 @@ fn test_build_rust_scanner_readonly_outdir_errors() {
     // Make output directory read-only
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
         let perms = <fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o555);
         fs::set_permissions(out_dir.path(), perms).unwrap();
     }

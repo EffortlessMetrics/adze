@@ -68,7 +68,7 @@ tree-sitter-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optio
 tree-sitter = { version = "0.25.8", optional = true }
 adze-macro = { version = "0.8.0-dev", path = "../macro" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
-adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-glr-core = { version = "0.8.0-dev", path = "../glr-core", features = ["serialization"] }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
 adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }

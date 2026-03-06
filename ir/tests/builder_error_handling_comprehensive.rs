@@ -2,7 +2,6 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar};
-use std::panic::{AssertUnwindSafe, catch_unwind};
 
 // ── Successful builds ──
 

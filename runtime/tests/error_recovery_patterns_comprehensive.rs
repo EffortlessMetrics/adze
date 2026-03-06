@@ -5,7 +5,6 @@ use adze::error_recovery::{
     RecoveryStrategy,
 };
 use adze_ir::SymbolId;
-use std::collections::HashSet;
 
 // ============================================================
 // 1. ErrorRecoveryConfig default construction

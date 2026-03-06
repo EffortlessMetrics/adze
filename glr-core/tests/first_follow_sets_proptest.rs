@@ -88,16 +88,10 @@ const T_A: SymbolId = SymbolId(1);
 const T_B: SymbolId = SymbolId(2);
 const T_C: SymbolId = SymbolId(3);
 const T_D: SymbolId = SymbolId(4);
-const T_E: SymbolId = SymbolId(5);
-const T_F: SymbolId = SymbolId(6);
-const T_G: SymbolId = SymbolId(7);
-
 const NT_S: SymbolId = SymbolId(30);
 const NT_A: SymbolId = SymbolId(31);
 const NT_B: SymbolId = SymbolId(32);
 const NT_C: SymbolId = SymbolId(33);
-const NT_D: SymbolId = SymbolId(34);
-const NT_E: SymbolId = SymbolId(35);
 
 // =========================================================================
 // Category 1: First set of terminal is itself

@@ -107,7 +107,7 @@ fn all_eight_combinations_in_language() {
 proptest! {
     #[test]
     fn clone_preserves_all_fields(m in arb_symbol_metadata()) {
-        let cloned = m.clone();
+        let cloned = m;
         prop_assert_eq!(cloned.is_terminal, m.is_terminal);
         prop_assert_eq!(cloned.is_visible, m.is_visible);
         prop_assert_eq!(cloned.is_supertype, m.is_supertype);
@@ -124,7 +124,7 @@ proptest! {
 
     #[test]
     fn clone_and_copy_agree(m in arb_symbol_metadata()) {
-        let cloned = m.clone();
+        let cloned = m;
         let copied = m;
         prop_assert_eq!(cloned.is_terminal, copied.is_terminal);
         prop_assert_eq!(cloned.is_visible, copied.is_visible);
@@ -202,7 +202,7 @@ fn all_false_clone_matches() {
         is_visible: false,
         is_supertype: false,
     };
-    let c = m.clone();
+    let c = m;
     assert_eq!(c.is_terminal, m.is_terminal);
     assert_eq!(c.is_visible, m.is_visible);
     assert_eq!(c.is_supertype, m.is_supertype);
@@ -268,7 +268,7 @@ proptest! {
 proptest! {
     #[test]
     fn vec_of_metadata_preserves_order(entries in arb_symbol_metadata_vec(30)) {
-        let cloned: Vec<SymbolMetadata> = entries.iter().copied().collect();
+        let cloned: Vec<SymbolMetadata> = entries.to_vec();
         for i in 0..entries.len() {
             prop_assert_eq!(cloned[i].is_terminal, entries[i].is_terminal);
             prop_assert_eq!(cloned[i].is_visible, entries[i].is_visible);

@@ -10,7 +10,7 @@ use adze_common::NameValueExpr;
 use proptest::prelude::*;
 use quote::ToTokens;
 use syn::punctuated::Punctuated;
-use syn::{Attribute, Fields, ItemEnum, ItemStruct, Token, parse_quote};
+use syn::{Attribute, Fields, ItemEnum, ItemStruct, Token};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -30,10 +30,7 @@ fn find_leaf_attr(attrs: &[Attribute]) -> &Attribute {
 
 fn extract_text_value(attr: &Attribute) -> String {
     let params = leaf_params(attr);
-    let nv = params
-        .iter()
-        .find(|p| p.path.to_string() == "text")
-        .unwrap();
+    let nv = params.iter().find(|p| p.path == "text").unwrap();
     if let syn::Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Str(s),
         ..

@@ -18,7 +18,7 @@ use adze_tablegen::{
 /// Build a grammar with N distinct single-char tokens, each as an alternative
 /// for the start rule. Returns (grammar, parse_table).
 fn grammar_with_n_tokens(n: usize) -> (Grammar, ParseTable) {
-    assert!(n >= 1 && n <= 26);
+    assert!((1..=26).contains(&n));
     let mut builder = GrammarBuilder::new("tok_grammar");
     let names: Vec<String> = (0..n)
         .map(|i| format!("t{}", (b'a' + i as u8) as char))
@@ -26,11 +26,11 @@ fn grammar_with_n_tokens(n: usize) -> (Grammar, ParseTable) {
     let patterns: Vec<String> = (0..n)
         .map(|i| format!("{}", (b'a' + i as u8) as char))
         .collect();
-    for i in 0..n {
-        builder = builder.token(&names[i], &patterns[i]);
+    for (i, name) in names.iter().enumerate() {
+        builder = builder.token(name, &patterns[i]);
     }
-    for i in 0..n {
-        builder = builder.rule("start", vec![&names[i]]);
+    for name in &names {
+        builder = builder.rule("start", vec![name.as_str()]);
     }
     builder = builder.start("start");
     let mut g = builder.build();

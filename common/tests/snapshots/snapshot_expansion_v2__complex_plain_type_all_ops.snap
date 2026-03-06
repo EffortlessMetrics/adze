@@ -1,0 +1,7 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: "format!(\"extract: found={ext_found} inner={ext_inner}\\nfilter: {filtered}\\nwrap: {wrapped}\")"
+---
+extract: found=false inner=Identifier
+filter: Identifier
+wrap: adze :: WithLeaf < Identifier >

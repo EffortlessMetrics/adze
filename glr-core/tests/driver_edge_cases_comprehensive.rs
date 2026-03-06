@@ -7,7 +7,6 @@
 
 #![cfg(feature = "test-api")]
 
-use adze_glr_core::forest_view::ForestView;
 use adze_glr_core::{
     Action, Driver, FirstFollowSets, Forest, GotoIndexing, LexMode, ParseRule, ParseTable,
     build_lr1_automaton, sanity_check_tables,
@@ -119,7 +118,7 @@ fn create_test_table(
 /// Build a minimal hand-crafted table: S → 'a' (SymbolId(1))
 fn minimal_single_token_table() -> ParseTable {
     let eof = SymbolId(0);
-    let a = SymbolId(1);
+    let _a = SymbolId(1);
     let s = SymbolId(2);
 
     let rules = vec![ParseRule { lhs: s, rhs_len: 1 }];

@@ -90,7 +90,7 @@ fn strategy_indentation_recovery_exists() {
 #[test]
 fn strategy_clone_panic_mode() {
     let a = RecoveryStrategy::PanicMode;
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
@@ -739,7 +739,7 @@ fn builder_add_sync_token_sym() {
     let cfg = ErrorRecoveryConfigBuilder::new()
         .add_sync_token_sym(SymbolId(77))
         .build();
-    assert!(cfg.sync_tokens.iter().any(|s| *s == SymbolId(77)));
+    assert!(cfg.sync_tokens.contains(&SymbolId(77)));
 }
 
 #[test]
@@ -755,7 +755,7 @@ fn builder_add_insertable_token_sym() {
     let cfg = ErrorRecoveryConfigBuilder::new()
         .add_insertable_token_sym(SymbolId(9))
         .build();
-    assert!(cfg.insert_candidates.iter().any(|s| *s == SymbolId(9)));
+    assert!(cfg.insert_candidates.contains(&SymbolId(9)));
 }
 
 #[test]

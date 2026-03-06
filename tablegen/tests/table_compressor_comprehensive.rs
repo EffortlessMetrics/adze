@@ -12,10 +12,8 @@
 
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{RuleId, StateId, SymbolId};
-use adze_tablegen::compress::{
-    CompressedActionEntry, CompressedGotoEntry, CompressedTables, TableCompressor,
-};
+use adze_ir::{RuleId, StateId};
+use adze_tablegen::compress::{CompressedActionEntry, CompressedGotoEntry, TableCompressor};
 use std::collections::BTreeMap;
 
 // ============================================================================

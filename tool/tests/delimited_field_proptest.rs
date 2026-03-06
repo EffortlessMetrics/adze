@@ -71,10 +71,11 @@ fn find_node_by_type<'a>(node: &'a Value, ty: &str) -> Option<&'a Value> {
             }
         }
     }
-    if node.get("content").is_some() && !node["content"].is_null() {
-        if let Some(found) = find_node_by_type(&node["content"], ty) {
-            return Some(found);
-        }
+    if node.get("content").is_some()
+        && !node["content"].is_null()
+        && let Some(found) = find_node_by_type(&node["content"], ty)
+    {
+        return Some(found);
     }
     None
 }

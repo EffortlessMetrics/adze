@@ -5,7 +5,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    Attribute, Expr, FnArg, GenericParam, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMod,
+    Attribute, Expr, FnArg, GenericParam, ImplItem, ItemEnum, ItemFn, ItemImpl, ItemMod,
     ItemStruct, ItemTrait, ItemType, ItemUse, Lit, Pat, ReturnType, TraitItem, Type, Visibility,
     WhereClause, parse2,
 };

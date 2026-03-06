@@ -9,9 +9,7 @@
 //! goto transitions, and edge cases.
 
 use adze_glr_core::*;
-use adze_ir::Associativity;
 use adze_ir::builder::GrammarBuilder;
-use std::collections::BTreeSet;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -80,14 +78,6 @@ fn has_accept_on_eof(table: &ParseTable, state: usize) -> bool {
 fn shift_destination(table: &ParseTable, state: usize, sym: SymbolId) -> Option<StateId> {
     actions_for(table, state, sym).iter().find_map(|a| match a {
         Action::Shift(s) => Some(*s),
-        _ => None,
-    })
-}
-
-/// Get reduce rule for symbol
-fn reduce_rule(table: &ParseTable, state: usize, sym: SymbolId) -> Option<RuleId> {
-    actions_for(table, state, sym).iter().find_map(|a| match a {
-        Action::Reduce(r) => Some(*r),
         _ => None,
     })
 }
@@ -166,7 +156,7 @@ fn simple_grammar_initial_state_accessible() {
     let table = build_table(&mut g);
 
     assert!(
-        table.action_table.len() > 0,
+        !table.action_table.is_empty(),
         "action table must contain initial state"
     );
 }
@@ -451,7 +441,7 @@ fn goto_table_nonterminal_indices_valid() {
         .build();
     let table = build_table(&mut g);
 
-    for (nt_id, &col_idx) in &table.nonterminal_to_index {
+    for &col_idx in table.nonterminal_to_index.values() {
         for row in &table.goto_table {
             if col_idx < row.len() {
                 let state_id = row[col_idx];
@@ -551,7 +541,7 @@ fn accept_in_final_state() {
 
 #[test]
 fn first_set_for_terminal_symbol() {
-    let mut g = GrammarBuilder::new("first_term")
+    let g = GrammarBuilder::new("first_term")
         .token("a", "a")
         .rule("S", vec!["a"])
         .start("S")
@@ -575,7 +565,7 @@ fn first_set_for_terminal_symbol() {
 
 #[test]
 fn first_set_for_nonterminal() {
-    let mut g = GrammarBuilder::new("first_nt")
+    let g = GrammarBuilder::new("first_nt")
         .token("a", "a")
         .rule("S", vec!["a"])
         .start("S")
@@ -600,7 +590,7 @@ fn first_set_for_nonterminal() {
 
 #[test]
 fn nullable_symbol_detection() {
-    let mut g = GrammarBuilder::new("nullable")
+    let g = GrammarBuilder::new("nullable")
         .token("a", "a")
         .rule("A", vec![]) // epsilon
         .rule("S", vec!["A"])
@@ -619,7 +609,7 @@ fn nullable_symbol_detection() {
 
 #[test]
 fn non_nullable_symbol() {
-    let mut g = GrammarBuilder::new("non_nullable")
+    let g = GrammarBuilder::new("non_nullable")
         .token("a", "a")
         .rule("S", vec!["a"])
         .start("S")
@@ -645,14 +635,14 @@ fn non_nullable_symbol() {
 
 #[test]
 fn item_set_closure_adds_items() {
-    let mut g = GrammarBuilder::new("closure_add")
+    let g = GrammarBuilder::new("closure_add")
         .token("a", "a")
         .rule("S", vec!["A"])
         .rule("A", vec!["a"])
         .start("S")
         .build();
     let ff = FirstFollowSets::compute(&g).expect("FIRST/FOLLOW computation");
-    let col = ItemSetCollection::build_canonical_collection(&mut g, &ff);
+    let col = ItemSetCollection::build_canonical_collection(&g, &ff);
 
     // Initial state (state 0) should have closure items
     assert!(
@@ -663,7 +653,7 @@ fn item_set_closure_adds_items() {
 
 #[test]
 fn item_set_closure_for_chain() {
-    let mut g = GrammarBuilder::new("closure_chain")
+    let g = GrammarBuilder::new("closure_chain")
         .token("c", "c")
         .rule("C", vec!["c"])
         .rule("B", vec!["C"])
@@ -672,7 +662,7 @@ fn item_set_closure_for_chain() {
         .start("S")
         .build();
     let ff = FirstFollowSets::compute(&g).expect("FIRST/FOLLOW computation");
-    let col = ItemSetCollection::build_canonical_collection(&mut g, &ff);
+    let col = ItemSetCollection::build_canonical_collection(&g, &ff);
 
     // Initial closure should have items for S, A, B, C
     assert!(
@@ -711,21 +701,20 @@ fn goto_transition_exists() {
 
 #[test]
 fn goto_nonterminal_transition() {
-    let mut g = GrammarBuilder::new("goto_nt")
+    let g = GrammarBuilder::new("goto_nt")
         .token("a", "a")
         .rule("S", vec!["A"])
         .rule("A", vec!["a"])
         .start("S")
         .build();
-    let mut g_clone = g.clone();
-    let ff = FirstFollowSets::compute(&mut g_clone).expect("FIRST/FOLLOW computation");
-    let col = ItemSetCollection::build_canonical_collection(&mut g, &ff);
+    let ff = FirstFollowSets::compute(&g).expect("FIRST/FOLLOW computation");
+    let col = ItemSetCollection::build_canonical_collection(&g, &ff);
 
     // Should have goto transitions on nonterminals in the grammar
     let nt_gotos: Vec<_> = col
         .goto_table
         .iter()
-        .filter(|((_, sym), _)| *col.symbol_is_terminal.get(sym).unwrap_or(&false) == false)
+        .filter(|((_, sym), _)| !*col.symbol_is_terminal.get(sym).unwrap_or(&false))
         .collect();
 
     assert!(
@@ -736,7 +725,7 @@ fn goto_nonterminal_transition() {
 
 #[test]
 fn all_goto_targets_valid_states() {
-    let mut g = GrammarBuilder::new("goto_valid")
+    let g = GrammarBuilder::new("goto_valid")
         .token("a", "a")
         .token("b", "b")
         .rule("S", vec!["A", "B"])
@@ -745,7 +734,7 @@ fn all_goto_targets_valid_states() {
         .start("S")
         .build();
     let ff = FirstFollowSets::compute(&g).expect("FIRST/FOLLOW computation");
-    let col = ItemSetCollection::build_canonical_collection(&mut g, &ff);
+    let col = ItemSetCollection::build_canonical_collection(&g, &ff);
 
     for (_, &target) in &col.goto_table {
         assert!(
@@ -779,7 +768,7 @@ fn epsilon_rule_handled() {
 
 #[test]
 fn epsilon_nullable_propagates() {
-    let mut g = GrammarBuilder::new("epsilon_nullable")
+    let g = GrammarBuilder::new("epsilon_nullable")
         .token("a", "a")
         .rule("B", vec![]) // epsilon
         .rule("A", vec!["B"])

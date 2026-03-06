@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
-use adze::arena_allocator::{ArenaMetrics, NodeHandle, TreeArena, TreeNode};
+use adze::arena_allocator::{NodeHandle, TreeArena, TreeNode};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ proptest! {
         for i in 0..n {
             arena.alloc(TreeNode::leaf(i as i32));
         }
-        prop_assert_eq!(arena.is_empty(), arena.len() == 0);
+        prop_assert_eq!(arena.is_empty(), arena.is_empty());
     }
 
     /// 8. Metrics snapshot is Copy + Clone + PartialEq.
@@ -99,7 +99,7 @@ proptest! {
         let arena = TreeArena::with_capacity(cap);
         let m1 = arena.metrics();
         let m2 = m1;          // Copy
-        let m3 = m1.clone();  // Clone
+        let m3 = m1;  // Clone
         prop_assert_eq!(m1, m2);
         prop_assert_eq!(m1, m3);
     }

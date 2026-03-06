@@ -45,7 +45,7 @@ fn recovery_strategy_phrase_level() {
 #[test]
 fn recovery_strategy_clone() {
     let s1 = RecoveryStrategy::PanicMode;
-    let s2 = s1.clone();
+    let s2 = s1;
     assert_eq!(format!("{:?}", s1), format!("{:?}", s2));
 }
 

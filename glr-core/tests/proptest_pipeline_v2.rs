@@ -1,3 +1,4 @@
+#![cfg(feature = "test-api")]
 //! Property-based tests for the full FIRST/FOLLOW → LR(1) → ParseTable pipeline.
 //!
 //! Requires `--features test-api` to access `test_helpers::test`.
@@ -5,8 +6,7 @@
 use adze_glr_core::test_helpers::test as th;
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use indexmap::IndexMap;
+use adze_ir::{Associativity, Grammar, Symbol, SymbolId};
 use proptest::prelude::*;
 use std::collections::BTreeSet;
 
@@ -34,7 +34,7 @@ fn arb_simple_grammar() -> impl Strategy<Value = Grammar> {
 }
 
 /// Deterministic grammar builder from indices.
-fn build_grammar(n_tok: usize, n_nt: usize, productions: &[Vec<Vec<usize>>]) -> Grammar {
+fn build_grammar(n_tok: usize, _n_nt: usize, productions: &[Vec<Vec<usize>>]) -> Grammar {
     let mut builder = GrammarBuilder::new("proptest");
     // Register tokens
     for i in 0..n_tok {
@@ -143,13 +143,6 @@ fn try_pipeline(g: &Grammar) -> Option<(FirstFollowSets, ParseTable)> {
     Some((ff, table))
 }
 
-/// Force pipeline – panics on error.
-fn pipeline(g: &Grammar) -> (FirstFollowSets, ParseTable) {
-    let ff = FirstFollowSets::compute(g).expect("FF failed");
-    let table = build_lr1_automaton(g, &ff).expect("LR1 failed");
-    (ff, table)
-}
-
 /// Collect all terminal SymbolIds from a grammar.
 fn terminal_ids(g: &Grammar) -> Vec<SymbolId> {
     g.tokens.keys().copied().collect()
@@ -197,12 +190,11 @@ proptest! {
         let ff = FirstFollowSets::compute(&g).unwrap();
         for (&nt, rules) in &g.rules {
             for rule in rules {
-                if let Some(Symbol::Terminal(tid)) = rule.rhs.first() {
-                    if let Some(fs) = ff.first(nt) {
+                if let Some(Symbol::Terminal(tid)) = rule.rhs.first()
+                    && let Some(fs) = ff.first(nt) {
                         prop_assert!(fs.contains(tid.0 as usize),
                             "FIRST({:?}) missing leading terminal {:?}", nt, tid);
                     }
-                }
             }
         }
     }
@@ -212,12 +204,11 @@ proptest! {
     fn non_nullable_nt_has_nonempty_first(g in arb_fixed_grammar()) {
         let ff = FirstFollowSets::compute(&g).unwrap();
         for &nt in g.rules.keys() {
-            if !ff.is_nullable(nt) {
-                if let Some(fs) = ff.first(nt) {
+            if !ff.is_nullable(nt)
+                && let Some(fs) = ff.first(nt) {
                     prop_assert!(fs.count_ones(..) > 0,
                         "Non-nullable {:?} has empty FIRST", nt);
                 }
-            }
         }
     }
 
@@ -262,12 +253,11 @@ proptest! {
     #[test]
     fn follow_of_start_contains_eof(g in arb_fixed_grammar()) {
         let ff = FirstFollowSets::compute(&g).unwrap();
-        if let Some(start) = g.start_symbol() {
-            if let Some(fol) = ff.follow(start) {
+        if let Some(start) = g.start_symbol()
+            && let Some(fol) = ff.follow(start) {
                 prop_assert!(fol.contains(0),
                     "FOLLOW(start) missing EOF");
             }
-        }
     }
 
     // 7. If A → α B β where β is not nullable, FIRST(β) ⊆ FOLLOW(B)
@@ -276,17 +266,15 @@ proptest! {
         let ff = FirstFollowSets::compute(&g).unwrap();
         for rule in g.all_rules() {
             for (i, sym) in rule.rhs.iter().enumerate() {
-                if let Symbol::NonTerminal(b) = sym {
-                    if i + 1 < rule.rhs.len() {
+                if let Symbol::NonTerminal(b) = sym
+                    && i + 1 < rule.rhs.len() {
                         let next = &rule.rhs[i + 1];
-                        if let Symbol::Terminal(t) = next {
-                            if let Some(fol) = ff.follow(*b) {
+                        if let Symbol::Terminal(t) = next
+                            && let Some(fol) = ff.follow(*b) {
                                 prop_assert!(fol.contains(t.0 as usize),
                                     "FIRST(next) {:?} not in FOLLOW({:?})", t, b);
                             }
-                        }
                     }
-                }
             }
         }
     }
@@ -359,29 +347,27 @@ proptest! {
     // 13. Every action table row has the same width
     #[test]
     fn action_rows_uniform_width(g in arb_fixed_grammar()) {
-        if let Some((_, table)) = try_pipeline(&g) {
-            if let Some(first_row) = table.action_table.first() {
+        if let Some((_, table)) = try_pipeline(&g)
+            && let Some(first_row) = table.action_table.first() {
                 let w = first_row.len();
                 for (i, row) in table.action_table.iter().enumerate() {
                     prop_assert_eq!(row.len(), w,
                         "Action row {} has width {} but expected {}", i, row.len(), w);
                 }
             }
-        }
     }
 
     // 14. Every goto table row has the same width
     #[test]
     fn goto_rows_uniform_width(g in arb_fixed_grammar()) {
-        if let Some((_, table)) = try_pipeline(&g) {
-            if let Some(first_row) = table.goto_table.first() {
+        if let Some((_, table)) = try_pipeline(&g)
+            && let Some(first_row) = table.goto_table.first() {
                 let w = first_row.len();
                 for (i, row) in table.goto_table.iter().enumerate() {
                     prop_assert_eq!(row.len(), w,
                         "Goto row {} has width {} but expected {}", i, row.len(), w);
                 }
             }
-        }
     }
 
     // 15. symbol_to_index and index_to_symbol are consistent

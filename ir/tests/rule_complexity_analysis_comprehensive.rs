@@ -2,8 +2,8 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
-    Associativity, Grammar, GrammarOptimizer, OptimizationStats, PrecedenceKind, ProductionId,
-    Rule, Symbol, SymbolId, Token, TokenPattern,
+    Grammar, GrammarOptimizer, OptimizationStats, ProductionId, Rule, Symbol, SymbolId, Token,
+    TokenPattern,
 };
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ fn symbol_depth(sym: &Symbol) -> usize {
             1 + symbol_depth(inner)
         }
         Symbol::Choice(children) | Symbol::Sequence(children) => {
-            1 + children.iter().map(|c| symbol_depth(c)).max().unwrap_or(0)
+            1 + children.iter().map(symbol_depth).max().unwrap_or(0)
         }
     }
 }
@@ -85,7 +85,7 @@ fn symbol_count(sym: &Symbol) -> usize {
             1 + symbol_count(inner)
         }
         Symbol::Choice(children) | Symbol::Sequence(children) => {
-            1 + children.iter().map(|c| symbol_count(c)).sum::<usize>()
+            1 + children.iter().map(symbol_count).sum::<usize>()
         }
     }
 }
@@ -107,12 +107,12 @@ fn is_complex_rule(rule: &Rule) -> bool {
 
 /// Max nesting depth across all RHS symbols in a rule.
 fn rule_max_depth(rule: &Rule) -> usize {
-    rule.rhs.iter().map(|s| symbol_depth(s)).max().unwrap_or(0)
+    rule.rhs.iter().map(symbol_depth).max().unwrap_or(0)
 }
 
 /// Total number of leaf symbols (recursive) in a rule's RHS.
 fn rule_symbol_count(rule: &Rule) -> usize {
-    rule.rhs.iter().map(|s| symbol_count(s)).sum()
+    rule.rhs.iter().map(symbol_count).sum()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -366,7 +366,7 @@ fn many_alternatives_distinct_productions() {
 
 #[test]
 fn choice_symbol_with_many_branches() {
-    let branches: Vec<Symbol> = (1..=10).map(|i| term(i)).collect();
+    let branches: Vec<Symbol> = (1..=10).map(term).collect();
     let choice = Symbol::Choice(branches);
     assert_eq!(symbol_depth(&choice), 1);
     assert_eq!(symbol_count(&choice), 11); // 1 Choice + 10 terminals

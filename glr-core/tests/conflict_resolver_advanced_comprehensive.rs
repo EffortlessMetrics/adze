@@ -933,14 +933,6 @@ fn edge_many_tokens_no_rules() {
 
 #[test]
 fn edge_many_precedence_levels() {
-    let mut builder = GrammarBuilder::new("many_prec").token("NUM", r"\d+");
-    for i in 0..10 {
-        let op_name: &str = &format!("op{i}");
-        // We must own the string and leak it so the borrow checker is happy
-        // with the fluent builder pattern. Use a static approach instead.
-        let _ = i; // use i
-        break; // We'll use the raw Grammar API instead
-    }
     // Use raw Grammar API for many precedence levels
     let mut grammar = Grammar::new("many_prec".to_string());
     let num = SymbolId(1);
@@ -1401,9 +1393,11 @@ fn stats_field_mutation_does_not_affect_original() {
         reduce_reduce_conflicts: 10,
         ..Default::default()
     };
-    let mut copy = original.clone();
-    copy.shift_reduce_conflicts = 0;
-    copy.reduce_reduce_conflicts = 0;
+    let mut cloned = original.clone();
+    cloned.shift_reduce_conflicts = 0;
+    cloned.reduce_reduce_conflicts = 0;
+    assert_eq!(cloned.shift_reduce_conflicts, 0);
+    assert_eq!(cloned.reduce_reduce_conflicts, 0);
     assert_eq!(original.shift_reduce_conflicts, 5);
     assert_eq!(original.reduce_reduce_conflicts, 10);
 }

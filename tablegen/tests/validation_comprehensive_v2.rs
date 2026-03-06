@@ -1165,7 +1165,7 @@ fn v2_bad_eof_metadata_combined_with_unsorted_fields() {
     drop(metadata);
     drop(ptrs);
     drop(spt);
-    drop(names);
+    let _ = names;
 }
 
 #[test]
@@ -1203,7 +1203,7 @@ fn v2_valid_metadata_with_valid_fields_no_errors_from_either() {
     drop(metadata);
     drop(ptrs);
     drop(spt);
-    drop(names);
+    let _ = names;
 }
 
 // ===========================================================================

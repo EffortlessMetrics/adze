@@ -1,0 +1,7 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: "format!(\"wrap: {wrapped}\\nextract: found={found} inner={inner}\\nfilter: {filtered}\")"
+---
+wrap: adze :: WithLeaf < T >
+extract: found=false inner=T
+filter: T

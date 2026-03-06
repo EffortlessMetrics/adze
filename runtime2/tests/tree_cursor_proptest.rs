@@ -18,7 +18,7 @@ fn flat_tree(symbol: u32, start: usize, end: usize, num_children: usize) -> Tree
         .map(|i| {
             let cs = start + (span * i) / num_children;
             let ce = start + (span * (i + 1)) / num_children;
-            Tree::new_for_testing((i as u32) + 1, cs, ce, vec![])
+            Tree::new_for_testing(symbol.wrapping_add(i as u32 + 1), cs, ce, vec![])
         })
         .collect();
     Tree::new_for_testing(symbol, start, end, children)
@@ -435,7 +435,6 @@ proptest! {
         let root_kind = cursor.node().kind_id();
         cursor.goto_first_child();
         let child_kind = cursor.node().kind_id();
-        // Child should differ from root (different symbol IDs in our builder)
         prop_assert_ne!(child_kind, root_kind);
     }
 }

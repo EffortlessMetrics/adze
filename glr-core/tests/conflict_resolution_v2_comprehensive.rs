@@ -265,13 +265,14 @@ fn stats_default_has_all_zero() {
 
 #[test]
 fn stats_clone_preserves_fields() {
-    let mut s = ConflictStats::default();
-    s.shift_reduce_conflicts = 3;
-    s.reduce_reduce_conflicts = 2;
-    s.precedence_resolved = 1;
-    s.associativity_resolved = 4;
-    s.explicit_glr = 5;
-    s.default_resolved = 6;
+    let s = ConflictStats {
+        shift_reduce_conflicts: 3,
+        reduce_reduce_conflicts: 2,
+        precedence_resolved: 1,
+        associativity_resolved: 4,
+        explicit_glr: 5,
+        default_resolved: 6,
+    };
     let c = s.clone();
     assert_eq!(c.shift_reduce_conflicts, 3);
     assert_eq!(c.reduce_reduce_conflicts, 2);

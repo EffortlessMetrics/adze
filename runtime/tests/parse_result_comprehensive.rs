@@ -495,7 +495,7 @@ fn multiple_pure_parser_errors() {
 
 #[test]
 fn multiple_errors_parse_errors_different_reasons() {
-    let errors = vec![
+    let errors = [
         ErrorsParseError {
             reason: ParseErrorReason::UnexpectedToken("x".into()),
             start: 0,
@@ -541,17 +541,18 @@ fn multiple_errors_positions_are_ordered() {
 
 #[test]
 fn errors_collect_into_vec() {
-    let mut all_errors: Vec<ErrorsParseError> = Vec::new();
-    all_errors.push(ErrorsParseError {
-        reason: ParseErrorReason::UnexpectedToken("a".into()),
-        start: 0,
-        end: 1,
-    });
-    all_errors.push(ErrorsParseError {
-        reason: ParseErrorReason::UnexpectedToken("b".into()),
-        start: 2,
-        end: 3,
-    });
+    let all_errors: Vec<ErrorsParseError> = vec![
+        ErrorsParseError {
+            reason: ParseErrorReason::UnexpectedToken("a".into()),
+            start: 0,
+            end: 1,
+        },
+        ErrorsParseError {
+            reason: ParseErrorReason::UnexpectedToken("b".into()),
+            start: 2,
+            end: 3,
+        },
+    ];
     assert_eq!(all_errors.len(), 2);
     for i in 0..all_errors.len() {
         match &all_errors[i].reason {

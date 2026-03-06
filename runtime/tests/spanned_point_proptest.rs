@@ -4,7 +4,7 @@
 //! from the adze runtime public API.
 
 use adze::Spanned;
-use adze::pure_parser::{ChildWalker, ParsedNode, Point};
+use adze::pure_parser::{ParsedNode, Point};
 use std::mem::MaybeUninit;
 
 // ---------------------------------------------------------------------------
@@ -160,7 +160,7 @@ fn point_is_copy() {
 #[test]
 fn point_clone_matches() {
     let a = pt(100, 200);
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 

@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
-use adze_runtime::{InputEdit, Point, Tree};
+use adze_runtime::{InputEdit, Point};
 
 // ---------------------------------------------------------------------------
 // Point creation and comparison
@@ -54,7 +54,7 @@ fn point_ordering_same_row() {
 fn point_clone_and_copy() {
     let p = Point::new(4, 8);
     let p2 = p; // Copy
-    let p3 = p.clone();
+    let p3 = p;
     assert_eq!(p, p2);
     assert_eq!(p, p3);
 }
@@ -143,7 +143,7 @@ fn input_edit_clone_and_copy() {
         new_end_position: Point::new(1, 5),
     };
     let edit2 = edit; // Copy
-    let edit3 = edit.clone();
+    let edit3 = edit;
     assert_eq!(edit, edit2);
     assert_eq!(edit, edit3);
 }

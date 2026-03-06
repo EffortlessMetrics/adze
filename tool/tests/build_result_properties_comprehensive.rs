@@ -161,5 +161,5 @@ fn node_types_has_entries() {
     let g = simple_grammar();
     let result = build_parser(g, BuildOptions::default()).unwrap();
     let val: serde_json::Value = serde_json::from_str(&result.node_types_json).unwrap();
-    assert!(val.as_array().unwrap().len() > 0);
+    assert!(!val.as_array().unwrap().is_empty());
 }

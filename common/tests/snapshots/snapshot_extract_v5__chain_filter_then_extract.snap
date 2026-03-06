@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "format!(\"filtered={filtered_str} then_found={found} inner={inner}\")"
+---
+filtered=Vec < Token > then_found=true inner=Token

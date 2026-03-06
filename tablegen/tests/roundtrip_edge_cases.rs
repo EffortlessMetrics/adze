@@ -622,7 +622,7 @@ fn test_22_abi_public_symbol_map() {
     let builder = AbiLanguageBuilder::new(&grammar, &table);
     let _output = builder.generate();
 
-    assert!(table.symbol_to_index.len() > 0);
+    assert!(!table.symbol_to_index.is_empty());
 }
 
 #[test]

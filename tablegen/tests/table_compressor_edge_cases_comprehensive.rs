@@ -6,7 +6,7 @@
 
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Grammar, RuleId, StateId, SymbolId};
+use adze_ir::{Grammar, RuleId, StateId};
 use adze_tablegen::compress::{
     CompressedActionEntry, CompressedActionTable, CompressedGotoEntry, CompressedGotoTable,
     CompressedParseTable, CompressedTables, TableCompressor,
@@ -242,7 +242,7 @@ fn tc_multi_rule_compresses_ok() {
 
 #[test]
 fn tc_nullable_start_can_be_empty() {
-    let (g, pt) = build(nullable_grammar());
+    let (_g, pt) = build(nullable_grammar());
     let sce = adze_tablegen::eof_accepts_or_reduces(&pt);
     assert!(
         sce,
@@ -425,7 +425,7 @@ fn node_types_chain_has_entries() {
     let (g, _) = build(chain_grammar());
     let json_str = NodeTypesGenerator::new(&g).generate().unwrap();
     let val: serde_json::Value = serde_json::from_str(&json_str).unwrap();
-    assert!(val.as_array().unwrap().len() >= 1);
+    assert!(!val.as_array().unwrap().is_empty());
 }
 
 #[test]

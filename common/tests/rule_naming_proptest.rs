@@ -11,7 +11,7 @@ use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use proptest::prelude::*;
 use quote::ToTokens;
 use std::collections::{HashMap, HashSet};
-use syn::{Item, ItemEnum, ItemMod, ItemStruct, Type, parse_str};
+use syn::{Item, ItemMod, parse_str};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,10 +28,10 @@ fn to_snake_case(name: &str) -> String {
             let prev = name.chars().nth(i - 1).unwrap_or('_');
             if prev.is_lowercase() || prev.is_ascii_digit() {
                 result.push('_');
-            } else if let Some(next) = name.chars().nth(i + 1) {
-                if next.is_lowercase() {
-                    result.push('_');
-                }
+            } else if let Some(next) = name.chars().nth(i + 1)
+                && next.is_lowercase()
+            {
+                result.push('_');
             }
         }
         result.push(ch.to_lowercase().next().unwrap());

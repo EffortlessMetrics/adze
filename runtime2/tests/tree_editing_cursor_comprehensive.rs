@@ -1,6 +1,5 @@
 // Wave 132: Comprehensive Tree editing and TreeCursor traversal tests
 use adze_runtime::tree::{Tree, TreeCursor};
-use adze_runtime::{InputEdit, Point};
 
 // Helper to build a simple tree hierarchy
 fn simple_tree() -> Tree {

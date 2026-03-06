@@ -376,6 +376,7 @@ where
 ///
 /// After the walk, call [`output`](Self::output) to retrieve the formatted
 /// string.
+#[derive(Debug, Clone)]
 pub struct PrettyPrintVisitor {
     indent: usize,
     output: String,

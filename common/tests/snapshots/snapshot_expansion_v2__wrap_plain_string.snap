@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: "wrap(&parse_quote!(String), &[])"
+---
+adze :: WithLeaf < String >

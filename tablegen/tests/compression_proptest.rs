@@ -1165,6 +1165,7 @@ proptest! {
 // ===========================================================================
 
 /// Generate a GLR action cell with up to `max` actions (may include duplicates).
+#[allow(dead_code)]
 fn glr_cell_strategy(max: usize) -> impl Strategy<Value = Vec<Action>> {
     prop::collection::vec(action_strategy(), 0..=max)
 }

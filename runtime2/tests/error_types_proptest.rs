@@ -299,6 +299,8 @@ proptest! {
         let mut cloned = original.clone();
         cloned.line = cloned.line.wrapping_add(1);
         cloned.column = cloned.column.wrapping_add(1);
+        prop_assert_ne!(cloned.line, line);
+        prop_assert_ne!(cloned.column, column);
         prop_assert_eq!(original.byte_offset, byte_offset);
         prop_assert_eq!(original.line, line);
         prop_assert_eq!(original.column, column);

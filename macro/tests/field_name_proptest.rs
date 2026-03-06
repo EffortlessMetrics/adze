@@ -9,7 +9,7 @@
 
 use proptest::prelude::*;
 use quote::ToTokens;
-use syn::{Attribute, Fields, ItemEnum, ItemStruct, parse_quote};
+use syn::{Attribute, Fields, ItemEnum, ItemStruct};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

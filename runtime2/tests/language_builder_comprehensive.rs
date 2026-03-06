@@ -958,7 +958,7 @@ fn with_static_tokens_can_be_called_multiple_times() {
 fn symbol_metadata_clone_and_copy() {
     let meta = terminal_meta();
     let copied = meta;
-    let cloned = meta.clone();
+    let cloned = meta;
     assert_eq!(copied.is_terminal, meta.is_terminal);
     assert_eq!(cloned.is_visible, meta.is_visible);
 }
@@ -1028,7 +1028,7 @@ fn action_clone_and_copy() {
     use adze_runtime::language::Action;
     let a = Action::Shift(42);
     let copied = a;
-    let cloned = a.clone();
+    let cloned = a;
     assert_eq!(copied, Action::Shift(42));
     assert_eq!(cloned, Action::Shift(42));
 }

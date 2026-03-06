@@ -21,10 +21,9 @@
 //! - Empty table invariants
 
 use adze_glr_core::{
-    Action, ActionCell, FirstFollowSets, GotoIndexing, Grammar, ParseRule, ParseTable, RuleId,
-    StateId, SymbolId, SymbolMetadata,
+    Action, ActionCell, GotoIndexing, ParseRule, ParseTable, RuleId, StateId, SymbolId,
+    SymbolMetadata,
 };
-use std::collections::BTreeMap;
 
 // =============================================================================
 // Helpers
@@ -37,10 +36,11 @@ fn create_minimal_table() -> ParseTable {
 
 /// Create a ParseTable with custom state and symbol counts
 fn create_sized_table(state_count: usize, symbol_count: usize) -> ParseTable {
-    let mut table = ParseTable::default();
-    table.state_count = state_count;
-    table.symbol_count = symbol_count;
-    table
+    ParseTable {
+        state_count,
+        symbol_count,
+        ..Default::default()
+    }
 }
 
 /// Create a SymbolMetadata for testing
@@ -702,7 +702,7 @@ fn test_large_symbol_metadata_collection() {
 fn test_large_rule_collection() {
     let mut table = create_minimal_table();
     for i in 0..50 {
-        table.rules.push(create_rule(10 + i, i as u16));
+        table.rules.push(create_rule(10 + i, i));
     }
     assert_eq!(table.rules.len(), 50);
 }
@@ -714,7 +714,7 @@ fn test_large_rule_collection() {
 #[test]
 fn test_table_all_action_types() {
     let mut table = create_minimal_table();
-    let mut cell = vec![
+    let cell = vec![
         Action::Shift(StateId(1)),
         Action::Reduce(RuleId(2)),
         Action::Accept,
@@ -865,7 +865,7 @@ fn test_action_cell_push_and_pop() {
 #[test]
 fn test_parse_table_field_independence() {
     let mut table1 = create_minimal_table();
-    let mut table2 = create_minimal_table();
+    let table2 = create_minimal_table();
     table1
         .action_table
         .push(vec![vec![Action::Shift(StateId(1))]]);

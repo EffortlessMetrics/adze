@@ -10,12 +10,12 @@
 use std::collections::HashSet;
 
 use adze_common::{NameValueExpr, filter_inner_type, try_extract_inner_type};
-use proc_macro2::{Ident, Span, TokenStream, TokenTree};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
 use syn::{
-    Attribute, DeriveInput, Expr, Fields, GenericParam, Item, ItemEnum, ItemMod, ItemStruct,
-    Lifetime, Meta, Token, Type, TypePath, Visibility, WhereClause, parse_quote, parse2,
+    Attribute, DeriveInput, Fields, GenericParam, Item, ItemEnum, ItemMod, ItemStruct, Meta, Token,
+    Type, Visibility, WhereClause, parse_quote, parse2,
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

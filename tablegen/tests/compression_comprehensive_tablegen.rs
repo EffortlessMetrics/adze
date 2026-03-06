@@ -20,7 +20,7 @@
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
 use adze_ir::{Grammar, RuleId, StateId, SymbolId};
-use adze_tablegen::compress::{CompressedActionEntry, CompressedGotoEntry, TableCompressor};
+use adze_tablegen::compress::{CompressedGotoEntry, TableCompressor};
 use std::collections::BTreeMap;
 
 // ─── Test Helpers ──────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ fn make_minimal_table(
 
 /// Create token indices for a table with terminals [1..=terminal_count], then EOF.
 /// This includes all terminals AND the EOF symbol.
-fn make_token_indices(terminal_count: usize) -> Vec<usize> {
+fn _make_token_indices(terminal_count: usize) -> Vec<usize> {
     let mut indices: Vec<usize> = (1..=terminal_count).collect();
     indices.push(terminal_count + 1); // EOF is after all terminals
     indices
@@ -182,7 +182,7 @@ fn make_token_indices(terminal_count: usize) -> Vec<usize> {
 
 /// Calculate the EOF column index for a table created with make_empty_table(states, terms, nonterms, externals)
 /// eof_idx = 1 + terms + externals
-fn eof_idx_for_table(terms: usize, externals: usize) -> usize {
+fn _eof_idx_for_table(terms: usize, externals: usize) -> usize {
     1 + terms + externals
 }
 
@@ -217,10 +217,8 @@ fn compress_single_state_table() {
     let mut table = make_empty_table(1, 1, 1, 0);
 
     // Add a shift action to state 0
-    if let Some(row) = table.action_table.get_mut(0) {
-        if let Some(cell) = row.get_mut(1) {
-            cell.push(Action::Shift(StateId(0)));
-        }
+    if let Some(cell) = table.action_table.get_mut(0).and_then(|row| row.get_mut(1)) {
+        cell.push(Action::Shift(StateId(0)));
     }
 
     let compressor = TableCompressor::new();
@@ -338,7 +336,7 @@ fn compressed_output_contains_small_parse_table() {
     let compressed = compressor.compress(&table, &[1, 2, 3], false).unwrap();
 
     assert!(
-        compressed.action_table.data.len() > 0,
+        !compressed.action_table.data.is_empty(),
         "Compressed action table should have data"
     );
 }
@@ -508,11 +506,9 @@ fn compression_handles_accept_actions() {
     }
 
     // Place Accept action in state 1, EOF column
-    if let Some(row) = table.action_table.get_mut(1) {
-        if let Some(cell) = row.get_mut(3) {
-            // EOF is at column 3 for make_empty_table(3, 2, 1, 0)
-            cell.push(Action::Accept);
-        }
+    if let Some(cell) = table.action_table.get_mut(1).and_then(|row| row.get_mut(3)) {
+        // EOF is at column 3 for make_empty_table(3, 2, 1, 0)
+        cell.push(Action::Accept);
     }
 
     let compressor = TableCompressor::new();
@@ -564,7 +560,7 @@ fn small_parse_table_map_indices_valid() {
     let mut table = make_empty_table(5, 3, 1, 0);
 
     // Add diverse actions
-    for (state_idx, row) in table.action_table.iter_mut().enumerate() {
+    for row in table.action_table.iter_mut() {
         for (sym_idx, cell) in row.iter_mut().enumerate() {
             if sym_idx > 0 {
                 cell.push(Action::Shift(StateId(sym_idx as u16)));
@@ -668,7 +664,7 @@ fn compression_with_sparse_goto_table() {
     }
 
     // Add only 3 sparse entries
-    if table.goto_table.len() > 0 && table.goto_table[0].len() > 0 {
+    if !table.goto_table.is_empty() && !table.goto_table[0].is_empty() {
         table.goto_table[0][2] = StateId(10);
     }
     if table.goto_table.len() > 2 && table.goto_table[2].len() > 3 {
@@ -736,9 +732,8 @@ fn compressed_tables_used_in_abi_generation() {
     let compressed = compressor.compress(&table, &[1, 2, 3, 4], false).unwrap();
 
     // Verify structure is suitable for ABI
-    assert!(compressed.action_table.data.len() >= 0);
-    assert!(compressed.action_table.row_offsets.len() > 0);
-    assert!(compressed.goto_table.row_offsets.len() > 0);
+    assert!(!compressed.action_table.row_offsets.is_empty());
+    assert!(!compressed.goto_table.row_offsets.is_empty());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -824,14 +819,9 @@ fn compressed_table_data_non_negative() {
     let compressor = TableCompressor::new();
     let compressed = compressor.compress(&table, &[1, 2, 3, 4], false).unwrap();
 
-    // Row offsets should be non-negative u16 values
-    for &offset in &compressed.action_table.row_offsets {
-        assert!(offset >= 0, "Row offsets must be non-negative");
-    }
-
-    for &offset in &compressed.goto_table.row_offsets {
-        assert!(offset >= 0, "Goto row offsets must be non-negative");
-    }
+    // Row offsets are u16 values (always non-negative by type)
+    assert!(!compressed.action_table.row_offsets.is_empty());
+    assert!(!compressed.goto_table.row_offsets.is_empty());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -843,7 +833,7 @@ fn compression_preserves_symbol_to_index_mapping() {
     let mut table = make_empty_table(3, 4, 1, 0);
 
     // Record the symbol mapping before compression
-    let original_symbol_count = table.symbol_count;
+    let _original_symbol_count = table.symbol_count;
 
     for (state_idx, row) in table.action_table.iter_mut().enumerate() {
         for (sym_idx, cell) in row.iter_mut().enumerate() {
@@ -978,9 +968,9 @@ fn compression_with_goto_run_length_encoding() {
 
     // Create run-length patterns in goto table
     for row in table.goto_table.iter_mut() {
-        for i in 0..row.len() {
-            if i >= 3 && i <= 5 {
-                row[i] = StateId(42); // Three identical consecutive entries
+        for (i, entry) in row.iter_mut().enumerate() {
+            if (3..=5).contains(&i) {
+                *entry = StateId(42); // Three identical consecutive entries
             }
         }
     }

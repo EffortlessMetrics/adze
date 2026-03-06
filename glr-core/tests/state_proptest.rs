@@ -335,7 +335,7 @@ proptest! {
     /// 20. Action table lookups at initial state return a valid slice (not panic).
     #[test]
     fn initial_state_actions_safe(pt in arb_parse_table()) {
-        for (&sym, _) in &pt.symbol_to_index {
+        for &sym in pt.symbol_to_index.keys() {
             let _actions = pt.actions(pt.initial_state, sym);
             // no panic is the assertion
         }
@@ -449,7 +449,7 @@ proptest! {
     #[test]
     fn oob_state_actions_empty(pt in arb_parse_table(), offset in 1u16..100) {
         let oob = StateId(pt.state_count as u16 + offset);
-        for (&sym, _) in &pt.symbol_to_index {
+        for &sym in pt.symbol_to_index.keys() {
             prop_assert!(pt.actions(oob, sym).is_empty());
         }
     }
@@ -469,7 +469,7 @@ proptest! {
         for s in 0..pt.state_count {
             let sid = StateId(s as u16);
             // actions for every mapped terminal
-            for (&sym, _) in &pt.symbol_to_index {
+            for &sym in pt.symbol_to_index.keys() {
                 let _ = pt.actions(sid, sym);
             }
             // goto for every mapped nonterminal

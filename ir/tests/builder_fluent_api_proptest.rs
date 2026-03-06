@@ -5,7 +5,7 @@
 //! set_start_symbol, method chaining, and build() validation.
 
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar, PrecedenceKind, Symbol, SymbolId, TokenPattern};
+use adze_ir::{Associativity, Grammar, Symbol, SymbolId, TokenPattern};
 use std::collections::HashSet;
 
 // ── Helpers ─────────────────────────────────────────────────────────────

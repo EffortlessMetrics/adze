@@ -48,7 +48,7 @@ fn snapshot(tree: &Tree) -> Vec<(u16, usize, usize)> {
 fn left_spine(depth: usize) -> Tree {
     let mut current = leaf(depth as u32, 0, 1);
     for d in (0..depth).rev() {
-        current = node(d as u32, 0, (depth - d + 1) as usize, vec![current]);
+        current = node(d as u32, 0, depth - d + 1, vec![current]);
     }
     current
 }

@@ -295,8 +295,10 @@ proptest! {
 proptest! {
     #[test]
     fn parse_table_metadata_roundtrip(v in arb_metadata_vec(10)) {
-        let mut table = ParseTable::default();
-        table.symbol_metadata = v.clone();
+        let table = ParseTable {
+            symbol_metadata: v.clone(),
+            ..Default::default()
+        };
         prop_assert_eq!(table.symbol_metadata.len(), v.len());
         for i in 0..v.len() {
             prop_assert_eq!(&table.symbol_metadata[i].name, &v[i].name);
@@ -312,9 +314,11 @@ proptest! {
 proptest! {
     #[test]
     fn parse_table_symbol_count_consistency(v in arb_metadata_vec(10)) {
-        let mut table = ParseTable::default();
-        table.symbol_metadata = v.clone();
-        table.symbol_count = v.len();
+        let table = ParseTable {
+            symbol_metadata: v.clone(),
+            symbol_count: v.len(),
+            ..Default::default()
+        };
         prop_assert_eq!(table.symbol_count, table.symbol_metadata.len());
     }
 }
@@ -326,8 +330,10 @@ proptest! {
 proptest! {
     #[test]
     fn parse_table_filter_terminals(v in arb_metadata_vec(15)) {
-        let mut table = ParseTable::default();
-        table.symbol_metadata = v;
+        let table = ParseTable {
+            symbol_metadata: v,
+            ..Default::default()
+        };
         let terms: Vec<_> = table.symbol_metadata.iter().filter(|m| m.is_terminal).collect();
         let nonterms: Vec<_> = table.symbol_metadata.iter().filter(|m| !m.is_terminal).collect();
         prop_assert_eq!(terms.len() + nonterms.len(), table.symbol_metadata.len());
@@ -501,8 +507,10 @@ proptest! {
 proptest! {
     #[test]
     fn parse_table_clone_preserves_metadata(v in arb_metadata_vec(8)) {
-        let mut table = ParseTable::default();
-        table.symbol_metadata = v;
+        let table = ParseTable {
+            symbol_metadata: v,
+            ..Default::default()
+        };
         let cloned = table.clone();
         prop_assert_eq!(cloned.symbol_metadata.len(), table.symbol_metadata.len());
         for i in 0..table.symbol_metadata.len() {
@@ -829,9 +837,11 @@ proptest! {
 proptest! {
     #[test]
     fn parse_table_is_terminal_boundary(token_count in 1usize..20, extra in 0usize..5) {
-        let mut table = ParseTable::default();
-        table.token_count = token_count;
-        table.external_token_count = extra;
+        let table = ParseTable {
+            token_count,
+            external_token_count: extra,
+            ..Default::default()
+        };
         let boundary = token_count + extra;
         // Symbols below boundary are terminals
         for i in 0..boundary {
@@ -852,8 +862,10 @@ proptest! {
         v1 in arb_metadata_vec(5),
         v2 in arb_metadata_vec(8),
     ) {
-        let mut table = ParseTable::default();
-        table.symbol_metadata = v1;
+        let mut table = ParseTable {
+            symbol_metadata: v1,
+            ..Default::default()
+        };
         let old_len = table.symbol_metadata.len();
         table.symbol_metadata = v2.clone();
         prop_assert_eq!(table.symbol_metadata.len(), v2.len());
@@ -1010,8 +1022,10 @@ proptest! {
 proptest! {
     #[test]
     fn parse_table_metadata_order_preserved(v in arb_metadata_vec(12)) {
-        let mut table = ParseTable::default();
-        table.symbol_metadata = v.clone();
+        let table = ParseTable {
+            symbol_metadata: v.clone(),
+            ..Default::default()
+        };
         for i in 0..v.len() {
             prop_assert_eq!(&table.symbol_metadata[i].name, &v[i].name);
             prop_assert_eq!(table.symbol_metadata[i].is_terminal, v[i].is_terminal);
@@ -1096,8 +1110,10 @@ proptest! {
 proptest! {
     #[test]
     fn parse_table_metadata_survives_mutations(v in arb_metadata_vec(6)) {
-        let mut table = ParseTable::default();
-        table.symbol_metadata = v.clone();
+        let mut table = ParseTable {
+            symbol_metadata: v.clone(),
+            ..Default::default()
+        };
         // Mutate state_count and symbol_count, metadata should be unaffected
         table.state_count = 99;
         table.symbol_count = 999;

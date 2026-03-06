@@ -6,10 +6,10 @@
 
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar, RuleId, StateId, SymbolId};
+use adze_ir::{Associativity, Grammar, RuleId, StateId};
 use adze_tablegen::compress::{
-    CompressedActionEntry, CompressedActionTable, CompressedGotoEntry, CompressedGotoTable,
-    CompressedParseTable, CompressedTables, TableCompressor,
+    CompressedActionEntry, CompressedGotoEntry, CompressedParseTable, CompressedTables,
+    TableCompressor,
 };
 use adze_tablegen::compression::{
     BitPackedActionTable, compress_action_table, compress_goto_table, decompress_action,
@@ -36,6 +36,7 @@ fn compress_full(grammar: &Grammar) -> CompressedTables {
 }
 
 /// Convert single-action rows into GLR action cells.
+#[allow(dead_code)]
 fn to_glr_cells(rows: Vec<Vec<Action>>) -> Vec<Vec<Vec<Action>>> {
     rows.into_iter()
         .map(|row| {

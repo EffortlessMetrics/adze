@@ -1,0 +1,6 @@
+---
+source: common/tests/snapshot_expansion_v2.rs
+expression: "format!(\"filter: {filtered}\\nwrap: {wrapped}\")"
+---
+filter: Vec < u8 >
+wrap: Box < Arc < Rc < Vec < adze :: WithLeaf < u8 > > > > >

@@ -173,7 +173,6 @@ fn grammar_without_start_uses_first_rule_no_explicit_start_error() {
 fn undefined_symbol_in_rule_rhs_produces_error() {
     // Use raw Grammar API to inject an undefined symbol reference
     use adze_ir::{ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-    use indexmap::IndexMap;
 
     let mut g = Grammar::new("undef".to_string());
     let expr_id = SymbolId(1);

@@ -8,7 +8,7 @@
 
 use proptest::prelude::*;
 use quote::ToTokens;
-use syn::{Attribute, Fields, ItemStruct, Visibility, parse_quote};
+use syn::{Attribute, Fields, ItemStruct, Visibility};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

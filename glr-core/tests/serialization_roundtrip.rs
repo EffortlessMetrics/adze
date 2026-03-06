@@ -54,16 +54,18 @@ mod tests {
 
     #[test]
     fn version_constant_is_positive() {
-        assert!(PARSE_TABLE_FORMAT_VERSION > 0, "version must be > 0");
+        const { assert!(PARSE_TABLE_FORMAT_VERSION > 0, "version must be > 0") };
     }
 
     #[test]
     fn version_constant_is_at_least_v2() {
         // The module header documents v2 as the current postcard-based format.
-        assert!(
-            PARSE_TABLE_FORMAT_VERSION >= 2,
-            "current format should be >= 2 (postcard era)"
-        );
+        const {
+            assert!(
+                PARSE_TABLE_FORMAT_VERSION >= 2,
+                "current format should be >= 2 (postcard era)"
+            )
+        };
     }
 
     // ---------------------------------------------------------------
@@ -240,7 +242,7 @@ mod tests {
     #[test]
     fn incompatible_version_returns_error() {
         let table = make_table(1, 1);
-        let mut bytes = table.to_bytes().unwrap();
+        let bytes = table.to_bytes().unwrap();
 
         // Corrupt the version field: postcard uses varint encoding at the
         // beginning of the outer VersionedParseTable. The first byte(s)

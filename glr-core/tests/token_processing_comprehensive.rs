@@ -5,7 +5,6 @@
 //! empty token streams, single-token parsing, token boundary conditions, Unicode tokens,
 //! and token kind mapping.
 use adze_glr_core::driver::GlrError;
-use adze_glr_core::forest_view::ForestView;
 use adze_glr_core::ts_lexer::NextToken;
 use adze_glr_core::{
     Action, Driver, FirstFollowSets, Forest, GotoIndexing, LexMode, ParseRule, ParseTable,
@@ -187,12 +186,9 @@ fn wrong_token_order_is_rejected() {
 
     // Feed b then a — reversed; may error or recover
     let result = pipeline_parse(&mut grammar, &[(b, 0, 1), (a, 1, 2)]);
-    match result {
-        Ok(f) => {
-            // Recovery accepted — at least verify it produced a forest
-            assert!(!f.view().roots().is_empty());
-        }
-        Err(_) => {} // Expected rejection
+    if let Ok(f) = result {
+        // Recovery accepted — at least verify it produced a forest
+        assert!(!f.view().roots().is_empty());
     }
 }
 
@@ -209,11 +205,8 @@ fn duplicate_token_rejected_when_grammar_expects_different() {
 
     // Feed a a — grammar expects a b; may error or recover
     let result = pipeline_parse(&mut grammar, &[(a, 0, 1), (a, 1, 2)]);
-    match result {
-        Ok(f) => {
-            assert!(!f.view().roots().is_empty());
-        }
-        Err(_) => {} // Expected rejection
+    if let Ok(f) = result {
+        assert!(!f.view().roots().is_empty());
     }
 }
 
@@ -305,9 +298,8 @@ fn empty_token_stream_fails_or_recovers() {
     // No tokens fed — incomplete input
     let result = pipeline_parse(&mut grammar, &[]);
     // Must not panic; error or recovery are both acceptable
-    match result {
-        Ok(f) => assert!(!f.view().roots().is_empty()),
-        Err(_) => {}
+    if let Ok(f) = result {
+        assert!(!f.view().roots().is_empty())
     }
 }
 
@@ -333,9 +325,8 @@ fn empty_token_stream_with_handcrafted_table() {
     // Empty iterator
     let result = driver.parse_tokens(std::iter::empty::<(u32, u32, u32)>());
     // Should fail — no tokens and grammar requires at least one
-    match result {
-        Ok(f) => assert!(!f.view().roots().is_empty()),
-        Err(_) => {}
+    if let Ok(f) = result {
+        assert!(!f.view().roots().is_empty())
     }
 }
 
@@ -483,9 +474,8 @@ fn token_boundary_at_offset_zero() {
 
     let result = driver.parse_tokens([(a.0 as u32, 0u32, 0u32)].iter().copied());
     // Zero-width at offset 0 — should process without panic
-    match result {
-        Ok(f) => assert!(!f.view().roots().is_empty()),
-        Err(_) => {}
+    if let Ok(f) = result {
+        assert!(!f.view().roots().is_empty())
     }
 }
 
@@ -626,11 +616,8 @@ fn wrong_kind_id_rejected() {
 
     // Feed tok_b but table only accepts tok_a in state 0; may error or recover
     let result = driver.parse_tokens([(tok_b.0 as u32, 0u32, 1u32)].iter().copied());
-    match result {
-        Ok(f) => {
-            assert!(!f.view().roots().is_empty());
-        }
-        Err(_) => {} // Expected rejection
+    if let Ok(f) = result {
+        assert!(!f.view().roots().is_empty());
     }
 }
 
@@ -764,11 +751,8 @@ fn extra_token_after_complete_parse_is_error() {
     // Grammar only expects one 'a', but we also feed 'b'
     let result = pipeline_parse(&mut grammar, &[(a, 0, 1), (b, 1, 2)]);
     // Should either error or the extra token causes a parse failure
-    match result {
-        Ok(f) => {
-            // If recovery accepted it, that's okay — just verify it didn't crash
-            assert!(!f.view().roots().is_empty());
-        }
-        Err(_) => {} // Expected
+    if let Ok(f) = result {
+        // If recovery accepted it, that's okay — just verify it didn't crash
+        assert!(!f.view().roots().is_empty());
     }
 }

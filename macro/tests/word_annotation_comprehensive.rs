@@ -299,10 +299,10 @@ fn word_as_language_root_in_module() {
     });
     let items = module_items(&m);
     let root = items.iter().find_map(|i| {
-        if let Item::Struct(s) = i {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                return Some(s);
-            }
+        if let Item::Struct(s) = i
+            && s.attrs.iter().any(|a| is_adze_attr(a, "language"))
+        {
+            return Some(s);
         }
         None
     });
@@ -831,10 +831,10 @@ fn word_struct_distinct_from_language() {
     let language_structs: Vec<_> = items
         .iter()
         .filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "language"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         })
@@ -842,10 +842,10 @@ fn word_struct_distinct_from_language() {
     let word_structs: Vec<_> = items
         .iter()
         .filter_map(|i| {
-            if let Item::Struct(s) = i {
-                if s.attrs.iter().any(|a| is_adze_attr(a, "word")) {
-                    return Some(s.ident.to_string());
-                }
+            if let Item::Struct(s) = i
+                && s.attrs.iter().any(|a| is_adze_attr(a, "word"))
+            {
+                return Some(s.ident.to_string());
             }
             None
         })
@@ -917,10 +917,10 @@ fn word_in_module_with_delimited_list() {
     assert!(has_word);
     // Verify the language struct has a delimited field
     let lang = items.iter().find_map(|i| {
-        if let Item::Struct(s) = i {
-            if s.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                return Some(s);
-            }
+        if let Item::Struct(s) = i
+            && s.attrs.iter().any(|a| is_adze_attr(a, "language"))
+        {
+            return Some(s);
         }
         None
     });

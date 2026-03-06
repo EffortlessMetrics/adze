@@ -39,10 +39,10 @@ fn collect_symbol_names(val: &Value) -> Vec<String> {
     let mut out = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("SYMBOL") {
-                if let Some(n) = map.get("name").and_then(|v| v.as_str()) {
-                    out.push(n.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some("SYMBOL")
+                && let Some(n) = map.get("name").and_then(|v| v.as_str())
+            {
+                out.push(n.to_string());
             }
             for v in map.values() {
                 out.extend(collect_symbol_names(v));

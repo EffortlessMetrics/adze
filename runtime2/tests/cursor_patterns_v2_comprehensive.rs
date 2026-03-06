@@ -36,7 +36,7 @@ fn wide_tree(n: usize) -> Tree {
 fn deep_chain(depth: usize) -> Tree {
     let mut current = leaf(depth as u32, 0, 1);
     for d in (0..depth).rev() {
-        current = Tree::new_for_testing(d as u32, 0, (depth - d) as usize, vec![current]);
+        current = Tree::new_for_testing(d as u32, 0, depth - d, vec![current]);
     }
     current
 }

@@ -394,10 +394,10 @@ fn collect_patterns(val: &Value) -> Vec<String> {
     let mut out = Vec::new();
     match val {
         Value::Object(map) => {
-            if map.get("type").and_then(|v| v.as_str()) == Some("PATTERN") {
-                if let Some(v) = map.get("value").and_then(|v| v.as_str()) {
-                    out.push(v.to_string());
-                }
+            if map.get("type").and_then(|v| v.as_str()) == Some("PATTERN")
+                && let Some(v) = map.get("value").and_then(|v| v.as_str())
+            {
+                out.push(v.to_string());
             }
             for v in map.values() {
                 out.extend(collect_patterns(v));

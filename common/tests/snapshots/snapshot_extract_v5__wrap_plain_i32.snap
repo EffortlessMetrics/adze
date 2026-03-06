@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "wrap(&ty, &[])"
+---
+adze :: WithLeaf < i32 >

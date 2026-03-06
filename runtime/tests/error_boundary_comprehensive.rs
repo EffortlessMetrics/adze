@@ -5,10 +5,7 @@
 //! errors spanning entire input, zero-length errors, u32::MAX positions,
 //! overlapping spans, error node creation, and display formatting.
 
-use adze::error_recovery::{
-    ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
-    RecoveryStrategy,
-};
+use adze::error_recovery::{ErrorNode, ErrorRecoveryConfig, ErrorRecoveryState, RecoveryStrategy};
 use adze::error_reporting::ParseError as ReportingParseError;
 use adze::{SpanError, SpanErrorReason};
 

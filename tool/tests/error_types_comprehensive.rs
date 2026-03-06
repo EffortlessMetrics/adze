@@ -309,7 +309,7 @@ fn error_is_std_error() {
 #[test]
 fn error_source_io() {
     use std::error::Error;
-    let io_err = std::io::Error::new(std::io::ErrorKind::Other, "test");
+    let io_err = std::io::Error::other("test");
     let e: ToolError = io_err.into();
     // IO variant may or may not expose source through transparent
     let _ = e.source();

@@ -9,7 +9,7 @@
 
 use proptest::prelude::*;
 use quote::ToTokens;
-use syn::{Attribute, Fields, Item, ItemEnum, ItemMod, parse_quote};
+use syn::{Attribute, Fields, Item, ItemEnum, ItemMod};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ fn has_any_adze_attr(attrs: &[Attribute]) -> bool {
     })
 }
 
-fn adze_attr_names(attrs: &[Attribute]) -> Vec<String> {
+fn _adze_attr_names(attrs: &[Attribute]) -> Vec<String> {
     attrs
         .iter()
         .filter_map(|a| {

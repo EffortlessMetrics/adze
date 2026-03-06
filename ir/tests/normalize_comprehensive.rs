@@ -35,7 +35,7 @@ fn count_total_rules(grammar: &Grammar) -> usize {
 }
 
 /// Count auxiliary (generated) symbol IDs (those with ID >= 1000)
-fn count_aux_symbols(grammar: &Grammar) -> usize {
+fn _count_aux_symbols(grammar: &Grammar) -> usize {
     grammar.rules.keys().filter(|id| id.0 >= 1000).count()
 }
 
@@ -61,7 +61,7 @@ fn normalize_idempotent_on_simple_grammar() {
         .start("expr")
         .build();
 
-    let rules_before = count_total_rules(&grammar);
+    let _rules_before = count_total_rules(&grammar);
     grammar.normalize();
     let rules_after_first = count_total_rules(&grammar);
 
@@ -215,8 +215,10 @@ fn normalize_no_panic_empty_grammar() {
 
 #[test]
 fn normalize_no_panic_empty_rules() {
-    let mut grammar = Grammar::default();
-    grammar.name = "empty".to_string();
+    let mut grammar = Grammar {
+        name: "empty".to_string(),
+        ..Default::default()
+    };
     let _ = grammar.normalize();
     assert!(grammar.rules.is_empty());
 }

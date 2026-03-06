@@ -560,7 +560,7 @@ proptest! {
     fn chain_state_count_grows(depth in 1usize..6) {
         let g = grammar_chain(depth);
         let pt = build_table(&g);
-        prop_assert!(pt.state_count >= depth + 1,
+        prop_assert!(pt.state_count > depth,
             "chain(depth={depth}) should have >= {} states, got {}",
             depth + 1, pt.state_count);
     }

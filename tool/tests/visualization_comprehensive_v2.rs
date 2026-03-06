@@ -29,7 +29,7 @@ fn arithmetic_grammar() -> adze_ir::Grammar {
         .build()
 }
 
-fn single_token_grammar() -> adze_ir::Grammar {
+fn _single_token_grammar() -> adze_ir::Grammar {
     GrammarBuilder::new("single")
         .token("x", "x")
         .rule("start", vec!["x"])

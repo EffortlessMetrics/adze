@@ -1,0 +1,5 @@
+---
+source: common/tests/snapshot_extract_v5.rs
+expression: "wrap(&ty, &[\"Option\", \"Vec\"])"
+---
+Option < Vec < adze :: WithLeaf < bool > > >

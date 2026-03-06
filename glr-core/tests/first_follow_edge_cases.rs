@@ -110,11 +110,6 @@ const NT_A: SymbolId = SymbolId(101);
 const NT_B: SymbolId = SymbolId(102);
 const NT_C: SymbolId = SymbolId(103);
 const NT_D: SymbolId = SymbolId(104);
-const NT_E: SymbolId = SymbolId(105);
-const NT_F: SymbolId = SymbolId(106);
-const NT_G: SymbolId = SymbolId(107);
-const NT_H: SymbolId = SymbolId(108);
-const NT_I: SymbolId = SymbolId(109);
 
 // =========================================================================
 // 1. LEFT-RECURSIVE RULES: A → A b | c

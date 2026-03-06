@@ -105,38 +105,37 @@ fn build_enum_with_struct_variants(name: &str, variants: &[(&str, &str, &str)]) 
 
 /// Extract named fields from a parsed struct item.
 fn extract_struct_fields(item: &Item) -> Vec<(String, String)> {
-    if let Item::Struct(s) = item {
-        if let Fields::Named(ref named) = s.fields {
-            return named
-                .named
-                .iter()
-                .map(|f| {
-                    let name = f.ident.as_ref().unwrap().to_string();
-                    let ty = ty_str(&f.ty);
-                    (name, ty)
-                })
-                .collect();
-        }
+    if let Item::Struct(s) = item
+        && let Fields::Named(ref named) = s.fields
+    {
+        return named
+            .named
+            .iter()
+            .map(|f| {
+                let name = f.ident.as_ref().unwrap().to_string();
+                let ty = ty_str(&f.ty);
+                (name, ty)
+            })
+            .collect();
     }
     vec![]
 }
 
 /// Extract fields from the first variant of an enum.
 fn extract_first_variant_fields(item: &Item) -> Vec<(String, String)> {
-    if let Item::Enum(e) = item {
-        if let Some(v) = e.variants.first() {
-            if let Fields::Named(ref named) = v.fields {
-                return named
-                    .named
-                    .iter()
-                    .map(|f| {
-                        let name = f.ident.as_ref().unwrap().to_string();
-                        let ty = ty_str(&f.ty);
-                        (name, ty)
-                    })
-                    .collect();
-            }
-        }
+    if let Item::Enum(e) = item
+        && let Some(v) = e.variants.first()
+        && let Fields::Named(ref named) = v.fields
+    {
+        return named
+            .named
+            .iter()
+            .map(|f| {
+                let name = f.ident.as_ref().unwrap().to_string();
+                let ty = ty_str(&f.ty);
+                (name, ty)
+            })
+            .collect();
     }
     vec![]
 }
@@ -553,11 +552,11 @@ proptest! {
         prop_assert_eq!(&fields[1].0, &f2);
 
         // Verify the attribute is on the first field only.
-        if let Item::Struct(s) = &item {
-            if let Fields::Named(ref named) = s.fields {
-                prop_assert_eq!(named.named[0].attrs.len(), 1);
-                prop_assert!(named.named[1].attrs.is_empty());
-            }
+        if let Item::Struct(s) = &item
+            && let Fields::Named(ref named) = s.fields
+        {
+            prop_assert_eq!(named.named[0].attrs.len(), 1);
+            prop_assert!(named.named[1].attrs.is_empty());
         }
     }
 
@@ -585,11 +584,11 @@ proptest! {
         let src = format!("pub struct {} {{\n{body}}}", capitalize(&name));
         let item: Item = parse_str(&src).unwrap();
 
-        if let Item::Struct(s) = &item {
-            if let Fields::Named(ref named) = s.fields {
-                let annotated_count = named.named.iter().filter(|f| !f.attrs.is_empty()).count();
-                prop_assert_eq!(annotated_count, 1);
-            }
+        if let Item::Struct(s) = &item
+            && let Fields::Named(ref named) = s.fields
+        {
+            let annotated_count = named.named.iter().filter(|f| !f.attrs.is_empty()).count();
+            prop_assert_eq!(annotated_count, 1);
         }
     }
 
@@ -631,12 +630,12 @@ proptest! {
             "pub enum {en} {{ V {{ #[adze::leaf] {f1}: {t1}, {f2}: {t2} }} }}"
         );
         let item: Item = parse_str(&src).unwrap();
-        if let Item::Enum(e) = &item {
-            if let Fields::Named(ref named) = e.variants[0].fields {
-                prop_assert_eq!(named.named.len(), 2);
-                prop_assert_eq!(named.named[0].attrs.len(), 1);
-                prop_assert!(named.named[1].attrs.is_empty());
-            }
+        if let Item::Enum(e) = &item
+            && let Fields::Named(ref named) = e.variants[0].fields
+        {
+            prop_assert_eq!(named.named.len(), 2);
+            prop_assert_eq!(named.named[0].attrs.len(), 1);
+            prop_assert!(named.named[1].attrs.is_empty());
         }
     }
 }

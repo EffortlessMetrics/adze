@@ -1,4 +1,5 @@
 //! Comprehensive tests for runtime2 Point, ParseError, and Parser error paths.
+#![allow(unused_must_use)]
 
 use adze_runtime::error::{ParseError, ParseErrorKind};
 use adze_runtime::node::Point;
@@ -112,7 +113,7 @@ fn point_copy() {
 #[test]
 fn point_clone() {
     let a = Point { row: 1, column: 2 };
-    let b = a.clone();
+    let b = a;
     assert_eq!(a, b);
 }
 
@@ -142,14 +143,14 @@ fn point_ord_transitivity() {
 fn point_ord_antisymmetry() {
     let a = Point { row: 1, column: 2 };
     let b = Point { row: 1, column: 2 };
-    assert!(!(a < b) && !(b < a)); // antisymmetry when equal
+    assert!((a >= b) && (b >= a)); // antisymmetry when equal
 }
 
 // ── Point sort ──
 
 #[test]
 fn point_sort_vec() {
-    let mut pts = vec![
+    let mut pts = [
         Point { row: 2, column: 0 },
         Point { row: 0, column: 5 },
         Point { row: 1, column: 3 },

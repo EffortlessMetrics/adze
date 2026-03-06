@@ -6,7 +6,6 @@
 
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar};
-use adze_tool::grammar_js::json_converter::from_tree_sitter_json;
 use adze_tool::grammar_js::{ExternalToken, GrammarJs, GrammarJsConverter, Rule, from_json};
 use serde_json::{Value, json};
 
@@ -819,23 +818,14 @@ fn production_to_json(production: &adze_ir::Rule, grammar: &Grammar) -> Value {
 /// Convert a Symbol to its JSON representation.
 fn symbol_to_json(symbol: &adze_ir::Symbol, grammar: &Grammar) -> Option<Value> {
     match symbol {
-        adze_ir::Symbol::Terminal(id) => {
-            if let Some(token) = grammar.tokens.get(id) {
-                Some(match &token.pattern {
-                    adze_ir::TokenPattern::String(s) => json!({ "type": "STRING", "value": s }),
-                    adze_ir::TokenPattern::Regex(r) => json!({ "type": "PATTERN", "value": r }),
-                })
-            } else {
-                None
-            }
-        }
-        adze_ir::Symbol::NonTerminal(id) => {
-            if let Some(name) = grammar.rule_names.get(id) {
-                Some(json!({ "type": "SYMBOL", "name": name }))
-            } else {
-                None
-            }
-        }
+        adze_ir::Symbol::Terminal(id) => grammar.tokens.get(id).map(|token| match &token.pattern {
+            adze_ir::TokenPattern::String(s) => json!({ "type": "STRING", "value": s }),
+            adze_ir::TokenPattern::Regex(r) => json!({ "type": "PATTERN", "value": r }),
+        }),
+        adze_ir::Symbol::NonTerminal(id) => grammar
+            .rule_names
+            .get(id)
+            .map(|name| json!({ "type": "SYMBOL", "name": name })),
         adze_ir::Symbol::Epsilon => None,
         _ => None,
     }
