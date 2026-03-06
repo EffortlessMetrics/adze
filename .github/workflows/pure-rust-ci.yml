@@ -59,6 +59,10 @@ jobs:
     - name: Run tests
       run: cargo test --workspace --exclude adze-wasm-demo --verbose
 
+    - name: Run example crate tests
+      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+      run: cargo test --manifest-path example/Cargo.toml --test verify_fixture_parsing -- --test-threads=1
+
     - name: Run benchmarks (check compilation)
       run: cargo bench --workspace --exclude adze-wasm-demo --no-run
   
