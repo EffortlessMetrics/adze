@@ -3,12 +3,22 @@
 
 #[cfg(feature = "incremental_glr")]
 mod comprehensive_incremental_tests {
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_glr_core as glr_core;
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_ir as ir;
     use adze::glr_incremental::{
         GLREdit, GLRToken, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
-    use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_glr_core as glr_core;
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_ir as ir;
+
+    use glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::time::Instant;
 
     /// Create simple arithmetic grammar for testing
@@ -93,8 +103,8 @@ mod comprehensive_incremental_tests {
                 Symbol::Terminal(plus_id),
                 Symbol::NonTerminal(term_id),
             ],
-            precedence: Some(adze_ir::PrecedenceKind::Static(1)),
-            associativity: Some(adze_ir::Associativity::Left),
+            precedence: Some(ir::PrecedenceKind::Static(1)),
+            associativity: Some(ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(0),
         });
@@ -106,8 +116,8 @@ mod comprehensive_incremental_tests {
                 Symbol::Terminal(minus_id),
                 Symbol::NonTerminal(term_id),
             ],
-            precedence: Some(adze_ir::PrecedenceKind::Static(1)),
-            associativity: Some(adze_ir::Associativity::Left),
+            precedence: Some(ir::PrecedenceKind::Static(1)),
+            associativity: Some(ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(1),
         });
@@ -133,8 +143,8 @@ mod comprehensive_incremental_tests {
                 Symbol::Terminal(star_id),
                 Symbol::NonTerminal(factor_id),
             ],
-            precedence: Some(adze_ir::PrecedenceKind::Static(2)),
-            associativity: Some(adze_ir::Associativity::Left),
+            precedence: Some(ir::PrecedenceKind::Static(2)),
+            associativity: Some(ir::Associativity::Left),
             fields: vec![],
             production_id: ProductionId(3),
         });

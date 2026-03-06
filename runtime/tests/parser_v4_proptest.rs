@@ -1,6 +1,12 @@
 // Property tests for parser_v4 ParseNode and ParserState
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::parser_v4::*;
-use adze_ir::*;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::*;
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

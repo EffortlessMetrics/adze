@@ -3,10 +3,20 @@
 #![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 #![allow(clippy::duplicate_mod)]
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::decoder::decode_parse_table;
 use adze::ts_format::choose_action;
-use adze_glr_core::{Action, ParseRule, ParseTable};
-use adze_ir::{Grammar, RuleId, StateId, SymbolId};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{Action, ParseRule, ParseTable};
+use ir::{Grammar, RuleId, StateId, SymbolId};
 
 #[path = "support/json_grammar.rs"]
 mod json_grammar;
@@ -196,7 +206,7 @@ fn create_simple_table() -> ParseTable {
         symbol_metadata: vec![],
         external_scanner_states: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: glr_core::GotoIndexing::NonterminalMap,
         alias_sequences: vec![],
         extras: vec![],
         grammar: Grammar::default(),

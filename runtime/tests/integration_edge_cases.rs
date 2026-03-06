@@ -9,6 +9,12 @@
 //! - RecoveryStrategy variants
 //! - VisitorAction variants
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::*;
 
 // ============================================================================
@@ -300,19 +306,19 @@ fn test_error_recovery_config_custom() {
 #[test]
 fn test_error_recovery_config_can_delete_token() {
     let mut config = error_recovery::ErrorRecoveryConfig::default();
-    config.sync_tokens.push(adze_ir::SymbolId(5));
+    config.sync_tokens.push(ir::SymbolId(5));
 
     // Token in sync_tokens should not be deletable
-    assert!(!config.can_delete_token(adze_ir::SymbolId(5)));
+    assert!(!config.can_delete_token(ir::SymbolId(5)));
 }
 
 #[test]
 fn test_error_recovery_config_can_replace_token() {
     let mut config = error_recovery::ErrorRecoveryConfig::default();
-    config.sync_tokens.push(adze_ir::SymbolId(5));
+    config.sync_tokens.push(ir::SymbolId(5));
 
     // Token in sync_tokens should not be replaceable
-    assert!(!config.can_replace_token(adze_ir::SymbolId(5)));
+    assert!(!config.can_replace_token(ir::SymbolId(5)));
 }
 
 #[test]
@@ -378,8 +384,8 @@ fn test_error_recovery_config_scope_delimiters() {
 #[test]
 fn test_error_recovery_config_token_candidates() {
     let mut config = error_recovery::ErrorRecoveryConfig::default();
-    config.insert_candidates.push(adze_ir::SymbolId(1));
-    config.insert_candidates.push(adze_ir::SymbolId(2));
+    config.insert_candidates.push(ir::SymbolId(1));
+    config.insert_candidates.push(ir::SymbolId(2));
 
     assert_eq!(config.insert_candidates.len(), 2);
 }
@@ -671,7 +677,7 @@ fn test_recovery_action_delete_token() {
 
 #[test]
 fn test_recovery_action_insert_token() {
-    let action = error_recovery::RecoveryAction::InsertToken(adze_ir::SymbolId(42));
+    let action = error_recovery::RecoveryAction::InsertToken(ir::SymbolId(42));
     let debug_str = format!("{:?}", action);
     assert!(debug_str.contains("InsertToken"));
 }

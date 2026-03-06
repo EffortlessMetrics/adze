@@ -8,20 +8,30 @@
 
 mod common;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::arena_allocator::NodeHandle;
 use adze::parser_v4::{ParseNode, Parser};
 use adze::tree_node_data::TreeNodeData;
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /// Build a simple grammar + parse table for "numbers only": Expr → NUM
-fn number_grammar() -> (adze_ir::Grammar, adze_glr_core::ParseTable) {
-    use adze_ir::{ProductionId, Rule, Symbol, Token, TokenPattern};
+fn number_grammar() -> (ir::Grammar, glr_core::ParseTable) {
+    use ir::{ProductionId, Rule, Symbol, Token, TokenPattern};
 
-    let mut grammar = adze_ir::Grammar::new("number".to_string());
+    let mut grammar = ir::Grammar::new("number".to_string());
 
     let num_id = SymbolId(1);
     let expr_id = SymbolId(0);
@@ -223,9 +233,19 @@ fn test_byte_range_root_covers_children() {
 
 #[cfg(feature = "ts-compat")]
 mod position_tests {
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_glr_core as glr_core;
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_ir as ir;
     use adze::ts_compat::{Language, Parser, Point};
-    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_glr_core as glr_core;
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_ir as ir;
+
+    use glr_core::{FirstFollowSets, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;
 
     fn simple_language() -> Arc<Language> {
@@ -578,8 +598,8 @@ fn test_utf8_text_unicode() {
 #[test]
 fn test_utf8_text_ts_compat_node() {
     use adze::ts_compat::{Language, Parser};
-    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use glr_core::{FirstFollowSets, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;
 
     let mut grammar = Grammar::new("text_test".to_string());

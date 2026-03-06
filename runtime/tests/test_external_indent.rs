@@ -5,9 +5,19 @@
 
 mod support;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::decoder;
-use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use ir::SymbolId;
 
 #[test]
 #[ignore = "pure-rust parser integration unstable"]

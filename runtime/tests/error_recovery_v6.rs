@@ -10,11 +10,17 @@
 //!   7. recovery_reset_*   — state reset operations
 //!   8. recovery_edge_*    — edge cases
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 #[allow(unused_imports)]
 use std::sync::atomic::Ordering;
 

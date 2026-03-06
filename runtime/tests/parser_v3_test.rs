@@ -4,10 +4,20 @@
 
 mod common;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::parser_v4::Parser;
-use adze_glr_core::{Action, ParseRule, ParseTable};
-use adze_ir::*;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{Action, ParseRule, ParseTable};
 use glr_test_support::make_minimal_table;
+use ir::*;
 
 fn create_simple_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar {

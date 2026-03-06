@@ -1,5 +1,11 @@
 //! Comprehensive tests for parse error types and error handling in the adze runtime.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
     RecoveryStrategy,
@@ -361,8 +367,8 @@ fn test_recovery_action_eq() {
     let b = RecoveryAction::DeleteToken;
     assert_eq!(a, b);
 
-    let c = RecoveryAction::InsertToken(adze_ir::SymbolId(5));
-    let d = RecoveryAction::InsertToken(adze_ir::SymbolId(5));
+    let c = RecoveryAction::InsertToken(ir::SymbolId(5));
+    let d = RecoveryAction::InsertToken(ir::SymbolId(5));
     assert_eq!(c, d);
 }
 

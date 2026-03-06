@@ -14,9 +14,15 @@
 //! - Complex expression token streams
 //! - Lookahead / priority-based matching
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::glr_lexer::GLRLexer;
 use adze::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer, Token};
-use adze_ir::{Grammar, SymbolId, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::{Grammar, SymbolId, TokenPattern};
 
 // ---------------------------------------------------------------------------
 // Helper: collect all tokens from GrammarLexer (advancing position manually)
@@ -62,7 +68,7 @@ fn glr_lexer_tokenize_simple_identifier() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "ident".to_string(),
             pattern: TokenPattern::Regex(r"[a-zA-Z_]\w*".to_string()),
             fragile: false,
@@ -110,7 +116,7 @@ fn glr_lexer_tokenize_number() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -160,7 +166,7 @@ fn glr_lexer_tokenize_quoted_string() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "string".to_string(),
             pattern: TokenPattern::Regex(r#""[^"]*""#.to_string()),
             fragile: false,
@@ -220,7 +226,7 @@ fn glr_lexer_tokenize_operators() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "plus".to_string(),
             pattern: TokenPattern::String("+".to_string()),
             fragile: false,
@@ -228,7 +234,7 @@ fn glr_lexer_tokenize_operators() {
     );
     grammar.tokens.insert(
         SymbolId(2),
-        adze_ir::Token {
+        ir::Token {
             name: "minus".to_string(),
             pattern: TokenPattern::String("-".to_string()),
             fragile: false,
@@ -236,7 +242,7 @@ fn glr_lexer_tokenize_operators() {
     );
     grammar.tokens.insert(
         SymbolId(3),
-        adze_ir::Token {
+        ir::Token {
             name: "star".to_string(),
             pattern: TokenPattern::String("*".to_string()),
             fragile: false,
@@ -244,7 +250,7 @@ fn glr_lexer_tokenize_operators() {
     );
     grammar.tokens.insert(
         SymbolId(4),
-        adze_ir::Token {
+        ir::Token {
             name: "slash".to_string(),
             pattern: TokenPattern::String("/".to_string()),
             fragile: false,
@@ -301,7 +307,7 @@ fn glr_lexer_auto_skips_whitespace() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -351,7 +357,7 @@ fn glr_lexer_multi_char_tokens() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "arrow".to_string(),
             pattern: TokenPattern::String("->".to_string()),
             fragile: false,
@@ -359,7 +365,7 @@ fn glr_lexer_multi_char_tokens() {
     );
     grammar.tokens.insert(
         SymbolId(2),
-        adze_ir::Token {
+        ir::Token {
             name: "fat_arrow".to_string(),
             pattern: TokenPattern::String("=>".to_string()),
             fragile: false,
@@ -419,7 +425,7 @@ fn glr_lexer_first_matching_pattern_wins() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -427,7 +433,7 @@ fn glr_lexer_first_matching_pattern_wins() {
     );
     grammar.tokens.insert(
         SymbolId(2),
-        adze_ir::Token {
+        ir::Token {
             name: "hex".to_string(),
             pattern: TokenPattern::Regex(r"[0-9a-fA-F]+".to_string()),
             fragile: false,
@@ -476,7 +482,7 @@ fn glr_lexer_byte_offset_tracking() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "word".to_string(),
             pattern: TokenPattern::Regex(r"[a-z]+".to_string()),
             fragile: false,
@@ -595,7 +601,7 @@ fn glr_lexer_skips_unknown_and_continues() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -631,7 +637,7 @@ fn glr_lexer_empty_input_returns_no_tokens() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -720,7 +726,7 @@ fn glr_lexer_complex_expression_stream() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -728,7 +734,7 @@ fn glr_lexer_complex_expression_stream() {
     );
     grammar.tokens.insert(
         SymbolId(2),
-        adze_ir::Token {
+        ir::Token {
             name: "plus".to_string(),
             pattern: TokenPattern::String("+".to_string()),
             fragile: false,
@@ -736,7 +742,7 @@ fn glr_lexer_complex_expression_stream() {
     );
     grammar.tokens.insert(
         SymbolId(3),
-        adze_ir::Token {
+        ir::Token {
             name: "star".to_string(),
             pattern: TokenPattern::String("*".to_string()),
             fragile: false,
@@ -744,7 +750,7 @@ fn glr_lexer_complex_expression_stream() {
     );
     grammar.tokens.insert(
         SymbolId(4),
-        adze_ir::Token {
+        ir::Token {
             name: "lparen".to_string(),
             pattern: TokenPattern::String("(".to_string()),
             fragile: false,
@@ -752,7 +758,7 @@ fn glr_lexer_complex_expression_stream() {
     );
     grammar.tokens.insert(
         SymbolId(5),
-        adze_ir::Token {
+        ir::Token {
             name: "rparen".to_string(),
             pattern: TokenPattern::String(")".to_string()),
             fragile: false,
@@ -854,7 +860,7 @@ fn glr_lexer_reset_and_retokenize() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "number".to_string(),
             pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
@@ -882,7 +888,7 @@ fn glr_lexer_invalid_regex_returns_error() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
-        adze_ir::Token {
+        ir::Token {
             name: "bad".to_string(),
             pattern: TokenPattern::Regex(r"[invalid".to_string()),
             fragile: false,

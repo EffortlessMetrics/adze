@@ -8,11 +8,17 @@
 
 use std::mem::MaybeUninit;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::errors::{ParseError, ParseErrorReason};
 use adze::glr_lexer::GLRLexer;
 use adze::pure_parser::{ParsedNode, Point};
 use adze::{Extract, SpanError, SpanErrorReason, Spanned};
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

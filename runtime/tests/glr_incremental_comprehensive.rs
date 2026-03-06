@@ -7,14 +7,24 @@
 
 #[cfg(feature = "incremental_glr")]
 mod tests {
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_glr_core as glr_core;
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_ir as ir;
     use adze::glr_incremental::{
         ChunkIdentifier, Edit, ForestNode, ForkAlternative, GLREdit, GLRToken,
         IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
     use adze::subtree::{Subtree, SubtreeNode};
-    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_glr_core as glr_core;
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_ir as ir;
+
+    use glr_core::{FirstFollowSets, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;
 
     // ── helpers ──────────────────────────────────────────────────────
@@ -62,8 +72,8 @@ mod tests {
                         Symbol::Terminal(plus),
                         Symbol::NonTerminal(term),
                     ],
-                    precedence: Some(adze_ir::PrecedenceKind::Static(1)),
-                    associativity: Some(adze_ir::Associativity::Left),
+                    precedence: Some(ir::PrecedenceKind::Static(1)),
+                    associativity: Some(ir::Associativity::Left),
                     fields: vec![],
                     production_id: ProductionId(0),
                 },
@@ -74,8 +84,8 @@ mod tests {
                         Symbol::Terminal(minus),
                         Symbol::NonTerminal(term),
                     ],
-                    precedence: Some(adze_ir::PrecedenceKind::Static(1)),
-                    associativity: Some(adze_ir::Associativity::Left),
+                    precedence: Some(ir::PrecedenceKind::Static(1)),
+                    associativity: Some(ir::Associativity::Left),
                     fields: vec![],
                     production_id: ProductionId(1),
                 },
@@ -101,8 +111,8 @@ mod tests {
                         Symbol::Terminal(star),
                         Symbol::NonTerminal(factor),
                     ],
-                    precedence: Some(adze_ir::PrecedenceKind::Static(2)),
-                    associativity: Some(adze_ir::Associativity::Left),
+                    precedence: Some(ir::PrecedenceKind::Static(2)),
+                    associativity: Some(ir::Associativity::Left),
                     fields: vec![],
                     production_id: ProductionId(3),
                 },
@@ -161,7 +171,7 @@ mod tests {
         g
     }
 
-    fn build_table(g: &Grammar) -> adze_glr_core::ParseTable {
+    fn build_table(g: &Grammar) -> glr_core::ParseTable {
         let ff = FirstFollowSets::compute(g).unwrap();
         build_lr1_automaton(g, &ff).expect("build parse table")
     }
@@ -903,12 +913,12 @@ mod tests {
         ));
         let alt = ForkAlternative {
             fork_id: 7,
-            rule_id: Some(adze_ir::RuleId(3)),
+            rule_id: Some(ir::RuleId(3)),
             children: vec![],
             subtree: subtree.clone(),
         };
         assert_eq!(alt.fork_id, 7);
-        assert_eq!(alt.rule_id, Some(adze_ir::RuleId(3)));
+        assert_eq!(alt.rule_id, Some(ir::RuleId(3)));
         assert!(alt.children.is_empty());
 
         // ForestNode with cached_subtree

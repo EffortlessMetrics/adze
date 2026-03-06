@@ -6,10 +6,16 @@
 //! mixed terminal/nonterminal, error nodes, grammar compliance,
 //! byte range preservation, and named vs anonymous node handling.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::glr_incremental::{ForestNode, ForkAlternative};
 use adze::subtree::{Subtree, SubtreeNode};
 use adze::tree_bridge::{forest_to_v4_tree, v4_tree_to_forest};
-use adze_ir::{RuleId, SymbolId};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::{RuleId, SymbolId};
 use std::sync::Arc;
 
 // ---------------------------------------------------------------------------

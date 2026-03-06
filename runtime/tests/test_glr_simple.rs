@@ -1,8 +1,18 @@
 // Simple integration test for GLR parser
 // This demonstrates basic GLR parsing functionality
 
-use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, build_lr1_automaton};
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;

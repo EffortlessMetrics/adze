@@ -11,14 +11,24 @@
 mod common;
 
 use adze::Spanned;
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::ErrorRecoveryConfig;
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
 use adze::glr_tree_bridge::{GLRTree, subtree_to_tree};
 use adze::pure_parser::{ParsedNode, Point};
 use adze::subtree::{ChildEdge, Subtree, SubtreeNode};
-use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use proptest::prelude::*;
 use smallvec::SmallVec;
 use std::mem::MaybeUninit;

@@ -1,4 +1,10 @@
 // Comprehensive scope-based error recovery tests (v8)
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::error_recovery::{
     ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryStrategy,
 };
@@ -873,8 +879,8 @@ fn recent_tokens_independent_of_scope() {
 #[test]
 fn update_recent_tokens_with_symbol_id() {
     let mut state = ErrorRecoveryState::new(config_no_delimiters());
-    state.update_recent_tokens(adze_ir::SymbolId(7));
-    state.update_recent_tokens(adze_ir::SymbolId(8));
+    state.update_recent_tokens(ir::SymbolId(7));
+    state.update_recent_tokens(ir::SymbolId(8));
     // No panic, tokens recorded
 }
 
@@ -1124,8 +1130,8 @@ fn cloned_config_state_independent() {
 #[test]
 fn delimiter_tokens_deletable_when_not_sync() {
     let config = config_parens();
-    assert!(config.can_delete_token(adze_ir::SymbolId(LPAREN)));
-    assert!(config.can_delete_token(adze_ir::SymbolId(RPAREN)));
+    assert!(config.can_delete_token(ir::SymbolId(LPAREN)));
+    assert!(config.can_delete_token(ir::SymbolId(RPAREN)));
 }
 
 #[test]
@@ -1134,6 +1140,6 @@ fn delimiter_tokens_not_deletable_when_sync() {
         .add_scope_delimiter(LPAREN, RPAREN)
         .add_sync_token(LPAREN)
         .build();
-    assert!(!config.can_delete_token(adze_ir::SymbolId(LPAREN)));
-    assert!(config.can_delete_token(adze_ir::SymbolId(RPAREN)));
+    assert!(!config.can_delete_token(ir::SymbolId(LPAREN)));
+    assert!(config.can_delete_token(ir::SymbolId(RPAREN)));
 }

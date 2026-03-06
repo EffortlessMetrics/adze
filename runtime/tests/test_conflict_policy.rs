@@ -5,10 +5,20 @@
 
 mod support;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::decoder;
 use adze::ts_format::choose_action as ts_choose;
-use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-use adze_ir::StateId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+use ir::StateId;
 
 #[test]
 fn shift_wins_sr_conflict_raw_table() {
@@ -271,7 +281,7 @@ fn conflict_policy_consistency() {
 #[test]
 fn test_chooser_policy_matches_encoder() {
     // Verify that the ts_choose function used in tests matches the encoder's behavior
-    use adze_ir::RuleId;
+    use ir::RuleId;
 
     // Test SR conflict: Shift should win
     let sr_cell = vec![Action::Shift(StateId(5)), Action::Reduce(RuleId(2))];

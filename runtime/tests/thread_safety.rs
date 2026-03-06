@@ -4,12 +4,22 @@
 //! concurrent parse + visitor usage, error recovery under concurrent load,
 //! and parse table sharing across threads.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::{ErrorNode, ErrorRecoveryConfig, RecoveryStrategy};
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
 use adze::subtree::Subtree;
-use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 use std::thread;
 

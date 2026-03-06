@@ -1,11 +1,17 @@
 //! Comprehensive v5 tests for error_recovery module:
 //! strategies, actions, config, ordering, clone/debug/eq, and edge cases.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
     RecoveryStrategy,
 };
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 
 // ===========================================================================
 // 1. RecoveryStrategy construction (8 tests)

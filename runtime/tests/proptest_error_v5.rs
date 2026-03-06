@@ -7,12 +7,18 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
 use adze::lexer::ErrorRecoveryMode;
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 use proptest::prelude::*;
 use std::collections::HashSet;
 use std::sync::atomic::Ordering;

@@ -1,7 +1,13 @@
 //! Expression grammar with shift/reduce conflicts for testing conflict resolution
 //! This grammar intentionally creates SR conflicts to test the resolution policy
 
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Build an expression grammar with shift/reduce conflicts (no precedence)
 #[allow(dead_code)]
@@ -194,8 +200,8 @@ pub fn build_expr_with_precedence() -> Grammar {
             Symbol::Terminal(plus_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(adze_ir::PrecedenceKind::Static(1)),
-        associativity: Some(adze_ir::Associativity::Left),
+        precedence: Some(ir::PrecedenceKind::Static(1)),
+        associativity: Some(ir::Associativity::Left),
         fields: vec![],
         production_id: ProductionId(0),
     });
@@ -208,8 +214,8 @@ pub fn build_expr_with_precedence() -> Grammar {
             Symbol::Terminal(times_id),
             Symbol::NonTerminal(expr_id),
         ],
-        precedence: Some(adze_ir::PrecedenceKind::Static(2)),
-        associativity: Some(adze_ir::Associativity::Left),
+        precedence: Some(ir::PrecedenceKind::Static(2)),
+        associativity: Some(ir::Associativity::Left),
         fields: vec![],
         production_id: ProductionId(1),
     });

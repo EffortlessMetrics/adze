@@ -2,9 +2,15 @@
 
 mod support;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
 use adze::decoder;
 use adze::ts_format::TSActionTag;
-use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+
+use glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 
 #[test]
 fn ts_action_tags_match_ts_runtime() {

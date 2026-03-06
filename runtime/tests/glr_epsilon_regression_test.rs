@@ -1,8 +1,18 @@
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 /// Regression tests for GLR parser reduction de-duplication
 /// Ensures that legitimate reductions from different predecessor paths are preserved
 use adze::glr_parser::GLRParser;
-use adze_glr_core::ParseTable;
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::ParseTable;
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 
 /// Create a grammar with epsilon-epsilon mutual recursion
 ///
@@ -13,7 +23,7 @@ use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};
 ///
 /// This should produce multiple parse trees for empty input
 fn create_epsilon_grammar() -> (Grammar, ParseTable) {
-    use adze_ir::{Token, TokenPattern};
+    use ir::{Token, TokenPattern};
 
     let mut grammar = Grammar {
         name: "EpsilonTest".to_string(),
@@ -116,8 +126,8 @@ fn create_epsilon_grammar() -> (Grammar, ParseTable) {
     });
 
     // Build parse table using the GLR core
-    let first_follow = adze_glr_core::FirstFollowSets::compute(&grammar).unwrap();
-    let table = adze_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let first_follow = glr_core::FirstFollowSets::compute(&grammar).unwrap();
+    let table = glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
 
@@ -135,7 +145,7 @@ fn create_epsilon_grammar() -> (Grammar, ParseTable) {
 ///
 /// Input "ab" should maintain both parse trees
 fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
-    use adze_ir::{Token, TokenPattern};
+    use ir::{Token, TokenPattern};
 
     let mut grammar = Grammar {
         name: "RRConflictTest".to_string(),
@@ -239,8 +249,8 @@ fn create_rr_conflict_grammar() -> (Grammar, ParseTable) {
     });
 
     // Build parse table using the GLR core
-    let first_follow = adze_glr_core::FirstFollowSets::compute(&grammar).unwrap();
-    let table = adze_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let first_follow = glr_core::FirstFollowSets::compute(&grammar).unwrap();
+    let table = glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
 
@@ -342,7 +352,7 @@ fn test_epsilon_cycle_no_infinite_loop() {
     // B -> ε | A
     //
     // This creates a cycle A -> B -> A where B can be epsilon
-    use adze_ir::{Token, TokenPattern};
+    use ir::{Token, TokenPattern};
 
     let mut grammar = Grammar {
         name: "EpsilonCycle".to_string(),
@@ -410,8 +420,8 @@ fn test_epsilon_cycle_no_infinite_loop() {
         production_id: ProductionId(3),
     });
 
-    let first_follow = adze_glr_core::FirstFollowSets::compute(&grammar).unwrap();
-    let table = adze_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let first_follow = glr_core::FirstFollowSets::compute(&grammar).unwrap();
+    let table = glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
     let mut parser = GLRParser::new(table, grammar);
@@ -453,7 +463,7 @@ fn test_goto_indexing_direct_symbol_id() {
     grammar.rule_names.insert(s_id, "S".to_string());
     grammar.rule_names.insert(x_token, "'x'".to_string());
 
-    use adze_ir::{Token, TokenPattern};
+    use ir::{Token, TokenPattern};
     grammar.tokens.insert(
         x_token,
         Token {
@@ -475,8 +485,8 @@ fn test_goto_indexing_direct_symbol_id() {
         }],
     );
 
-    let first_follow = adze_glr_core::FirstFollowSets::compute(&grammar).unwrap();
-    let table = adze_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let first_follow = glr_core::FirstFollowSets::compute(&grammar).unwrap();
+    let table = glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero()
         .remap_goto_to_direct_symbol_id(); // Force DirectSymbolId mode to test that code path
@@ -566,7 +576,7 @@ fn test_goto_indexing_auto_detection() {
     grammar.rule_names.insert(a_id, "A".to_string());
     grammar.rule_names.insert(x_token, "'x'".to_string());
 
-    use adze_ir::{Token, TokenPattern};
+    use ir::{Token, TokenPattern};
     grammar.tokens.insert(
         x_token,
         Token {
@@ -602,8 +612,8 @@ fn test_goto_indexing_auto_detection() {
         }],
     );
 
-    let first_follow = adze_glr_core::FirstFollowSets::compute(&grammar).unwrap();
-    let table = adze_glr_core::build_lr1_automaton(&grammar, &first_follow)
+    let first_follow = glr_core::FirstFollowSets::compute(&grammar).unwrap();
+    let table = glr_core::build_lr1_automaton(&grammar, &first_follow)
         .expect("Failed to build parse table")
         .normalize_eof_to_zero();
 
@@ -612,8 +622,7 @@ fn test_goto_indexing_auto_detection() {
     assert!(
         matches!(
             table.goto_indexing,
-            adze_glr_core::GotoIndexing::NonterminalMap
-                | adze_glr_core::GotoIndexing::DirectSymbolId
+            glr_core::GotoIndexing::NonterminalMap | glr_core::GotoIndexing::DirectSymbolId
         ),
         "Auto-detection should pick a valid GOTO indexing mode"
     );

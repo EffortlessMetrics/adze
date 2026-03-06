@@ -18,6 +18,12 @@
 //!  14.  `can_delete_token` / `can_replace_token`
 //!  15.  Static helpers (`is_scope_delimiter`, `is_matching_delimiter`)
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
@@ -201,7 +207,7 @@ fn builder_add_sync_token_multiple() {
 #[test]
 fn builder_add_sync_token_sym() {
     let cfg = ErrorRecoveryConfigBuilder::new()
-        .add_sync_token_sym(adze_ir::SymbolId(42))
+        .add_sync_token_sym(ir::SymbolId(42))
         .build();
     assert_eq!(cfg.sync_tokens.len(), 1);
     assert_eq!(cfg.sync_tokens[0].0, 42);
@@ -243,7 +249,7 @@ fn builder_add_insertable_token_multiple() {
 #[test]
 fn builder_add_insertable_token_sym() {
     let cfg = ErrorRecoveryConfigBuilder::new()
-        .add_insertable_token_sym(adze_ir::SymbolId(99))
+        .add_insertable_token_sym(ir::SymbolId(99))
         .build();
     assert_eq!(cfg.insert_candidates.len(), 1);
     assert_eq!(cfg.insert_candidates[0].0, 99);
@@ -852,7 +858,7 @@ fn state_add_recent_token_no_panic() {
 #[test]
 fn state_update_recent_tokens_via_symbol_id() {
     let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
-    state.update_recent_tokens(adze_ir::SymbolId(42));
+    state.update_recent_tokens(ir::SymbolId(42));
 }
 
 #[test]
@@ -880,13 +886,13 @@ fn state_clear_errors_empties_nodes() {
 #[test]
 fn config_can_delete_non_sync_token() {
     let cfg = ErrorRecoveryConfigBuilder::new().add_sync_token(10).build();
-    assert!(cfg.can_delete_token(adze_ir::SymbolId(5)));
+    assert!(cfg.can_delete_token(ir::SymbolId(5)));
 }
 
 #[test]
 fn config_cannot_delete_sync_token() {
     let cfg = ErrorRecoveryConfigBuilder::new().add_sync_token(10).build();
-    assert!(!cfg.can_delete_token(adze_ir::SymbolId(10)));
+    assert!(!cfg.can_delete_token(ir::SymbolId(10)));
 }
 
 #[test]
@@ -895,19 +901,19 @@ fn config_can_delete_explicitly_deletable_sync_token() {
         .add_sync_token(10)
         .add_deletable_token(10)
         .build();
-    assert!(cfg.can_delete_token(adze_ir::SymbolId(10)));
+    assert!(cfg.can_delete_token(ir::SymbolId(10)));
 }
 
 #[test]
 fn config_can_replace_non_sync_token() {
     let cfg = ErrorRecoveryConfigBuilder::new().add_sync_token(10).build();
-    assert!(cfg.can_replace_token(adze_ir::SymbolId(5)));
+    assert!(cfg.can_replace_token(ir::SymbolId(5)));
 }
 
 #[test]
 fn config_cannot_replace_sync_token() {
     let cfg = ErrorRecoveryConfigBuilder::new().add_sync_token(10).build();
-    assert!(!cfg.can_replace_token(adze_ir::SymbolId(10)));
+    assert!(!cfg.can_replace_token(ir::SymbolId(10)));
 }
 
 // ============================================================================

@@ -1,11 +1,17 @@
 //! Comprehensive tests for ErrorRecoveryConfigBuilder, ErrorRecoveryConfig,
 //! ErrorRecoveryState, and related types.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
     RecoveryStrategy,
 };
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 
 // ── ErrorRecoveryConfigBuilder basics ──
 

@@ -1,6 +1,12 @@
 //! Comprehensive tests for ErrorRecoveryConfig, ErrorRecoveryConfigBuilder,
 //! ErrorRecoveryState, RecoveryStrategy, and ErrorNode.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
@@ -844,7 +850,7 @@ fn state_add_recent_token_basic() {
 #[test]
 fn state_update_recent_tokens_uses_symbol_id() {
     let mut state = ErrorRecoveryState::new(ErrorRecoveryConfig::default());
-    state.update_recent_tokens(adze_ir::SymbolId(99));
+    state.update_recent_tokens(ir::SymbolId(99));
     // No panic
 }
 
@@ -853,38 +859,38 @@ fn state_update_recent_tokens_uses_symbol_id() {
 #[test]
 fn config_can_delete_non_sync_token() {
     let mut cfg = ErrorRecoveryConfig::default();
-    cfg.sync_tokens.push(adze_ir::SymbolId(10));
-    assert!(cfg.can_delete_token(adze_ir::SymbolId(5)));
+    cfg.sync_tokens.push(ir::SymbolId(10));
+    assert!(cfg.can_delete_token(ir::SymbolId(5)));
 }
 
 #[test]
 fn config_cannot_delete_sync_token() {
     let mut cfg = ErrorRecoveryConfig::default();
-    cfg.sync_tokens.push(adze_ir::SymbolId(10));
-    assert!(!cfg.can_delete_token(adze_ir::SymbolId(10)));
+    cfg.sync_tokens.push(ir::SymbolId(10));
+    assert!(!cfg.can_delete_token(ir::SymbolId(10)));
 }
 
 #[test]
 fn config_can_replace_non_sync_token() {
     let mut cfg = ErrorRecoveryConfig::default();
-    cfg.sync_tokens.push(adze_ir::SymbolId(10));
-    assert!(cfg.can_replace_token(adze_ir::SymbolId(5)));
+    cfg.sync_tokens.push(ir::SymbolId(10));
+    assert!(cfg.can_replace_token(ir::SymbolId(5)));
 }
 
 #[test]
 fn config_cannot_replace_sync_token() {
     let mut cfg = ErrorRecoveryConfig::default();
-    cfg.sync_tokens.push(adze_ir::SymbolId(10));
-    assert!(!cfg.can_replace_token(adze_ir::SymbolId(10)));
+    cfg.sync_tokens.push(ir::SymbolId(10));
+    assert!(!cfg.can_replace_token(ir::SymbolId(10)));
 }
 
 #[test]
 fn config_can_delete_explicitly_deletable_token() {
     let mut cfg = ErrorRecoveryConfig::default();
-    cfg.sync_tokens.push(adze_ir::SymbolId(10));
+    cfg.sync_tokens.push(ir::SymbolId(10));
     cfg.deletable_tokens.insert(10);
     // Explicitly deletable overrides sync token protection
-    assert!(cfg.can_delete_token(adze_ir::SymbolId(10)));
+    assert!(cfg.can_delete_token(ir::SymbolId(10)));
 }
 
 // ── 23. Static helper methods ──────────────────────────────────────────────
@@ -1026,7 +1032,7 @@ fn state_determine_strategy_substitution_for_single_expected() {
     // Token 99 is a sync token, so it's not "clearly wrong" — skips deletion,
     // falls through to substitution (single expected token).
     let mut cfg = ErrorRecoveryConfig::default();
-    cfg.sync_tokens.push(adze_ir::SymbolId(99));
+    cfg.sync_tokens.push(ir::SymbolId(99));
     cfg.enable_phrase_recovery = false;
     let mut state = ErrorRecoveryState::new(cfg);
     let strategy = state.determine_recovery_strategy(&[10], Some(99), (0, 0), 0);
@@ -1309,10 +1315,10 @@ fn error_node_zero_length_span() {
 #[test]
 fn builder_add_sync_token_sym() {
     let cfg = ErrorRecoveryConfigBuilder::new()
-        .add_sync_token_sym(adze_ir::SymbolId(55))
+        .add_sync_token_sym(ir::SymbolId(55))
         .build();
     assert_eq!(cfg.sync_tokens.len(), 1);
-    assert_eq!(cfg.sync_tokens[0], adze_ir::SymbolId(55));
+    assert_eq!(cfg.sync_tokens[0], ir::SymbolId(55));
 }
 
 // ── 36. Builder add_insertable_token_sym ───────────────────────────────────
@@ -1320,8 +1326,8 @@ fn builder_add_sync_token_sym() {
 #[test]
 fn builder_add_insertable_token_sym() {
     let cfg = ErrorRecoveryConfigBuilder::new()
-        .add_insertable_token_sym(adze_ir::SymbolId(77))
+        .add_insertable_token_sym(ir::SymbolId(77))
         .build();
     assert_eq!(cfg.insert_candidates.len(), 1);
-    assert_eq!(cfg.insert_candidates[0], adze_ir::SymbolId(77));
+    assert_eq!(cfg.insert_candidates[0], ir::SymbolId(77));
 }

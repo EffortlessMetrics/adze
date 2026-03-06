@@ -1,7 +1,17 @@
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
 use adze::ts_format::{TSActionTag, choose_action_with_precedence};
-use adze_glr_core::{Action, ParseTable};
-use adze_ir::{Grammar, StateId, Symbol, SymbolId};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{Action, ParseTable};
+use ir::{Grammar, StateId, Symbol, SymbolId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::CString;
 use std::os::raw::c_void;
@@ -488,7 +498,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
 
     // Helper to create a TSRule from a rule and symbol_to_index
     fn make_ts_rule(
-        r: &adze_glr_core::ParseRule,
+        r: &glr_core::ParseRule,
         symbol_to_index: &BTreeMap<SymbolId, usize>,
     ) -> TSRule {
         let lhs_col = symbol_to_index.get(&r.lhs).copied().unwrap_or(0) as u16;

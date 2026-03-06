@@ -15,9 +15,15 @@
 //!   3. Valid AST produced from parse forest
 //!   4. Backward compatibility with precedence grammars maintained
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
 use adze::decoder;
 use adze::pure_parser::TSLanguage;
-use adze_glr_core::Action;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+
+use glr_core::Action;
 
 /// Helper: Count multi-action cells (GLR conflicts) in a parse table
 fn count_multi_action_cells(lang: &'static TSLanguage) -> usize {

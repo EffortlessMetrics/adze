@@ -1,6 +1,12 @@
 //! Property-based tests for error recovery: config, mode transitions, state tracking,
 //! error node ordering, and determinism.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
@@ -185,7 +191,7 @@ proptest! {
             .add_sync_token(tok)
             .build();
         // Sync token alone is not deletable (it IS a sync token and not explicitly deletable)
-        prop_assert!(!cfg.can_delete_token(adze_ir::SymbolId(tok)));
+        prop_assert!(!cfg.can_delete_token(ir::SymbolId(tok)));
     }
 
     // 11. can_delete_token is true for explicitly deletable tokens even if sync
@@ -195,7 +201,7 @@ proptest! {
             .add_sync_token(tok)
             .add_deletable_token(tok)
             .build();
-        prop_assert!(cfg.can_delete_token(adze_ir::SymbolId(tok)));
+        prop_assert!(cfg.can_delete_token(ir::SymbolId(tok)));
     }
 
     // 12. can_replace_token is false for sync tokens
@@ -204,7 +210,7 @@ proptest! {
         let cfg = ErrorRecoveryConfigBuilder::new()
             .add_sync_token(tok)
             .build();
-        prop_assert!(!cfg.can_replace_token(adze_ir::SymbolId(tok)));
+        prop_assert!(!cfg.can_replace_token(ir::SymbolId(tok)));
     }
 
     // 13. can_replace_token is true for non-sync tokens
@@ -213,7 +219,7 @@ proptest! {
         let cfg = ErrorRecoveryConfigBuilder::new()
             .add_sync_token(0)
             .build();
-        prop_assert!(cfg.can_replace_token(adze_ir::SymbolId(tok)));
+        prop_assert!(cfg.can_replace_token(ir::SymbolId(tok)));
     }
 
     // ====================================================================

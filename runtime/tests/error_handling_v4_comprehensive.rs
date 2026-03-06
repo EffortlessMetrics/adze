@@ -1,11 +1,17 @@
 //! Comprehensive tests for error handling v4: ErrorRecoveryConfig, RecoveryStrategy,
 //! RecoveryAction, builder, edge cases, traits, and cross-type interactions.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
     RecoveryStrategy,
 };
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. ErrorRecoveryConfig construction and default values (10 tests)

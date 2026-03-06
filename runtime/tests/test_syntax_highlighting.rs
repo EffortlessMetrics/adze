@@ -1,8 +1,14 @@
 // Test for syntax highlighting functionality
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::parser::ParseNode;
 use adze::query::compiler::compile_query;
 use adze::query::{Highlighter, Theme};
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 fn create_simple_grammar() -> Grammar {
     let mut grammar = Grammar::new("simple".to_string());

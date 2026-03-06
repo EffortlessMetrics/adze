@@ -9,20 +9,30 @@
 
 mod common;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::ErrorRecoveryConfig;
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
 use adze::subtree::Subtree;
-use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar, SymbolId};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, build_lr1_automaton};
+use ir::builder::GrammarBuilder;
+use ir::{Associativity, Grammar, SymbolId};
 use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn build_table(grammar: &Grammar) -> adze_glr_core::ParseTable {
+fn build_table(grammar: &Grammar) -> glr_core::ParseTable {
     let ff = FirstFollowSets::compute(grammar).unwrap();
     build_lr1_automaton(grammar, &ff).expect("Failed to build automaton")
 }

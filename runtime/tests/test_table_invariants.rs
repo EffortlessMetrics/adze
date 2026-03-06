@@ -5,8 +5,18 @@
 
 mod support;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::decoder;
-use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, build_lr1_automaton};
 
 #[test]
 fn test_rule_count_preservation() {
@@ -180,7 +190,7 @@ fn test_reduce_action_child_count() {
 #[test]
 #[ignore = "KNOWN BUG: Accept action handling - Accept action lost during encode/decode roundtrip"]
 fn test_accept_action_existence() {
-    use adze_glr_core::Action;
+    use glr_core::Action;
 
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
@@ -236,7 +246,7 @@ fn test_accept_action_existence() {
 #[test]
 #[ignore = "KNOWN BUG: Accept action handling - Accept state shape not preserved after decode"]
 fn test_accept_goto_shape() {
-    use adze_glr_core::Action;
+    use glr_core::Action;
 
     // Build grammar and table
     let grammar = support::json_grammar::build_json_grammar();
@@ -403,8 +413,8 @@ fn test_no_sentinel_leakage() {
     );
 
     // Check action table doesn't contain shifts to state 65535
-    use adze_glr_core::Action;
-    use adze_ir::StateId;
+    use glr_core::Action;
+    use ir::StateId;
     for (st, row) in decoded_table.action_table.iter().enumerate() {
         for (col, cell) in row.iter().enumerate() {
             for action in cell {

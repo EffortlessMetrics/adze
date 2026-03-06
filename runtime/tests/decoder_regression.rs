@@ -1,5 +1,11 @@
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::decoder::{decode_grammar, decode_parse_table};
-use adze_ir::ProductionId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::ProductionId;
 
 #[test]
 #[ignore = "KNOWN_RED #9: decoder rule mapping for Python grammar"]

@@ -2,10 +2,20 @@
 //!
 //! Tests Parser construction, arena metrics, ParseNode, ParseError, ParserState.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::parser_v4::*;
-use adze_glr_core::{FirstFollowSets, StateId, build_lr1_automaton};
-use adze_ir::SymbolId;
-use adze_ir::builder::GrammarBuilder;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, StateId, build_lr1_automaton};
+use ir::SymbolId;
+use ir::builder::GrammarBuilder;
 
 fn make_parser() -> Parser {
     let mut grammar = GrammarBuilder::new("test")

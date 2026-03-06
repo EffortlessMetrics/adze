@@ -1,10 +1,20 @@
 // End-to-end test of the pure-Rust Tree-sitter runtime
 // This tests the complete pipeline from grammar to parsing
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::lexer::GrammarLexer;
 use adze::parser_v4::Parser;
-use adze_glr_core::{Action, ParseTable, SymbolMetadata};
-use adze_ir::{
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{Action, ParseTable, SymbolMetadata};
+use ir::{
     Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token as IrToken, TokenPattern,
 };
 
@@ -166,7 +176,7 @@ fn create_arithmetic_parse_table() -> ParseTable {
         initial_state: StateId(0),
         rules: vec![],
         lex_modes: vec![
-            adze_glr_core::LexMode {
+            glr_core::LexMode {
                 lex_state: 0,
                 external_lex_state: 0
             };
@@ -179,7 +189,7 @@ fn create_arithmetic_parse_table() -> ParseTable {
         field_names: vec![],
         field_map: std::collections::BTreeMap::new(),
         nonterminal_to_index: std::collections::BTreeMap::new(),
-        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: glr_core::GotoIndexing::NonterminalMap,
         grammar: Grammar::default(),
     };
 

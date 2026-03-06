@@ -10,10 +10,16 @@
 
 mod common;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
 use adze::glr_tree_bridge::GLRTree;
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // ---------------------------------------------------------------------------
 // Helpers

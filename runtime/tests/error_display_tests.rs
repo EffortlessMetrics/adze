@@ -3,6 +3,16 @@
 //! These tests verify that error messages produced by public error types
 //! are helpful, well-formatted, and consistent.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
@@ -211,7 +221,7 @@ fn validation_error_includes_suggestion() {
         kind: ErrorKind::UndefinedSymbol,
         message: "Symbol 'expr' is referenced but not defined".to_string(),
         location: ErrorLocation {
-            symbol: Some(adze_ir::SymbolId(42)),
+            symbol: Some(ir::SymbolId(42)),
             rule_index: None,
             position: None,
             description: "rule reference".to_string(),
@@ -318,7 +328,7 @@ fn validation_error_display_structured_output() {
         kind: ErrorKind::LeftRecursion,
         message: "Left recursion detected in rule 'expr'".to_string(),
         location: ErrorLocation {
-            symbol: Some(adze_ir::SymbolId(10)),
+            symbol: Some(ir::SymbolId(10)),
             rule_index: Some(0),
             position: None,
             description: "rule 'expr' at index 0".to_string(),
@@ -494,7 +504,7 @@ fn validation_error_display_no_raw_ids() {
         kind: ErrorKind::UndefinedSymbol,
         message: "Symbol 'foo' is not defined".to_string(),
         location: ErrorLocation {
-            symbol: Some(adze_ir::SymbolId(999)),
+            symbol: Some(ir::SymbolId(999)),
             rule_index: None,
             position: None,
             description: "in rule 'bar'".to_string(),
@@ -1163,8 +1173,8 @@ fn error_recovery_config_builder_produces_informative_config() {
 // ============================================================================
 
 fn make_dummy_parser() -> adze::glr_parser::GLRParser {
-    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use glr_core::{FirstFollowSets, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut g = Grammar::new("dummy".to_string());
     let num = SymbolId(1);

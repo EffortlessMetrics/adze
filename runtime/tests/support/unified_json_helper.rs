@@ -1,10 +1,20 @@
 use crate::language_builder;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::pure_parser::TSLanguage;
-use adze_glr_core::GotoIndexing;
-use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
-use adze_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use anyhow::Result;
+use glr_core::GotoIndexing;
+use glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
+use ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
 use ts_bridge::{extract, schema::Action as TsAction};
 
 /// Return a `TSLanguage` built from the real Tree-sitter JSON grammar.
@@ -121,7 +131,7 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
         token_count: data.token_count as usize,
         external_token_count: data.external_token_count as usize,
         lex_modes: vec![
-            adze_glr_core::LexMode {
+            glr_core::LexMode {
                 lex_state: 0,
                 external_lex_state: 0,
             };
@@ -201,7 +211,7 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
         for a in &cell.actions {
             row.push(match a {
                 TsAction::Shift { state, .. } => Action::Shift(StateId(*state)),
-                TsAction::Reduce { rule, .. } => Action::Reduce(adze_ir::RuleId(*rule)),
+                TsAction::Reduce { rule, .. } => Action::Reduce(ir::RuleId(*rule)),
                 TsAction::Accept => Action::Accept,
                 TsAction::Recover => Action::Recover,
             });

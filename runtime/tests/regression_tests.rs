@@ -3,6 +3,15 @@
 //! Each test references its corresponding GitHub issue and either:
 //! - Verifies a fix remains in place (for resolved issues), or
 //! - Documents current behavior for open issues (may be `#[ignore]`d).
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
 
 // ---------------------------------------------------------------------------
 // Issue #89 / PR #90: EOF symbol layout collision (FIXED)
@@ -71,8 +80,8 @@ fn issue_89_eof_symbol_in_token_range() {
 /// See: https://github.com/EffortlessMetrics/adze/issues/89
 #[test]
 fn issue_89_parse_table_eof_invariant() {
-    use adze_glr_core::{Action, ParseRule, StateId};
-    use adze_ir::SymbolId;
+    use glr_core::{Action, ParseRule, StateId};
+    use ir::SymbolId;
 
     // Layout: ERROR(0), terminal NUM(1), EOF(2), non-terminal EXPR(3)
     let eof = SymbolId(2);
@@ -141,8 +150,8 @@ fn issue_71_error_recovery_deterministic() {
     use adze::error_recovery::ErrorRecoveryConfigBuilder;
     use adze::glr_lexer::GLRLexer;
     use adze::glr_parser::GLRParser;
-    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use glr_core::{FirstFollowSets, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("recovery_regression".to_string());
 
@@ -300,7 +309,7 @@ fn issue_72_arena_clear_frees_excess() {
 #[test]
 fn issue_74_lexer_tokenizes_without_transform() {
     use adze::glr_lexer::GLRLexer;
-    use adze_ir::{Grammar, SymbolId, Token, TokenPattern};
+    use ir::{Grammar, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("transform_test".to_string());
     let num_id = SymbolId(1);
@@ -335,8 +344,8 @@ fn issue_74_lexer_tokenizes_without_transform() {
 #[test]
 fn issue_88_incremental_reparse_returns_none() {
     use adze::glr_incremental::IncrementalGLRParser;
-    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use glr_core::{FirstFollowSets, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("incr_test".to_string());
     let num_id = SymbolId(1);
@@ -455,8 +464,8 @@ fn issue_90_eof_metadata_convention() {
 fn issue_90_basic_parsing_after_eof_fix() {
     use adze::glr_lexer::GLRLexer;
     use adze::glr_parser::GLRParser;
-    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use glr_core::{FirstFollowSets, build_lr1_automaton};
+    use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     let mut grammar = Grammar::new("eof_fix_regression".to_string());
     let num_id = SymbolId(1);

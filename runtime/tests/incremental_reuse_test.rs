@@ -3,13 +3,23 @@
 
 #[cfg(feature = "incremental_glr")]
 mod incremental_reuse_tests {
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_glr_core as glr_core;
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_ir as ir;
     use adze::glr_incremental::{
         Edit, GLREdit, GLRToken, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
     use adze::glr_parser::GLRParser;
-    use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-    use adze_ir::{
+
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_glr_core as glr_core;
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_ir as ir;
+
+    use glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+    use ir::{
         Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
         TokenPattern,
     };

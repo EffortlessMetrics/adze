@@ -1,6 +1,12 @@
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
 use adze::ts_format::{TSActionTag, choose_action, choose_action_with_precedence};
-use adze_glr_core::{Action, ParseTable, RuleId, StateId};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+
 use adze_ts_format_core as core_ts_format;
+use glr_core::{Action, ParseTable, RuleId, StateId};
 
 #[test]
 fn runtime_reexport_matches_microcrate_behavior() {

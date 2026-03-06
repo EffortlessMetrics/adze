@@ -10,6 +10,12 @@
 
 mod common;
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::pure_parser::{ExternalScanner, ParsedNode, Parser, Point, TSLanguage, TSParseAction};
 use adze::visitor::{TreeWalker, Visitor, VisitorAction};
 use proptest::prelude::*;
@@ -381,7 +387,7 @@ proptest! {
     #[test]
     fn glr_lexer_tokenize_ascii_no_panic(input in "[\\x20-\\x7E]{0,200}") {
         use adze::glr_lexer::GLRLexer;
-        use adze_ir::{Grammar, SymbolId, Token, TokenPattern};
+        use ir::{Grammar, SymbolId, Token, TokenPattern};
 
         let mut grammar = Grammar::new("test".to_string());
         grammar.tokens.insert(

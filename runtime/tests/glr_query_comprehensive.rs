@@ -2,13 +2,19 @@
 //!
 //! Tests the query parser, cursor, pattern matching, and error handling.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::glr_query::*;
-use adze_ir::SymbolId;
-use adze_ir::builder::GrammarBuilder;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
+use ir::builder::GrammarBuilder;
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-fn make_grammar() -> adze_ir::Grammar {
+fn make_grammar() -> ir::Grammar {
     GrammarBuilder::new("test")
         .token("num", "[0-9]+")
         .token("plus", "\\+")

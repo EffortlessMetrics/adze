@@ -1,6 +1,12 @@
 // Property tests for ErrorRecoveryConfigBuilder and ErrorRecoveryState
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::*;
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------

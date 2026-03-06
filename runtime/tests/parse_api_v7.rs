@@ -10,6 +10,12 @@
 //! 7. SExpr types (8 tests)
 //! 8. Integration (8 tests)
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
 use adze::arena_allocator::{TreeArena, TreeNode};
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
@@ -143,7 +149,7 @@ fn error_recovery_state_should_give_up() {
 fn error_recovery_state_update_recent_tokens() {
     let config = ErrorRecoveryConfig::default();
     let mut state = ErrorRecoveryState::new(config);
-    state.update_recent_tokens(adze_ir::SymbolId(42));
+    state.update_recent_tokens(ir::SymbolId(42));
     // Recent tokens updated successfully
 }
 

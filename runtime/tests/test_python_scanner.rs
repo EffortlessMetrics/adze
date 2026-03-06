@@ -1,10 +1,20 @@
 // Integration test for Python-like grammar with indentation scanner
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::parser_v4::Parser;
 use adze::scanner_registry::ExternalScannerBuilder;
 use adze::scanners::IndentationScanner;
-use adze_glr_core::{Action, ParseTable};
-use adze_ir::{ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{Action, ParseTable};
+use ir::{ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::collections::BTreeMap;
 
 /// Create a simple Python-like grammar with indentation
@@ -124,23 +134,23 @@ fn create_parse_table() -> ParseTable {
     // This is a simplified parse table - in reality it would be generated
     let mut symbol_to_index = BTreeMap::new();
     for i in 0..10 {
-        symbol_to_index.insert(adze_ir::SymbolId(i as u16), i);
+        symbol_to_index.insert(ir::SymbolId(i as u16), i);
     }
 
     ParseTable {
         action_table: vec![vec![vec![Action::Error]; 10]; 10],
-        goto_table: vec![vec![adze_ir::StateId(0); 10]; 10],
+        goto_table: vec![vec![ir::StateId(0); 10]; 10],
         symbol_metadata: vec![],
         state_count: 10,
         symbol_count: 10,
         symbol_to_index,
-        index_to_symbol: (0..10).map(|i| adze_ir::SymbolId(i as u16)).collect(),
+        index_to_symbol: (0..10).map(|i| ir::SymbolId(i as u16)).collect(),
         external_scanner_states: vec![],
         token_count: 5,
         external_token_count: 3,
-        eof_symbol: adze_ir::SymbolId(9),
-        start_symbol: adze_ir::SymbolId(0),
-        initial_state: adze_ir::StateId(0),
+        eof_symbol: ir::SymbolId(9),
+        start_symbol: ir::SymbolId(0),
+        initial_state: ir::StateId(0),
         rules: vec![],
         lex_modes: vec![],
         extras: vec![],
@@ -150,8 +160,8 @@ fn create_parse_table() -> ParseTable {
         field_names: vec![],
         field_map: BTreeMap::new(),
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
-        grammar: adze_ir::Grammar::default(),
+        goto_indexing: glr_core::GotoIndexing::NonterminalMap,
+        grammar: ir::Grammar::default(),
     }
 }
 

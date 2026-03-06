@@ -3,10 +3,20 @@
 
 #![cfg(test)]
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
-use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, build_lr1_automaton};
+use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 /// Create a grammar that requires reduce→re-closure to find accepts
 fn create_reduce_reclosure_grammar() -> Grammar {

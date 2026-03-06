@@ -1,6 +1,16 @@
 /// Common test helper utilities for adze tests
-use adze_glr_core::ParseTable;
-use adze_ir::{Grammar, StateId, SymbolId};
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::ParseTable;
+use ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
 /// Creates a minimal ParseTable for testing purposes.
@@ -19,7 +29,7 @@ pub fn make_test_table(grammar: Grammar) -> ParseTable {
         external_scanner_states: vec![],
         rules: vec![],
         nonterminal_to_index: BTreeMap::new(),
-        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: glr_core::GotoIndexing::NonterminalMap,
         eof_symbol: SymbolId(0),
         start_symbol: SymbolId(1),
         grammar,

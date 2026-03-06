@@ -3,8 +3,14 @@
 //! This test suite verifies that the GLR parser properly handles errors through
 //! its public API, focusing on the error types and display functionality.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::glr_parser::GLRError;
-use adze_ir::ProductionId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::ProductionId;
 
 /// Test error message formatting and display
 #[test]

@@ -6,8 +6,14 @@
 #[cfg(feature = "incremental_glr")]
 #[cfg(test)]
 mod incremental_e2e_tests {
+    #[cfg(feature = "ts-compat")]
+    use adze::adze_ir as ir;
     use adze::glr_incremental::{GLREdit, GLRToken, get_reuse_count, reset_reuse_counter};
-    use adze_ir::SymbolId;
+
+    #[cfg(not(feature = "ts-compat"))]
+    use adze_ir as ir;
+
+    use ir::SymbolId;
 
     #[test]
     fn test_incremental_parsing_reuse_counter() {

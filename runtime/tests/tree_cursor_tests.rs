@@ -4,9 +4,15 @@
 //! node introspection (kind, byte ranges), DFS traversal, reset, independence
 //! of multiple cursors, deep/wide trees, and field name resolution.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::glr_tree_bridge::{GLRTree, GLRTreeCursor};
 use adze::subtree::{ChildEdge, Subtree, SubtreeNode};
-use adze_ir::{FieldId, Grammar, SymbolId};
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::{FieldId, Grammar, SymbolId};
 use std::sync::Arc;
 
 // ---------------------------------------------------------------------------

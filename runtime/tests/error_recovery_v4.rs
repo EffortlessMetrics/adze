@@ -3,11 +3,17 @@
 //! Covers: config defaults, config customization, recovery strategy transitions,
 //! state tracking, error node construction, config validation, and edge cases.
 
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
     RecoveryStrategy,
 };
-use adze_ir::SymbolId;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use ir::SymbolId;
 use smallvec::SmallVec;
 
 // ---------------------------------------------------------------------------
