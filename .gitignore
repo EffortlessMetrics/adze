@@ -62,3 +62,6 @@ test_doc_examples
 
 # Benchmark results (generated)
 benchmarks/results/
+
+# Proptest regression files
+*.proptest-regressions
