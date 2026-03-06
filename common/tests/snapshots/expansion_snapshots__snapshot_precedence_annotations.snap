@@ -3,11 +3,12 @@ source: common/tests/expansion_snapshots.rs
 expression: "serde_json::to_string_pretty(&result).unwrap()"
 ---
 {
-  "kind": "enum_with_precedence",
   "rule_name": "PrecedenceExpr",
+  "kind": "enum_with_precedence",
   "variants": [
     {
       "input_type": "BinaryExpr",
+      "wrapped": "adze :: WithLeaf < BinaryExpr >",
       "params": [
         {
           "name": "precedence",
@@ -17,11 +18,11 @@ expression: "serde_json::to_string_pretty(&result).unwrap()"
           "name": "assoc",
           "value": "\"left\""
         }
-      ],
-      "wrapped": "adze :: WithLeaf < BinaryExpr >"
+      ]
     },
     {
       "input_type": "BinaryExpr",
+      "wrapped": "adze :: WithLeaf < BinaryExpr >",
       "params": [
         {
           "name": "precedence",
@@ -31,18 +32,17 @@ expression: "serde_json::to_string_pretty(&result).unwrap()"
           "name": "assoc",
           "value": "\"left\""
         }
-      ],
-      "wrapped": "adze :: WithLeaf < BinaryExpr >"
+      ]
     },
     {
       "input_type": "UnaryExpr",
+      "wrapped": "adze :: WithLeaf < UnaryExpr >",
       "params": [
         {
           "name": "precedence",
           "value": "3"
         }
-      ],
-      "wrapped": "adze :: WithLeaf < UnaryExpr >"
+      ]
     }
   ]
 }

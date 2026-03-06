@@ -3,31 +3,31 @@ source: common/tests/expansion_snapshots.rs
 expression: "serde_json::to_string_pretty(&result).unwrap()"
 ---
 {
-  "kind": "enum",
   "rule_name": "Expression",
+  "kind": "enum",
   "variants": [
     {
-      "filtered": "LiteralExpr",
-      "input_type": "LiteralExpr",
       "variant": "Literal",
+      "input_type": "LiteralExpr",
+      "filtered": "LiteralExpr",
       "wrapped": "adze :: WithLeaf < LiteralExpr >"
     },
     {
-      "filtered": "BinaryExpr",
-      "input_type": "Box < BinaryExpr >",
       "variant": "Binary",
+      "input_type": "Box < BinaryExpr >",
+      "filtered": "BinaryExpr",
       "wrapped": "adze :: WithLeaf < Box < BinaryExpr > >"
     },
     {
-      "filtered": "UnaryExpr",
-      "input_type": "Box < UnaryExpr >",
       "variant": "Unary",
+      "input_type": "Box < UnaryExpr >",
+      "filtered": "UnaryExpr",
       "wrapped": "adze :: WithLeaf < Box < UnaryExpr > >"
     },
     {
-      "filtered": "GroupExpr",
-      "input_type": "Box < GroupExpr >",
       "variant": "Group",
+      "input_type": "Box < GroupExpr >",
+      "filtered": "GroupExpr",
       "wrapped": "adze :: WithLeaf < Box < GroupExpr > >"
     }
   ]
