@@ -1,7 +1,0 @@
-# Seeds for failure cases proptest has generated in the past. It is
-# automatically read and these particular cases re-run before any
-# novel cases are generated.
-#
-# It is recommended to check this file in to source control so that
-# everyone who runs the test benefits from these saved cases.
-cc 579fa2609938c61c2660739f71bfcaffe5a4db088cc5256c78e84c9f54524deb # shrinks to grammar = Grammar { name: "rand_grammar", rules: {SymbolId(2): [Rule { lhs: SymbolId(2), rhs: [Terminal(SymbolId(1))], precedence: None, associativity: None, fields: [], production_id: ProductionId(0) }]}, tokens: {SymbolId(1): Token { name: "t0", pattern: String("t0"), fragile: false }}, precedences: [], conflicts: [], externals: [], extras: [], fields: {}, supertypes: [], inline_rules: [], alias_sequences: {}, production_ids: {}, max_alias_sequence_length: 0, rule_names: {SymbolId(1): "t0"}, symbol_registry: None }

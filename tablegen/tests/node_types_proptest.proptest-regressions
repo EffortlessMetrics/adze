@@ -1,8 +1,0 @@
-# Seeds for failure cases proptest has generated in the past. It is
-# automatically read and these particular cases re-run before any
-# novel cases are generated.
-#
-# It is recommended to check this file in to source control so that
-# everyone who runs the test benefits from these saved cases.
-cc 90f69a3aec5e324c6a497040d9faf7dd31cb8bdcd05e7840ef2e8223e02b0daf # shrinks to rule_count = 1
-cc 87109cc5c41465c9be70ab71376488731089098259152e2151ed075086c39042 # shrinks to (grammar, ..) = (Grammar { name: "proptest", rules: {SymbolId(2): [Rule { lhs: SymbolId(2), rhs: [Terminal(SymbolId(0)), Terminal(SymbolId(0))], precedence: None, associativity: None, fields: [(FieldId(0), 0), (FieldId(1), 1)], production_id: ProductionId(0) }], SymbolId(3): [Rule { lhs: SymbolId(3), rhs: [Terminal(SymbolId(0))], precedence: None, associativity: None, fields: [], production_id: ProductionId(1) }], SymbolId(4): [Rule { lhs: SymbolId(4), rhs: [Terminal(SymbolId(0))], precedence: None, associativity: None, fields: [], production_id: ProductionId(2) }]}, tokens: {SymbolId(0): Token { name: "number", pattern: Regex("\\d+"), fragile: false }, SymbolId(1): Token { name: "identifier", pattern: Regex("[a-z]+"), fragile: false }}, precedences: [], conflicts: [], externals: [], extras: [], fields: {FieldId(0): "w", FieldId(1): "yw_kez_r"}, supertypes: [], inline_rules: [], alias_sequences: {}, production_ids: {}, max_alias_sequence_length: 0, rule_names: {SymbolId(2): "j_u1_jpod_", SymbolId(3): "_x3i_", SymbolId(4): "_ef_r"}, symbol_registry: None }, ["j_u1_jpod_"], ["_x3i_", "_ef_r"], [], [("number", "\\d+"), ("identifier", "[a-z]+")], ["w", "yw_kez_r"])

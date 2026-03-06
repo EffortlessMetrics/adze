@@ -105,7 +105,7 @@ Hooks are in `.githooks/pre-commit` (install via `.githooks/install.sh`).
 
 Adze is an AST-first grammar toolchain for Rust. Define the shape of your syntax in Rust, then parse into that shape. Build-time: types -> macros -> IR -> tables. Run-time: text -> GLR -> trees -> typed values.
 
-The workspace has **75 members** organized into several layers:
+The workspace has **71 members** organized into several layers:
 
 ### Core Pipeline (7 crates — covered by `just ci-supported`)
 
@@ -133,9 +133,9 @@ Located in `grammars/`: `python`, `javascript`, `go`, `python-simple`, `test-vec
 ### Governance-as-Code Micro-Crates (47 crates in `crates/`)
 
 Policy enforcement, concurrency management, and testing infrastructure as code. Categories:
-- **`concurrency-*`** (11): Thread pool caps, environment normalization, bootstrap policies
+- **`concurrency-*`** (14): Thread pool caps, environment normalization, bootstrap policies
 - **`governance-*`** (7): Runtime governance, matrix contracts, metadata
-- **`bdd-*`** (7): BDD testing fixtures, governance, grammar analysis
+- **`bdd-*`** (9): BDD testing fixtures, governance, grammar analysis
 - **`parser-*`** (4): Parser contracts, feature contracts, backend abstraction
 - **`feature-policy-*`** (2): Feature flag policy enforcement
 - **`runtime-governance*`** (4): Runtime governance API and matrix
@@ -271,6 +271,9 @@ Multiple layers prevent tests from being silently disconnected:
 - **Local verification**: `./scripts/check-test-connectivity.sh`
 
 ### Completed Milestones
+
+#### Massive Test Expansion *(March 2026)*
+~39,000+ tests added across all supported crates (PR #206). Covers unit, integration, snapshot, property-based, and end-to-end scenarios.
 
 #### GLR Incremental Parsing *(September 2025)*
 GLR-aware incremental parsing with fork-aware subtree reuse, external scanner integration, and tree bridge. Currently uses conservative fallback to fresh parsing. 130+ tests validated.

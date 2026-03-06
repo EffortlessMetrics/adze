@@ -8,7 +8,7 @@ Adze is an AST-first grammar toolchain for Rust. It generates Tree-sitter parser
 
 - **Language**: Rust 2024 edition
 - **MSRV**: 1.92.0
-- **Workspace**: 75 crates
+- **Workspace**: 71 crates
 - **Command runner**: `just` (see `justfile`)
 
 ## Setup
@@ -210,7 +210,7 @@ If all pass, the PR is ready for review.
 
 - `justfile` — Development recipes
 - `rust-toolchain.toml` — Toolchain pinning
-- `Cargo.toml` — Workspace root with 75 members
+- `Cargo.toml` — Workspace root with 71 members
 - `.githooks/pre-commit` — Pre-commit checks (install via `.githooks/install.sh`)
 - `docs/status/KNOWN_RED.md` — Intentional CI exclusions
 - `scripts/test-matrix.sh` — Feature matrix testing

@@ -30,15 +30,13 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 `ci-supported` currently checks the **core pipeline**:
 
 - `cargo fmt --check`
-- `cargo clippy` (supported crates)
-- `cargo test` (supported crates: `adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-common`, `adze-tool`)
-- `cargo doc` (supported crates)
-- `glr-core` doctests with `serialization`
-- Feature matrix: crate × feature-flag combinations
+- `cargo clippy` (supported crates, `--all-targets -D warnings`)
+- `cargo test` (supported crates: `adze`, `adze-macro`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-common`, `adze-tool`, with `--lib --tests --bins`)
+- `glr-core` doctests with `serialization` feature
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
-**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **2,460+ tests across feature combinations, 0 failures in supported lane.** Feature-combination matrix: 11/12 pass (1 expected failure). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`.
+**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **~39,000+ tests, 0 failures in supported lane.** `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`.
 
 **Note:** Some `adze` runtime integration test files fail to compile due to references to removed/renamed APIs. These tests are outside the supported lane and tracked for cleanup before RC publish.
 
