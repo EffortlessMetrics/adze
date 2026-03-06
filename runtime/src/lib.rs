@@ -1089,23 +1089,6 @@ impl_extract_for_primitive!(bool);
 /// [`ParseErrorReason`](errors::ParseErrorReason) describing what went wrong
 /// together with the byte-offset range of the error in the source.
 pub mod errors {
-    #[cfg(all(
-        feature = "tree-sitter-standard",
-        not(feature = "tree-sitter-c2rust"),
-        not(feature = "pure-rust")
-    ))]
-    use tree_sitter;
-
-    #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-    use tree_sitter_c2rust as tree_sitter;
-
-    #[cfg(all(
-        not(feature = "tree-sitter-standard"),
-        not(feature = "tree-sitter-c2rust"),
-        not(feature = "pure-rust")
-    ))]
-    use crate::tree_sitter;
-
     #[derive(Debug)]
     /// An explanation for an error that occurred during parsing.
     pub enum ParseErrorReason {
