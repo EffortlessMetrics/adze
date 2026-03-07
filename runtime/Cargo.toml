@@ -105,7 +105,6 @@ adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concur
 adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../crates/concurrency-init-classifier-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
-adze-python = { version = "0.1.0", path = "../grammars/python" }
 serial_test = "3.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -154,10 +153,6 @@ harness = false
 required-features = ["unstable-benches"]
 
 [[example]]
-name = "external_scanner_demo"
-required-features = ["experimental_examples"]
-
-[[example]]
 name = "glr_incremental_demo"
 required-features = ["experimental_examples", "incremental_glr"]
 
@@ -180,10 +175,6 @@ required-features = ["experimental_examples"]
 [[example]]
 name = "pure_parser_demo"
 required-features = ["experimental_examples", "pure-rust"]
-
-[[example]]
-name = "lang_probe"
-required-features = ["experimental_examples"]
 
 [[example]]
 name = "pr58_features_demo"

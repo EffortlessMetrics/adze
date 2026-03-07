@@ -1,4 +1,3 @@
-// runtime/examples/external_scanner_demo.rs
 use std::panic::{self, AssertUnwindSafe};
 
 use adze::pure_external_scanner::{ExternalScanner, ExternalScannerRegistry, Lexer};
@@ -12,15 +11,14 @@ impl ExternalScanner for PythonStringsScanner {
         false
     }
 
-    // If your trait requires these (some builds do), keep them; otherwise, remove.
     fn serialize(&self, _buf: &mut [u8]) -> usize {
         0
     }
+
     fn deserialize(&mut self, _buf: &[u8]) {}
 }
 
 fn main() {
-    // Enable backtrace for debugging - safe in examples
     unsafe {
         std::env::set_var("RUST_BACKTRACE", "1");
     }
@@ -36,7 +34,7 @@ fn main() {
     println!("A✓");
 
     println!("B: creating registry");
-    let mut registry = match panic::catch_unwind(|| ExternalScannerRegistry::default()) {
+    let mut registry = match panic::catch_unwind(ExternalScannerRegistry::default) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("PANIC at B (registry::default): {e:?}");
@@ -47,10 +45,7 @@ fn main() {
 
     println!("C: registering scanner as \"python_strings\"");
     let res_c = panic::catch_unwind(AssertUnwindSafe(|| {
-        registry.register(
-            "python_strings".to_string(),
-            Box::new(PythonStringsScanner::default()),
-        );
+        registry.register("python_strings".to_string(), Box::new(PythonStringsScanner));
     }));
     if let Err(e) = res_c {
         eprintln!("PANIC at C (registry::register): {e:?}");

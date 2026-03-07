@@ -34,7 +34,6 @@ dependencies = [
  "adze-ir",
  "adze-linecol-core",
  "adze-macro",
- "adze-python",
  "adze-runtime-governance-api",
  "adze-stack-pool-core",
  "adze-tablegen",
