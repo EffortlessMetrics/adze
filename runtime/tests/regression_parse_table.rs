@@ -1,5 +1,6 @@
-use adze_glr_core::{Action, ParseRule, StateId};
+use adze::adze_glr_core as glr_core;
 use adze_ir::SymbolId;
+use glr_core::{Action, ParseRule, StateId};
 use glr_test_support::{INVALID, make_minimal_table};
 
 /// Regression: ParseTable invariant — EOF column == token_count + external_token_count.

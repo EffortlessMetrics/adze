@@ -2,7 +2,8 @@
 // use adze::glr_parser::GLRParser;
 // use adze::subtree::Subtree;
 // Test incremental parsing functionality
-// use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+// use glr_core::{FirstFollowSets, build_lr1_automaton};
+// use adze::adze_glr_core as glr_core;
 // use adze_ir::{
 //     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
 //     TokenPattern,

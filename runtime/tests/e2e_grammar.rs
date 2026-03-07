@@ -1,6 +1,6 @@
 //! End-to-end grammar tests: define grammar → generate parse table → parse → verify AST.
 //!
-//! Each test exercises the full pipeline through [`adze_glr_core::build_lr1_automaton`]
+//! Each test exercises the full pipeline through [`glr_core::build_lr1_automaton`]
 //! and [`GLRParser`] with [`GLRLexer`] tokenisation.
 
 use adze::adze_glr_core as glr_core;

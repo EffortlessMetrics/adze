@@ -54,7 +54,7 @@ fn glr_smoke_table_construction() {
         field_names: vec![],
         field_map: BTreeMap::new(),
         nonterminal_to_index: BTreeMap::from([(SymbolId(2), 2)]),
-        goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
+        goto_indexing: glr_core::GotoIndexing::NonterminalMap,
         symbol_metadata: vec![],
     }
     .normalize_eof_to_zero();
@@ -67,5 +67,5 @@ fn glr_smoke_table_construction() {
     assert_eq!(table.start_symbol, SymbolId(2));
 
     // Verify we can create a driver (doesn't parse anything, just checks construction)
-    let _driver = adze_glr_core::Driver::new(&table);
+    let _driver = glr_core::Driver::new(&table);
 }

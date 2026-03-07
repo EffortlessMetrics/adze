@@ -158,22 +158,14 @@ fn test_parse_table_debug() {
 
     println!("\nState 0 actions:");
     for (idx, actions) in table.action_table[0].iter().enumerate() {
-        if !actions.is_empty()
-            && !actions
-                .iter()
-                .all(|a| matches!(a, adze_glr_core::Action::Error))
-        {
+        if !actions.is_empty() && !actions.iter().all(|a| matches!(a, glr_core::Action::Error)) {
             println!("  Index {} -> {:?}", idx, actions);
         }
     }
 
     println!("\nState 1 actions:");
     for (idx, actions) in table.action_table[1].iter().enumerate() {
-        if !actions.is_empty()
-            && !actions
-                .iter()
-                .all(|a| matches!(a, adze_glr_core::Action::Error))
-        {
+        if !actions.is_empty() && !actions.iter().all(|a| matches!(a, glr_core::Action::Error)) {
             println!("  Index {} -> {:?}", idx, actions);
         }
     }
@@ -181,11 +173,7 @@ fn test_parse_table_debug() {
     println!("\nState 2 actions:");
     for (symbol, &idx) in &table.symbol_to_index {
         let actions = &table.action_table[2][idx];
-        if !actions.is_empty()
-            && !actions
-                .iter()
-                .all(|a| matches!(a, adze_glr_core::Action::Error))
-        {
+        if !actions.is_empty() && !actions.iter().all(|a| matches!(a, glr_core::Action::Error)) {
             println!("  Symbol {} (idx {}) -> {:?}", symbol.0, idx, actions);
         }
     }

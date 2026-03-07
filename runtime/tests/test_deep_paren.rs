@@ -1,6 +1,7 @@
 // Test deep parentheses nesting
-use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze::adze_glr_core as glr_core;
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use glr_core::{FirstFollowSets, build_lr1_automaton};
 
 // Import internal modules for testing
 #[path = "../src/error_recovery.rs"]

@@ -126,10 +126,8 @@ fn test_simple_expression() {
             println!("  States: {}", table.state_count);
 
             // Check for conflicts
-            let item_sets = adze_glr_core::ItemSetCollection::build_canonical_collection(
-                &grammar,
-                &first_follow,
-            );
+            let item_sets =
+                glr_core::ItemSetCollection::build_canonical_collection(&grammar, &first_follow);
             let resolver = ConflictResolver::detect_conflicts(&item_sets, &grammar, &first_follow);
 
             if !resolver.conflicts.is_empty() {
