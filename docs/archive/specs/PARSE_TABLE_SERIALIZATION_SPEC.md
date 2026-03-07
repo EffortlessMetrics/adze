@@ -2,7 +2,8 @@
 
 **Version**: 1.0.0
 **Date**: 2025-11-20
-**Status**: ACTIVE - Ready for Implementation
+**Status**: DEPRECATED (Historical)
+> Legacy document: this specification describes the initial v1.0 serialization draft. The active format is postcard-based and currently at version 2 (`glr-core/src/serialization.rs`).
 **Related**: DECODER_GLR_INVESTIGATION_2025-11-20.md, GLR_V1_COMPLETION_CONTRACT.md
 **Priority**: CRITICAL (Unblocks GLR v1)
 
@@ -37,7 +38,7 @@ This specification defines the pure-Rust serialization format for ParseTable, en
 
 ## Data Format
 
-### Format Choice: bincode
+### Format Choice: legacy bincode draft
 
 **Selected**: [bincode](https://github.com/bincode-org/bincode) v1.3+
 

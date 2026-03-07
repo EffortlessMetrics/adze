@@ -224,7 +224,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ┌────────────────────────────────┐
 │ "RSPT" (4 bytes)              │ Magic number
 ├────────────────────────────────┤
-│ Version: 1 (u32 LE)           │ Format version
+│ Version: 2 (u32 LE)           │ Format version
 ├────────────────────────────────┤
 │ Grammar Hash (32 bytes)       │ SHA-256 hash
 ├────────────────────────────────┤
@@ -232,9 +232,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ├────────────────────────────────┤
 │ Metadata JSON (variable)      │ Human-readable info
 ├────────────────────────────────┤
-│ Table Length (u32 LE)         │ Bincode size
+│ Table Length (u32 LE)         │ Postcard size
 ├────────────────────────────────┤
-│ ParseTable (bincode)          │ Serialized table
+│ ParseTable (postcard)         │ Serialized table
 └────────────────────────────────┘
 ```
 
@@ -428,7 +428,7 @@ fn test_end_to_end_pipeline() {
 
 ### Error: "Failed to deserialize ParseTable"
 
-**Cause**: Corrupted bincode data or version mismatch
+**Cause**: Corrupted postcard data or version mismatch
 
 **Solution**:
 1. Check adze-glr-core version compatibility
@@ -473,8 +473,8 @@ Using .parsetable reduces build time by:
 
 ## 🔗 Related Documentation
 
-- [PARSETABLE_FILE_FORMAT_SPEC.md](specs/PARSETABLE_FILE_FORMAT_SPEC.md) - Binary format specification
-- [PARSE_TABLE_SERIALIZATION_SPEC.md](specs/PARSE_TABLE_SERIALIZATION_SPEC.md) - ParseTable serialization details
+- [PARSETABLE_FILE_FORMAT_SPEC.md](specs/PARSETABLE_FILE_FORMAT_SPEC.md) - **Historical** binary format specification
+- [PARSE_TABLE_SERIALIZATION_SPEC.md](specs/PARSE_TABLE_SERIALIZATION_SPEC.md) - **Historical** ParseTable serialization details
 - [GLR_V1_COMPLETION_CONTRACT.md](specs/GLR_V1_COMPLETION_CONTRACT.md) - Completion contract and acceptance criteria
 - [GETTING_STARTED.md](GETTING_STARTED.md) - General adze usage guide
 

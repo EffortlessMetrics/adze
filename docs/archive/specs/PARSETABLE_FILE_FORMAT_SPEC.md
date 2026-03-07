@@ -1,9 +1,10 @@
 # .parsetable File Format Specification
 
 **Version**: 1.0
-**Status**: STABLE
+**Status**: DEPRECATED (Historical)
 **Date**: 2025-11-20
-**Implementation Status**: ✅ Production Ready (Phases 1-3.2 Complete)
+**Implementation Status**: ✅ Production Ready for legacy format (Phases 1-3.2 Complete)
+**Current Format**: `.parsetable` now uses postcard-based version 2 serialization in active implementations.
 **Related**: PARSE_TABLE_SERIALIZATION_SPEC.md, GLR_V1_COMPLETION_CONTRACT.md
 
 ---
@@ -37,7 +38,7 @@ This specification defines the `.parsetable` binary file format for distributing
 ├────────────────────────────────────────────┤
 │ Table Data Length (4 bytes): u32 LE       │ 0x2C + metadata_len
 ├────────────────────────────────────────────┤
-│ ParseTable Bincode (variable length)      │ 0x30 + metadata_len
+│ ParseTable (legacy bincode) (variable length) │ 0x30 + metadata_len
 └────────────────────────────────────────────┘
 ```
 
@@ -70,10 +71,10 @@ This specification defines the `.parsetable` binary file format for distributing
 
 #### 6. Table Data Length (4 bytes, offset 0x2C + metadata_len)
 - **Type**: u32 little-endian
-- **Purpose**: Length of bincode-encoded ParseTable
+- **Purpose**: Length of legacy bincode-encoded ParseTable
 
 #### 7. ParseTable Bincode (variable length, offset 0x30 + metadata_len)
-- **Type**: Bincode-serialized ParseTable
+- **Type**: Bincode-serialized ParseTable (legacy format only)
 - **Format**: As defined in PARSE_TABLE_SERIALIZATION_SPEC.md
 - **Note**: Includes its own version wrapper (FORMAT_VERSION)
 

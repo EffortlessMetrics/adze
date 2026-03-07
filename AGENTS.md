@@ -119,7 +119,7 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 ```
 
-Available workspace deps: `tree-sitter`, `serde`, `serde_json`, `proptest`, `insta`, `criterion`, `thiserror`, `syn`, `quote`, `proc-macro2`, `anyhow`, `tempfile`, `indexmap`, `bincode`, `clap`, `rayon`, `rustc-hash`, `smallvec`, `regex`
+Available workspace deps: `tree-sitter`, `serde`, `serde_json`, `proptest`, `insta`, `criterion`, `thiserror`, `syn`, `quote`, `proc-macro2`, `anyhow`, `tempfile`, `indexmap`, `postcard`, `clap`, `rayon`, `rustc-hash`, `smallvec`, `regex`
 
 ### Error Types
 
