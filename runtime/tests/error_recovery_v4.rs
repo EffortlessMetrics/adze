@@ -10,7 +10,6 @@ use adze::error_recovery::{
 };
 
 use ir::SymbolId;
-use smallvec::SmallVec;
 
 // ---------------------------------------------------------------------------
 // 1. ErrorRecoveryConfig defaults
@@ -143,7 +142,7 @@ fn test_config_enable_indentation_recovery() {
 #[test]
 fn test_config_add_sync_token() {
     let cfg = ErrorRecoveryConfig {
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(42)]),
+        sync_tokens: vec![SymbolId(42)].into(),
         ..Default::default()
     };
     assert_eq!(cfg.sync_tokens.len(), 1);
@@ -170,7 +169,7 @@ fn test_config_can_delete_non_sync_token() {
 #[test]
 fn test_config_can_delete_explicitly_deletable() {
     let cfg = ErrorRecoveryConfig {
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(5)]),
+        sync_tokens: vec![SymbolId(5)].into(),
         deletable_tokens: [5].into_iter().collect(),
         ..Default::default()
     };
@@ -181,7 +180,7 @@ fn test_config_can_delete_explicitly_deletable() {
 #[test]
 fn test_config_cannot_delete_sync_token_not_in_deletable() {
     let cfg = ErrorRecoveryConfig {
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(7)]),
+        sync_tokens: vec![SymbolId(7)].into(),
         ..Default::default()
     };
     // Token 7 is a sync token but not in deletable set
@@ -197,7 +196,7 @@ fn test_config_can_replace_non_sync_token() {
 #[test]
 fn test_config_cannot_replace_sync_token() {
     let cfg = ErrorRecoveryConfig {
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(10)]),
+        sync_tokens: vec![SymbolId(10)].into(),
         ..Default::default()
     };
     assert!(!cfg.can_replace_token(SymbolId(10)));
@@ -228,7 +227,7 @@ fn test_strategy_panic_mode_after_max_errors() {
 #[test]
 fn test_strategy_token_insertion_when_candidate_available() {
     let cfg = ErrorRecoveryConfig {
-        insert_candidates: SmallVec::from_vec(vec![SymbolId(5)]),
+        insert_candidates: vec![SymbolId(5)].into(),
         ..Default::default()
     };
     let mut state = ErrorRecoveryState::new(cfg);
@@ -256,7 +255,7 @@ fn test_strategy_substitution_with_single_expected() {
     let cfg = ErrorRecoveryConfig {
         enable_phrase_recovery: false,
         enable_scope_recovery: false,
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(50)]),
+        sync_tokens: vec![SymbolId(50)].into(),
         ..Default::default()
     };
     let mut state = ErrorRecoveryState::new(cfg);
@@ -271,7 +270,7 @@ fn test_strategy_phrase_level_as_fallback() {
     let cfg = ErrorRecoveryConfig {
         enable_phrase_recovery: true,
         enable_scope_recovery: false,
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(50)]),
+        sync_tokens: vec![SymbolId(50)].into(),
         ..Default::default()
     };
     let mut state = ErrorRecoveryState::new(cfg);
@@ -286,7 +285,7 @@ fn test_strategy_scope_recovery_on_mismatch() {
         enable_scope_recovery: true,
         enable_phrase_recovery: false,
         scope_delimiters: vec![(1, 2)],
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(2)]),
+        sync_tokens: vec![SymbolId(2)].into(),
         ..Default::default()
     };
     let mut state = ErrorRecoveryState::new(cfg);
@@ -301,7 +300,7 @@ fn test_strategy_defaults_to_panic_when_all_disabled() {
     let cfg = ErrorRecoveryConfig {
         enable_phrase_recovery: false,
         enable_scope_recovery: false,
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(50)]),
+        sync_tokens: vec![SymbolId(50)].into(),
         ..Default::default()
     };
     let mut state = ErrorRecoveryState::new(cfg);
@@ -993,7 +992,7 @@ fn test_state_give_up_boundary() {
 fn test_config_clone() {
     let cfg = ErrorRecoveryConfig {
         max_panic_skip: 99,
-        sync_tokens: SmallVec::from_vec(vec![SymbolId(1)]),
+        sync_tokens: vec![SymbolId(1)].into(),
         ..Default::default()
     };
     let cloned = cfg.clone();

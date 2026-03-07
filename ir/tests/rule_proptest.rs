@@ -166,9 +166,9 @@ proptest! {
     }
 
     #[test]
-    fn rule_bincode_roundtrip(rule in rule_strategy()) {
-        let bytes = bincode::serialize(&rule).unwrap();
-        let decoded: Rule = bincode::deserialize(&bytes).unwrap();
+    fn rule_postcard_roundtrip(rule in rule_strategy()) {
+        let bytes = postcard::to_stdvec(&rule).unwrap();
+        let decoded: Rule = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(&rule, &decoded);
     }
 

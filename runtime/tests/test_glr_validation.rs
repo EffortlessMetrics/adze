@@ -1,7 +1,5 @@
 // Test enhanced grammar validation with helpful error messages
-use adze::adze_ir as ir;
-
-use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
 // NOTE: These tests use internal modules not exported by the public API
 #[path = "../src/glr_validation.rs"]

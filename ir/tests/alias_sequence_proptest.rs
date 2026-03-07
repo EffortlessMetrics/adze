@@ -82,10 +82,10 @@ proptest! {
     }
 
     #[test]
-    fn test_serde_bincode_roundtrip(aliases in alias_vec_strategy(15)) {
+    fn test_serde_postcard_roundtrip(aliases in alias_vec_strategy(15)) {
         let seq = AliasSequence { aliases };
-        let bytes = bincode::serialize(&seq).unwrap();
-        let deserialized: AliasSequence = bincode::deserialize(&bytes).unwrap();
+        let bytes = postcard::to_stdvec(&seq).unwrap();
+        let deserialized: AliasSequence = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(seq, deserialized);
     }
 

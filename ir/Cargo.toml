@@ -36,6 +36,6 @@ strict_docs = []
 
 [dev-dependencies]
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
-bincode.workspace = true
+postcard.workspace = true
 insta.workspace = true
 proptest.workspace = true

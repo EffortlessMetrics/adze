@@ -1,9 +1,6 @@
 // Test GLR fork/merge functionality
-use adze::adze_glr_core as glr_core;
-use adze::adze_ir as ir;
-
-use glr_core::{FirstFollowSets, build_lr1_automaton};
-use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use std::sync::Arc;
 
 // Import internal modules for testing

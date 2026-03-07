@@ -736,13 +736,13 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 43. Serialization: bincode roundtrip
+    // 43. Serialization: postcard roundtrip
     // -----------------------------------------------------------------------
 
     #[test]
-    fn ext_bincode_roundtrip(et in arb_external_token()) {
-        let bytes = bincode::serialize(&et).unwrap();
-        let back: ExternalToken = bincode::deserialize(&bytes).unwrap();
+    fn ext_postcard_roundtrip(et in arb_external_token()) {
+        let bytes = postcard::to_stdvec(&et).unwrap();
+        let back: ExternalToken = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(&back, &et);
     }
 

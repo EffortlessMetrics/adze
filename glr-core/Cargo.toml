@@ -36,7 +36,7 @@ rustc-hash.workspace = true
 smallvec.workspace = true
 
 # Optional serialization support for GLR mode
-postcard = { version = "1", features = ["use-std"], optional = true }
+postcard = { workspace = true, optional = true }
 
 [features]
 default = []

@@ -7,7 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-adze-glr-core = { path = "../glr-core" }
+adze-glr-core = { path = "../glr-core", features = ["serialization"] }
 adze-ir = { path = "../ir" }
 
 [features]

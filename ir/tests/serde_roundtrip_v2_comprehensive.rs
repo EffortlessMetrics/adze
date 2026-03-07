@@ -1,6 +1,6 @@
 //! Comprehensive serde roundtrip tests (v2) for all adze-ir types.
 //!
-//! 50+ tests covering JSON and bincode roundtrips for Grammar, Rule, Symbol,
+//! 50+ tests covering JSON and postcard roundtrips for Grammar, Rule, Symbol,
 //! all ID types, PrecedenceKind, Associativity, nested symbols, edge cases, etc.
 
 use adze_ir::{
@@ -23,13 +23,13 @@ fn json_roundtrip<
     assert_eq!(*val, back);
 }
 
-fn bincode_roundtrip<
+fn roundtrip_binary<
     T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + std::fmt::Debug,
 >(
     val: &T,
 ) {
-    let bytes = bincode::serialize(val).expect("bincode serialize");
-    let back: T = bincode::deserialize(&bytes).expect("bincode deserialize");
+    let bytes = postcard::to_stdvec(val).expect("postcard serialize");
+    let back: T = postcard::from_bytes(&bytes).expect("postcard deserialize");
     assert_eq!(*val, back);
 }
 
@@ -39,7 +39,7 @@ fn both_roundtrip<
     val: &T,
 ) {
     json_roundtrip(val);
-    bincode_roundtrip(val);
+    roundtrip_binary(val);
 }
 
 // ---------------------------------------------------------------------------
@@ -615,7 +615,7 @@ fn test_grammar_epsilon_rule() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_bincode_smaller_than_json() {
+fn test_postcard_smaller_than_json() {
     let g = GrammarBuilder::new("size")
         .token("NUM", r"\d+")
         .token("+", "+")
@@ -623,10 +623,10 @@ fn test_bincode_smaller_than_json() {
         .start("expr")
         .build();
     let json_len = serde_json::to_string(&g).unwrap().len();
-    let bin_len = bincode::serialize(&g).unwrap().len();
+    let bin_len = postcard::to_stdvec(&g).unwrap().len();
     assert!(
         bin_len < json_len,
-        "bincode ({bin_len}) should be smaller than json ({json_len})"
+        "postcard ({bin_len}) should be smaller than json ({json_len})"
     );
 }
 

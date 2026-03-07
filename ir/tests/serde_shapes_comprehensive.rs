@@ -8,9 +8,9 @@ fn roundtrip_json(g: &Grammar) -> Grammar {
     serde_json::from_str(&json).unwrap()
 }
 
-fn roundtrip_bincode(g: &Grammar) -> Grammar {
-    let bytes = bincode::serialize(g).unwrap();
-    bincode::deserialize(&bytes).unwrap()
+fn roundtrip_binary(g: &Grammar) -> Grammar {
+    let bytes = postcard::to_stdvec(g).unwrap();
+    postcard::from_bytes(&bytes).unwrap()
 }
 
 #[test]
@@ -25,13 +25,13 @@ fn json_simple() {
 }
 
 #[test]
-fn bincode_simple() {
+fn postcard_simple() {
     let g = GrammarBuilder::new("s2")
         .token("a", "a")
         .rule("s", vec!["a"])
         .start("s")
         .build();
-    let g2 = roundtrip_bincode(&g);
+    let g2 = roundtrip_binary(&g);
     assert_eq!(g.name, g2.name);
 }
 
@@ -49,7 +49,7 @@ fn json_two_alts() {
 }
 
 #[test]
-fn bincode_two_alts() {
+fn postcard_two_alts() {
     let g = GrammarBuilder::new("a3")
         .token("a", "a")
         .token("b", "b")
@@ -57,7 +57,7 @@ fn bincode_two_alts() {
         .rule("s", vec!["b"])
         .start("s")
         .build();
-    let g2 = roundtrip_bincode(&g);
+    let g2 = roundtrip_binary(&g);
     assert_eq!(g.all_rules().count(), g2.all_rules().count());
 }
 
@@ -73,13 +73,13 @@ fn json_preserves_start() {
 }
 
 #[test]
-fn bincode_preserves_start() {
+fn postcard_preserves_start() {
     let g = GrammarBuilder::new("st2")
         .token("a", "a")
         .rule("s", vec!["a"])
         .start("s")
         .build();
-    let g2 = roundtrip_bincode(&g);
+    let g2 = roundtrip_binary(&g);
     assert_eq!(g.start_symbol(), g2.start_symbol());
 }
 
@@ -114,7 +114,7 @@ fn json_large() {
 }
 
 #[test]
-fn bincode_large() {
+fn postcard_large() {
     let mut b = GrammarBuilder::new("big2");
     for i in 0..30 {
         let n = format!("t{}", i);
@@ -126,7 +126,7 @@ fn bincode_large() {
     }
     b = b.start("s");
     let g = b.build();
-    let g2 = roundtrip_bincode(&g);
+    let g2 = roundtrip_binary(&g);
     assert_eq!(g.all_rules().count(), g2.all_rules().count());
 }
 

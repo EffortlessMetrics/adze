@@ -87,14 +87,14 @@ fn grammar_serde_json_roundtrip_start() {
 }
 
 #[test]
-fn grammar_serde_bincode_roundtrip() {
-    let g = GrammarBuilder::new("bincode")
+fn grammar_serde_postcard_roundtrip() {
+    let g = GrammarBuilder::new("postcard")
         .token("x", "x")
         .rule("s", vec!["x"])
         .start("s")
         .build();
-    let bytes = bincode::serialize(&g).unwrap();
-    let g2: adze_ir::Grammar = bincode::deserialize(&bytes).unwrap();
+    let bytes = postcard::to_stdvec(&g).unwrap();
+    let g2: adze_ir::Grammar = postcard::from_bytes(&bytes).unwrap();
     assert_eq!(g.name, g2.name);
 }
 

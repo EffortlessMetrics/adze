@@ -2,7 +2,7 @@
 
 //! Property-based tests for Grammar serialization/deserialization in adze-ir.
 //!
-//! Covers JSON roundtrip, bincode roundtrip, field preservation, corrupt data
+//! Covers JSON roundtrip, postcard roundtrip, field preservation, corrupt data
 //! handling, and large grammar stress tests.
 
 use adze_ir::builder::GrammarBuilder;
@@ -216,14 +216,14 @@ fn json_roundtrip<
     back
 }
 
-fn bincode_roundtrip<
+fn roundtrip_binary<
     T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + std::fmt::Debug,
 >(
     val: &T,
 ) -> T {
-    let bytes = bincode::serialize(val).expect("bincode serialize");
-    let back: T = bincode::deserialize(&bytes).expect("bincode deserialize");
-    assert_eq!(val, &back, "bincode roundtrip mismatch");
+    let bytes = postcard::to_stdvec(val).expect("postcard serialize");
+    let back: T = postcard::from_bytes(&bytes).expect("postcard deserialize");
+    assert_eq!(val, &back, "postcard roundtrip mismatch");
     back
 }
 
@@ -245,12 +245,12 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 2. Grammar bincode roundtrip (empty)
+    // 2. Grammar postcard roundtrip (empty)
     // -----------------------------------------------------------------------
     #[test]
-    fn grammar_bincode_roundtrip_empty(name in "[a-zA-Z][a-zA-Z0-9_]{0,15}") {
+    fn grammar_postcard_roundtrip_empty(name in "[a-zA-Z][a-zA-Z0-9_]{0,15}") {
         let g = Grammar::new(name);
-        let back = bincode_roundtrip(&g);
+        let back = roundtrip_binary(&g);
         prop_assert_eq!(g, back);
     }
 
@@ -269,16 +269,16 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 4. Grammar with rules roundtrip (bincode)
+    // 4. Grammar with rules roundtrip (postcard)
     // -----------------------------------------------------------------------
     #[test]
-    fn grammar_with_rules_bincode_roundtrip(
+    fn grammar_with_rules_postcard_roundtrip(
         name in "[a-zA-Z][a-zA-Z0-9_]{0,10}",
         rules in prop::collection::vec(arb_rule(), 1..6),
     ) {
         let mut g = Grammar::new(name);
         for r in rules { g.add_rule(r); }
-        let back = bincode_roundtrip(&g);
+        let back = roundtrip_binary(&g);
         prop_assert_eq!(g, back);
     }
 
@@ -297,16 +297,16 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 6. Grammar with externals roundtrip (bincode)
+    // 6. Grammar with externals roundtrip (postcard)
     // -----------------------------------------------------------------------
     #[test]
-    fn grammar_with_externals_bincode_roundtrip(
+    fn grammar_with_externals_postcard_roundtrip(
         name in "[a-zA-Z][a-zA-Z0-9_]{0,10}",
         exts in prop::collection::vec(arb_external_token(), 1..5),
     ) {
         let mut g = Grammar::new(name);
         g.externals = exts;
-        let back = bincode_roundtrip(&g);
+        let back = roundtrip_binary(&g);
         prop_assert_eq!(g, back);
     }
 
@@ -325,16 +325,16 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 8. Grammar with precedences roundtrip (bincode)
+    // 8. Grammar with precedences roundtrip (postcard)
     // -----------------------------------------------------------------------
     #[test]
-    fn grammar_with_precedences_bincode_roundtrip(
+    fn grammar_with_precedences_postcard_roundtrip(
         name in "[a-zA-Z][a-zA-Z0-9_]{0,10}",
         precs in prop::collection::vec(arb_precedence(), 1..5),
     ) {
         let mut g = Grammar::new(name);
         g.precedences = precs;
-        let back = bincode_roundtrip(&g);
+        let back = roundtrip_binary(&g);
         prop_assert_eq!(g, back);
     }
 
@@ -363,12 +363,12 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 10. Serialization preserves all fields (bincode)
+    // 10. Serialization preserves all fields (postcard)
     // -----------------------------------------------------------------------
     #[test]
-    fn serialization_preserves_all_fields_bincode(g in arb_full_grammar()) {
-        let bytes = bincode::serialize(&g).unwrap();
-        let back: Grammar = bincode::deserialize(&bytes).unwrap();
+    fn serialization_preserves_all_fields_postcard(g in arb_full_grammar()) {
+        let bytes = postcard::to_stdvec(&g).unwrap();
+        let back: Grammar = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(&g.name, &back.name);
         prop_assert_eq!(&g.rules, &back.rules);
         prop_assert_eq!(&g.tokens, &back.tokens);
@@ -402,16 +402,16 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 12. Deserialization error for corrupt bincode
+    // 12. Deserialization error for corrupt postcard
     // -----------------------------------------------------------------------
     #[test]
-    fn deserialization_error_corrupt_bincode(
+    fn deserialization_error_corrupt_postcard(
         garbage in prop::collection::vec(any::<u8>(), 1..32),
     ) {
-        let result = bincode::deserialize::<Grammar>(&garbage);
+        let result = postcard::from_bytes::<Grammar>(&garbage);
         if result.is_ok() {
             let g = result.unwrap();
-            let back = bincode_roundtrip(&g);
+            let back = roundtrip_binary(&g);
             prop_assert_eq!(g, back);
         }
     }
@@ -436,10 +436,10 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 14. Large grammar roundtrip (bincode)
+    // 14. Large grammar roundtrip (postcard)
     // -----------------------------------------------------------------------
     #[test]
-    fn large_grammar_bincode_roundtrip(
+    fn large_grammar_postcard_roundtrip(
         rules in prop::collection::vec(arb_rule(), 10..20),
         toks in prop::collection::vec((arb_symbol_id(), arb_token()), 5..10),
         precs in prop::collection::vec(arb_precedence(), 3..6),
@@ -450,7 +450,7 @@ proptest! {
         for (id, tok) in toks { g.tokens.insert(id, tok); }
         g.precedences = precs;
         g.externals = exts;
-        let back = bincode_roundtrip(&g);
+        let back = roundtrip_binary(&g);
         prop_assert_eq!(g, back);
     }
 
@@ -465,7 +465,7 @@ proptest! {
         let mut g = Grammar::new(name);
         g.conflicts = conflicts;
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(&g, &j);
         prop_assert_eq!(&g, &b);
     }
@@ -485,7 +485,7 @@ proptest! {
             g.alias_sequences.insert(pid, seq);
         }
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(&g, &j);
         prop_assert_eq!(&g, &b);
     }
@@ -506,7 +506,7 @@ proptest! {
             g.fields.insert(FieldId(i as u16), fname);
         }
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(&g, &j);
         prop_assert_eq!(&g, &b);
     }
@@ -524,7 +524,7 @@ proptest! {
             g.production_ids.insert(rid, pid);
         }
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(&g, &j);
         prop_assert_eq!(&g, &b);
     }
@@ -544,7 +544,7 @@ proptest! {
             g.rule_names.insert(sid, rname);
         }
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(&g, &j);
         prop_assert_eq!(&g, &b);
     }
@@ -564,7 +564,7 @@ proptest! {
         g.supertypes = supertypes;
         g.inline_rules = inline_rules;
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(&g, &j);
         prop_assert_eq!(&g, &b);
     }
@@ -586,24 +586,24 @@ proptest! {
     // 22. Bincode determinism: same grammar serializes to identical bytes
     // -----------------------------------------------------------------------
     #[test]
-    fn bincode_deterministic_grammar(g in arb_full_grammar()) {
-        let bytes1 = bincode::serialize(&g).unwrap();
-        let bytes2 = bincode::serialize(&g).unwrap();
+    fn binary_deterministic_grammar(g in arb_full_grammar()) {
+        let bytes1 = postcard::to_stdvec(&g).unwrap();
+        let bytes2 = postcard::to_stdvec(&g).unwrap();
         prop_assert_eq!(bytes1, bytes2);
     }
 
     // -----------------------------------------------------------------------
-    // 23. Cross-format: JSON and bincode produce equal Grammar values
+    // 23. Cross-format: JSON and postcard produce equal Grammar values
     // -----------------------------------------------------------------------
     #[test]
     fn cross_format_grammar_roundtrip(g in arb_full_grammar()) {
         let from_json: Grammar = serde_json::from_str(
             &serde_json::to_string(&g).unwrap()
         ).unwrap();
-        let from_bincode: Grammar = bincode::deserialize(
-            &bincode::serialize(&g).unwrap()
+        let from_postcard: Grammar = postcard::from_bytes(
+            &postcard::to_stdvec(&g).unwrap()
         ).unwrap();
-        prop_assert_eq!(&from_json, &from_bincode);
+        prop_assert_eq!(&from_json, &from_postcard);
     }
 
     // -----------------------------------------------------------------------
@@ -617,7 +617,7 @@ proptest! {
         let mut g = Grammar::new(name);
         g.max_alias_sequence_length = max_len;
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(g.max_alias_sequence_length, j.max_alias_sequence_length);
         prop_assert_eq!(g.max_alias_sequence_length, b.max_alias_sequence_length);
     }
@@ -636,14 +636,14 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 26. Double roundtrip idempotence (bincode)
+    // 26. Double roundtrip idempotence (postcard)
     // -----------------------------------------------------------------------
     #[test]
-    fn double_roundtrip_bincode(g in arb_full_grammar()) {
-        let bytes1 = bincode::serialize(&g).unwrap();
-        let back1: Grammar = bincode::deserialize(&bytes1).unwrap();
-        let bytes2 = bincode::serialize(&back1).unwrap();
-        let back2: Grammar = bincode::deserialize(&bytes2).unwrap();
+    fn double_roundtrip_postcard(g in arb_full_grammar()) {
+        let bytes1 = postcard::to_stdvec(&g).unwrap();
+        let back1: Grammar = postcard::from_bytes(&bytes1).unwrap();
+        let bytes2 = postcard::to_stdvec(&back1).unwrap();
+        let back2: Grammar = postcard::from_bytes(&bytes2).unwrap();
         prop_assert_eq!(&g, &back2);
         prop_assert_eq!(bytes1, bytes2);
     }
@@ -659,7 +659,7 @@ proptest! {
         let mut g = Grammar::new(name);
         for (id, tok) in toks { g.tokens.insert(id, tok); }
         let j = json_roundtrip(&g);
-        let b = bincode_roundtrip(&g);
+        let b = roundtrip_binary(&g);
         prop_assert_eq!(&g, &j);
         prop_assert_eq!(&g, &b);
     }
@@ -676,14 +676,14 @@ proptest! {
     }
 
     // -----------------------------------------------------------------------
-    // 29. Truncated bincode always fails
+    // 29. Truncated postcard always fails
     // -----------------------------------------------------------------------
     #[test]
-    fn truncated_bincode_fails(g in arb_full_grammar()) {
-        let bytes = bincode::serialize(&g).unwrap();
+    fn truncated_postcard_fails(g in arb_full_grammar()) {
+        let bytes = postcard::to_stdvec(&g).unwrap();
         if bytes.len() > 1 {
             let truncated = &bytes[..bytes.len() / 2];
-            let result = bincode::deserialize::<Grammar>(truncated);
+            let result = postcard::from_bytes::<Grammar>(truncated);
             prop_assert!(result.is_err());
         }
     }
@@ -723,7 +723,7 @@ fn builder_grammar_json_roundtrip() {
 }
 
 #[test]
-fn builder_grammar_bincode_roundtrip() {
+fn builder_grammar_postcard_roundtrip() {
     let g = GrammarBuilder::new("arith")
         .token("NUMBER", r"\d+")
         .token("+", "+")
@@ -733,7 +733,7 @@ fn builder_grammar_bincode_roundtrip() {
         .rule("expr", vec!["NUMBER"])
         .start("expr")
         .build();
-    let back = bincode_roundtrip(&g);
+    let back = roundtrip_binary(&g);
     assert_eq!(g, back);
 }
 
@@ -742,7 +742,7 @@ fn builder_grammar_bincode_roundtrip() {
 fn default_grammar_roundtrip() {
     let g = Grammar::default();
     let j = json_roundtrip(&g);
-    let b = bincode_roundtrip(&g);
+    let b = roundtrip_binary(&g);
     assert_eq!(g, j);
     assert_eq!(g, b);
 }
@@ -781,10 +781,10 @@ fn complex_builder_grammar_roundtrip() {
     let from_json: Grammar = serde_json::from_str(&json).unwrap();
     assert_eq!(g, from_json);
 
-    let bytes = bincode::serialize(&g).unwrap();
-    let from_bincode: Grammar = bincode::deserialize(&bytes).unwrap();
-    assert_eq!(g, from_bincode);
-    assert_eq!(from_json, from_bincode);
+    let bytes = postcard::to_stdvec(&g).unwrap();
+    let from_postcard: Grammar = postcard::from_bytes(&bytes).unwrap();
+    assert_eq!(g, from_postcard);
+    assert_eq!(from_json, from_postcard);
 }
 
 /// Corrupt JSON with valid-looking but wrong types still fails or roundtrips.
