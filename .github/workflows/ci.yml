@@ -79,17 +79,16 @@ jobs:
         run: cargo fmt --all -- --check
       
       - name: Clippy (default features, per-package)
-        run: scripts/clippy-per-package.sh default
+        run: cargo xtask scripts clippy-per-package default
         
       - name: Clippy (tree-sitter-c2rust, per-package)
-        run: scripts/clippy-per-package.sh c2rust
+        run: cargo xtask scripts clippy-per-package c2rust
       
       - name: Clippy - collect per-package outputs
         shell: bash
         continue-on-error: true
         run: |
-          chmod +x ./scripts/clippy-collect.sh
-          ./scripts/clippy-collect.sh || true
+          cargo xtask scripts clippy-collect || true
       
       - name: Upload Clippy reports
         uses: actions/upload-artifact@v4
@@ -984,9 +983,9 @@ jobs:
 
       - name: Validate package manifests
         run: |
-          RELEASE_SURFACE_MODE=fixed ./scripts/validate-release-surface.sh
+          RELEASE_SURFACE_MODE=fixed cargo xtask scripts validate-release-surface
 
-          mapfile -t CRATES_TO_PUBLISH < <(./scripts/release-surface.sh)
+          mapfile -t CRATES_TO_PUBLISH < <(cargo xtask scripts release-surface)
           for crate in "${CRATES_TO_PUBLISH[@]}"; do
             cargo package -p "$crate" --no-verify
           done

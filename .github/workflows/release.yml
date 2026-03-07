@@ -54,7 +54,7 @@ jobs:
         run: |
           if ! ORDER_JSON=$(RELEASE_SURFACE_MODE="${{ inputs.release_surface_mode }}" \
             RELEASE_CRATE_FILE="${{ inputs.release_crate_file }}" \
-            ./scripts/release-surface.sh | jq -R -s -c 'split("\n") | map(select(length > 0))'); then
+            cargo xtask scripts release-surface | jq -R -s -c 'split("\n") | map(select(length > 0))'); then
             echo "::error::Failed to resolve publish crate order"
             exit 1
           fi
@@ -76,7 +76,7 @@ jobs:
           RELEASE_SURFACE_MODE="${{ inputs.release_surface_mode }}" \
           RELEASE_CRATE_FILE="${{ inputs.release_crate_file }}" \
           STRICT_PUBLISH_SURFACE="${{ inputs.strict_publish_surface }}" \
-          ./scripts/validate-release-surface.sh
+          cargo xtask scripts validate-release-surface
 
       - name: Validate version bump
         run: |

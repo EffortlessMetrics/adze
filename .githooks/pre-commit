@@ -276,11 +276,11 @@ echo -e "${YELLOW}→${NC} Clippy (affected crates, feature-safe)..."
 
 # Build package arguments if we have affected crates
 pkg_args=()
-if command -v jq >/dev/null 2>&1 && [ -f scripts/affected-crates.sh ]; then
+if pkgs_output=$(cargo xtask scripts affected-crates 2>/dev/null); then
     pkgs=()
     while IFS= read -r pkg; do
-        pkgs+=("$pkg")
-    done < <(scripts/affected-crates.sh || true)
+        [ -n "$pkg" ] && pkgs+=("$pkg")
+    done <<< "$pkgs_output"
     if [ "${#pkgs[@]}" -gt 0 ]; then
         # Deduplicate & sort for stable output
         sorted_pkgs=()
@@ -294,7 +294,7 @@ if command -v jq >/dev/null 2>&1 && [ -f scripts/affected-crates.sh ]; then
         echo "   no staged .rs files mapped to crates; using workspace"
     fi
 else
-    echo "   jq not found or affected-crates.sh missing; using workspace"
+    echo "   could not resolve affected crates; using workspace"
 fi
 
 # Function to run clippy with specific feature set
@@ -483,10 +483,11 @@ echo -e "${GREEN}✓${NC} Test connectivity verified"
 # Step 8: Quick test of critical invariants (optional, crate-aware)
 if [ "${RUN_QUICK_TESTS:-0}" = "1" ]; then
     echo -e "${YELLOW}→${NC} Quick tests (affected crates)..."
-    if command -v jq >/dev/null 2>&1 && [ -f scripts/affected-crates.sh ]; then
+    if pkgs_output=$(cargo xtask scripts affected-crates 2>/dev/null); then
+        pkgs=()
         while IFS= read -r pkg; do
-            pkgs+=("$pkg")
-        done < <(scripts/affected-crates.sh || true)
+            [ -n "$pkg" ] && pkgs+=("$pkg")
+        done <<< "$pkgs_output"
     else
         pkgs=()
     fi

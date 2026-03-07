@@ -13,7 +13,7 @@ echo "Strict publish surface: ${STRICT_PUBLISH_SURFACE}"
 echo ""
 
 mapfile -t CRATES < <(RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
-  RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" "${SCRIPT_DIR}/release-surface.sh")
+  RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" cargo xtask scripts release-surface)
 if [[ ${#CRATES[@]} -eq 0 ]]; then
   echo "Release crate allowlist is empty: ${RELEASE_CRATE_FILE}" >&2
   exit 1
@@ -22,7 +22,7 @@ fi
 RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
 RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" \
 STRICT_PUBLISH_SURFACE="$STRICT_PUBLISH_SURFACE" \
-"${SCRIPT_DIR}/validate-release-surface.sh"
+cargo xtask scripts validate-release-surface
 echo
 
 for crate in "${CRATES[@]}"; do

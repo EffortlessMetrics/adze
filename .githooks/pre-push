@@ -14,42 +14,8 @@ NC='\033[0m' # No Color
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-# Function to check if jq is available
-check_jq() {
-    if ! command -v jq >/dev/null 2>&1; then
-        echo -e "${RED}✖ jq is required but not installed${NC}"
-        echo "Please install jq to run comprehensive checks"
-        echo "  Ubuntu/Debian: sudo apt-get install jq"
-        echo "  macOS: brew install jq"
-        echo "  Or download from: https://stedolan.github.io/jq/download/"
-        exit 1
-    fi
-}
-
-# Function to get packages with tree-sitter-c2rust feature
-get_c2rust_packages() {
-    cargo metadata --format-version 1 2>/dev/null | \
-        jq -r '.packages[] | select(.features["tree-sitter-c2rust"] != null) | .name' 2>/dev/null || true
-}
-
-# Function to check if a package has tree-sitter-c2rust feature
-has_c2rust_feature() {
-    local pkg="$1"
-    local c2rust_packages
-    
-    c2rust_packages=$(get_c2rust_packages)
-    if [ -z "$c2rust_packages" ]; then
-        return 1  # No packages found
-    fi
-    
-    echo "$c2rust_packages" | grep -q "^${pkg}$"
-}
-
 echo -e "${GREEN}[pre-push]${NC} Running comprehensive checks before push..."
 echo -e "${BLUE}→${NC} Using robust pre-push hook from .githooks/"
-
-# Check jq availability early
-check_jq
 
 # Read the push details (remote and URL are passed as arguments)
 remote="${1:-origin}"
@@ -113,13 +79,13 @@ echo -e "${YELLOW}→${NC} Running comprehensive clippy analysis (per-package, f
 
 # Run clippy checks using centralized script
 echo "   Running clippy checks (default features)..."
-if ! scripts/clippy-per-package.sh default; then
+if ! cargo xtask scripts clippy-per-package default; then
     echo -e "${RED}✖ Clippy failed (default features)${NC}"
     exit 1
 fi
 
 echo "   Running clippy checks (tree-sitter-c2rust)..."
-if ! scripts/clippy-per-package.sh c2rust; then
+if ! cargo xtask scripts clippy-per-package c2rust; then
     echo -e "${RED}✖ Clippy failed (tree-sitter-c2rust)${NC}"
     exit 1
 fi

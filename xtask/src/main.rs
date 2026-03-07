@@ -11,6 +11,7 @@ mod golden;
 mod grammar_json;
 mod lint;
 mod profile;
+mod scripts;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -189,6 +190,11 @@ enum Commands {
         /// Fixtures directory
         #[arg(short = 'd', long, default_value = "benchmarks/fixtures/arithmetic")]
         dir: String,
+    },
+    /// Native replacements for repository shell scripts
+    Scripts {
+        #[command(subcommand)]
+        command: scripts::ScriptsCommand,
     },
 }
 
@@ -370,6 +376,9 @@ fn main() -> Result<()> {
         }
         Commands::FixturesInfo { dir } => {
             fixtures::info_fixtures(&dir)?;
+        }
+        Commands::Scripts { command } => {
+            scripts::run(&sh, command)?;
         }
     }
 

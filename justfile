@@ -110,7 +110,7 @@ check-msrv:
 
 # Show crates.io publish order
 publish-order:
-    ./scripts/publish-order.sh
+    cargo xtask scripts publish-order
 
 # Clean build artifacts
 clean:

@@ -28,7 +28,7 @@ tag="v${release_version}"
 msg="Release ${tag}: Algorithmically correct GLR parser"
 
 mapfile -t CRATES_TO_PUBLISH < <(RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
-  RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" "${SCRIPT_DIR}/release-surface.sh")
+  RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" cargo xtask scripts release-surface)
 if [[ ${#CRATES_TO_PUBLISH[@]} -eq 0 ]]; then
   echo "Error: release crate list is empty." >&2
   exit 1
@@ -46,7 +46,7 @@ echo
 RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
 RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" \
 STRICT_PUBLISH_SURFACE="$STRICT_PUBLISH_SURFACE" \
-"${SCRIPT_DIR}/validate-release-surface.sh"
+cargo xtask scripts validate-release-surface
 echo
 
 # Check if tag already exists locally
