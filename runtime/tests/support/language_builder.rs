@@ -1,14 +1,7 @@
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::pure_parser::{ExternalScanner, TSLanguage, TSLexState, TSParseAction, TSRule};
 use adze::ts_format::{TSActionTag, choose_action_with_precedence};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{Action, ParseTable};
 use ir::{Grammar, StateId, Symbol, SymbolId};

@@ -207,12 +207,10 @@ mod simd_lexer_v2;
 #[cfg(feature = "ts-compat")]
 pub mod ts_compat;
 
-// Re-export IR and GLR core for ts-compat language construction
-/// Tree-sitter compatibility: re-exported GLR core.
-#[cfg(feature = "ts-compat")]
+// Re-export IR and GLR core so integration tests have one canonical identity.
+/// GLR core re-export (used by integration tests and ts-compat API).
 pub use adze_glr_core;
-/// Tree-sitter compatibility: re-exported IR types.
-#[cfg(feature = "ts-compat")]
+/// IR types re-export (used by integration tests and ts-compat API).
 pub use adze_ir;
 // TODO: Update parallel_parser for new Parser API
 // pub mod parallel_parser {

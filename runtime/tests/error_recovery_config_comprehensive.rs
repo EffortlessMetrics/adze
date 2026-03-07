@@ -1,10 +1,6 @@
 // Comprehensive tests for ErrorRecoveryConfig and RecoveryStrategy
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::error_recovery::*;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 

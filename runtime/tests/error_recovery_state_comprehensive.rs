@@ -1,10 +1,6 @@
 // Wave 133: Comprehensive ErrorRecoveryState and scope/delimiter tests
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::error_recovery::*;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 

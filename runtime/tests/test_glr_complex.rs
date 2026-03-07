@@ -1,15 +1,8 @@
 // Complex GLR parser tests with real-world grammar patterns
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_parser::GLRParser;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{
     CompareResult, FirstFollowSets, VersionInfo, build_lr1_automaton, compare_versions_with_symbols,

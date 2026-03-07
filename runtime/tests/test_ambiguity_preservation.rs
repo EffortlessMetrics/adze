@@ -1,11 +1,7 @@
 //! Tests for ambiguity preservation in compression
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::subtree::{Subtree, SubtreeNode};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 use std::sync::Arc;

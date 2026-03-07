@@ -10,12 +10,8 @@
 //! 7. Various token patterns
 //! 8. Edge cases
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer, Token};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{SymbolId, TokenPattern};
 

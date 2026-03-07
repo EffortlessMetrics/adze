@@ -10,11 +10,7 @@
 //! 7. SExpr types (8 tests)
 //! 8. Integration (8 tests)
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use adze::arena_allocator::{TreeArena, TreeNode};
 use adze::error_recovery::{

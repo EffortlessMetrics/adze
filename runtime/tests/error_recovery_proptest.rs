@@ -1,15 +1,11 @@
 #![allow(clippy::needless_range_loop)]
 //! Property-based tests for the `adze::error_recovery` module.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState, RecoveryAction,
     RecoveryStrategy,
 };
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 use proptest::prelude::*;

@@ -1,17 +1,10 @@
 // Integration test for Python-like grammar with indentation scanner
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::parser_v4::Parser;
 use adze::scanner_registry::ExternalScannerBuilder;
 use adze::scanners::IndentationScanner;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{Action, ParseTable};
 use ir::{ExternalToken, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};

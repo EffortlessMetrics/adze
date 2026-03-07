@@ -14,13 +14,9 @@
 //! - Complex expression token streams
 //! - Lookahead / priority-based matching
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_lexer::GLRLexer;
 use adze::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer, Token};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{Grammar, SymbolId, TokenPattern};
 

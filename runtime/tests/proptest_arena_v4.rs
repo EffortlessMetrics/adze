@@ -4,13 +4,9 @@
 //! arena capacity, node retrieval consistency, large allocation sequences,
 //! and ErrorRecoveryConfig / ErrorNode invariants.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::arena_allocator::{TreeArena, TreeNode};
 use adze::error_recovery::{ErrorNode, ErrorRecoveryConfig, RecoveryStrategy};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 use proptest::prelude::*;

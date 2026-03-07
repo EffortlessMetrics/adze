@@ -1,12 +1,8 @@
 // Test for syntax highlighting functionality
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::parser::ParseNode;
 use adze::query::compiler::compile_query;
 use adze::query::{Highlighter, Theme};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 

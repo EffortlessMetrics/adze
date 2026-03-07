@@ -9,12 +9,8 @@
 //! - Statistics collection
 //! - Validation warnings and suggestions
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_validation::*;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::builder::GrammarBuilder;
 use ir::{Grammar, SymbolId};

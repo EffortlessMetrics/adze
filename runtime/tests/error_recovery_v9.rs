@@ -3,15 +3,11 @@
 //! Covers: default config, builder patterns, state management, scope tracking,
 //! strategy variants, error nodes, reset operations, and edge cases.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 

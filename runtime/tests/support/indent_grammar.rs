@@ -1,11 +1,7 @@
 //! Minimal indent grammar for testing external tokens
 //! This grammar uses an INDENT external token to test external scanner integration
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 

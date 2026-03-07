@@ -3,20 +3,12 @@
 
 #[cfg(feature = "incremental_glr")]
 mod comprehensive_incremental_tests {
-    #[cfg(feature = "ts-compat")]
     use adze::adze_glr_core as glr_core;
-    #[cfg(feature = "ts-compat")]
     use adze::adze_ir as ir;
     use adze::glr_incremental::{
         GLREdit, GLRToken, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
-
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_glr_core as glr_core;
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_ir as ir;
-
     use glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
     use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::time::Instant;

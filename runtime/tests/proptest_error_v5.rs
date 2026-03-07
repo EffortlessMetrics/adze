@@ -7,16 +7,12 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
 use adze::lexer::ErrorRecoveryMode;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 use proptest::prelude::*;
@@ -319,7 +315,6 @@ proptest! {
         overshoot in 1usize..10,
     ) {
         let cfg = ErrorRecoveryConfig { max_consecutive_errors: max, enable_phrase_recovery: false, ..ErrorRecoveryConfig::default() };
-
 
         let mut state = ErrorRecoveryState::new(cfg);
 

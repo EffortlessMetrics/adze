@@ -5,14 +5,10 @@
 //! Uses `proptest` to verify invariants of `forest_to_v4_tree` and
 //! `v4_tree_to_forest` over randomly generated forest structures.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_incremental::{ForestNode, ForkAlternative};
 use adze::subtree::{Subtree, SubtreeNode};
 use adze::tree_bridge::{forest_to_v4_tree, v4_tree_to_forest};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 use proptest::prelude::*;

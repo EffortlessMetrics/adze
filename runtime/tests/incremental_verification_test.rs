@@ -3,19 +3,12 @@
 
 mod common;
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_incremental::{get_reuse_count, reset_reuse_counter};
 use adze::parser_v4::Parser;
 use adze::pure_incremental::Edit;
 use adze::pure_parser::Point;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::ParseTable;
 use ir::Grammar;

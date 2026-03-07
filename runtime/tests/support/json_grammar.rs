@@ -1,11 +1,7 @@
 #![cfg(feature = "pure-rust")]
 #![allow(dead_code)]
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{FieldId, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 

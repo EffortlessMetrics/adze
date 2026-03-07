@@ -1,14 +1,7 @@
 // Simple test to debug GLR parse table generation
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{ConflictResolver, FirstFollowSets, build_lr1_automaton};
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};

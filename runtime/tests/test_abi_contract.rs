@@ -1,17 +1,7 @@
 #[cfg(test)]
 mod tests {
-    // Import the correct types from ts_format module
-    #[cfg(feature = "ts-compat")]
-    use adze::adze_glr_core as glr_core;
-    #[cfg(feature = "ts-compat")]
-    use adze::adze_ir as ir;
+    // Import the correct types from ts_format module    use adze::adze_glr_core as glr_core;    use adze::adze_ir as ir;
     use adze::ts_format::{TSActionTag, choose_action};
-
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_glr_core as glr_core;
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_ir as ir;
-
     use glr_core::Action;
     use ir::{RuleId, StateId};
 

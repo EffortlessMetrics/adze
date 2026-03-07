@@ -1,11 +1,7 @@
 //! Property-based tests for error recovery: config, mode transitions, state tracking,
 //! error node ordering, and determinism.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,

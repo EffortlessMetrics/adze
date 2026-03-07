@@ -1,9 +1,5 @@
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::decoder::{decode_grammar, decode_parse_table};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::ProductionId;
 

@@ -1,8 +1,4 @@
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,

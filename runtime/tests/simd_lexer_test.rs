@@ -8,12 +8,8 @@
 //! - SIMD-optimized pattern matching (whitespace, digits, identifiers)
 //! - Literal string matching with greedy behavior
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::simd_lexer::SimdLexer;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{SymbolId, TokenPattern};
 

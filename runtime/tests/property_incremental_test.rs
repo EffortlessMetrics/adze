@@ -1,8 +1,4 @@
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 // Property-based tests for incremental parsing
 // These tests ensure that incremental parsing produces the same results as fresh parsing
@@ -43,19 +39,11 @@ fn test_fresh_parse_sanity() {
 
 #[cfg(all(test, feature = "incremental_glr"))]
 mod incremental_properties {
-    #[cfg(feature = "ts-compat")]
     use adze::adze_glr_core as glr_core;
-    #[cfg(feature = "ts-compat")]
     use adze::adze_ir as ir;
     use adze::parser_v4::{Parser, Tree};
     use adze::pure_incremental::Edit;
     use adze::pure_parser::Point;
-
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_glr_core as glr_core;
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_ir as ir;
-
     use glr_core::ParseTable;
     use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use proptest::prelude::*;

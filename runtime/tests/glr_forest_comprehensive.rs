@@ -1,10 +1,6 @@
 // Comprehensive tests for GLR parse forest structures
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_forest::*;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{RuleId, SymbolId};
 use proptest::prelude::*;

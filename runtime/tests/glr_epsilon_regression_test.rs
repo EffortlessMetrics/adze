@@ -1,15 +1,8 @@
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 /// Regression tests for GLR parser reduction de-duplication
 /// Ensures that legitimate reductions from different predecessor paths are preserved
 use adze::glr_parser::GLRParser;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::ParseTable;
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId};

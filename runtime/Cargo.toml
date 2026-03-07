@@ -185,9 +185,17 @@ required-features = ["experimental_examples", "pure-rust"]
 name = "lang_probe"
 required-features = ["experimental_examples"]
 
-# [[example]]
-# name = "validation_demo"
-# required-features = ["experimental_examples"]
+[[example]]
+name = "pr58_features_demo"
+required-features = ["experimental_examples", "ts-compat"]
+
+[[example]]
+name = "query_demo"
+required-features = ["experimental_examples"]
+
+[[example]]
+name = "validation_demo"
+required-features = ["experimental_examples"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(skip_integration_tests)', 'cfg(skip_outdated_tests)'] }

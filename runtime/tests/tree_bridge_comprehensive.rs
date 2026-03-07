@@ -9,14 +9,10 @@
 //! API, convert to trees with `forest_to_v4_tree`, inspect via the `Node` API,
 //! then roundtrip back via `v4_tree_to_forest`.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_incremental::{ForestNode, ForkAlternative};
 use adze::subtree::{Subtree, SubtreeNode};
 use adze::tree_bridge::{forest_to_v4_tree, v4_tree_to_forest};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{RuleId, SymbolId};
 use std::sync::Arc;

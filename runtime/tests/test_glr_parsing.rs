@@ -6,20 +6,13 @@
 
 mod common;
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::error_recovery::{ErrorRecoveryConfig, ErrorRecoveryConfigBuilder};
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::{GLRParser, ParseStack};
 use adze::parser_v4::{Parser, Tree};
 use adze::subtree::Subtree;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{Action, FirstFollowSets, ParseTable, build_lr1_automaton};
 use ir::{Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token, TokenPattern};

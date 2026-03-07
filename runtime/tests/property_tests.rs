@@ -10,11 +10,7 @@
 
 mod common;
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use adze::pure_parser::{ExternalScanner, ParsedNode, Parser, Point, TSLanguage, TSParseAction};
 use adze::visitor::{TreeWalker, Visitor, VisitorAction};

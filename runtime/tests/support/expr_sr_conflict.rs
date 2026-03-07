@@ -1,11 +1,7 @@
 //! Expression grammar with shift/reduce conflicts for testing conflict resolution
 //! This grammar intentionally creates SR conflicts to test the resolution policy
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 

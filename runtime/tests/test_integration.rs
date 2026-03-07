@@ -9,20 +9,13 @@ use anyhow::Result;
 use indexmap::IndexMap;
 // use adze::external_scanner::ExternalScanner; // Unused
 // use adze::incremental_v3::{Edit, IncrementalParser, Position}; // Feature-gated
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::query::{QueryCursor, compile_query};
 use adze::scanner_registry::ExternalScannerBuilder;
 use adze::scanners::IndentationScanner;
 use adze::tree_sitter::Point as Position;
 use adze::unified_parser::Parser;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use adze_tablegen::StaticLanguageGenerator;
 use glr_core::*;

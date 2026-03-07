@@ -3,18 +3,11 @@
 //! Tests empty input, large input, Unicode edge cases, concurrency,
 //! memory pressure, invalid UTF-8, null bytes, and deep nesting.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
 use adze::lexer::{ErrorRecoveringLexer, GrammarLexer};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{FirstFollowSets, build_lr1_automaton};
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};

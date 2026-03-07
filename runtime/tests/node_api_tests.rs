@@ -8,18 +8,11 @@
 
 mod common;
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::arena_allocator::NodeHandle;
 use adze::parser_v4::{ParseNode, Parser};
 use adze::tree_node_data::TreeNodeData;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 
@@ -233,17 +226,9 @@ fn test_byte_range_root_covers_children() {
 
 #[cfg(feature = "ts-compat")]
 mod position_tests {
-    #[cfg(feature = "ts-compat")]
     use adze::adze_glr_core as glr_core;
-    #[cfg(feature = "ts-compat")]
     use adze::adze_ir as ir;
     use adze::ts_compat::{Language, Parser, Point};
-
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_glr_core as glr_core;
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_ir as ir;
-
     use glr_core::{FirstFollowSets, build_lr1_automaton};
     use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
     use std::sync::Arc;

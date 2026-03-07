@@ -3,17 +3,10 @@
 #![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
 #![allow(clippy::duplicate_mod)]
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::decoder::decode_parse_table;
 use adze::ts_format::choose_action;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{Action, ParseRule, ParseTable};
 use ir::{Grammar, RuleId, StateId, SymbolId};

@@ -2,12 +2,8 @@
 //!
 //! Tests the query parser, cursor, pattern matching, and error handling.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_query::*;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use ir::SymbolId;
 use ir::builder::GrammarBuilder;

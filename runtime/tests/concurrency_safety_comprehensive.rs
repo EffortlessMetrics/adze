@@ -6,9 +6,7 @@
 //! bounded_parallel_map correctness, race condition prevention, thread pool sizing,
 //! and multiple parsers in parallel.
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::concurrency_caps::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
@@ -19,11 +17,6 @@ use adze::error_recovery::{ErrorRecoveryConfig, RecoveryStrategy};
 use adze::glr_lexer::GLRLexer;
 use adze::glr_parser::GLRParser;
 use adze::subtree::Subtree;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};

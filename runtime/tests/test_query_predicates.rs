@@ -5,16 +5,11 @@
 #![cfg(skip_outdated_tests)]
 
 mod tests {
-    #[cfg(feature = "ts-compat")]
     use adze::adze_ir as ir;
     use adze::{
         parser_v3::{ParseNode, Parser},
         query::{Query, QueryCursor, compile_query},
     };
-
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_ir as ir;
-
     use ir::{Grammar, Rule, RuleExpr, Symbol, SymbolId};
     use std::collections::HashMap;
 

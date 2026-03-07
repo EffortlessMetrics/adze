@@ -1,15 +1,8 @@
 //! Test for the new forest splicing incremental parsing approach
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{FirstFollowSets, build_lr1_automaton};
 use ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};

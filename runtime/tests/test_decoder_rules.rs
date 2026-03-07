@@ -2,12 +2,8 @@
 
 mod support;
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
 use adze::decoder;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
 
 use glr_core::{FirstFollowSets, build_lr1_automaton};
 use support::{expr_grammar, language_builder};

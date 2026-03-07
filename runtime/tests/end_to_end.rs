@@ -1,17 +1,10 @@
 // End-to-end test of the pure-Rust Tree-sitter runtime
 // This tests the complete pipeline from grammar to parsing
 
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
 use adze::lexer::GrammarLexer;
 use adze::parser_v4::Parser;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 use glr_core::{Action, ParseTable, SymbolMetadata};
 use ir::{

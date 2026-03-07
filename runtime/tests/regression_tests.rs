@@ -3,15 +3,8 @@
 //! Each test references its corresponding GitHub issue and either:
 //! - Verifies a fix remains in place (for resolved issues), or
 //! - Documents current behavior for open issues (may be `#[ignore]`d).
-#[cfg(feature = "ts-compat")]
 use adze::adze_glr_core as glr_core;
-#[cfg(feature = "ts-compat")]
 use adze::adze_ir as ir;
-
-#[cfg(not(feature = "ts-compat"))]
-use adze_glr_core as glr_core;
-#[cfg(not(feature = "ts-compat"))]
-use adze_ir as ir;
 
 // ---------------------------------------------------------------------------
 // Issue #89 / PR #90: EOF symbol layout collision (FIXED)
