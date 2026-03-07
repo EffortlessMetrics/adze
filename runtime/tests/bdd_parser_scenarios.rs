@@ -10,7 +10,10 @@ mod bdd_scenarios {
     use adze::glr_lexer::GLRLexer;
     use adze::glr_parser::GLRParser;
     use glr_core::{FirstFollowSets, build_lr1_automaton};
-    use ir::{Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+    use ir::{
+        Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
+        TokenPattern,
+    };
 
     // =====================================================================
     // GIVEN: Helper functions to set up grammars
@@ -91,7 +94,7 @@ mod bdd_scenarios {
                 Symbol::Terminal(plus_id),
                 Symbol::NonTerminal(term_id),
             ],
-            precedence: Some(1),
+            precedence: Some(PrecedenceKind::Static(1)),
             associativity: Some(Associativity::Left),
             production_id: ProductionId(0),
             fields: vec![],
@@ -115,7 +118,7 @@ mod bdd_scenarios {
                 Symbol::Terminal(star_id),
                 Symbol::NonTerminal(factor_id),
             ],
-            precedence: Some(2),
+            precedence: Some(PrecedenceKind::Static(2)),
             associativity: Some(Associativity::Left),
             production_id: ProductionId(2),
             fields: vec![],
@@ -521,7 +524,7 @@ mod bdd_scenarios {
     /// Grammar:
     /// expr → '[' statements ']'
     /// statements → statement | statements statement
-    /// statement → identifier | number
+    /// statement → identifier | number | expr
     fn given_grammar_with_nested_rules() -> Grammar {
         let mut grammar = Grammar::new("nested".to_string());
 
@@ -621,6 +624,16 @@ mod bdd_scenarios {
             precedence: None,
             associativity: None,
             production_id: ProductionId(4),
+            fields: vec![],
+        });
+
+        // statement → expr
+        grammar.rules.entry(stmt_id).or_default().push(Rule {
+            lhs: stmt_id,
+            rhs: vec![Symbol::NonTerminal(expr_id)],
+            precedence: None,
+            associativity: None,
+            production_id: ProductionId(5),
             fields: vec![],
         });
 
@@ -777,8 +790,8 @@ mod bdd_scenarios {
         // GIVEN a grammar with nested rules
         let grammar = given_grammar_with_nested_rules();
 
-        // WHEN parsing deeply nested input like "[ [ a b ] [ 1 2 ] ]"
-        let result = when_parsing(&grammar, "[a b][1 2]");
+        // WHEN parsing a single nested input like "[ [ a b ] [ 1 2 ] ]"
+        let result = when_parsing(&grammar, "[[a b][1 2]]");
 
         // THEN the parser should correctly handle nested structures
         assert!(
