@@ -1,0 +1,22 @@
+[package]
+name = "grammar-integration-tests"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+
+[features]
+default = ["pure-rust", "glr", "ts-compat", "serialization"]
+pure-rust = []
+glr = []
+ts-compat = []
+serialization = []
+
+[dependencies]
+adze = { path = "../../runtime", features = ["pure-rust", "glr", "ts-compat", "serialization"] }
+adze-example = { path = "../../example", features = ["ts-compat", "pure-rust", "glr"] }
+adze-glr-core = { path = "../../glr-core", features = ["serialization"] }
+adze-ir = { path = "../../ir" }
+insta = "1.39"
+serde_json = "1.0"
+anyhow = "1.0"

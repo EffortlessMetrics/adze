@@ -77,9 +77,10 @@ members = [
 # due to mutually exclusive features. Build them explicitly with -p when needed.
 exclude = [
   "runtime/fuzz",
-  "tools/ts-bridge",      # build separately to enable grammar features
-  "crates/ts-c-harness",   # relies on external C/TS libs
-  "example",               # has mutually exclusive pure-rust/c-backend features
+  "tools/ts-bridge",             # build separately to enable grammar features
+  "crates/ts-c-harness",         # relies on external C/TS libs
+  "example",                     # has mutually exclusive pure-rust/c-backend features
+  "tests/grammar-integration",   # depends on excluded crate (adze-example)
 ]
 
 

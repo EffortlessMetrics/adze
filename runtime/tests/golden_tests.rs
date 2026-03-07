@@ -14,10 +14,6 @@
 #[path = "support/language_builder.rs"]
 mod language_builder;
 
-#[cfg(all(test, feature = "pure-rust"))]
-#[path = "support/unified_json_helper.rs"]
-mod unified_json_helper;
-
 // Common test helper utilities
 #[cfg(test)]
 #[path = "support/test_helpers.rs"]

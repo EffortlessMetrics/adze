@@ -52,6 +52,7 @@ These are intentionally excluded for now because they are prototypes, platform-s
 - `golden-tests/` (useful contract, but can be heavy and multi-language)
 - `benchmarks/` (signal, not merge-blocking)
 - `grammars/*` (valuable, but not yet a stable published surface)
+- `tests/grammar-integration/` (depends on excluded crate `adze-example`; tested in `pure-rust-ci.yml`)
 - `crates/*` (47 BDD/governance microcrates; structure stable, READMEs added)
 
 ### Not in the supported lane (workflows)

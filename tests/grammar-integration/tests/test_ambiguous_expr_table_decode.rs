@@ -1,7 +1,14 @@
 //! Deep decode of ambiguous_expr parse table to understand why no conflicts are found
 
 #[cfg(all(feature = "pure-rust", feature = "glr"))]
-use adze_glr_core::Action;
+mod _glr_core_alias {
+    #[cfg(feature = "ts-compat")]
+    pub use adze::adze_glr_core as glr_core;
+    #[cfg(not(feature = "ts-compat"))]
+    pub use adze_glr_core as glr_core;
+}
+#[cfg(all(feature = "pure-rust", feature = "glr"))]
+use _glr_core_alias::glr_core::Action;
 
 #[cfg(all(feature = "pure-rust", feature = "glr"))]
 #[test]

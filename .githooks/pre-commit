@@ -234,7 +234,7 @@ while IFS= read -r -d '' file; do
     if [[ "$file" == *.rs ]]; then
         STAGED_RUST_FILES+=("$file")
     fi
-done < <(git diff --cached --name-only -z 2>/dev/null || true)
+done < <(git diff --cached --name-only --diff-filter=ACMRT -z 2>/dev/null || true)
 
 if [ ${#STAGED_RUST_FILES[@]} -eq 0 ]; then
     echo -e "${BLUE}→${NC} No staged Rust files found, skipping formatting"

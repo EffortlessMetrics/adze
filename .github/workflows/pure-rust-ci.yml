@@ -69,6 +69,10 @@ jobs:
       if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
       run: cargo test --manifest-path example/Cargo.toml --test verify_fixture_parsing -- --test-threads=1
 
+    - name: Run grammar integration tests
+      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+      run: cargo test --manifest-path tests/grammar-integration/Cargo.toml --verbose -- --test-threads=2
+
     - name: Run benchmarks (check compilation)
       run: cargo bench --workspace --exclude adze-wasm-demo --exclude test-vec-wrapper --no-run
   

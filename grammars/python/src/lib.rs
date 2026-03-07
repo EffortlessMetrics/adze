@@ -591,8 +591,21 @@ pub mod grammar {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_simple_program() {
-        // Grammar builds successfully
-        // Test placeholder - replaced with actual assertion
+    fn test_language_struct_compiles() {
+        let _lang = &crate::grammar_python::LANGUAGE;
+        assert!(crate::grammar_python::LANGUAGE.version > 0);
+        assert!(crate::grammar_python::LANGUAGE.symbol_count > 0);
+        println!(
+            "Language version: {}",
+            crate::grammar_python::LANGUAGE.version
+        );
+        println!(
+            "Symbol count: {}",
+            crate::grammar_python::LANGUAGE.symbol_count
+        );
+        println!(
+            "Field count: {}",
+            crate::grammar_python::LANGUAGE.field_count
+        );
     }
 }

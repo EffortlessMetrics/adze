@@ -1,0 +1,27 @@
+// Common test utilities to reduce boilerplate
+#[cfg(feature = "ts-compat")]
+use adze::adze_glr_core as glr_core;
+#[cfg(feature = "ts-compat")]
+use adze::adze_ir as ir;
+
+#[cfg(not(feature = "ts-compat"))]
+use adze_glr_core as glr_core;
+#[cfg(not(feature = "ts-compat"))]
+use adze_ir as ir;
+
+use glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use ir::Grammar;
+
+/// Build a parse table from a grammar - centralizes the construction logic
+#[allow(dead_code)]
+pub fn build_table(grammar: &Grammar) -> ParseTable {
+    let ff = FirstFollowSets::compute(grammar).unwrap();
+    build_lr1_automaton(grammar, &ff).expect("Failed to build automaton")
+}
+
+/// Build parse table and wrap in Result for tests that need error handling
+#[allow(dead_code)]
+pub fn build_table_result(grammar: &Grammar) -> anyhow::Result<ParseTable> {
+    let ff = FirstFollowSets::compute(grammar).unwrap();
+    Ok(build_lr1_automaton(grammar, &ff)?)
+}
