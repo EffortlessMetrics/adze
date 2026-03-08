@@ -812,8 +812,6 @@ version = "0.1.0"
 dependencies = [
  "adze",
  "adze-example",
- "adze-glr-core",
- "adze-ir",
  "anyhow",
  "insta",
  "serde_json",

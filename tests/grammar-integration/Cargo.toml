@@ -15,8 +15,6 @@ serialization = []
 [dependencies]
 adze = { path = "../../runtime", features = ["pure-rust", "glr", "ts-compat", "serialization"] }
 adze-example = { path = "../../example", features = ["ts-compat", "pure-rust", "glr"] }
-adze-glr-core = { path = "../../glr-core", features = ["serialization"] }
-adze-ir = { path = "../../ir" }
 insta = "1.39"
 serde_json = "1.0"
 anyhow = "1.0"

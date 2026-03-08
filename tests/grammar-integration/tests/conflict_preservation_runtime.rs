@@ -11,11 +11,7 @@
 // These tests require example grammars to be built with pure-rust feature
 #[cfg(feature = "pure-rust")]
 mod runtime_conflict_preservation {
-    #[cfg(feature = "ts-compat")]
     use adze::adze_glr_core as glr_core;
-
-    #[cfg(not(feature = "ts-compat"))]
-    use adze_glr_core as glr_core;
 
     #[allow(unused_imports)]
     use glr_core::conflict_inspection::*;
