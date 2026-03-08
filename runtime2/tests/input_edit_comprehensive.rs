@@ -229,7 +229,7 @@ fn input_edit_multiline_positions() {
 #[cfg(feature = "incremental_glr")]
 mod tree_edit_tests {
     use super::*;
-    use adze_runtime::EditError;
+    use adze_runtime::{EditError, Tree};
 
     fn make_tree(start: usize, end: usize, children: Vec<Tree>) -> Tree {
         Tree::new_for_testing(0, start, end, children)
