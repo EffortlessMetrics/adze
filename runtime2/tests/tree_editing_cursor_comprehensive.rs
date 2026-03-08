@@ -229,6 +229,8 @@ fn cursor_reset() {
 
 #[cfg(feature = "incremental_glr")]
 mod editing {
+    use adze_runtime::{InputEdit, Point};
+
     use super::*;
 
     #[test]
