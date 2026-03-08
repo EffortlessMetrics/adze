@@ -572,7 +572,7 @@ mod tests {
     // }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "pure-rust"))]
 mod tests2 {
     use super::*;
     use crate::pure_parser::Point;
