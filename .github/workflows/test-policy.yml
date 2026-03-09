@@ -167,6 +167,7 @@ jobs:
           echo "✅ Test categorization check complete"
 
       - name: Generate test inventory report
+        if: github.event_name != 'pull_request'
         run: |
           echo "Generating test inventory report..."
 
@@ -183,13 +184,14 @@ jobs:
 
       - name: Upload test inventory
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         with:
           name: test-inventory-report
           path: TEST_INVENTORY_REPORT.md
           if-no-files-found: warn
 
       - name: Check test execution time
+        if: github.event_name != 'pull_request'
         run: |
           echo "Running tests with timeout enforcement..."
 
@@ -238,6 +240,14 @@ jobs:
           echo "- ✅ Minimum test counts verified" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ All #[ignore] attributes documented" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ No .rs.disabled files found" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Test execution times within limits" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "- ⏭️ Inventory report skipped on PRs" >> $GITHUB_STEP_SUMMARY
+            echo "- ⏭️ Timeout execution lane skipped on PRs" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ Inventory report generated" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Test execution times within limits" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "See test-inventory-report artifact for detailed breakdown" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "See test-inventory-report artifact for detailed breakdown" >> $GITHUB_STEP_SUMMARY
+          fi
