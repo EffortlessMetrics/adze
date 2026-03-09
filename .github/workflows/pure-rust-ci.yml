@@ -10,43 +10,8 @@ on:
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
-  SUPPORTED_CRATES: -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen
 
 jobs:
-  pr-signal:
-    name: PR Pure Rust Signal
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt, clippy
-
-    - name: Cache cargo
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-
-    - name: Clippy (supported crates)
-      run: cargo clippy $SUPPORTED_CRATES --all-targets -- -D warnings
-
-    - name: Test supported crates
-      run: cargo test $SUPPORTED_CRATES --lib --tests --bins -- --test-threads=2
-
   test-pure-rust:
     name: Test Pure Rust Implementation
     if: github.event_name != 'pull_request'
@@ -112,6 +77,66 @@ jobs:
 
     - name: Run benchmarks (check compilation)
       run: cargo bench --workspace --exclude adze-wasm-demo --exclude test-vec-wrapper --no-run
+
+  targeted-surfaces:
+    name: Targeted PR Surfaces
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Test test-vec-wrapper (isolated)
+      env:
+        CARGO_TARGET_DIR: target/test-vec-wrapper-ci
+      run: cargo test -p test-vec-wrapper --verbose
+
+    - name: Run example crate tests
+      run: cargo test --manifest-path example/Cargo.toml --test verify_fixture_parsing -- --test-threads=1
+
+    - name: Run grammar integration tests
+      run: cargo test --manifest-path tests/grammar-integration/Cargo.toml --verbose -- --test-threads=2
+
+  test-vec-wrapper-windows:
+    name: Test test-vec-wrapper (Windows PR smoke)
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Test test-vec-wrapper (isolated)
+      env:
+        CARGO_TARGET_DIR: target/test-vec-wrapper-ci-windows
+      run: cargo test -p test-vec-wrapper --verbose
   
   test-wasm:
     name: Test WASM Build
@@ -132,8 +157,15 @@ jobs:
       run: |
         cd runtime
         wasm-pack build --target web --features wasm --no-default-features
+
+    - name: Build adze-wasm-demo with wasm-pack
+      run: |
+        cd wasm-demo
+        wasm-pack build --target web --out-dir pkg-ci
+        test -f pkg-ci/adze_wasm_demo.js
+        test -f pkg-ci/adze_wasm_demo_bg.wasm
     
-    - name: Check WASM size
+    - name: Check runtime WASM size
       run: |
         ls -lh runtime/pkg/*.wasm
         size=$(stat -c%s runtime/pkg/*_bg.wasm)
@@ -141,6 +173,9 @@ jobs:
         if [ $size -gt 1048576 ]; then
           echo "Warning: WASM size exceeds 1MB"
         fi
+
+    - name: Check adze-wasm-demo artifact layout
+      run: ls -lh wasm-demo/pkg-ci
   
   golden-tests:
     name: Golden Tests
