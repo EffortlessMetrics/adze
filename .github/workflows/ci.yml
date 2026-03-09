@@ -1033,6 +1033,8 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+      - name: Install WASM target for repo toolchain
+        run: rustup target add wasm32-unknown-unknown
       - name: Check core crates for WASM
         run: |
           for crate in adze-ir adze-glr-core adze-tablegen adze-common; do
