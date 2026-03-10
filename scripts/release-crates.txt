@@ -1,9 +1,43 @@
 # Fixed release surface used by scripts/release-surface.sh in fixed mode.
-# Override with RELEASE_CRATE_FILE when running release helpers/workflows.
-adze-common
+# Keep this list dependency-closed over non-dev workspace path dependencies so
+# PR/release validation does not assume sibling crates already exist on
+# crates.io. Override with RELEASE_CRATE_FILE when running release helpers/workflows.
+adze-bdd-grid-core
+adze-common-syntax-core
+adze-concurrency-init-classifier-core
+adze-concurrency-init-rayon-core
+adze-concurrency-normalize-core
+adze-concurrency-parse-core
+adze-concurrency-plan-core
 adze-ir
+adze-linecol-core
+adze-parser-backend-core
+adze-stack-pool-core
+adze-common
+adze-concurrency-bounded-map-core
+adze-concurrency-env-contract-core
+adze-concurrency-env-core
+adze-concurrency-init-bootstrap-policy-core
+adze-concurrency-map-core
+adze-feature-policy-core
 adze-glr-core
-adze-tablegen
+adze-governance-metadata
 adze-macro
-adze
+adze-parsetable-metadata
+adze-tablegen
 adze-tool
+adze-ts-format-core
+adze-bdd-governance-core
+adze-concurrency-init-bootstrap-core
+adze-concurrency-init-core
+adze-governance-matrix-core-impl
+adze-concurrency-caps-contract-core
+adze-concurrency-caps-core
+adze-governance-matrix-core
+adze-governance-matrix-contract
+adze-governance-runtime-reporting
+adze-governance-runtime-core
+adze-runtime-governance-matrix
+adze-runtime-governance
+adze-runtime-governance-api
+adze

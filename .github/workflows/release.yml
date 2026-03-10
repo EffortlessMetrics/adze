@@ -71,14 +71,14 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Current version: $VERSION"
 
-      - name: Validate release surface
+      - name: Release rehearsal: validate release surface
         run: |
           RELEASE_SURFACE_MODE="${{ inputs.release_surface_mode }}" \
           RELEASE_CRATE_FILE="${{ inputs.release_crate_file }}" \
           STRICT_PUBLISH_SURFACE="${{ inputs.strict_publish_surface }}" \
           cargo xtask scripts validate-release-surface
 
-      - name: Validate version bump
+      - name: Release rehearsal: validate version bump
         run: |
           mapfile -t PUBLISH_ORDER < <(jq -r '.[]' <<< '${{ steps.publish_order.outputs.publish_order }}')
 

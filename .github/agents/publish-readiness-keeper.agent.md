@@ -14,8 +14,9 @@ What to enforce (pragmatic)
 
 Suggested checks (use what repo actually provides)
 - `just publish-order`
-- `scripts/validate-release-surface.sh` (if present)
-- `cargo package -p <crate> --no-verify` (CI already does this in PR job; ensure it stays true)
+- `cargo xtask scripts validate-package-workspace` for the PR/dev-workspace lane
+- `scripts/validate-release-surface.sh` (if present) for release rehearsal policy
+- `cargo package --list -p <crate> --no-verify` when you need a workspace-safe packaging content check
 - Add `cargo package --dry-run` only if you can keep it stable and fast.
 
 Output format

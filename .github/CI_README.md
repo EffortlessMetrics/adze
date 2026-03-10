@@ -59,6 +59,13 @@ cargo deny check   # Security and license checks
 cargo hack test --feature-powerset --skip tree-sitter-standard
 ```
 
+### Package Validation Lanes
+
+- PR lane: `cargo xtask scripts validate-package-workspace`
+  Validates the fixed release surface against the current workspace topology, manifest hygiene, workspace-path dependency versioning, and `cargo package --list --no-verify` contents without assuming sibling crates already exist on crates.io.
+- Release rehearsal lane: `cargo xtask scripts validate-release-surface`
+  Use this in release workflows together with publish-order / semver checks when validating the registry-facing release contract.
+
 ### Snapshot Testing
 
 We use `insta` for snapshot testing of generated code:

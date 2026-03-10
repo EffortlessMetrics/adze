@@ -6,6 +6,7 @@ use xshell::Shell;
 mod affected;
 mod clippy;
 mod metadata;
+mod package_workspace;
 mod publish_order;
 mod publish_ready;
 mod release_surface;
@@ -30,6 +31,15 @@ pub(crate) enum ScriptsCommand {
         /// Release-surface mode
         #[arg(long, value_enum)]
         mode: Option<release_surface::ReleaseSurfaceMode>,
+        /// Override release crate allowlist path
+        #[arg(long = "crate-file", value_name = "PATH")]
+        crate_file: Option<PathBuf>,
+        /// Fail when publishable crates are omitted from the fixed allowlist
+        #[arg(long)]
+        strict: bool,
+    },
+    /// Validate the intended publishable surface against the current workspace
+    ValidatePackageWorkspace {
         /// Override release crate allowlist path
         #[arg(long = "crate-file", value_name = "PATH")]
         crate_file: Option<PathBuf>,
@@ -82,6 +92,9 @@ pub(crate) fn run(_sh: &Shell, command: ScriptsCommand) -> Result<()> {
             crate_file,
             strict,
         } => release_surface::run_validate_release_surface(mode, crate_file, strict),
+        ScriptsCommand::ValidatePackageWorkspace { crate_file, strict } => {
+            package_workspace::run_validate_package_workspace(crate_file, strict)
+        }
         ScriptsCommand::PublishOrder {
             dry_run,
             validate_only,

@@ -413,23 +413,26 @@ jobs:
       
       - name: Install cargo-semver-checks
         run: cargo install cargo-semver-checks --locked
+
+      # The API-freeze baseline predates the adze rename, so select crates by
+      # manifest path instead of current workspace package name.
       
       - name: Check for breaking changes in adze
         run: |
           cargo semver-checks check-release \
-            -p adze \
+            --manifest-path runtime/Cargo.toml \
             --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in macro
         run: |
           cargo semver-checks check-release \
-            -p adze-macro \
+            --manifest-path macro/Cargo.toml \
             --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in tool
         run: |
           cargo semver-checks check-release \
-            -p adze-tool \
+            --manifest-path tool/Cargo.toml \
             --baseline-rev v0.8.0-dev.api-freeze-1
       
       - name: Public API diff (heads-up only)
@@ -983,14 +986,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      - name: Validate package manifests
+      - name: Validate dev-workspace package surface
         run: |
-          RELEASE_SURFACE_MODE=fixed cargo xtask scripts validate-release-surface
-
-          mapfile -t CRATES_TO_PUBLISH < <(cargo xtask scripts release-surface)
-          for crate in "${CRATES_TO_PUBLISH[@]}"; do
-            cargo package -p "$crate" --no-verify
-          done
+          cargo xtask scripts validate-package-workspace
 
   benches-unstable:
     name: Benches (unstable, opt-in)

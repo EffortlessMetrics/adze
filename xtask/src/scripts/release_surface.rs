@@ -34,9 +34,9 @@ struct ReleaseSurfaceConfig {
     crate_file: PathBuf,
 }
 
-struct ValidationOutcome {
-    errors: Vec<String>,
-    warnings: Vec<String>,
+pub(crate) struct ValidationOutcome {
+    pub(crate) errors: Vec<String>,
+    pub(crate) warnings: Vec<String>,
 }
 
 pub(crate) fn run_release_surface(
@@ -101,7 +101,7 @@ pub(crate) fn run_validate_release_surface(
     Ok(())
 }
 
-fn validate_release_surface(
+pub(crate) fn validate_release_surface(
     metadata: &CargoMetadata,
     config: &ReleaseSurfaceConfig,
     allowed_crates: &[String],
@@ -214,6 +214,23 @@ fn validate_release_surface(
     ValidationOutcome { errors, warnings }
 }
 
+pub(crate) fn validate_fixed_release_surface(
+    metadata: &CargoMetadata,
+    crate_file: PathBuf,
+    allowed_crates: &[String],
+    strict: bool,
+) -> ValidationOutcome {
+    validate_release_surface(
+        metadata,
+        &ReleaseSurfaceConfig {
+            mode: ReleaseSurfaceMode::Fixed,
+            crate_file,
+        },
+        allowed_crates,
+        strict,
+    )
+}
+
 fn release_surface_config(
     repo_root: &Path,
     mode: Option<ReleaseSurfaceMode>,
@@ -289,7 +306,7 @@ fn sync_release_surface_file(path: &Path, crates: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn load_release_surface_file(path: &Path) -> Result<Vec<String>> {
+pub(crate) fn load_release_surface_file(path: &Path) -> Result<Vec<String>> {
     let contents = fs::read_to_string(path)
         .with_context(|| format!("::error::Missing allowlist file: {}", path.display()))?;
     parse_release_surface_file(&contents, path)
