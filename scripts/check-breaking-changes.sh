@@ -12,16 +12,56 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+BASELINE_DIR=""
+
+cleanup_baseline() {
+    if [[ -n "$BASELINE_DIR" && -d "$BASELINE_DIR" ]]; then
+        git worktree remove --force "$BASELINE_DIR" >/dev/null 2>&1 || true
+    fi
+}
+
+prepare_baseline() {
+    local baseline_ref=$1
+
+    if [[ -n "$BASELINE_DIR" && -d "$BASELINE_DIR" ]]; then
+        return 0
+    fi
+
+    BASELINE_DIR="$(mktemp -d)"
+    trap cleanup_baseline EXIT
+
+    git worktree add "$BASELINE_DIR" "$baseline_ref" >/dev/null
+
+    sed -i 's/^name = "rust-sitter"$/name = "adze"/' "$BASELINE_DIR/runtime/Cargo.toml"
+    sed -i 's/^name = "rust-sitter-macro"$/name = "adze-macro"/' "$BASELINE_DIR/macro/Cargo.toml"
+    sed -i 's/^name = "rust-sitter-tool"$/name = "adze-tool"/' "$BASELINE_DIR/tool/Cargo.toml"
+    sed -i 's/^name = "rust-sitter-common"$/name = "adze-common"/' "$BASELINE_DIR/common/Cargo.toml"
+    sed -i 's/^name = "rust-sitter-ir"$/name = "adze-ir"/' "$BASELINE_DIR/ir/Cargo.toml"
+    sed -i 's/^name = "rust-sitter-glr-core"$/name = "adze-glr-core"/' "$BASELINE_DIR/glr-core/Cargo.toml"
+    sed -i 's/^name = "rust-sitter-tablegen"$/name = "adze-tablegen"/' "$BASELINE_DIR/tablegen/Cargo.toml"
+
+    perl -0pi -e 's/rust-sitter-macro\/pure-rust/adze-macro\/pure-rust/g; s/rust-sitter-macro = \{/adze-macro = {/g; s/rust-sitter-ir = \{/adze-ir = {/g; s/rust-sitter-glr-core = \{/adze-glr-core = {/g; s/rust-sitter-tablegen = \{/adze-tablegen = {/g' "$BASELINE_DIR/runtime/Cargo.toml"
+    perl -0pi -e 's/rust-sitter-common = \{/adze-common = {/g' "$BASELINE_DIR/macro/Cargo.toml"
+    perl -0pi -e 's/rust-sitter-ir\/optimize/adze-ir\/optimize/g; s/rust-sitter-common = \{/adze-common = {/g; s/rust-sitter-ir = \{/adze-ir = {/g; s/rust-sitter-glr-core = \{/adze-glr-core = {/g; s/rust-sitter-tablegen = \{/adze-tablegen = {/g; s/name = "rust-sitter-gen"/name = "adze-gen"/g' "$BASELINE_DIR/tool/Cargo.toml"
+    perl -0pi -e 's/rust-sitter-glr-core = \{/adze-glr-core = {/g' "$BASELINE_DIR/ir/Cargo.toml"
+    perl -0pi -e 's/rust-sitter-ir = \{/adze-ir = {/g' "$BASELINE_DIR/glr-core/Cargo.toml"
+    perl -0pi -e 's/rust-sitter-ir = \{/adze-ir = {/g; s/rust-sitter-glr-core = \{/adze-glr-core = {/g' "$BASELINE_DIR/tablegen/Cargo.toml"
+}
+
 # Function to check a crate for breaking changes
 check_crate() {
     local crate=$1
-    local baseline=${2:-HEAD~1}
+    local manifest_path=$2
+    local baseline_subdir=$3
+    local baseline=${4:-HEAD~1}
     
     echo -e "\n📦 Checking $crate against $baseline..."
+
+    prepare_baseline "$baseline"
     
     if cargo semver-checks check-release \
-        -p "$crate" \
-        --baseline-rev "$baseline" 2>/dev/null; then
+        --manifest-path "$manifest_path" \
+        --baseline-root "$BASELINE_DIR/$baseline_subdir" 2>/dev/null; then
         echo -e "${GREEN}✅ No breaking changes detected in $crate${NC}"
         return 0
     else
@@ -88,15 +128,29 @@ $(cargo rustdoc -p adze -- -Z unstable-options --output-format json 2>/dev/null 
 
 EOF
     
-    for crate in adze adze-macro adze-tool; do
-        echo "### $crate" >> "$output_file"
-        if check_crate "$crate" HEAD~1 &>/dev/null; then
-            echo "✅ No breaking changes" >> "$output_file"
-        else
-            echo "⚠️  Potential breaking changes detected" >> "$output_file"
-        fi
-        echo "" >> "$output_file"
-    done
+    echo "### adze" >> "$output_file"
+    if check_crate "adze" "runtime/Cargo.toml" "runtime" HEAD~1 &>/dev/null; then
+        echo "✅ No breaking changes" >> "$output_file"
+    else
+        echo "⚠️  Potential breaking changes detected" >> "$output_file"
+    fi
+    echo "" >> "$output_file"
+
+    echo "### adze-macro" >> "$output_file"
+    if check_crate "adze-macro" "macro/Cargo.toml" "macro" HEAD~1 &>/dev/null; then
+        echo "✅ No breaking changes" >> "$output_file"
+    else
+        echo "⚠️  Potential breaking changes detected" >> "$output_file"
+    fi
+    echo "" >> "$output_file"
+
+    echo "### adze-tool" >> "$output_file"
+    if check_crate "adze-tool" "tool/Cargo.toml" "tool" HEAD~1 &>/dev/null; then
+        echo "✅ No breaking changes" >> "$output_file"
+    else
+        echo "⚠️  Potential breaking changes detected" >> "$output_file"
+    fi
+    echo "" >> "$output_file"
     
     echo -e "${GREEN}✅ API report generated: $output_file${NC}"
 }
@@ -117,11 +171,15 @@ main() {
     echo -e "\n${YELLOW}Checking against baseline: $baseline${NC}"
     
     # Check each crate
-    for crate in adze adze-macro adze-tool; do
-        if ! check_crate "$crate" "$baseline"; then
-            failed=$((failed + 1))
-        fi
-    done
+    if ! check_crate "adze" "runtime/Cargo.toml" "runtime" "$baseline"; then
+        failed=$((failed + 1))
+    fi
+    if ! check_crate "adze-macro" "macro/Cargo.toml" "macro" "$baseline"; then
+        failed=$((failed + 1))
+    fi
+    if ! check_crate "adze-tool" "tool/Cargo.toml" "tool" "$baseline"; then
+        failed=$((failed + 1))
+    fi
     
     # Run contract tests
     if ! run_contract_tests; then

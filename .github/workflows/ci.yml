@@ -414,26 +414,45 @@ jobs:
       - name: Install cargo-semver-checks
         run: cargo install cargo-semver-checks --locked
 
-      # The API-freeze baseline predates the adze rename, so select crates by
-      # manifest path instead of current workspace package name.
-      
+      - name: Prepare API-freeze baseline
+        run: |
+          BASELINE_DIR="$(mktemp -d)"
+          echo "SEMVER_BASELINE_DIR=$BASELINE_DIR" >> "$GITHUB_ENV"
+
+          git worktree add "$BASELINE_DIR" v0.8.0-dev.api-freeze-1
+
+          sed -i 's/^name = "rust-sitter"$/name = "adze"/' "$BASELINE_DIR/runtime/Cargo.toml"
+          sed -i 's/^name = "rust-sitter-macro"$/name = "adze-macro"/' "$BASELINE_DIR/macro/Cargo.toml"
+          sed -i 's/^name = "rust-sitter-tool"$/name = "adze-tool"/' "$BASELINE_DIR/tool/Cargo.toml"
+          sed -i 's/^name = "rust-sitter-common"$/name = "adze-common"/' "$BASELINE_DIR/common/Cargo.toml"
+          sed -i 's/^name = "rust-sitter-ir"$/name = "adze-ir"/' "$BASELINE_DIR/ir/Cargo.toml"
+          sed -i 's/^name = "rust-sitter-glr-core"$/name = "adze-glr-core"/' "$BASELINE_DIR/glr-core/Cargo.toml"
+          sed -i 's/^name = "rust-sitter-tablegen"$/name = "adze-tablegen"/' "$BASELINE_DIR/tablegen/Cargo.toml"
+
+          perl -0pi -e 's/rust-sitter-macro\/pure-rust/adze-macro\/pure-rust/g; s/rust-sitter-macro = \{/adze-macro = {/g; s/rust-sitter-ir = \{/adze-ir = {/g; s/rust-sitter-glr-core = \{/adze-glr-core = {/g; s/rust-sitter-tablegen = \{/adze-tablegen = {/g' "$BASELINE_DIR/runtime/Cargo.toml"
+          perl -0pi -e 's/rust-sitter-common = \{/adze-common = {/g' "$BASELINE_DIR/macro/Cargo.toml"
+          perl -0pi -e 's/rust-sitter-ir\/optimize/adze-ir\/optimize/g; s/rust-sitter-common = \{/adze-common = {/g; s/rust-sitter-ir = \{/adze-ir = {/g; s/rust-sitter-glr-core = \{/adze-glr-core = {/g; s/rust-sitter-tablegen = \{/adze-tablegen = {/g; s/name = "rust-sitter-gen"/name = "adze-gen"/g' "$BASELINE_DIR/tool/Cargo.toml"
+          perl -0pi -e 's/rust-sitter-glr-core = \{/adze-glr-core = {/g' "$BASELINE_DIR/ir/Cargo.toml"
+          perl -0pi -e 's/rust-sitter-ir = \{/adze-ir = {/g' "$BASELINE_DIR/glr-core/Cargo.toml"
+          perl -0pi -e 's/rust-sitter-ir = \{/adze-ir = {/g; s/rust-sitter-glr-core = \{/adze-glr-core = {/g' "$BASELINE_DIR/tablegen/Cargo.toml"
+
       - name: Check for breaking changes in adze
         run: |
           cargo semver-checks check-release \
             --manifest-path runtime/Cargo.toml \
-            --baseline-rev v0.8.0-dev.api-freeze-1
+            --baseline-root "${SEMVER_BASELINE_DIR}/runtime"
       
       - name: Check for breaking changes in macro
         run: |
           cargo semver-checks check-release \
             --manifest-path macro/Cargo.toml \
-            --baseline-rev v0.8.0-dev.api-freeze-1
+            --baseline-root "${SEMVER_BASELINE_DIR}/macro"
       
       - name: Check for breaking changes in tool
         run: |
           cargo semver-checks check-release \
             --manifest-path tool/Cargo.toml \
-            --baseline-rev v0.8.0-dev.api-freeze-1
+            --baseline-root "${SEMVER_BASELINE_DIR}/tool"
       
       - name: Public API diff (heads-up only)
         continue-on-error: true
@@ -456,6 +475,13 @@ jobs:
             public-api.old.txt
             public-api.new.txt
             api-diff.txt
+
+      - name: Clean up API-freeze baseline
+        if: always()
+        run: |
+          if [[ -n "${SEMVER_BASELINE_DIR:-}" ]]; then
+            git worktree remove --force "${SEMVER_BASELINE_DIR}"
+          fi
 
   deterministic-codegen:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
