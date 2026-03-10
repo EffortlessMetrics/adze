@@ -1,5 +1,5 @@
 use super::{
-    metadata::{MetadataDependency, MetadataPackage, PublishSetting, cargo_metadata},
+    metadata::{MetadataPackage, PublishSetting, cargo_metadata},
     release_surface::{
         ValidationOutcome, load_release_surface_file, validate_fixed_release_surface,
     },

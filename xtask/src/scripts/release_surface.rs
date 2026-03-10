@@ -101,7 +101,7 @@ pub(crate) fn run_validate_release_surface(
     Ok(())
 }
 
-pub(crate) fn validate_release_surface(
+fn validate_release_surface(
     metadata: &CargoMetadata,
     config: &ReleaseSurfaceConfig,
     allowed_crates: &[String],
