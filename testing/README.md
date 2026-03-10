@@ -9,6 +9,23 @@ This crate provides automated testing tools for validating adze compatibility wi
 - **Performance Benchmarking**: Compare parsing speed with C implementation
 - **Compatibility Reports**: Generate detailed JSON and Markdown reports
 - **External Scanner Support**: Test grammars with custom scanners
+- **Crypto Fixtures**: Generate deterministic RSA PEM fixtures at runtime via `uselesskey`
+
+## Deterministic Crypto Fixtures
+
+Use [`adze_testing::crypto_fixtures`] to generate RSA fixtures in tests without
+committing PEM files:
+
+```rust
+use adze_testing::crypto_fixtures::{CorruptPem, rsa_fixture};
+
+let keypair = rsa_fixture(module_path!(), "jwt-issuer");
+let private_pem = keypair.private_key_pkcs8_pem();
+let bad_pem = keypair.private_key_pkcs8_pem_corrupt(CorruptPem::BadHeader);
+
+assert!(private_pem.contains("BEGIN PRIVATE KEY"));
+assert_ne!(private_pem, bad_pem);
+```
 
 ## Installation
 

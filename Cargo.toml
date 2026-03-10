@@ -121,6 +121,7 @@ rustc-hash = "2.1"
 postcard = { version = "1", features = ["use-std"] }
 smallvec = "1.13"
 regex = "1.11"
+uselesskey = { version = "0.2.0", default-features = false }
 
 [profile.ci]
 inherits = "dev"

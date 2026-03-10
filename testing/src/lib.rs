@@ -2,6 +2,7 @@
 // Tests compatibility with official Tree-sitter grammars
 
 pub mod assertions;
+pub mod crypto_fixtures;
 pub mod fixtures;
 pub mod grammar_helpers;
 pub mod snapshots;
