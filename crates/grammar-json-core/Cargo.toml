@@ -1,0 +1,23 @@
+[package]
+name = "adze-grammar-json-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+authors.workspace = true
+description = "Tree-sitter grammar.json token-pattern extraction helpers"
+
+[features]
+default = []
+serialization = ["dep:adze-ir", "dep:serde_json"]
+
+[dependencies]
+adze-ir = { path = "../../ir", version = "0.8.0-dev", optional = true }
+serde_json = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true

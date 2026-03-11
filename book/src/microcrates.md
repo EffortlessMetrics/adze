@@ -82,6 +82,7 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `glr-test-support` | `glr-test-support/` | Test helpers for GLR crates |
 | `linecol-core` | `crates/linecol-core/` | Line/column position computation |
 | `common-syntax-core` | `crates/common-syntax-core/` | Shared syntax utilities |
+| `grammar-json-core` | `crates/grammar-json-core/` | Tree-sitter `grammar.json` token-pattern loading |
 
 ## Application and tooling crates
 
