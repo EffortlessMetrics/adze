@@ -403,6 +403,15 @@ jobs:
     name: API Breaking Change Detection
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    env:
+      # Run semver-checks with a clean flag surface so repo-wide build tuning
+      # does not fail rustdoc/cargo before the API comparison starts.
+      RUSTFLAGS: ""
+      CARGO_BUILD_RUSTFLAGS: ""
+      CARGO_ENCODED_RUSTFLAGS: ""
+      RUSTDOCFLAGS: ""
+      CARGO_BUILD_RUSTDOCFLAGS: ""
+      CARGO_ENCODED_RUSTDOCFLAGS: ""
     steps:
       - uses: actions/checkout@v4
         with:
