@@ -21,5 +21,6 @@ strict_docs = []
 syn.workspace = true
 
 [dev-dependencies]
+proptest.workspace = true
 quote.workspace = true
 syn.workspace = true

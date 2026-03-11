@@ -198,6 +198,7 @@ dependencies = [
 name = "adze-common-type-ops-core"
 version = "0.1.0"
 dependencies = [
+ "proptest",
  "quote",
  "syn 2.0.117",
 ]
