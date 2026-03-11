@@ -14,5 +14,8 @@ documentation = "https://docs.rs/adze-bdd-grid-core"
 
 [features]
 default = []
-strict_api = []
-strict_docs = []
+strict_api = ["adze-bdd-scenario-core/strict_api"]
+strict_docs = ["adze-bdd-scenario-core/strict_docs"]
+
+[dependencies]
+adze-bdd-scenario-core = { version = "0.1.0", path = "../bdd-scenario-core" }
