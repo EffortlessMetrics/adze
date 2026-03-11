@@ -51,6 +51,7 @@ members = [
   "crates/parser-backend-core",
   "tool",
   "crates/common-syntax-core",
+  "crates/grammar-discovery-core",
   "common",
   "ir",
   "glr-core",

@@ -5,8 +5,8 @@
 
 //! Build tool for adze parser generation
 
+use adze_grammar_discovery_core::collect_grammar_modules;
 use serde_json::Value;
-use syn::{Item, parse_quote};
 
 mod expansion;
 use expansion::*;
@@ -49,30 +49,10 @@ const GENERATED_SEMANTIC_VERSION: Option<(u8, u8, u8)> = Some((0, 25, 1));
 /// Generates JSON strings defining Tree Sitter grammars for every Adze
 /// grammar found in the given module and recursive submodules.
 pub fn generate_grammars(root_file: &Path) -> ToolResult<Vec<Value>> {
-    let root_file = syn_inline_mod::parse_and_inline_modules(root_file).items;
-    let mut out = vec![];
-    for i in root_file.iter() {
-        generate_all_grammars(i, &mut out)?;
-    }
-    Ok(out)
-}
+    let root_items = syn_inline_mod::parse_and_inline_modules(root_file).items;
+    let modules = collect_grammar_modules(&root_items);
 
-fn generate_all_grammars(item: &Item, out: &mut Vec<Value>) -> ToolResult<()> {
-    if let Item::Mod(m) = item {
-        if let Some((_, items)) = &m.content {
-            for item in items {
-                generate_all_grammars(item, out)?;
-            }
-        }
-
-        if m.attrs
-            .iter()
-            .any(|a| a.path() == &parse_quote!(adze::grammar))
-        {
-            out.push(generate_grammar(m)?);
-        }
-    }
-    Ok(())
+    modules.into_iter().map(generate_grammar).collect()
 }
 
 #[cfg(feature = "build_parsers")]
