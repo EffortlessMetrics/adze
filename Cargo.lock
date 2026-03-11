@@ -111,6 +111,7 @@ name = "adze-bdd-grammar-fixtures"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-grammar-analysis-core",
+ "adze-bdd-runtime-fixtures-core",
  "adze-glr-core",
  "adze-ir",
 ]
@@ -125,6 +126,13 @@ dependencies = [
 [[package]]
 name = "adze-bdd-grid-core"
 version = "0.1.0"
+
+[[package]]
+name = "adze-bdd-runtime-fixtures-core"
+version = "0.1.0"
+dependencies = [
+ "adze-ir",
+]
 
 [[package]]
 name = "adze-bdd-scenario-fixtures"
