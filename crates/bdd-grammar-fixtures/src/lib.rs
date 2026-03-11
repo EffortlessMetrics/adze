@@ -1,8 +1,8 @@
 //! Shared grammar fixtures and conflict analysis helpers for GLR BDD tests.
 //!
 //! This crate intentionally owns grammar-level BDD fixtures (fixture grammars,
-//! parse-table builders, token metadata, and table introspection helpers) so
-//! downstream crates can compose behavior without monolithic fixtures.
+//! parse-table builders, and table introspection helpers) while re-exporting
+//! runtime metadata fixtures from `adze-bdd-runtime-fixtures-core`.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -338,26 +338,6 @@ mod tests {
         let g = no_precedence_grammar();
         assert_eq!(g.name, "no_precedence_expr");
         assert!(!g.rules.is_empty());
-    }
-
-    #[test]
-    fn token_pattern_kind_clone_eq() {
-        let a = TokenPatternKind::Literal("x");
-        let b = a;
-        assert_eq!(a, b);
-        let c = TokenPatternKind::Regex(r"\d+");
-        assert_ne!(format!("{c:?}"), format!("{a:?}"));
-    }
-
-    #[test]
-    fn symbol_metadata_spec_debug() {
-        let spec = SymbolMetadataSpec {
-            is_terminal: true,
-            is_visible: false,
-            is_supertype: false,
-        };
-        let dbg = format!("{spec:?}");
-        assert!(dbg.contains("is_terminal"));
     }
 
     #[test]
