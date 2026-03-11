@@ -21,6 +21,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 name = "adze"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-arena-allocator-core",
  "adze-concurrency-caps-core",
  "adze-concurrency-env-core",
  "adze-concurrency-init-classifier-core",
@@ -66,6 +67,10 @@ dependencies = [
  "ts-bridge",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "adze-arena-allocator-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-bdd-contract"

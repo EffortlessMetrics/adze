@@ -76,6 +76,7 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | Crate | Path | Responsibility |
 |---|---|---|
 | `parsetable-metadata` | `crates/parsetable-metadata/` | Parse-table metadata types |
+| `arena-allocator-core` | `crates/arena-allocator-core/` | Typed arena allocation for parse tree nodes |
 | `ts-format-core` | `crates/ts-format-core/` | Tree-sitter format utilities |
 | `stack-pool-core` | `crates/stack-pool-core/` | Stack-based object pooling |
 | `glr-versioning` | `crates/glr-versioning/` | GLR version tracking |

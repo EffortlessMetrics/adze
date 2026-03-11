@@ -1,0 +1,18 @@
+[package]
+name = "adze-arena-allocator-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Typed arena allocator primitives for parse tree node storage and reuse."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["arena", "allocator", "parser", "tree", "memory"]
+categories = ["memory-management", "parsing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-arena-allocator-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []

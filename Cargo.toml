@@ -36,6 +36,7 @@ members = [
   "crates/concurrency-init-core",
   "crates/concurrency-caps-core",
   "crates/governance-metadata",
+  "crates/arena-allocator-core",
   "crates/linecol-core",
   "crates/bdd-governance-core",
   "crates/bdd-governance-contract",
