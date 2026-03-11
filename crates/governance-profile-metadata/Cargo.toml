@@ -1,16 +1,16 @@
 [package]
-name = "adze-governance-metadata"
+name = "adze-governance-profile-metadata"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Governance metadata primitives for BDD progress and parser feature snapshots."
+description = "Parser feature profile metadata snapshots for governance artifacts."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
-keywords = ["governance", "parser", "metadata", "bdd", "policy"]
+keywords = ["governance", "parser", "metadata", "features", "policy"]
 categories = ["development-tools"]
 homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-governance-metadata"
+documentation = "https://docs.rs/adze-governance-profile-metadata"
 
 [features]
 default = []
@@ -18,11 +18,8 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
 adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
-adze-governance-profile-metadata = { version = "0.1.0", path = "../governance-profile-metadata" }
 serde.workspace = true
 
 [dev-dependencies]
-insta = { workspace = true, features = ["json", "yaml"] }
 serde_json.workspace = true

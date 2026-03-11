@@ -437,7 +437,17 @@ version = "0.1.0"
 dependencies = [
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
+ "adze-governance-profile-metadata",
  "insta",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "adze-governance-profile-metadata"
+version = "0.1.0"
+dependencies = [
+ "adze-feature-policy-core",
  "serde",
  "serde_json",
 ]
