@@ -351,6 +351,7 @@ name = "adze-feature-policy-core"
 version = "0.1.0"
 dependencies = [
  "adze-parser-backend-core",
+ "adze-parser-feature-profile-core",
 ]
 
 [[package]]
@@ -535,6 +536,13 @@ name = "adze-parser-feature-contract"
 version = "0.1.0"
 dependencies = [
  "adze-feature-policy-contract",
+]
+
+[[package]]
+name = "adze-parser-feature-profile-core"
+version = "0.1.0"
+dependencies = [
+ "adze-parser-backend-core",
 ]
 
 [[package]]
