@@ -39,6 +39,7 @@ dependencies = [
  "adze-python-simple",
  "adze-runtime-governance-api",
  "adze-stack-pool-core",
+ "adze-subtree-core",
  "adze-tablegen",
  "adze-ts-format-core",
  "ahash",
@@ -654,6 +655,14 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "proptest",
+]
+
+[[package]]
+name = "adze-subtree-core"
+version = "0.1.0"
+dependencies = [
+ "adze-ir",
+ "smallvec",
 ]
 
 [[package]]

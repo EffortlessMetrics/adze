@@ -54,7 +54,7 @@ These are intentionally excluded for now because they are prototypes, platform-s
 - `golden-tests/` (useful contract, but can be heavy and multi-language)
 - `benchmarks/` (signal, not merge-blocking)
 - `grammars/*` (valuable, but not yet a stable published surface)
-- `crates/*` (47 BDD/governance microcrates; structure stable, READMEs added)
+- `crates/*` (48 BDD/governance microcrates; structure stable, READMEs added)
 
 ### Not in the supported lane (workflows)
 These may run as optional signal (nightly/manual/canary), but are not required for merge:

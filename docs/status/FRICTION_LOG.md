@@ -107,7 +107,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 ### FR-009 - Slow Workspace Build
 
 **Area:** dev loop
-**Symptom:** `cargo check --workspace` or `cargo build` takes 10+ minutes on standard hardware due to 47 microcrates in `crates/` plus the full core pipeline.
+**Symptom:** `cargo check --workspace` or `cargo build` takes 10+ minutes on standard hardware due to 48 microcrates in `crates/` plus the full core pipeline.
 **Expected:** Developers can iterate quickly on individual crates.
 **Actual:** Full workspace builds are prohibitively slow for local development.
 **Fix:** Use per-crate `cargo check -p <crate>` for iteration; consider workspace partitioning.

@@ -74,7 +74,7 @@ Adze status and rolling execution plan. For paper cuts and pain points, see [`do
 ### ✅ Workspace Polish
 - [x] Cargo.toml metadata polish across workspace crates.
 - [x] Core pure-Rust pipeline compiles cleanly: `adze-ir`, `adze-glr-core`, `adze-tablegen`.
-- [x] 47 microcrates in `crates/` with stable structure.
+- [x] 48 microcrates in `crates/` with stable structure.
 - [x] Benchmarks, fuzzing, golden-tests, and book scaffolding in place.
 
 ### ✅ Documentation Sync
