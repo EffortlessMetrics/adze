@@ -1,57 +1,29 @@
 [package]
 name = "adze"
-description = "Rust-native grammar toolchain with GLR-capable parsing and typed extraction. Tree-sitter interoperable."
+description = "A package for defining tree-sitter grammars alongside Rust logic"
 readme = "../README.md"
-repository = "https://github.com/EffortlessMetrics/adze"
-homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze"
+repository = "https://github.com/hydro-project/rust-sitter"
 version = "0.8.0-dev"
-authors.workspace = true
+authors = ["Steven Zimmerman, CPA"]
 edition = "2024"
-rust-version.workspace = true
-license = "MIT OR Apache-2.0"
-publish = true
-keywords = ["parsing", "glr", "grammar", "tree-sitter", "codegen"]
+license = "MIT"
+keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
-build = "build.rs"
-include = [
-    "Cargo.toml",
-    "/LICENSE*",
-    "/README*",
-    "src/**",
-    "build.rs",
-]
 
 [lib]
 path = "src/lib.rs"
-crate-type = ["rlib", "cdylib"]
 
 [features]
 default = ["pure-rust"]
-pure-rust = [
-    "adze-macro/pure-rust",
-    "adze-runtime-governance-api/pure-rust",
-]
-tree-sitter-c2rust = [
-    "dep:tree-sitter-c2rust",
-    "adze-runtime-governance-api/tree-sitter-c2rust",
-]
-tree-sitter-standard = [
-    "dep:tree-sitter",
-    "adze-runtime-governance-api/tree-sitter-standard",
-]
+pure-rust = ["adze-macro/pure-rust"]
+tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
+tree-sitter-standard = ["tree-sitter-runtime-standard"]
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]
 serialization = ["serde", "serde_json"] # Enable tree serialization
 legacy-parsers = [] # Enable to access deprecated parser_v2 and parser_v3 modules
-glr = ["pure-rust", "adze-runtime-governance-api/glr"] # Enable GLR parser runtime (parser_v4) for ambiguous grammars
-incremental_glr = ["glr"] # Enable GLR incremental parsing support
-external-scanners = ["external_scanners"] # Deprecated alias for legacy naming
-queries = ["query"] # Deprecated alias for legacy naming
-incremental = ["incremental_glr"] # Deprecated alias for legacy naming
-pure-rust-glr = ["pure-rust"] # Deprecated alias for legacy naming
+incremental_glr = [] # Enable GLR incremental parsing support
 debug_glr = [] # Enable debug output for GLR parser
-glr_telemetry = [] # Enable GLR telemetry counters for performance monitoring
 ts-compat = [] # Enable Tree-sitter compatibility API
 debug_incremental = [] # Enable debug output for incremental parsing
 experimental_examples = [] # Enable experimental examples that use internal APIs
@@ -64,61 +36,36 @@ strict_api = [] # Enable strict API surface checking
 unstable-benches = [] # Enable benchmarks that depend on unstable APIs
 
 [dependencies]
-tree-sitter-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
-tree-sitter = { version = "0.25.8", optional = true }
+tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
+tree-sitter-runtime-standard = { package = "tree-sitter", version = "0.25.8", optional = true }
 adze-macro = { version = "0.8.0-dev", path = "../macro" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
-adze-glr-core = { version = "0.8.0-dev", path = "../glr-core", features = ["serialization"] }
+adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
-adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
-adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
-adze-concurrency-caps-core = { version = "0.1.0", path = "../crates/concurrency-caps-core" }
-adze-stack-pool-core = { version = "0.1.0", path = "../crates/stack-pool-core" }
-adze-ts-format-core = { version = "0.1.0", path = "../crates/ts-format-core" }
-regex.workspace = true
-serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-anyhow.workspace = true
-indexmap.workspace = true
+regex = "1.11.1"
+serde = { version = "1.0.219", features = ["derive"], optional = true }
+serde_json = { version = "1.0.142", optional = true }
+anyhow = "1.0.98"
+indexmap = "2.10.0"
 once_cell = "1.19"
-thiserror.workspace = true
-rayon.workspace = true
+thiserror = "2.0.12"
+rayon = "1.10.0"
 ahash = "0.8.12"
 log = "0.4.27"
-smallvec.workspace = true
 wasm-bindgen = { version = "0.2.100", optional = true }
 
 [dev-dependencies]
-insta.workspace = true
-tempfile.workspace = true
-criterion.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-proptest.workspace = true
+insta = "1.43.1"
+tempfile = "3.20.0"
+criterion = { version = "0.5", features = ["html_reports"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.142"
+proptest = "1.4"
 hex = "0.4"
-glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
-adze-concurrency-plan-core = { version = "0.1.0", path = "../crates/concurrency-plan-core" }
-adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-map-core" }
-adze-concurrency-env-core = { version = "0.1.0", path = "../crates/concurrency-env-core" }
-adze-concurrency-init-core = { version = "0.1.0", path = "../crates/concurrency-init-core" }
-adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concurrency-init-rayon-core" }
-adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../crates/concurrency-init-classifier-core" }
-adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }
-adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
-adze-example = { version = "0.8.0-dev", path = "../example", features = ["ts-compat"] }
-adze-python-simple = { version = "0.1.0", path = "../grammars/python-simple" }
-adze-python = { version = "0.1.0", path = "../grammars/python" }
-serial_test = "3.0"
-# Tree-sitter dependencies for ts-compat golden tests
-tree-sitter-json = "0.24.8"
-ts-bridge = { version = "0.1.0", path = "../tools/ts-bridge", features = ["with-grammars"] }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "=0.3.4", features = ["wasm_js"] }
-
-[[bench]]
-name = "runtime_parse_serialize_bench"
-harness = false
+glr-test-support = { path = "../glr-test-support" }
+rust-sitter-example = { path = "../example", features = ["ts-compat"] }
+rust-sitter-python-simple = { path = "../grammars/python-simple" }
+rust-sitter-python = { path = "../grammars/python" }
 
 [[bench]]
 name = "simple_bench"
@@ -193,6 +140,3 @@ required-features = ["experimental_examples"]
 # [[example]]
 # name = "validation_demo"
 # required-features = ["experimental_examples"]
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(skip_integration_tests)', 'cfg(skip_outdated_tests)'] }
