@@ -17,10 +17,9 @@ pub use adze_bdd_grid_core::{
     bdd_progress_report,
 };
 pub use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
-
-/// Advisory profile description for conflict-capable grammars.
-pub const GLR_CONFLICT_FALLBACK: &str =
-    "Pure-rust without GLR: conflicts panic unless `glr` feature is enabled";
+pub use adze_governance_status_core::{
+    GLR_CONFLICT_FALLBACK, bdd_progress_status_line, describe_backend_for_conflicts,
+};
 
 /// Snapshot of governance progress for one phase and feature profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,17 +101,6 @@ impl BddGovernanceMatrix {
     }
 }
 
-/// Describe the conflict backend behavior for a given feature profile.
-pub const fn describe_backend_for_conflicts(profile: ParserFeatureProfile) -> &'static str {
-    if profile.glr {
-        ParserBackend::GLR.name()
-    } else if profile.pure_rust {
-        GLR_CONFLICT_FALLBACK
-    } else {
-        ParserBackend::TreeSitter.name()
-    }
-}
-
 /// Build a compact governance snapshot for a phase.
 pub fn bdd_governance_snapshot(
     phase: BddPhase,
@@ -157,27 +145,6 @@ pub fn bdd_progress_report_with_profile(
     );
 
     out
-}
-
-/// Return a stable machine-readable status line for dashboards and CI.
-pub fn bdd_progress_status_line(
-    phase: BddPhase,
-    scenarios: &[BddScenario],
-    profile: ParserFeatureProfile,
-) -> String {
-    let snapshot = bdd_governance_snapshot(phase, scenarios, profile);
-    let backend = snapshot.non_conflict_backend().name();
-    let phase_label = match phase {
-        BddPhase::Core => "core",
-        BddPhase::Runtime => "runtime",
-    };
-
-    format!(
-        "{phase_label}:{implemented}/{total}:{backend}:{profile}",
-        implemented = snapshot.implemented,
-        total = snapshot.total,
-        backend = backend,
-    )
 }
 
 #[cfg(test)]

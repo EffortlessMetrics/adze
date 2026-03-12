@@ -1,16 +1,16 @@
 [package]
-name = "adze-bdd-governance-core"
+name = "adze-governance-status-core"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Core BDD governance matrix primitives composed with parser feature policies."
+description = "Status-line and backend-description helpers for governance reporting."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
-keywords = ["bdd", "testing", "scenarios", "parser", "grammar"]
-categories = ["development-tools::testing"]
+keywords = ["governance", "parser", "bdd", "status"]
+categories = ["development-tools"]
 homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-bdd-governance-core"
+documentation = "https://docs.rs/adze-governance-status-core"
 
 [features]
 default = []
@@ -18,10 +18,9 @@ pure-rust = ["adze-feature-policy-core/pure-rust"]
 tree-sitter-c2rust = ["adze-feature-policy-core/tree-sitter-c2rust"]
 tree-sitter-standard = ["adze-feature-policy-core/tree-sitter-standard"]
 glr = ["pure-rust", "adze-feature-policy-core/glr"]
-strict_api = ["adze-bdd-grid-core/strict_api", "adze-feature-policy-core/strict_api", "adze-governance-status-core/strict_api"]
-strict_docs = ["adze-bdd-grid-core/strict_docs", "adze-feature-policy-core/strict_docs", "adze-governance-status-core/strict_docs"]
+strict_api = ["adze-bdd-grid-core/strict_api", "adze-feature-policy-core/strict_api"]
+strict_docs = ["adze-bdd-grid-core/strict_docs", "adze-feature-policy-core/strict_docs"]
 
 [dependencies]
 adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
 adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
-adze-governance-status-core = { version = "0.1.0", path = "../governance-status-core" }
