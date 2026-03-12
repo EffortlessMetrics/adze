@@ -1,0 +1,18 @@
+[package]
+name = "adze-bdd-scenario-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Core BDD scenario status/types shared across governance and reporting crates."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["bdd", "testing", "scenarios", "parser", "grammar"]
+categories = ["development-tools::testing"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-bdd-scenario-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
