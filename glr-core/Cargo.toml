@@ -1,21 +1,19 @@
 [package]
 name = "adze-glr-core"
 version = "0.8.0-dev"
-edition.workspace = true
-rust-version.workspace = true
-description = "GLR parser generation algorithms for Adze"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/EffortlessMetrics/adze"
-homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-glr-core"
-readme = "../README.md"
-publish = true
-keywords = ["parsing", "glr", "parser-generator"]
-categories = ["development-tools"]
+edition = "2024"
+rust-version = "1.87"
+description = "GLR parser generation algorithms for pure-Rust Tree-sitter"
+license = "MIT"
+repository = "https://github.com/hydro-project/rust-sitter"
+homepage = "https://github.com/hydro-project/rust-sitter"
+documentation = "https://docs.rs/rust-sitter-glr-core"
+readme = "README.md"
+publish = false
 include = [
     "Cargo.toml",
-    "/LICENSE*",
-    "/README*",
+    "LICENSE*",
+    "README*",
     "src/**"
 ]
 
@@ -24,28 +22,22 @@ all-features = true
 
 [dependencies]
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
-indexmap = { workspace = true, features = ["serde"] }
+indexmap = { version = "2.0", features = ["serde"] }
 fixedbitset = { version = "0.5", default-features = false }
-serde.workspace = true
-thiserror.workspace = true
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2"
 typed-arena = "2.0"
 
 # Optional parallel processing
-rayon = { workspace = true, optional = true }
-rustc-hash.workspace = true
-smallvec.workspace = true
-
-# Optional serialization support for GLR mode
-postcard = { version = "1", features = ["use-std"], optional = true }
+rayon = { version = "1.0", optional = true }
+rustc-hash = "2.1.1"
 
 [features]
 default = []
 parallel = ["rayon"]
-serialization = ["dep:postcard"]  # Enable ParseTable serialization for GLR mode
 strict_docs = []
 strict_api = []
 glr-trace = []
-glr_telemetry = []  # Enable telemetry counters for performance monitoring
 test-helpers = []
 strict-invariants = []
 memory-tests = []
@@ -55,15 +47,11 @@ test-api = []
 debug_glr = [] # Enable debug output for GLR parser
 
 [dev-dependencies]
-insta.workspace = true
-criterion.workspace = true
-proptest.workspace = true
+insta = "1.0"
+criterion = "0.5"
 dhat = "0.3"
-serde_json.workspace = true
-adze-bdd-scenario-fixtures = { version = "0.1.0", path = "../crates/bdd-scenario-fixtures" }
-adze-parser-contract = { version = "0.1.0", path = "../crates/parser-contract" }
-glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
-adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
+serde_json = "1.0"
+glr-test-support = { path = "../glr-test-support" }
 trybuild = "1"
 
 [[bench]]

@@ -1,40 +1,35 @@
 [package]
-name = "adze-example"
+name = "rust-sitter-example"
 version = "0.8.0-dev"
-license = "MIT OR Apache-2.0"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
-edition = "2024"
-rust-version = "1.92.0"
+authors = ["Steven Zimmerman, CPA"]
+edition = "2021"
 publish = false
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["adze/pure-rust"]
-glr = ["adze/glr"]
-pure-rust-glr = ["pure-rust", "glr"]  # Phase 3.3: Combined feature for GLR runtime testing
+pure-rust = ["rust-sitter/pure-rust"]
 c-backend = [
-  "adze/tree-sitter-c2rust",
-  "adze/tree-sitter-standard",
+  "rust-sitter/tree-sitter-c2rust",
+  "rust-sitter/tree-sitter-standard",
   "dep:tree-sitter-c2rust"
 ]
-tree-sitter-standard = ["adze/tree-sitter-standard"]
-ts-compat = ["adze/ts-compat"]
+tree-sitter-standard = ["rust-sitter/tree-sitter-standard"]
+ts-compat = ["rust-sitter/ts-compat"]
 
 [dependencies]
-adze = { path = "../runtime", default-features = false }
+rust-sitter = { path = "../runtime", default-features = false }
 codemap = "0.1.3"
 codemap-diagnostic = "0.1.1"
 # Only needed in C path
 tree-sitter-c2rust = { version = "0.25.2", optional = true }
 
 [build-dependencies]
-adze-tool = { path = "../tool" }
+rust-sitter-tool = { path = "../tool" }
 toml = "0.8"
 
 [dev-dependencies]
 insta = "1.39"
 wasm-bindgen-test = "0.3.0"
-adze-glr-core = { path = "../glr-core" }
 
 [[test]]
 name = "pure_rust_parser_tests"

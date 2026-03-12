@@ -1,68 +1,53 @@
 [package]
 name = "adze-tool"
-description = "The external tool for Adze that extracts grammars from Rust definitions"
+description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
 readme = "../README.md"
-repository = "https://github.com/EffortlessMetrics/adze"
-homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-tool"
+repository = "https://github.com/hydro-project/rust-sitter"
 version = "0.8.0-dev"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
-license = "MIT OR Apache-2.0"
-publish = true
+authors = ["Steven Zimmerman, CPA"]
+license = "MIT"
 edition = "2024"
-rust-version.workspace = true
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
-include = [
-    "Cargo.toml",
-    "/LICENSE*",
-    "/README*",
-    "src/**"
-]
 
 [features]
-default = ["build_parsers", "serialization"]
+default = ["build_parsers"]
 build_parsers = [
     "dep:tempfile",
     "dep:tree-sitter",
     "dep:tree-sitter-generate",
     "dep:cc",
 ]
-serialization = ["adze-tablegen/serialization", "adze-glr-core/serialization"]
 no_opt = []   # compile without the optimizer for debugging
 optimize = ["adze-ir/optimize"]
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
-syn.workspace = true
+syn = { version = "2", features = ["full", "extra-traits"] }
 syn-inline-mod = "0.6"
-serde.workspace = true
-serde_json = { workspace = true, features = ["preserve_order"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
 adze-common = { version = "0.8.0-dev", path = "../common" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
-regex.workspace = true
-anyhow.workspace = true
-thiserror.workspace = true
-indexmap.workspace = true
-clap.workspace = true
+regex = "1.10"
+anyhow = "1.0"
+indexmap = "2.0"
+clap = { version = "4.5", features = ["derive"] }
 glob = "0.3"
 prettyplease = "0.2"
-proc-macro2.workspace = true
-quote.workspace = true
+proc-macro2 = "1"
+quote = "1"
 
-tempfile = { workspace = true, optional = true }
+tempfile = { version = "3", optional = true }
 tree-sitter = { version = "0.25.2", optional = true }
 tree-sitter-generate = { version = "0.25.1", optional = true }
 cc = { version = "1", optional = true }
 
 [[bin]]
 name = "adze-gen"
-path = "src/bin/adze.rs"
+path = "src/bin/rust-sitter.rs"
 
 [dev-dependencies]
-insta.workspace = true
-proptest.workspace = true
-tree-sitter-generate = "0.25.1"
-tempfile.workspace = true
+insta = "1.39"
