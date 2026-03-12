@@ -1,24 +1,14 @@
 [package]
 name = "adze-macro"
-description = "Procedural macros for Adze"
+description = "Procedural macros for Rust Sitter"
 readme = "../README.md"
-repository = "https://github.com/EffortlessMetrics/adze"
-homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-macro"
+repository = "https://github.com/hydro-project/rust-sitter"
 version = "0.8.0-dev"
-authors = ["Shadaj Laddad <shadaj@users.noreply.github.com>"]
+authors = ["Steven Zimmerman, CPA"]
 edition = "2024"
-rust-version.workspace = true
-license = "MIT OR Apache-2.0"
-publish = true
+license = "MIT"
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
-include = [
-    "Cargo.toml",
-    "/LICENSE*",
-    "/README*",
-    "src/**"
-]
 
 [lib]
 proc-macro = true
@@ -29,18 +19,12 @@ pure-rust = []
 strict_docs = [] # Enable strict documentation requirements
 
 [dependencies]
-syn.workspace = true
-quote.workspace = true
-proc-macro2.workspace = true
+syn = { version = "2", features = [ "full", "extra-traits" ] }
+quote = "1"
+proc-macro2 = "1"
 adze-common = { version = "0.8.0-dev", path = "../common" }
 
 [dev-dependencies]
-insta.workspace = true
-tempfile.workspace = true
+insta = "1.39"
+tempfile = "3"
 trybuild = "1.0"
-adze = { version = "0.8.0-dev", path = "../runtime" }
-syn.workspace = true
-quote.workspace = true
-proc-macro2.workspace = true
-proptest.workspace = true
-adze-common = { version = "0.8.0-dev", path = "../common" }
