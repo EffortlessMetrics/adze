@@ -84,7 +84,7 @@ exclude = [
 
 
 [workspace.package]
-authors = ["Steven Zimmerman, CPA <git@effortlesssteven.com>"]
+authors = ["Steven Zimmerman, CPA"]
 documentation = "https://github.com/effortlessmetrics/adze"
 edition = "2024"
 homepage = "https://github.com/effortlessmetrics/adze"

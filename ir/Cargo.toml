@@ -5,9 +5,9 @@ edition = "2024"
 rust-version = "1.87"
 description = "Grammar Intermediate Representation for pure-Rust Tree-sitter"
 license = "MIT"
-repository = "https://github.com/hydro-project/rust-sitter"
-homepage = "https://github.com/hydro-project/rust-sitter"
-documentation = "https://docs.rs/rust-sitter-ir"
+repository = "https://github.com/EffortlessMetrics/adze"
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-ir"
 readme = "README.md"
 publish = false
 include = [
@@ -33,4 +33,8 @@ optimize = []
 strict_docs = []
 
 [dev-dependencies]
+adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+bincode = { workspace = true }
+postcard = { version = "1.1", features = ["use-std"] }
 insta = "1.0"
+proptest = "1.4"

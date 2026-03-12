@@ -1,8 +1,8 @@
 [package]
 name = "adze-tool"
-description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
+description = "The external tool for Adze that extracts grammars from Rust definitions"
 readme = "../README.md"
-repository = "https://github.com/hydro-project/rust-sitter"
+repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
 authors = ["Steven Zimmerman, CPA"]
 license = "MIT"
@@ -21,6 +21,7 @@ build_parsers = [
 no_opt = []   # compile without the optimizer for debugging
 optimize = ["adze-ir/optimize"]
 strict_docs = [] # Enable strict documentation requirements
+serialization = ["adze-tablegen/serialization"]
 
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits"] }
@@ -39,6 +40,7 @@ glob = "0.3"
 prettyplease = "0.2"
 proc-macro2 = "1"
 quote = "1"
+thiserror = { workspace = true }
 
 tempfile = { version = "3", optional = true }
 tree-sitter = { version = "0.25.2", optional = true }
@@ -47,7 +49,8 @@ cc = { version = "1", optional = true }
 
 [[bin]]
 name = "adze-gen"
-path = "src/bin/rust-sitter.rs"
+path = "src/bin/adze.rs"
 
 [dev-dependencies]
 insta = "1.39"
+proptest.workspace = true

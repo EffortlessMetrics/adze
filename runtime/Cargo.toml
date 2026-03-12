@@ -2,7 +2,7 @@
 name = "adze"
 description = "A package for defining tree-sitter grammars alongside Rust logic"
 readme = "../README.md"
-repository = "https://github.com/hydro-project/rust-sitter"
+repository = "https://github.com/EffortlessMetrics/adze"
 version = "0.8.0-dev"
 authors = ["Steven Zimmerman, CPA"]
 edition = "2024"
@@ -18,6 +18,8 @@ default = ["pure-rust"]
 pure-rust = ["adze-macro/pure-rust"]
 tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
 tree-sitter-standard = ["tree-sitter-runtime-standard"]
+glr = ["pure-rust"]
+glr_telemetry = []
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]
 serialization = ["serde", "serde_json"] # Enable tree serialization
@@ -40,8 +42,13 @@ tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2
 tree-sitter-runtime-standard = { package = "tree-sitter", version = "0.25.8", optional = true }
 adze-macro = { version = "0.8.0-dev", path = "../macro" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
-adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-glr-core = { version = "0.8.0-dev", path = "../glr-core", features = ["serialization"] }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
+adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
+adze-linecol-core = { path = "../crates/linecol-core" }
+adze-runtime-governance-api = { path = "../crates/runtime-governance-api" }
+adze-stack-pool-core = { path = "../crates/stack-pool-core" }
+adze-ts-format-core = { path = "../crates/ts-format-core" }
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.142", optional = true }
@@ -51,6 +58,7 @@ once_cell = "1.19"
 thiserror = "2.0.12"
 rayon = "1.10.0"
 ahash = "0.8.12"
+smallvec = "1.13"
 log = "0.4.27"
 wasm-bindgen = { version = "0.2.100", optional = true }
 
@@ -63,9 +71,20 @@ serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
 glr-test-support = { path = "../glr-test-support" }
-rust-sitter-example = { path = "../example", features = ["ts-compat"] }
-rust-sitter-python-simple = { path = "../grammars/python-simple" }
-rust-sitter-python = { path = "../grammars/python" }
+adze-example = { path = "../example", features = ["ts-compat"] }
+adze-python-simple = { path = "../grammars/python-simple" }
+adze-python = { path = "../grammars/python" }
+serial_test = "3.0"
+adze-concurrency-map-core = { path = "../crates/concurrency-map-core" }
+adze-concurrency-parse-core = { path = "../crates/concurrency-parse-core" }
+adze-concurrency-init-core = { path = "../crates/concurrency-init-core" }
+adze-concurrency-init-rayon-core = { path = "../crates/concurrency-init-rayon-core" }
+adze-concurrency-init-classifier-core = { path = "../crates/concurrency-init-classifier-core" }
+adze-concurrency-env-core = { path = "../crates/concurrency-env-core" }
+adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
+adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core" }
+ts-bridge = { path = "../tools/ts-bridge", features = ["with-grammars"] }
+tree-sitter-json = "0.24"
 
 [[bench]]
 name = "simple_bench"

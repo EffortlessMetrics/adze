@@ -135,8 +135,9 @@ mod tests {
     fn repetitions_grammar2_errors() {
         // Comma in non-delimited grammar
         let r1 = grammar2::parse("1, 2");
-        assert!(r1.is_ok() || r1.is_err()); // may succeed ignoring comma
-        // Letters - grammar2 may accept empty list from non-matching input
+        // May succeed ignoring comma, and may accept empty list from non-matching input
+        assert!(r1.is_ok() || r1.is_err());
+        // Letters may also produce empty list from non-matching input
         let r2 = grammar2::parse("abc");
         assert!(r2.is_ok() || r2.is_err());
     }

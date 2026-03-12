@@ -44,7 +44,6 @@ dependencies = [
  "ahash",
  "anyhow",
  "criterion",
- "getrandom 0.3.4",
  "glr-test-support",
  "hex",
  "indexmap",
@@ -359,7 +358,6 @@ version = "0.8.0-dev"
 dependencies = [
  "adze-bdd-scenario-fixtures",
  "adze-ir",
- "adze-parser-contract",
  "adze-tablegen",
  "criterion",
  "dhat",
@@ -465,6 +463,7 @@ dependencies = [
  "bincode",
  "indexmap",
  "insta",
+ "postcard",
  "proptest",
  "serde",
  "serde_json",
@@ -505,7 +504,6 @@ dependencies = [
 name = "adze-macro"
 version = "0.8.0-dev"
 dependencies = [
- "adze",
  "adze-common",
  "insta",
  "proc-macro2",
@@ -660,11 +658,8 @@ dependencies = [
 name = "adze-tablegen"
 version = "0.8.0-dev"
 dependencies = [
- "adze-bdd-grid-core",
  "adze-glr-core",
  "adze-ir",
- "adze-parsetable-metadata",
- "chrono",
  "criterion",
  "indexmap",
  "insta",
@@ -672,10 +667,8 @@ dependencies = [
  "proptest",
  "quote",
  "rustc-hash 2.1.1",
- "rustc_version_runtime",
  "serde",
  "serde_json",
- "sha2",
  "syn 2.0.117",
  "thiserror 2.0.18",
  "tree-sitter 0.25.10",
@@ -1551,11 +1544,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "r-efi",
  "wasip2",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -2546,16 +2537,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustc_version_runtime"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dd18cd2bae1820af0b6ad5e54f4a51d0f3fcc53b05f845675074efcc7af071d"
-dependencies = [
- "rustc_version",
- "semver",
-]
-
-[[package]]
 name = "rustix"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2730,9 +2711,9 @@ dependencies = [
 
 [[package]]
 name = "serial_test"
-version = "3.3.1"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d0b343e184fc3b7bb44dff0705fffcf4b3756ba6aff420dddd8b24ca145e555"
+checksum = "911bd979bf1070a3f3aa7b691a3b3e9968f339ceeec89e08c280a8a22207a32f"
 dependencies = [
  "futures-executor",
  "futures-util",
@@ -2745,9 +2726,9 @@ dependencies = [
 
 [[package]]
 name = "serial_test_derive"
-version = "3.3.1"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f50427f258fb77356e4cd4aa0e87e2bd2c66dbcee41dc405282cae2bfc26c83"
+checksum = "0a7d91949b85b0d2fb687445e448b40d322b6b3e4af6b44a29b21d9a5f33e6d9"
 dependencies = [
  "proc-macro2",
  "quote",

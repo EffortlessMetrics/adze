@@ -3,7 +3,7 @@ name = "adze-runtime"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
-authors = ["Steven Bal"]
+authors = ["Steven Zimmerman, CPA"]
 license = "MIT OR Apache-2.0"
 description = "GLR runtime for Adze parsers"
 repository = "https://github.com/EffortlessMetrics/adze"
@@ -38,7 +38,7 @@ pretty_assertions = "1.4"
 proptest.workspace = true
 serde_json.workspace = true
 adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
-adze-tablegen = { path = "../tablegen", features = ["serialization"] }
+adze-tablegen = { path = "../tablegen" }
 adze-parser-contract = { path = "../crates/parser-contract" }
 
 [features]
