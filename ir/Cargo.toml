@@ -1,21 +1,19 @@
 [package]
 name = "adze-ir"
 version = "0.8.0-dev"
-edition.workspace = true
-rust-version.workspace = true
-description = "Grammar Intermediate Representation for Adze"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/EffortlessMetrics/adze"
-homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/adze-ir"
-readme = "../README.md"
-publish = true
-keywords = ["parsing", "grammar", "ir"]
-categories = ["development-tools"]
+edition = "2024"
+rust-version = "1.87"
+description = "Grammar Intermediate Representation for pure-Rust Tree-sitter"
+license = "MIT"
+repository = "https://github.com/hydro-project/rust-sitter"
+homepage = "https://github.com/hydro-project/rust-sitter"
+documentation = "https://docs.rs/rust-sitter-ir"
+readme = "README.md"
+publish = false
 include = [
     "Cargo.toml",
-    "/LICENSE*",
-    "/README*",
+    "LICENSE*",
+    "README*",
     "src/**"
 ]
 
@@ -23,11 +21,11 @@ include = [
 all-features = true
 
 [dependencies]
-indexmap = { workspace = true, features = ["serde"] }
-serde.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
-anyhow.workspace = true
+indexmap = { version = "2.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2"
+anyhow = "1.0"
 
 [features]
 default = []
@@ -35,7 +33,4 @@ optimize = []
 strict_docs = []
 
 [dev-dependencies]
-adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
-bincode.workspace = true
-insta.workspace = true
-proptest.workspace = true
+insta = "1.0"
