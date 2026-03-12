@@ -6,7 +6,7 @@
 //! Contract: docs/specs/GLR_ENGINE_CONTRACT.md
 
 use crate::Token;
-use crate::error::{ParseError, ParseErrorKind};
+use crate::error::{ErrorLocation, ParseError, ParseErrorKind};
 use adze_glr_core::{Action, ParseTable, StateId, SymbolId};
 use adze_ir::RuleId;
 use std::collections::HashMap;
@@ -138,6 +138,11 @@ impl GLREngine {
                 return Err(ParseError::with_msg(&format!(
                     "Syntax error: unexpected token at position {}",
                     token.start
+                ))
+                .with_location(ErrorLocation::new(
+                    token.start,
+                    1,
+                    token.start + 1,
                 )));
             }
 

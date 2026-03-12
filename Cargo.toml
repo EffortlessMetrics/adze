@@ -37,6 +37,7 @@ members = [
   "crates/concurrency-caps-core",
   "crates/governance-metadata",
   "crates/linecol-core",
+  "crates/error-location-core",
   "crates/bdd-governance-core",
   "crates/bdd-governance-contract",
   "crates/bdd-contract",
