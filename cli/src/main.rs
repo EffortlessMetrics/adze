@@ -1,12 +1,9 @@
-use adze_tool::{
-    build_parsers,
-    pure_rust_builder::{BuildOptions, BuildResult, build_parser_for_crate},
-};
+use adze_grammar_analysis_core::analyze_grammar_file;
+use adze_tool::{build_parsers, pure_rust_builder::BuildResult};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use std::fs;
-use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -540,28 +537,6 @@ fn show_stats(grammar: &Path) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn analyze_grammar_file(grammar: &Path, compress_tables: bool) -> Result<Vec<BuildResult>> {
-    let temp_dir = tempfile::tempdir()?;
-    let options = BuildOptions {
-        out_dir: temp_dir.path().to_string_lossy().to_string(),
-        emit_artifacts: false,
-        compress_tables,
-    };
-
-    let grammar_path = grammar.to_owned();
-    let build_result = std::panic::catch_unwind(AssertUnwindSafe(move || {
-        build_parser_for_crate(&grammar_path, options)
-    }))
-    .map_err(|_| anyhow::anyhow!("Grammar analysis panicked"))?;
-
-    let results = build_result?;
-    if results.is_empty() {
-        anyhow::bail!("No adze grammar definitions found in {}", grammar.display());
-    }
-
-    Ok(results)
 }
 
 fn print_stats_summary(result: &BuildResult) {

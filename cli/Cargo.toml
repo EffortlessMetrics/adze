@@ -16,6 +16,7 @@ dynamic = ["libloading"]
 [dependencies]
 clap.workspace = true
 adze-tool = { path = "../tool" }
+adze-grammar-analysis-core = { path = "../crates/grammar-analysis-core" }
 serde_json.workspace = true
 colored = "3.0"
 anyhow.workspace = true

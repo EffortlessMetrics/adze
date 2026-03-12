@@ -1,0 +1,23 @@
+[package]
+name = "adze-grammar-analysis-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Core helpers for panic-safe grammar analysis in CLI and tooling."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = ["crates.io"]
+keywords = ["grammar", "analysis", "parser", "cli"]
+categories = ["development-tools"]
+homepage = "https://github.com/EffortlessMetrics/adze"
+documentation = "https://docs.rs/adze-grammar-analysis-core"
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+anyhow.workspace = true
+adze-tool = { version = "0.8.0-dev", path = "../../tool" }
+tempfile.workspace = true
