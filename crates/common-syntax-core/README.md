@@ -2,6 +2,10 @@
 
 Syntax parsing helpers shared by macro and tool crates.
 
+This crate now focuses on attribute-syntax parsing (`NameValueExpr`,
+`FieldThenParams`) and re-exports type transformation helpers from
+`adze-common-type-ops-core` for compatibility.
+
 Part of the [adze](https://github.com/EffortlessMetrics/adze) workspace.
 
 ## License

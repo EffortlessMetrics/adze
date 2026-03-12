@@ -50,6 +50,7 @@ members = [
   "crates/concurrency-init-bootstrap-policy-core",
   "crates/parser-backend-core",
   "tool",
+  "crates/common-type-ops-core",
   "crates/common-syntax-core",
   "common",
   "ir",

@@ -188,6 +188,16 @@ name = "adze-common-syntax-core"
 version = "0.1.0"
 dependencies = [
  "adze-common",
+ "adze-common-type-ops-core",
+ "proptest",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "adze-common-type-ops-core"
+version = "0.1.0"
+dependencies = [
  "proptest",
  "quote",
  "syn 2.0.117",
