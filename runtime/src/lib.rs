@@ -245,7 +245,7 @@ pub use adze_macro::*;
 pub use tree_sitter;
 
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-pub use tree_sitter_c2rust as tree_sitter;
+pub use tree_sitter_runtime_c2rust as tree_sitter;
 
 #[cfg(all(
     not(feature = "tree-sitter-standard"),
@@ -1097,7 +1097,7 @@ pub mod errors {
     use tree_sitter;
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-    use tree_sitter_c2rust as tree_sitter;
+    use tree_sitter_runtime_c2rust as tree_sitter;
 
     #[cfg(all(
         not(feature = "tree-sitter-standard"),
