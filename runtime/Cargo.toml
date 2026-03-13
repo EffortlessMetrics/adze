@@ -15,10 +15,16 @@ path = "src/lib.rs"
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["adze-macro/pure-rust"]
-tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
-tree-sitter-standard = ["tree-sitter-runtime-standard"]
-glr = ["pure-rust"]
+pure-rust = ["adze-macro/pure-rust", "adze-runtime-governance-api/pure-rust"]
+tree-sitter-c2rust = [
+    "tree-sitter-runtime-c2rust",
+    "adze-runtime-governance-api/tree-sitter-c2rust",
+]
+tree-sitter-standard = [
+    "tree-sitter-runtime-standard",
+    "adze-runtime-governance-api/tree-sitter-standard",
+]
+glr = ["pure-rust", "adze-runtime-governance-api/glr"]
 glr_telemetry = []
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]

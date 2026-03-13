@@ -4,6 +4,14 @@
 
 Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain for building high-performance parsers.
 
+## Quick Links
+
+| What | Link |
+|------|------|
+| **Master Index** | [INDEX.md](./INDEX.md) - Complete documentation index |
+| **Navigation Guide** | [NAVIGATION.md](./NAVIGATION.md) - Reading paths and cross-references |
+| **Quick Reference** | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) - One-page cheat sheet |
+
 ---
 
 ## 🎓 Tutorials
