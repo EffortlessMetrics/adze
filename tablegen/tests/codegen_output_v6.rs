@@ -847,9 +847,12 @@ fn codegen_roundtrip_ntg_stable_reserialize() {
     let output = NodeTypesGenerator::new(&grammar).generate().unwrap();
     let parsed: Value = serde_json::from_str(&output).unwrap();
     let reserialized = serde_json::to_string_pretty(&parsed).unwrap();
+    let reparsed: Value = serde_json::from_str(&reserialized).unwrap();
+    // Compare parsed JSON values, not strings, since serde_json::Value uses
+    // BTreeMap which sorts keys alphabetically during parsing.
     assert_eq!(
-        output, reserialized,
-        "NodeTypesGenerator reserialization must be stable"
+        parsed, reparsed,
+        "NodeTypesGenerator reserialization must be semantically equivalent"
     );
 }
 

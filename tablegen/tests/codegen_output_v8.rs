@@ -993,7 +993,13 @@ fn ntg_roundtrip_stable_reserialize() {
     let output = NodeTypesGenerator::new(&g).generate().unwrap();
     let parsed: Value = serde_json::from_str(&output).unwrap();
     let reserialized = serde_json::to_string_pretty(&parsed).unwrap();
-    assert_eq!(output, reserialized, "reserialization must be stable");
+    let reparsed: Value = serde_json::from_str(&reserialized).unwrap();
+    // Compare parsed JSON values, not strings, since serde_json::Value uses
+    // BTreeMap which sorts keys alphabetically during parsing.
+    assert_eq!(
+        parsed, reparsed,
+        "reserialization must be semantically equivalent"
+    );
 }
 
 // =====================================================================

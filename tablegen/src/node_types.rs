@@ -30,13 +30,13 @@ pub struct NodeTypesGenerator<'a> {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct NodeType {
+    #[serde(rename = "type")]
+    type_name: String,
+    named: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     children: Option<ChildrenInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     fields: Option<HashMap<String, FieldInfo>>,
-    named: bool,
-    #[serde(rename = "type")]
-    type_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     subtypes: Option<Vec<SubtypeRef>>,
 }
@@ -57,16 +57,16 @@ struct ChildrenInfo {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct TypeRef {
-    named: bool,
     #[serde(rename = "type")]
     type_name: String,
+    named: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct SubtypeRef {
-    named: bool,
     #[serde(rename = "type")]
     type_name: String,
+    named: bool,
 }
 
 impl<'a> NodeTypesGenerator<'a> {
