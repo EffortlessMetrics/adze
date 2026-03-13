@@ -12,6 +12,7 @@ categories = ["development-tools"]
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["pure-rust"]
@@ -91,6 +92,9 @@ adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
 adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core" }
 ts-bridge = { path = "../tools/ts-bridge", features = ["with-grammars"] }
 tree-sitter-json = "0.24"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(skip_outdated_tests)'] }
 
 [[bench]]
 name = "simple_bench"
