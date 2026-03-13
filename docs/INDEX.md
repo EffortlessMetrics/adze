@@ -12,9 +12,10 @@ Master index for all Adze documentation. Use this page to navigate the documenta
 | I am a... | I want to... | Start here |
 |-----------|--------------|------------|
 | **New User** | Learn to build parsers | [Getting Started](./tutorials/getting-started.md) → [GLR Quickstart](./tutorials/glr-quickstart.md) |
+| **Grammar Author** | Define a new grammar | [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) → [Grammar Examples](./reference/grammar-examples.md) |
+| **Integrator** | Embed Adze in my tool | [Integration Guide](./guides/INTEGRATION_GUIDE.md) → [Tree-sitter Compatibility](./reference/tree-sitter-compatibility.md) |
 | **Contributor** | Help improve Adze | [Contributing Guide](../CONTRIBUTING.md) → [Now/Next/Later](./status/NOW_NEXT_LATER.md) |
 | **Maintainer** | Understand architecture | [Architecture Overview](./explanations/architecture.md) → [ADRs](./adr/INDEX.md) |
-| **Integrator** | Embed Adze in my tool | [API Reference](./reference/api.md) → [Tree-sitter Compatibility](./reference/tree-sitter-compatibility.md) |
 
 ---
 
@@ -191,6 +192,8 @@ Comprehensive guides on specific topics.
 
 | Guide | Description |
 |-------|-------------|
+| [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) | Complete guide for defining grammars with Rust types |
+| [Integration Guide](./guides/INTEGRATION_GUIDE.md) | Integrating Adze with editors, build systems, CI/CD, WASM, and LSP |
 | [Arena Allocator Guide](./guides/ARENA_ALLOCATOR_GUIDE.md) | Complete guide to arena allocation |
 | [Performance Benchmarking](./guides/PERFORMANCE_BENCHMARKING.md) | How to benchmark Adze parsers |
 | [Testing Guide](./testing/TESTING_GUIDE.md) | Comprehensive testing strategies for Adze |
@@ -245,6 +248,20 @@ Historical documents preserved for reference.
 2. [Test Strategy](./explanations/test-strategy.md) - Why and how we test
 3. [Testing Grammars](./how-to/test-grammars.md) - Practical testing guide
 
+### Path 6: Grammar Author
+1. [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) - Complete grammar definition guide
+2. [API Reference](./reference/api.md) - API surface for grammar annotations
+3. [Grammar Examples](./reference/grammar-examples.md) - Common patterns
+4. [Handling Precedence](./how-to/handle-precedence.md) - Resolve operator ambiguity
+5. [External Scanners](./how-to/external-scanners.md) - Custom tokenization
+
+### Path 7: Integrator
+1. [Integration Guide](./guides/INTEGRATION_GUIDE.md) - Complete integration guide
+2. [API Reference](./reference/api.md) - API surface
+3. [Tree-sitter Compatibility](./reference/tree-sitter-compatibility.md) - Interoperability
+4. [API Stability](./status/API_STABILITY.md) - Compatibility guarantees
+5. [Known Limitations](./reference/known-limitations.md) - Current constraints
+
 ---
 
 ## Related Files
@@ -261,6 +278,8 @@ Historical documents preserved for reference.
 | What | Link |
 |------|------|
 | Build your first parser | [Getting Started](./tutorials/getting-started.md) |
+| Define a grammar | [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) |
+| Integrate Adze | [Integration Guide](./guides/INTEGRATION_GUIDE.md) |
 | See current priorities | [Now / Next / Later](./status/NOW_NEXT_LATER.md) |
 | Understand architecture | [Architecture Overview](./explanations/architecture.md) |
 | Read the vision | [Vision and Strategy](./vision/VISION_AND_STRATEGY.md) |

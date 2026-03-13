@@ -79,6 +79,8 @@ just ci-supported
 | Master Index | [docs/INDEX.md](./INDEX.md) |
 | Navigation Guide | [docs/NAVIGATION.md](./NAVIGATION.md) |
 | Getting Started | [tutorials/getting-started.md](./tutorials/getting-started.md) |
+| Grammar Author's Guide | [guides/GRAMMAR_AUTHORS_GUIDE.md](./guides/GRAMMAR_AUTHORS_GUIDE.md) |
+| Integration Guide | [guides/INTEGRATION_GUIDE.md](./guides/INTEGRATION_GUIDE.md) |
 | API Reference | [reference/api.md](./reference/api.md) |
 | Architecture | [explanations/architecture.md](./explanations/architecture.md) |
 | Testing Guide | [testing/TESTING_GUIDE.md](./testing/TESTING_GUIDE.md) |

@@ -106,6 +106,7 @@ graph LR
 | Goal | Start Here | Next Steps |
 |------|------------|------------|
 | Build my first parser | [Getting Started](./tutorials/getting-started.md) | [API Reference](./reference/api.md) → [Grammar Examples](./reference/grammar-examples.md) |
+| Define a new grammar | [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) | [Grammar Examples](./reference/grammar-examples.md) → [Handle Precedence](./how-to/handle-precedence.md) |
 | Understand GLR parsing | [GLR Quickstart](./tutorials/glr-quickstart.md) | [GLR Internals](./explanations/glr-internals.md) → [Handle Precedence](./how-to/handle-precedence.md) |
 | See code examples | [Grammar Examples](./reference/grammar-examples.md) | [Usage Examples](./reference/usage-examples.md) |
 
@@ -122,6 +123,26 @@ graph LR
 | Generate an LSP | [LSP Generation](./how-to/generate-lsp.md) | [Architecture](./explanations/architecture.md) |
 | Debug GLR behavior | [Visualizing GLR](./how-to/visualize-glr.md) | [GLR Internals](./explanations/glr-internals.md) |
 | Handle empty rules | [Empty Rules Reference](./reference/empty-rules-reference.md) | [Empty Rules Theory](./explanations/empty-rules.md) |
+
+### Integrate Adze
+
+| Goal | Start Here | Related Docs |
+|------|------------|--------------|
+| Embed Adze in my tool | [Integration Guide](./guides/INTEGRATION_GUIDE.md) | [API Reference](./reference/api.md) |
+| Set up editor support | [Integration Guide: Editors](./guides/INTEGRATION_GUIDE.md#editor-integrations) | [Tree-sitter Compatibility](./reference/tree-sitter-compatibility.md) |
+| Configure CI/CD | [Integration Guide: CI/CD](./guides/INTEGRATION_GUIDE.md#cicd-integration) | [Testing Guide](./testing/TESTING_GUIDE.md) |
+| Build for WASM | [Integration Guide: WASM](./guides/INTEGRATION_GUIDE.md#wasm-integration) | [API Stability](./status/API_STABILITY.md) |
+| Generate an LSP | [Integration Guide: LSP](./guides/INTEGRATION_GUIDE.md#lsp-server-generation) | [LSP Generation How-to](./how-to/generate-lsp.md) |
+
+### Author Grammars
+
+| Goal | Start Here | Related Docs |
+|------|------------|--------------|
+| Learn grammar definition | [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) | [API Reference](./reference/api.md) |
+| Define tokens | [Grammar Author's Guide: Tokens](./guides/GRAMMAR_AUTHORS_GUIDE.md#defining-tokens) | [External Scanners](./how-to/external-scanners.md) |
+| Handle precedence | [Grammar Author's Guide: Precedence](./guides/GRAMMAR_AUTHORS_GUIDE.md#handling-precedence) | [Handling Precedence](./how-to/handle-precedence.md) |
+| Use common patterns | [Grammar Author's Guide: Patterns](./guides/GRAMMAR_AUTHORS_GUIDE.md#common-patterns) | [Grammar Examples](./reference/grammar-examples.md) |
+| Debug grammar issues | [Grammar Author's Guide: Troubleshooting](./guides/GRAMMAR_AUTHORS_GUIDE.md#troubleshooting) | [Visualizing GLR](./how-to/visualize-glr.md) |
 
 ### Understand the Architecture
 
@@ -205,21 +226,37 @@ flowchart LR
 4. **[Technical Roadmap](./roadmap/TECHNICAL_ROADMAP.md)** - Future direction
 5. **[Vision and Strategy](./vision/VISION_AND_STRATEGY.md)** - Strategic context
 
+### Grammar Author Path
+
+```mermaid
+flowchart LR
+    A[1. Grammar Authors Guide] --> B[2. API Reference]
+    B --> C[3. Grammar Examples]
+    C --> D[4. Handling Precedence]
+    D --> E[5. External Scanners]
+```
+
+1. **[Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md)** - Complete grammar definition guide
+2. **[API Reference](./reference/api.md)** - API surface for grammar annotations
+3. **[Grammar Examples](./reference/grammar-examples.md)** - Common patterns
+4. **[Handling Precedence](./how-to/handle-precedence.md)** - Resolve operator ambiguity
+5. **[External Scanners](./how-to/external-scanners.md)** - Custom tokenization
+
 ### Integrator Path
 
 ```mermaid
 flowchart LR
-    A[1. API Reference] --> B[2. API Stability]
+    A[1. Integration Guide] --> B[2. API Reference]
     B --> C[3. Tree-sitter Compat]
-    C --> D[4. Known Limitations]
-    D --> E[5. Technical Roadmap]
+    C --> D[4. API Stability]
+    D --> E[5. Known Limitations]
 ```
 
-1. **[API Reference](./reference/api.md)** - API surface
-2. **[API Stability](./status/API_STABILITY.md)** - Compatibility guarantees
+1. **[Integration Guide](./guides/INTEGRATION_GUIDE.md)** - Complete integration guide
+2. **[API Reference](./reference/api.md)** - API surface
 3. **[Tree-sitter Compatibility](./reference/tree-sitter-compatibility.md)** - Interoperability
-4. **[Known Limitations](./reference/known-limitations.md)** - Current constraints
-5. **[Technical Roadmap](./roadmap/TECHNICAL_ROADMAP.md)** - Future changes
+4. **[API Stability](./status/API_STABILITY.md)** - Compatibility guarantees
+5. **[Known Limitations](./reference/known-limitations.md)** - Current constraints
 
 ---
 
@@ -257,16 +294,17 @@ flowchart LR
 - **Architecture**: [ADRs](./adr/INDEX.md) | [Overview](./explanations/architecture.md) | [GLR](./explanations/glr-internals.md)
 - **Learning**: [Getting Started](./tutorials/getting-started.md) | [GLR Quickstart](./tutorials/glr-quickstart.md)
 - **Reference**: [API](./reference/api.md) | [Examples](./reference/grammar-examples.md) | [Compatibility](./reference/tree-sitter-compatibility.md)
-- **Guides**: [Testing Guide](./testing/TESTING_GUIDE.md) | [Contributor Guide](./contributing/CONTRIBUTOR_GUIDE.md)
+- **Guides**: [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) | [Integration Guide](./guides/INTEGRATION_GUIDE.md) | [Testing Guide](./testing/TESTING_GUIDE.md) | [Contributor Guide](./contributing/CONTRIBUTOR_GUIDE.md)
 
 ### By Task
 
 - **Build**: [Getting Started](./tutorials/getting-started.md) → [API Reference](./reference/api.md)
+- **Define Grammar**: [Grammar Author's Guide](./guides/GRAMMAR_AUTHORS_GUIDE.md) → [Grammar Examples](./reference/grammar-examples.md)
+- **Integrate**: [Integration Guide](./guides/INTEGRATION_GUIDE.md) → [API Stability](./status/API_STABILITY.md)
 - **Test**: [Testing Guide](./testing/TESTING_GUIDE.md) → [Test Grammars](./how-to/test-grammars.md)
 - **Debug**: [Visualizing GLR](./how-to/visualize-glr.md) → [GLR Internals](./explanations/glr-internals.md)
 - **Optimize**: [Performance Guide](./how-to/optimize-performance.md) → [Performance Status](./status/PERFORMANCE.md)
 - **Contribute**: [Contributor Guide](./contributing/CONTRIBUTOR_GUIDE.md) → [Now/Next/Later](./status/NOW_NEXT_LATER.md)
-- **Integrate**: [API Reference](./reference/api.md) → [API Stability](./status/API_STABILITY.md)
 
 ---
 
