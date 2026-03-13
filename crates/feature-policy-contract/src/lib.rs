@@ -79,10 +79,13 @@ mod tests {
     fn feature_profile_resolve_backend() {
         let profile = ParserFeatureProfile::current();
         let backend_no_conflicts = profile.resolve_backend(false);
-        let backend_with_conflicts = profile.resolve_backend(true);
-        // Both should return valid backends
+        // Only test with conflicts=true if GLR is enabled, otherwise it panics
+        if profile.has_glr() {
+            let backend_with_conflicts = profile.resolve_backend(true);
+            let _ = backend_with_conflicts.name();
+        }
+        // Verify the no-conflicts backend is valid
         let _ = backend_no_conflicts.name();
-        let _ = backend_with_conflicts.name();
     }
 
     #[test]

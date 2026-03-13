@@ -1097,6 +1097,8 @@ pub mod errors {
     use tree_sitter;
 
     #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
+    #[allow(unused_imports)]
+    // Kept for API compatibility; actual usage goes through crate::tree_sitter
     use tree_sitter_runtime_c2rust as tree_sitter;
 
     #[cfg(all(
