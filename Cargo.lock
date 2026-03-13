@@ -659,8 +659,10 @@ dependencies = [
 name = "adze-tablegen"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-bdd-grid-core",
  "adze-glr-core",
  "adze-ir",
+ "adze-parsetable-metadata",
  "chrono",
  "criterion",
  "indexmap",

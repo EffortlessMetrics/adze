@@ -26,6 +26,8 @@ features = ["strict_docs"]
 [dependencies]
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-bdd-grid-core = { path = "../crates/bdd-grid-core" }
+adze-parsetable-metadata = { path = "../crates/parsetable-metadata" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
