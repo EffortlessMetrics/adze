@@ -16,7 +16,7 @@ use std::collections::HashMap;
 #[cfg(all(feature = "tree-sitter-standard", not(feature = "pure-rust")))]
 use tree_sitter::TreeCursor;
 #[cfg(all(feature = "tree-sitter-c2rust", not(feature = "pure-rust")))]
-use tree_sitter_c2rust::TreeCursor;
+use tree_sitter_runtime_c2rust::TreeCursor;
 
 #[cfg(feature = "serialization")]
 use serde_json::{Value, json};
