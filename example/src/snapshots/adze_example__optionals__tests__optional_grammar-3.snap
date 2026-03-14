@@ -1,12 +1,13 @@
 ---
 source: src/optionals.rs
+assertion_line: 33
 expression: "grammar::parse(\"1_\")"
 ---
 Err(
     [
         ParseError {
             reason: UnexpectedToken(
-                "_2",
+                "_3",
             ),
             start: 0,
             end: 0,
