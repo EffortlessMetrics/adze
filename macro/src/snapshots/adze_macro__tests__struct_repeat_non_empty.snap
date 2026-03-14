@@ -1,6 +1,5 @@
 ---
 source: macro/src/lib.rs
-assertion_line: 800
 expression: "rustfmt_code(&expand_grammar(parse_quote!\n{\n    #[adze::grammar(\"test\")] mod grammar\n    {\n        #[adze::language] pub struct NumberList\n        { #[adze::repeat(non_empty = true)] numbers: Vec<Number>, } pub struct\n        Number\n        {\n            #[adze::leaf(pattern = r\"\\d+\", transform = |v|\n            v.parse().unwrap())] v: i32\n        }\n    }\n})? .to_token_stream().to_string())"
 ---
 mod grammar {
