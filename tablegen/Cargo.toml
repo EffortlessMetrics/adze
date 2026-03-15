@@ -43,6 +43,7 @@ proptest = "1.5"
 insta = "1.40"
 rustc-hash = "2.1"
 criterion = "0.5"
+syn = { version = "2", features = ["full", "parsing"] }
 adze-bdd-grid-core = { version = "0.1.0", path = "../crates/bdd-grid-core" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
@@ -59,3 +60,4 @@ compression = [] # Feature for compression/decompression utilities
 strict_docs = []  # Feature flag for strict documentation enforcement
 strict_api = []  # Feature flag for strict API surface checking
 serialization = [] # Enable serialization support (used by runtime2)
+small-table = [] # Test-only feature for compressed table round-trip tests

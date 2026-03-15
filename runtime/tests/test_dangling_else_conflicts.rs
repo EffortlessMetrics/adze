@@ -1,3 +1,4 @@
+#![cfg(feature = "with-grammars")]
 //! Diagnostic test for dangling-else grammar conflict detection
 //!
 //! This test verifies that the dangling-else grammar DOES generate shift/reduce conflicts

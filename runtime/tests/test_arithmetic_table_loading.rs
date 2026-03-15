@@ -1,3 +1,4 @@
+#![cfg(feature = "with-grammars")]
 //! Test to diagnose parse table loading for arithmetic grammar
 //!
 //! This test loads the arithmetic grammar's parse table and inspects

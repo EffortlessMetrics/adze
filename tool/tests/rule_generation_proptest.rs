@@ -86,7 +86,13 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
 }
 
 fn type_name_strategy() -> impl Strategy<Value = String> {
-    "[A-Z][a-z]{1,8}".prop_filter("non-empty", |s| !s.is_empty())
+    "[A-Z][a-z]{1,8}".prop_filter("non-empty and not a std type", |s| {
+        !s.is_empty()
+            && !matches!(
+                s.as_str(),
+                "Vec" | "Option" | "Box" | "Result" | "String" | "Self" | "Fn" | "Arc" | "Rc"
+            )
+    })
 }
 
 fn field_name_strategy() -> impl Strategy<Value = String> {
@@ -132,6 +138,15 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
                 | "static"
                 | "unsafe"
                 | "extern"
+                | "do"
+                | "abstract"
+                | "become"
+                | "final"
+                | "override"
+                | "priv"
+                | "typeof"
+                | "unsized"
+                | "virtual"
         )
     })
 }

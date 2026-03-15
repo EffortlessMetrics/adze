@@ -1,3 +1,4 @@
+#![cfg(feature = "with-grammars")]
 use adze::decoder::{decode_grammar, decode_parse_table};
 use adze_ir::ProductionId;
 
