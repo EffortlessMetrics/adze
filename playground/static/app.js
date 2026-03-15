@@ -40,6 +40,17 @@ class Playground {
         this.analyze();
     }
 
+    // Helper to escape HTML special characters to prevent XSS
+    escapeHtml(text) {
+        if (typeof text !== 'string') return text;
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     async parse(visualize = false) {
         const input = document.getElementById('input-code').value;
         this.setStatus('Parsing...');
@@ -172,7 +183,7 @@ class Playground {
 
     displayErrors(errors) {
         const errorList = errors.map(err => 
-            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${err.message}</div>`
+            `<div class="error-item">Line ${err.line}, Column ${err.column}: ${this.escapeHtml(err.message)}</div>`
         ).join('');
         
         document.getElementById('error-list').innerHTML = errorList;
@@ -210,7 +221,7 @@ class Playground {
                 <div class="conflict-list">
                     ${analysis.conflicts.map(c => `
                         <div class="conflict-item">
-                            <strong>${c.kind}</strong> in state ${c.state}: ${c.description}
+                            <strong>${this.escapeHtml(c.kind)}</strong> in state ${c.state}: ${this.escapeHtml(c.description)}
                         </div>
                     `).join('')}
                 </div>
@@ -220,8 +231,8 @@ class Playground {
                 <h3>Suggestions</h3>
                 <div class="suggestion-list">
                     ${analysis.suggestions.map(s => `
-                        <div class="suggestion-item ${s.level.toLowerCase()}">
-                            ${s.message}
+                        <div class="suggestion-item ${this.escapeHtml(s.level.toLowerCase())}">
+                            ${this.escapeHtml(s.message)}
                         </div>
                     `).join('')}
                 </div>
@@ -236,10 +247,11 @@ class Playground {
     }
 
     updateTestList() {
-        const html = this.tests.map(test => `
+        // Pass the index instead of the name to avoid complex escaping in onclick attributes
+        const html = this.tests.map((test, index) => `
             <div class="test-item">
-                <span>${test.name}</span>
-                <button onclick="playground.loadTest('${test.name}')">Load</button>
+                <span>${this.escapeHtml(test.name)}</span>
+                <button onclick="playground.loadTest(${index})">Load</button>
             </div>
         `).join('');
         
@@ -249,7 +261,7 @@ class Playground {
     displayTestResults(results) {
         const html = results.map(([test, result]) => `
             <div class="test-item ${result.success ? 'pass' : 'fail'}">
-                <span>${test.name}</span>
+                <span>${this.escapeHtml(test.name)}</span>
                 <span>${result.success ? '✓ PASS' : '✗ FAIL'}</span>
             </div>
         `).join('');
@@ -257,11 +269,17 @@ class Playground {
         document.getElementById('test-list').innerHTML = html;
     }
 
-    loadTest(name) {
-        const test = this.tests.find(t => t.name === name);
+    loadTest(identifier) {
+        let test;
+        if (typeof identifier === 'number') {
+            test = this.tests[identifier];
+        } else {
+            test = this.tests.find(t => t.name === identifier);
+        }
+
         if (test) {
             document.getElementById('input-code').value = test.input;
-            this.setStatus(`Loaded test: ${name}`);
+            this.setStatus(`Loaded test: ${test.name}`);
         }
     }
 
