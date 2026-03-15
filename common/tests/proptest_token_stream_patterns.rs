@@ -4,7 +4,7 @@
 //! quote! generation, syn type parsing, literal types, Ident creation/comparison,
 //! and multi-stream concatenation.
 
-use proc_macro2::{Ident, Literal, Span, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Ident, Literal, Span, TokenStream, TokenTree};
 use proptest::prelude::*;
 use quote::{ToTokens, quote};
 use syn::{Type, parse_str};
@@ -197,7 +197,7 @@ proptest! {
         let idents: Vec<Ident> = (0..count)
             .map(|i| Ident::new(&format!("x{i}"), Span::call_site()))
             .collect();
-        let ts = quote! { #(#idents),* };
+        let ts: TokenStream = quote! { #(#idents),* };
         let s = ts.to_string();
         for i in 0..count.saturating_sub(1) {
             let pos_a = s.find(&format!("x{i}")).unwrap();
@@ -466,7 +466,7 @@ fn unit_quote_repeated_interpolation() {
         Ident::new("b", Span::call_site()),
         Ident::new("c", Span::call_site()),
     ];
-    let ts = quote! { #(#names),* };
+    let ts: TokenStream = quote! { #(#names),* };
     let s = ts.to_string();
     assert!(s.contains("a"));
     assert!(s.contains("b"));
@@ -537,7 +537,7 @@ fn unit_group_delimiter_paren() {
     let ts: TokenStream = "(a, b)".parse().unwrap();
     let tree = ts.into_iter().next().unwrap();
     if let TokenTree::Group(g) = tree {
-        assert_eq!(g.delimiter(), proc_macro2::Delimiter::Parenthesis);
+        assert_eq!(g.delimiter(), Delimiter::Parenthesis);
     } else {
         panic!("expected Group");
     }
@@ -548,7 +548,7 @@ fn unit_group_delimiter_brace() {
     let ts: TokenStream = "{ x }".parse().unwrap();
     let tree = ts.into_iter().next().unwrap();
     if let TokenTree::Group(g) = tree {
-        assert_eq!(g.delimiter(), proc_macro2::Delimiter::Brace);
+        assert_eq!(g.delimiter(), Delimiter::Brace);
     } else {
         panic!("expected Group");
     }
@@ -559,7 +559,7 @@ fn unit_group_delimiter_bracket() {
     let ts: TokenStream = "[1, 2]".parse().unwrap();
     let tree = ts.into_iter().next().unwrap();
     if let TokenTree::Group(g) = tree {
-        assert_eq!(g.delimiter(), proc_macro2::Delimiter::Bracket);
+        assert_eq!(g.delimiter(), Delimiter::Bracket);
     } else {
         panic!("expected Group");
     }

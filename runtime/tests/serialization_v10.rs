@@ -2,7 +2,8 @@
 //! via adze-glr-core's serialization module.
 //!
 //! Run with:
-//!   cargo test -p adze --test serialization_v10 -- --test-threads=2
+//!   cargo test -p adze --test serialization_v10 --features serialization -- --test-threads=2
+#![cfg(feature = "serialization")]
 
 use adze_glr_core::{Action, FirstFollowSets, ParseTable, StateId, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;

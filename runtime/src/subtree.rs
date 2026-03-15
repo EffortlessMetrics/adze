@@ -198,7 +198,11 @@ impl Subtree {
         // If the other tree also has alternatives, merge them all
         if !other.alternatives.is_empty() {
             for alt in &other.alternatives {
-                if !self.alternatives.iter().any(|a| Arc::ptr_eq(a, alt)) {
+                if !self
+                    .alternatives
+                    .iter()
+                    .any(|a: &Arc<Subtree>| Arc::ptr_eq(a, alt))
+                {
                     self.alternatives.push(alt.clone());
                 }
             }
@@ -210,7 +214,7 @@ impl Subtree {
         if !self
             .alternatives
             .iter()
-            .any(|a| Arc::as_ptr(a) == other_ptr)
+            .any(|a: &Arc<Subtree>| Arc::as_ptr(a) == other_ptr)
         {
             // Keep the highest dynamic precedence before moving
             self.dynamic_prec = self.dynamic_prec.max(other.dynamic_prec);
@@ -248,7 +252,11 @@ impl Subtree {
 
         // Then add all of its alternatives
         for alt in &other.alternatives {
-            if !self.alternatives.iter().any(|a| Arc::ptr_eq(a, alt)) {
+            if !self
+                .alternatives
+                .iter()
+                .any(|a: &Arc<Subtree>| Arc::ptr_eq(a, alt))
+            {
                 self.alternatives.push(alt.clone());
             }
         }

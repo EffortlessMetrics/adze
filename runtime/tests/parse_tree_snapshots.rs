@@ -7,6 +7,7 @@
 //!   - `arithmetic` (Sub/Mul with precedence)
 //!   - `ambiguous_expr` (Binary with no precedence)
 //!   - `repetitions` (delimited number lists)
+#![cfg(feature = "with-grammars")]
 
 mod common;
 

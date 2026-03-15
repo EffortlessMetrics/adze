@@ -5,9 +5,9 @@ edition = "2024"
 rust-version = "1.87"
 description = "GLR parser generation algorithms for pure-Rust Tree-sitter"
 license = "MIT"
-repository = "https://github.com/hydro-project/rust-sitter"
-homepage = "https://github.com/hydro-project/rust-sitter"
-documentation = "https://docs.rs/rust-sitter-glr-core"
+repository = "https://github.com/effortlessmetrics/adze"
+homepage = "https://github.com/effortlessmetrics/adze"
+documentation = "https://docs.rs/adze-glr-core"
 readme = "README.md"
 publish = false
 include = [
@@ -31,6 +31,8 @@ typed-arena = "2.0"
 # Optional parallel processing
 rayon = { version = "1.0", optional = true }
 rustc-hash = "2.1.1"
+smallvec.workspace = true
+postcard = { version = "1.0", features = ["use-std"], optional = true }
 
 [features]
 default = []
@@ -45,14 +47,20 @@ json-parity = []
 perf-counters = []
 test-api = []
 debug_glr = [] # Enable debug output for GLR parser
+serialization = ["dep:postcard"] # Enable serialization support (used by runtime2)
+glr_telemetry = [] # Enable GLR telemetry (used by benchmarks)
 
 [dev-dependencies]
 insta = "1.0"
 criterion = "0.5"
 dhat = "0.3"
 serde_json = "1.0"
+proptest = "1.4"
 glr-test-support = { path = "../glr-test-support" }
 trybuild = "1"
+adze-bdd-scenario-fixtures = { version = "0.1.0", path = "../crates/bdd-scenario-fixtures" }
+adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
+indexmap = { version = "2.0", features = ["serde"] }
 
 [[bench]]
 name = "automaton"

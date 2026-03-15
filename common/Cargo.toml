@@ -2,7 +2,7 @@
 name = "adze-common"
 description = "Shared logic for the Rust Sitter macro and tool"
 readme = "../README.md"
-repository = "https://github.com/hydro-project/rust-sitter"
+repository = "https://github.com/effortlessmetrics/adze"
 version = "0.8.0-dev"
 authors = ["Steven Zimmerman, CPA"]
 edition = "2024"
@@ -19,3 +19,11 @@ strict_docs = [] # Enable strict documentation requirements
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }
 quote = "1"
+adze-common-syntax-core = { version = "0.1.0", path = "../crates/common-syntax-core" }
+
+[dev-dependencies]
+proptest = "1.4"
+proc-macro2 = "1"
+insta = { workspace = true }
+serde_json = { workspace = true }
+regex = { workspace = true }

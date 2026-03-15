@@ -1,3 +1,4 @@
+#![cfg(feature = "with-grammars")]
 //! Diagnostic test for ambiguous expression grammar conflict detection
 //!
 //! This test verifies that the ambiguous_expr grammar DOES generate shift/reduce conflicts

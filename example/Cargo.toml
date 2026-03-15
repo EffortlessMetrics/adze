@@ -1,30 +1,30 @@
 [package]
-name = "rust-sitter-example"
+name = "adze-example"
 version = "0.8.0-dev"
 authors = ["Steven Zimmerman, CPA"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["rust-sitter/pure-rust"]
+pure-rust = ["adze/pure-rust"]
 c-backend = [
-  "rust-sitter/tree-sitter-c2rust",
-  "rust-sitter/tree-sitter-standard",
+  "adze/tree-sitter-c2rust",
+  "adze/tree-sitter-standard",
   "dep:tree-sitter-c2rust"
 ]
-tree-sitter-standard = ["rust-sitter/tree-sitter-standard"]
-ts-compat = ["rust-sitter/ts-compat"]
+tree-sitter-standard = ["adze/tree-sitter-standard"]
+ts-compat = ["adze/ts-compat"]
 
 [dependencies]
-rust-sitter = { path = "../runtime", default-features = false }
+adze = { path = "../runtime", default-features = false }
 codemap = "0.1.3"
 codemap-diagnostic = "0.1.1"
 # Only needed in C path
 tree-sitter-c2rust = { version = "0.25.2", optional = true }
 
 [build-dependencies]
-rust-sitter-tool = { path = "../tool" }
+adze-tool = { path = "../tool" }
 toml = "0.8"
 
 [dev-dependencies]

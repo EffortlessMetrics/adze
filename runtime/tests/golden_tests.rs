@@ -9,12 +9,12 @@
 //! This keeps the historical backbone active **today** while the pure-Rust backend
 //! finishes stabilizing.
 
-// Helper module for pure-rust tests
-#[cfg(all(test, feature = "pure-rust"))]
+// Helper module for pure-rust tests (requires ts-bridge, only available with with-grammars)
+#[cfg(all(test, feature = "pure-rust", feature = "with-grammars"))]
 #[path = "support/language_builder.rs"]
 mod language_builder;
 
-#[cfg(all(test, feature = "pure-rust"))]
+#[cfg(all(test, feature = "pure-rust", feature = "with-grammars"))]
 #[path = "support/unified_json_helper.rs"]
 mod unified_json_helper;
 
