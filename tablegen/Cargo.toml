@@ -5,9 +5,9 @@ edition = "2024"
 rust-version = "1.87"
 description = "Table generation and compression for pure-Rust Tree-sitter"
 license = "MIT"
-repository = "https://github.com/hydro-project/rust-sitter"
-homepage = "https://github.com/hydro-project/rust-sitter"
-documentation = "https://docs.rs/rust-sitter-tablegen"
+repository = "https://github.com/effortlessmetrics/adze"
+homepage = "https://github.com/effortlessmetrics/adze"
+documentation = "https://docs.rs/adze-tablegen"
 readme = "README.md"
 publish = false
 include = [
@@ -43,6 +43,9 @@ proptest = "1.5"
 insta = "1.40"
 rustc-hash = "2.1"
 criterion = "0.5"
+adze-bdd-grid-core = { version = "0.1.0", path = "../crates/bdd-grid-core" }
+adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-ir = { version = "0.8.0-dev", path = "../ir" }
 
 [[bench]]
 name = "compression"
@@ -55,3 +58,4 @@ tree-sitter-c2rust = ["dep:tree-sitter-c2rust"]
 compression = [] # Feature for compression/decompression utilities
 strict_docs = []  # Feature flag for strict documentation enforcement
 strict_api = []  # Feature flag for strict API surface checking
+serialization = [] # Enable serialization support (used by runtime2)
