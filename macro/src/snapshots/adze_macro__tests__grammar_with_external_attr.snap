@@ -8,9 +8,10 @@ mod grammar {
     }
     impl ::adze::Extract<Code> for Code {
         type LeafFn = ();
+        const GRAMMAR_NAME: &'static str = "test";
         #[allow(non_snake_case)]
         fn extract(
-            node: Option<::adze::tree_sitter::Node>,
+            node: Option<&::adze::pure_parser::ParsedNode>,
             source: &[u8],
             last_idx: usize,
             _leaf_fn: Option<&Self::LeafFn>,
@@ -30,9 +31,10 @@ mod grammar {
     }
     impl ::adze::Extract<IndentToken> for IndentToken {
         type LeafFn = ();
+        const GRAMMAR_NAME: &'static str = "test";
         #[allow(non_snake_case)]
         fn extract(
-            node: Option<::adze::tree_sitter::Node>,
+            node: Option<&::adze::pure_parser::ParsedNode>,
             source: &[u8],
             last_idx: usize,
             _leaf_fn: Option<&Self::LeafFn>,
@@ -49,16 +51,22 @@ mod grammar {
             })
         }
     }
-    unsafe extern "C" {
-        fn tree_sitter_test() -> ::adze::tree_sitter::Language;
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_",
+        "test",
+        "/parser_",
+        "test",
+        ".rs"
+    ));
+    pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
+        &LANGUAGE
     }
-    pub fn language() -> ::adze::tree_sitter::Language {
-        unsafe { tree_sitter_test() }
-    }
+    pub const LANGUAGE_REF: &'static ::adze::pure_parser::TSLanguage = &LANGUAGE;
     #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
     #[doc = "[`Code`]"]
     #[doc = r" instance containing the parsed structured data."]
     pub fn parse(input: &str) -> core::result::Result<Code, Vec<::adze::errors::ParseError>> {
-        ::adze::__private::parse::<Code>(input, language)
+        ::adze::__private::parse::<Code>(input, || language())
     }
 }
