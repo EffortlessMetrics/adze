@@ -1,5 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 
+#[cfg(feature = "incremental_glr")]
+use adze_runtime::Tree;
 use adze_runtime::{InputEdit, Point};
 
 // ---------------------------------------------------------------------------
