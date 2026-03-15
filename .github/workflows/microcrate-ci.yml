@@ -358,6 +358,6 @@ jobs:
       - name: Test adze-runtime
         run: cargo test -p adze-runtime --lib --tests -- --test-threads=$RUST_TEST_THREADS
       - name: Test adze-macro
-        run: cargo test -p adze-macro -- --test-threads=$RUST_TEST_THREADS
+        run: cargo test -p adze-macro --features pure-rust -- --test-threads=$RUST_TEST_THREADS
       - name: Test adze-tool
         run: cargo test -p adze-tool -- --test-threads=$RUST_TEST_THREADS
