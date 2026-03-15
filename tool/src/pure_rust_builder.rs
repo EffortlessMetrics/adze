@@ -166,9 +166,40 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
 
         if !has_rules {
             // This non-terminal has no rules - it's likely a wrapper for a pattern
-            // For now, use a heuristic: if the name contains "Number", look for a number token
-            // TODO: This should be improved to handle all pattern wrappers structurally
-            if let Some(nt_name) = grammar.rule_names.get(&nt_id)
+            // Try to find a matching token structurally
+
+            let mut matched_token = None;
+
+            if let Some(nt_name) = grammar.rule_names.get(&nt_id) {
+                // Heuristic 1: Look for a token with the exact same name or related name
+                // e.g., NT "Identifier" -> Token "identifier" or "Identifier_token"
+                let nt_name_lower = nt_name.to_lowercase();
+
+                // Collect candidate tokens
+                for (tid, token) in &grammar.tokens {
+                    let token_name_lower = token.name.to_lowercase();
+
+                    // Direct match or close variant
+                    if token.name == *nt_name
+                        || token_name_lower == nt_name_lower
+                        || token_name_lower.contains(&nt_name_lower)
+                        || nt_name_lower.contains(&token_name_lower)
+                    {
+                        matched_token = Some(*tid);
+                        break;
+                    }
+
+                    // Check for generated name pattern from GrammarJsConverter (_{SymbolId})
+                    if token.name == format!("_{}", nt_id.0) {
+                        matched_token = Some(*tid);
+                        break;
+                    }
+                }
+            }
+
+            // Heuristic 2 (Legacy fallback): If the name contains "Number", look for a number token
+            if matched_token.is_none()
+                && let Some(nt_name) = grammar.rule_names.get(&nt_id)
                 && nt_name.to_lowercase().contains("number")
             {
                 // Find a number token (one with \d pattern)
@@ -176,10 +207,14 @@ fn desugar_pattern_wrappers(grammar: &mut Grammar) -> Result<()> {
                     if let TokenPattern::Regex(r) = &token.pattern
                         && (r.contains(r"\d") || r.contains("[0-9]"))
                     {
-                        wrappers_needing_rules.push((nt_id, *tid));
+                        matched_token = Some(*tid);
                         break;
                     }
                 }
+            }
+
+            if let Some(tid) = matched_token {
+                wrappers_needing_rules.push((nt_id, tid));
             }
         }
     }
@@ -734,6 +769,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 #[cfg(test)]
 mod tests {
     use super::*;
+    use adze_ir::{Grammar, Symbol, SymbolId, Token, TokenPattern};
     use tempfile::TempDir;
 
     #[test]
@@ -769,5 +805,87 @@ module.exports = grammar({
         // Check NODE_TYPES content
         let node_types: Value = serde_json::from_str(&result.node_types_json).unwrap();
         assert!(node_types.is_array());
+    }
+
+    #[test]
+    fn test_desugar_pattern_wrappers_reproduction() {
+        // Reproduce the state where a non-terminal has no rules but matches a token
+        let mut grammar = Grammar::new("test_grammar".to_string());
+
+        // NT: "Number" (SymbolId 0)
+        let nt_id = SymbolId(0);
+        grammar.rule_names.insert(nt_id, "Number".to_string());
+
+        // Token: /[0-9]+/ (SymbolId 1)
+        let token_id = SymbolId(1);
+        let token = Token {
+            name: "Number_token".to_string(), // Named differently than NT
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
+            fragile: false,
+        };
+        grammar.tokens.insert(token_id, token);
+
+        // We do NOT add any rules for nt_id.
+        // This simulates the "no rules" condition.
+
+        // Ensure registry is built
+        grammar.get_or_build_registry();
+
+        // Run desugar_pattern_wrappers
+        let result = desugar_pattern_wrappers(&mut grammar);
+        assert!(result.is_ok());
+
+        // Check if a rule was added: Number -> Number_token
+        let rules = grammar.rules.get(&nt_id);
+        assert!(rules.is_some(), "Should have added rules for Number");
+        let rules = rules.unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].rhs.len(), 1);
+        match &rules[0].rhs[0] {
+            Symbol::Terminal(tid) => assert_eq!(*tid, token_id),
+            _ => panic!("Expected rule to produce terminal"),
+        }
+    }
+
+    #[test]
+    fn test_desugar_pattern_wrappers_structural() {
+        // Test that it works even if name is NOT "Number", but structural match exists
+        let mut grammar = Grammar::new("test_grammar".to_string());
+
+        // NT: "Identifier" (SymbolId 0)
+        let nt_id = SymbolId(0);
+        grammar.rule_names.insert(nt_id, "Identifier".to_string());
+
+        // Token: /[a-z]+/ (SymbolId 1)
+        let token_id = SymbolId(1);
+        let token = Token {
+            name: "Identifier_token".to_string(),
+            pattern: TokenPattern::Regex(r"[a-z]+".to_string()),
+            fragile: false,
+        };
+        grammar.tokens.insert(token_id, token);
+
+        // No rules for NT.
+
+        grammar.get_or_build_registry();
+
+        // Run desugar_pattern_wrappers
+        let result = desugar_pattern_wrappers(&mut grammar);
+        assert!(result.is_ok());
+
+        // Check if a rule was added: Identifier -> Identifier_token
+        // With structural matching, this should now succeed
+        let rules = grammar.rules.get(&nt_id);
+        assert!(
+            rules.is_some(),
+            "Should have added rules for Identifier using structural matching"
+        );
+        let rules = rules.unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].rhs.len(), 1);
+        match &rules[0].rhs[0] {
+            Symbol::Terminal(tid) => assert_eq!(*tid, token_id),
+            _ => panic!("Expected rule to produce terminal"),
+        }
     }
 }
