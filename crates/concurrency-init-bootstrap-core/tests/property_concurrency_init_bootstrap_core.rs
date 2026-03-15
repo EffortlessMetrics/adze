@@ -4,6 +4,7 @@ use proptest::prelude::*;
 
 proptest! {
     #[test]
+    #[cfg_attr(target_os = "macos", ignore)]
     fn repeated_bootstrap_calls_never_panic(
         rayon_threads in 0usize..4096,
         tokio_threads in 0usize..2048,

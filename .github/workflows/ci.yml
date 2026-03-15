@@ -516,17 +516,17 @@ jobs:
           - crate: adze-glr-core
             name: serialization
             flags: "--features serialization"
-          # adze-runtime2 — default, all, no-default, pure-rust
-          - crate: adze-runtime2
+          # adze-runtime — default, all, no-default, pure-rust
+          - crate: adze-runtime
             name: default
             flags: ""
-          - crate: adze-runtime2
+          - crate: adze-runtime
             name: all-features
             flags: "--all-features"
-          - crate: adze-runtime2
+          - crate: adze-runtime
             name: no-default-features
             flags: "--no-default-features"
-          - crate: adze-runtime2
+          - crate: adze-runtime
             name: pure-rust
             flags: "--features pure-rust"
           # adze-tablegen — default, all, no-default
@@ -687,7 +687,7 @@ jobs:
           cargo doc -p adze --no-deps
           cargo doc -p adze-ir --no-deps
           cargo doc -p adze-glr-core --no-deps
-          cargo doc -p adze-runtime2 --no-deps
+          cargo doc -p adze-runtime --no-deps
           cargo doc -p adze-tablegen --no-deps
 
   # Dedicated adze-python job to prevent timeouts
