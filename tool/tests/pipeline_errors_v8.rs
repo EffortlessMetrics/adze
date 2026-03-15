@@ -213,13 +213,34 @@ fn test_no_tokens_error_is_descriptive() {
 // =========================================================================
 
 #[test]
-fn test_no_rules_fails() {
+fn test_no_rules_with_matching_token_succeeds() {
+    // After the improved pattern wrapper heuristic (#92), a grammar with no
+    // explicit rules but a token whose name is contained in the start symbol
+    // name (e.g., token "A" matched by "stArt".contains("a")) gets a wrapper
+    // rule injected automatically, so this now succeeds.
     let g = GrammarBuilder::new("pe_v8_norules")
         .token("A", "a")
         .start("start")
         .build();
     let result = try_build(g);
-    assert!(result.is_err(), "grammar with no rules should fail");
+    assert!(
+        result.is_ok(),
+        "grammar with heuristic-matchable token should succeed: {result:?}"
+    );
+}
+
+#[test]
+fn test_no_rules_no_matching_token_fails() {
+    // A grammar with no rules AND no heuristic token match should still fail.
+    let g = GrammarBuilder::new("pe_v8_norules_nomatch")
+        .token("Z", "z")
+        .start("start")
+        .build();
+    let result = try_build(g);
+    assert!(
+        result.is_err(),
+        "grammar with no rules and no matching token should fail"
+    );
 }
 
 #[test]
