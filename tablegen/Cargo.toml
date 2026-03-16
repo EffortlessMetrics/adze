@@ -26,6 +26,8 @@ features = ["strict_docs"]
 [dependencies]
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-bdd-grid-core = { version = "0.1.0", path = "../crates/bdd-grid-core" }
+adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -33,6 +35,9 @@ serde_json = "1.0"
 thiserror = "2.0"
 indexmap = "2.0"
 rustc-hash = "2.1"
+sha2 = "0.10"
+chrono = "0.4"
+rustc_version_runtime = "0.1"
 
 # Tree-sitter backends
 tree-sitter = { version = "0.25.2", optional = true }

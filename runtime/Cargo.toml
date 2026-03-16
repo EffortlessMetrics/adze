@@ -12,6 +12,7 @@ categories = ["development-tools"]
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["pure-rust"]
