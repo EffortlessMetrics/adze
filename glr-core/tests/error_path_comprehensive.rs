@@ -301,6 +301,10 @@ fn glr_lib_error_expected_simple_symbol_display() {
 // 6. Parse failures with various invalid inputs
 // ════════════════════════════════════════════════════════════════════
 
+// Note: These tests use manually constructed parse tables that don't satisfy
+// all strict invariants (e.g., EOF/END parity). They are only compiled when
+// the `strict-invariants` feature is disabled.
+#[cfg(not(feature = "strict-invariants"))]
 #[test]
 fn driver_parse_tokens_empty_input_fails() {
     // A table that only has Shift(1) on SymbolId(0) in state 0 — no Accept anywhere
@@ -319,6 +323,7 @@ fn driver_parse_tokens_empty_input_fails() {
     assert!(result.is_err(), "empty token stream should fail");
 }
 
+#[cfg(not(feature = "strict-invariants"))]
 #[test]
 fn driver_parse_tokens_unknown_symbol_fails() {
     let table = make_table(
@@ -337,6 +342,7 @@ fn driver_parse_tokens_unknown_symbol_fails() {
     assert!(result.is_err(), "unknown symbol should cause parse error");
 }
 
+#[cfg(not(feature = "strict-invariants"))]
 #[test]
 fn driver_parse_tokens_error_action_fails() {
     // State 0 has Error on SymbolId(0)

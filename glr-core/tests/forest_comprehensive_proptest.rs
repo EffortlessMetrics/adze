@@ -1,9 +1,15 @@
-#![allow(clippy::needless_range_loop)]
 //! Comprehensive property-based + unit tests for ParseForest, ForestView, Forest,
 //! ForestNode, ErrorMeta, ParseTree, ParseNode, and ParseError.
 //!
 //! Run with:
 //!   RUST_TEST_THREADS=2 cargo test -p adze-glr-core --test forest_comprehensive_proptest
+//!
+//! Note: These tests use grammars where EOF may not be SymbolId(0), which violates
+//! strict invariants. They are only compiled when the `strict-invariants` feature
+//! is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
+#![allow(clippy::needless_range_loop)]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::forest_view::{ForestView, Span};

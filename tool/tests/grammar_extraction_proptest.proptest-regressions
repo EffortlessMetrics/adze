@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 23d82a11c048c0e9b4f71efd97645b30f8dd551bcb59f125e27c9973c16fb384 # shrinks to name = "a", ty = "Aa", field = "do", pat = "[a-z]+"
+cc 20bbc7ab3e8ff596f7dcb5cdf82c9be1e2641ef1e05ad983f58b7d6b57095aed # shrinks to name = "a", root = "Aa", child = "Box", field = "a"

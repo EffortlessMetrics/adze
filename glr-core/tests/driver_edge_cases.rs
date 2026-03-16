@@ -1,6 +1,12 @@
 //! Driver edge case tests for the GLR parser.
 //!
 //! Covers boundary conditions, error paths, and stress scenarios.
+//!
+//! Note: These tests use manually constructed parse tables that don't satisfy
+//! all strict invariants (e.g., EOF/END parity). They are only compiled when
+//! the `strict-invariants` feature is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
 
 use adze_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable, RuleId, StateId, SymbolId};
 use adze_ir::Grammar;

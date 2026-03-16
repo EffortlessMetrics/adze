@@ -1,6 +1,12 @@
 //! Property-based tests for the GLR driver.
 //!
 //! Run with: cargo test -p adze-glr-core --test driver_proptest
+//!
+//! Note: These tests use manually constructed parse tables that don't satisfy
+//! all strict invariants (e.g., EOF/END parity). They are only compiled when
+//! the `strict-invariants` feature is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
 #![allow(clippy::needless_range_loop)]
 
 use adze_glr_core::{Action, Driver, GotoIndexing, LexMode, ParseRule, ParseTable};

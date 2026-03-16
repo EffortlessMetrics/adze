@@ -2,6 +2,12 @@
 //!
 //! Covers driver creation, token parsing, EOF handling, error paths,
 //! shift-reduce / reduce-reduce conflicts, ambiguity, and driver reuse.
+//!
+//! Note: These tests use manually constructed parse tables that don't satisfy
+//! all strict invariants (e.g., EOF/END parity). They are only compiled when
+//! the `strict-invariants` feature is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::{

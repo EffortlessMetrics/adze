@@ -1,7 +1,13 @@
-#![allow(clippy::needless_range_loop)]
 //! Property-based tests for ForestView in adze-glr-core.
 //!
 //! Run with: `cargo test -p adze-glr-core --test forest_view_proptest`
+//!
+//! Note: These tests use grammars where EOF may not be SymbolId(0), which violates
+//! strict invariants. They are only compiled when the `strict-invariants` feature
+//! is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
+#![allow(clippy::needless_range_loop)]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::forest_view::{ForestView, Span};

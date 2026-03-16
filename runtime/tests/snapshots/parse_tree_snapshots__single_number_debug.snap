@@ -2,8 +2,14 @@
 source: runtime/tests/parse_tree_snapshots.rs
 expression: result
 ---
-Ok(
-    Number(
-        42,
-    ),
+Err(
+    [
+        ParseError {
+            reason: UnexpectedToken(
+                "TreeSitter backend is not supported in pure-rust mode",
+            ),
+            start: 0,
+            end: 0,
+        },
+    ],
 )

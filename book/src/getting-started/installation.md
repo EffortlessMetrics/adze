@@ -13,10 +13,10 @@ Add Adze to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.5.0-beta"
+adze = "0.8"
 
 [build-dependencies]
-adze-tool = "0.5.0-beta"
+adze-tool = "0.8"
 ```
 
 ## Choosing a Backend
@@ -29,7 +29,7 @@ The pure-Rust backend generates static parsers at compile-time without C depende
 
 ```toml
 [dependencies]
-adze = { version = "0.5.0-beta", features = ["pure-rust"] }
+adze = { version = "0.8", features = ["pure-rust"] }
 ```
 
 **Advantages:**
@@ -44,7 +44,7 @@ Legacy backend using transpiled C code:
 
 ```toml
 [dependencies]
-adze = { version = "0.5.0-beta", features = ["tree-sitter-c2rust"] }
+adze = { version = "0.8", features = ["tree-sitter-c2rust"] }
 ```
 
 ### Standard Tree-sitter Backend
@@ -53,7 +53,7 @@ Uses the standard Tree-sitter C runtime:
 
 ```toml
 [dependencies]
-adze = { version = "0.5.0-beta", features = ["tree-sitter-standard"] }
+adze = { version = "0.8", features = ["tree-sitter-standard"] }
 ```
 
 ## Build Configuration
@@ -78,8 +78,8 @@ Additional features you can enable:
 
 ```toml
 [dependencies]
-adze = { 
-    version = "0.5.0-beta", 
+adze = {
+    version = "0.8",
     features = [
         "pure-rust",      # Pure Rust backend
         "optimize",       # Enable grammar optimizer

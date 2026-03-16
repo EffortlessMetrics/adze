@@ -1,5 +1,3 @@
-#![allow(clippy::needless_range_loop, unused_imports)]
-
 //! Comprehensive lexer/tokenizer integration tests for the GLR core.
 //!
 //! Covers: NextToken lifecycle, TsLexerHost callbacks via parse_streaming,
@@ -7,6 +5,13 @@
 //! tracking, candidate selection (longest-match, tie-break), extras/whitespace
 //! handling, external scanner hookup, UTF-8 boundaries, zero-width tokens,
 //! and error paths.
+//!
+//! Note: These tests use manually constructed parse tables that don't satisfy
+//! all strict invariants (e.g., EOF/END parity). They are only compiled when
+//! the `strict-invariants` feature is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
+#![allow(clippy::needless_range_loop, unused_imports)]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::ts_lexer::NextToken;

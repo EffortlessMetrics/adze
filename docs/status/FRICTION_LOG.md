@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-03-07
+**Last updated:** 2026-03-16
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -10,7 +10,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 
 | ID | Area | Symptom | Impact | Status | Link |
 |---:|------|---------|--------|--------|------|
-| FR-001 | Docs | Docs drift from dev head (README/book/guides disagree) | Users follow dead paths | Open | (issue) |
+| FR-001 | Docs | Docs drift from dev head (README/book/guides disagree) | Users follow dead paths | Mitigated | (issue) |
 | FR-002 | CI | Too many workflows fail/cancel simultaneously on PRs | Signal is noisy | Mitigated | (issue) |
 | FR-003 | Dev loop | Supported gate is still heavy on constrained machines | Local iteration cost | Mitigated | (issue) |
 | FR-004 | Status | Supported-lane exclusions aren't obvious | Confusing contributor loop | Mitigated | (issue) |
@@ -55,7 +55,10 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Expected:** Documentation matches the current `adze` 0.8.0-dev state.
 **Actual:** Users encounter compilation errors when copying examples.
 **Fix:** Perform a repository-wide documentation audit and sync.
-**Status:** Open
+**Progress:**
+- **Priority 1 (Fixed):** Version references updated from 0.5.0-beta/0.6 to 0.8; feature names corrected (glr-core → glr, incremental → incremental_glr)
+- **Priority 2/3 (Remaining):** Book content sync, tutorial updates, advanced examples
+**Status:** Mitigated
 
 ### FR-002 - CI Workflow Noise
 

@@ -1,10 +1,15 @@
-#![allow(clippy::needless_range_loop)]
-
 //! Comprehensive tests for ForestView, ForestNode, ErrorMeta, and parse forest APIs.
 //!
 //! Covers: ForestNode construction, ForestView creation and navigation,
 //! error metadata tracking, forest node relationships, multiple parse paths,
 //! empty forests, single-node forests, and forest serialization/display.
+//!
+//! Note: These tests use grammars where EOF may not be SymbolId(0), which violates
+//! strict invariants. They are only compiled when the `strict-invariants` feature
+//! is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
+#![allow(clippy::needless_range_loop)]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::forest_view::{ForestView, Span};
