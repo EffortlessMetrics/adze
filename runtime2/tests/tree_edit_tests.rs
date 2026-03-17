@@ -22,16 +22,22 @@ mod edit_tests {
 
     #[test]
     fn edit_error_display() {
-        let err = EditError::StartAfterEnd { start: 10, end: 5 };
+        let err = EditError::InvalidRange {
+            start: 10,
+            old_end: 5,
+        };
         let msg = format!("{err}");
         assert!(!msg.is_empty());
     }
 
     #[test]
     fn edit_error_debug() {
-        let err = EditError::StartAfterEnd { start: 10, end: 5 };
+        let err = EditError::InvalidRange {
+            start: 10,
+            old_end: 5,
+        };
         let dbg = format!("{err:?}");
-        assert!(dbg.contains("StartAfterEnd"));
+        assert!(dbg.contains("InvalidRange"));
     }
 }
 

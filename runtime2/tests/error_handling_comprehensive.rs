@@ -587,6 +587,8 @@ fn test_match_all_error_kinds() {
             | ParseErrorKind::SyntaxError(_)
             | ParseErrorKind::AllocationError
             | ParseErrorKind::Other(_) => matched_count += 1,
+            #[cfg(feature = "external_scanners")]
+            ParseErrorKind::ExternalScannerError(_) => matched_count += 1,
         }
     }
     assert_eq!(matched_count, 8);
