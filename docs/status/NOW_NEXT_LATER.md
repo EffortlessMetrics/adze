@@ -89,12 +89,12 @@ Adze status and rolling execution plan. For paper cuts and pain points, see [`do
 ## Now
 
 ### 📦 RC Gate — Publish to crates.io
-- [ ] Perform a clean `cargo package` dry-run for all core crates.
+- [x] Perform a clean `cargo package` dry-run for all core crates (FR-012 resolved).
 - [ ] Standardize feature-flag names across the workspace (`glr`, `simd`, etc).
 - [ ] Fix remaining `adze` runtime test compilation errors (some integration test files reference removed/renamed APIs).
 - [ ] Resolve the 1 expected feature-matrix failure (`feature_profile_resolve_backend`).
 - [ ] Close doc-drift release blocker (`FR-001`).
-- [ ] Publish initial release of core crates: `adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`.
+- [ ] Publish initial release of core crates: `adze`, `adze-common`, `adze-macro`, `adze-tool` (note: `adze-ir`, `adze-glr-core`, `adze-tablegen` have `publish = false`).
 
 ### 📊 Current test count: **2,460+** across workspace and feature combinations
 
@@ -104,7 +104,7 @@ Adze status and rolling execution plan. For paper cuts and pain points, see [`do
 
 ### 🛠️ Remaining for RC
 - [ ] Fix `adze` runtime test compilation errors (test files referencing stale APIs).
-- [ ] `cargo package --dry-run` CI gate for all publishable crates (`FR-012`).
+- [x] `cargo package --dry-run` CI gate for all publishable crates (`FR-012`).
 - [ ] Final doc-drift audit: version strings and legacy naming (`FR-001`).
 
 ### 🛠️ CLI Implementation

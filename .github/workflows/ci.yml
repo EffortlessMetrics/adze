@@ -982,13 +982,22 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      - name: Validate package manifests
+      - name: Validate package manifests (FR-012)
         run: |
+          # Validate the core release surface defined in scripts/release-crates.txt
+          # These are the7 core crates intended for publication to crates.io
           RELEASE_SURFACE_MODE=fixed ./scripts/validate-release-surface.sh
 
           mapfile -t CRATES_TO_PUBLISH < <(./scripts/release-surface.sh)
+          echo "### Running cargo package for ${#CRATES_TO_PUBLISH[@]} core publishable crates (FR-012)"
+          echo "Crates: ${CRATES_TO_PUBLISH[*]}"
           for crate in "${CRATES_TO_PUBLISH[@]}"; do
+            echo "::group::Package $crate"
+            # cargo package creates a .crate file, validating the package can be published.
+            # --no-verify skips running tests/examples (CI runs tests separately).
+            # This catches issues like missing readme, license files, or invalid manifest.
             cargo package -p "$crate" --no-verify
+            echo "::endgroup::"
           done
 
   benches-unstable:

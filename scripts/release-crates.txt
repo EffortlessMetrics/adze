@@ -1,9 +1,12 @@
 # Fixed release surface used by scripts/release-surface.sh in fixed mode.
 # Override with RELEASE_CRATE_FILE when running release helpers/workflows.
+# 
+# NOTE: Only include crates WITHOUT `publish = false` in their Cargo.toml.
+# The following crates are NOT publishable (publish = false):
+# - adze-ir
+# - adze-glr-core
+# - adze-tablegen
 adze-common
-adze-ir
-adze-glr-core
-adze-tablegen
 adze-macro
 adze
 adze-tool
