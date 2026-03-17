@@ -9,7 +9,8 @@ mod bdd_scenarios {
     use adze::glr_parser::GLRParser;
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
     use adze_ir::{
-        Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
+        Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
+        TokenPattern,
     };
 
     // =====================================================================
@@ -91,7 +92,7 @@ mod bdd_scenarios {
                 Symbol::Terminal(plus_id),
                 Symbol::NonTerminal(term_id),
             ],
-            precedence: Some(1),
+            precedence: Some(PrecedenceKind::Static(1)),
             associativity: Some(Associativity::Left),
             production_id: ProductionId(0),
             fields: vec![],
@@ -115,7 +116,7 @@ mod bdd_scenarios {
                 Symbol::Terminal(star_id),
                 Symbol::NonTerminal(factor_id),
             ],
-            precedence: Some(2),
+            precedence: Some(PrecedenceKind::Static(2)),
             associativity: Some(Associativity::Left),
             production_id: ProductionId(2),
             fields: vec![],
