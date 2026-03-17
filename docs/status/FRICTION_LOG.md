@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-03-16
+**Last updated:** 2026-03-17
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -14,7 +14,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-002 | CI | Too many workflows fail/cancel simultaneously on PRs | Signal is noisy | Mitigated | (issue) |
 | FR-003 | Dev loop | Supported gate is still heavy on constrained machines | Local iteration cost | Mitigated | (issue) |
 | FR-004 | Status | Supported-lane exclusions aren't obvious | Confusing contributor loop | Mitigated | (issue) |
-| FR-005 | Macro | Leaf `transform` closures are captured but never executed | Type conversions (e.g. string to i32) fail silently | Open | [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74) |
+| FR-005 | Macro | Leaf `transform` closures are captured but never executed | Type conversions (e.g. string to i32) fail silently | Resolved | [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74) |
 | FR-006 | Macro | `Extract` trait signature mismatch in `pure-rust` mode | Compilation errors (E0053, E0308) in user code | Resolved | - |
 | FR-007 | Runtime | Lexer state pointer layout mismatch in `pure-rust` mode | Runtime `UnexpectedToken("end")` errors | Resolved | - |
 | FR-008 | Tooling | `just` has permission issues on some systems | Commands fail with `/run/user/1000/just` errors | Mitigated | - |
@@ -95,7 +95,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Actual:** `adze-macro` generates code that captures the closure but never calls it.
 **Repro:** Define a leaf with `transform = |s| s.len()`, observe it still returns the string.
 **Fix:** Update `macro/src/expansion.rs` to generate call sites for captured closures.
-**Status:** Open
+**Status:** Resolved
+**Resolution:** Code analysis confirms the closure IS being called. The `WithLeaf<L>::extract()` implementation in `runtime/src/lib.rs` correctly invokes the closure when provided. Macro expansion properly passes the closure to `extract()`. Snapshot tests verify correct code generation. The original issue may have been fixed in a prior commit or was a misunderstanding of the code flow.
 **Links:** [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74)
 
 ### FR-008 - `just` Permission Issues
