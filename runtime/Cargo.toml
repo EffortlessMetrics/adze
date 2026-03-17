@@ -54,7 +54,7 @@ indexmap = "2.10.0"
 once_cell = "1.19"
 thiserror = "2.0.12"
 rayon = "1.10.0"
-ahash = "0.8.12"
+ahash = { version = "0.8.12", default-features = false, features = ["std"] }
 log = "0.4.27"
 smallvec.workspace = true
 wasm-bindgen = { version = "0.2.100", optional = true }
