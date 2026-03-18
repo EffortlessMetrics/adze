@@ -1,12 +1,45 @@
-# Fixed release surface used by scripts/release-surface.sh in fixed mode.
-# Override with RELEASE_CRATE_FILE when running release helpers/workflows.
-# 
-# NOTE: Only include crates WITHOUT `publish = false` in their Cargo.toml.
-# The following crates are NOT publishable (publish = false):
-# - adze-ir
-# - adze-glr-core
-# - adze-tablegen
+# Auto-generated release surface from workspace metadata (releasable crates only).
+adze-bdd-grid-core
+adze-bdd-grid-contract
+adze-bdd-contract
+adze-common-syntax-core
 adze-common
+adze-concurrency-init-classifier-core
+adze-concurrency-init-rayon-core
+adze-concurrency-normalize-core
+adze-concurrency-parse-core
+adze-concurrency-env-contract-core
+adze-concurrency-env-core
+adze-concurrency-init-bootstrap-policy-core
+adze-concurrency-init-bootstrap-core
+adze-concurrency-init-core
+adze-concurrency-plan-core
+adze-concurrency-bounded-map-core
+adze-concurrency-map-core
+adze-concurrency-caps-contract-core
+adze-concurrency-caps-core
+adze-linecol-core
 adze-macro
-adze
-adze-tool
+adze-parser-backend-core
+adze-feature-policy-core
+adze-bdd-governance-core
+adze-bdd-governance-contract
+adze-feature-policy-contract
+adze-governance-matrix-core-impl
+adze-governance-matrix-core
+adze-governance-matrix-contract
+adze-governance-metadata
+adze-governance-runtime-reporting
+adze-bdd-governance-fixtures
+adze-governance-runtime-core
+adze-parser-feature-contract
+adze-parser-governance-contract
+adze-governance-contract
+adze-parser-contract
+adze-parsetable-metadata
+adze-runtime-governance-matrix
+adze-runtime-governance
+adze-runtime-governance-api
+adze-runtime2-governance
+adze-runtime
+adze-stack-pool-core
