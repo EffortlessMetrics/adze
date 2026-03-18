@@ -57,6 +57,12 @@ fn gen_c(src: &str) -> (String, String) {
     generate_parser_for_grammar(&json, SEMANTIC_VERSION).unwrap()
 }
 
+#[test]
+fn word_struct_named_vec_is_supported() {
+    let g = extract_one(&src_word_struct("a0", "Vec", r"[a-zA-Z_]\w*"));
+    assert_eq!(g["word"].as_str(), Some("Vec"));
+}
+
 // ===========================================================================
 // Source builders
 // ===========================================================================

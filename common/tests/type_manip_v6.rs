@@ -342,10 +342,11 @@ fn tm_v6_extract_skip_through_option_to_vec() {
 // ============================================================================
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn tm_v6_extract_vec_no_angle_brackets_panics() {
+fn tm_v6_extract_vec_no_angle_brackets_is_unchanged() {
     let ty: Type = parse_quote!(Vec);
-    let _ = try_extract_inner_type(&ty, "Vec", &empty_skip());
+    let (inner, found) = try_extract_inner_type(&ty, "Vec", &empty_skip());
+    assert!(!found);
+    assert_eq!(type_str(&inner), "Vec");
 }
 
 // ============================================================================

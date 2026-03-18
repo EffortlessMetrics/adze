@@ -102,49 +102,8 @@ fn type_name_strategy() -> impl Strategy<Value = String> {
 }
 
 fn field_name_strategy() -> impl Strategy<Value = String> {
-    "[a-z][a-z0-9_]{0,8}".prop_filter("avoid keywords", |s| {
-        !matches!(
-            s.as_str(),
-            "type"
-                | "fn"
-                | "let"
-                | "mut"
-                | "ref"
-                | "pub"
-                | "mod"
-                | "use"
-                | "self"
-                | "super"
-                | "crate"
-                | "struct"
-                | "enum"
-                | "impl"
-                | "trait"
-                | "where"
-                | "for"
-                | "loop"
-                | "while"
-                | "if"
-                | "else"
-                | "match"
-                | "return"
-                | "break"
-                | "continue"
-                | "as"
-                | "in"
-                | "move"
-                | "box"
-                | "dyn"
-                | "async"
-                | "await"
-                | "try"
-                | "yield"
-                | "macro"
-                | "const"
-                | "static"
-                | "unsafe"
-                | "extern"
-        )
+    "[a-z][a-z0-9_]{0,8}".prop_filter("valid Rust identifier in this edition", |s| {
+        syn::parse_str::<syn::Ident>(s).is_ok()
     })
 }
 

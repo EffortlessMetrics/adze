@@ -253,25 +253,26 @@ fn edge_empty_skip_set_filter_preserves_all() {
 // ===========================================================================
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn error_filter_skip_type_without_generics_panics() {
-    // A type named "Box" but with no angle brackets — triggers panic
+fn error_filter_skip_type_without_generics_preserves_plain_type() {
+    // A bare type named "Box" is not necessarily a generic wrapper.
     let ty: Type = parse_quote!(Box);
-    let _ = filter_inner_type(&ty, &skip_set(&["Box"]));
+    let filtered = filter_inner_type(&ty, &skip_set(&["Box"]));
+    assert_eq!(type_to_string(&filtered), "Box");
 }
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn error_extract_skip_type_without_generics_panics() {
+fn error_extract_skip_type_without_generics_preserves_plain_type() {
     let ty: Type = parse_quote!(Arc);
-    let _ = try_extract_inner_type(&ty, "Option", &skip_set(&["Arc"]));
+    let (inner, ok) = try_extract_inner_type(&ty, "Option", &skip_set(&["Arc"]));
+    assert!(!ok);
+    assert_eq!(type_to_string(&inner), "Arc");
 }
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn error_wrap_skip_type_without_generics_panics() {
+fn error_wrap_skip_type_without_generics_preserves_plain_type() {
     let ty: Type = parse_quote!(Vec);
-    let _ = wrap_leaf_type(&ty, &skip_set(&["Vec"]));
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&["Vec"]));
+    assert_eq!(type_to_string(&wrapped), "Vec");
 }
 
 // ===========================================================================
@@ -846,10 +847,11 @@ fn rule_composition_wrap_preserves_option_vec_nesting() {
 // ===========================================================================
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn error_target_type_no_angle_brackets_extract() {
+fn error_target_type_no_angle_brackets_extract_is_unchanged() {
     let ty: Type = parse_quote!(Option);
-    let _ = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+    let (inner, ok) = try_extract_inner_type(&ty, "Option", &skip_set(&[]));
+    assert!(!ok);
+    assert_eq!(type_to_string(&inner), "Option");
 }
 
 #[test]
@@ -876,12 +878,11 @@ fn error_no_panic_wrap_plain_type() {
 }
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn error_wrap_skip_type_parenthesized_generics() {
-    // Fn(i32) -> bool is a skip type "Fn" but with parenthesized (not angle-bracketed) args
-    // We simulate by parsing a plain path then forcing it into the skip set
+fn error_wrap_skip_type_parenthesized_generics_preserves_plain_type() {
+    // A bare type named "Fn" should be treated as a plain identifier, not a generic wrapper.
     let ty: Type = parse_quote!(Fn);
-    let _ = wrap_leaf_type(&ty, &skip_set(&["Fn"]));
+    let wrapped = wrap_leaf_type(&ty, &skip_set(&["Fn"]));
+    assert_eq!(type_to_string(&wrapped), "Fn");
 }
 
 // ===========================================================================
