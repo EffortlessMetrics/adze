@@ -21,7 +21,7 @@ build_parsers = [
 no_opt = []   # compile without the optimizer for debugging
 optimize = ["adze-ir/optimize"]
 strict_docs = [] # Enable strict documentation requirements
-serialization = [] # Enable serialization support
+serialization = ["adze-tablegen/serialization"] # Enable serialization support
 
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits"] }

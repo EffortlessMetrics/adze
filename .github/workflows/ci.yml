@@ -417,21 +417,15 @@ jobs:
       
       - name: Check for breaking changes in adze
         run: |
-          cargo semver-checks check-release \
-            -p adze \
-            --baseline-rev v0.8.0-dev.api-freeze-1
+          ./scripts/run-semver-check.sh runtime/Cargo.toml runtime v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in macro
         run: |
-          cargo semver-checks check-release \
-            -p adze-macro \
-            --baseline-rev v0.8.0-dev.api-freeze-1
+          ./scripts/run-semver-check.sh macro/Cargo.toml macro v0.8.0-dev.api-freeze-1
       
       - name: Check for breaking changes in tool
         run: |
-          cargo semver-checks check-release \
-            -p adze-tool \
-            --baseline-rev v0.8.0-dev.api-freeze-1
+          ./scripts/run-semver-check.sh tool/Cargo.toml tool v0.8.0-dev.api-freeze-1
       
       - name: Public API diff (heads-up only)
         continue-on-error: true
