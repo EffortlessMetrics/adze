@@ -184,6 +184,7 @@ jobs:
 
       - name: Check test execution time
         run: |
+          set -o pipefail
           echo "Running tests with timeout enforcement..."
 
           # Directory -> package mapping for timeout lane
@@ -206,10 +207,15 @@ jobs:
                 exit 1
               fi
 
-              echo "Compiling $crate ($package)..."
+              echo "Compiling $crate ($package) and capturing test binaries..."
 
-              # Pre-compile tests with a generous timeout (compilation can be slow on CI)
-              timeout -k 10s 180s cargo test -p "$package" --lib --tests --no-run || {
+              test_bins_file=$(mktemp)
+              trap 'rm -f "$test_bins_file"' EXIT
+
+              # Compile once, then execute the produced test binaries under the runtime budget.
+              timeout -k 10s 180s cargo test -p "$package" --lib --tests --no-run --message-format=json \
+                | jq -r 'select(.reason == "compiler-artifact" and .profile.test == true and .executable != null) | .executable' \
+                | sort -u > "$test_bins_file" || {
                 exit_code=$?
                 if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
                   if [ $exit_code -eq 137 ]; then
@@ -224,23 +230,32 @@ jobs:
                 fi
               }
 
-              echo "Testing $crate ($package) with timeout..."
+              if [ ! -s "$test_bins_file" ]; then
+                echo "::error::No test binaries were produced for $crate ($package)"
+                exit 1
+              fi
 
-              # Run tests with 60s timeout (now only measuring test execution)
-              timeout -k 10s 60s cargo test -p "$package" --lib --tests -- --test-threads=$RUST_TEST_THREADS || {
-                exit_code=$?
-                if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
-                  if [ $exit_code -eq 137 ]; then
-                    echo "::error::Tests in $crate exceeded 60s timeout and were force-killed"
+              echo "Running prebuilt test binaries for $crate ($package) with timeout..."
+
+              while IFS= read -r test_bin; do
+                test_name=$(basename "$test_bin")
+                echo "Testing $crate ($package): $test_name"
+
+                timeout -k 10s 60s "$test_bin" --test-threads=$RUST_TEST_THREADS || {
+                  exit_code=$?
+                  if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
+                    if [ $exit_code -eq 137 ]; then
+                      echo "::error::Test binary $test_name in $crate exceeded 60s timeout and was force-killed"
+                    else
+                      echo "::error::Test binary $test_name in $crate exceeded 60s timeout"
+                    fi
+                    exit 1
                   else
-                    echo "::error::Tests in $crate exceeded 60s timeout"
+                    echo "::error::Test binary $test_name in $crate failed with exit code $exit_code"
+                    exit $exit_code
                   fi
-                  exit 1
-                else
-                  echo "::error::Tests in $crate failed with exit code $exit_code"
-                  exit $exit_code
-                fi
-              }
+                }
+              done < "$test_bins_file"
             fi
           done
 
