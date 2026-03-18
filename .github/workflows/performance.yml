@@ -54,10 +54,7 @@ jobs:
           for bench in glr_parser_bench; do
             cargo bench -p adze --bench "$bench" -- --save-baseline pr-base
           done
-
-          # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
-          cargo bench -p adze-benchmarks --bench glr_hot -- --save-baseline pr-base
-          cargo bench -p adze-benchmarks --bench glr_performance -- --save-baseline pr-base
+          # The adze-benchmarks Criterion targets are compiled in the smoke lane below.
           echo "::endgroup::"
         env:
           BENCH_QUICK: 1  # Use quick mode for CI
@@ -86,10 +83,6 @@ jobs:
           for bench in glr_parser_bench; do
             cargo bench -p adze --bench "$bench" -- --save-baseline pr-head
           done
-
-          # Run GLR performance benchmarks (Week 1 baseline - see docs/PERFORMANCE_BASELINE.md)
-          cargo bench -p adze-benchmarks --bench glr_hot -- --save-baseline pr-head
-          cargo bench -p adze-benchmarks --bench glr_performance -- --save-baseline pr-head
           echo "::endgroup::"
         env:
           BENCH_QUICK: 1
@@ -206,4 +199,5 @@ jobs:
           # Just ensure benchmarks compile and run
           cargo bench -p adze-glr-core --no-run
           cargo bench -p adze --lib --no-run
+          cargo bench -p adze-benchmarks --no-run
           echo "✅ Benchmark compilation successful"
