@@ -75,12 +75,10 @@ fn test_05_string_no_generics_no_extraction() {
 
 #[test]
 fn test_06_string_as_inner_of_string_no_angle_brackets() {
-    // "String" matches the ident but has no angle brackets → panics.
     let ty: Type = parse_quote!(String);
-    let result = std::panic::catch_unwind(|| {
-        try_extract_inner_type(&ty, "String", &skip(&[]));
-    });
-    assert!(result.is_err());
+    let (inner, extracted) = try_extract_inner_type(&ty, "String", &skip(&[]));
+    assert!(!extracted);
+    assert_eq!(ty_str(&inner), "String");
 }
 
 #[test]
