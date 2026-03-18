@@ -7,6 +7,10 @@ mod tests {
     use crate::grammar::LANGUAGE;
 
     #[test]
+    #[cfg_attr(
+        feature = "pure-rust",
+        ignore = "parser_v4 runtime does not yet support custom lexer functions"
+    )]
     fn actual_parsing_performance() {
         let test_cases = vec![
             ("simple", "x = 42"),
