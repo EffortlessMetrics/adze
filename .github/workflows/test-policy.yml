@@ -9,6 +9,15 @@ on:
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+  TOKIO_WORKER_THREADS: 2
+  TOKIO_BLOCKING_THREADS: 8
+  CARGO_BUILD_JOBS: 2
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+  NUMEXPR_NUM_THREADS: 1
 
 jobs:
   test-policy:
@@ -218,7 +227,7 @@ jobs:
               echo "Testing $crate ($package) with timeout..."
 
               # Run tests with 60s timeout (now only measuring test execution)
-              timeout -k 10s 60s cargo test -p "$package" --lib --tests || {
+              timeout -k 10s 60s cargo test -p "$package" --lib --tests -- --test-threads=$RUST_TEST_THREADS || {
                 exit_code=$?
                 if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
                   if [ $exit_code -eq 137 ]; then
