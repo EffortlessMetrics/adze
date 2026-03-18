@@ -9,7 +9,7 @@ jobs:
     env:
       CARGO_TARGET_DIR: target/ci
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - run: chmod +x scripts/smoke-link.sh
       - shell: bash

@@ -9,6 +9,15 @@ on:
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+  TOKIO_WORKER_THREADS: 2
+  TOKIO_BLOCKING_THREADS: 8
+  CARGO_BUILD_JOBS: 2
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+  NUMEXPR_NUM_THREADS: 1
 
 jobs:
   test-pure-rust:
@@ -25,7 +34,7 @@ jobs:
         shell: bash
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master
@@ -33,14 +42,7 @@ jobs:
         toolchain: ${{ matrix.rust }}
         components: rustfmt, clippy
     
-    - name: Cache cargo
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - uses: Swatinem/rust-cache@v2
     
     - name: Check formatting
       if: matrix.os != 'windows-latest'
@@ -57,7 +59,7 @@ jobs:
       run: cargo build --verbose
     
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --verbose -- --test-threads=$RUST_TEST_THREADS
     
     - name: Run benchmarks (check compilation)
       run: cargo bench --no-run
@@ -67,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -96,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -113,7 +115,7 @@ jobs:
     
     - name: Upload golden test results
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: golden-test-failures
         path: runtime/tests/golden/*.diff
@@ -123,7 +125,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -137,7 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -148,7 +150,7 @@ jobs:
         cargo bench --features unstable-benches | tee bench_results.txt
     
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: benchmark-results
         path: runtime/bench_results.txt
@@ -166,7 +168,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable

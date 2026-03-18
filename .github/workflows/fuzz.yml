@@ -20,7 +20,7 @@ jobs:
           - fuzz_glr_parser
           - fuzz_incremental_edits
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install nightly toolchain
       uses: dtolnay/rust-toolchain@nightly
@@ -29,7 +29,7 @@ jobs:
       run: cargo +nightly install cargo-fuzz
     
     - name: Cache cargo registry
-      uses: actions/cache@v4
+      uses: actions/cache@v5.0.3
       with:
         path: |
           ~/.cargo/registry/index/
@@ -48,7 +48,7 @@ jobs:
     
     - name: Upload crash artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: fuzz-crash-${{ matrix.fuzz-target }}
         path: runtime/fuzz/artifacts/
@@ -64,7 +64,7 @@ jobs:
           - fuzz_glr_parser
           - fuzz_incremental_edits
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install nightly toolchain
       uses: dtolnay/rust-toolchain@nightly
@@ -73,7 +73,7 @@ jobs:
       run: cargo +nightly install cargo-fuzz
     
     - name: Cache cargo registry
-      uses: actions/cache@v4
+      uses: actions/cache@v5.0.3
       with:
         path: |
           ~/.cargo/registry/index/
@@ -93,7 +93,7 @@ jobs:
     
     - name: Upload crash artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: fuzz-crash-nightly-${{ matrix.fuzz-target }}
         path: runtime/fuzz/artifacts/

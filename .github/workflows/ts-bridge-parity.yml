@@ -15,7 +15,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
@@ -36,7 +36,7 @@ jobs:
             jq -C '.summary' /tmp/tsb-report-$g.json || true
           done
       - name: Upload reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: ts-bridge-reports
           path: /tmp/tsb-report-*.json

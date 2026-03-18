@@ -20,28 +20,12 @@ jobs:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
     
-    - name: Cache cargo registry
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-bench-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Cache cargo index
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-bench-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Cache cargo build
-      uses: actions/cache@v4
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-bench-${{ hashFiles('**/Cargo.lock') }}
+    - uses: Swatinem/rust-cache@v2
     
     # Run benchmarks and save results
     - name: Run benchmarks
@@ -71,7 +55,7 @@ jobs:
     # Compare with baseline for PRs
     - name: Download baseline benchmarks
       if: github.event_name == 'pull_request'
-      uses: actions/cache@v4
+      uses: actions/cache@v5.0.3
       with:
         path: baseline-bench-results
         key: benchmark-baseline-${{ github.base_ref }}
@@ -197,7 +181,7 @@ jobs:
     # Post comment on PR with results
     - name: Post benchmark results
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8.0.0
       with:
         script: |
           const fs = require('fs');
@@ -256,7 +240,7 @@ jobs:
     
     - name: Upload baseline benchmarks
       if: github.ref == 'refs/heads/main'
-      uses: actions/cache@v4
+      uses: actions/cache@v5.0.3
       with:
         path: baseline-bench-results
         key: benchmark-baseline-main-${{ github.sha }}
@@ -265,7 +249,7 @@ jobs:
     
     # Upload artifacts for debugging
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: benchmark-results
         path: bench-results/
@@ -277,7 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -296,7 +280,7 @@ jobs:
         fi
     
     - name: Upload Criterion reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: criterion-reports
         path: target/criterion/
