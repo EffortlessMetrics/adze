@@ -1039,6 +1039,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - name: Ensure workspace toolchain has WASM target
+        run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: Check core crates for WASM
         run: |
