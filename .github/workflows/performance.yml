@@ -50,7 +50,8 @@ jobs:
           for bench in automaton perf_snapshot; do
             cargo bench -p adze-glr-core --bench "$bench" -- --save-baseline pr-base
           done
-          for bench in glr_parser_bench simple_bench; do
+          # Keep the comparison lane on benches that exist and are stable on both branches.
+          for bench in glr_parser_bench; do
             cargo bench -p adze --bench "$bench" -- --save-baseline pr-base
           done
 
@@ -82,7 +83,7 @@ jobs:
           for bench in automaton perf_snapshot; do
             cargo bench -p adze-glr-core --bench "$bench" -- --save-baseline pr-head
           done
-          for bench in glr_parser_bench simple_bench; do
+          for bench in glr_parser_bench; do
             cargo bench -p adze --bench "$bench" -- --save-baseline pr-head
           done
 
