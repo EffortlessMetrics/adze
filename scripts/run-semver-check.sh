@@ -16,7 +16,11 @@ trap 'rm -rf "$TMPDIR"' EXIT
 SEMVER_LOG="$TMPDIR/semver.log"
 
 mkdir -p "$TMPDIR/baseline"
-git -C "$REPO_ROOT" archive "$BASELINE_REF" runtime macro tool common ir glr-core tablegen | tar -x -C "$TMPDIR/baseline"
+# Cargo needs the workspace root and the referenced member/path crates to
+# resolve `workspace.dependencies` when the archived manifests point at sibling
+# packages. Extract the full tracked repo snapshot so the baseline is
+# self-contained, then rewrite crate names below.
+git -C "$REPO_ROOT" archive "$BASELINE_REF" | tar -x -C "$TMPDIR/baseline"
 
 python3 - "$TMPDIR/baseline" <<'PY'
 from pathlib import Path
