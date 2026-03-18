@@ -81,9 +81,10 @@ if CARGO_BUILD_RUSTFLAGS='' RUSTFLAGS='' cargo semver-checks check-release \
     >"$SEMVER_LOG" 2>&1; then
     cat "$SEMVER_LOG"
     exit 0
+else
+    SEMVER_STATUS=$?
 fi
 
-SEMVER_STATUS=$?
 cat "$SEMVER_LOG"
 
 if grep -q "no crates with library targets selected, nothing to semver-check" "$SEMVER_LOG"; then

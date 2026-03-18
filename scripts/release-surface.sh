@@ -113,37 +113,13 @@ if not publishable:
     print("::error::No publishable crates found in workspace metadata.", file=sys.stderr)
     sys.exit(1)
 
-releasable = set(publishable)
-changed = True
-while changed:
-    changed = False
-    for pkg in metadata["packages"]:
-        crate = pkg["name"]
-        if crate not in releasable:
-            continue
-
-        for dep in pkg.get("dependencies", []):
-            kind = dep.get("kind")
-            kinds = [kind] if isinstance(kind, str) else (kind or ["normal"])
-            if "dev" in kinds:
-                continue
-            if dep.get("optional", False):
-                continue
-
-            dep_name = dep["name"]
-            if dep_name in workspace_crates and dep_name not in releasable:
-                releasable.remove(crate)
-                changed = True
-                break
-
-releasable = sorted(releasable)
-releasable_set = set(releasable)
+publishable_set = set(publishable)
 dependents = defaultdict(set)
-indegree = {crate: 0 for crate in releasable}
+indegree = {crate: 0 for crate in publishable}
 
 for pkg in metadata["packages"]:
     crate = pkg["name"]
-    if crate not in releasable_set:
+    if crate not in publishable_set:
         continue
 
     for dep in pkg.get("dependencies", []):
@@ -155,13 +131,13 @@ for pkg in metadata["packages"]:
             continue
 
         dep_name = dep["name"]
-        if dep_name not in releasable_set or dep_name == crate:
+        if dep_name not in publishable_set or dep_name == crate:
             continue
         if crate not in dependents[dep_name]:
             dependents[dep_name].add(crate)
             indegree[crate] += 1
 
-ready = [crate for crate in releasable if indegree[crate] == 0]
+ready = [crate for crate in publishable if indegree[crate] == 0]
 heapify(ready)
 ordered = []
 
@@ -173,8 +149,8 @@ while ready:
         if indegree[dependent] == 0:
             heappush(ready, dependent)
 
-if len(ordered) != len(releasable):
-    unresolved = [crate for crate in releasable if indegree[crate] > 0]
+if len(ordered) != len(publishable):
+    unresolved = [crate for crate in publishable if indegree[crate] > 0]
     print("::error::Could not order publishable crates in a dependency-safe way.", file=sys.stderr)
     print(f"::error::Unordered crates: {' '.join(unresolved)}", file=sys.stderr)
     sys.exit(1)
@@ -204,7 +180,7 @@ if [[ "${RELEASE_CRATE_SYNC}" == "1" || "${RELEASE_CRATE_SYNC,,}" == "true" ]]; 
   else
     if [[ "${RELEASE_CRATE_FILE}" != "" ]]; then
       {
-        echo "# Auto-generated release surface from workspace metadata (releasable crates only)."
+        echo "# Auto-generated release surface from workspace metadata (publishable crates only)."
         printf '%s\n' "${CRATES_TO_PUBLISH[@]}"
       } > "$RELEASE_CRATE_FILE"
     fi

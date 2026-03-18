@@ -1,4 +1,6 @@
-# Auto-generated release surface from workspace metadata (releasable crates only).
+# Auto-generated release surface from workspace metadata (publishable crates only).
+adze-bdd-grammar-analysis-core
+adze-bdd-grammar-fixtures
 adze-bdd-grid-core
 adze-bdd-grid-contract
 adze-bdd-contract
@@ -19,6 +21,7 @@ adze-concurrency-map-core
 adze-concurrency-caps-contract-core
 adze-concurrency-caps-core
 adze-linecol-core
+adze-lsp-generator
 adze-macro
 adze-parser-backend-core
 adze-feature-policy-core
@@ -31,6 +34,7 @@ adze-governance-matrix-contract
 adze-governance-metadata
 adze-governance-runtime-reporting
 adze-bdd-governance-fixtures
+adze-bdd-scenario-fixtures
 adze-governance-runtime-core
 adze-parser-feature-contract
 adze-parser-governance-contract
@@ -43,3 +47,18 @@ adze-runtime-governance-api
 adze-runtime2-governance
 adze-runtime
 adze-stack-pool-core
+adze-tool
+adze-cli
+adze-ts-format-core
+adze
+adze-go
+adze-javascript
+adze-playground
+adze-python
+adze-benchmarks
+adze-python-simple
+adze-testing
+adze-wasm-demo
+test-mini
+test-vec-wrapper
+xtask
