@@ -187,6 +187,11 @@ jobs:
           set -o pipefail
           echo "Running tests with timeout enforcement..."
 
+          # Cargo injects the Rust sysroot libdir when it runs test binaries.
+          # Recreate that environment before invoking the binaries directly.
+          cargo_target_libdir="$(rustc --print target-libdir)"
+          export LD_LIBRARY_PATH="$cargo_target_libdir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
           # Directory -> package mapping for timeout lane
           declare -A crate_packages=(
             ["runtime"]="adze"

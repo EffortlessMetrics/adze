@@ -159,6 +159,7 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
                 | "static"
                 | "unsafe"
                 | "extern"
+                | "do"
         )
     })
 }
