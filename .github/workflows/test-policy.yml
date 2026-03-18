@@ -242,11 +242,12 @@ jobs:
 
               echo "Running prebuilt test binaries for $crate ($package) with timeout..."
 
+              pushd "$crate" >/dev/null
               while IFS= read -r test_bin; do
                 test_name=$(basename "$test_bin")
                 echo "Testing $crate ($package): $test_name"
 
-                timeout -k 10s 60s "$test_bin" --test-threads=$RUST_TEST_THREADS || {
+                timeout -k 10s 60s "$test_bin" || {
                   exit_code=$?
                   if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
                     if [ $exit_code -eq 137 ]; then
@@ -254,13 +255,16 @@ jobs:
                     else
                       echo "::error::Test binary $test_name in $crate exceeded 60s timeout"
                     fi
+                    popd >/dev/null
                     exit 1
                   else
                     echo "::error::Test binary $test_name in $crate failed with exit code $exit_code"
+                    popd >/dev/null
                     exit $exit_code
                   fi
                 }
               done < "$test_bins_file"
+              popd >/dev/null
             fi
           done
 
