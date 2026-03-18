@@ -157,11 +157,11 @@ jobs:
               '*Benchmarks run with quick mode for CI. For detailed analysis, run `cargo bench` locally.*',
             ].join('\n');
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
-              repo: context.repo.name,
-              body: body
+              repo: context.repo.repo,
+              body,
             });
 
       - name: Check for breaking regressions
