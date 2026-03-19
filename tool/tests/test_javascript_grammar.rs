@@ -68,9 +68,8 @@ fn test_javascript_grammar_parsing() {
         std::env::set_var("CARGO_FEATURE_PURE_RUST", "1");
     }
 
-    // Copy the grammar.js to the same directory as lib.rs
-    let grammar_dest = temp_dir.path().join("grammar.js");
-    fs::copy(&grammar_path, &grammar_dest).unwrap();
+    // The download already placed grammar.js next to lib.rs in the temp dir.
+    let grammar_dest = grammar_path.clone();
 
     // Try to build the parser using pure_rust_builder directly
     use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_grammar_js};
