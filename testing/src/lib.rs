@@ -486,7 +486,8 @@ mod tests {
         assert!(json.contains("\"overall_compatibility\": 95.0"));
 
         // Test markdown generation
-        let md_path = PathBuf::from("/tmp/test_report.md");
+        let tempdir = tempfile::tempdir().unwrap();
+        let md_path = tempdir.path().join("test_report.md");
         let result = report.save_markdown(&md_path);
 
         // Only check if file was created successfully, not exact content
@@ -497,7 +498,6 @@ mod tests {
         assert!(md_path.exists());
 
         // Clean up
-        let _ = fs::remove_file(&md_path);
     }
 
     #[test]
