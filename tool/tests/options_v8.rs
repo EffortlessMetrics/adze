@@ -6,6 +6,7 @@
 use adze_ir::Grammar;
 use adze_ir::builder::GrammarBuilder;
 use adze_tool::pure_rust_builder::{BuildOptions, build_parser};
+use std::path::Path;
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
@@ -136,7 +137,11 @@ fn custom_out_dir_with_spaces() {
 fn custom_out_dir_tempdir() {
     let dir = TempDir::new().unwrap();
     let opts = temp_opts(&dir);
-    assert!(opts.out_dir.starts_with('/') || opts.out_dir.starts_with("\\\\"));
+    assert!(
+        Path::new(&opts.out_dir).is_absolute(),
+        "tempdir path should be absolute: {}",
+        opts.out_dir
+    );
 }
 
 // ===========================================================================
