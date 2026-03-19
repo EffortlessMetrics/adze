@@ -14,6 +14,12 @@ fn re_exports_glr_conflict_fallback() {
 
 #[test]
 fn re_exports_parser_backend() {
-    let b = ParserBackend::select(true);
-    assert!(!b.name().is_empty());
+    let profile = ParserFeatureProfile::current();
+    let backend = ParserBackend::select(false);
+    assert!(!backend.name().is_empty());
+
+    if profile.has_glr() {
+        let conflict_backend = ParserBackend::select(true);
+        assert!(!conflict_backend.name().is_empty());
+    }
 }
