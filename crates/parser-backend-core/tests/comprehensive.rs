@@ -38,11 +38,28 @@ fn display_matches_name() {
 }
 
 #[test]
-fn select_returns_valid_backend() {
-    let b1 = ParserBackend::select(false);
-    let b2 = ParserBackend::select(true);
-    let _ = b1.name();
-    let _ = b2.name();
+fn select_matches_feature_contract() {
+    #[cfg(feature = "glr")]
+    {
+        assert_eq!(ParserBackend::select(false), ParserBackend::GLR);
+        assert_eq!(ParserBackend::select(true), ParserBackend::GLR);
+    }
+
+    #[cfg(all(feature = "pure-rust", not(feature = "glr")))]
+    {
+        assert_eq!(ParserBackend::select(false), ParserBackend::PureRust);
+        let result = std::panic::catch_unwind(|| ParserBackend::select(true));
+        assert!(
+            result.is_err(),
+            "pure-rust without glr must reject conflicting grammars"
+        );
+    }
+
+    #[cfg(not(any(feature = "pure-rust", feature = "glr")))]
+    {
+        assert_eq!(ParserBackend::select(false), ParserBackend::TreeSitter);
+        assert_eq!(ParserBackend::select(true), ParserBackend::TreeSitter);
+    }
 }
 
 #[test]
