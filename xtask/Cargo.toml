@@ -7,14 +7,14 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 clap.workspace = true
 anyhow.workspace = true
-xshell = "0.2"
-camino = "1"      # OS-agnostic path printing
+xshell = "0.2.7"
+camino = "1.2.2"                                        # OS-agnostic path printing
 serde_json.workspace = true
-similar = "2.6"
-console = "0.15"
-walkdir = "2.5"
-glob = "0.3"
-chrono = "0.4"
+similar = "2.7.0"
+console = "0.16.3"
+walkdir = "2.5.0"
+glob = "0.3.3"
+chrono = "0.4.44"
 serde.workspace = true
 adze-tool = { version = "0.8.0-dev", path = "../tool" }
 tempfile.workspace = true

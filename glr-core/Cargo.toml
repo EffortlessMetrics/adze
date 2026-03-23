@@ -2,7 +2,7 @@
 name = "adze-glr-core"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.92"
 description = "GLR parser generation algorithms for pure-Rust Tree-sitter"
 license = "MIT"
 repository = "https://github.com/effortlessmetrics/adze"
@@ -10,12 +10,7 @@ homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-glr-core"
 readme = "README.md"
 publish = false
-include = [
-    "Cargo.toml",
-    "LICENSE*",
-    "README*",
-    "src/**"
-]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -47,7 +42,9 @@ json-parity = []
 perf-counters = []
 test-api = []
 debug_glr = [] # Enable debug output for GLR parser
-serialization = ["dep:postcard"] # Enable serialization support (used by runtime2)
+serialization = [
+    "dep:postcard",
+] # Enable serialization support (used by runtime2)
 glr_telemetry = [] # Enable GLR telemetry (used by benchmarks)
 
 [dev-dependencies]

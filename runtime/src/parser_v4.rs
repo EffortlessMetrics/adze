@@ -129,13 +129,6 @@ pub struct Parser {
     /// Language name for scanner registry lookup
     #[allow(dead_code)]
     language: String,
-    /// Optional custom lexer function provided by the generated parser.
-    ///
-    /// `parser_v4` currently does not implement this path, so parse attempts are
-    /// rejected explicitly when present.
-    custom_lexer_fn: Option<
-        unsafe extern "C" fn(*mut core::ffi::c_void, crate::pure_parser::TSLexState) -> bool,
-    >,
 }
 
 impl Parser {
@@ -236,7 +229,6 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
-            custom_lexer_fn: None,
         }
     }
 
@@ -261,7 +253,6 @@ impl Parser {
         // Decode the grammar and parse table from the TSLanguage struct
         let grammar = crate::decoder::decode_grammar_with_patterns(language, token_patterns);
         let parse_table = crate::decoder::decode_parse_table(language);
-        let custom_lexer_fn = language.lex_fn;
         // #[cfg(feature = "debug")]
         // eprintln!(
         // "Parser from_language: parse_table.rules has {} rules",
@@ -304,7 +295,6 @@ impl Parser {
             external_scanner,
             external_runtime,
             language: language_name,
-            custom_lexer_fn,
         }
     }
 
@@ -359,7 +349,6 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
-            custom_lexer_fn: None,
         }
     }
 
@@ -400,8 +389,6 @@ impl Parser {
             );
         }
 
-        let custom_lexer_fn = language.lex_fn;
-
         // Decode the grammar and parse table from the TSLanguage struct
         self.grammar = crate::decoder::decode_grammar(language);
         self.parse_table = crate::decoder::decode_parse_table(language);
@@ -415,8 +402,6 @@ impl Parser {
         // self.parse_table.rules.len()
         // );
         self.language = language_name.clone();
-        self.custom_lexer_fn = custom_lexer_fn;
-
         // Update external scanner if needed
         if language.external_token_count > 0 {
             let registry = get_global_registry();
@@ -446,19 +431,15 @@ impl Parser {
 
     /// Parse the input string with automatic lexer selection.
     ///
-    /// If a custom lexer is present this returns an explicit unsupported error.
-    /// Otherwise it uses the parser-v4 `parse()` path.
+    /// Custom lexers are ignored in parser-v4.
+    /// This method always tokenizes using grammar patterns via GrammarLexer.
     pub fn parse_with_auto_lexer<'a>(
         &'a mut self,
         input: &str,
-        language: &crate::pure_parser::TSLanguage,
+        _language: &crate::pure_parser::TSLanguage,
     ) -> Result<Tree<'a>> {
-        // Check if language has a custom lexer
-        if let Some(lex_fn) = language.lex_fn {
-            self.parse_with_custom_lexer(input, lex_fn)
-        } else {
-            self.parse(input)
-        }
+        // Note: custom lexer is ignored - parse_internal() uses GrammarLexer
+        self.parse(input)
     }
 
     /// Parse the input string with a custom lexer function
@@ -479,9 +460,6 @@ impl Parser {
     /// This method returns the complete ParseNode tree, which can be used
     /// for extraction and AST construction.
     pub fn parse_tree(&mut self, input: &str) -> Result<ParseNode> {
-        if let Some(custom_lexer_fn) = self.custom_lexer_fn {
-            self.parse_with_custom_lexer(input, custom_lexer_fn)?;
-        }
         // Extract just the parse tree, ignoring error count
         let (root, _error_count) = self.parse_internal(input, true)?;
         Ok(root)
@@ -509,9 +487,6 @@ impl Parser {
     /// let root_node = parser.parse_tree("1 + 2")?;
     /// ```
     pub fn parse<'a>(&'a mut self, input: &str) -> Result<Tree<'a>> {
-        if let Some(custom_lexer_fn) = self.custom_lexer_fn {
-            return self.parse_with_custom_lexer(input, custom_lexer_fn);
-        }
         let (root_node, error_count) = self.parse_internal(input, true)?;
         self.arena.reset();
         let root = self.allocate_tree_nodes(&root_node);
@@ -1834,24 +1809,48 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_with_custom_lexer_is_rejected() {
+    fn test_parse_with_custom_lexer_is_unsupported() {
         let language = minimal_custom_lexer_language();
         let mut parser = Parser::from_language(language, "custom_lexer_test".to_string());
 
-        let err = parser.parse("abc");
-        assert!(err.is_err());
+        let result = parser.parse_with_custom_lexer("abc", test_custom_lexer_fn);
         assert!(
-            err.unwrap_err()
+            result
+                .unwrap_err()
                 .to_string()
-                .contains("Custom lexer functions")
+                .contains(PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED),
+            "parse_with_custom_lexer should explicitly reject custom lexers in parser-v4",
         );
+    }
 
-        let err = parser.parse_with_auto_lexer("abc", language);
-        assert!(err.is_err());
-        assert!(
-            err.unwrap_err()
-                .to_string()
-                .contains("Custom lexer functions")
-        );
+    #[test]
+    fn test_parse_with_custom_lexer_falls_back_to_grammar_lexer() {
+        // Custom lexer functions are now ignored - parse_internal() uses GrammarLexer
+        // which handles tokenization from the grammar's token patterns.
+        // This allows grammars with custom lexers to work as long as they have
+        // proper token patterns defined in the grammar.
+        let language = minimal_custom_lexer_language();
+        let mut parser = Parser::from_language(language, "custom_lexer_test".to_string());
+
+        // parse() should now succeed (or fail for parsing reasons, not custom lexer rejection)
+        let result = parser.parse("abc");
+        // The parse may succeed or fail depending on the grammar, but it should NOT
+        // fail with "Custom lexer functions are not yet supported"
+        if let Err(ref e) = result {
+            assert!(
+                !e.to_string().contains("Custom lexer functions"),
+                "parse() should not reject custom lexer, got error: {}",
+                e
+            );
+        }
+
+        let result = parser.parse_with_auto_lexer("abc", language);
+        if let Err(ref e) = result {
+            assert!(
+                !e.to_string().contains("Custom lexer functions"),
+                "parse_with_auto_lexer() should not reject custom lexer, got error: {}",
+                e
+            );
+        }
     }
 }

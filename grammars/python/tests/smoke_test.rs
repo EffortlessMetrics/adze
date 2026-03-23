@@ -26,7 +26,7 @@ fn test_python_language_exists() {
 }
 
 #[test]
-#[ignore = "Python grammar parser needs lexer/tokenizer fixes - returns root kind 0 instead of expected 267"]
+#[ignore = "Python grammar parser needs lexer/tokenizer fixes - returns root kind 0 instead of expected 267 (tracking: GH-74)"]
 fn test_simple_python_parse() {
     // Register the scanner
     adze_python::register_scanner();

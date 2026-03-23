@@ -136,7 +136,7 @@ fn test_incremental_edit_multi_line() {
 }
 
 #[test]
-#[ignore = "Python grammar parser needs lexer/tokenizer fixes - cannot parse expressions"]
+#[ignore = "Python grammar parser needs lexer/tokenizer fixes - cannot parse expressions (tracking: GH-74)"]
 fn test_incremental_glr_fork_tracking() {
     // Register the Python scanner
     adze_python::register_scanner();

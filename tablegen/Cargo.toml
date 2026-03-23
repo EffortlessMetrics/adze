@@ -2,7 +2,7 @@
 name = "adze-tablegen"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.92"
 description = "Table generation and compression for pure-Rust Tree-sitter"
 license = "MIT"
 repository = "https://github.com/effortlessmetrics/adze"
@@ -10,13 +10,7 @@ homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-tablegen"
 readme = "README.md"
 publish = false
-include = [
-    "Cargo.toml",
-    "LICENSE*",
-    "README*",
-    "src/**",
-    "MIGRATING.md"
-]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**", "MIGRATING.md"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -62,7 +56,9 @@ default = ["tree-sitter-c2rust"]
 tree-sitter-standard = ["tree-sitter"]
 tree-sitter-c2rust = ["dep:tree-sitter-c2rust"]
 compression = [] # Feature for compression/decompression utilities
-strict_docs = []  # Feature flag for strict documentation enforcement
-strict_api = []  # Feature flag for strict API surface checking
-serialization = ["adze-glr-core/serialization"] # Enable serialization support (used by runtime2)
+strict_docs = [] # Feature flag for strict documentation enforcement
+strict_api = [] # Feature flag for strict API surface checking
+serialization = [
+    "adze-glr-core/serialization",
+] # Enable serialization support (used by runtime2)
 small-table = [] # Test-only feature for compressed table round-trip tests
