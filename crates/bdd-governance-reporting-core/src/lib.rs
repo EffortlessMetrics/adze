@@ -73,10 +73,7 @@ pub fn bdd_progress_status_line(
         BddPhase::Runtime => "runtime",
     };
 
-    format!(
-        "{phase_label}:{implemented}/{total}:{backend}:{profile}",
-        backend = backend,
-    )
+    format!("{phase_label}:{implemented}/{total}:{backend}:{profile}")
 }
 
 #[cfg(test)]
