@@ -22,7 +22,7 @@ fn arb_token_pattern_kind() -> impl Strategy<Value = TokenPatternKind> {
 
 /// Generate arbitrary SymbolId values.
 fn arb_symbol_id() -> impl Strategy<Value = SymbolId> {
-    (0u32..100).prop_map(SymbolId)
+    (0u16..100u16).prop_map(SymbolId)
 }
 
 /// Generate arbitrary TokenPatternSpec values.

@@ -140,7 +140,7 @@ fn given_backend_when_cloning_then_equals_original() {
     let original = ParserBackend::GLR;
 
     // When
-    let cloned = original.clone();
+    let cloned = original;
 
     // Then
     assert_eq!(original, cloned);
