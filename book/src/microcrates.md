@@ -48,7 +48,8 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `bdd-grammar-analysis-core` | `crates/bdd-grammar-analysis-core/` | Grammar-level BDD analysis |
 | `bdd-grammar-fixtures` | `crates/bdd-grammar-fixtures/` | Test fixtures for grammar BDD |
 | `bdd-governance-contract` | `crates/bdd-governance-contract/` | Governance BDD contracts |
-| `bdd-governance-core` | `crates/bdd-governance-core/` | Governance BDD logic |
+| `bdd-governance-core` | `crates/bdd-governance-core/` | Governance BDD snapshots/matrix composition |
+| `bdd-governance-reporting-core` | `crates/bdd-governance-reporting-core/` | Profile-aware governance report/status formatting |
 | `bdd-governance-fixtures` | `crates/bdd-governance-fixtures/` | Governance test fixtures |
 | `bdd-scenario-fixtures` | `crates/bdd-scenario-fixtures/` | Shared BDD scenario fixtures |
 | `bdd-grid-contract` | `crates/bdd-grid-contract/` | Grid/matrix BDD contracts |

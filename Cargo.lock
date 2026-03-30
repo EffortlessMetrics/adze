@@ -81,6 +81,7 @@ dependencies = [
 name = "adze-bdd-governance-core"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-governance-reporting-core",
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
 ]
@@ -91,6 +92,14 @@ version = "0.1.0"
 dependencies = [
  "adze-bdd-governance-contract",
  "adze-governance-runtime-reporting",
+]
+
+[[package]]
+name = "adze-bdd-governance-reporting-core"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
 ]
 
 [[package]]
