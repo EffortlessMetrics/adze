@@ -341,6 +341,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "adze-error-location-core"
+version = "0.1.0"
+dependencies = [
+ "adze-linecol-core",
+]
+
+[[package]]
 name = "adze-example"
 version = "0.8.0-dev"
 dependencies = [
@@ -606,6 +613,7 @@ name = "adze-runtime"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-scenario-fixtures",
+ "adze-error-location-core",
  "adze-glr-core",
  "adze-ir",
  "adze-parser-contract",

@@ -17,6 +17,7 @@ smallvec.workspace = true
 rustc-hash.workspace = true
 adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 adze-runtime2-governance = { version = "0.1.0", path = "../crates/runtime2-governance" }
+adze-error-location-core = { version = "0.1.0", path = "../crates/error-location-core" }
 
 # GLR core (optional, enabled by default)
 adze-glr-core = { path = "../glr-core", optional = true }

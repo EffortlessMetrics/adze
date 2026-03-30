@@ -6,7 +6,7 @@
 //! Contract: docs/specs/GLR_ENGINE_CONTRACT.md
 
 use crate::Token;
-use crate::error::{ParseError, ParseErrorKind};
+use crate::error::{ErrorLocation, ParseError, ParseErrorKind};
 use adze_glr_core::{Action, ParseTable, StateId, SymbolId};
 use adze_ir::RuleId;
 use std::collections::HashMap;
@@ -135,10 +135,13 @@ impl GLREngine {
 
             // Check if all stacks failed (but only if we haven't accepted)
             if self.stacks.is_empty() && self.forest.roots.is_empty() {
+                let start =
+                    usize::try_from(token.start).expect("runtime2 token offsets fit into usize");
                 return Err(ParseError::with_msg(&format!(
                     "Syntax error: unexpected token at position {}",
                     token.start
-                )));
+                ))
+                .with_location(ErrorLocation::new(start, 1, start + 1)));
             }
 
             // If we have accepted parses, we can stop early

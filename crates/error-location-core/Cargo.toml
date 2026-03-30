@@ -1,0 +1,17 @@
+[package]
+name = "adze-error-location-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Shared parse error location type and byte-offset conversion utilities."
+repository = "https://github.com/EffortlessMetrics/adze"
+publish = false
+
+[features]
+default = []
+strict_api = []
+strict_docs = []
+
+[dependencies]
+adze-linecol-core = { path = "../linecol-core" }
