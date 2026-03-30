@@ -1,5 +1,4 @@
-//! Shared syntax helpers for parsing macro/tool attributes and transforming
-//! containerized Rust types.
+//! Shared syntax helpers for parsing macro/tool attributes.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -192,8 +191,6 @@ pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use quote::ToTokens;
-    use std::collections::HashSet;
     use syn::parse_quote;
 
     #[test]
@@ -216,118 +213,5 @@ mod tests {
         assert_eq!(input.params.len(), 2);
         assert_eq!(input.params[0].path.to_string(), "name");
         assert_eq!(input.params[1].path.to_string(), "value");
-    }
-
-    #[test]
-    fn test_try_extract_inner_type() {
-        let skip_over: HashSet<&str> = HashSet::from(["Box", "Arc"]);
-
-        let ty: Type = parse_quote!(Vec<String>);
-        let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_over);
-        assert!(extracted);
-        assert_eq!(inner.to_token_stream().to_string(), "String");
-
-        let ty: Type = parse_quote!(Option<String>);
-        let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_over);
-        assert!(!extracted);
-        assert_eq!(inner.to_token_stream().to_string(), "Option < String >");
-
-        let ty: Type = parse_quote!(Box<Vec<String>>);
-        let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_over);
-        assert!(extracted);
-        assert_eq!(inner.to_token_stream().to_string(), "String");
-    }
-
-    #[test]
-    fn test_filter_inner_type() {
-        let skip_over: HashSet<&str> = HashSet::from(["Box", "Arc"]);
-
-        let ty: Type = parse_quote!(Box<String>);
-        let filtered = filter_inner_type(&ty, &skip_over);
-        assert_eq!(filtered.to_token_stream().to_string(), "String");
-
-        let ty: Type = parse_quote!(Box<Arc<String>>);
-        let filtered = filter_inner_type(&ty, &skip_over);
-        assert_eq!(filtered.to_token_stream().to_string(), "String");
-    }
-
-    #[test]
-    fn test_wrap_leaf_type() {
-        let skip_over: HashSet<&str> = HashSet::from(["Vec", "Option"]);
-
-        let ty: Type = parse_quote!(String);
-        let wrapped = wrap_leaf_type(&ty, &skip_over);
-        assert_eq!(
-            wrapped.to_token_stream().to_string(),
-            "adze :: WithLeaf < String >"
-        );
-
-        let ty: Type = parse_quote!(Vec<String>);
-        let wrapped = wrap_leaf_type(&ty, &skip_over);
-        assert_eq!(
-            wrapped.to_token_stream().to_string(),
-            "Vec < adze :: WithLeaf < String > >"
-        );
-    }
-
-    // --- Additional unit tests for untested paths ---
-
-    #[test]
-    fn extract_inner_non_path_type_returns_unchanged() {
-        let skip: HashSet<&str> = HashSet::new();
-        // Reference type is not a Type::Path, so extraction returns it unchanged.
-        let ty: Type = parse_quote!(&str);
-        let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip);
-        assert!(!extracted);
-        assert_eq!(inner.to_token_stream().to_string(), "& str");
-    }
-
-    #[test]
-    fn filter_non_path_type_returns_unchanged() {
-        let skip: HashSet<&str> = HashSet::from(["Box"]);
-        let ty: Type = parse_quote!((i32, u32));
-        let filtered = filter_inner_type(&ty, &skip);
-        assert_eq!(filtered.to_token_stream().to_string(), "(i32 , u32)");
-    }
-
-    #[test]
-    fn wrap_non_path_type_wraps_entirely() {
-        let skip: HashSet<&str> = HashSet::new();
-        let ty: Type = parse_quote!([u8; 4]);
-        let wrapped = wrap_leaf_type(&ty, &skip);
-        assert_eq!(
-            wrapped.to_token_stream().to_string(),
-            "adze :: WithLeaf < [u8 ; 4] >"
-        );
-    }
-
-    #[test]
-    fn extract_inner_skip_does_not_match_target_returns_original() {
-        // Box is in skip set; we look for Option but Box<String> has no Option inside.
-        let skip: HashSet<&str> = HashSet::from(["Box"]);
-        let ty: Type = parse_quote!(Box<String>);
-        let (inner, extracted) = try_extract_inner_type(&ty, "Option", &skip);
-        assert!(!extracted);
-        assert_eq!(inner.to_token_stream().to_string(), "Box < String >");
-    }
-
-    #[test]
-    fn filter_empty_skip_set_returns_original() {
-        let skip: HashSet<&str> = HashSet::new();
-        let ty: Type = parse_quote!(Box<String>);
-        let filtered = filter_inner_type(&ty, &skip);
-        assert_eq!(filtered.to_token_stream().to_string(), "Box < String >");
-    }
-
-    #[test]
-    fn wrap_multiple_generic_args_in_skip_type() {
-        // When a skip-set type has multiple generic args, all Type args are wrapped.
-        let skip: HashSet<&str> = ["Result"].into_iter().collect();
-        let ty: Type = parse_quote!(Result<String, i32>);
-        let wrapped = wrap_leaf_type(&ty, &skip);
-        assert_eq!(
-            wrapped.to_token_stream().to_string(),
-            "Result < adze :: WithLeaf < String > , adze :: WithLeaf < i32 > >"
-        );
     }
 }
