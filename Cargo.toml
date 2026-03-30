@@ -52,6 +52,7 @@ members = [
   "crates/concurrency-caps-contract-core",
   "crates/concurrency-init-bootstrap-policy-core",
   "crates/parser-backend-core",
+  "crates/grammar-analysis-core",
   "tool",
   "crates/common-syntax-core",
   "common",

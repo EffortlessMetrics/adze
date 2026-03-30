@@ -166,6 +166,7 @@ dependencies = [
 name = "adze-cli"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-grammar-analysis-core",
  "adze-tool",
  "anyhow",
  "assert_cmd",
@@ -472,6 +473,15 @@ name = "adze-governance-runtime-reporting"
 version = "0.1.0"
 dependencies = [
  "adze-governance-matrix-contract",
+]
+
+[[package]]
+name = "adze-grammar-analysis-core"
+version = "0.1.0"
+dependencies = [
+ "adze-tool",
+ "anyhow",
+ "tempfile",
 ]
 
 [[package]]
