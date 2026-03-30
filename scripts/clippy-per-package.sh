@@ -16,6 +16,7 @@ if [ -f .clippy-quarantine ]; then
   Q=$(grep -v '^#' .clippy-quarantine 2>/dev/null \
       | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
       | grep -v '^$' \
+      | tr -d '\r' \
       | tr '\n' ',' | sed 's/,$//')
 fi
 
@@ -24,12 +25,16 @@ PKGS=$(cargo metadata --format-version 1 | jq -r '
   .workspace_members as $members |
   .packages[] |
   select(.id as $id | $members[] | contains($id)) |
-  .name')
+  .name' | tr -d '\r')
 
 # Get packages that define tree-sitter-c2rust feature
 C2RUST_PKGS=""
 if [ "$mode" = "c2rust" ]; then
-  C2RUST_PKGS=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.features["tree-sitter-c2rust"]) | .name' | tr '\n' ',' | sed 's/,$//')
+  C2RUST_PKGS=$(cargo metadata --format-version 1 \
+    | jq -r '.packages[] | select(.features["tree-sitter-c2rust"]) | .name' \
+    | tr -d '\r' \
+    | tr '\n' ',' \
+    | sed 's/,$//')
 fi
 
 # Helper function for error reporting
