@@ -591,7 +591,8 @@ proptest! {
     /// 20. File with no adze annotations returns empty vec.
     #[test]
     fn no_annotations_returns_empty(name in grammar_name()) {
-        let src = format!("mod {name} {{ pub struct Foo {{ x: u32 }} }}");
+        // Prefix the generated name so Rust keywords like `if` remain valid module identifiers.
+        let src = format!("mod generated_{name} {{ pub struct Foo {{ x: u32 }} }}");
         let f = TempFile::new(&src);
         let out = generate_grammars(f.path()).unwrap();
         prop_assert!(out.is_empty());
@@ -617,7 +618,7 @@ proptest! {
     /// 23. Plain module without grammar attribute returns empty.
     #[test]
     fn plain_module_returns_empty(name in grammar_name()) {
-        let src = format!("mod {name} {{ pub enum E {{ A, B }} }}");
+        let src = format!("mod generated_{name} {{ pub enum E {{ A, B }} }}");
         let f = TempFile::new(&src);
         let out = generate_grammars(f.path()).unwrap();
         prop_assert!(out.is_empty());
