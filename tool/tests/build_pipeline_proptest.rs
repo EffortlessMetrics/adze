@@ -46,7 +46,9 @@ impl Drop for TempFile {
 // ---------------------------------------------------------------------------
 
 fn grammar_name() -> impl Strategy<Value = String> {
-    "[a-z][a-z0-9_]{1,10}"
+    "[a-z][a-z0-9_]{1,10}".prop_filter("valid Rust identifier", |s| {
+        syn::parse_str::<syn::Ident>(s).is_ok()
+    })
 }
 
 fn variant_count() -> impl Strategy<Value = usize> {
