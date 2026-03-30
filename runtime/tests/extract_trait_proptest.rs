@@ -57,6 +57,14 @@ fn branch(symbol: u16, start: usize, end: usize, children: Vec<ParsedNode>) -> P
     make_node(symbol, children, start, end, true)
 }
 
+fn non_numeric_f64_text() -> impl Strategy<Value = String> {
+    // Rust accepts case-insensitive spellings like `NaN` and `inf` for floats.
+    // Keep this property focused on strings that truly fail float parsing.
+    "[a-zA-Z]{1,16}".prop_filter("exclude special float spellings", |s| {
+        s.parse::<f64>().is_err()
+    })
+}
+
 // =========================================================================
 // 1. Extract for basic types — String
 // =========================================================================
@@ -241,7 +249,7 @@ proptest! {
     }
 
     #[test]
-    fn extract_f64_from_non_numeric_defaults(s in "[a-zA-Z]{1,16}") {
+    fn extract_f64_from_non_numeric_defaults(s in non_numeric_f64_text()) {
         let source = s.as_bytes();
         let node = leaf(1, 0, source.len());
         let result: f64 = f64::extract(Some(&node), source, 0, None);
