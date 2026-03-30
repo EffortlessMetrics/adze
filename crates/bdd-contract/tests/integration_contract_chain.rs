@@ -6,9 +6,7 @@
 #[test]
 fn test_contract_chain_reexports_from_grid_contract() {
     // Given: Types re-exported through bdd-contract
-    use adze_bdd_contract::{
-        BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID,
-    };
+    use adze_bdd_contract::{BddPhase, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID};
 
     // When: Use the re-exported types
     let phase = BddPhase::Core;
@@ -96,7 +94,7 @@ fn test_contract_chain_scenario_status() {
 #[test]
 fn test_contract_chain_grid_constant_valid() {
     // Given: The grid constant
-    use adze_bdd_contract::{BddScenario, GLR_CONFLICT_PRESERVATION_GRID};
+    use adze_bdd_contract::GLR_CONFLICT_PRESERVATION_GRID;
 
     // When: Inspect the scenarios
     assert!(!GLR_CONFLICT_PRESERVATION_GRID.is_empty());
@@ -112,9 +110,7 @@ fn test_contract_chain_grid_constant_valid() {
 #[test]
 fn test_contract_chain_bdd_scenario_struct() {
     // Given: Re-exported BddScenario
-    use adze_bdd_contract::{
-        BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID,
-    };
+    use adze_bdd_contract::{BddPhase, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID};
 
     // When: Access scenarios from the grid
     let first_scenario = &GLR_CONFLICT_PRESERVATION_GRID[0];

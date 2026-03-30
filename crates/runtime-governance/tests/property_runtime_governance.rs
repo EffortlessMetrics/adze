@@ -3,8 +3,7 @@
 use proptest::prelude::*;
 
 use adze_runtime_governance::{
-    BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenarioStatus, ParserBackend,
-    ParserFeatureProfile,
+    BddGovernanceSnapshot, BddPhase, BddScenarioStatus, ParserBackend, ParserFeatureProfile,
 };
 
 // ---------------------------------------------------------------------------
@@ -129,10 +128,8 @@ proptest! {
 // 4 – current_backend_for tests
 // ---------------------------------------------------------------------------
 
-proptest! {
-    #[test]
-    fn current_backend_for_returns_valid_backend() {
-        let backend = adze_runtime_governance::current_backend_for(false);
-        prop_assert!(!backend.name().is_empty());
-    }
+#[test]
+fn current_backend_for_returns_valid_backend() {
+    let backend = adze_runtime_governance::current_backend_for(false);
+    assert!(!backend.name().is_empty());
 }

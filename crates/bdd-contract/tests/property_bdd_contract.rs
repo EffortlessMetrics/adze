@@ -95,11 +95,9 @@ fn grid_constant_has_scenarios() {
     assert!(!adze_bdd_contract::GLR_CONFLICT_PRESERVATION_GRID.is_empty());
 }
 
-proptest! {
-    #[test]
-    fn bdd_progress_empty_returns_zero() {
-        let (implemented, total) = adze_bdd_contract::bdd_progress(BddPhase::Core, &[]);
-        prop_assert_eq!(implemented, 0);
-        prop_assert_eq!(total, 0);
-    }
+#[test]
+fn bdd_progress_empty_returns_zero() {
+    let (implemented, total) = adze_bdd_contract::bdd_progress(BddPhase::Core, &[]);
+    assert_eq!(implemented, 0);
+    assert_eq!(total, 0);
 }
