@@ -52,6 +52,20 @@ fn grammar_name() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_]{1,10}"
 }
 
+fn rust_module_ident(name: &str) -> String {
+    match name {
+        "as" | "async" | "await" | "break" | "const" | "continue" | "crate" | "dyn" | "else"
+        | "enum" | "extern" | "false" | "fn" | "for" | "if" | "impl" | "in" | "let" | "loop"
+        | "match" | "mod" | "move" | "mut" | "pub" | "ref" | "return" | "self" | "Self"
+        | "static" | "struct" | "super" | "trait" | "true" | "type" | "unsafe" | "use"
+        | "where" | "while" | "yield" | "do" | "gen" | "abstract" | "become" | "box" | "final"
+        | "macro" | "override" | "priv" | "try" | "typeof" | "unsized" | "virtual" => {
+            format!("r#{name}")
+        }
+        _ => name.to_string(),
+    }
+}
+
 fn grammar_count() -> impl Strategy<Value = usize> {
     2..=5usize
 }
@@ -413,7 +427,10 @@ proptest! {
 
     #[test]
     fn no_grammar_plain_module(name in grammar_name()) {
-        let src = format!("mod {name} {{ pub struct S {{ pub x: u32 }} }}");
+        let src = format!(
+            "mod {name} {{ pub struct S {{ pub x: u32 }} }}",
+            name = rust_module_ident(&name)
+        );
         let f = TempFile::new(&src);
         let out = grammars(f.path()).unwrap();
         prop_assert!(out.is_empty());
