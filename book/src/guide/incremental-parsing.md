@@ -153,7 +153,6 @@ let tree2 = parser.reparse("let x = 43;", &tree1, &edit)?;
 assert_eq!(tree2.error_count, 0);
 ```
 
-<<<<<<< HEAD
 ## Feature Flags
 
 Incremental parsing requires specific feature flags:
@@ -191,34 +190,6 @@ adze = { version = "0.8", features = ["all-features"] }
 - **Sub-millisecond parsing** for most common edit scenarios
 - **Linear scaling**: Performance improves with larger files due to better reuse ratios
 - **Zero overhead**: No performance cost when `incremental_glr` feature disabled
-=======
-## Performance Characteristics (PR #58 - Validated)
-
-### Direct Forest Splicing Performance
-```rust
-// Large file test: 1,000 tokens, single edit
-// Before: 3.5ms full reparse  
-// After: 215μs incremental (16.34x speedup)
-// Subtree reuse: 999/1000 subtrees reused (99.9%)
-```
-
-| Edit Type | Subtree Reuse | Speedup | Parse Time |
-|-----------|---------------|---------|------------|
-| Single token | 99.9% | 16x | ~200μs |
-| Word replacement | 98%+ | 12-15x | ~400μs |
-| Line edit | 95%+ | 8-12x | ~800μs |
-| Function body | 85%+ | 4-8x | ~2ms |
-| File append | 99.9%+ | 15x+ | ~300μs |
-
-*Performance validated on production-scale files with GLR parsing*
-
-### Comparison with Traditional Approaches
-| Method | State Restoration | Parse Scope | Speedup | GLR Support |
-|--------|------------------|-------------|---------|-------------|
-| Full Reparse | N/A | Entire file | 1x | ✅ |
-| GSS-based | Heavy | Edit + context | 3-4x | ✅ |
-| **Direct Splicing** | **None** | **Edit only** | **16x** | ✅ |
->>>>>>> pr-58-staging
 
 ## Implementation Details
 

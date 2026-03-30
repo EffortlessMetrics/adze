@@ -101,12 +101,6 @@ impl ParseError {
     }
 }
 
-impl fmt::Display for ErrorLocation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.line, self.column)
-    }
-}
-
 #[cfg(feature = "glr")]
 impl From<adze_glr_core::driver::GlrError> for ParseError {
     fn from(e: adze_glr_core::driver::GlrError) -> Self {
