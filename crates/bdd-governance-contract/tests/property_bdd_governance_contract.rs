@@ -109,11 +109,9 @@ proptest! {
 // 3 – ParserBackend tests
 // ---------------------------------------------------------------------------
 
-proptest! {
-    #[test]
-    fn backend_name_non_empty() {
-        prop_assert!(!ParserBackend::TreeSitter.name().is_empty());
-        prop_assert!(!ParserBackend::PureRust.name().is_empty());
-        prop_assert!(!ParserBackend::GLR.name().is_empty());
-    }
+#[test]
+fn backend_name_non_empty() {
+    assert!(!ParserBackend::TreeSitter.name().is_empty());
+    assert!(!ParserBackend::PureRust.name().is_empty());
+    assert!(!ParserBackend::GLR.name().is_empty());
 }

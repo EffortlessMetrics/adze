@@ -150,17 +150,17 @@ proptest! {
 
 proptest! {
     #[test]
-    fn current_backend_for_returns_valid_backend() {
-        let backend = adze_runtime_governance_matrix::current_backend_for(false);
-        prop_assert!(!backend.name().is_empty());
-    }
-
-    #[test]
     fn resolve_backend_for_profile_consistent(profile in arb_profile()) {
         let backend = adze_runtime_governance_matrix::resolve_backend_for_profile(profile, false);
         let expected = profile.resolve_backend(false);
         prop_assert_eq!(backend, expected);
     }
+}
+
+#[test]
+fn current_backend_for_returns_valid_backend() {
+    let backend = adze_runtime_governance_matrix::current_backend_for(false);
+    assert!(!backend.name().is_empty());
 }
 
 // ---------------------------------------------------------------------------

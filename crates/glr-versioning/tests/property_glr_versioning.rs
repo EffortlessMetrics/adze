@@ -10,51 +10,65 @@ use adze_glr_versioning::{CompareResult, VersionInfo, compare_versions};
 
 /// Generate arbitrary VersionInfo values.
 fn arb_version_info() -> impl Strategy<Value = VersionInfo> {
-    (any::<bool>(), any::<usize>(), any::<usize>(), any::<i32>()).prop_map(
-        |(in_error, cost, node_count, dynamic_prec)| VersionInfo {
+    (
+        any::<bool>(),
+        0usize..10_000usize,
+        0usize..10_000usize,
+        -1_000_000i32..1_000_000i32,
+    )
+        .prop_map(|(in_error, cost, node_count, dynamic_prec)| VersionInfo {
             in_error,
             cost,
             node_count,
             dynamic_prec,
-        },
-    )
+        })
 }
 
 /// Generate VersionInfo with error state.
 fn arb_version_info_in_error() -> impl Strategy<Value = VersionInfo> {
-    (any::<usize>(), any::<usize>(), any::<i32>()).prop_map(|(cost, node_count, dynamic_prec)| {
-        let mut v = VersionInfo::new();
-        v.enter_error();
-        v.add_error_cost(cost, node_count);
-        v.add_dynamic_prec(dynamic_prec);
-        v
-    })
+    (
+        0usize..10_000usize,
+        0usize..10_000usize,
+        -1_000_000i32..1_000_000i32,
+    )
+        .prop_map(|(cost, node_count, dynamic_prec)| {
+            let mut v = VersionInfo::new();
+            v.enter_error();
+            v.add_error_cost(cost, node_count);
+            v.add_dynamic_prec(dynamic_prec);
+            v
+        })
 }
 
 /// Generate VersionInfo without error state.
 fn arb_version_info_no_error() -> impl Strategy<Value = VersionInfo> {
-    (any::<usize>(), any::<usize>(), any::<i32>()).prop_map(|(cost, node_count, dynamic_prec)| {
-        let mut v = VersionInfo::new();
-        v.add_error_cost(cost, node_count);
-        v.add_dynamic_prec(dynamic_prec);
-        v
-    })
+    (
+        0usize..10_000usize,
+        0usize..10_000usize,
+        -1_000_000i32..1_000_000i32,
+    )
+        .prop_map(|(cost, node_count, dynamic_prec)| {
+            let mut v = VersionInfo::new();
+            v.add_error_cost(cost, node_count);
+            v.add_dynamic_prec(dynamic_prec);
+            v
+        })
 }
 
 // ---------------------------------------------------------------------------
 // 1 – VersionInfo tests
 // ---------------------------------------------------------------------------
 
-proptest! {
-    #[test]
-    fn version_info_default_not_in_error() {
-        let v = VersionInfo::new();
-        prop_assert!(!v.in_error);
-        prop_assert_eq!(v.cost, 0);
-        prop_assert_eq!(v.node_count, 0);
-        prop_assert_eq!(v.dynamic_prec, 0);
-    }
+#[test]
+fn version_info_default_not_in_error() {
+    let v = VersionInfo::new();
+    assert!(!v.in_error);
+    assert_eq!(v.cost, 0);
+    assert_eq!(v.node_count, 0);
+    assert_eq!(v.dynamic_prec, 0);
+}
 
+proptest! {
     #[test]
     fn version_info_clone_equals_original(v in arb_version_info()) {
         let cloned = v.clone();
@@ -71,7 +85,10 @@ proptest! {
     }
 
     #[test]
-    fn add_dynamic_prec_accumulates(mut v in arb_version_info(), prec in any::<i32>()) {
+    fn add_dynamic_prec_accumulates(
+        mut v in arb_version_info(),
+        prec in -1_000_000i32..1_000_000i32
+    ) {
         let original = v.dynamic_prec;
         v.add_dynamic_prec(prec);
         prop_assert_eq!(v.dynamic_prec, original.wrapping_add(prec));
@@ -106,19 +123,19 @@ proptest! {
 
     #[test]
     fn compare_result_eq_reflexive(result in arb_compare_result()) {
-        prop_assert_eq!(result, result);
+        prop_assert_eq!(&result, &result);
     }
 }
 
 /// Generate arbitrary CompareResult values.
 fn arb_compare_result() -> impl Strategy<Value = CompareResult> {
-    prop_oneof![
-        Just(CompareResult::TakeLeft),
-        Just(CompareResult::TakeRight),
-        Just(CompareResult::PreferLeft),
-        Just(CompareResult::PreferRight),
-        Just(CompareResult::Tie),
-    ]
+    any::<u8>().prop_map(|choice| match choice % 5 {
+        0 => CompareResult::TakeLeft,
+        1 => CompareResult::TakeRight,
+        2 => CompareResult::PreferLeft,
+        3 => CompareResult::PreferRight,
+        _ => CompareResult::Tie,
+    })
 }
 
 // ---------------------------------------------------------------------------

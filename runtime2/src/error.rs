@@ -1,6 +1,5 @@
 //! Error types for parsing operations
 
-use core::fmt;
 use thiserror::Error;
 
 pub use adze_error_location_core::ErrorLocation;
