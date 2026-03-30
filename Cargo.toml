@@ -42,6 +42,7 @@ members = [
   "crates/bdd-contract",
   "crates/governance-contract",
   "crates/bdd-scenario-fixtures",
+  "crates/bdd-scenario-core",
   "crates/bdd-grid-contract",
   "crates/bdd-grid-core",
   "crates/feature-policy-core",
