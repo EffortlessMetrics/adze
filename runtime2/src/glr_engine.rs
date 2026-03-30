@@ -135,8 +135,8 @@ impl GLREngine {
 
             // Check if all stacks failed (but only if we haven't accepted)
             if self.stacks.is_empty() && self.forest.roots.is_empty() {
-                let start = usize::try_from(token.start)
-                    .expect("runtime2 token offsets fit into usize");
+                let start =
+                    usize::try_from(token.start).expect("runtime2 token offsets fit into usize");
                 return Err(ParseError::with_msg(&format!(
                     "Syntax error: unexpected token at position {}",
                     token.start
