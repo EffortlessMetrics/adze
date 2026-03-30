@@ -19,3 +19,6 @@ adze-bdd-grid-contract = { version = "0.1.0", path = "../bdd-grid-contract" }
 default = []
 strict_api = ["adze-bdd-grid-contract/strict_api"]
 strict_docs = ["adze-bdd-grid-contract/strict_docs"]
+
+[dev-dependencies]
+proptest = { workspace = true }

@@ -22,4 +22,11 @@ adze-concurrency-bounded-map-core = { version = "0.1.0", path = "../concurrency-
 
 [dev-dependencies]
 proptest.workspace = true
+criterion.workspace = true
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
+adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
+adze-concurrency-bounded-map-core = { version = "0.1.0", path = "../concurrency-bounded-map-core" }
+
+[[bench]]
+name = "bench_map"
+harness = false

@@ -74,8 +74,8 @@ cargo test -p adze-tablegen
 cargo test -p adze
 
 # Run tests with specific features
-cargo test -p adze --features glr-core
-cargo test -p adze --features incremental
+cargo test -p adze --features glr
+cargo test -p adze --features incremental_glr
 ```
 
 ### Test Categories

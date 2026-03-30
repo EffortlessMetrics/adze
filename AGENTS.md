@@ -60,6 +60,34 @@ just mutate                # Mutation testing (adze-ir default)
 just mutate-all            # Mutation testing all crates
 ```
 
+### Fast Iteration
+
+For quick iteration during development, use:
+```bash
+just check-fast  # Fast check with minimal debug info
+```
+
+This uses the `dev-fast` profile which sacrifices some debug info for faster builds.
+
+### Build Caching with sccache
+
+For faster rebuilds, especially after `cargo clean`, use sccache:
+
+```bash
+# Install sccache
+cargo install sccache
+
+# Enable in your shell
+export RUSTC_WRAPPER=sccache
+```
+
+Add to `~/.bashrc` or `~/.zshrc` for persistence:
+```bash
+export RUSTC_WRAPPER=sccache
+```
+
+sccache caches compiled artifacts, significantly reducing rebuild times. This is especially helpful for the 75-crate workspace.
+
 ### Linting
 
 ```bash

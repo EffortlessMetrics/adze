@@ -443,9 +443,9 @@ adze = { version = "0.8", features = [
 ```
 
 **Feature Combinations:**
-- `default` = `["tree-sitter-c2rust", "incremental"]`
-- `pure-rust` = `["glr-core", "pure-rust", "serialization"]`
-- `tree-sitter-compat` = `["tree-sitter-standard", "incremental"]`
+- `default` = `["tree-sitter-c2rust", "incremental_glr"]`
+- `pure-rust` = `["glr", "pure-rust", "serialization"]`
+- `tree-sitter-compat` = `["tree-sitter-standard", "incremental_glr"]`
 
 ## Platform Support
 

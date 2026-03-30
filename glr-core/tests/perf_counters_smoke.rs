@@ -1,4 +1,4 @@
-#![cfg(feature = "perf-counters")]
+#![cfg(feature = "perf_counters")]
 
 use adze_glr_core::perf;
 

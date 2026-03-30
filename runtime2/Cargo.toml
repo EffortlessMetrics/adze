@@ -43,12 +43,14 @@ adze-tablegen = { path = "../tablegen", features = ["serialization"] }
 adze-parser-contract = { path = "../crates/parser-contract" }
 
 [features]
-default = ["glr-core", "serialization"]
-# Enable GLR core integration
-glr-core = ["dep:adze-glr-core", "dep:adze-ir"]
+default = ["glr", "serialization"]
+# Enable GLR core integration (canonical feature name)
+glr = ["dep:adze-glr-core", "dep:adze-ir"]
+# Deprecated alias - use `glr` instead
+glr-core = ["glr"]
 # Enable pure-Rust GLR runtime (bypasses TSLanguage encoding).
 # This is the Phase 3 feature that uses ParseTable directly.
-pure-rust = ["glr-core", "dep:regex"]
+pure-rust = ["glr", "dep:regex"]
 # Deprecated alias retained for backward compatibility.
 pure-rust-glr = ["pure-rust"]
 # Enable .parsetable file loading (Phase 3.1)
@@ -74,11 +76,11 @@ test-utils = []
 
 [[example]]
 name = "manual_tokens"
-required-features = ["test-utils", "glr-core"]
+required-features = ["test-utils", "glr"]
 
 [[example]]
 name = "simple_parse"
-required-features = ["test-utils", "glr-core"]
+required-features = ["test-utils", "glr"]
 
 [[example]]
 name = "arithmetic"

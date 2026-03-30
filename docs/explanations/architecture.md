@@ -104,7 +104,7 @@ sequenceDiagram
 | Crate | Purpose |
 |-------|---------|
 | `adze-macro` | Procedural macros for grammar definition |
-| `adze-runtime` | Core parsing engine and tree APIs |
+| `adze` | Core parsing engine and tree APIs |
 | `adze-tool` | Build-time orchestrator for parser generation |
 | `adze-ir` | Intermediate representation of grammars |
 | `adze-glr-core` | Automaton construction and conflict analysis |

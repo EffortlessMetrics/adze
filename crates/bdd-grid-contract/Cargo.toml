@@ -19,3 +19,6 @@ strict_docs = []
 
 [dependencies]
 adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
+
+[dev-dependencies]
+proptest = { workspace = true }

@@ -4,10 +4,10 @@
 //! needed to parse a specific programming language, including parse tables,
 //! symbol metadata, tokenizers, and external scanners.
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 type TokenizerFn = dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = crate::Token> + 'a>;
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 type TokenizerBoxed = Box<TokenizerFn>;
 
 /// A language definition containing parse tables, grammar metadata, and tokenization logic.
@@ -74,16 +74,16 @@ pub struct Language {
     ///
     /// The parse table maps (state, symbol) pairs to parser actions (shift, reduce, accept).
     /// With GLR support, each cell can contain multiple conflicting actions.
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     pub parse_table: Option<&'static adze_glr_core::ParseTable>,
-    #[cfg(not(feature = "glr-core"))]
+    #[cfg(not(feature = "glr"))]
     pub parse_table: ParseTable,
 
     /// Tokenizer function to convert input bytes into tokens.
     ///
     /// If absent, parsing will fail with a clear error message. The tokenizer
     /// is called once per parse and should return an iterator of tokens.
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     pub tokenize: Option<Box<TokenizerFn>>,
 
     /// Names of all symbols in the grammar.
@@ -216,16 +216,16 @@ impl std::fmt::Debug for Language {
             .field("field_count", &self.field_count)
             .field("max_alias_sequence_length", &self.max_alias_sequence_length);
 
-        #[cfg(feature = "glr-core")]
+        #[cfg(feature = "glr")]
         ds.field("parse_table", &self.parse_table.is_some());
-        #[cfg(not(feature = "glr-core"))]
+        #[cfg(not(feature = "glr"))]
         ds.field("parse_table", &self.parse_table);
 
         ds.field("symbol_names", &self.symbol_names)
             .field("symbol_metadata", &self.symbol_metadata)
             .field("field_names", &self.field_names);
 
-        #[cfg(feature = "glr-core")]
+        #[cfg(feature = "glr")]
         ds.field("tokenize", &self.tokenize.is_some());
 
         #[cfg(feature = "external_scanners")]
@@ -242,11 +242,11 @@ impl Clone for Language {
             symbol_count: self.symbol_count,
             field_count: self.field_count,
             max_alias_sequence_length: self.max_alias_sequence_length,
-            #[cfg(feature = "glr-core")]
+            #[cfg(feature = "glr")]
             parse_table: self.parse_table,
-            #[cfg(not(feature = "glr-core"))]
+            #[cfg(not(feature = "glr"))]
             parse_table: self.parse_table.clone(),
-            #[cfg(feature = "glr-core")]
+            #[cfg(feature = "glr")]
             tokenize: None, // Can't clone closures, so reset
             symbol_names: self.symbol_names.clone(),
             symbol_metadata: self.symbol_metadata.clone(),
@@ -259,7 +259,7 @@ impl Clone for Language {
 
 impl Language {
     /// Convenience: turn a `Vec<Token>` into a source for tests/examples.
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     pub fn with_static_tokens(mut self, toks: Vec<crate::Token>) -> Self {
         self.tokenize = Some(Box::new(move |_: &[u8]| {
             // This allocates a boxed iterator; fine for examples/tests.
@@ -341,11 +341,11 @@ impl Language {
 pub struct LanguageBuilder {
     version: u32,
     max_alias_sequence_length: u32,
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     parse_table: Option<&'static adze_glr_core::ParseTable>,
-    #[cfg(not(feature = "glr-core"))]
+    #[cfg(not(feature = "glr"))]
     parse_table: Option<ParseTable>,
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     tokenize: Option<TokenizerBoxed>,
     symbol_names: Option<Vec<String>>,
     symbol_metadata: Option<Vec<SymbolMetadata>>,
@@ -421,7 +421,7 @@ impl LanguageBuilder {
     ///
     /// let builder = Language::builder().parse_table(&PARSE_TABLE);
     /// ```
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     pub fn parse_table(mut self, table: &'static adze_glr_core::ParseTable) -> Self {
         self.parse_table = Some(table);
         self
@@ -431,7 +431,7 @@ impl LanguageBuilder {
     ///
     /// Used when the `glr-core` feature is not enabled. The table is owned
     /// rather than borrowed.
-    #[cfg(not(feature = "glr-core"))]
+    #[cfg(not(feature = "glr"))]
     pub fn parse_table(mut self, table: ParseTable) -> Self {
         self.parse_table = Some(table);
         self
@@ -532,7 +532,7 @@ impl LanguageBuilder {
     /// let builder = Language::builder()
     ///     .tokenizer(|input| Box::new(my_tokenize(input)));
     /// ```
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     pub fn tokenizer<F>(mut self, f: F) -> Self
     where
         F: Fn(&[u8]) -> Box<dyn Iterator<Item = crate::Token> + '_> + 'static,
@@ -587,11 +587,11 @@ impl LanguageBuilder {
             symbol_count,
             field_count,
             max_alias_sequence_length: self.max_alias_sequence_length,
-            #[cfg(feature = "glr-core")]
+            #[cfg(feature = "glr")]
             parse_table: Some(parse_table),
-            #[cfg(not(feature = "glr-core"))]
+            #[cfg(not(feature = "glr"))]
             parse_table,
-            #[cfg(feature = "glr-core")]
+            #[cfg(feature = "glr")]
             tokenize: self.tokenize,
             symbol_names,
             symbol_metadata,

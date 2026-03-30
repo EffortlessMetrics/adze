@@ -22,6 +22,11 @@ adze-glr-core = { version = "0.8.0-dev", path = "../../glr-core" }
 serde.workspace = true
 
 [dev-dependencies]
+criterion.workspace = true
 insta = { workspace = true, features = ["json", "yaml"] }
 proptest.workspace = true
 serde_json.workspace = true
+
+[[bench]]
+name = "ts_format_bench"
+harness = false

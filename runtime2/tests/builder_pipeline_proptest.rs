@@ -1,5 +1,5 @@
 #![allow(clippy::needless_range_loop)]
-#![cfg(feature = "glr-core")]
+#![cfg(feature = "glr")]
 
 //! Property-based tests for the forest-to-tree builder pipeline.
 //!

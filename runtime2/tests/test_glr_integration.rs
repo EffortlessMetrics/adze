@@ -8,7 +8,7 @@ use adze_runtime::{
 
 /// Test GLR integration with a simple language
 #[test]
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn test_glr_basic_parsing() {
     // Create a simple language with mock setup for testing
     let language = create_test_language();
@@ -46,7 +46,7 @@ fn test_glr_basic_parsing() {
 
 /// Test incremental parsing with identical input
 #[test]
-#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
+#[cfg(all(feature = "glr", feature = "incremental_glr"))]
 fn test_incremental_identical_input() {
     let language = create_test_language();
     let mut parser = Parser::new();
@@ -64,7 +64,7 @@ fn test_incremental_identical_input() {
 
 /// Test incremental parsing with changed input
 #[test]
-#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
+#[cfg(all(feature = "glr", feature = "incremental_glr"))]
 fn test_incremental_changed_input() {
     let language = create_test_language();
     let mut parser = Parser::new();
@@ -115,7 +115,7 @@ fn test_tree_metadata() {
 
 /// Test error handling without GLR core feature
 #[test]
-#[cfg(not(feature = "glr-core"))]
+#[cfg(not(feature = "glr"))]
 fn test_error_without_glr_core() {
     let mut parser = Parser::new();
     let language = stub_language();
@@ -133,7 +133,7 @@ fn test_error_without_glr_core() {
 
 /// Test error handling with invalid language
 #[test]
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn test_error_invalid_language() {
     let _parser = Parser::new();
     // Create an incomplete language that should fail validation

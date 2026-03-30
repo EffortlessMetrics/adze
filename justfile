@@ -19,6 +19,10 @@ clippy:
 test:
     cargo test -p adze -p adze-glr-core -p adze-ir -p adze-tablegen --lib
 
+# Fast check for iteration (uses dev-fast profile)
+check-fast:
+    cargo check -p adze -p adze-ir -p adze-glr-core --profile dev-fast
+
 # Run pre-commit checks
 pre:
     .githooks/pre-commit

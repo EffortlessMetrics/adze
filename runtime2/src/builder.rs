@@ -7,7 +7,7 @@
 use crate::engine::Forest;
 use crate::tree::{Tree, TreeNode};
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use adze_glr_core::ForestView as CoreForestView;
 
 /// Converts a GLR parse forest into a Tree-sitter compatible tree.
@@ -82,7 +82,7 @@ use adze_glr_core::ForestView as CoreForestView;
 ///
 /// - Requires `glr-core` feature for full functionality
 /// - Without `glr-core`, returns a stub tree
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 pub fn forest_to_tree(forest: Forest) -> Tree {
     match forest {
         Forest::Glr(core) => build_from_glr(core),
@@ -93,7 +93,7 @@ pub fn forest_to_tree(forest: Forest) -> Tree {
 ///
 /// This function exists to maintain API compatibility when the `glr-core`
 /// feature is not enabled. It always returns a stub tree.
-#[cfg(not(feature = "glr-core"))]
+#[cfg(not(feature = "glr"))]
 pub fn forest_to_tree(_forest: Forest) -> Tree {
     // Should not be called without GLR support, but return stub for completeness
     Tree::new_stub()
@@ -118,7 +118,7 @@ pub fn forest_to_tree(_forest: Forest) -> Tree {
 /// - **Node Count**: Total number of nodes in the resulting tree
 /// - **Max Depth**: Maximum depth from root to any leaf
 /// - **Conversion Time**: Wall-clock time for the entire conversion
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn build_from_glr(core: adze_glr_core::Forest) -> Tree {
     use std::time::Instant;
 
@@ -177,7 +177,7 @@ fn build_from_glr(core: adze_glr_core::Forest) -> Tree {
 /// - Preference for longer matches
 /// - Grammar rule priorities
 /// - Probability-based selection
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn build_node_with_metrics(
     view: &dyn CoreForestView,
     id: u32,

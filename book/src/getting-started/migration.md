@@ -17,7 +17,7 @@ adze = { version = "0.5", features = ["runtime"] }
 **After (runtime2):**
 ```toml
 [dependencies]
-adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr", "incremental_glr"] }
 ```
 
 This change provides:
@@ -117,8 +117,8 @@ Runtime2 uses a comprehensive feature flag system:
 ```toml
 [dependencies]
 adze-runtime = { version = "0.1", features = [
-    "glr-core",          # GLR parsing engine (default)
-    "incremental",       # Incremental parsing support
+    "glr",               # GLR parsing engine (default)
+    "incremental_glr",   # Incremental parsing support
     "arenas",           # Arena allocators for performance
     "external-scanners", # Custom external scanner support
     "queries"           # Tree-sitter query language (future)
@@ -137,7 +137,7 @@ Change your `Cargo.toml` to use runtime2:
 # adze = "0.5"
 
 # Add GLR runtime
-adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr", "incremental_glr"] }
 
 [build-dependencies]
 adze-tool = "0.6"  # Ensure build tool compatibility
@@ -196,9 +196,9 @@ let language = grammar::language();  // Must have parse_table: Some(...)
 **Solution**: The generated GLR language needs a tokenizer. This is automatically provided by `adze-tool`.
 
 ### Issue: "GLR core feature not enabled"
-**Solution**: Add the `glr-core` feature to your dependencies:
+**Solution**: Add the `glr` feature to your dependencies:
 ```toml
-adze-runtime = { version = "0.1", features = ["glr-core"] }
+adze-runtime = { version = "0.1", features = ["glr"] }
 ```
 
 ### Issue: Performance issues with large inputs

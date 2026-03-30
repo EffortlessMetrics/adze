@@ -1,6 +1,6 @@
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};
 use adze_runtime::{Language, Parser, Token, language::SymbolMetadata};
 use std::sync::{
@@ -8,7 +8,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn make_language(counter: Arc<AtomicUsize>) -> Language {
     let mut grammar = Grammar::new("test".to_string());
     let a_id = SymbolId(1);
@@ -91,7 +91,7 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
 }
 
 #[test]
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn glr_parse_simple() {
     let counter = Arc::new(AtomicUsize::new(0));
     let lang = make_language(counter.clone());
@@ -102,7 +102,7 @@ fn glr_parse_simple() {
     assert_eq!(counter.load(Ordering::SeqCst), 1);
 }
 
-#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
+#[cfg(all(feature = "glr", feature = "incremental_glr"))]
 #[test]
 fn glr_incremental_reuse() {
     let counter = Arc::new(AtomicUsize::new(0));

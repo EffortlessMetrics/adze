@@ -7,7 +7,7 @@ use crate::{Action, ParseTable, RuleId, StateId, SymbolId};
 use smallvec::SmallVec;
 use std::collections::HashMap;
 
-#[cfg(feature = "perf-counters")]
+#[cfg(feature = "perf_counters")]
 use crate::perf;
 
 #[cfg(feature = "glr_telemetry")]
@@ -259,7 +259,7 @@ impl<'t> Driver<'t> {
                 }) {
                     match *action {
                         Action::Shift(ns) => {
-                            #[cfg(feature = "perf-counters")]
+                            #[cfg(feature = "perf_counters")]
                             perf::inc_shifts(1);
                             let node_id =
                                 self.push_terminal(&mut state, token_sym, (token_start, token_end));
@@ -278,7 +278,7 @@ impl<'t> Driver<'t> {
                             return Ok(Self::wrap_forest(state.forest));
                         }
                         Action::Reduce(rid) => {
-                            #[cfg(feature = "perf-counters")]
+                            #[cfg(feature = "perf_counters")]
                             perf::inc_reductions(1);
                             #[cfg(feature = "glr_telemetry")]
                             if let Some(t) = self.telemetry {
@@ -487,7 +487,7 @@ impl<'t> Driver<'t> {
                 }) {
                     match *action {
                         Action::Shift(ns) => {
-                            #[cfg(feature = "perf-counters")]
+                            #[cfg(feature = "perf_counters")]
                             perf::inc_shifts(1);
                             let node_id = self.push_terminal(
                                 &mut state,
@@ -518,7 +518,7 @@ impl<'t> Driver<'t> {
                             return Ok(Self::wrap_forest(state.forest));
                         }
                         Action::Reduce(rid) => {
-                            #[cfg(feature = "perf-counters")]
+                            #[cfg(feature = "perf_counters")]
                             perf::inc_reductions(1);
                             #[cfg(feature = "glr_telemetry")]
                             if let Some(t) = self.telemetry {
@@ -552,7 +552,7 @@ impl<'t> Driver<'t> {
                             // TODO: Insert ERROR node and continue parsing
                         }
                         Action::Fork(ref xs) => {
-                            #[cfg(feature = "perf-counters")]
+                            #[cfg(feature = "perf_counters")]
                             perf::inc_forks(1);
                             // If your generator emits Fork, just treat as a set of actions
                             for a in xs {
@@ -1024,13 +1024,13 @@ impl<'t> Driver<'t> {
         // Remove duplicate roots by ID
         forest.roots.dedup_by_key(|n| n.id);
 
-        #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
+        #[cfg(any(test, feature = "test-api", feature = "test_helpers"))]
         let error_stats = forest.debug_error_stats();
 
         let view = Box::new(ParseForestView::new(forest));
         Forest {
             view,
-            #[cfg(any(test, feature = "test-api", feature = "test-helpers"))]
+            #[cfg(any(test, feature = "test-api", feature = "test_helpers"))]
             test_hooks: Some(crate::forest_view::ForestTestHooks { error_stats }),
         }
     }

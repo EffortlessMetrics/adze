@@ -1,16 +1,16 @@
 [package]
-name = "ts-c-harness"
+name = "adze-ts-c-harness"
 version = "0.1.0"
-edition.workspace = true
-rust-version.workspace = true
-license = "MIT OR Apache-2.0"
+edition = "2024"
+rust-version = "1.92.0"
+license = "Apache-2.0 OR MIT"
 description = "Internal Tree-sitter C FFI parity test harness."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = false
 keywords = ["tree-sitter", "ffi", "testing", "parity", "parser"]
 categories = ["development-tools::testing"]
 homepage = "https://github.com/EffortlessMetrics/adze"
-documentation = "https://docs.rs/ts-c-harness"
+documentation = "https://github.com/EffortlessMetrics/adze"
 
 [features]
 default = []
@@ -37,5 +37,8 @@ required-features = ["runtime-parity", "ts-ffi-raw"]
 name = "ffi_parity"
 required-features = ["runtime-parity"]
 
-[lints]
-workspace = true
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+missing_docs = "warn"
+unused_extern_crates = "deny"

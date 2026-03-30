@@ -34,7 +34,7 @@ The modern GLR runtime provides:
 - **GLR Engine Integration**: Handles ambiguous grammars with multiple parse paths
 - **Incremental Parsing**: Automatic subtree reuse with conservative conflict avoidance
 - **Performance Monitoring**: Built-in metrics via `ADZE_LOG_PERFORMANCE`
-- **Feature Gates**: `glr-core`, `incremental`, `arenas` for different capabilities
+- **Feature Gates**: `glr`, `incremental_glr`, `arenas` for different capabilities
 
 ```rust
 use adze_runtime::{Parser, Language};

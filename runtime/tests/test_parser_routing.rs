@@ -47,7 +47,7 @@ mod parser_routing_tests {
     /// Test: Conflicting grammar without GLR feature panics
     #[test]
     #[cfg(all(feature = "pure-rust", not(feature = "glr")))]
-    #[should_panic(expected = "Grammar has shift/reduce")]
+    #[should_panic(expected = "Grammar has conflicts but GLR feature is not enabled")]
     fn test_conflicting_grammar_requires_glr_feature() {
         // This test documents that attempting to parse a grammar with
         // conflicts using pure-rust (without glr) should panic with

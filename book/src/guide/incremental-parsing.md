@@ -164,7 +164,7 @@ Incremental parsing requires specific feature flags:
 adze = { version = "0.8", features = ["incremental_glr"] }
 
 # Alternative: basic incremental support (legacy)
-adze = { version = "0.8", features = ["incremental"] }
+adze = { version = "0.8", features = ["incremental_glr"] }
 
 # All features (comprehensive)
 adze = { version = "0.8", features = ["all-features"] }

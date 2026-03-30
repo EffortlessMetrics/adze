@@ -1,10 +1,10 @@
 //! Parser implementation with Tree-sitter-compatible API
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use crate::builder::forest_to_tree;
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use crate::engine::parse_full as engine_parse_full;
-#[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
+#[cfg(all(feature = "glr", feature = "incremental_glr"))]
 use crate::engine::parse_incremental as engine_parse_incremental;
 use crate::{error::ParseError, language::Language, tree::Tree};
 #[cfg(all(feature = "pure-rust", feature = "serialization"))]
@@ -75,7 +75,7 @@ impl Parser {
     ///
     /// In GLR mode, validates that the language provides a parse table and tokenizer.
     pub fn set_language(&mut self, language: Language) -> Result<(), ParseError> {
-        #[cfg(feature = "glr-core")]
+        #[cfg(feature = "glr")]
         {
             if language.parse_table.is_none() {
                 return Err(ParseError::with_msg("Language has no parse table"));
@@ -155,13 +155,13 @@ impl Parser {
     }
 
     fn parse_full(&mut self, language: &Language, input: &[u8]) -> Result<Tree, ParseError> {
-        #[cfg(feature = "glr-core")]
+        #[cfg(feature = "glr")]
         {
             let forest = engine_parse_full(language, input)?;
             Ok(forest_to_tree(forest))
         }
 
-        #[cfg(not(feature = "glr-core"))]
+        #[cfg(not(feature = "glr"))]
         {
             let _ = (language, input);
             Err(ParseError::with_msg("GLR core feature not enabled"))
@@ -175,7 +175,7 @@ impl Parser {
         input: &[u8],
         old_tree: &Tree,
     ) -> Result<Tree, ParseError> {
-        #[cfg(all(feature = "glr-core", feature = "incremental_glr"))]
+        #[cfg(all(feature = "glr", feature = "incremental_glr"))]
         {
             // Optimization: return early if input hasn't changed
             if let Some(old_src) = old_tree.source_bytes()
@@ -187,7 +187,7 @@ impl Parser {
             Ok(forest_to_tree(forest))
         }
 
-        #[cfg(not(feature = "glr-core"))]
+        #[cfg(not(feature = "glr"))]
         {
             let _ = (language, input, old_tree);
             Err(ParseError::with_msg("GLR core feature not enabled"))
@@ -320,11 +320,11 @@ impl Parser {
             symbol_count: parse_table.symbol_count as u32,
             field_count: 0,
             max_alias_sequence_length: 0,
-            #[cfg(feature = "glr-core")]
+            #[cfg(feature = "glr")]
             parse_table: Some(parse_table),
-            #[cfg(not(feature = "glr-core"))]
+            #[cfg(not(feature = "glr"))]
             parse_table: crate::language::ParseTable::default(),
-            #[cfg(feature = "glr-core")]
+            #[cfg(feature = "glr")]
             tokenize: None,
             symbol_names,
             symbol_metadata: Vec::new(),

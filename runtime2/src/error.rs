@@ -1,5 +1,6 @@
 //! Error types for parsing operations
 
+use core::fmt;
 use thiserror::Error;
 
 pub use adze_error_location_core::ErrorLocation;
@@ -100,7 +101,13 @@ impl ParseError {
     }
 }
 
-#[cfg(feature = "glr-core")]
+impl fmt::Display for ErrorLocation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
+#[cfg(feature = "glr")]
 impl From<adze_glr_core::driver::GlrError> for ParseError {
     fn from(e: adze_glr_core::driver::GlrError) -> Self {
         ParseError::with_msg(&e.to_string())

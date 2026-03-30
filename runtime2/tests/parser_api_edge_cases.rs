@@ -483,7 +483,7 @@ fn test_parser_handles_problematic_inputs_gracefully() {
 // Test 21: Parser with simple tokenizer (if tokens provided)
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn test_parser_with_stub_tokens() {
     let mut parser = Parser::new();

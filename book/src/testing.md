@@ -32,8 +32,8 @@ cargo test -p adze-runtime2    # GLR runtime
 Some crates behave differently depending on feature flags:
 
 ```bash
-cargo test -p adze --features glr-core
-cargo test -p adze --features incremental
+cargo test -p adze --features glr
+cargo test -p adze --features incremental_glr
 cargo test -p adze --features all-features
 ```
 

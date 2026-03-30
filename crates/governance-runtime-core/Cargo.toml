@@ -43,3 +43,6 @@ strict_docs = [
 [dependencies]
 adze-governance-runtime-profile-core = { version = "0.1.0", path = "../governance-runtime-profile-core" }
 adze-governance-runtime-reporting = { version = "0.1.0", path = "../governance-runtime-reporting" }
+
+[dev-dependencies]
+proptest = { workspace = true }

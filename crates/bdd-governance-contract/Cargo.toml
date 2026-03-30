@@ -23,3 +23,6 @@ strict_docs = ["adze-bdd-governance-core/strict_docs"]
 
 [dependencies]
 adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
+
+[dev-dependencies]
+proptest = { workspace = true }

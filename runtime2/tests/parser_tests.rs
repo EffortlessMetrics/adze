@@ -5,7 +5,7 @@
 //! kind identification, forest-to-tree conversion, sequential parses, reset,
 //! error nodes, and performance.
 
-#![cfg(feature = "glr-core")]
+#![cfg(feature = "glr")]
 
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};

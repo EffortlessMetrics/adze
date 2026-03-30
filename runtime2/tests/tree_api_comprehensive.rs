@@ -7,9 +7,9 @@
 
 #![allow(clippy::needless_range_loop)]
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};
 use adze_runtime::language::SymbolMetadata;
 use adze_runtime::tree::TreeCursor;
@@ -20,7 +20,7 @@ use adze_runtime::{Language, Parser, Point, Token, Tree};
 // Symbols: 0=EOF, 1=a, 2=b, 3=start
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn build_ab_language() -> Language {
     let mut grammar = Grammar::new("test_ab".to_string());
 
@@ -120,7 +120,7 @@ fn build_ab_language() -> Language {
         .unwrap()
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn parse_ab(input: &str) -> Tree {
     let lang = build_ab_language();
     let mut parser = Parser::new();
@@ -184,7 +184,7 @@ fn stub_root_node_byte_range_is_empty() {
     assert_eq!(root.byte_range(), 0..0);
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn parsed_root_kind_resolves_via_language() {
     let tree = parse_ab("ab");
@@ -232,7 +232,7 @@ fn node_child_by_field_name_returns_none() {
     assert!(tree.root_node().child_by_field_name("name").is_none());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn parsed_node_has_expected_children() {
     let tree = parse_ab("ab");
@@ -249,7 +249,7 @@ fn parsed_node_has_expected_children() {
     assert_eq!(second.kind_id(), 2);
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn parsed_child_parent_returns_none() {
     // Parent links are not stored — child.parent() always returns None.
@@ -285,7 +285,7 @@ fn cursor_root_has_no_sibling() {
     assert!(!cursor.goto_next_sibling());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn cursor_goto_first_child_and_back() {
     let tree = parse_ab("ab");
@@ -297,7 +297,7 @@ fn cursor_goto_first_child_and_back() {
     assert!(!cursor.goto_parent());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn cursor_sibling_traversal() {
     let tree = parse_ab("ab");
@@ -308,7 +308,7 @@ fn cursor_sibling_traversal() {
     assert!(cursor.goto_next_sibling());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn cursor_full_depth_first_visits_all_nodes() {
     let tree = parse_ab("ab");
@@ -354,7 +354,7 @@ fn node_positions_return_dummy_points() {
     assert_eq!(root.end_position(), Point::new(0, 0));
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn parsed_children_have_contiguous_byte_ranges() {
     let tree = parse_ab("ab");
@@ -387,7 +387,7 @@ fn stub_clone_produces_equal_tree() {
     assert_eq!(tree.root_node().end_byte(), cloned.root_node().end_byte());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn parsed_clone_preserves_all_fields() {
     let tree = parse_ab("ab");
@@ -400,7 +400,7 @@ fn parsed_clone_preserves_all_fields() {
     assert_eq!(tree.root_node().end_byte(), cloned.root_node().end_byte());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn cloned_tree_language_preserved() {
     let tree = parse_ab("ab");
@@ -452,7 +452,7 @@ fn named_child_count_equals_child_count_on_stub() {
     assert_eq!(root.named_child_count(), root.child_count());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn named_child_count_equals_child_count_on_parsed() {
     let tree = parse_ab("ab");
@@ -460,7 +460,7 @@ fn named_child_count_equals_child_count_on_parsed() {
     assert_eq!(root.named_child_count(), root.child_count());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn named_child_matches_child_for_all_indices() {
     let tree = parse_ab("ab");
@@ -514,7 +514,7 @@ fn utf8_text_on_empty_stub() {
     assert_eq!(root.utf8_text(b"").unwrap(), "");
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn utf8_text_on_parsed_children() {
     let tree = parse_ab("ab");
@@ -592,7 +592,7 @@ fn node_copy_preserves_all_properties() {
 // Language query helpers via Node
 // ===========================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn language_symbol_name_lookup() {
     let lang = build_ab_language();
@@ -603,7 +603,7 @@ fn language_symbol_name_lookup() {
     assert_eq!(lang.symbol_name(99), None);
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn language_is_terminal_query() {
     let lang = build_ab_language();
@@ -613,7 +613,7 @@ fn language_is_terminal_query() {
     assert!(!lang.is_terminal(3)); // start is non-terminal
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn language_is_visible_query() {
     let lang = build_ab_language();

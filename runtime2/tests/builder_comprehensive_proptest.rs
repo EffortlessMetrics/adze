@@ -1,4 +1,4 @@
-#![cfg(feature = "glr-core")]
+#![cfg(feature = "glr")]
 #![allow(clippy::needless_range_loop)]
 
 //! Comprehensive property-based and unit tests for the builder module

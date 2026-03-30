@@ -2,7 +2,7 @@
 
 // This test requires a parse table that violates the EOF/END parity invariant
 // to trigger the specific recovery scenario we're testing
-#[cfg(all(feature = "test-helpers", not(feature = "strict-invariants")))]
+#[cfg(all(feature = "test_helpers", not(feature = "strict-invariants")))]
 #[test]
 fn accept_via_insertion_at_eof_cost_is_one() {
     use adze_glr_core::{Action, Driver, LexMode, ParseRule, ParseTable};

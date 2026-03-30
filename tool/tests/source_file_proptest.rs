@@ -49,7 +49,14 @@ fn grammars(path: &Path) -> adze_tool::ToolResult<Vec<Value>> {
 // ===========================================================================
 
 fn grammar_name() -> impl Strategy<Value = String> {
-    "[a-z][a-z0-9_]{1,10}"
+    const KEYWORDS: &[&str] = &[
+        "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum",
+        "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move",
+        "mut", "pub", "ref", "return", "self", "Self", "static", "struct", "super", "trait",
+        "true", "type", "union", "unsafe", "use", "where", "while",
+    ];
+
+    "[a-z][a-z0-9_]{1,10}".prop_filter("not a Rust keyword", |s| !KEYWORDS.contains(&s.as_str()))
 }
 
 fn rust_module_ident(name: &str) -> String {
