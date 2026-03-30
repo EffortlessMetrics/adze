@@ -9,6 +9,15 @@ on:
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
+  RUST_TEST_THREADS: 2
+  RAYON_NUM_THREADS: 4
+  TOKIO_WORKER_THREADS: 2
+  TOKIO_BLOCKING_THREADS: 8
+  CARGO_BUILD_JOBS: 2
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+  NUMEXPR_NUM_THREADS: 1
 
 jobs:
   test-policy:
@@ -16,30 +25,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache target directory
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v2
 
       - name: Check for undocumented ignored tests
         run: |
@@ -182,7 +175,7 @@ jobs:
           fi
 
       - name: Upload test inventory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         if: always()
         with:
           name: test-inventory-report
@@ -191,7 +184,13 @@ jobs:
 
       - name: Check test execution time
         run: |
+          set -o pipefail
           echo "Running tests with timeout enforcement..."
+
+          # Cargo injects the Rust sysroot libdir when it runs test binaries.
+          # Recreate that environment before invoking the binaries directly.
+          cargo_target_libdir="$(rustc --print target-libdir)"
+          export LD_LIBRARY_PATH="$cargo_target_libdir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
           # Directory -> package mapping for timeout lane
           declare -A crate_packages=(
@@ -204,7 +203,7 @@ jobs:
             ["common"]="adze-common"
           )
 
-          # Run tests with 60s timeout per crate
+          # Run tests with 60s timeout per crate (compilation separated)
           for crate in runtime macro glr-core tablegen tool ir common; do
             if [ -d "$crate" ]; then
               package="${crate_packages[$crate]}"
@@ -213,18 +212,59 @@ jobs:
                 exit 1
               fi
 
-              echo "Testing $crate ($package) with timeout..."
+              echo "Compiling $crate ($package) and capturing test binaries..."
 
-              timeout 60s cargo test -p "$package" --lib --tests || {
+              test_bins_file=$(mktemp)
+              trap 'rm -f "$test_bins_file"' EXIT
+
+              # Compile once, then execute the produced test binaries under the runtime budget.
+              timeout -k 10s 180s cargo test -p "$package" --lib --tests --no-run --message-format=json \
+                | jq -r 'select(.reason == "compiler-artifact" and .profile.test == true and .executable != null) | .executable' \
+                | sort -u > "$test_bins_file" || {
                 exit_code=$?
-                if [ $exit_code -eq 124 ]; then
-                  echo "::error::Tests in $crate exceeded 60s timeout"
+                if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
+                  if [ $exit_code -eq 137 ]; then
+                    echo "::error::Compilation for $crate exceeded 180s timeout and was force-killed"
+                  else
+                    echo "::error::Compilation for $crate exceeded 180s timeout"
+                  fi
                   exit 1
                 else
-                  echo "::error::Tests in $crate failed with exit code $exit_code"
+                  echo "::error::Compilation for $crate failed with exit code $exit_code"
                   exit $exit_code
                 fi
               }
+
+              if [ ! -s "$test_bins_file" ]; then
+                echo "::error::No test binaries were produced for $crate ($package)"
+                exit 1
+              fi
+
+              echo "Running prebuilt test binaries for $crate ($package) with timeout..."
+
+              pushd "$crate" >/dev/null
+              while IFS= read -r test_bin; do
+                test_name=$(basename "$test_bin")
+                echo "Testing $crate ($package): $test_name"
+
+                timeout -k 10s 60s "$test_bin" || {
+                  exit_code=$?
+                  if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
+                    if [ $exit_code -eq 137 ]; then
+                      echo "::error::Test binary $test_name in $crate exceeded 60s timeout and was force-killed"
+                    else
+                      echo "::error::Test binary $test_name in $crate exceeded 60s timeout"
+                    fi
+                    popd >/dev/null
+                    exit 1
+                  else
+                    echo "::error::Test binary $test_name in $crate failed with exit code $exit_code"
+                    popd >/dev/null
+                    exit $exit_code
+                  fi
+                }
+              done < "$test_bins_file"
+              popd >/dev/null
             fi
           done
 

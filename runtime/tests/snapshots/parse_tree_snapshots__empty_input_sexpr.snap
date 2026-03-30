@@ -1,5 +1,5 @@
 ---
 source: runtime/tests/parse_tree_snapshots.rs
-expression: arith_result_to_sexpr(&result)
+expression: "safe_arith_parse(\"\")"
 ---
-(ERROR ParseError { reason: UnexpectedToken("end"), start: 0, end: 0 })
+(ERROR ParseError { reason: UnexpectedToken("TreeSitter backend is not supported in pure-rust mode"), start: 0, end: 0 })

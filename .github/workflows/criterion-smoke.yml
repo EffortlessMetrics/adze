@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Run small benchmarks
@@ -20,7 +20,7 @@ jobs:
           RUSTFLAGS='-C target-cpu=native' cargo bench -p adze -- --warm-up-time 0 --measurement-time 1 || true
       - name: Upload bench output
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: criterion-smoke
           path: target/criterion/

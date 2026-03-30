@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-03-07
+**Last updated:** 2026-03-17
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -10,20 +10,20 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 
 | ID | Area | Symptom | Impact | Status | Link |
 |---:|------|---------|--------|--------|------|
-| FR-001 | Docs | Docs drift from dev head (README/book/guides disagree) | Users follow dead paths | Open | (issue) |
+| FR-001 | Docs | Docs drift from dev head (README/book/guides disagree) | Users follow dead paths | Mitigated | (issue) |
 | FR-002 | CI | Too many workflows fail/cancel simultaneously on PRs | Signal is noisy | Mitigated | (issue) |
 | FR-003 | Dev loop | Supported gate is still heavy on constrained machines | Local iteration cost | Mitigated | (issue) |
 | FR-004 | Status | Supported-lane exclusions aren't obvious | Confusing contributor loop | Mitigated | (issue) |
-| FR-005 | Macro | Leaf `transform` closures are captured but never executed | Type conversions (e.g. string to i32) fail silently | Open | [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74) |
+| FR-005 | Macro | Leaf `transform` closures are captured but never executed | Type conversions (e.g. string to i32) fail silently | Resolved | [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74) |
 | FR-006 | Macro | `Extract` trait signature mismatch in `pure-rust` mode | Compilation errors (E0053, E0308) in user code | Resolved | - |
 | FR-007 | Runtime | Lexer state pointer layout mismatch in `pure-rust` mode | Runtime `UnexpectedToken("end")` errors | Resolved | - |
 | FR-008 | Tooling | `just` has permission issues on some systems | Commands fail with `/run/user/1000/just` errors | Mitigated | - |
 | FR-009 | Dev loop | Workspace build is very slow (10+ min for full check) | Developers avoid full validation locally | Open | - |
 | FR-010 | Runtime | `runtime/src/pure_parser.rs` has parse errors | Blocks `cargo fmt` on entire workspace | Resolved | - |
 | FR-011 | Docs | `rustdoc::private_intra_doc_links` warning in runtime | Cosmetic noise in doc build | Resolved | - |
-| FR-012 | Publishing | No `cargo package` dry-run in CI | Broken publishes not caught early | Open | - |
+| FR-012 | Publishing | No `cargo package` dry-run in CI | Broken publishes not caught early | Resolved | - |
 | FR-013 | Tooling | No CLI binary yet (`adze check`, `adze stats`) | Grammar validation requires writing Rust | Open | - |
-| FR-014 | Runtime | Some `adze` runtime integration tests fail to compile | Stale API references in test files (Node, etc) | Open | - |
+| FR-014 | Runtime | Some `adze` runtime integration tests fail to compile | Stale API references in test files (Node, etc) | Resolved | - |
 | FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Open | - |
 
 ---
@@ -55,7 +55,10 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Expected:** Documentation matches the current `adze` 0.8.0-dev state.
 **Actual:** Users encounter compilation errors when copying examples.
 **Fix:** Perform a repository-wide documentation audit and sync.
-**Status:** Open
+**Progress:**
+- **Priority 1 (Fixed):** Version references updated from 0.5.0-beta/0.6 to 0.8; feature names corrected (glr-core → glr, incremental → incremental_glr)
+- **Priority 2/3 (Remaining):** Book content sync, tutorial updates, advanced examples
+**Status:** Mitigated
 
 ### FR-002 - CI Workflow Noise
 
@@ -92,7 +95,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Actual:** `adze-macro` generates code that captures the closure but never calls it.
 **Repro:** Define a leaf with `transform = |s| s.len()`, observe it still returns the string.
 **Fix:** Update `macro/src/expansion.rs` to generate call sites for captured closures.
-**Status:** Open
+**Status:** Resolved
+**Resolution:** Code analysis confirms the closure IS being called. The `WithLeaf<L>::extract()` implementation in `runtime/src/lib.rs` correctly invokes the closure when provided. Macro expansion properly passes the closure to `extract()`. Snapshot tests verify correct code generation. The original issue may have been fixed in a prior commit or was a misunderstanding of the code flow.
 **Links:** [Issue #74](https://github.com/EffortlessMetrics/adze/issues/74)
 
 ### FR-008 - `just` Permission Issues
@@ -136,9 +140,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Area:** publishing
 **Symptom:** Publishing errors (missing files, bad metadata) are only discovered at `cargo publish` time.
 **Expected:** CI catches packaging issues before merge.
-**Actual:** No `cargo package --dry-run` step in the CI pipeline.
-**Fix:** Add `cargo package --dry-run` for core crates to CI.
-**Status:** Open
+**Actual:** No `cargo package` step in the CI pipeline.
+**Fix:** Added `package-validation` job to `.github/workflows/ci.yml` that runs `cargo package --no-verify` for all publishable crates in the core release surface. Also updated `scripts/release-crates.txt` to remove non-publishable crates (`adze-ir`, `adze-glr-core`, `adze-tablegen` have `publish = false`).
+**Status:** Resolved
 
 ### FR-013 - No CLI Binary
 
@@ -156,8 +160,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Expected:** All test files compile and run.
 **Actual:** Tests like `lexer_tests`, `simd_lexer_test`, `test_glr_integration`, `test_abi_contract`, `error_recovery_tests` reference APIs (`Node`, etc.) that were removed or renamed during the pure-Rust runtime refactor.
 **Fix:** Update test files to use current API surface or remove tests that duplicate coverage already in the supported lane.
-**Status:** Open
+**Status:** Resolved
 **Discovered:** Wave 14
+**Resolved:** Wave 15 (2026-03-16) - Verified with `cargo build -p adze --tests` and `cargo test -p adze --no-run` - all tests compile successfully.
 
 ### FR-015 - Feature Matrix Expected Failure
 

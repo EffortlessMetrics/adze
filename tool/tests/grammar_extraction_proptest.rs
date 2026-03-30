@@ -132,6 +132,12 @@ fn type_name_strategy() -> impl Strategy<Value = String> {
     "[A-Z][a-z]{1,8}"
         .prop_filter("non-empty", |s| !s.is_empty())
         .prop_filter("not a keyword", |s| !is_rust_keyword(s))
+        .prop_filter("not a std container type", |s| {
+            !matches!(
+                s.as_str(),
+                "Vec" | "Option" | "Box" | "Result" | "String" | "Self" | "Fn" | "Arc" | "Rc"
+            )
+        })
 }
 
 fn field_name_strategy() -> impl Strategy<Value = String> {

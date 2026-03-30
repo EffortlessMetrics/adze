@@ -12,12 +12,13 @@ categories = ["development-tools"]
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["adze-macro/pure-rust"]
-tree-sitter-c2rust = ["tree-sitter-runtime-c2rust"]
-tree-sitter-standard = ["tree-sitter-runtime-standard"]
+pure-rust = ["adze-macro/pure-rust", "adze-runtime-governance-api/pure-rust"]
+tree-sitter-c2rust = ["tree-sitter-runtime-c2rust", "adze-runtime-governance-api/tree-sitter-c2rust"]
+tree-sitter-standard = ["tree-sitter-runtime-standard", "adze-runtime-governance-api/tree-sitter-standard"]
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]
 serialization = ["serde", "serde_json"] # Enable tree serialization
@@ -35,7 +36,7 @@ strict_docs = [] # Enable strict documentation requirements
 strict_api = [] # Enable strict API surface checking
 unstable-benches = [] # Enable benchmarks that depend on unstable APIs
 glr_telemetry = [] # Enable GLR telemetry
-glr = [] # Enable GLR parser mode
+glr = ["adze-runtime-governance-api/glr"] # Enable GLR parser mode
 with-grammars = [] # Enable tests that require ts-bridge and tree-sitter grammars
 
 [dependencies]
@@ -53,7 +54,7 @@ indexmap = "2.10.0"
 once_cell = "1.19"
 thiserror = "2.0.12"
 rayon = "1.10.0"
-ahash = "0.8.12"
+ahash = { version = "0.8.12", default-features = false, features = ["std"] }
 log = "0.4.27"
 smallvec.workspace = true
 wasm-bindgen = { version = "0.2.100", optional = true }

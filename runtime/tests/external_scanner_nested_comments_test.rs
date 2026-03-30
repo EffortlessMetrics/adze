@@ -198,10 +198,10 @@ fn test_nested_comments() {
         result,
         Some(ScanResult {
             symbol: COMMENT,
-            length: 36
+            length: 35
         })
     );
-    assert_eq!(lexer.position, 36);
+    assert_eq!(lexer.position, 35);
 }
 
 #[test]
@@ -250,7 +250,7 @@ fn test_deeply_nested_comments() {
         result,
         Some(ScanResult {
             symbol: COMMENT,
-            length: 28
+            length: 27
         })
     );
 

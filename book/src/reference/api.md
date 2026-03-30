@@ -430,11 +430,11 @@ Control functionality with Cargo features:
 
 ```toml
 [dependencies]
-adze = { version = "0.6", features = [
-    "glr-core",      # GLR parsing engine
-    "incremental",   # Incremental parsing
+adze = { version = "0.8", features = [
+    "glr",           # GLR parsing engine
+    "incremental_glr",   # Incremental parsing
     "serialization", # Tree serialization
-    "external_scanners", # External scanner support  
+    "external_scanners", # External scanner support
     "pure-rust",     # Pure Rust implementation
     "tree-sitter-standard", # Standard Tree-sitter runtime
     "tree-sitter-c2rust",   # Pure Rust Tree-sitter runtime

@@ -115,3 +115,19 @@ publish-order:
 # Clean build artifacts
 clean:
     cargo clean
+
+# Clean disposable target subtrees without dropping the full workspace cache
+clean-light:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -rf \
+      target/deterministic-codegen \
+      target/precommit \
+      target/ci \
+      target/glr-parity-test \
+      target/tmp \
+      target/flycheck*
+
+# Clean a single package's artifacts instead of the whole target tree
+clean-package crate:
+    cargo clean -p {{crate}}

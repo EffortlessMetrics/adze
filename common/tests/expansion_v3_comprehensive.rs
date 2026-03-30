@@ -232,33 +232,34 @@ fn field_no_comma_means_no_params() {
 // ===========================================================================
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn extract_panics_on_skip_type_without_angle_brackets() {
-    // Construct a type path segment with no angle brackets but matching skip name.
-    // "Box" is in skip set but has no generic args.
+fn extract_skip_type_without_angle_brackets_is_unchanged() {
+    // A bare type path that matches a skip container name should be left alone.
     let ty: Type = parse_quote!(Box);
-    let _ = try_extract_inner_type(&ty, "Option", &skip(&["Box"]));
+    let (inner, ok) = try_extract_inner_type(&ty, "Option", &skip(&["Box"]));
+    assert!(!ok);
+    assert_eq!(inner.to_token_stream().to_string(), "Box");
 }
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn extract_panics_on_target_without_angle_brackets() {
+fn extract_target_without_angle_brackets_is_unchanged() {
     let ty: Type = parse_quote!(Option);
-    let _ = try_extract_inner_type(&ty, "Option", &skip(&[]));
+    let (inner, ok) = try_extract_inner_type(&ty, "Option", &skip(&[]));
+    assert!(!ok);
+    assert_eq!(inner.to_token_stream().to_string(), "Option");
 }
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn filter_panics_on_skip_type_without_angle_brackets() {
+fn filter_skip_type_without_angle_brackets_is_unchanged() {
     let ty: Type = parse_quote!(Box);
-    let _ = filter_inner_type(&ty, &skip(&["Box"]));
+    let filtered = filter_inner_type(&ty, &skip(&["Box"]));
+    assert_eq!(filtered.to_token_stream().to_string(), "Box");
 }
 
 #[test]
-#[should_panic(expected = "Expected angle bracketed path")]
-fn wrap_panics_on_skip_type_without_angle_brackets() {
+fn wrap_skip_type_without_angle_brackets_is_unchanged() {
     let ty: Type = parse_quote!(Vec);
-    let _ = wrap_leaf_type(&ty, &skip(&["Vec"]));
+    let wrapped = wrap_leaf_type(&ty, &skip(&["Vec"]));
+    assert_eq!(wrapped.to_token_stream().to_string(), "Vec");
 }
 
 // ===========================================================================

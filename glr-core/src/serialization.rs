@@ -75,7 +75,12 @@ pub enum DeserializationError {
 
     /// Incompatible format version
     #[error("Incompatible format version: expected {expected}, got {actual}")]
-    IncompatibleVersion { expected: u32, actual: u32 },
+    IncompatibleVersion {
+        /// Expected version
+        expected: u32,
+        /// Actual version found
+        actual: u32,
+    },
 
     /// ParseTable validation failed
     #[error("ParseTable validation failed: {0}")]

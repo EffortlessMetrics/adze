@@ -2,6 +2,6 @@
 source: runtime/tests/parse_tree_snapshots.rs
 expression: output
 ---
-compact:  (PANIC)
-spaced:   (PANIC)
-extra:    (PANIC)
+compact:  (ERROR ParseError { reason: UnexpectedToken("TreeSitter backend is not supported in pure-rust mode"), start: 0, end: 0 })
+spaced:   (ERROR ParseError { reason: UnexpectedToken("TreeSitter backend is not supported in pure-rust mode"), start: 0, end: 0 })
+extra:    (ERROR ParseError { reason: UnexpectedToken("TreeSitter backend is not supported in pure-rust mode"), start: 0, end: 0 })

@@ -90,31 +90,31 @@ pub fn try_extract_inner_type(
     if let Type::Path(p) = &ty {
         let type_segment = p.path.segments.last().unwrap();
         if type_segment.ident == inner_of {
-            let leaf_type = if let PathArguments::AngleBracketed(p) = &type_segment.arguments {
-                if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
-                    t
-                } else {
-                    panic!("Argument in angle brackets must be a type")
-                }
-            } else {
-                panic!("Expected angle bracketed path");
-            };
-
-            (leaf_type, true)
-        } else if skip_over.contains(type_segment.ident.to_string().as_str()) {
-            if let PathArguments::AngleBracketed(p) = &type_segment.arguments {
-                if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
-                    let (inner, extracted) = try_extract_inner_type(&t, inner_of, skip_over);
-                    if extracted {
-                        (inner, true)
+            match &type_segment.arguments {
+                PathArguments::AngleBracketed(p) => {
+                    if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
+                        (t, true)
                     } else {
-                        (ty.clone(), false)
+                        panic!("Argument in angle brackets must be a type")
                     }
-                } else {
-                    panic!("Argument in angle brackets must be a type")
                 }
-            } else {
-                panic!("Expected angle bracketed path");
+                _ => (ty.clone(), false),
+            }
+        } else if skip_over.contains(type_segment.ident.to_string().as_str()) {
+            match &type_segment.arguments {
+                PathArguments::AngleBracketed(p) => {
+                    if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
+                        let (inner, extracted) = try_extract_inner_type(&t, inner_of, skip_over);
+                        if extracted {
+                            (inner, true)
+                        } else {
+                            (ty.clone(), false)
+                        }
+                    } else {
+                        panic!("Argument in angle brackets must be a type")
+                    }
+                }
+                _ => (ty.clone(), false),
             }
         } else {
             (ty.clone(), false)
@@ -137,14 +137,15 @@ pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     if let Type::Path(p) = &ty {
         let type_segment = p.path.segments.last().unwrap();
         if skip_over.contains(type_segment.ident.to_string().as_str()) {
-            if let PathArguments::AngleBracketed(p) = &type_segment.arguments {
-                if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
-                    filter_inner_type(&t, skip_over)
-                } else {
-                    panic!("Argument in angle brackets must be a type")
+            match &type_segment.arguments {
+                PathArguments::AngleBracketed(p) => {
+                    if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
+                        filter_inner_type(&t, skip_over)
+                    } else {
+                        panic!("Argument in angle brackets must be a type")
+                    }
                 }
-            } else {
-                panic!("Expected angle bracketed path");
+                _ => ty.clone(),
             }
         } else {
             ty.clone()
@@ -168,16 +169,17 @@ pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
     if let Type::Path(p) = &mut ty {
         let type_segment = p.path.segments.last_mut().unwrap();
         if skip_over.contains(type_segment.ident.to_string().as_str()) {
-            if let PathArguments::AngleBracketed(args) = &mut type_segment.arguments {
-                for a in args.args.iter_mut() {
-                    if let syn::GenericArgument::Type(t) = a {
-                        *t = wrap_leaf_type(t, skip_over);
+            match &mut type_segment.arguments {
+                PathArguments::AngleBracketed(args) => {
+                    for a in args.args.iter_mut() {
+                        if let syn::GenericArgument::Type(t) = a {
+                            *t = wrap_leaf_type(t, skip_over);
+                        }
                     }
-                }
 
-                ty
-            } else {
-                panic!("Expected angle bracketed path");
+                    ty
+                }
+                _ => ty,
             }
         } else {
             parse_quote!(adze::WithLeaf<#ty>)

@@ -1,9 +1,16 @@
-#![allow(clippy::needless_range_loop)]
 //! Comprehensive tests for token processing and lexer integration in adze-glr-core.
 //!
 //! Covers: token stream construction, token sequence validation, lexer error handling,
 //! empty token streams, single-token parsing, token boundary conditions, Unicode tokens,
 //! and token kind mapping.
+//!
+//! Note: These tests use grammars where EOF may not be SymbolId(0), which violates
+//! strict invariants. They are only compiled when the `strict-invariants` feature
+//! is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
+#![allow(clippy::needless_range_loop)]
+
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::ts_lexer::NextToken;
 use adze_glr_core::{

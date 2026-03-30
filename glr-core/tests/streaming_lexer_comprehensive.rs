@@ -3,6 +3,12 @@
 //! Covers: NextToken creation, LexMode properties, parse_streaming with mock lexers,
 //! parse_tokens with various token sequences, position tracking, edge cases
 //! (empty input, UTF-8, large input), error handling, and candidate selection.
+//!
+//! Note: These tests use manually constructed parse tables that don't satisfy
+//! all strict invariants (e.g., EOF/END parity). They are only compiled when
+//! the `strict-invariants` feature is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::ts_lexer::NextToken;

@@ -2,7 +2,7 @@
 name = "adze-ir"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.92"
 description = "Grammar Intermediate Representation for pure-Rust Tree-sitter"
 license = "MIT"
 repository = "https://github.com/effortlessmetrics/adze"
@@ -10,12 +10,7 @@ homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-ir"
 readme = "README.md"
 publish = false
-include = [
-    "Cargo.toml",
-    "LICENSE*",
-    "README*",
-    "src/**"
-]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**"]
 
 [package.metadata.docs.rs]
 all-features = true

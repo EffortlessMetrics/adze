@@ -1,0 +1,103 @@
+---
+source: macro/src/lib.rs
+expression: "rustfmt_code(&expand_grammar(parse_quote!\n{\n    #[adze::grammar(\"test\")] mod grammar\n    {\n        #[adze::language] pub enum Expr\n        {\n            Number(#[adze::leaf(pattern = r\"\\d+\", transform = |v|\n            v.parse().unwrap())] u32), Neg\n            { #[adze::leaf(text = \"!\")] _bang: (), value: Box<Expr>, }\n        }\n    }\n})? .to_token_stream().to_string())"
+---
+mod grammar {
+    pub enum Expr {
+        Number(u32),
+        Neg { _bang: (), value: Box<Expr> },
+    }
+    impl ::adze::Extract<Expr> for Expr {
+        type LeafFn = ();
+        const GRAMMAR_NAME: &'static str = "test";
+        #[allow(non_snake_case)]
+        fn extract(
+            node: Option<&::adze::pure_parser::ParsedNode>,
+            source: &[u8],
+            _last_idx: usize,
+            _leaf_fn: Option<&Self::LeafFn>,
+        ) -> Self {
+            let node = node.expect("Extract called with None node for enum");
+            fn unwrap_hidden_rules<'a>(
+                node: &'a ::adze::pure_parser::ParsedNode,
+            ) -> &'a ::adze::pure_parser::ParsedNode {
+                if (node.kind().starts_with('_') || node.children.len() == 1)
+                    && node.children.len() > 0
+                {
+                    return unwrap_hidden_rules(&node.children[0]);
+                }
+                node
+            }
+            let unwrapped_node = unwrap_hidden_rules(node);
+            let non_extra_children: Vec<_> = unwrapped_node
+                .children
+                .iter()
+                .filter(|c| !c.is_extra)
+                .collect();
+            if unwrapped_node.kind() == stringify!(Expr) && non_extra_children.len() == 1 {
+                let child_node = non_extra_children[0];
+                return Self::extract(Some(child_node), source, _last_idx, _leaf_fn);
+            }
+            let node = unwrapped_node;
+            if node.kind() == "Expr_Number" {
+                return {
+                    let value = <adze::WithLeaf<u32> as ::adze::Extract<_>>::extract(
+                        Some(node),
+                        source,
+                        0,
+                        Some(&|v| v.parse().unwrap()),
+                    );
+                    Expr::Number(value)
+                };
+            }
+            if node.kind() == "Expr_Neg" {
+                return ::adze::__private::extract_struct_or_variant(
+                    node,
+                    move |cursor, last_idx| Expr::Neg {
+                        _bang: {
+                            ::adze::__private::extract_field::<(), _>(
+                                cursor, source, last_idx, "_bang", None,
+                            )
+                        },
+                        value: {
+                            ::adze::__private::extract_field::<Box<Expr>, _>(
+                                cursor, source, last_idx, "value", None,
+                            )
+                        },
+                    },
+                );
+            }
+            if unwrapped_node.children.is_empty() {
+                let node = unwrapped_node;
+                return {
+                    let value = <adze::WithLeaf<u32> as ::adze::Extract<_>>::extract(
+                        Some(node),
+                        source,
+                        0,
+                        Some(&|v| v.parse().unwrap()),
+                    );
+                    Expr::Number(value)
+                };
+            }
+            panic ! ("Could not determine enum variant from tree structure: node kind='{}', symbol={}, child_count={}" , unwrapped_node . kind () , unwrapped_node . symbol , unwrapped_node . children . len ())
+        }
+    }
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/grammar_",
+        "test",
+        "/parser_",
+        "test",
+        ".rs"
+    ));
+    pub fn language() -> &'static ::adze::pure_parser::TSLanguage {
+        &LANGUAGE
+    }
+    pub const LANGUAGE_REF: &'static ::adze::pure_parser::TSLanguage = &LANGUAGE;
+    #[doc = r" Parse an input string according to the grammar. Returns either any parsing errors that happened, or a"]
+    #[doc = "[`Expr`]"]
+    #[doc = r" instance containing the parsed structured data."]
+    pub fn parse(input: &str) -> core::result::Result<Expr, Vec<::adze::errors::ParseError>> {
+        ::adze::__private::parse::<Expr>(input, || language())
+    }
+}

@@ -8,10 +8,10 @@ Add the runtime and build-tool crates to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.5.0-beta"
+adze = "0.8"
 
 [build-dependencies]
-adze-tool = "0.5.0-beta"
+adze-tool = "0.8"
 ```
 
 Then create a `build.rs` in your project root:

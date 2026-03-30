@@ -2,7 +2,7 @@
 name = "adze-tablegen"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.92"
 description = "Table generation and compression for pure-Rust Tree-sitter"
 license = "MIT"
 repository = "https://github.com/effortlessmetrics/adze"
@@ -10,13 +10,7 @@ homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-tablegen"
 readme = "README.md"
 publish = false
-include = [
-    "Cargo.toml",
-    "LICENSE*",
-    "README*",
-    "src/**",
-    "MIGRATING.md"
-]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**", "MIGRATING.md"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -26,6 +20,8 @@ features = ["strict_docs"]
 [dependencies]
 adze-ir = { version = "0.8.0-dev", path = "../ir" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
+adze-bdd-grid-core = { version = "0.1.0", path = "../crates/bdd-grid-core" }
+adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -33,6 +29,9 @@ serde_json = "1.0"
 thiserror = "2.0"
 indexmap = "2.0"
 rustc-hash = "2.1"
+sha2 = "0.10"
+chrono = "0.4"
+rustc_version_runtime = "0.1"
 
 # Tree-sitter backends
 tree-sitter = { version = "0.25.2", optional = true }
@@ -57,7 +56,9 @@ default = ["tree-sitter-c2rust"]
 tree-sitter-standard = ["tree-sitter"]
 tree-sitter-c2rust = ["dep:tree-sitter-c2rust"]
 compression = [] # Feature for compression/decompression utilities
-strict_docs = []  # Feature flag for strict documentation enforcement
-strict_api = []  # Feature flag for strict API surface checking
-serialization = [] # Enable serialization support (used by runtime2)
+strict_docs = [] # Feature flag for strict documentation enforcement
+strict_api = [] # Feature flag for strict API surface checking
+serialization = [
+    "adze-glr-core/serialization",
+] # Enable serialization support (used by runtime2)
 small-table = [] # Test-only feature for compressed table round-trip tests

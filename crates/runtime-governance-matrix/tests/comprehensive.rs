@@ -9,8 +9,12 @@ fn current_backend_no_conflicts() {
 
 #[test]
 fn current_backend_with_conflicts() {
-    let b = current_backend_for(true);
-    assert!(!b.name().is_empty());
+    let profile = parser_feature_profile_for_runtime();
+
+    if profile.has_glr() {
+        let b = current_backend_for(true);
+        assert!(!b.name().is_empty());
+    }
 }
 
 #[test]

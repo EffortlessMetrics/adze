@@ -1,9 +1,15 @@
-#![allow(clippy::needless_range_loop)]
 //! Comprehensive integration tests for the full GLR pipeline:
 //! Grammar → normalize → FirstFollow → ItemSetCollection → ParseTable → Driver parsing.
 //!
 //! Each test builds a grammar using `GrammarBuilder`, runs it through the full
 //! pipeline, and validates the resulting parse table and/or driver output.
+//!
+//! Note: These tests use grammars where EOF may not be SymbolId(0), which violates
+//! strict invariants. They are only compiled when the `strict-invariants` feature
+//! is disabled.
+
+#![cfg(not(feature = "strict-invariants"))]
+#![allow(clippy::needless_range_loop)]
 
 use adze_glr_core::conflict_inspection::{ConflictType, count_conflicts};
 use adze_glr_core::{

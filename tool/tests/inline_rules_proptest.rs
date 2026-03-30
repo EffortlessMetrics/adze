@@ -92,7 +92,9 @@ fn grammar_name_strategy() -> impl Strategy<Value = String> {
 }
 
 fn type_name_strategy() -> impl Strategy<Value = String> {
-    "[A-Z][a-z]{1,8}".prop_filter("non-empty", |s| !s.is_empty())
+    "[A-Z][a-z]{1,8}".prop_filter("valid Rust identifier in this edition", |s| {
+        syn::parse_str::<syn::Ident>(s).is_ok()
+    })
 }
 
 fn safe_pattern_strategy() -> impl Strategy<Value = String> {

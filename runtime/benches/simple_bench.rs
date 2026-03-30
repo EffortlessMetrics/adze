@@ -5,6 +5,15 @@ use adze::lexer::{self, GrammarLexer};
 use adze_ir::{SymbolId, TokenPattern};
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
+fn configured_lexer(
+    token_patterns: &[(SymbolId, TokenPattern, i32)],
+    skip_symbols: &[SymbolId],
+) -> GrammarLexer {
+    let mut lexer = GrammarLexer::new(token_patterns);
+    lexer.set_skip_symbols(skip_symbols.to_vec());
+    lexer
+}
+
 // Helper function to lex an entire input
 fn lex_all(lexer: &mut GrammarLexer, input: &str) -> Vec<lexer::Token> {
     let mut tokens = Vec::new();
@@ -53,17 +62,17 @@ fn benchmark_lexer_simple(c: &mut Criterion) {
 
     c.bench_function("lexer_arithmetic_expression", |b| {
         b.iter(|| {
-            let mut lexer = GrammarLexer::new(&token_patterns);
+            let mut lexer = configured_lexer(&token_patterns, &[SymbolId(7)]);
             let input = "123 + 456 * 789 - x / y";
             let tokens = lex_all(&mut lexer, black_box(input));
-            assert_eq!(tokens.len(), 9); // Including EOF
+            assert_eq!(tokens.len(), 10); // 9 tokens + EOF
         });
     });
 
     c.bench_function("lexer_long_expression", |b| {
         let expr = "a + b * c - d / e + f * g - h / i + j * k - l / m + n * o - p / q";
         b.iter(|| {
-            let mut lexer = GrammarLexer::new(&token_patterns);
+            let mut lexer = configured_lexer(&token_patterns, &[SymbolId(7)]);
             let tokens = lex_all(&mut lexer, black_box(expr));
             assert!(tokens.len() > 20);
         });
@@ -72,7 +81,7 @@ fn benchmark_lexer_simple(c: &mut Criterion) {
     c.bench_function("lexer_nested_expression", |b| {
         let expr = "((a + b) * (c - d)) / ((e + f) * (g - h))";
         b.iter(|| {
-            let mut lexer = GrammarLexer::new(&token_patterns);
+            let mut lexer = configured_lexer(&token_patterns, &[SymbolId(7)]);
             let tokens = lex_all(&mut lexer, black_box(expr));
             assert!(tokens.len() > 15);
         });
@@ -171,7 +180,7 @@ fn benchmark_lexer_programming_language(c: &mut Criterion) {
         "#;
 
         b.iter(|| {
-            let mut lexer = GrammarLexer::new(&token_patterns);
+            let mut lexer = configured_lexer(&token_patterns, &[SymbolId(70), SymbolId(71)]);
             let tokens = lex_all(&mut lexer, black_box(program));
             assert!(tokens.len() > 30);
         });
@@ -212,7 +221,7 @@ fn benchmark_lexer_programming_language(c: &mut Criterion) {
         "#;
 
         b.iter(|| {
-            let mut lexer = GrammarLexer::new(&token_patterns);
+            let mut lexer = configured_lexer(&token_patterns, &[SymbolId(70), SymbolId(71)]);
             let tokens = lex_all(&mut lexer, black_box(program));
             assert!(tokens.len() > 100);
         });
@@ -237,7 +246,7 @@ fn benchmark_lexer_edge_cases(c: &mut Criterion) {
     c.bench_function("lexer_long_identifier", |b| {
         let ident = "a".repeat(100);
         b.iter(|| {
-            let mut lexer = GrammarLexer::new(&token_patterns);
+            let mut lexer = configured_lexer(&token_patterns, &[SymbolId(3)]);
             let tokens = lex_all(&mut lexer, black_box(&ident));
             assert_eq!(tokens.len(), 2); // identifier + EOF
         });
@@ -246,7 +255,7 @@ fn benchmark_lexer_edge_cases(c: &mut Criterion) {
     c.bench_function("lexer_many_tokens", |b| {
         let input = "a b c d e f g h i j k l m n o p q r s t u v w x y z ".repeat(10);
         b.iter(|| {
-            let mut lexer = GrammarLexer::new(&token_patterns);
+            let mut lexer = configured_lexer(&token_patterns, &[SymbolId(3)]);
             let tokens = lex_all(&mut lexer, black_box(&input));
             assert!(tokens.len() > 250);
         });

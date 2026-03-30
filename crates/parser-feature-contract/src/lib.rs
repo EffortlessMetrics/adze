@@ -55,8 +55,10 @@ mod tests {
     fn profile_resolve_backend() {
         let profile = ParserFeatureProfile::current();
         let b1 = profile.resolve_backend(false);
-        let b2 = profile.resolve_backend(true);
         let _ = b1.name();
-        let _ = b2.name();
+        if profile.has_glr() {
+            let b2 = profile.resolve_backend(true);
+            let _ = b2.name();
+        }
     }
 }

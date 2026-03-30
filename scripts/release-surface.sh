@@ -83,110 +83,95 @@ emit_fixed_crates() {
 
 emit_auto_crates() {
   local metadata
+  local metadata_file
   metadata="$(cargo metadata --no-deps --format-version 1)"
   if ! jq -e '.packages | length > 0' <<<"$metadata" >/dev/null 2>&1; then
     echo "::error::Failed to read cargo metadata for auto surface calculation." >&2
     exit 1
   fi
+  metadata_file="$(mktemp)"
+  printf '%s' "$metadata" >"$metadata_file"
+  python3 - "$metadata_file" <<'PY'
+import json
+import sys
+from collections import defaultdict
+from heapq import heapify, heappop, heappush
 
-  mapfile -t publishable_crates < <(
-    jq -r '
-      .packages[]
-      | select((.publish == null) or
-               (.publish == true) or
-               ((.publish | type == "array") and (.publish | index("crates.io") != null)))
-      | .name' <<< "$metadata" | sort -u
-  )
-  if [[ ${#publishable_crates[@]} -eq 0 ]]; then
-    echo "::error::No publishable crates found in workspace metadata." >&2
-    exit 1
-  fi
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    metadata = json.load(fh)
 
-  declare -A is_publishable=()
-  for crate in "${publishable_crates[@]}"; do
-    is_publishable["$crate"]=1
-  done
+publishable = []
+workspace_crates = set()
+for pkg in metadata["packages"]:
+    workspace_crates.add(pkg["name"])
+    publish = pkg.get("publish")
+    if publish is None or publish is True or (isinstance(publish, list) and "crates.io" in publish):
+        publishable.append(pkg["name"])
 
-  declare -A indegree=()
-  declare -A dependents=()
-  declare -A seen_edge=()
-  for crate in "${publishable_crates[@]}"; do
-    indegree["$crate"]=0
-  done
+publishable = sorted(set(publishable))
+if not publishable:
+    print("::error::No publishable crates found in workspace metadata.", file=sys.stderr)
+    sys.exit(1)
 
-  while IFS=$'\t' read -r crate dep; do
-    [[ -z "$crate" || -z "$dep" ]] && continue
-    [[ -z "${is_publishable[$crate]+x}" ]] && continue
-    [[ -z "${is_publishable[$dep]+x}" ]] && continue
-    [[ "$crate" == "$dep" ]] && continue
+publishable_set = set(publishable)
+dependents = defaultdict(set)
+indegree = {crate: 0 for crate in publishable}
 
-    edge="${dep}::${crate}"
-    if [[ -n "${seen_edge[$edge]+x}" ]]; then
-      continue
-    fi
-    seen_edge["$edge"]=1
-    (( indegree["$crate"] += 1 ))
+for pkg in metadata["packages"]:
+    crate = pkg["name"]
+    if crate not in publishable_set:
+        continue
 
-    if [[ -z "${dependents[$dep]+x}" ]]; then
-      dependents["$dep"]="$crate"
-    else
-      dependents["$dep"]="${dependents[$dep]}$'\n'$crate"
-    fi
-  done < <(
-    jq -r '
-      .packages[] as $pkg
-      | $pkg.name as $crate
-      | $pkg.dependencies[]?
-      | select((.kind // ["normal"]) | index("dev") | not)
-      | select((.optional // false) | not)
-      | "\($crate)\t\(.name)"' <<< "$metadata"
-  )
+    for dep in pkg.get("dependencies", []):
+        kind = dep.get("kind")
+        kinds = [kind] if isinstance(kind, str) else (kind or ["normal"])
+        if "dev" in kinds:
+            continue
+        if dep.get("optional", False):
+            continue
 
-  ordered_crates=()
-  declare -A seen=()
-  while true; do
-    progress=0
-    for crate in "${publishable_crates[@]}"; do
-      [[ -n "${seen[$crate]+x}" ]] && continue
-      if (( indegree["$crate"] == 0 )); then
-        seen["$crate"]=1
-        ordered_crates+=("$crate")
-        progress=1
+        dep_name = dep["name"]
+        if dep_name not in publishable_set or dep_name == crate:
+            continue
+        if crate not in dependents[dep_name]:
+            dependents[dep_name].add(crate)
+            indegree[crate] += 1
 
-        if [[ -n "${dependents[$crate]+x}" ]]; then
-          while IFS= read -r dependent; do
-            [[ -z "$dependent" ]] && continue
-            (( indegree["$dependent"] -= 1 ))
-          done <<< "${dependents[$crate]}"
-        fi
-      fi
-    done
+ready = [crate for crate in publishable if indegree[crate] == 0]
+heapify(ready)
+ordered = []
 
-    if (( progress == 0 )); then
-      break
-    fi
-  done
+while ready:
+    crate = heappop(ready)
+    ordered.append(crate)
+    for dependent in sorted(dependents.get(crate, ())):
+        indegree[dependent] -= 1
+        if indegree[dependent] == 0:
+            heappush(ready, dependent)
 
-  if [[ ${#ordered_crates[@]} -ne ${#publishable_crates[@]} ]]; then
-    unresolved=()
-    for crate in "${publishable_crates[@]}"; do
-      [[ -n "${seen[$crate]+x}" ]] && continue
-      unresolved+=("$crate")
-    done
-    echo "::error::Could not order publishable crates in a dependency-safe way." >&2
-    echo "::error::Unordered crates: ${unresolved[*]}" >&2
-    exit 1
-  fi
+if len(ordered) != len(publishable):
+    unresolved = [crate for crate in publishable if indegree[crate] > 0]
+    print("::error::Could not order publishable crates in a dependency-safe way.", file=sys.stderr)
+    print(f"::error::Unordered crates: {' '.join(unresolved)}", file=sys.stderr)
+    sys.exit(1)
 
-  for crate in "${ordered_crates[@]}"; do
-    printf '%s\n' "$crate"
-  done
+sys.stdout.write("\n".join(ordered))
+if ordered:
+    sys.stdout.write("\n")
+PY
+  rm -f "$metadata_file"
 }
 
 if [[ "$RELEASE_SURFACE_MODE" == "fixed" ]]; then
   emit_fixed_crates
 else
-  mapfile -t CRATES_TO_PUBLISH < <(emit_auto_crates)
+  auto_surface_tmp="$(mktemp)"
+  if ! emit_auto_crates >"$auto_surface_tmp"; then
+    rm -f "$auto_surface_tmp"
+    exit 1
+  fi
+  mapfile -t CRATES_TO_PUBLISH <"$auto_surface_tmp"
+  rm -f "$auto_surface_tmp"
 fi
 
 if [[ "${RELEASE_CRATE_SYNC}" == "1" || "${RELEASE_CRATE_SYNC,,}" == "true" ]]; then
@@ -195,9 +180,13 @@ if [[ "${RELEASE_CRATE_SYNC}" == "1" || "${RELEASE_CRATE_SYNC,,}" == "true" ]]; 
   else
     if [[ "${RELEASE_CRATE_FILE}" != "" ]]; then
       {
-        echo "# Auto-generated publish order from workspace metadata (all publishable crates)."
+        echo "# Auto-generated release surface from workspace metadata (publishable crates only)."
         printf '%s\n' "${CRATES_TO_PUBLISH[@]}"
       } > "$RELEASE_CRATE_FILE"
     fi
   fi
+fi
+
+if [[ "$RELEASE_SURFACE_MODE" == "auto" ]]; then
+  printf '%s\n' "${CRATES_TO_PUBLISH[@]}"
 fi

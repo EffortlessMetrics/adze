@@ -16,12 +16,34 @@ NC='\033[0m' # No Color
 check_crate() {
     local crate=$1
     local baseline=${2:-HEAD~1}
+    local manifest_path
+    local baseline_subdir
     
     echo -e "\n📦 Checking $crate against $baseline..."
+
+    case "$crate" in
+        adze)
+            manifest_path="runtime/Cargo.toml"
+            baseline_subdir="runtime"
+            ;;
+        adze-macro)
+            manifest_path="macro/Cargo.toml"
+            baseline_subdir="macro"
+            ;;
+        adze-tool)
+            manifest_path="tool/Cargo.toml"
+            baseline_subdir="tool"
+            ;;
+        *)
+            echo -e "${RED}❌ Unknown crate mapping for $crate${NC}"
+            return 1
+            ;;
+    esac
     
-    if cargo semver-checks check-release \
-        -p "$crate" \
-        --baseline-rev "$baseline" 2>/dev/null; then
+    if ./scripts/run-semver-check.sh \
+        "$manifest_path" \
+        "$baseline_subdir" \
+        "$baseline" 2>/dev/null; then
         echo -e "${GREEN}✅ No breaking changes detected in $crate${NC}"
         return 0
     else

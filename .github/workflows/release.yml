@@ -46,7 +46,7 @@ jobs:
       new_version: ${{ inputs.version }}
       publish_order: ${{ steps.publish_order.outputs.publish_order }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Load publish crate order
@@ -128,7 +128,7 @@ jobs:
         rust: [stable, beta]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
@@ -155,7 +155,7 @@ jobs:
             os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -177,7 +177,7 @@ jobs:
           fi
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: release-artifacts-${{ matrix.target }}
           path: artifacts/
@@ -190,7 +190,7 @@ jobs:
       release_tag: ${{ steps.create_tag.outputs.tag }}
     if: inputs.dry_run == false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: dtolnay/rust-toolchain@stable
@@ -247,7 +247,7 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.dry_run == false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
         with:
           ref: ${{ needs.update-versions.outputs.release_tag }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -271,12 +271,12 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.dry_run == false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
         with:
           ref: ${{ needs.update-versions.outputs.release_tag }}
       
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           pattern: release-artifacts-*
           merge-multiple: true
@@ -315,7 +315,7 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.dry_run == false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       
       - name: Update documentation
         run: |
