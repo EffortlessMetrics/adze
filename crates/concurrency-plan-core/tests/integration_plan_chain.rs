@@ -109,11 +109,13 @@ fn test_plan_chain_consistency_with_normalize() {
 /// Test that DIRECT_PARALLEL_THRESHOLD_MULTIPLIER has a sensible value.
 #[test]
 fn test_plan_chain_threshold_multiplier() {
-    // The threshold multiplier should be at least 1
-    assert!(DIRECT_PARALLEL_THRESHOLD_MULTIPLIER >= 1);
+    const {
+        // The threshold multiplier should be at least 1
+        assert!(DIRECT_PARALLEL_THRESHOLD_MULTIPLIER >= 1);
 
-    // A common value is 2 (meaning use direct iteration when items <= 2 * concurrency)
-    assert_eq!(DIRECT_PARALLEL_THRESHOLD_MULTIPLIER, 2);
+        // A common value is 2 (meaning use direct iteration when items <= 2 * concurrency)
+        assert!(DIRECT_PARALLEL_THRESHOLD_MULTIPLIER == 2);
+    }
 }
 
 /// Test type compatibility across the plan chain.
