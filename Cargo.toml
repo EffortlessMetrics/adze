@@ -30,6 +30,7 @@ members = [
   "crates/concurrency-normalize-core",
   "crates/concurrency-parse-core",
   "crates/concurrency-env-core",
+  "crates/concurrency-env-vars-core",
   "crates/concurrency-env-contract-core",
   "crates/concurrency-init-classifier-core",
   "crates/concurrency-init-rayon-core",
