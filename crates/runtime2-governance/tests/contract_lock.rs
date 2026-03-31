@@ -82,8 +82,7 @@ fn test_contract_lock_functions() {
     assert!(!_desc.is_empty());
 
     // Verify bdd_progress function exists
-    let (implemented, total) = bdd_progress(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID);
-    assert!(total > 0 || total == 0);
+    let (_implemented, _total) = bdd_progress(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID);
 
     // Verify bdd_progress_report function exists
     let _report = bdd_progress_report(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, "Test");
