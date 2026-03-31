@@ -32,6 +32,8 @@ fn test_contract_lock_types() {
 #[test]
 fn test_contract_lock_functions() {
     use adze_glr_core::{Action, ParseTable};
+    type ResolveShiftReduceFn =
+        fn(&adze_glr_core::Grammar, adze_glr_core::SymbolId, adze_glr_core::RuleId) -> Vec<Action>;
 
     // Verify count_multi_action_cells function exists
     let pt = ParseTable::default();
@@ -42,7 +44,5 @@ fn test_contract_lock_functions() {
 
     // Verify resolve_shift_reduce_actions function exists (requires Grammar, SymbolId, RuleId)
     // This function is tested indirectly through its signature availability
-    let _fn_ptr: Option<
-        fn(&adze_glr_core::Grammar, adze_glr_core::SymbolId, adze_glr_core::RuleId) -> Vec<Action>,
-    > = Some(resolve_shift_reduce_actions);
+    let _fn_ptr: Option<ResolveShiftReduceFn> = Some(resolve_shift_reduce_actions);
 }
