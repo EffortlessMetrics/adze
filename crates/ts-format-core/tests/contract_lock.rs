@@ -3,6 +3,9 @@
 use adze_glr_core::{Action, ParseTable};
 use adze_ts_format_core::{TSActionTag, choose_action, choose_action_with_precedence};
 
+type ChooseActionFn = fn(&[Action]) -> Option<Action>;
+type ChooseActionWithPrecedenceFn = fn(&[Action], &ParseTable) -> Option<Action>;
+
 /// Verify all public types exist and have expected structure.
 #[test]
 fn test_contract_lock_types() {
@@ -22,9 +25,6 @@ fn test_contract_lock_types() {
 
     // Verify Debug trait is implemented
     let _debug = format!("{shift:?}");
-
-    // Verify Clone trait is implemented
-    let _cloned = shift.clone();
 
     // Verify Copy trait is implemented
     let _copied: TSActionTag = shift;
@@ -65,9 +65,8 @@ fn test_contract_lock_functions() {
     assert!(result.is_none());
 
     // Verify function signature via function pointer
-    let _fn_ptr: Option<fn(&[Action]) -> Option<Action>> = Some(choose_action);
-    let _fn_ptr_prec: Option<fn(&[Action], &ParseTable) -> Option<Action>> =
-        Some(choose_action_with_precedence);
+    let _fn_ptr: Option<ChooseActionFn> = Some(choose_action);
+    let _fn_ptr_prec: Option<ChooseActionWithPrecedenceFn> = Some(choose_action_with_precedence);
 }
 
 /// Verify choose_action priority order: Accept > Shift > Reduce > Error.

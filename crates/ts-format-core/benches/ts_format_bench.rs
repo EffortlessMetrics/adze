@@ -7,8 +7,7 @@ use std::collections::BTreeMap;
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 use adze_glr_core::{
-    Action, GotoIndexing, Grammar, LexMode, ParseRule, ParseTable, RuleId, StateId, SymbolId,
-    SymbolMetadata,
+    Action, GotoIndexing, Grammar, LexMode, ParseTable, RuleId, StateId, SymbolId, SymbolMetadata,
 };
 use adze_ts_format_core::{choose_action, choose_action_with_precedence};
 
@@ -109,8 +108,8 @@ fn bench_choose_action_with_accept(c: &mut Criterion) {
 
 fn bench_choose_action_large_cell(c: &mut Criterion) {
     c.bench_function("choose_action_large_16_actions", |b| {
-        let cell: Vec<Action> = (0..16)
-            .flat_map(|i| vec![Action::Shift(StateId(i)), Action::Reduce(RuleId(i as u16))])
+        let cell: Vec<Action> = (0u16..16u16)
+            .flat_map(|i| vec![Action::Shift(StateId(i)), Action::Reduce(RuleId(i))])
             .collect();
         b.iter(|| black_box(choose_action(black_box(&cell))));
     });
@@ -132,8 +131,8 @@ fn bench_choose_action_with_precedence_simple(c: &mut Criterion) {
 fn bench_choose_action_with_precedence_complex(c: &mut Criterion) {
     c.bench_function("choose_action_with_precedence_8_actions", |b| {
         let table = make_minimal_parse_table();
-        let cell: Vec<Action> = (0..4)
-            .flat_map(|i| vec![Action::Shift(StateId(i)), Action::Reduce(RuleId(i as u16))])
+        let cell: Vec<Action> = (0u16..4u16)
+            .flat_map(|i| vec![Action::Shift(StateId(i)), Action::Reduce(RuleId(i))])
             .collect();
         b.iter(|| {
             black_box(choose_action_with_precedence(
