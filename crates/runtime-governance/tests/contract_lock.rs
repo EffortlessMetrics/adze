@@ -4,15 +4,14 @@
 
 use adze_runtime_governance::{
     BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_FALLBACK,
-    GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
-    bdd_governance_matrix_for_current_profile, bdd_governance_matrix_for_profile,
-    bdd_governance_matrix_for_runtime, bdd_governance_matrix_for_runtime2,
-    bdd_governance_matrix_for_runtime2_profile, bdd_governance_snapshot, bdd_progress,
-    bdd_progress_report, bdd_progress_report_for_current_profile, bdd_progress_report_for_profile,
-    bdd_progress_report_with_profile, bdd_progress_report_with_profile_runtime,
-    bdd_progress_status_line, bdd_status_line_for_current_profile, current_backend_for,
-    describe_backend_for_conflicts, parser_feature_profile_for_runtime,
-    resolve_backend_for_profile, runtime_governance_snapshot,
+    GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, bdd_governance_matrix_for_current_profile,
+    bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime,
+    bdd_governance_matrix_for_runtime2, bdd_governance_matrix_for_runtime2_profile,
+    bdd_governance_snapshot, bdd_progress, bdd_progress_report,
+    bdd_progress_report_for_current_profile, bdd_progress_report_with_profile,
+    bdd_progress_report_with_profile_runtime, bdd_progress_status_line,
+    bdd_status_line_for_current_profile, current_backend_for, describe_backend_for_conflicts,
+    parser_feature_profile_for_runtime, resolve_backend_for_profile, runtime_governance_snapshot,
 };
 
 /// Verify all public types exist and have expected structure.
@@ -79,8 +78,7 @@ fn test_contract_lock_functions() {
     assert!(!_desc.is_empty());
 
     // Verify bdd_progress function exists
-    let (implemented, total) = bdd_progress(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID);
-    assert!(total > 0 || total == 0);
+    let (_implemented, _total) = bdd_progress(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID);
 
     // Verify bdd_progress_report function exists
     let _report = bdd_progress_report(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, "Test");
