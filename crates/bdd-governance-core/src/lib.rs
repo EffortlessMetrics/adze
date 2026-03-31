@@ -1,7 +1,8 @@
 //! Core implementation of governance matrix snapshots and profile-aware matrix composition.
 //!
-//! Reporting helpers are split into `adze-bdd-governance-reporting-core`; this
-//! crate re-exports them for compatibility.
+//! Reporting helpers are split into `adze-bdd-governance-reporting-core`, which
+//! in turn re-exports status helpers from `adze-governance-status-core`. This
+//! crate re-exports those reporting helpers for compatibility.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
