@@ -36,7 +36,7 @@ fn test_contract_lock_types() {
     assert_eq!(default_stats.total_allocations, 0);
 
     // Verify Clone trait is implemented for PoolStats
-    let _cloned_stats = stats.clone();
+    let _cloned_stats = stats;
 
     // Verify Copy trait is implemented for PoolStats
     let _copied: PoolStats = stats;
