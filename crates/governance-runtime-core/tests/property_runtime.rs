@@ -3,10 +3,10 @@
 use proptest::prelude::*;
 
 use adze_governance_runtime_core::{
-    BddGovernanceMatrix, BddPhase, ParserBackend, ParserFeatureProfile,
-    bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime2,
-    bdd_progress_report_for_profile, bdd_progress_status_line_for_profile,
-    parser_feature_profile_for_runtime2, resolve_backend_for_profile,
+    BddPhase, ParserBackend, ParserFeatureProfile, bdd_governance_matrix_for_profile,
+    bdd_governance_matrix_for_runtime2, bdd_progress_report_for_profile,
+    bdd_progress_status_line_for_profile, parser_feature_profile_for_runtime2,
+    resolve_backend_for_profile,
 };
 
 // ---------------------------------------------------------------------------

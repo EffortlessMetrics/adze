@@ -264,7 +264,7 @@ fn given_runtime_phase_when_getting_matrix_then_returns_matrix_with_phase() {
 #[test]
 fn given_runtime2_profile_when_getting_matrix_then_returns_matrix_with_phase() {
     // Given
-    let profile = parser_feature_profile_for_runtime2(true);
+    let _profile = parser_feature_profile_for_runtime2(true);
 
     // When
     let matrix = bdd_governance_matrix_for_runtime2_profile(BddPhase::Core, true);

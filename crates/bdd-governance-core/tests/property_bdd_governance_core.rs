@@ -3,8 +3,7 @@
 use proptest::prelude::*;
 
 use adze_bdd_governance_core::{
-    BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenarioStatus, ParserBackend,
-    ParserFeatureProfile,
+    BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, ParserBackend, ParserFeatureProfile,
 };
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,14 @@ use adze_governance_matrix_core::{
     bdd_progress_status_line, describe_backend_for_conflicts,
 };
 
+type BddProgressFn = fn(BddPhase, &[BddScenario]) -> (usize, usize);
+type BddProgressReportFn = fn(BddPhase, &[BddScenario], &str) -> String;
+type BddProgressReportWithProfileFn =
+    fn(BddPhase, &[BddScenario], &str, ParserFeatureProfile) -> String;
+type BddProgressStatusLineFn = fn(BddPhase, &[BddScenario], ParserFeatureProfile) -> String;
+type BddGovernanceSnapshotFn =
+    fn(BddPhase, &[BddScenario], ParserFeatureProfile) -> BddGovernanceSnapshot;
+
 /// Verify all public types exist and have expected structure.
 #[test]
 fn test_contract_lock_types() {
@@ -74,23 +82,19 @@ fn test_contract_lock_constants() {
 #[test]
 fn test_contract_lock_functions() {
     // Verify bdd_progress function exists
-    let _fn_ptr: Option<fn(BddPhase, &[BddScenario]) -> (usize, usize)> = Some(bdd_progress);
+    let _fn_ptr: Option<BddProgressFn> = Some(bdd_progress);
 
     // Verify bdd_progress_report function exists
-    let _fn_ptr: Option<fn(BddPhase, &[BddScenario], &str) -> String> = Some(bdd_progress_report);
+    let _fn_ptr: Option<BddProgressReportFn> = Some(bdd_progress_report);
 
     // Verify bdd_progress_report_with_profile function exists
-    let _fn_ptr: Option<fn(BddPhase, &[BddScenario], &str, ParserFeatureProfile) -> String> =
-        Some(bdd_progress_report_with_profile);
+    let _fn_ptr: Option<BddProgressReportWithProfileFn> = Some(bdd_progress_report_with_profile);
 
     // Verify bdd_progress_status_line function exists
-    let _fn_ptr: Option<fn(BddPhase, &[BddScenario], ParserFeatureProfile) -> String> =
-        Some(bdd_progress_status_line);
+    let _fn_ptr: Option<BddProgressStatusLineFn> = Some(bdd_progress_status_line);
 
     // Verify bdd_governance_snapshot function exists
-    let _fn_ptr: Option<
-        fn(BddPhase, &[BddScenario], ParserFeatureProfile) -> BddGovernanceSnapshot,
-    > = Some(bdd_governance_snapshot);
+    let _fn_ptr: Option<BddGovernanceSnapshotFn> = Some(bdd_governance_snapshot);
 
     // Verify describe_backend_for_conflicts function exists
     let _fn_ptr: Option<fn(ParserFeatureProfile) -> &'static str> =

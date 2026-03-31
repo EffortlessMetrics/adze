@@ -23,19 +23,6 @@ fn arb_snapshot() -> impl Strategy<Value = ParserFeatureProfileSnapshot> {
     )
 }
 
-/// Generate arbitrary GovernanceMetadata values with bounded counts to avoid overflow.
-fn arb_metadata() -> impl Strategy<Value = GovernanceMetadata> {
-    (
-        "[a-z]{1,10}",
-        0usize..1000usize,
-        0usize..1000usize,
-        "[a-z]{1,10}:[0-9]+/[0-9]+",
-    )
-        .prop_map(|(phase, implemented, total, status_line)| {
-            GovernanceMetadata::with_counts(phase, implemented, total, status_line)
-        })
-}
-
 /// Generate metadata with valid counts (implemented <= total).
 fn arb_valid_metadata() -> impl Strategy<Value = GovernanceMetadata> {
     (0usize..1000usize, 0usize..1000usize, "[a-z]{1,10}").prop_map(|(implemented, extra, phase)| {

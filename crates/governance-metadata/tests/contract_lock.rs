@@ -3,6 +3,9 @@
 use adze_feature_policy_core::ParserFeatureProfile;
 use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
+type ParserFeatureProfileSnapshotNewFn = fn(bool, bool, bool, bool) -> ParserFeatureProfileSnapshot;
+type GovernanceMetadataWithCountsFn = fn(String, usize, usize, String) -> GovernanceMetadata;
+
 /// Verify all public types exist and have expected structure.
 #[test]
 fn test_contract_lock_types() {
@@ -35,7 +38,7 @@ fn test_contract_lock_types() {
 #[test]
 fn test_contract_lock_functions() {
     // Verify ParserFeatureProfileSnapshot::new exists
-    let _fn_ptr: Option<fn(bool, bool, bool, bool) -> ParserFeatureProfileSnapshot> =
+    let _fn_ptr: Option<ParserFeatureProfileSnapshotNewFn> =
         Some(ParserFeatureProfileSnapshot::new);
 
     // Verify ParserFeatureProfileSnapshot::from_profile exists
@@ -59,8 +62,7 @@ fn test_contract_lock_functions() {
     let _backend = snap.resolve_conflict_backend();
 
     // Verify GovernanceMetadata::with_counts exists
-    let _fn_ptr: Option<fn(String, usize, usize, String) -> GovernanceMetadata> =
-        Some(GovernanceMetadata::with_counts);
+    let _fn_ptr: Option<GovernanceMetadataWithCountsFn> = Some(GovernanceMetadata::with_counts);
 
     // Verify GovernanceMetadata::is_complete exists
     let meta = GovernanceMetadata::with_counts("core", 5, 10, "core:5/10");
