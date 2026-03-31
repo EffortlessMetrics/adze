@@ -2,7 +2,7 @@
 
 use proptest::prelude::*;
 
-use adze_bdd_scenario_fixtures::{BddPhase, BddScenarioStatus, ParserFeatureProfile};
+use adze_bdd_scenario_fixtures::{BddPhase, ParserFeatureProfile};
 
 // ---------------------------------------------------------------------------
 // Strategies

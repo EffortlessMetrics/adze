@@ -13,7 +13,7 @@ fn test_scenario_chain_reexports_governance_types() {
     // When: Use the re-exported types
     let phase = BddPhase::Core;
     let status = BddScenarioStatus::Implemented;
-    let profile = ParserFeatureProfile::current();
+    let _profile = ParserFeatureProfile::current();
 
     // Then: All types should work correctly
     assert_eq!(phase, BddPhase::Core);
@@ -148,7 +148,7 @@ fn test_scenario_chain_report_with_profile() {
 #[test]
 fn test_scenario_chain_grid_constant_valid() {
     // Given: The grid constant
-    use adze_bdd_scenario_fixtures::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID};
+    use adze_bdd_scenario_fixtures::GLR_CONFLICT_PRESERVATION_GRID;
 
     // When: Inspect the scenarios
     for scenario in GLR_CONFLICT_PRESERVATION_GRID {
