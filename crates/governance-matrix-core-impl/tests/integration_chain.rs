@@ -12,7 +12,6 @@ use adze_governance_contract::{
     BddGovernanceMatrix as ContractMatrix, BddPhase as ContractPhase,
     ParserFeatureProfile as ContractProfile,
 };
-use adze_governance_matrix_contract as matrix_contract;
 use adze_governance_matrix_core as matrix_core;
 
 /// Test that the governance chain correctly propagates types through all layers.

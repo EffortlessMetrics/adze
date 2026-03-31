@@ -4,14 +4,13 @@ use proptest::prelude::*;
 
 use adze_runtime2_governance::{
     BddGovernanceSnapshot, BddPhase, GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID,
-    ParserBackend, ParserFeatureProfile,
-    bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime2,
-    bdd_governance_matrix_for_runtime2_profile, bdd_governance_snapshot,
-    bdd_progress_report_for_profile, bdd_progress_report_for_runtime2_profile,
-    bdd_progress_status_line_for_profile, bdd_progress_status_line_for_runtime2_profile,
-    describe_backend_for_conflicts, parser_feature_profile_for_runtime2,
-    resolve_backend_for_profile, resolve_backend_for_runtime2_profile, resolve_runtime2_backend,
-    runtime2_governance_snapshot,
+    ParserBackend, ParserFeatureProfile, bdd_governance_matrix_for_profile,
+    bdd_governance_matrix_for_runtime2, bdd_governance_matrix_for_runtime2_profile,
+    bdd_governance_snapshot, bdd_progress_report_for_profile,
+    bdd_progress_report_for_runtime2_profile, bdd_progress_status_line_for_profile,
+    bdd_progress_status_line_for_runtime2_profile, describe_backend_for_conflicts,
+    parser_feature_profile_for_runtime2, resolve_backend_for_profile,
+    resolve_backend_for_runtime2_profile, resolve_runtime2_backend, runtime2_governance_snapshot,
 };
 
 // ---------------------------------------------------------------------------
