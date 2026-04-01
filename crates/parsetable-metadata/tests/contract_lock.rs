@@ -6,7 +6,6 @@ use adze_parsetable_metadata::{
     FORMAT_VERSION, FeatureFlags, GenerationInfo, GrammarInfo, MAGIC_NUMBER,
     METADATA_SCHEMA_VERSION, ParsetableError, ParsetableMetadata, TableStatistics,
 };
-use std::fmt::Display;
 
 /// Verify all public constants exist with expected values.
 #[test]
@@ -25,7 +24,7 @@ fn test_contract_lock_constants() {
 #[test]
 fn test_contract_lock_types() {
     // Verify ParsetableError enum exists with expected variants
-    let _io_err = ParsetableError::Io(std::io::Error::new(std::io::ErrorKind::Other, "test"));
+    let _io_err = ParsetableError::Io(std::io::Error::other("test"));
     let _ser_err = ParsetableError::Serialization("bad json".to_string());
     let _meta_err = ParsetableError::InvalidMetadata("missing field".to_string());
     let _hash_err = ParsetableError::HashError("sha256 failed".to_string());
@@ -200,7 +199,7 @@ fn test_contract_lock_error_display() {
     let err = ParsetableError::HashError("sha256 failed".to_string());
     assert!(format!("{err}").contains("sha256 failed"));
 
-    let err = ParsetableError::Io(std::io::Error::new(std::io::ErrorKind::Other, "io error"));
+    let err = ParsetableError::Io(std::io::Error::other("io error"));
     assert!(format!("{err}").contains("I/O error"));
 }
 
