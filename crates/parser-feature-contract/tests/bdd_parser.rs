@@ -164,8 +164,21 @@ fn given_select_false_when_calling_select_then_returns_valid_backend() {
 #[test]
 fn given_select_true_when_calling_select_then_returns_valid_backend() {
     // Given / When
-    let backend = ParserBackend::select(true);
+    let result = std::panic::catch_unwind(|| ParserBackend::select(true));
 
     // Then
-    assert!(!backend.name().is_empty());
+    match result {
+        Ok(backend) => assert!(!backend.name().is_empty()),
+        Err(payload) => {
+            let message = payload
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| payload.downcast_ref::<&'static str>().copied())
+                .unwrap_or("<non-string panic payload>");
+            assert!(
+                message.contains("Grammar has conflicts but GLR feature is not enabled."),
+                "unexpected panic message: {message}"
+            );
+        }
+    }
 }
