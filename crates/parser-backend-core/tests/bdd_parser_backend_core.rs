@@ -15,9 +15,7 @@ fn selecting_with_pure_rust_without_conflicts_uses_pure_rust_backend() {
 
 #[cfg(all(feature = "pure-rust", not(feature = "glr")))]
 #[test]
-#[should_panic(
-    expected = "Grammar has shift/reduce or reduce/reduce conflicts, but the GLR feature is not enabled."
-)]
+#[should_panic(expected = "Grammar has conflicts but GLR feature is not enabled.")]
 fn selecting_with_conflicts_without_glr_panics() {
     let _ = ParserBackend::select(true);
 }
