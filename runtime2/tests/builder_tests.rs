@@ -3,7 +3,7 @@
 //! Tests the forest_to_tree path using the GLR engine with a proper
 //! grammar-derived parse table.
 
-#![cfg(feature = "glr-core")]
+#![cfg(feature = "glr")]
 
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};

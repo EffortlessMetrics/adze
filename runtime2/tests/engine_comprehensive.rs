@@ -12,7 +12,7 @@
 //! 5. Property-based tests (proptest)
 
 // The engine module only exists behind the glr-core feature.
-#![cfg(feature = "glr-core")]
+#![cfg(feature = "glr")]
 
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};

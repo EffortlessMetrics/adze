@@ -3,7 +3,7 @@
 //!
 //! Run with: `cargo test -p adze-runtime --test parser_integration`
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 mod with_glr {
     use adze_glr_core::{Action, ParseTable, StateId, SymbolId};
     use adze_runtime::language::SymbolMetadata;

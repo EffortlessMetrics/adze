@@ -23,3 +23,11 @@ strict_docs = ["adze-governance-matrix-contract/strict_docs"]
 
 [dependencies]
 adze-governance-matrix-contract = { version = "0.1.0", path = "../governance-matrix-contract" }
+
+[dev-dependencies]
+adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
+adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
+adze-governance-metadata = { version = "0.1.0", path = "../governance-metadata" }
+adze-governance-runtime-core = { version = "0.1.0", path = "../governance-runtime-core" }
+proptest = { workspace = true }
+serde_json.workspace = true

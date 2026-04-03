@@ -6,7 +6,7 @@
 
 use crate::{error::ParseError, language::Language, tree::Tree};
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use adze_glr_core::{Driver, Forest as CoreForest};
 
 /// Parse forest representation containing all valid parse trees.
@@ -38,9 +38,9 @@ use adze_glr_core::{Driver, Forest as CoreForest};
 /// }
 /// ```
 pub enum Forest {
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     Glr(CoreForest),
-    #[cfg(not(feature = "glr-core"))]
+    #[cfg(not(feature = "glr"))]
     Stub,
 }
 
@@ -98,7 +98,7 @@ pub enum Forest {
 /// maintains all ambiguous interpretations, which may consume more memory than
 /// deterministic parsers for highly ambiguous grammars.
 pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseError> {
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     {
         let parse_table = language.parse_table.ok_or_else(|| {
             ParseError::with_msg("Language missing parse table - GLR integration pending")
@@ -116,7 +116,7 @@ pub fn parse_full(language: &Language, input: &[u8]) -> Result<Forest, ParseErro
         Ok(Forest::Glr(forest))
     }
 
-    #[cfg(not(feature = "glr-core"))]
+    #[cfg(not(feature = "glr"))]
     {
         let _ = (language, input);
         Err(ParseError::with_msg("GLR core feature not enabled"))
@@ -188,7 +188,7 @@ pub fn parse_incremental(
     parse_full(language, input)
 }
 
-#[cfg(all(feature = "glr-core", test))]
+#[cfg(all(feature = "glr", test))]
 mod tests {
     use super::*;
     use crate::{Token, language::SymbolMetadata, tree::Tree};

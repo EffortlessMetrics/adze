@@ -40,3 +40,9 @@ adze-parser-feature-profile-core = { version = "0.1.0", path = "../parser-featur
 
 [dev-dependencies]
 adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }
+proptest = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "bench_policy"
+harness = false

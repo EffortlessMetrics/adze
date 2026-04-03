@@ -372,7 +372,7 @@ fn field_id_lookup_by_iterating_field_names() {
 // 8. Tokenizer configuration
 // ===========================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn tokenizer_can_be_set_via_builder() {
     let lang = Language::builder()
@@ -384,14 +384,14 @@ fn tokenizer_can_be_set_via_builder() {
     assert!(lang.tokenize.is_some());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn tokenizer_absent_by_default() {
     let lang = minimal_language();
     assert!(lang.tokenize.is_none());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn with_static_tokens_sets_tokenizer() {
     let lang = minimal_language().with_static_tokens(vec![
@@ -409,7 +409,7 @@ fn with_static_tokens_sets_tokenizer() {
     assert!(lang.tokenize.is_some());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn tokenizer_produces_expected_tokens() {
     let lang = Language::builder()
@@ -849,7 +849,7 @@ fn find_symbol_id_by_name() {
 // 18. Clone drops tokenizer
 // ===========================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn clone_resets_tokenizer_to_none() {
     let lang = Language::builder()

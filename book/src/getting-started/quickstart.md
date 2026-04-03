@@ -51,7 +51,7 @@ mod grammar {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create parser with GLR runtime (production ready)
-    use adze_runtime::Parser;
+    use adze::unified_parser::Parser;
     
     let mut parser = Parser::new();
     parser.set_language(grammar::language())?; // Generated GLR language
@@ -66,22 +66,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     for expr in expressions {
         println!("Parsing: {}", expr);
-        match parser.parse_utf8(expr, None) {
-            Ok(tree) => {
+        match parser.parse(expr) {
+            Some(tree) => {
                 let ast = grammar::extract_ast(&tree)?;
                 println!("  Result: {:?}\n", ast);
             },
-            Err(e) => println!("  Error: {}\n", e),
+            None => println!("  Error: Failed to parse\n"),
         }
     }
     
     // Demonstrate incremental parsing
     let initial = "1 + 2";
-    let tree1 = parser.parse_utf8(initial, None)?;
+    let tree1 = parser.parse(initial).ok_or("Failed to parse initial")?;
     println!("Initial parse: {}", initial);
     
     let updated = "10 + 20";
-    let tree2 = parser.parse_utf8(updated, Some(&tree1))?;  // Incremental!
+    let tree2 = parser.parse(updated).ok_or("Failed to parse updated")?;  // Note: Currently falls back to full reparse
     println!("Incremental parse: {} (reused compatible subtrees)", updated);
     
     Ok(())
@@ -94,8 +94,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
-adze-runtime = "0.1"  # GLR runtime
+adze = { version = "0.8.0-dev", features = ["glr", "incremental_glr"] }
 
 [build-dependencies]
 adze-tool = "0.8.0-dev"

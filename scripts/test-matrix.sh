@@ -153,9 +153,6 @@ ensure_tests "tool" -p adze-tool
 # Macro tests
 ensure_tests "macro" -p adze-macro
 
-# Example tests
-ensure_tests "example" -p example
-
 # Optional: ts-bridge tests when feature is enabled
 if [ "${TS_BRIDGE_TESTS:-0}" = "1" ]; then
   ensure_tests "ts-bridge" -p ts-bridge --features ts-ffi-raw

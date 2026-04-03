@@ -100,7 +100,7 @@ impl ParseError {
     }
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 impl From<adze_glr_core::driver::GlrError> for ParseError {
     fn from(e: adze_glr_core::driver::GlrError) -> Self {
         ParseError::with_msg(&e.to_string())

@@ -417,7 +417,7 @@ fn scan_result_debug() {
 // 14. GLR-core specific: parse with real grammar, edge cases
 // ===========================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 mod glr_core_tests {
     use super::*;
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};

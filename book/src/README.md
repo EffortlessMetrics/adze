@@ -8,7 +8,7 @@ With Adze, you can define your entire grammar with annotations on idiomatic Rust
 
 ## Key Features
 
-### 🚀 v0.5.0-beta Highlights
+### 🚀 v0.8.0-dev Highlights
 
 - **GLR Parsing**: Full support for ambiguous grammars with efficient fork/merge handling
 - **Pure-Rust Option**: Generate static parsers at compile-time without C dependencies  

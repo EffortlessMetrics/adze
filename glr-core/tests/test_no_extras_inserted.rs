@@ -1,6 +1,6 @@
 //! Test that extras (whitespace/comments) are never inserted during error recovery
 
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "test_helpers")]
 #[test]
 fn extras_marked_correctly_in_parse_table() {
     use adze_glr_core::ParseTable;
@@ -67,7 +67,7 @@ fn extras_marked_correctly_in_parse_table() {
     // This test verifies the table structure supports that filtering.
 }
 
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "test_helpers")]
 #[test]
 fn external_tokens_within_insertion_range() {
     use adze_glr_core::ParseTable;

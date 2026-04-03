@@ -22,3 +22,6 @@ categories = ["parsing"]
 default = []
 strict_docs = []
 strict_api = []
+
+[dev-dependencies]
+proptest = { workspace = true }

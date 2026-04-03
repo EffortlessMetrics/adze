@@ -25,6 +25,7 @@ thiserror.workspace = true
 [dev-dependencies]
 insta = { workspace = true, features = ["json", "yaml"] }
 criterion.workspace = true
+proptest = { workspace = true }
 
 [[bench]]
 name = "metadata_bench"

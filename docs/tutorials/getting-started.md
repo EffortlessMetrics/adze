@@ -219,11 +219,11 @@ The following examples are included in the repository and are fully working:
 
 The simplest possible grammar - parses a single number.
 
-**Location**: `/grammars/test-mini/`
+**Location**: `/test-mini/`
 
 **Usage**:
 ```bash
-cd grammars/test-mini
+cd test-mini
 cargo test
 ```
 

@@ -19,3 +19,6 @@ strict_docs = ["adze-runtime-governance-matrix/strict_docs"]
 
 [dependencies]
 adze-runtime-governance-matrix = { version = "0.1.0", path = "../runtime-governance-matrix" }
+
+[dev-dependencies]
+proptest = { workspace = true }

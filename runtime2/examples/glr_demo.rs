@@ -3,10 +3,10 @@
 //! This example shows how the runtime would be used once the GLR engine
 //! is fully integrated with grammar generation.
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use adze_runtime::Parser;
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn main() {
     println!("GLR Runtime Demo");
     println!("================");
@@ -34,7 +34,7 @@ fn main() {
     println!("- Grammar Link: ⏳ Pending (needs generated Language to include Grammar)");
 }
 
-#[cfg(not(feature = "glr-core"))]
+#[cfg(not(feature = "glr"))]
 fn main() {
     println!("This demo requires the 'glr-core' feature.");
     println!("Run with: cargo run --features glr-core --example glr_demo");

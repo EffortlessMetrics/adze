@@ -1,4 +1,4 @@
-#![cfg(feature = "glr-core")]
+#![cfg(feature = "glr")]
 #![allow(clippy::needless_range_loop)]
 
 //! Property-based tests for the forest-to-tree builder (`builder.rs`).

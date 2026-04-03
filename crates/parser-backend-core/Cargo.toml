@@ -22,4 +22,9 @@ strict_api = []
 strict_docs = []
 
 [dev-dependencies]
+criterion.workspace = true
 proptest.workspace = true
+
+[[bench]]
+name = "parser_backend_bench"
+harness = false

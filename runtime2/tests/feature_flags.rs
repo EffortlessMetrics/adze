@@ -95,7 +95,7 @@ fn tree_stub_works_regardless_of_features() {
 // GLR-core feature: parse table in Language
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 mod glr_core_enabled {
     use adze_runtime::test_helpers::stub_language;
 
@@ -107,7 +107,7 @@ mod glr_core_enabled {
     }
 }
 
-#[cfg(not(feature = "glr-core"))]
+#[cfg(not(feature = "glr"))]
 mod glr_core_disabled {
     use adze_runtime::{Parser, test_helpers::stub_language};
 

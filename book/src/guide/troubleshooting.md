@@ -108,8 +108,8 @@ This chapter covers common issues you may encounter when working with Adze gramm
 |---|---|
 | Default (pure Rust, WASM-compatible) | `default` |
 | Standard C Tree-sitter runtime | `tree-sitter-standard` |
-| GLR parsing support | `glr-core` |
-| Incremental parsing (experimental) | `incremental`, `incremental_glr` |
+| GLR parsing support | `glr` |
+| Incremental parsing (experimental) | `incremental_glr` |
 | All features | `all-features` |
 
 **Solution:**
@@ -118,7 +118,7 @@ This chapter covers common issues you may encounter when working with Adze gramm
 
    ```toml
    [dependencies]
-   adze = { version = "0.1", features = ["glr-core"] }
+   adze = { version = "0.1", features = ["glr"] }
    ```
 
 2. Some features are mutually exclusive. Don't enable both `tree-sitter-c2rust` and `tree-sitter-standard` simultaneously.
@@ -127,7 +127,7 @@ This chapter covers common issues you may encounter when working with Adze gramm
 
    ```bash
    cargo test --features default
-   cargo test --features glr-core
+   cargo test --features glr
    cargo test --all-features
    ```
 

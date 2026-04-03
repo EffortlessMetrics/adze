@@ -280,7 +280,7 @@ mod error_handling {
 // 5. Forest-to-tree conversion (requires glr-core)
 // ============================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 mod forest_to_tree {
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
     use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};
@@ -437,7 +437,7 @@ mod forest_to_tree {
 // 6. Performance monitoring (ADZE_LOG_PERFORMANCE)
 // ============================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 mod performance_monitoring {
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
     use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token as IrToken, TokenPattern};

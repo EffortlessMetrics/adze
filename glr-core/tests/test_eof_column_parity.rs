@@ -2,7 +2,7 @@
 #![allow(unused_imports, clippy::ptr_arg, clippy::useless_vec)]
 
 #[test]
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "test_helpers")]
 fn eof_column_matches_ts_end_column() {
     use adze_glr_core::{Action, ParseTable};
     use adze_ir::{RuleId, StateId, SymbolId};

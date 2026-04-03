@@ -36,41 +36,21 @@ impl ParserBackend {
     ///
     /// # Arguments
     /// * `has_conflicts` - Whether the grammar contains shift/reduce or reduce/reduce conflicts.
+    ///
+    /// # Panics
+    /// Panics if `has_conflicts` is true and the `pure-rust` feature is enabled without the `glr` feature.
     pub const fn select(_has_conflicts: bool) -> Self {
-        #[cfg(feature = "glr")]
-        {
-            return Self::GLR;
-        }
-
-        #[cfg(all(feature = "pure-rust", not(feature = "glr")))]
-        {
-            if _has_conflicts {
-                panic!(
-                    "{}",
-                    "Grammar has shift/reduce or reduce/reduce conflicts, but the GLR feature is not enabled.\n\n\
-To fix this, enable the GLR feature in Cargo.toml:\n\n\
-[dependencies]\n\
-adze = { version = \"0.8\", features = [\"glr\"] }\n\n\
-Or use the tree-sitter C runtime (default):\n\n\
-[dependencies]\n\
-adze = \"0.8\"\n"
-                );
+        match (cfg!(feature = "glr"), cfg!(feature = "pure-rust")) {
+            (true, _) => Self::GLR,
+            (false, true) => {
+                if _has_conflicts {
+                    panic!(
+                        "Grammar has conflicts but GLR feature is not enabled. Enable the 'glr' feature in Cargo.toml or use the tree-sitter C runtime."
+                    );
+                }
+                Self::PureRust
             }
-            return Self::PureRust;
-        }
-
-        #[cfg(all(
-            not(feature = "pure-rust"),
-            not(feature = "glr"),
-            any(feature = "tree-sitter-standard", feature = "tree-sitter-c2rust")
-        ))]
-        {
-            return Self::TreeSitter;
-        }
-
-        #[allow(unreachable_code)]
-        {
-            Self::TreeSitter
+            _ => Self::TreeSitter,
         }
     }
 

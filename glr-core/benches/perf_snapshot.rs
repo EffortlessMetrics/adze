@@ -2,7 +2,7 @@ use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_mai
 use std::time::Duration;
 
 use adze_glr_core::Driver;
-#[cfg(feature = "perf-counters")]
+#[cfg(feature = "perf_counters")]
 use adze_glr_core::perf;
 use adze_ir::SymbolId;
 use glr_test_support::test_utilities::make_minimal_table;
@@ -37,7 +37,7 @@ pub fn bench_parse_small(c: &mut Criterion) {
     const TOKENS: &[(u32, u32, u32)] = &[(2, 0, 0)];
     g.throughput(Throughput::Elements(TOKENS.len() as u64));
 
-    #[cfg(feature = "perf-counters")]
+    #[cfg(feature = "perf_counters")]
     {
         // Pre‑warm to remove first‑iteration noise.
         let _ = perf::take(); // clear
@@ -48,12 +48,12 @@ pub fn bench_parse_small(c: &mut Criterion) {
     // Time only the hot path.
     g.bench_function("small-parse", |b| {
         b.iter(|| {
-            #[cfg(feature = "perf-counters")]
+            #[cfg(feature = "perf_counters")]
             let _ = perf::take(); // zero
 
             let _res = black_box(driver.parse_tokens(black_box(TOKENS.iter().copied())));
 
-            #[cfg(feature = "perf-counters")]
+            #[cfg(feature = "perf_counters")]
             let _snap = black_box(perf::take()); // snapshot to keep used
         })
     });

@@ -5,7 +5,7 @@
 
 use crate::{Language, Token, language::SymbolMetadata};
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 fn empty_parse_table() -> &'static adze_glr_core::ParseTable {
     use adze_glr_core::{GotoIndexing, ParseTable};
     use adze_ir::{Grammar, StateId, SymbolId};
@@ -39,7 +39,7 @@ fn empty_parse_table() -> &'static adze_glr_core::ParseTable {
     }))
 }
 
-#[cfg(not(feature = "glr-core"))]
+#[cfg(not(feature = "glr"))]
 fn empty_parse_table() -> crate::language::ParseTable {
     crate::language::ParseTable {
         state_count: 0,
@@ -68,7 +68,7 @@ pub fn stub_language() -> Language {
         }])
         .field_names(vec![]);
 
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     let builder = builder.tokenizer(|_| Box::new(std::iter::empty()));
 
     builder.build().unwrap()
@@ -77,7 +77,7 @@ pub fn stub_language() -> Language {
 /// Create a stub language with pre-defined tokens (for GLR mode).
 ///
 /// In non-GLR mode, tokens are ignored since there's no tokenizer field.
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 pub fn stub_language_with_tokens(tokens: Vec<Token>) -> Language {
     Language::builder()
         .parse_table(empty_parse_table())
@@ -94,7 +94,7 @@ pub fn stub_language_with_tokens(tokens: Vec<Token>) -> Language {
 }
 
 /// For non-GLR builds, tokens parameter is ignored
-#[cfg(not(feature = "glr-core"))]
+#[cfg(not(feature = "glr"))]
 pub fn stub_language_with_tokens(_tokens: Vec<Token>) -> Language {
     stub_language()
 }
@@ -115,7 +115,7 @@ pub fn multi_symbol_test_language(symbol_count: usize) -> Language {
         ])
         .field_names(vec![]);
 
-    #[cfg(feature = "glr-core")]
+    #[cfg(feature = "glr")]
     let builder = builder.tokenizer(|_| Box::new(std::iter::empty()));
 
     builder.build().unwrap()

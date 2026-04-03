@@ -106,24 +106,24 @@ pub mod serialization;
 
 // Trace macro for debugging GLR conflicts and decisions
 /// Internal tracing macro used by the GLR runtime in debug/test builds.
-#[cfg(any(feature = "glr-trace", feature = "debug_glr"))]
+#[cfg(any(feature = "glr_trace", feature = "debug_glr"))]
 #[macro_export]
 macro_rules! debug_trace {
     ($($t:tt)*) => { eprintln!("[GLR] {}", format!($($t)*)); }
 }
-#[cfg(not(any(feature = "glr-trace", feature = "debug_glr")))]
+#[cfg(not(any(feature = "glr_trace", feature = "debug_glr")))]
 #[macro_export]
 macro_rules! debug_trace {
     ($($t:tt)*) => {};
 }
 
 /// Backward-compatible trace macro.
-#[cfg(any(feature = "glr-trace", feature = "debug_glr"))]
+#[cfg(any(feature = "glr_trace", feature = "debug_glr"))]
 #[macro_export]
 macro_rules! glr_trace {
     ($($t:tt)*) => { debug_trace!($($t)*); }
 }
-#[cfg(not(any(feature = "glr-trace", feature = "debug_glr")))]
+#[cfg(not(any(feature = "glr_trace", feature = "debug_glr")))]
 #[macro_export]
 macro_rules! glr_trace {
     ($($t:tt)*) => { debug_trace!($($t)*); }
@@ -433,7 +433,7 @@ pub use driver::Driver;
 pub use forest_view::{Forest, ForestView, Span};
 
 /// Internal performance counters (diagnostics only).
-#[cfg(feature = "perf-counters")]
+#[cfg(feature = "perf_counters")]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub mod perf {
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -510,7 +510,7 @@ pub mod perf {
 }
 
 /// Internal performance counters (diagnostics only).
-#[cfg(not(feature = "perf-counters"))]
+#[cfg(not(feature = "perf_counters"))]
 #[cfg_attr(feature = "strict_docs", allow(missing_docs))]
 pub mod perf {
     /// Snapshot of performance counter values (no-op when disabled).

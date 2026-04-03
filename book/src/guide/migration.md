@@ -311,7 +311,7 @@ Or explore the GLR runtime:
 
 ```toml
 [dependencies]
-adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr", "incremental_glr"] }
 ```
 
 See [Getting Started › Migration](../getting-started/migration.md) for the

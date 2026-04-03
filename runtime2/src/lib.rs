@@ -32,9 +32,9 @@ pub mod node;
 pub mod parser;
 pub mod tree;
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 mod builder;
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 mod engine;
 /// Forest-to-tree conversion for GLR parsing (Phase 3.2)
 #[cfg(feature = "pure-rust")]

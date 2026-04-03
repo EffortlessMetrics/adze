@@ -1,6 +1,6 @@
 //! Test performance counters functionality
 
-#[cfg(feature = "perf-counters")]
+#[cfg(feature = "perf_counters")]
 #[test]
 fn test_perf_counters_enabled() {
     use adze_glr_core::perf;
@@ -37,7 +37,7 @@ fn test_perf_counters_enabled() {
     assert_eq!(after_reset.merges, 0);
 }
 
-#[cfg(not(feature = "perf-counters"))]
+#[cfg(not(feature = "perf_counters"))]
 #[test]
 fn test_perf_counters_disabled() {
     use adze_glr_core::perf;

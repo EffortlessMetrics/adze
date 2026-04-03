@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-03-17
+**Last updated:** 2026-03-28
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -10,7 +10,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 
 | ID | Area | Symptom | Impact | Status | Link |
 |---:|------|---------|--------|--------|------|
-| FR-001 | Docs | Docs drift from dev head (README/book/guides disagree) | Users follow dead paths | Mitigated | (issue) |
+| FR-001 | Docs | Docs drift from dev head (README/book/guides disagree) | Users follow dead paths | Resolved (Wave 16, 2026-03-28) | (issue) |
 | FR-002 | CI | Too many workflows fail/cancel simultaneously on PRs | Signal is noisy | Mitigated | (issue) |
 | FR-003 | Dev loop | Supported gate is still heavy on constrained machines | Local iteration cost | Mitigated | (issue) |
 | FR-004 | Status | Supported-lane exclusions aren't obvious | Confusing contributor loop | Mitigated | (issue) |
@@ -22,9 +22,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-010 | Runtime | `runtime/src/pure_parser.rs` has parse errors | Blocks `cargo fmt` on entire workspace | Resolved | - |
 | FR-011 | Docs | `rustdoc::private_intra_doc_links` warning in runtime | Cosmetic noise in doc build | Resolved | - |
 | FR-012 | Publishing | No `cargo package` dry-run in CI | Broken publishes not caught early | Resolved | - |
-| FR-013 | Tooling | No CLI binary yet (`adze check`, `adze stats`) | Grammar validation requires writing Rust | Open | - |
+| FR-013 | Tooling | No CLI binary yet (`adze check`, `adze stats`) | Grammar validation requires writing Rust | Resolved | - |
 | FR-014 | Runtime | Some `adze` runtime integration tests fail to compile | Stale API references in test files (Node, etc) | Resolved | - |
-| FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Open | - |
+| FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Resolved | - |
 
 ---
 
@@ -54,11 +54,19 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** README.md and book examples refer to old `rust-sitter` naming or outdated macro syntax.
 **Expected:** Documentation matches the current `adze` 0.8.0-dev state.
 **Actual:** Users encounter compilation errors when copying examples.
-**Fix:** Perform a repository-wide documentation audit and sync.
-**Progress:**
-- **Priority 1 (Fixed):** Version references updated from 0.5.0-beta/0.6 to 0.8; feature names corrected (glr-core → glr, incremental → incremental_glr)
-- **Priority 2/3 (Remaining):** Book content sync, tutorial updates, advanced examples
-**Status:** Mitigated
+**Fix:** Repository-wide documentation audit and sync completed in two phases:
+- **Phase 1:** Updated version strings and critical references (2 files)
+- **Phase 2:** Fixed feature flag consistency across book/ directory (8 files, 17 changes)
+  - `glr-core` → `glr`
+  - `incremental` → `incremental_glr`
+  - Removed outdated feature references
+- **Phase 3 (Wave 16, 2026-03-28):** Final documentation sync completed:
+  - Updated version strings from v0.5.0-beta to v0.8.0-dev
+  - Fixed feature flags from `["glr-core", "incremental"]` to `["glr", "incremental_glr"]`
+  - Updated crate name references from `adze-runtime` to `adze`
+  - Updated API usage examples
+  - All documentation now aligned with completed PR #2 (Feature Flag Standardization)
+**Status:** Resolved (Wave 16, 2026-03-28)
 
 ### FR-002 - CI Workflow Noise
 
@@ -151,7 +159,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Expected:** A CLI command like `adze check grammar.rs` validates grammars without a full project.
 **Actual:** No CLI binary exists yet.
 **Fix:** Implement `adze check` and `adze stats` subcommands.
-**Status:** Open
+**Status:** Resolved
+**Discovered:** Wave 14
+**Resolved:** Wave 15 (2026-03-25) - CLI is fully implemented in `cli/` with all required commands: `adze check` (grammar validation), `adze stats` (parse table metrics), `adze init` (project initialization), `adze build` (build grammar parsers), `adze parse` (parse files), `adze test` (test grammars), and `adze doc` (generate documentation). All 20 tests passing.
 
 ### FR-014 - Stale Runtime Test API References
 
@@ -170,9 +180,24 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** `feature_profile_resolve_backend` test in `adze-feature-policy-contract` panics with "Grammar has shift/reduce or reduce/reduce conflicts, but the GLR feature is not enabled."
 **Expected:** Feature matrix: 12/12 pass.
 **Actual:** 11/12 pass; 1 expected failure due to intentional GLR feature gating logic being tested without the GLR feature enabled.
-**Fix:** Either mark the test as `#[ignore]` with a reason, or adjust the test to correctly handle the feature-absent case.
-**Status:** Open
+**Fix:** Added conditional guard `if profile.has_glr()` in the test to only call `resolve_backend(true)` when GLR is available, avoiding the panic in pure-rust-without-GLR configuration.
+**Status:** Resolved
 **Discovered:** Wave 14
+**Resolved:** Wave 15 (2026-03-25) - Test now passes with all feature combinations (default, pure-rust, glr). Verified with `cargo test -p adze-feature-policy-contract --features pure-rust feature_profile_resolve_backend`.
+
+### FR-016 - Compiler ICE in Feature Policy Contract
+
+**Area:** testing
+**Symptom:** Compiler internal compiler error (ICE) when running tests in `adze-feature-policy-contract` with `proptest!` macro and complex control flow.
+**Expected:** All tests compile and run without compiler errors.
+**Actual:** ICE triggered by combination of `proptest!` macro, `const fn` with `unreachable!()`, and nested `if` statements.
+**Fix:**
+- Replaced `proptest!` macro with regular test functions
+- Made `ParserFeatureProfile::resolve_backend()` a `const fn`
+- Replaced nested `if` statements with `match` for better compile-time evaluation
+- Replaced `unreachable!()` with `panic!()` to avoid ICE in const contexts
+- Made `ParserBackend::select()` a `const fn` to fix const fn compilation errors
+**Status:** Resolved (Wave 16, 2026-03-28)
 
 ---
 

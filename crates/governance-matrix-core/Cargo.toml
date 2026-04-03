@@ -23,3 +23,6 @@ strict_docs = ["adze-governance-matrix-core-impl/strict_docs"]
 
 [dependencies]
 adze-governance-matrix-core-impl = { version = "0.1.0", path = "../governance-matrix-core-impl" }
+
+[dev-dependencies]
+proptest = { workspace = true }

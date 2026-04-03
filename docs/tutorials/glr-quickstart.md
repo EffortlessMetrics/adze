@@ -28,7 +28,7 @@ Enable these features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze-runtime = { version = "0.1", features = ["pure-rust", "serialization"] }
+adze = { version = "0.8.0-dev", features = ["pure-rust", "serialization"] }
 
 [build-dependencies]
 adze-tool = { version = "0.8.0-dev", features = ["serialization"] }
@@ -74,7 +74,7 @@ fn main() {
 In your application code:
 
 ```rust
-use adze_runtime::Parser;
+use adze::unified_parser::Parser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read .parsetable file
@@ -159,11 +159,9 @@ fn main() {
 ### 3. Parser Setup (src/main.rs)
 
 ```rust
-use adze_runtime::{
-    Parser,
-    language::SymbolMetadata,
-    tokenizer::{TokenPattern, Matcher},
-};
+use adze::unified_parser::Parser;
+use adze::language::SymbolMetadata;
+use adze::tokenizer::{TokenPattern, Matcher};
 use adze_ir::SymbolId;
 
 fn create_arithmetic_parser() -> Result<Parser, Box<dyn std::error::Error>> {
@@ -383,7 +381,7 @@ mod tests {
 
 ```rust
 // tests/integration_test.rs
-use adze_runtime::Parser;
+use adze::unified_parser::Parser;
 
 #[test]
 fn test_end_to_end_pipeline() {
@@ -424,7 +422,7 @@ fn test_end_to_end_pipeline() {
 
 **Cause**: .parsetable version mismatch
 
-**Solution**: Upgrade adze-runtime or regenerate table
+**Solution**: Upgrade adze or regenerate table
 
 ### Error: "Failed to deserialize ParseTable"
 
@@ -508,7 +506,7 @@ Using .parsetable reduces build time by:
    ```
 
 3. **Version pinning**:
-   - Pin adze-runtime version in Cargo.toml
+   - Pin adze version in Cargo.toml
    - Regenerate .parsetable on version upgrades
    - Include format version in filename: `lang-v1.0.0.parsetable`
 

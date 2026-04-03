@@ -16,7 +16,7 @@ Adze uses a "Support Lane" model to keep the core green while allowing experimen
 
 ### 🟢 Supported Lane (Must be Green)
 These crates are the core product. CI enforces passing tests and lints on every PR.
-- `adze-runtime` (core runtime)
+- `adze` (core runtime)
 - `adze-macro`
 - `adze-tool`
 - `adze-common`

@@ -24,4 +24,10 @@ serde.workspace = true
 
 [dev-dependencies]
 insta = { workspace = true, features = ["json", "yaml"] }
+proptest.workspace = true
 serde_json.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "bench_governance"
+harness = false

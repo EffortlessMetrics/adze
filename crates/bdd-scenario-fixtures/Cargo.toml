@@ -20,3 +20,7 @@ strict_docs = []
 [dependencies]
 adze-bdd-governance-fixtures = { version = "0.1.0", path = "../bdd-governance-fixtures" }
 adze-bdd-grammar-fixtures = { version = "0.1.0", path = "../bdd-grammar-fixtures" }
+
+[dev-dependencies]
+adze-ir = { version = "0.8.0-dev", path = "../../ir" }
+proptest = { workspace = true }

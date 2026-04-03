@@ -23,3 +23,6 @@ strict_docs = ["adze-governance-runtime-core/strict_docs"]
 
 [dependencies]
 adze-governance-runtime-core = { version = "0.1.0", path = "../governance-runtime-core" }
+
+[dev-dependencies]
+proptest = { workspace = true }

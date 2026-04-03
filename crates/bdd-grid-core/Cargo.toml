@@ -19,3 +19,11 @@ strict_docs = ["adze-bdd-scenario-core/strict_docs"]
 
 [dependencies]
 adze-bdd-scenario-core = { version = "0.1.0", path = "../bdd-scenario-core" }
+
+[dev-dependencies]
+criterion.workspace = true
+proptest = { workspace = true }
+
+[[bench]]
+name = "bdd_grid_bench"
+harness = false

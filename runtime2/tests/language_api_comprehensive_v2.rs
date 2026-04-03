@@ -526,7 +526,7 @@ fn cloned_language_has_same_counts() {
     assert_eq!(cloned.max_alias_sequence_length, 0);
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn clone_resets_tokenizer_to_none() {
     use adze_runtime::Token;
@@ -858,13 +858,13 @@ fn max_alias_sequence_length_u32_max() {
 // 22. Tokenizer (glr-core feature)
 // ===========================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn tokenizer_absent_by_default() {
     assert!(minimal_language().tokenize.is_none());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn tokenizer_set_via_builder() {
     use adze_runtime::Token;
@@ -877,7 +877,7 @@ fn tokenizer_set_via_builder() {
     assert!(lang.tokenize.is_some());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn tokenizer_produces_tokens() {
     use adze_runtime::Token;
@@ -902,7 +902,7 @@ fn tokenizer_produces_tokens() {
     assert_eq!(toks[0].end, 5);
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn with_static_tokens_sets_tokenizer() {
     use adze_runtime::Token;
@@ -918,14 +918,14 @@ fn with_static_tokens_sets_tokenizer() {
 // 23. ParseTable integration
 // ===========================================================================
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn parse_table_is_stored() {
     let lang = minimal_language();
     assert!(lang.parse_table.is_some());
 }
 
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 #[test]
 fn parse_table_state_count_accessible() {
     let table = adze_glr_core::ParseTable {

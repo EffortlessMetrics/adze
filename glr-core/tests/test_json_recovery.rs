@@ -341,7 +341,7 @@ fn create_json_grammar() -> Grammar {
 
 #[test]
 #[ignore] // Requires complete JSON grammar implementation
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "test_helpers")]
 fn test_valid_json_clean_forest() {
     let grammar = create_json_grammar();
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
@@ -376,7 +376,7 @@ fn test_valid_json_clean_forest() {
 }
 
 #[test]
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "test_helpers")]
 fn test_missing_closing_brace_recovery() {
     let grammar = create_json_grammar();
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
@@ -423,7 +423,7 @@ fn test_missing_closing_brace_recovery() {
 }
 
 #[test]
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "test_helpers")]
 fn test_trailing_comma_recovery() {
     let grammar = create_json_grammar();
     let first_follow = FirstFollowSets::compute(&grammar).unwrap();
@@ -464,7 +464,7 @@ fn test_trailing_comma_recovery() {
 }
 
 #[test]
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "test_helpers")]
 fn test_eof_not_zero() {
     // Verify our EOF fix: EOF symbol should not be 0 (ERROR)
     let grammar = create_json_grammar();
