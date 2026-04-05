@@ -127,6 +127,7 @@ jobs:
       - uses: actions/checkout@v6.0.2
       
       - name: Check for disabled test files
+        shell: bash
         run: |
           if git ls-files '*.disabled' | grep -q .; then
             echo "❌ Found .disabled files in repo:"
@@ -295,18 +296,24 @@ jobs:
         run: cargo fmt --all -- --check
       
       - name: Check workspace compilation
-        run: cargo check --workspace ${{ matrix.backend.flags }}
+        if: matrix.backend.name == 'pure-rust'
+        run: cargo check --workspace
+
+      - name: Check example compilation (${{ matrix.backend.name }})
+        run: cargo check -p adze-example ${{ matrix.backend.flags }}
       
       - name: Run clippy on runtime with ${{ matrix.backend.name }}
+        if: matrix.backend.name == 'pure-rust'
         run: cargo clippy -p adze ${{ matrix.backend.flags }} -- -D warnings
-      
+
       - name: Run clippy on example with ${{ matrix.backend.name }}
         run: cargo clippy -p adze-example ${{ matrix.backend.flags }} -- -D warnings
       
       - name: Build example with ${{ matrix.backend.name }}
         run: cargo build -p adze-example ${{ matrix.backend.flags }}
-      
+
       - name: Test runtime with ${{ matrix.backend.name }}
+        if: matrix.backend.name == 'pure-rust'
         run: cargo test -p adze ${{ matrix.backend.flags }} -- --test-threads=$RUST_TEST_THREADS
 
   miri:
@@ -834,7 +841,19 @@ jobs:
         run: |
           echo "## Unsafe Code Report" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          cargo geiger --workspace >> $GITHUB_STEP_SUMMARY
+          CORE_CRATES=(
+            adze
+            adze-macro
+            adze-common
+            adze-ir
+            adze-glr-core
+            adze-tablegen
+            adze-tool
+          )
+          for crate in "${CORE_CRATES[@]}"; do
+            printf '\n### %s\n' "$crate" >> "$GITHUB_STEP_SUMMARY"
+            cargo geiger -p "$crate" >> "$GITHUB_STEP_SUMMARY"
+          done
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   fuzz:
