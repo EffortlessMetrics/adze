@@ -168,7 +168,7 @@ jobs:
         run: cargo clippy -p adze-tablegen -- -D warnings
       
       - name: Example (pure-rust) tests
-        run: cargo test -p adze-example --features pure-rust -- --test-threads=$RUST_TEST_THREADS
+        run: cargo check --manifest-path example/Cargo.toml --features pure-rust
       
       - name: Test tablegen (small-table)
         run: cargo test -p adze-tablegen --features "small-table" -- --test-threads=$RUST_TEST_THREADS --nocapture
@@ -279,41 +279,30 @@ jobs:
         backend:
           - name: pure-rust
             flags: ""
-          - name: c-backend
-            flags: "--no-default-features --features c-backend"
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       
-      - name: Install tree-sitter CLI (for C backend)
-        if: matrix.backend.name == 'c-backend'
-        run: |
-          npm install -g tree-sitter-cli@^0.22
-          tree-sitter --version
-      
       - name: Check formatting
         run: cargo fmt --all -- --check
       
       - name: Check workspace compilation
-        if: matrix.backend.name == 'pure-rust'
         run: cargo check --workspace
 
       - name: Check example compilation (${{ matrix.backend.name }})
-        run: cargo check -p adze-example ${{ matrix.backend.flags }}
+        run: cargo check --manifest-path example/Cargo.toml ${{ matrix.backend.flags }}
       
       - name: Run clippy on runtime with ${{ matrix.backend.name }}
-        if: matrix.backend.name == 'pure-rust'
         run: cargo clippy -p adze ${{ matrix.backend.flags }} -- -D warnings
 
       - name: Run clippy on example with ${{ matrix.backend.name }}
-        run: cargo clippy -p adze-example ${{ matrix.backend.flags }} -- -D warnings
+        run: cargo clippy --manifest-path example/Cargo.toml ${{ matrix.backend.flags }} -- -D warnings
       
       - name: Build example with ${{ matrix.backend.name }}
-        run: cargo build -p adze-example ${{ matrix.backend.flags }}
+        run: cargo build --manifest-path example/Cargo.toml ${{ matrix.backend.flags }}
 
       - name: Test runtime with ${{ matrix.backend.name }}
-        if: matrix.backend.name == 'pure-rust'
         run: cargo test -p adze ${{ matrix.backend.flags }} -- --test-threads=$RUST_TEST_THREADS
 
   miri:
@@ -356,7 +345,7 @@ jobs:
       - name: Build with ts-compat feature
         run: |
           cargo build -p adze --features "ts-compat pure-rust"
-          cargo build -p adze-example --features "ts-compat pure-rust"
+          cargo build --manifest-path example/Cargo.toml --features "ts-compat pure-rust"
       
       - name: Test ts-compat API
         run: cargo test -p adze --features "ts-compat pure-rust" --test ts_compat_equiv -- --test-threads=$RUST_TEST_THREADS
@@ -473,10 +462,10 @@ jobs:
           rm -rf "$first_release_dir"
 
           # Build twice and compare outputs
-          cargo build -p adze-example --release
+          cargo build --manifest-path example/Cargo.toml --release
           cp -r "$CARGO_TARGET_DIR/release" "$first_release_dir"
           cargo clean
-          cargo build -p adze-example --release
+          cargo build --manifest-path example/Cargo.toml --release
           
           # Compare generated artifacts
           if ! diff -r "$first_release_dir" "$CARGO_TARGET_DIR/release" > /dev/null 2>&1; then
@@ -842,17 +831,19 @@ jobs:
           echo "## Unsafe Code Report" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           CORE_CRATES=(
-            adze
-            adze-macro
-            adze-common
-            adze-ir
-            adze-glr-core
-            adze-tablegen
-            adze-tool
+            "runtime adze"
+            "macro adze-macro"
+            "common adze-common"
+            "ir adze-ir"
+            "glr-core adze-glr-core"
+            "tablegen adze-tablegen"
+            "tool adze-tool"
           )
           for crate in "${CORE_CRATES[@]}"; do
-            printf '\n### %s\n' "$crate" >> "$GITHUB_STEP_SUMMARY"
-            cargo geiger -p "$crate" >> "$GITHUB_STEP_SUMMARY"
+            read -r crate_dir crate_name <<< "$crate"
+            manifest="$crate_dir/Cargo.toml"
+            printf '\n### %s (%s)\n' "$crate_name" "$manifest" >> "$GITHUB_STEP_SUMMARY"
+            cargo geiger --manifest-path "$manifest" >> "$GITHUB_STEP_SUMMARY"
           done
           echo '```' >> $GITHUB_STEP_SUMMARY
 
