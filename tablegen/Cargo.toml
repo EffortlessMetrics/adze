@@ -9,7 +9,7 @@ repository = "https://github.com/effortlessmetrics/adze"
 homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-tablegen"
 readme = "README.md"
-publish = false
+publish = true
 include = ["Cargo.toml", "LICENSE*", "README*", "src/**", "MIGRATING.md"]
 
 [package.metadata.docs.rs]
