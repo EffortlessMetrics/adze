@@ -21,7 +21,7 @@ tree-sitter-c2rust = ["tree-sitter-runtime-c2rust", "adze-runtime-governance-api
 tree-sitter-standard = ["tree-sitter-runtime-standard", "adze-runtime-governance-api/tree-sitter-standard"]
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]
-serialization = ["serde", "serde_json"] # Enable tree serialization
+serialization = ["serde", "serde_json", "adze-glr-core/serialization"] # Enable tree serialization
 legacy-parsers = [] # Enable to access deprecated parser_v2 and parser_v3 modules
 incremental_glr = [] # Enable GLR incremental parsing support
 debug_glr = [] # Enable debug output for GLR parser
@@ -37,7 +37,7 @@ strict_api = [] # Enable strict API surface checking
 unstable-benches = [] # Enable benchmarks that depend on unstable APIs
 glr_telemetry = [] # Enable GLR telemetry
 glr = ["adze-runtime-governance-api/glr"] # Enable GLR parser mode
-with-grammars = [] # Enable tests that require ts-bridge and tree-sitter grammars
+with-grammars = ["ts_bridge", "tree_sitter_json"] # Enable tests that require ts-bridge and tree-sitter grammars
 
 [dependencies]
 tree-sitter-runtime-c2rust = { package = "tree-sitter-c2rust", version = "0.25.2", optional = true }
@@ -61,6 +61,8 @@ wasm-bindgen = { version = "0.2.100", optional = true }
 adze-concurrency-caps-core = { version = "0.1.0", path = "../crates/concurrency-caps-core" }
 adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
 adze-ts-format-core = { version = "0.1.0", path = "../crates/ts-format-core" }
+ts_bridge = { package = "ts-bridge", path = "../tools/ts-bridge", optional = true, default-features = false }
+tree_sitter_json = { package = "tree-sitter-json", version = "0.24", optional = true }
 adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
 adze-stack-pool-core = { version = "0.1.0", path = "../crates/stack-pool-core" }
 
