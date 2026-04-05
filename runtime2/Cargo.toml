@@ -108,7 +108,7 @@ required-features = ["test-utils"]
 
 [[test]]
 name = "glr_edge_cases"
-required-features = ["test-utils", "glr"]
+required-features = ["test-utils"]
 
 [[test]]
 name = "language_api_advanced_comprehensive"
@@ -120,7 +120,7 @@ required-features = ["test-utils"]
 
 [[test]]
 name = "parser_api_comprehensive_v2"
-required-features = ["test-utils", "glr"]
+required-features = ["test-utils"]
 
 [[test]]
 name = "parser_api_edge_cases"
@@ -128,7 +128,7 @@ required-features = ["test-utils"]
 
 [[test]]
 name = "parser_api_proptest"
-required-features = ["test-utils", "glr"]
+required-features = ["test-utils"]
 
 [[test]]
 name = "parser_api_tests"
@@ -164,7 +164,7 @@ required-features = ["test-utils"]
 
 [[test]]
 name = "stabilization"
-required-features = ["test-utils", "glr"]
+required-features = ["test-utils"]
 
 [[test]]
 name = "test_glr_integration"
@@ -181,71 +181,3 @@ required-features = ["test-utils"]
 [[test]]
 name = "tree_node_types_comprehensive"
 required-features = ["test-utils"]
-
-[[test]]
-name = "error_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_api_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_api_comprehensive_v2"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_builder_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_builder_comprehensive_v2"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_builder_proptest"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_builder_tests"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "language_metadata_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "parser_api_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "parser_api_v3_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "parser_integration_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "parser_utf8_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "symbol_lookup_proptest"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "symbol_metadata_proptest"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "symbol_query_comprehensive"
-required-features = ["test-utils", "glr"]
-
-[[test]]
-name = "timeout_behavior_comprehensive"
-required-features = ["test-utils", "glr"]
