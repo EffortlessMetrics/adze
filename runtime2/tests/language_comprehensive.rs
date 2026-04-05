@@ -1,5 +1,6 @@
 //! Comprehensive tests for the Language type and LanguageBuilder.
 
+use adze_runtime::language::RuntimeParseTable;
 use adze_runtime::language::{Language, SymbolMetadata};
 
 // ---------------------------------------------------------------------------
@@ -46,8 +47,8 @@ fn supertype() -> SymbolMetadata {
     }
 }
 
-fn leak_table() -> &'static adze_glr_core::ParseTable {
-    Box::leak(Box::new(adze_glr_core::ParseTable::default()))
+fn leak_table() -> &'static RuntimeParseTable {
+    Box::leak(Box::new(RuntimeParseTable::default()))
 }
 
 /// Minimal valid builder: parse_table + symbol_metadata.

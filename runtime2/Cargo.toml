@@ -89,3 +89,95 @@ required-features = ["pure-rust", "test-utils"]
 [[example]]
 name = "precedence_debug"
 required-features = ["pure-rust"]
+
+[[test]]
+name = "basic"
+required-features = ["test-utils"]
+
+[[test]]
+name = "clone_independence_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "engine_builder_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "feature_flags"
+required-features = ["test-utils"]
+
+[[test]]
+name = "glr_edge_cases"
+required-features = ["test-utils"]
+
+[[test]]
+name = "language_api_advanced_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parse_config_v4_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_api_comprehensive_v2"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_api_edge_cases"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_api_proptest"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_api_tests"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_api_v2_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_error_paths_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_integration_v2_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_lifecycle_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_public_api_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "parser_timeout_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "point_parser_error_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "stabilization"
+required-features = ["test-utils"]
+
+[[test]]
+name = "test_glr_integration"
+required-features = ["test-utils"]
+
+[[test]]
+name = "test_helpers_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "tree_editing_comprehensive"
+required-features = ["test-utils"]
+
+[[test]]
+name = "tree_node_types_comprehensive"
+required-features = ["test-utils"]

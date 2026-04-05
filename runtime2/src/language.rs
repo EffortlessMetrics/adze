@@ -9,6 +9,8 @@ type TokenizerFn = dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = crate::To
 
 #[cfg(feature = "glr")]
 type TokenizerBoxed = Box<TokenizerFn>;
+#[cfg(feature = "glr")]
+pub use adze_glr_core::ParseTable as RuntimeParseTable;
 
 /// A language definition containing parse tables, grammar metadata, and tokenization logic.
 ///
