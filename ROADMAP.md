@@ -17,10 +17,10 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - **Conflict Handling**: Automatic stack forking and merging (SPPF).
 - **External Scanners**: Support for custom lexing (e.g. Python indentation).
 
-## 🚀 Milestone 0.8.0: The Publishable Baseline (Current — ~97% complete, RC quality)
-- ✅ **CI Gate Green**: **2,460+ tests across feature combinations, 0 failures in supported lane**. Full workspace compiles, clippy clean, fmt clean.
+## 🚀 Milestone 0.8.0: The Publishable Baseline (Current — baseline achieved on `main`)
+- ✅ **Supported CI Contract Green**: `just ci-supported` / `CI / ci-supported` is green on `main`. Full workspace status docs and supported-lane boundaries are documented in `docs/status/`.
 - ✅ **Safety Audit**: SAFETY comments on all `unsafe` blocks in supported crates.
-- ✅ **Testing Buildout**: 2,460+ tests — property, integration, snapshot, GLR-core, fuzzing, mutation guards, ABI matrix. Feature matrix: 11/12 pass. Mutation testing configured.
+- ✅ **Testing Buildout**: 2,460+ tests — property, integration, snapshot, GLR-core, fuzzing, mutation guards, ABI matrix. Supported feature matrix is green. Mutation testing is configured.
 - ✅ **Example Grammars**: 10 example grammars (arithmetic, optionals, repetitions, words, boolean, json, csv, lambda, regex, ini).
 - ✅ **API Documentation**: Crate-level doc comments; `cargo doc` builds with 0 warnings. Book: 6+ chapters. Architecture chapter added.
 - ✅ **WASM Compatibility**: All core crates verified for `wasm32-unknown-unknown`. WASM CI verification job.
@@ -33,11 +33,13 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
 - ✅ **Cross-Platform**: Linux verified, macOS/Windows CI advisory jobs in place.
 - ✅ **Parallel Agent Work**: 14 waves of parallel agent work, 85+ commits driving the 0.8.0 release.
-- 🟡 **Remaining**: `cargo package` dry-run, feature-flag name standardization, doc-drift cleanup (`FR-001`), fix stale runtime test APIs.
+- ✅ **Backlog Convergence**: Final live branch [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged into `main` on 2026-04-03.
+- 🟡 **Remaining hardening**: backend-selection contract cleanup ([#267](https://github.com/EffortlessMetrics/adze/issues/267)), Windows pure-rust benchmark tail reduction ([#269](https://github.com/EffortlessMetrics/adze/issues/269)), and worktree cleanup/documentation hardening ([#268](https://github.com/EffortlessMetrics/adze/issues/268)).
 
 ## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
-- **Publish to crates.io**: Initial release of core crates (`adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`).
-- **CLI Utility**: `adze check`, `adze stats`, `adze fmt` for grammar validation, inspection, and debugging.
+- **Publish to crates.io**: Turn the now-green baseline on `main` into a release checklist and publishable core crate set.
+- **CI Hardening Beyond the Supported Gate**: Reduce advisory-lane churn and make broader workflow behavior easier to interpret.
+- **CLI Polish**: Improve the already-landed CLI surface (`adze check`, `adze stats`, etc.) instead of treating it as unimplemented.
 - **Performance Optimization**: Arena allocator for parse forest nodes; benchmark suite with regression detection.
 - **Incremental Parsing**: Stabilize forest-splicing for real-time editor performance.
 - **Query Predicates**: Full compatibility with Tree-sitter `.scm` query files.
