@@ -21,9 +21,9 @@
 //! This crate maintains several critical invariants for correct parsing:
 //!
 //! ### EOF Symbol Invariants
-//! - EOF symbol must equal the terminal boundary
-//!   (token_count + external_token_count).
-//! - EOF symbol must not equal the internal ERROR sentinel
+//! - EOF symbol must be a terminal sentinel id at or beyond the terminal boundary
+//!   (`token_count + external_token_count`).
+//! - EOF symbol must not be the internal ERROR sentinel
 //!   (`parse_forest::ERROR_SYMBOL`, currently 0xFFFF).
 //! - EOF symbol is always present in the symbol_to_index mapping
 //! - EOF column actions are byte-for-byte copies of the TS "end" column,
@@ -1934,29 +1934,26 @@ impl ParseTable {
     /// Validate parse table invariants
     ///
     /// This method checks critical invariants that must hold for correct parsing:
-    /// - EOF symbol is not ERROR (symbol 0)
+    /// - EOF symbol is not internal ERROR sentinel
     /// - EOF symbol is a proper sentinel (>= token_count + external_token_count)
     /// - EOF symbol is present in symbol_to_index mapping
     /// - EOF and END columns have matching action patterns (parity)
     #[must_use = "validation result must be checked"]
     pub fn validate(&self) -> Result<(), TableError> {
-        // Check EOF equals terminal_boundary exactly
         let terminal_boundary = self.token_count + self.external_token_count;
-        debug_assert_eq!(
-            self.eof_symbol,
-            SymbolId(0),
-            "EOF must be SymbolId(0) by convention"
-        );
 
-        // Check EOF is not the internal ERROR sentinel
         debug_assert_ne!(
             self.eof_symbol,
             parse_forest::ERROR_SYMBOL,
             "EOF symbol cannot be the ERROR sentinel"
         );
 
-        // Check EOF is SymbolId(0) by convention
-        if self.eof_symbol != SymbolId(0) {
+        if self.eof_symbol == parse_forest::ERROR_SYMBOL {
+            return Err(TableError::EofIsError);
+        }
+
+        // Check EOF is a terminal sentinel beyond all non-EOF symbols.
+        if (self.eof_symbol.0 as usize) < terminal_boundary {
             return Err(TableError::EofNotSentinel {
                 eof: self.eof_symbol.0,
                 token_count: self.token_count as u32,
@@ -2001,12 +1998,6 @@ impl ParseTable {
                 "external tokens are in [token_count..terminal_boundary)"
             );
         }
-
-        debug_assert_eq!(
-            self.eof_symbol,
-            SymbolId(0),
-            "EOF must be SymbolId(0) by convention"
-        );
 
         debug_assert!(
             self.symbol_to_index.contains_key(&self.eof_symbol),
