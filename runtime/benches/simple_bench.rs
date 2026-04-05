@@ -40,6 +40,47 @@ fn lex_all(lexer: &mut GrammarLexer, input: &str) -> Vec<lexer::Token> {
     tokens
 }
 
+fn token_count_without_eof(tokens: &[lexer::Token]) -> usize {
+    tokens.iter().filter(|token| token.symbol.0 != 0).count()
+}
+
+fn assert_eof_terminated(tokens: &[lexer::Token], expected_non_eof: usize) {
+    assert!(!tokens.is_empty());
+    assert_eq!(
+        tokens
+            .last()
+            .expect("lexer produced an empty stream")
+            .symbol
+            .0,
+        0
+    );
+    assert_eq!(token_count_without_eof(tokens), expected_non_eof);
+}
+
+fn token_floor_from_whitespace(input: &str) -> usize {
+    input
+        .split_whitespace()
+        .filter(|segment| !segment.is_empty())
+        .count()
+}
+
+fn assert_min_non_eof_tokens(tokens: &[lexer::Token], min_non_eof: usize) {
+    assert!(!tokens.is_empty());
+    assert_eq!(
+        tokens
+            .last()
+            .expect("lexer produced an empty stream")
+            .symbol
+            .0,
+        0
+    );
+    assert!(
+        token_count_without_eof(tokens) >= min_non_eof,
+        "expected at least {min_non_eof} non-eof tokens, got {}",
+        token_count_without_eof(tokens)
+    );
+}
+
 fn benchmark_lexer_simple(c: &mut Criterion) {
     // Create token patterns for a simple grammar
     let token_patterns = vec![
@@ -65,7 +106,7 @@ fn benchmark_lexer_simple(c: &mut Criterion) {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(7)]);
             let input = "123 + 456 * 789 - x / y";
             let tokens = lex_all(&mut lexer, black_box(input));
-            assert_eq!(tokens.len(), 10); // 9 tokens + EOF
+            assert_eof_terminated(&tokens, 9);
         });
     });
 
@@ -74,7 +115,7 @@ fn benchmark_lexer_simple(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(7)]);
             let tokens = lex_all(&mut lexer, black_box(expr));
-            assert!(tokens.len() > 20);
+            assert_eof_terminated(&tokens, 33);
         });
     });
 
@@ -83,7 +124,7 @@ fn benchmark_lexer_simple(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(7)]);
             let tokens = lex_all(&mut lexer, black_box(expr));
-            assert!(tokens.len() > 15);
+            assert_eof_terminated(&tokens, 27);
         });
     });
 }
@@ -182,7 +223,7 @@ fn benchmark_lexer_programming_language(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(70), SymbolId(71)]);
             let tokens = lex_all(&mut lexer, black_box(program));
-            assert!(tokens.len() > 30);
+            assert_min_non_eof_tokens(&tokens, token_floor_from_whitespace(program) * 2);
         });
     });
 
@@ -223,7 +264,7 @@ fn benchmark_lexer_programming_language(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(70), SymbolId(71)]);
             let tokens = lex_all(&mut lexer, black_box(program));
-            assert!(tokens.len() > 100);
+            assert_min_non_eof_tokens(&tokens, token_floor_from_whitespace(program) + 10);
         });
     });
 }
@@ -248,7 +289,7 @@ fn benchmark_lexer_edge_cases(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(3)]);
             let tokens = lex_all(&mut lexer, black_box(&ident));
-            assert_eq!(tokens.len(), 2); // identifier + EOF
+            assert_eof_terminated(&tokens, 1);
         });
     });
 
@@ -257,7 +298,7 @@ fn benchmark_lexer_edge_cases(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(3)]);
             let tokens = lex_all(&mut lexer, black_box(&input));
-            assert!(tokens.len() > 250);
+            assert_min_non_eof_tokens(&tokens, token_floor_from_whitespace(&input));
         });
     });
 }
