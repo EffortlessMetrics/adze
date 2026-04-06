@@ -1,4 +1,6 @@
-use adze_parser_backend_core::{ParserBackend, ParserBackendSelection};
+use adze_parser_backend_core::ParserBackend;
+#[cfg(feature = "pure-rust")]
+use adze_parser_backend_core::ParserBackendSelection;
 
 #[cfg(feature = "glr")]
 #[test]
