@@ -3,6 +3,7 @@ name = "adze"
 description = "A package for defining tree-sitter grammars alongside Rust logic"
 readme = "../README.md"
 repository = "https://github.com/effortlessmetrics/adze"
+homepage = "https://github.com/effortlessmetrics/adze"
 version = "0.8.0-dev"
 authors = ["Steven Zimmerman, CPA"]
 edition = "2024"
@@ -61,7 +62,7 @@ wasm-bindgen = { version = "0.2.100", optional = true }
 adze-concurrency-caps-core = { version = "0.1.0", path = "../crates/concurrency-caps-core" }
 adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
 adze-ts-format-core = { version = "0.1.0", path = "../crates/ts-format-core" }
-ts_bridge = { package = "ts-bridge", path = "../tools/ts-bridge", optional = true, default-features = false }
+ts_bridge = { package = "ts-bridge", version = "0.1.0", path = "../tools/ts-bridge", optional = true, default-features = false }
 tree_sitter_json = { package = "tree-sitter-json", version = "0.24", optional = true }
 adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
 adze-stack-pool-core = { version = "0.1.0", path = "../crates/stack-pool-core" }
@@ -74,7 +75,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
-glr-test-support = { path = "../glr-test-support" }
+glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concurrency-init-rayon-core" }
 adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../crates/concurrency-init-classifier-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../crates/concurrency-init-core" }
@@ -83,9 +84,9 @@ adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-m
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }
 adze-concurrency-plan-core = { version = "0.1.0", path = "../crates/concurrency-plan-core" }
-adze-example = { path = "../example", features = ["ts-compat"] }
-adze-python-simple = { path = "../grammars/python-simple" }
-adze-python = { path = "../grammars/python" }
+adze-example = { version = "0.8.0-dev", path = "../example", features = ["ts-compat"] }
+adze-python-simple = { version = "0.1.0", path = "../grammars/python-simple" }
+adze-python = { version = "0.1.0", path = "../grammars/python" }
 
 [[bench]]
 name = "simple_bench"

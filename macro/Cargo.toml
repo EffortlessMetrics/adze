@@ -3,6 +3,7 @@ name = "adze-macro"
 description = "Procedural macros for Rust Sitter"
 readme = "../README.md"
 repository = "https://github.com/effortlessmetrics/adze"
+homepage = "https://github.com/effortlessmetrics/adze"
 version = "0.8.0-dev"
 authors = ["Steven Zimmerman, CPA"]
 edition = "2024"
