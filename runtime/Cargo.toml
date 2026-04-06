@@ -1,15 +1,22 @@
 [package]
 name = "adze"
-description = "A package for defining tree-sitter grammars alongside Rust logic"
-readme = "../README.md"
+version = "0.8.0-dev"
+edition = "2024"
+rust-version = "1.92"
+authors = ["Steven Zimmerman, CPA"]
+description = "Define tree-sitter grammars alongside Rust logic with AST-first parsing"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/effortlessmetrics/adze"
 homepage = "https://github.com/effortlessmetrics/adze"
-version = "0.8.0-dev"
-authors = ["Steven Zimmerman, CPA"]
-edition = "2024"
-license = "MIT"
-keywords = ["parsing", "codegen"]
-categories = ["development-tools"]
+documentation = "https://docs.rs/adze"
+readme = "README.md"
+publish = true
+keywords = ["parsing", "codegen", "grammar", "tree-sitter", "glr"]
+categories = ["development-tools", "parsing"]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**", "build.rs", "benches/**", "examples/**"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lib]
 path = "src/lib.rs"
