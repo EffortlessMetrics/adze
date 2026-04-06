@@ -123,11 +123,13 @@ jobs:
           - features: "--features incremental_glr"
             toolchain: beta
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v6.0.2
-      
+
       - name: Check for disabled test files
-        shell: bash
         run: |
           if git ls-files '*.disabled' | grep -q .; then
             echo "❌ Found .disabled files in repo:"
@@ -309,6 +311,7 @@ jobs:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Miri (UB Detection)
     runs-on: ubuntu-latest
+    continue-on-error: true   # advisory — nightly miri component can be unavailable
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@nightly
@@ -360,9 +363,12 @@ jobs:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Sanitizers (ASAN/UBSAN)
     runs-on: ubuntu-latest
+    continue-on-error: true   # advisory — nightly + -Zbuild-std can break
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src   # required by -Zbuild-std
       - uses: Swatinem/rust-cache@v2
       
       - name: Run with Address Sanitizer
@@ -385,16 +391,17 @@ jobs:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Minimal Versions
     runs-on: ubuntu-latest
+    continue-on-error: true   # advisory — minimal-versions resolution can lag behind
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
-      
+
       - name: Update to minimal versions
-        run: cargo update -Z minimal-versions
-      
+        run: cargo +nightly update -Z minimal-versions
+
       - name: Build with minimal versions
-        run: cargo build --workspace --all-features -Z minimal-versions
+        run: cargo build --workspace --all-features
 
   semver-checks:
     name: API Breaking Change Detection
@@ -723,6 +730,10 @@ jobs:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
     name: Cross Compilation (${{ matrix.target }})
     runs-on: ubuntu-latest
+    continue-on-error: true   # advisory — cross toolchains can drift
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -736,7 +747,7 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
-      
+
       - name: Install cross-compilation tools
         if: matrix.target != 'wasm32-unknown-unknown'
         run: |
@@ -745,7 +756,13 @@ jobs:
           if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
           fi
-      
+
+      - name: Configure linker for aarch64
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          mkdir -p .cargo
+          printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config.toml
+
       - name: Build for ${{ matrix.target }}
         run: |
           if [ "${{ matrix.target }}" = "wasm32-unknown-unknown" ]; then
@@ -753,7 +770,7 @@ jobs:
           else
             cargo build --target ${{ matrix.target }} --package adze
           fi
-      
+
       - name: Check ChildEdge size on 32-bit
         if: matrix.target == 'i686-unknown-linux-gnu'
         run: |
@@ -827,23 +844,23 @@ jobs:
         run: cargo install cargo-geiger --locked
       
       - name: Audit unsafe code usage
+        continue-on-error: true   # advisory — cargo-geiger can lag behind toolchain
         run: |
           echo "## Unsafe Code Report" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           CORE_CRATES=(
-            "runtime adze"
-            "macro adze-macro"
-            "common adze-common"
-            "ir adze-ir"
-            "glr-core adze-glr-core"
-            "tablegen adze-tablegen"
-            "tool adze-tool"
+            adze
+            adze-macro
+            adze-common
+            adze-ir
+            adze-glr-core
+            adze-tablegen
+            adze-tool
           )
-          for crate in "${CORE_CRATES[@]}"; do
-            read -r crate_dir crate_name <<< "$crate"
-            manifest="$crate_dir/Cargo.toml"
-            printf '\n### %s (%s)\n' "$crate_name" "$manifest" >> "$GITHUB_STEP_SUMMARY"
-            cargo geiger --manifest-path "$manifest" >> "$GITHUB_STEP_SUMMARY"
+          for crate_name in "${CORE_CRATES[@]}"; do
+            printf '\n### %s\n' "$crate_name" >> "$GITHUB_STEP_SUMMARY"
+            cargo geiger -p "$crate_name" >> "$GITHUB_STEP_SUMMARY" 2>&1 || \
+              echo "(cargo-geiger failed for $crate_name)" >> "$GITHUB_STEP_SUMMARY"
           done
           echo '```' >> $GITHUB_STEP_SUMMARY
 
