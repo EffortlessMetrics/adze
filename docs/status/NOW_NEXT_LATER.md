@@ -1,7 +1,7 @@
 # Now / Next / Later
 
-**Last updated:** 2026-04-04
-**Status:** **Post-PR264 closeout** — `main` is clean, the supported gate is green, and there are no open PRs
+**Last updated:** 2026-04-06
+**Status:** **Post-PR264 closeout** — `main` is clean, the supported gate is green, and PR-level hardening cleanup is in progress (`#280`).
 
 Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For the focused follow-up execution plan after PR #264, see [`plans/POST-PR264-CI-FOLLOWUPS.md`](../../plans/POST-PR264-CI-FOLLOWUPS.md).
 
@@ -16,9 +16,10 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [x] PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as commit `2a88deb6e6095682051729290987a78a0565d613`.
 - [x] The temporary convergence worktrees/branches used for the PR stack were cleaned up.
 - [x] A safety archive of the pre-cleanup dirty checkout was preserved outside `/tmp`.
+- [x] Issue #268 worktree cleanup documentation and validation is now documented and backed by a helper script.
 
 ### ✅ Immediate close-out state
-- [x] `gh pr list --state open` returns no open PRs.
+- [ ] `gh pr list --state open` currently has one active follow-up PR: `#280` (workflow hardening).
 - [x] `/home/steven/code/rust-sitter` is clean on `main` and aligned with `origin/main`.
 - [x] The remaining work is follow-up hardening, not PR-backlog triage.
 
@@ -29,7 +30,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 ### 🛠️ Convert the last-mile CI pain into tracked follow-up work
 - [x] [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267): stabilize backend-selection expectations across feature profiles and conflict tests.
 - [x] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): reduce and instrument the long Windows pure-rust benchmark-compilation tail.
-- [ ] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): document and harden temporary worktree cleanup so local closeout stays predictable.
+- [x] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): document and harden temporary worktree cleanup so local closeout stays predictable.
 
 ### 📦 Keep the supported contract explicit
 - [ ] Treat broader CI/workflow cleanup as follow-up hardening, not as a reason to reopen the PR backlog.
@@ -44,6 +45,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [ ] Reconfirm the publish surface and release checklist against the current `main` branch rather than the older RC-era status docs.
 - [ ] Separate crates.io publication work from advisory CI hardening so release decisions stay legible.
 - [ ] Trim or retire stale planning language that still reads like pre-merge backlog work.
+- [ ] Merge `#280` and then continue the release-focused PR sequence for runtime/workflow/publishability hardening.
 
 ### 📚 Documentation polish
 - [ ] Continue tightening tutorial/reference accuracy around the actual post-merge API surface.

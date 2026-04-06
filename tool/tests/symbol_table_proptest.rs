@@ -145,6 +145,7 @@ fn field_name_strategy() -> impl Strategy<Value = String> {
             s.as_str(),
             "type"
                 | "fn"
+                | "do"
                 | "let"
                 | "mut"
                 | "ref"

@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-04-04
+**Last updated:** 2026-04-06
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -27,8 +27,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Resolved | - |
 | FR-016 | Testing | Compiler ICE in feature policy contract tests | Blocks test compilation under specific macro/control-flow combinations | Resolved | - |
 | FR-017 | Testing | Backend-selection expectations drift across feature-unified test surfaces | Head-specific CI red and ad hoc panic matching | Resolved | [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267) |
-| FR-018 | CI | Windows pure-rust benchmark compilation is an unusually long tail | Green runs still block on low-signal wait time | Mitigated | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
-| FR-019 | Tooling | Temp worktree cleanup can drift when a `/tmp` path becomes a standalone repo | Cleanup requires manual removal and prune steps | Open | [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) |
+| FR-018 | CI | Windows pure-rust benchmark compilation is an unusually long tail | Green runs still block on low-signal wait time | In Progress (trim/follow-up tracked in #269/#280) | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
+| FR-019 | Tooling | Temp worktree cleanup can drift when a `/tmp` path becomes a standalone repo | Cleanup requires manual removal and prune steps | Mitigated | [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) |
 
 ---
 
@@ -233,8 +233,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Actual:** During PR #264 cleanup, `/tmp/adze-local-improvements` had a real `.git/` directory, `git worktree remove` failed validation, and cleanup required manual deletion plus `git worktree prune`.
 **Repro:** `fatal: validation failed, cannot remove working tree: '/tmp/adze-local-improvements/.git' is not a .git file, error code 2`
 **Fix:** Document one convention for temp worktrees vs standalone clones and add a safe validation/prune workflow for cleanup.
-**Status:** Open
-**Links:** [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268)
+**Status:** Mitigated
+**Fix:** Added `scripts/cleanup-worktrees.sh` with classification, safe cleanup, stale listing, and stale metadata pruning helpers. Contributor docs now document the closeout workflow.
+**Links:** [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268), `scripts/cleanup-worktrees.sh`
 
 ---
 

@@ -1,3 +1,5 @@
+#![cfg(feature = "test-utils")]
+
 //! Comprehensive tests for Parser error handling paths in adze-runtime.
 //!
 //! Covers: no-language errors, stub-language panics via catch_unwind,

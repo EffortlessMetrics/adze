@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Created:** 2026-04-04
-**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. The supported merge gate is green on `main`; the remaining work is follow-up hardening, not backlog convergence.
+**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. The supported merge gate is green on `main`; the remaining work is follow-up hardening, not backlog convergence. PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) carries the workflow hardening carry-forward.
 
 ---
 
@@ -65,7 +65,7 @@ Done:
 - Windows path now checks only `-p adze` with `--no-run`, reducing low-signal tail risk while keeping required compile coverage.
 - Retained elapsed timing so remaining cost is observable.
 
-### 3. Worktree cleanup hardening third
+### 3. Worktree cleanup hardening third ✅
 
 This does not block CI correctness, but it does affect the safety and repeatability of multi-branch local iteration.
 
@@ -96,4 +96,4 @@ Target outcome:
 - `main` stays green on the supported lane while these follow-ups land.
 - Backend-selection expectations stop drifting across representative feature-unified test crates.
 - Windows pure-rust CI no longer spends an opaque, merge-blocking tail on low-signal benchmark compilation.
-- Temporary worktree cleanup becomes reproducible and documented enough to avoid manual guesswork.
+- Temporary worktree cleanup is documented and reproducible via `scripts/cleanup-worktrees.sh`.

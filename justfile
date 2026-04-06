@@ -135,3 +135,9 @@ clean-light:
 # Clean a single package's artifacts instead of the whole target tree
 clean-package crate:
     cargo clean -p {{crate}}
+
+worktree-list:
+    ./scripts/cleanup-worktrees.sh list
+
+worktree-prune-stale:
+    ./scripts/cleanup-worktrees.sh prune-stale

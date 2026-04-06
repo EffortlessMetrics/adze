@@ -1,6 +1,10 @@
 //! Comprehensive tests for the Language type and LanguageBuilder.
 
+#[cfg(feature = "glr")]
 use adze_runtime::language::RuntimeParseTable;
+#[cfg(not(feature = "glr"))]
+use adze_runtime::language::{Language, ParseTable, SymbolMetadata};
+#[cfg(feature = "glr")]
 use adze_runtime::language::{Language, SymbolMetadata};
 
 // ---------------------------------------------------------------------------
@@ -47,8 +51,19 @@ fn supertype() -> SymbolMetadata {
     }
 }
 
+#[cfg(feature = "glr")]
 fn leak_table() -> &'static RuntimeParseTable {
     Box::leak(Box::new(RuntimeParseTable::default()))
+}
+
+#[cfg(not(feature = "glr"))]
+fn leak_table() -> ParseTable {
+    ParseTable {
+        state_count: 0,
+        action_table: Vec::new(),
+        small_parse_table: None,
+        small_parse_table_map: None,
+    }
 }
 
 /// Minimal valid builder: parse_table + symbol_metadata.

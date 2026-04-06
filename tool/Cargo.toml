@@ -3,6 +3,7 @@ name = "adze-tool"
 description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
 readme = "../README.md"
 repository = "https://github.com/effortlessmetrics/adze"
+homepage = "https://github.com/effortlessmetrics/adze"
 version = "0.8.0-dev"
 authors = ["Steven Zimmerman, CPA"]
 license = "MIT"
