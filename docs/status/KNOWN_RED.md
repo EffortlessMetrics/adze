@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-03-25
+**Last updated:** 2026-04-06
 
 This file tracks intentional exclusions from the supported lane:
 

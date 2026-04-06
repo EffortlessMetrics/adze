@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Created:** 2026-04-04
-**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. The supported merge gate is green on `main`; the remaining work is follow-up hardening, not backlog convergence.
+**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. The supported merge gate is green on `main`; the remaining work is follow-up hardening, not backlog convergence. PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) carries the workflow hardening carry-forward.
 
 ---
 
