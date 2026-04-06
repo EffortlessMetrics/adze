@@ -26,8 +26,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-014 | Runtime | Some `adze` runtime integration tests fail to compile | Stale API references in test files (Node, etc) | Resolved | - |
 | FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Resolved | - |
 | FR-016 | Testing | Compiler ICE in feature policy contract tests | Blocks test compilation under specific macro/control-flow combinations | Resolved | - |
-| FR-017 | Testing | Backend-selection expectations drift across feature-unified test surfaces | Head-specific CI red and ad hoc panic matching | Open | [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267) |
-| FR-018 | CI | Windows pure-rust benchmark compilation is an unusually long tail | Green runs still block on low-signal wait time | Open | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
+| FR-017 | Testing | Backend-selection expectations drift across feature-unified test surfaces | Head-specific CI red and ad hoc panic matching | Resolved | [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267) |
+| FR-018 | CI | Windows pure-rust benchmark compilation is an unusually long tail | Green runs still block on low-signal wait time | Mitigated | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
 | FR-019 | Tooling | Temp worktree cleanup can drift when a `/tmp` path becomes a standalone repo | Cleanup requires manual removal and prune steps | Open | [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) |
 
 ---
@@ -211,7 +211,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Actual:** Some tests assume `profile.has_glr()` and actual backend selection always agree, while other lanes can legitimately surface either a selected backend or the expected no-GLR panic.
 **Repro:** Recent head-specific failures on PR #264 in `crates/parser-backend-core/tests/bdd_parser_backend_core.rs`, `crates/parser-feature-contract/tests/bdd_parser.rs`, and `crates/runtime-governance/tests/integration_chain.rs`.
 **Fix:** Define one authoritative contract for conflict-backend behavior and centralize the assertion/helper used across representative test crates.
-**Status:** Open
+**Status:** Resolved (Wave 17, 2026-04-05)
 **Links:** [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267)
 
 ### FR-018 - Windows Pure-Rust Benchmark Tail
@@ -222,7 +222,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Actual:** The long pole on the final green path for PR #264 was the `Run benchmarks (check compilation)` step in `.github/workflows/pure-rust-ci.yml` on `windows-latest`.
 **Repro:** PR #264 merged green only after the `Test Pure Rust Implementation (windows-latest, stable)` and `(..., nightly)` jobs eventually completed their final `cargo bench --no-run` step.
 **Fix:** Add timing/observability, determine whether the step belongs on the required Windows path, and reduce or reclassify it if the signal remains low-value.
-**Status:** Open
+**Status:** Mitigated (Wave 17, 2026-04-05)
 **Links:** [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269)
 
 ### FR-019 - Worktree Metadata Drift During Cleanup
