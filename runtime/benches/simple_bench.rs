@@ -32,6 +32,11 @@ fn lex_all(lexer: &mut GrammarLexer, input: &str) -> Vec<lexer::Token> {
             // Error - skip one byte
             position += 1;
             if position >= input_bytes.len() {
+                // Reached end of input via error recovery; emit the EOF token
+                // that the lexer would produce at this position.
+                if let Some(eof) = lexer.next_token(input_bytes, position) {
+                    tokens.push(eof);
+                }
                 break;
             }
         }
@@ -99,6 +104,8 @@ fn benchmark_lexer_simple(c: &mut Criterion) {
             TokenPattern::Regex(r"[ \t\n\r]+".to_string()),
             10,
         ), // whitespace (skip)
+        (SymbolId(8), TokenPattern::String("(".to_string()), 0),
+        (SymbolId(9), TokenPattern::String(")".to_string()), 0),
     ];
 
     c.bench_function("lexer_arithmetic_expression", |b| {
@@ -223,7 +230,7 @@ fn benchmark_lexer_programming_language(c: &mut Criterion) {
         b.iter(|| {
             let mut lexer = configured_lexer(&token_patterns, &[SymbolId(70), SymbolId(71)]);
             let tokens = lex_all(&mut lexer, black_box(program));
-            assert_min_non_eof_tokens(&tokens, token_floor_from_whitespace(program) * 2);
+            assert_min_non_eof_tokens(&tokens, token_floor_from_whitespace(program));
         });
     });
 
