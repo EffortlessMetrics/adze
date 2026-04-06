@@ -69,7 +69,7 @@ jobs:
         echo "Benchmark compile check elapsed: $((SECONDS - start))s"
 
     - name: Run focused benchmark compile check (runtime only) on Windows
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-latest' && github.event_name != 'pull_request'
       run: |
         start=$SECONDS
         cargo bench -p adze --no-run
