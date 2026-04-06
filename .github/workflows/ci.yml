@@ -271,7 +271,7 @@ jobs:
 
   backend-matrix:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
-    name: Backend Build Matrix (${{ matrix.backend }})
+    name: Backend Build Matrix (${{ matrix.backend.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
