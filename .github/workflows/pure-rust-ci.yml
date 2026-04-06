@@ -61,8 +61,19 @@ jobs:
     - name: Run tests
       run: cargo test --verbose -- --test-threads=$RUST_TEST_THREADS
     
-    - name: Run benchmarks (check compilation)
-      run: cargo bench --no-run
+    - name: Run benchmark compile check (all crates)
+      if: matrix.os != 'windows-latest'
+      run: |
+        start=$SECONDS
+        cargo bench --no-run
+        echo "Benchmark compile check elapsed: $((SECONDS - start))s"
+
+    - name: Run focused benchmark compile check (runtime only) on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        start=$SECONDS
+        cargo bench -p adze --no-run
+        echo "Benchmark compile check elapsed: $((SECONDS - start))s"
   
   test-wasm:
     name: Test WASM Build

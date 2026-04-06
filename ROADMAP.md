@@ -34,7 +34,7 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Cross-Platform**: Linux verified, macOS/Windows CI advisory jobs in place.
 - ✅ **Parallel Agent Work**: 14 waves of parallel agent work, 85+ commits driving the 0.8.0 release.
 - ✅ **Backlog Convergence**: Final live branch [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged into `main` on 2026-04-03.
-- 🟡 **Remaining hardening**: backend-selection contract cleanup ([#267](https://github.com/EffortlessMetrics/adze/issues/267)), Windows pure-rust benchmark tail reduction ([#269](https://github.com/EffortlessMetrics/adze/issues/269)), and worktree cleanup/documentation hardening ([#268](https://github.com/EffortlessMetrics/adze/issues/268)).
+- 🟡 **Remaining hardening**: worktree cleanup/documentation hardening ([#268](https://github.com/EffortlessMetrics/adze/issues/268)).
 
 ## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
 - **Publish to crates.io**: Turn the now-green baseline on `main` into a release checklist and publishable core crate set.

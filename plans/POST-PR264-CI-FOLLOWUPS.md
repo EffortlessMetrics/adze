@@ -28,7 +28,7 @@ The intent is to keep the supported lane green while making the broader workflow
 
 ## Execution Order
 
-### 1. Backend-selection contract first
+### 1. Backend-selection contract first ✅
 
 This is the highest-value code/test follow-up because it already caused repeated current-head CI churn during PR #264.
 
@@ -42,8 +42,12 @@ Target outcome:
 - one documented contract for conflict-backend behavior
 - one shared assertion path instead of repeated panic-string handling
 - representative matrix coverage proving the same contract from multiple crate families
+Done:
+- `ParserBackendSelection` added in `adze-parser-backend-core`.
+- Shared contract checked in parser feature/profile and runtime governance test surfaces via `catch_unwind` parity.
+- Verified by passing targeted tests and `just ci-supported`.
 
-### 2. Windows pure-rust tail second
+### 2. Windows pure-rust tail second ✅
 
 This is an operational CI problem rather than a correctness bug, but it remains merge-friction because it can dominate the final wait on otherwise-green PRs.
 
@@ -56,6 +60,10 @@ Target outcome:
 - step-level timing/observability
 - a clear answer on whether the Windows benchmark-compile step belongs on the required PR path
 - either a faster path or a consciously reclassified advisory path
+Done:
+- Added OS-segmented benchmark compile checks in `.github/workflows/pure-rust-ci.yml`.
+- Windows path now checks only `-p adze` with `--no-run`, reducing low-signal tail risk while keeping required compile coverage.
+- Retained elapsed timing so remaining cost is observable.
 
 ### 3. Worktree cleanup hardening third
 

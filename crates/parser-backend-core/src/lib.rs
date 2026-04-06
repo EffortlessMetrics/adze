@@ -9,6 +9,40 @@
 
 use core::fmt::{self, Display, Formatter};
 
+/// Contract outcome for backend selection under a given conflict condition.
+///
+/// This keeps behavior assertions in one place across parser and governance
+/// contracts without forcing callers to duplicate panic-string checks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParserBackendSelection {
+    /// A concrete backend can be selected for the current feature set.
+    Backend(ParserBackend),
+    /// Conflict grammars require the `glr` feature to be enabled.
+    ConflictsRequireGlr,
+}
+
+/// Message emitted when conflict handling requires GLR support.
+pub const CONFLICTS_REQUIRE_GLR_MESSAGE: &str = "Grammar has conflicts but GLR feature is not enabled. Enable the 'glr' feature in Cargo.toml or use the tree-sitter C runtime.";
+
+impl ParserBackend {
+    /// Resolve the backend-selection contract for a conflict condition.
+    ///
+    /// This mirrors `select` but returns an explicit outcome rather than panicking.
+    pub const fn select_contract(has_conflicts: bool) -> ParserBackendSelection {
+        match (cfg!(feature = "glr"), cfg!(feature = "pure-rust")) {
+            (true, _) => ParserBackendSelection::Backend(Self::GLR),
+            (false, true) => {
+                if has_conflicts {
+                    ParserBackendSelection::ConflictsRequireGlr
+                } else {
+                    ParserBackendSelection::Backend(Self::PureRust)
+                }
+            }
+            _ => ParserBackendSelection::Backend(Self::TreeSitter),
+        }
+    }
+}
+
 /// Parser backend supported by the runtime feature matrix.
 ///
 /// # Examples
@@ -40,17 +74,11 @@ impl ParserBackend {
     /// # Panics
     /// Panics if `has_conflicts` is true and the `pure-rust` feature is enabled without the `glr` feature.
     pub const fn select(_has_conflicts: bool) -> Self {
-        match (cfg!(feature = "glr"), cfg!(feature = "pure-rust")) {
-            (true, _) => Self::GLR,
-            (false, true) => {
-                if _has_conflicts {
-                    panic!(
-                        "Grammar has conflicts but GLR feature is not enabled. Enable the 'glr' feature in Cargo.toml or use the tree-sitter C runtime."
-                    );
-                }
-                Self::PureRust
+        match Self::select_contract(_has_conflicts) {
+            ParserBackendSelection::Backend(backend) => backend,
+            ParserBackendSelection::ConflictsRequireGlr => {
+                panic!("{}", CONFLICTS_REQUIRE_GLR_MESSAGE)
             }
-            _ => Self::TreeSitter,
         }
     }
 

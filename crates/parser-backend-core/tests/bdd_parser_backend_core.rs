@@ -1,4 +1,4 @@
-use adze_parser_backend_core::ParserBackend;
+use adze_parser_backend_core::{ParserBackend, ParserBackendSelection};
 
 #[cfg(feature = "glr")]
 #[test]
@@ -15,9 +15,15 @@ fn selecting_with_pure_rust_without_conflicts_uses_pure_rust_backend() {
 
 #[cfg(all(feature = "pure-rust", not(feature = "glr")))]
 #[test]
-#[should_panic(expected = "Grammar has conflicts but GLR feature is not enabled.")]
 fn selecting_with_conflicts_without_glr_panics() {
-    let _ = ParserBackend::select(true);
+    match ParserBackend::select_contract(true) {
+        ParserBackendSelection::Backend(_) => {
+            panic!("unexpected backend result from select_contract for conflicting grammar")
+        }
+        ParserBackendSelection::ConflictsRequireGlr => {
+            assert!(std::panic::catch_unwind(|| ParserBackend::select(true)).is_err());
+        }
+    }
 }
 
 #[cfg(not(any(feature = "pure-rust", feature = "glr")))]

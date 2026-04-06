@@ -27,8 +27,8 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 ## Now
 
 ### 🛠️ Convert the last-mile CI pain into tracked follow-up work
-- [ ] [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267): stabilize backend-selection expectations across feature profiles and conflict tests.
-- [ ] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): reduce and instrument the long Windows pure-rust benchmark-compilation tail.
+- [x] [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267): stabilize backend-selection expectations across feature profiles and conflict tests.
+- [x] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): reduce and instrument the long Windows pure-rust benchmark-compilation tail.
 - [ ] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): document and harden temporary worktree cleanup so local closeout stays predictable.
 
 ### 📦 Keep the supported contract explicit

@@ -11,6 +11,7 @@ use core::fmt::{self, Display, Formatter};
 
 /// Re-exported parser backend enum for feature-profile–based backend resolution.
 pub use adze_parser_backend_core::ParserBackend;
+pub use adze_parser_backend_core::ParserBackendSelection;
 
 /// Snapshot of parser-related feature flags for this build.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -40,24 +41,30 @@ impl ParserFeatureProfile {
     /// Resolve the effective backend from this profile.
     #[must_use]
     pub const fn resolve_backend(self, has_conflicts: bool) -> ParserBackend {
+        match Self::backend_selection_contract(self, has_conflicts) {
+            ParserBackendSelection::Backend(backend) => backend,
+            ParserBackendSelection::ConflictsRequireGlr => panic!(
+                "Grammar has conflicts but GLR feature is not enabled. Enable the 'glr' feature in Cargo.toml or use the tree-sitter C runtime."
+            ),
+        }
+    }
+
+    /// Resolution contract for this profile and conflict condition.
+    ///
+    /// Exposed for test-surface and migration checks that need to compare panic-vs.
+    /// backend-returning behavior without matching panic strings.
+    #[must_use]
+    pub const fn backend_selection_contract(self, has_conflicts: bool) -> ParserBackendSelection {
         if self.glr {
-            ParserBackend::GLR
+            ParserBackendSelection::Backend(ParserBackend::GLR)
         } else if self.pure_rust {
             if has_conflicts {
-                panic!(
-                    "{}",
-                    "Grammar has shift/reduce or reduce/reduce conflicts, but the GLR feature is not enabled.\n\n\
-To fix this, enable the GLR feature in Cargo.toml:\n\n\
-[dependencies]\n\
-adze = { version = \"0.8\", features = [\"glr\"] }\n\n\
-Or use the tree-sitter C runtime (default):\n\n\
-[dependencies]\n\
-adze = \"0.8\"\n"
-                );
+                ParserBackendSelection::ConflictsRequireGlr
+            } else {
+                ParserBackendSelection::Backend(ParserBackend::PureRust)
             }
-            ParserBackend::PureRust
         } else {
-            ParserBackend::TreeSitter
+            ParserBackendSelection::Backend(ParserBackend::TreeSitter)
         }
     }
 
