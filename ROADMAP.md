@@ -34,8 +34,8 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Cross-Platform**: Linux verified, macOS/Windows CI advisory jobs in place.
 - ✅ **Parallel Agent Work**: 14 waves of parallel agent work, 85+ commits driving the 0.8.0 release.
 - ✅ **Backlog Convergence**: Final live branch [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged into `main` on 2026-04-03.
-- 🟡 **Remaining hardening**: Workflow hardening and publishability checklist execution, with open follow-up PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) carrying final CI cleanup and the runtime/workflow convergence pass.
-- 🟡 **Runtime follow-up**: Follow [issue #269](https://github.com/EffortlessMetrics/adze/issues/269) while keeping the supported merge gate green.
+- ✅ **Workflow hardening and publishability checklist**: merged and reflected on `main` after PR [#280](https://github.com/EffortlessMetrics/adze/pull/280); remaining advisory hardening is tracked in [#268](https://github.com/EffortlessMetrics/adze/issues/268) and [#269](https://github.com/EffortlessMetrics/adze/issues/269).
+- 🟡 **Runtime follow-up**: Keep advisory hardening in [#268](https://github.com/EffortlessMetrics/adze/issues/268) and [#269](https://github.com/EffortlessMetrics/adze/issues/269) explicit while protecting the supported merge gate.
 
 ## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
 - **Publish to crates.io**: Turn the now-green baseline on `main` into a release checklist and publishable core crate set.

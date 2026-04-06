@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Created:** 2026-04-04
-**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. The supported merge gate is green on `main`; the remaining work is follow-up hardening, not backlog convergence. PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) carries the workflow hardening carry-forward.
+**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. The supported merge gate is green on `main`; the remaining work is follow-up hardening, not backlog convergence.
 
 ---
 
@@ -15,6 +15,8 @@ This plan turns the final last-mile friction from PR #264 into three bounded tra
 3. predictable temporary worktree cleanup after merge
 
 The intent is to keep the supported lane green while making the broader workflow surface easier to trust and cheaper to operate.
+
+Current state: PR #280 has merged; `main` has no open PRs. Remaining tracked hardening issues are [#268](https://github.com/EffortlessMetrics/adze/issues/268) and [#269](https://github.com/EffortlessMetrics/adze/issues/269).
 
 ---
 
@@ -61,9 +63,12 @@ Target outcome:
 - a clear answer on whether the Windows benchmark-compile step belongs on the required PR path
 - either a faster path or a consciously reclassified advisory path
 Done:
+Primary hardening completed:
 - Added OS-segmented benchmark compile checks in `.github/workflows/pure-rust-ci.yml`.
 - Windows path now checks only `-p adze` with `--no-run`, reducing low-signal tail risk while keeping required compile coverage.
 - Retained elapsed timing so remaining cost is observable.
+Open work tracked by Issue #269:
+- Instrumentation, benchmark-tail expectations, and any remaining tuning will continue there.
 
 ### 3. Worktree cleanup hardening third ✅
 
@@ -79,6 +84,9 @@ Target outcome:
 - one documented convention for temporary worktrees versus standalone temp clones
 - one cleanup recipe that validates a path before removing it
 - optional helper automation for listing/pruning stale worktree registrations
+Current status:
+- Workflow and docs baseline for cleanup is in place (`scripts/cleanup-worktrees.sh`, related docs updates).
+- Follow-on risk-reduction work remains in Issue #268.
 
 ---
 
