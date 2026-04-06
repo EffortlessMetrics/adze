@@ -1,9 +1,9 @@
 # Now / Next / Later
 
 **Last updated:** 2026-04-06
-**Status:** **Post-PR264 closeout** — `main` is clean, the supported gate is green, and PR-level hardening cleanup is in progress (`#280`).
+**Status:** **Post-hardening steady state** — `main` is clean, the supported gate is green, workflow hardening (PR #280) is merged, and 0.8.0 is feature-complete. Focus shifts to publication and 0.9.0 planning.
 
-Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For the focused follow-up execution plan after PR #264, see [`plans/POST-PR264-CI-FOLLOWUPS.md`](../../plans/POST-PR264-CI-FOLLOWUPS.md).
+Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For the (substantially complete) post-PR264 follow-up plan, see [`plans/POST-PR264-CI-FOLLOWUPS.md`](../../plans/POST-PR264-CI-FOLLOWUPS.md).
 
 ---
 
@@ -19,37 +19,32 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [x] Issue #268 worktree cleanup documentation and validation is now documented and backed by a helper script.
 
 ### ✅ Immediate close-out state
-- [ ] `gh pr list --state open` currently has one active follow-up PR: `#280` (workflow hardening).
+- [x] PR `#280` (workflow hardening) merged on 2026-04-06.
+- [x] PR `#281` (roadmap/execution-state refresh) merged.
 - [x] `/home/steven/code/rust-sitter` is clean on `main` and aligned with `origin/main`.
-- [x] The remaining work is follow-up hardening, not PR-backlog triage.
+- [x] The remaining work is publication preparation and 0.9.0 planning, not backlog triage.
 
 ---
 
 ## Now
 
-### 🛠️ Convert the last-mile CI pain into tracked follow-up work
-- [x] [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267): stabilize backend-selection expectations across feature profiles and conflict tests.
-- [x] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): reduce and instrument the long Windows pure-rust benchmark-compilation tail.
-- [x] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): document and harden temporary worktree cleanup so local closeout stays predictable.
+### 🚢 Publication and release preparation
+- [ ] Execute the crates.io release checklist against the current publishable core crate set on `main`.
+- [ ] Verify `cargo package --no-verify` succeeds for each crate in `scripts/release-crates.txt`.
+- [ ] Ensure release order documentation is current and matches actual dependency graph.
 
-### 📦 Keep the supported contract explicit
-- [ ] Treat broader CI/workflow cleanup as follow-up hardening, not as a reason to reopen the PR backlog.
+### 📦 Close remaining operational issues
+- [ ] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): Windows pure-rust benchmark-compilation tail is gated but still open; decide whether to trim further or close as acceptable.
+- [ ] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): Worktree cleanup script exists (`scripts/cleanup-worktrees.sh`); contributor documentation still needs finishing.
 - [ ] Keep `KNOWN_RED.md` current whenever an advisory lane is promoted into or removed from the supported contract.
-- [ ] Preserve a clear distinction between "supported merge gate" and "useful advisory signal" in workflow/docs updates.
 
 ---
 
 ## Next
 
-### 🚢 Publication and release preparation
-- [ ] Reconfirm the publish surface and release checklist against the current `main` branch rather than the older RC-era status docs.
-- [ ] Separate crates.io publication work from advisory CI hardening so release decisions stay legible.
-- [ ] Trim or retire stale planning language that still reads like pre-merge backlog work.
-- [ ] Merge `#280` and then continue the release-focused PR sequence for runtime/workflow/publishability hardening.
-
 ### 📚 Documentation polish
 - [ ] Continue tightening tutorial/reference accuracy around the actual post-merge API surface.
-- [ ] Add contributor-facing guidance for temporary worktree lifecycle and closeout hygiene.
+- [ ] Add contributor-facing guidance for temporary worktree lifecycle and closeout hygiene ([issue #268](https://github.com/EffortlessMetrics/adze/issues/268)).
 - [ ] Keep roadmap/status docs aligned with the real repo state after each meaningful convergence wave.
 
 ---

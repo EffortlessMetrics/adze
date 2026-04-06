@@ -17,7 +17,7 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - **Conflict Handling**: Automatic stack forking and merging (SPPF).
 - **External Scanners**: Support for custom lexing (e.g. Python indentation).
 
-## 🚀 Milestone 0.8.0: The Publishable Baseline (Current — baseline achieved on `main`)
+## ✅ Milestone 0.8.0: The Publishable Baseline (Complete)
 - ✅ **Supported CI Contract Green**: `just ci-supported` / `CI / ci-supported` is green on `main`. Full workspace status docs and supported-lane boundaries are documented in `docs/status/`.
 - ✅ **Safety Audit**: SAFETY comments on all `unsafe` blocks in supported crates.
 - ✅ **Testing Buildout**: 2,460+ tests — property, integration, snapshot, GLR-core, fuzzing, mutation guards, ABI matrix. Supported feature matrix is green. Mutation testing is configured.
@@ -34,13 +34,16 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Cross-Platform**: Linux verified, macOS/Windows CI advisory jobs in place.
 - ✅ **Parallel Agent Work**: 14 waves of parallel agent work, 85+ commits driving the 0.8.0 release.
 - ✅ **Backlog Convergence**: Final live branch [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged into `main` on 2026-04-03.
-- 🟡 **Remaining hardening**: Workflow hardening and publishability checklist execution, with open follow-up PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) carrying final CI cleanup and the runtime/workflow convergence pass.
-- 🟡 **Runtime follow-up**: Follow [issue #269](https://github.com/EffortlessMetrics/adze/issues/269) while keeping the supported merge gate green.
+- ✅ **Workflow Hardening**: PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) merged on 2026-04-06 with CI lane hardening and backend-contract stabilization. Backend-selection contract ([issue #267](https://github.com/EffortlessMetrics/adze/issues/267)) resolved.
+- ✅ **Core Crates Publishable**: PR [#275](https://github.com/EffortlessMetrics/adze/pull/275) made core crates publishable with correct metadata.
+- 🟡 **Windows benchmark tail**: [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) remains open; benchmark compile step on Windows is gated but still slower than ideal.
+- 🟡 **Worktree cleanup docs**: [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) remains open; `scripts/cleanup-worktrees.sh` exists but full contributor documentation is pending.
 
-## 🚧 Milestone 0.9.0: Ecosystem & Tooling (Next)
-- **Publish to crates.io**: Turn the now-green baseline on `main` into a release checklist and publishable core crate set.
+## 🚀 Milestone 0.9.0: Ecosystem & Tooling (Current)
+- **Publish to crates.io**: Execute the release checklist against the now-publishable core crate set on `main`.
+- **Close remaining operational issues**: Resolve [#269](https://github.com/EffortlessMetrics/adze/issues/269) (Windows benchmark tail) and [#268](https://github.com/EffortlessMetrics/adze/issues/268) (worktree cleanup docs).
 - **CI Hardening Beyond the Supported Gate**: Reduce advisory-lane churn and make broader workflow behavior easier to interpret.
-- **CLI Polish**: Improve the already-landed CLI surface (`adze check`, `adze stats`, etc.) instead of treating it as unimplemented.
+- **CLI Polish**: Improve the already-landed CLI surface (`adze check`, `adze stats`, etc.).
 - **Performance Optimization**: Arena allocator for parse forest nodes; benchmark suite with regression detection.
 - **Incremental Parsing**: Stabilize forest-splicing for real-time editor performance.
 - **Query Predicates**: Full compatibility with Tree-sitter `.scm` query files.
