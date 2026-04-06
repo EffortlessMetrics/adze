@@ -208,8 +208,14 @@ impl<'a> TreeSerializer<'a> {
             kind: node.kind().to_string(),
             is_named: node.is_named(),
             field_name: node.field_name().map(|s| s.to_string()),
-            start_position: (node.start_position().row, node.start_position().column),
-            end_position: (node.end_position().row, node.end_position().column),
+            start_position: (
+                node.start_position().row as usize,
+                node.start_position().column as usize,
+            ),
+            end_position: (
+                node.end_position().row as usize,
+                node.end_position().column as usize,
+            ),
             start_byte: node.start_byte(),
             end_byte: node.end_byte(),
             text: None,
@@ -280,8 +286,16 @@ impl<'a> CompactSerializer<'a> {
         Self { source }
     }
 
+    #[cfg(feature = "pure-rust")]
     pub fn serialize_tree(&self, tree: &Tree) -> Result<String, serde_json::Error> {
         let root = self.serialize_node(tree.root_node());
+        serde_json::to_string(&root)
+    }
+
+    #[cfg(not(feature = "pure-rust"))]
+    pub fn serialize_tree(&self, tree: &Tree) -> Result<String, serde_json::Error> {
+        let root_node = tree.root_node();
+        let root = self.serialize_node(&root_node);
         serde_json::to_string(&root)
     }
 
@@ -375,8 +389,15 @@ impl<'a> SExpressionSerializer<'a> {
         self
     }
 
+    #[cfg(feature = "pure-rust")]
     pub fn serialize_tree(&self, tree: &Tree) -> String {
         self.serialize_node(tree.root_node())
+    }
+
+    #[cfg(not(feature = "pure-rust"))]
+    pub fn serialize_tree(&self, tree: &Tree) -> String {
+        let root_node = tree.root_node();
+        self.serialize_node(&root_node)
     }
 
     #[cfg(feature = "pure-rust")]
@@ -510,9 +531,23 @@ impl BinarySerializer {
         }
     }
 
+    #[cfg(feature = "pure-rust")]
     pub fn serialize_tree(&mut self, tree: &Tree) -> BinaryFormat {
         let mut tree_data = Vec::new();
         self.serialize_node_binary(tree.root_node(), &mut tree_data);
+
+        BinaryFormat {
+            node_types: self.node_types.clone(),
+            field_names: self.field_names.clone(),
+            tree_data,
+        }
+    }
+
+    #[cfg(not(feature = "pure-rust"))]
+    pub fn serialize_tree(&mut self, tree: &Tree) -> BinaryFormat {
+        let mut tree_data = Vec::new();
+        let root_node = tree.root_node();
+        self.serialize_node_binary(&root_node, &mut tree_data);
 
         BinaryFormat {
             node_types: self.node_types.clone(),

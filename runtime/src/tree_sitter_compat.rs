@@ -88,6 +88,11 @@ impl Node {
         self.as_ref().end_point()
     }
 
+    /// Returns `None` — standalone nodes have no parent cursor context.
+    pub fn field_name(&self) -> Option<&str> {
+        None
+    }
+
     pub fn walk(&self) -> TreeCursor {
         TreeCursor::new(*self)
     }
