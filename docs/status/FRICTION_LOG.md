@@ -27,7 +27,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Resolved | - |
 | FR-016 | Testing | Compiler ICE in feature policy contract tests | Blocks test compilation under specific macro/control-flow combinations | Resolved | - |
 | FR-017 | Testing | Backend-selection expectations drift across feature-unified test surfaces | Head-specific CI red and ad hoc panic matching | Resolved | [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267) |
-| FR-018 | CI | Windows pure-rust benchmark compilation is an unusually long tail | Green runs still block on low-signal wait time | In Progress (trim/follow-up tracked in #269/#280) | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
+| FR-018 | CI | Windows pure-rust benchmark compilation is an unusually long tail | Green runs still block on low-signal wait time | Mitigated (gated in PRs #276/#280; issue #269 open for further reduction) | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
 | FR-019 | Tooling | Temp worktree cleanup can drift when a `/tmp` path becomes a standalone repo | Cleanup requires manual removal and prune steps | Mitigated | [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) |
 
 ---
@@ -221,9 +221,9 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Expected:** Required merge-blocking jobs should either provide clear signal or finish quickly once build/test are done.
 **Actual:** The long pole on the final green path for PR #264 was the `Run benchmarks (check compilation)` step in `.github/workflows/pure-rust-ci.yml` on `windows-latest`.
 **Repro:** PR #264 merged green only after the `Test Pure Rust Implementation (windows-latest, stable)` and `(..., nightly)` jobs eventually completed their final `cargo bench --no-run` step.
-**Fix:** Add timing/observability, determine whether the step belongs on the required Windows path, and reduce or reclassify it if the signal remains low-value.
-**Status:** Mitigated (Wave 17, 2026-04-05)
-**Links:** [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269)
+**Fix:** OS-segmented benchmark compile checks added in `.github/workflows/pure-rust-ci.yml` (PR #276). Windows path now checks only `-p adze` with `--no-run`, reducing low-signal tail risk. Elapsed timing retained. PR #280 hardened the workflow lanes further. Issue #269 remains open for potential further reduction.
+**Status:** Mitigated (PRs #276/#280 merged 2026-04-05/06; issue #269 still open)
+**Links:** [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269), [PR #276](https://github.com/EffortlessMetrics/adze/pull/276), [PR #280](https://github.com/EffortlessMetrics/adze/pull/280)
 
 ### FR-019 - Worktree Metadata Drift During Cleanup
 

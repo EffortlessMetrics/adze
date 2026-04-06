@@ -1,8 +1,9 @@
 # Post-PR264 CI And Closeout Follow-Ups
 
-**Status:** Active
+**Status:** Substantially complete
 **Created:** 2026-04-04
-**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. The supported merge gate is green on `main`; the remaining work is follow-up hardening, not backlog convergence. PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) carries the workflow hardening carry-forward.
+**Last updated:** 2026-04-06
+**Context:** PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as `2a88deb6e6095682051729290987a78a0565d613`. PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) (workflow hardening) merged on 2026-04-06. All three execution tracks below are complete or mitigated. Two operational issues ([#268](https://github.com/EffortlessMetrics/adze/issues/268), [#269](https://github.com/EffortlessMetrics/adze/issues/269)) remain open for further polish.
 
 ---
 
@@ -93,7 +94,7 @@ Target outcome:
 
 ## Success Criteria
 
-- `main` stays green on the supported lane while these follow-ups land.
-- Backend-selection expectations stop drifting across representative feature-unified test crates.
-- Windows pure-rust CI no longer spends an opaque, merge-blocking tail on low-signal benchmark compilation.
-- Temporary worktree cleanup is documented and reproducible via `scripts/cleanup-worktrees.sh`.
+- ✅ `main` stayed green on the supported lane throughout follow-up work.
+- ✅ Backend-selection expectations stabilized via `ParserBackendSelection` in `adze-parser-backend-core` (issue #267 closed).
+- ✅ Windows pure-rust CI benchmark tail gated to `-p adze --no-run` on Windows (PRs #276/#280 merged; issue #269 open for further trimming).
+- ✅ Temporary worktree cleanup is documented and reproducible via `scripts/cleanup-worktrees.sh` (issue #268 open for contributor guide finishing).

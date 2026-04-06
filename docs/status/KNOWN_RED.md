@@ -27,14 +27,12 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 
 ## What the supported lane covers
 
-`ci-supported` currently checks the **core pipeline**:
+`ci-supported` currently checks the **core pipeline** (7 crates: `adze`, `adze-macro`, `adze-tool`, `adze-common`, `adze-ir`, `adze-glr-core`, `adze-tablegen`):
 
-- `cargo fmt --check`
-- `cargo clippy` (supported crates)
-- `cargo test` (supported crates: `adze`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-common`, `adze-tool`)
-- `cargo doc` (supported crates)
-- `glr-core` doctests with `serialization`
-- Feature matrix: crate × feature-flag combinations
+- `cargo fmt --all --check`
+- `cargo clippy` (supported crates, `-D warnings`)
+- `cargo test` (supported crates: lib, tests, bins)
+- `adze-glr-core` doctests with `serialization` feature
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
