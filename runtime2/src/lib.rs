@@ -51,7 +51,7 @@ pub mod tokenizer;
 /// Test helper utilities for creating stub languages and parse tables.
 ///
 /// Available for tests and when the `test-utils` feature is enabled.
-#[cfg(any(test, feature = "test-utils", all(debug_assertions, not(doc))))]
+#[cfg(any(test, feature = "test-utils"))]
 pub mod test_helpers;
 
 // Re-exports for convenience
