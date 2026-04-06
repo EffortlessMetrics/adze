@@ -1,6 +1,6 @@
 # Now / Next / Later
 
-**Last updated:** 2026-04-04
+**Last updated:** 2026-04-05
 **Status:** **Post-PR264 closeout** — `main` is clean, the supported gate is green, and there are no open PRs
 
 Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For the focused follow-up execution plan after PR #264, see [`plans/POST-PR264-CI-FOLLOWUPS.md`](../../plans/POST-PR264-CI-FOLLOWUPS.md).
@@ -16,6 +16,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [x] PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as commit `2a88deb6e6095682051729290987a78a0565d613`.
 - [x] The temporary convergence worktrees/branches used for the PR stack were cleaned up.
 - [x] A safety archive of the pre-cleanup dirty checkout was preserved outside `/tmp`.
+- [x] Issue #268 worktree cleanup documentation and validation is now documented and backed by a helper script.
 
 ### ✅ Immediate close-out state
 - [x] `gh pr list --state open` returns no open PRs.
@@ -29,7 +30,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 ### 🛠️ Convert the last-mile CI pain into tracked follow-up work
 - [x] [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267): stabilize backend-selection expectations across feature profiles and conflict tests.
 - [x] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): reduce and instrument the long Windows pure-rust benchmark-compilation tail.
-- [ ] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): document and harden temporary worktree cleanup so local closeout stays predictable.
+- [x] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): document and harden temporary worktree cleanup so local closeout stays predictable.
 
 ### 📦 Keep the supported contract explicit
 - [ ] Treat broader CI/workflow cleanup as follow-up hardening, not as a reason to reopen the PR backlog.

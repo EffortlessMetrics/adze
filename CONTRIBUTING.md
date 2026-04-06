@@ -207,6 +207,32 @@ Every PR must pass:
 
 PRs are squash-merged. Your PR title becomes the merge commit message, so make it descriptive.
 
+### Temporary Worktree Hygiene
+
+After closeout, contributors often use temporary worktrees for PR follow-ups. Keep cleanup deterministic:
+
+- create temporary worktrees with a clear `adze-local-*` naming pattern
+- validate one path before removing it to avoid standalone `.git` drift
+- prune stale registrations after manual cleanup
+
+Example flow:
+
+```bash
+# inspect known worktrees
+./scripts/cleanup-worktrees.sh list
+
+# validate one path before removing it
+./scripts/cleanup-worktrees.sh status /tmp/adze-local-improvements
+
+# if it is a registered linked worktree, remove it safely
+./scripts/cleanup-worktrees.sh cleanup /tmp/adze-local-improvements
+
+# trim stale registrations
+./scripts/cleanup-worktrees.sh prune-stale
+```
+
+Use `rm -rf` only for standalone temporary clones that are no longer registered.
+
 ## Architecture Overview
 
 Adze is an AST-first grammar toolchain for Rust. You define syntax using annotated Rust types, then parse text into those types. For full architecture details, see [`CLAUDE.md`](CLAUDE.md).
