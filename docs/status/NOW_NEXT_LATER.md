@@ -19,7 +19,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [x] Issue #268 worktree cleanup documentation and validation is now documented and backed by a helper script.
 
 ### ✅ Immediate close-out state
-- [x] `gh pr list --state open` currently has no active follow-up PRs on GitHub (`0 open PRs`).
+- [x] `gh pr list --state open` reflects open follow-up work driven by issue-practice hardening, while the supported gate remains the primary merge criterion.
 - [x] `/home/steven/code/rust-sitter` is clean on `main` and aligned with `origin/main`.
 - [x] The remaining work is follow-up hardening, not PR-backlog triage.
 

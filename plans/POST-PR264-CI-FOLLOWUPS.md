@@ -16,7 +16,7 @@ This plan turns the final last-mile friction from PR #264 into three bounded tra
 
 The intent is to keep the supported lane green while making the broader workflow surface easier to trust and cheaper to operate.
 
-Current state: PR #280 has merged; `main` has no open PRs. Remaining tracked hardening issues are [#268](https://github.com/EffortlessMetrics/adze/issues/268) and [#269](https://github.com/EffortlessMetrics/adze/issues/269).
+Current state: PR #280 has merged. Issue #269 is currently progressing through PR #283, and Issue #268 remains open for cleanup hardening.
 
 ---
 
