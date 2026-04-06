@@ -65,7 +65,7 @@ Done:
 - Windows path now checks only `-p adze` with `--no-run`, reducing low-signal tail risk while keeping required compile coverage.
 - Retained elapsed timing so remaining cost is observable.
 
-### 3. Worktree cleanup hardening third
+### 3. Worktree cleanup hardening third ✅
 
 This does not block CI correctness, but it does affect the safety and repeatability of multi-branch local iteration.
 
@@ -96,4 +96,4 @@ Target outcome:
 - `main` stays green on the supported lane while these follow-ups land.
 - Backend-selection expectations stop drifting across representative feature-unified test crates.
 - Windows pure-rust CI no longer spends an opaque, merge-blocking tail on low-signal benchmark compilation.
-- Temporary worktree cleanup becomes reproducible and documented enough to avoid manual guesswork.
+- Temporary worktree cleanup is documented and reproducible via `scripts/cleanup-worktrees.sh`.
