@@ -1,5 +1,5 @@
 use adze_parser_backend_core::ParserBackend;
-#[cfg(feature = "pure-rust")]
+#[cfg(all(feature = "pure-rust", not(feature = "glr")))]
 use adze_parser_backend_core::ParserBackendSelection;
 
 #[cfg(feature = "glr")]
