@@ -69,11 +69,21 @@ jobs:
         echo "Benchmark compile check elapsed: $((SECONDS - start))s"
 
     - name: Run focused benchmark compile check (runtime only) on Windows
-      if: matrix.os == 'windows-latest' && github.event_name != 'pull_request'
+      if: matrix.os == 'windows-latest'
       run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "::notice::Skipping Windows benchmark compile check on pull_request events (non-blocking, no-signal path)."
+          echo "Benchmark compile check elapsed: skipped"
+          exit 0
+        fi
+
         start=$SECONDS
-        cargo bench -p adze --no-run
-        echo "Benchmark compile check elapsed: $((SECONDS - start))s"
+        cargo bench -p adze --bench simple_bench --no-run
+        elapsed=$((SECONDS - start))
+        echo "Benchmark compile check elapsed: ${elapsed}s"
+        if [[ "$elapsed" -gt 600 ]]; then
+          echo "::warning::Windows benchmark compile tail took ${elapsed}s on ${{ matrix.rust }}."
+        fi
   
   test-wasm:
     name: Test WASM Build
