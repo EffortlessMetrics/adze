@@ -1,15 +1,22 @@
 [package]
 name = "adze-macro"
-description = "Procedural macros for Rust Sitter"
-readme = "../README.md"
+version = "0.8.0-dev"
+edition = "2024"
+rust-version = "1.92"
+authors = ["Steven Zimmerman, CPA"]
+description = "Procedural macros for defining tree-sitter grammars alongside Rust logic"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/effortlessmetrics/adze"
 homepage = "https://github.com/effortlessmetrics/adze"
-version = "0.8.0-dev"
-authors = ["Steven Zimmerman, CPA"]
-edition = "2024"
-license = "MIT"
-keywords = ["parsing", "codegen"]
+documentation = "https://docs.rs/adze-macro"
+readme = "README.md"
+publish = true
+keywords = ["parsing", "codegen", "grammar", "proc-macro"]
 categories = ["development-tools"]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lib]
 proc-macro = true

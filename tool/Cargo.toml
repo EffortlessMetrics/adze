@@ -1,15 +1,22 @@
 [package]
 name = "adze-tool"
-description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
-readme = "../README.md"
+version = "0.8.0-dev"
+edition = "2024"
+rust-version = "1.92"
+authors = ["Steven Zimmerman, CPA"]
+description = "Build-time code generation tool for Adze grammar definitions"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/effortlessmetrics/adze"
 homepage = "https://github.com/effortlessmetrics/adze"
-version = "0.8.0-dev"
-authors = ["Steven Zimmerman, CPA"]
-license = "MIT"
-edition = "2024"
-keywords = ["parsing", "codegen"]
+documentation = "https://docs.rs/adze-tool"
+readme = "README.md"
+publish = true
+keywords = ["parsing", "codegen", "grammar", "tree-sitter"]
 categories = ["development-tools"]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [features]
 default = ["build_parsers"]

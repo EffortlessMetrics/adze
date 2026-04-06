@@ -1,15 +1,22 @@
 [package]
 name = "adze-common"
-description = "Shared logic for the Rust Sitter macro and tool"
-readme = "../README.md"
+version = "0.8.0-dev"
+edition = "2024"
+rust-version = "1.92"
+authors = ["Steven Zimmerman, CPA"]
+description = "Shared grammar expansion logic for the Adze macro and tool crates"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/effortlessmetrics/adze"
 homepage = "https://github.com/effortlessmetrics/adze"
-version = "0.8.0-dev"
-authors = ["Steven Zimmerman, CPA"]
-edition = "2024"
-license = "MIT"
-keywords = ["parsing", "codegen"]
+documentation = "https://docs.rs/adze-common"
+readme = "README.md"
+publish = true
+keywords = ["parsing", "codegen", "grammar", "tree-sitter"]
 categories = ["development-tools"]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lib]
 path = "src/lib.rs"
