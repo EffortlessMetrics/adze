@@ -1041,14 +1041,15 @@ jobs:
           RELEASE_SURFACE_MODE=fixed RELEASE_CRATE_FILE=scripts/release-crates-wave1.txt \
             ./scripts/validate-release-surface.sh
 
-      - name: Package validation for release wave-1
+      - name: Package surface validation for release wave-1
         run: |
           set -euo pipefail
           mapfile -t CRATES_TO_PUBLISH < <(RELEASE_SURFACE_MODE=fixed RELEASE_CRATE_FILE=scripts/release-crates-wave1.txt ./scripts/release-surface.sh)
           for crate in "${CRATES_TO_PUBLISH[@]}"; do
-            echo "::group::Package validation: ${crate}"
-            cargo package --list -p "$crate"
-            cargo publish --dry-run --locked -p "$crate"
+            echo "::group::Package surface validation: ${crate}"
+            # `cargo publish --dry-run` resolves sibling path dependencies through crates.io,
+            # which is not a viable pre-publication check for a first release wave.
+            cargo package --list --no-verify -p "$crate" >/dev/null
             echo "::endgroup::"
           done
 
