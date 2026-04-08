@@ -13,7 +13,7 @@ readme = "README.md"
 publish = ["crates-io"]
 keywords = ["parsing", "codegen", "grammar", "tree-sitter", "glr"]
 categories = ["development-tools", "parsing"]
-include = ["Cargo.toml", "LICENSE*", "README*", "src/**", "build.rs", "benches/**", "examples/**"]
+include = ["Cargo.toml", "LICENSE*", "README*", "src/**", "build.rs", "benches/**"]
 
 [package.metadata.docs.rs]
 all-features = true
