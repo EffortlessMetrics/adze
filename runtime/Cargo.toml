@@ -3,6 +3,7 @@ name = "adze"
 version = "0.8.0"
 edition = "2024"
 rust-version = "1.92"
+autoexamples = false
 authors = ["Steven Zimmerman, CPA"]
 description = "Define tree-sitter grammars alongside Rust logic with AST-first parsing"
 license = "Apache-2.0 OR MIT"
@@ -91,9 +92,6 @@ adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-m
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }
 adze-concurrency-plan-core = { version = "0.1.0", path = "../crates/concurrency-plan-core" }
-adze-example = { version = "0.8.0-dev", path = "../example", features = ["ts-compat"] }
-adze-python-simple = { version = "0.1.0", path = "../grammars/python-simple" }
-adze-python = { version = "0.1.0", path = "../grammars/python" }
 
 [[bench]]
 name = "simple_bench"
@@ -134,10 +132,6 @@ harness = false
 required-features = ["unstable-benches"]
 
 [[example]]
-name = "external_scanner_demo"
-required-features = ["experimental_examples"]
-
-[[example]]
 name = "glr_incremental_demo"
 required-features = ["experimental_examples", "incremental_glr"]
 
@@ -160,10 +154,6 @@ required-features = ["experimental_examples"]
 [[example]]
 name = "pure_parser_demo"
 required-features = ["experimental_examples", "pure-rust"]
-
-[[example]]
-name = "lang_probe"
-required-features = ["experimental_examples"]
 
 # [[example]]
 # name = "validation_demo"

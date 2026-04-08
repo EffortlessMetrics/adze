@@ -7,10 +7,11 @@
 #![cfg(not(feature = "strict-invariants"))]
 #![allow(unused_variables, dead_code, clippy::useless_vec)]
 
-use glr_test_support::*;
+mod support;
 
 use adze_glr_core::{Action, Driver, ParseRule, ParseTable};
 use adze_ir::{Grammar, RuleId, StateId, SymbolId};
+use support::make_minimal_table;
 
 type ActionCell = Vec<Action>;
 

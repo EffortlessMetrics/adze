@@ -30,13 +30,10 @@ dependencies = [
  "adze-concurrency-normalize-core",
  "adze-concurrency-parse-core",
  "adze-concurrency-plan-core",
- "adze-example",
  "adze-glr-core",
  "adze-ir",
  "adze-linecol-core",
  "adze-macro",
- "adze-python",
- "adze-python-simple",
  "adze-runtime-governance-api",
  "adze-stack-pool-core",
  "adze-tablegen",
@@ -403,12 +400,10 @@ dependencies = [
 name = "adze-glr-core"
 version = "0.8.0"
 dependencies = [
- "adze-bdd-scenario-fixtures",
  "adze-ir",
  "criterion",
  "dhat",
  "fixedbitset",
- "glr-test-support",
  "indexmap",
  "insta",
  "postcard",

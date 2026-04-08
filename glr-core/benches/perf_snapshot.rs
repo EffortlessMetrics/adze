@@ -5,7 +5,11 @@ use adze_glr_core::Driver;
 #[cfg(feature = "perf_counters")]
 use adze_glr_core::perf;
 use adze_ir::SymbolId;
-use glr_test_support::test_utilities::make_minimal_table;
+
+#[path = "../tests/support/mod.rs"]
+mod support;
+
+use support::make_minimal_table;
 
 pub fn bench_parse_small(c: &mut Criterion) {
     let mut g = c.benchmark_group("glr-perf-snapshot");
