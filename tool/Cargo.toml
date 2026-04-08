@@ -1,22 +1,17 @@
 [package]
 name = "adze-tool"
-version = "0.8.0-dev"
-edition = "2024"
-rust-version = "1.92"
-authors = ["Steven Zimmerman, CPA"]
-description = "Build-time code generation tool for Adze grammar definitions"
-license = "Apache-2.0 OR MIT"
+description = "The external tool for Rust Sitter that extracts grammars from Rust definitions"
+readme = "../README.md"
 repository = "https://github.com/effortlessmetrics/adze"
 homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-tool"
-readme = "README.md"
+version = "0.8.0"
+authors = ["Steven Zimmerman, CPA"]
+license = "MIT"
+edition = "2024"
 publish = true
-keywords = ["parsing", "codegen", "grammar", "tree-sitter"]
+keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
-include = ["Cargo.toml", "LICENSE*", "README*", "src/**"]
-
-[package.metadata.docs.rs]
-all-features = true
 
 [features]
 default = ["build_parsers"]
@@ -36,10 +31,10 @@ syn = { version = "2", features = ["full", "extra-traits"] }
 syn-inline-mod = "0.6"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-adze-common = { version = "0.8.0-dev", path = "../common" }
-adze-ir = { version = "0.8.0-dev", path = "../ir" }
-adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }
-adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
+adze-common = { version = "0.8.0", path = "../common" }
+adze-ir = { version = "0.8.0", path = "../ir" }
+adze-glr-core = { version = "0.8.0", path = "../glr-core" }
+adze-tablegen = { version = "0.8.0", path = "../tablegen" }
 regex = "1.10"
 anyhow = "1.0"
 thiserror = "2"

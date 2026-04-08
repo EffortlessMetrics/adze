@@ -197,7 +197,7 @@ dependencies = [
 
 [[package]]
 name = "adze-common"
-version = "0.8.0-dev"
+version = "0.8.0"
 dependencies = [
  "adze-common-syntax-core",
  "insta",
@@ -403,7 +403,7 @@ dependencies = [
 
 [[package]]
 name = "adze-glr-core"
-version = "0.8.0-dev"
+version = "0.8.0"
 dependencies = [
  "adze-bdd-scenario-fixtures",
  "adze-ir",
@@ -548,7 +548,7 @@ dependencies = [
 
 [[package]]
 name = "adze-ir"
-version = "0.8.0-dev"
+version = "0.8.0"
 dependencies = [
  "adze-glr-core",
  "anyhow",
@@ -593,7 +593,7 @@ dependencies = [
 
 [[package]]
 name = "adze-macro"
-version = "0.8.0-dev"
+version = "0.8.0"
 dependencies = [
  "adze-common",
  "insta",
@@ -762,7 +762,7 @@ dependencies = [
 
 [[package]]
 name = "adze-tablegen"
-version = "0.8.0-dev"
+version = "0.8.0"
 dependencies = [
  "adze-bdd-grid-core",
  "adze-glr-core",
@@ -806,7 +806,7 @@ dependencies = [
 
 [[package]]
 name = "adze-tool"
-version = "0.8.0-dev"
+version = "0.8.0"
 dependencies = [
  "adze-common",
  "adze-glr-core",
