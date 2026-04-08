@@ -84,6 +84,7 @@ jobs:
           ./scripts/validate-release-surface.sh
 
       - name: Validate version bump
+        if: inputs.publish_existing_versions == false
         run: |
           mapfile -t PUBLISH_ORDER < <(jq -r '.[]' <<< '${{ steps.publish_order.outputs.publish_order }}')
 
@@ -118,6 +119,7 @@ jobs:
           done
 
       - name: Check CHANGELOG.md
+        if: inputs.publish_existing_versions == false
         run: |
           if ! grep -Fq "## [${{ inputs.version }}]" CHANGELOG.md; then
             echo "::error::Version ${{ inputs.version }} not found in CHANGELOG.md"
