@@ -422,6 +422,8 @@ jobs:
           fi
 
           METADATA_JSON="$(cargo metadata --no-deps --format-version 1)"
+          PROBE_DIR="$(mktemp -d)"
+          trap 'rm -rf "$PROBE_DIR"' EXIT
 
           crate_version() {
             local crate="$1"
@@ -431,15 +433,17 @@ jobs:
           is_published() {
             local crate="$1"
             local version="$2"
-            curl -fsS "https://crates.io/api/v1/crates/${crate}" \
-              | jq -e --arg version "$version" '.versions[] | select(.num == $version)' >/dev/null
+            (
+              cd "$PROBE_DIR"
+              cargo info "${crate}@${version}" >/dev/null 2>&1
+            )
           }
 
           wait_for_index() {
             local crate="$1"
             local version="$2"
             for attempt in {1..20}; do
-              if cargo info "${crate}@${version}" >/dev/null 2>&1; then
+              if is_published "$crate" "$version"; then
                 return 0
               fi
               echo "Waiting for ${crate}@${version} to appear in the cargo index (attempt ${attempt}/20)"
@@ -466,7 +470,7 @@ jobs:
 
             published=0
             for attempt in {1..10}; do
-              if cargo publish --locked -p "$crate"; then
+              if cargo publish --locked --no-verify -p "$crate"; then
                 published=1
                 break
               fi

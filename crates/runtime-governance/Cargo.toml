@@ -25,11 +25,5 @@ strict_docs = ["adze-runtime-governance-matrix/strict_docs"]
 adze-runtime-governance-matrix = { version = "0.1.0", path = "../runtime-governance-matrix" }
 
 [dev-dependencies]
-adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
-adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
-adze-governance-metadata = { version = "0.1.0", path = "../governance-metadata" }
-adze-runtime-governance-api = { version = "0.1.0", path = "../runtime-governance-api" }
-adze-runtime-governance-matrix = { version = "0.1.0", path = "../runtime-governance-matrix" }
 proptest = { workspace = true }
-adze-parsetable-metadata = { version = "0.1.0", path = "../parsetable-metadata" }
 serde_json.workspace = true

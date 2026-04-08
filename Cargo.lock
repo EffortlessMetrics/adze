@@ -264,7 +264,6 @@ dependencies = [
 name = "adze-concurrency-env-contract-core"
 version = "0.1.0"
 dependencies = [
- "adze-concurrency-env-core",
  "adze-concurrency-env-vars-core",
  "adze-concurrency-parse-core",
  "proptest",
@@ -406,7 +405,6 @@ version = "0.8.0"
 dependencies = [
  "adze-bdd-scenario-fixtures",
  "adze-ir",
- "adze-tablegen",
  "criterion",
  "dhat",
  "fixedbitset",
@@ -479,9 +477,6 @@ name = "adze-governance-matrix-core-impl"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-governance-core",
- "adze-governance-contract",
- "adze-governance-matrix-contract",
- "adze-governance-matrix-core",
  "criterion",
  "proptest",
 ]
@@ -519,11 +514,7 @@ dependencies = [
 name = "adze-governance-runtime-reporting"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-grid-core",
- "adze-feature-policy-core",
  "adze-governance-matrix-contract",
- "adze-governance-metadata",
- "adze-governance-runtime-core",
  "proptest",
  "serde_json",
 ]
@@ -716,11 +707,6 @@ dependencies = [
 name = "adze-runtime-governance"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-grid-core",
- "adze-feature-policy-core",
- "adze-governance-metadata",
- "adze-parsetable-metadata",
- "adze-runtime-governance-api",
  "adze-runtime-governance-matrix",
  "proptest",
  "serde_json",

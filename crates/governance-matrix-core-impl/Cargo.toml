@@ -26,9 +26,6 @@ adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" 
 
 [dev-dependencies]
 adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
-adze-governance-contract = { version = "0.1.0", path = "../governance-contract" }
-adze-governance-matrix-contract = { version = "0.1.0", path = "../governance-matrix-contract" }
-adze-governance-matrix-core = { version = "0.1.0", path = "../governance-matrix-core" }
 criterion.workspace = true
 proptest = { workspace = true }
 
