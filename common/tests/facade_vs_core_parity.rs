@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
-use adze_common::{filter_inner_type, try_extract_inner_type, FieldThenParams, NameValueExpr};
+use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type};
 use adze_common_syntax_core::{
-    filter_inner_type as core_filter_inner_type, try_extract_inner_type as core_try_extract_inner_type,
+    filter_inner_type as core_filter_inner_type,
+    try_extract_inner_type as core_try_extract_inner_type,
 };
 use quote::ToTokens;
-use syn::{parse_quote, Type};
+use syn::{Type, parse_quote};
 
 #[test]
 fn facade_and_core_exports_emit_identical_filter_behavior() {
