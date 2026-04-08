@@ -166,11 +166,8 @@ impl<'a> TreeSerializer<'a> {
             kind: format!("symbol_{}", node.symbol), // Convert symbol to string
             is_named: node.is_named,
             field_name: node.field_id.map(|id| format!("field_{}", id)), // Convert field_id to placeholder name
-            start_position: (
-                node.start_point.row as usize,
-                node.start_point.column as usize,
-            ),
-            end_position: (node.end_point.row as usize, node.end_point.column as usize),
+            start_position: (node.start_point.row, node.start_point.column),
+            end_position: (node.end_point.row, node.end_point.column),
             start_byte: node.start_byte,
             end_byte: node.end_byte,
             text: None,
@@ -208,14 +205,8 @@ impl<'a> TreeSerializer<'a> {
             kind: node.kind().to_string(),
             is_named: node.is_named(),
             field_name: node.field_name().map(|s| s.to_string()),
-            start_position: (
-                node.start_position().row as usize,
-                node.start_position().column as usize,
-            ),
-            end_position: (
-                node.end_position().row as usize,
-                node.end_position().column as usize,
-            ),
+            start_position: (node.start_position().row, node.start_position().column),
+            end_position: (node.end_position().row, node.end_position().column),
             start_byte: node.start_byte(),
             end_byte: node.end_byte(),
             text: None,
