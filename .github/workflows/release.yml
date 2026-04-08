@@ -453,6 +453,26 @@ jobs:
             return 1
           }
 
+          rate_limit_sleep_seconds() {
+            local log_file="$1"
+            python3 - "$log_file" <<'PY'
+import email.utils
+import pathlib
+import re
+import sys
+import time
+
+text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+matches = re.findall(r"Please try again after (.+? GMT)", text)
+if not matches:
+    raise SystemExit(1)
+
+retry_at = email.utils.parsedate_to_datetime(matches[-1])
+delay = int(max(0, retry_at.timestamp() - time.time() + 5))
+print(delay)
+PY
+          }
+
           for crate in "${PUBLISH_ORDER[@]}"; do
             version="$(crate_version "$crate")"
             if [[ -z "$version" || "$version" == "null" ]]; then
@@ -469,19 +489,34 @@ jobs:
             fi
 
             published=0
-            for attempt in {1..10}; do
-              if cargo publish --locked --no-verify -p "$crate"; then
+            for attempt in {1..20}; do
+              log_file="$(mktemp)"
+              if cargo publish --locked --no-verify -p "$crate" >"$log_file" 2>&1; then
+                cat "$log_file"
+                rm -f "$log_file"
                 published=1
                 break
               fi
+              cat "$log_file"
 
               if is_published "$crate" "$version"; then
                 echo "${crate}@${version} appears to have published despite cargo returning non-zero"
+                rm -f "$log_file"
                 published=1
                 break
               fi
 
-              echo "Publish attempt ${attempt}/10 failed for ${crate}@${version}; retrying in 30s"
+              if sleep_for="$(rate_limit_sleep_seconds "$log_file" 2>/dev/null)"; then
+                rm -f "$log_file"
+                if (( sleep_for > 0 )); then
+                  echo "Publish rate-limited for ${crate}@${version}; sleeping ${sleep_for}s before retry"
+                  sleep "$sleep_for"
+                fi
+                continue
+              fi
+
+              rm -f "$log_file"
+              echo "Publish attempt ${attempt}/20 failed for ${crate}@${version}; retrying in 30s"
               sleep 30
             done
 
