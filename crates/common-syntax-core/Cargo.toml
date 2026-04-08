@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 description = "Syntax parsing helpers shared by macro and tool crates."
 readme = "README.md"
 repository = "https://github.com/EffortlessMetrics/adze"
-publish = ["crates.io"]
+publish = ["crates-io"]
 keywords = ["parser", "grammar", "tree-sitter", "ast", "glr"]
 categories = ["parsing", "development-tools"]
 homepage = "https://github.com/EffortlessMetrics/adze"
@@ -23,7 +23,6 @@ syn.workspace = true
 quote.workspace = true
 
 [dev-dependencies]
-adze-common = { version = "0.8.0", path = "../../common" }
 proptest.workspace = true
 quote.workspace = true
 syn.workspace = true

@@ -1,7 +1,7 @@
 [package]
 name = "adze-common"
 description = "Shared logic for the Rust Sitter macro and tool"
-readme = "../README.md"
+readme = "README.md"
 repository = "https://github.com/effortlessmetrics/adze"
 homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-common"
@@ -9,7 +9,7 @@ version = "0.8.0"
 authors = ["Steven Zimmerman, CPA"]
 edition.workspace = true
 license = "MIT"
-publish = ["crates.io"]
+publish = ["crates-io"]
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
 

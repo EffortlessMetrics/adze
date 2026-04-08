@@ -12,8 +12,13 @@ if [[ ${#ALLOWED_CRATES[@]} -eq 0 ]]; then
   echo "::error::Release surface is empty (mode: ${RELEASE_SURFACE_MODE})." >&2
   exit 1
 fi
-METADATA_JSON="$(cargo metadata --no-deps --format-version 1)"
-if ! jq -e '.packages | length > 0' <<<"$METADATA_JSON" >/dev/null 2>&1; then
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "::error::python3 is required for release-surface validation." >&2
+  exit 1
+fi
+METADATA_FILE="$(mktemp)"
+trap 'rm -f "$METADATA_FILE"' EXIT
+if ! cargo metadata --no-deps --format-version 1 >"$METADATA_FILE"; then
   echo "::error::Unable to load cargo metadata JSON for release-surface validation." >&2
   exit 1
 fi
@@ -59,14 +64,23 @@ while IFS=$'\t' read -r crate manifest_path publishable; do
   fi
 
   SEEN_ALLOWED["$crate"]=1
-done < <(jq -r '
-  .packages[] |
-  .publish as $publish |
-  (if $publish == null then true
-   elif $publish == true then true
-   elif (($publish | type) == "array" and (($publish | index("crates.io")) != null)) then true
-   else false end) as $is_publishable |
-  "\(.name)\t\(.manifest_path)\t\($is_publishable)"' <<<"$METADATA_JSON")
+done < <(python3 - "$METADATA_FILE" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    metadata = json.load(fh)
+
+for pkg in metadata["packages"]:
+    publish = pkg.get("publish")
+    is_publishable = (
+        publish is None
+        or publish is True
+        or (isinstance(publish, list) and ("crates.io" in publish or "crates-io" in publish))
+    )
+    print(f"{pkg['name']}\t{pkg['manifest_path']}\t{'true' if is_publishable else 'false'}")
+PY
+)
 
 # Validate allowlist order against workspace dependency graph for normal/build dependencies.
 if [[ "$RELEASE_SURFACE_MODE" == "fixed" ]]; then
@@ -81,7 +95,22 @@ if [[ "$RELEASE_SURFACE_MODE" == "fixed" ]]; then
       echo "::error::Allowlist order violation: '$dep' must be published before '$crate'" >&2
       has_failure=1
     fi
-  done < <(jq -r '.packages[] as $pkg | $pkg.name as $crate | $pkg.dependencies[]? | select((.kind // ["normal"]) | index("dev") | not) | select((.optional // false) | not) | "\($crate)\t\(.name)"' <<<"$METADATA_JSON")
+  done < <(python3 - "$METADATA_FILE" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    metadata = json.load(fh)
+
+for pkg in metadata["packages"]:
+    crate = pkg["name"]
+    for dep in pkg.get("dependencies", []):
+        kind = dep.get("kind")
+        if kind == "dev" or dep.get("optional", False):
+            continue
+        print(f"{crate}\t{dep['name']}")
+PY
+)
 fi
 
 for crate in "${ALLOWED_CRATES[@]}"; do

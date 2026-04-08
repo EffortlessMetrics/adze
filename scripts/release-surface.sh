@@ -82,15 +82,13 @@ emit_fixed_crates() {
 }
 
 emit_auto_crates() {
-  local metadata
   local metadata_file
-  metadata="$(cargo metadata --no-deps --format-version 1)"
-  if ! jq -e '.packages | length > 0' <<<"$metadata" >/dev/null 2>&1; then
+  metadata_file="$(mktemp)"
+  if ! cargo metadata --no-deps --format-version 1 >"$metadata_file"; then
+    rm -f "$metadata_file"
     echo "::error::Failed to read cargo metadata for auto surface calculation." >&2
     exit 1
   fi
-  metadata_file="$(mktemp)"
-  printf '%s' "$metadata" >"$metadata_file"
   python3 - "$metadata_file" <<'PY'
 import json
 import sys
@@ -105,7 +103,7 @@ workspace_crates = set()
 for pkg in metadata["packages"]:
     workspace_crates.add(pkg["name"])
     publish = pkg.get("publish")
-    if publish is None or publish is True or (isinstance(publish, list) and "crates.io" in publish):
+    if publish is None or publish is True or (isinstance(publish, list) and ("crates.io" in publish or "crates-io" in publish)):
         publishable.append(pkg["name"])
 
 publishable = sorted(set(publishable))

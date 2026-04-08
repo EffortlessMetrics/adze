@@ -39,45 +39,59 @@ EOF
   esac
 done
 
-if ! command -v jq &>/dev/null; then
-  echo "error: jq is required but not found. Install with: apt install jq" >&2
+if ! command -v python3 &>/dev/null; then
+  echo "error: python3 is required but not found." >&2
   exit 1
 fi
 
 cd "$ROOT_DIR"
 
-METADATA="$(cargo metadata --no-deps --format-version 1 2>/dev/null)"
+METADATA_FILE="$(mktemp)"
+trap 'rm -f "$METADATA_FILE"' EXIT
 
-# Extract publishable crates (publish == null, true, or contains "crates.io")
+if ! cargo metadata --no-deps --format-version 1 >"$METADATA_FILE" 2>/dev/null; then
+  echo "error: failed to load cargo metadata." >&2
+  exit 1
+fi
+
+# Extract publishable crates (publish == null, true, or contains crates.io/crates-io)
 # along with their metadata and workspace dependencies.
-CRATE_INFO="$(jq -r '
-  # Build set of all workspace package names
-  ([.packages[].name] | sort | unique) as $ws_names |
+CRATE_INFO="$(python3 - "$METADATA_FILE" <<'PY'
+import json
+import sys
 
-  .packages[] |
-  # Filter to publishable crates
-  select(
-    (.publish == null) or
-    (.publish == true) or
-    ((.publish | type == "array") and (.publish | length > 0) and (.publish | index("crates.io") != null))
-  ) |
-  {
-    name: .name,
-    version: .version,
-    description: (.description // ""),
-    license: (.license // ""),
-    repository: (.repository // ""),
-    # Collect non-dev workspace dependencies
-    ws_deps: [
-      .dependencies[]? |
-      select(.path != null) |
-      select((.kind // "normal") != "dev") |
-      .name
-    ] | unique
-  } |
-  # Format as TSV for bash consumption
-  "\(.name)\t\(.version)\t\(.description)\t\(.license)\t\(.repository)\t\(.ws_deps | join(","))"
-' <<< "$METADATA")"
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    metadata = json.load(fh)
+
+for pkg in metadata["packages"]:
+    publish = pkg.get("publish")
+    is_publishable = (
+        publish is None
+        or publish is True
+        or (isinstance(publish, list) and ("crates.io" in publish or "crates-io" in publish))
+    )
+    if not is_publishable:
+        continue
+
+    ws_deps = sorted(
+        {
+            dep["name"]
+            for dep in pkg.get("dependencies", [])
+            if dep.get("path") is not None and dep.get("kind") != "dev"
+        }
+    )
+
+    fields = [
+        pkg["name"],
+        pkg["version"],
+        pkg.get("description", "") or "",
+        pkg.get("license", "") or "",
+        pkg.get("repository", "") or "",
+        ",".join(ws_deps),
+    ]
+    print("\t".join(fields))
+PY
+)"
 
 if [[ -z "$CRATE_INFO" ]]; then
   echo "error: no publishable crates found in workspace." >&2
