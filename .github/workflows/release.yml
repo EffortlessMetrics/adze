@@ -455,22 +455,7 @@ jobs:
 
           rate_limit_sleep_seconds() {
             local log_file="$1"
-            python3 - "$log_file" <<'PY'
-import email.utils
-import pathlib
-import re
-import sys
-import time
-
-text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
-matches = re.findall(r"Please try again after (.+? GMT)", text)
-if not matches:
-    raise SystemExit(1)
-
-retry_at = email.utils.parsedate_to_datetime(matches[-1])
-delay = int(max(0, retry_at.timestamp() - time.time() + 5))
-print(delay)
-PY
+            python3 -c 'import email.utils, pathlib, re, sys, time; text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace"); matches = re.findall(r"Please try again after (.+? GMT)", text); print(int(max(0, email.utils.parsedate_to_datetime(matches[-1]).timestamp() - time.time() + 5))) if matches else sys.exit(1)' "$log_file"
           }
 
           for crate in "${PUBLISH_ORDER[@]}"; do
