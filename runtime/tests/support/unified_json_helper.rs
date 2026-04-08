@@ -1,11 +1,15 @@
-use crate::language_builder;
-
 use adze::pure_parser::TSLanguage;
 use adze_glr_core::GotoIndexing;
 use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use adze_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
 use anyhow::Result;
+#[cfg(all(feature = "pure-rust", feature = "with-grammars"))]
+use tree_sitter_json;
+#[cfg(all(feature = "pure-rust", feature = "with-grammars"))]
 use ts_bridge::{extract, schema::Action as TsAction};
+
+#[cfg(all(feature = "pure-rust", feature = "with-grammars"))]
+use crate::language_builder;
 
 /// Return a `TSLanguage` built from the real Tree-sitter JSON grammar.
 ///
@@ -14,6 +18,7 @@ use ts_bridge::{extract, schema::Action as TsAction};
 /// to decode the Tree-sitter parse tables and rebuild a fresh language using
 /// our pure-Rust layout.
 #[allow(dead_code)]
+#[cfg(all(feature = "pure-rust", feature = "with-grammars"))]
 pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
     // Extract parse table data from upstream Tree-sitter JSON grammar
     // tree_sitter_json::LANGUAGE.into_raw() returns a function pointer that needs to be called
@@ -219,4 +224,12 @@ pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
 
     let lang = language_builder::build_json_ts_language(&grammar, &table);
     Ok(Box::leak(Box::new(lang)))
+}
+
+#[allow(dead_code)]
+#[cfg(not(all(feature = "pure-rust", feature = "with-grammars")))]
+pub fn unified_json_language() -> Result<&'static TSLanguage, anyhow::Error> {
+    Err(anyhow::anyhow!(
+        "unified_json_language requires both `pure-rust` and `with-grammars` features"
+    ))
 }
