@@ -211,7 +211,7 @@ dependencies = [
 
 [[package]]
 name = "adze-common-syntax-core"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "adze-common",
  "proptest",
