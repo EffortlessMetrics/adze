@@ -8,7 +8,6 @@ documentation = "https://docs.rs/adze-common"
 version = "0.8.0"
 authors = ["Steven Zimmerman, CPA"]
 edition.workspace = true
-rust-version.workspace = true
 license = "MIT"
 publish = ["crates.io"]
 keywords = ["parsing", "codegen"]
