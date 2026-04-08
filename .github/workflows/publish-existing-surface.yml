@@ -1,0 +1,142 @@
+name: Publish Existing Surface
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_crate_file:
+        description: "Allowlist file containing crates to publish in dependency order"
+        required: false
+        default: "scripts/release-crates-adze.txt"
+        type: string
+      strict_publish_surface:
+        description: "Fail if publishable crates are missing from the allowlist"
+        required: false
+        default: false
+        type: boolean
+      start_at_crate:
+        description: "Optional crate name to resume publishing from"
+        required: false
+        default: ""
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish Existing Versions To crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate release surface
+        run: |
+          RELEASE_SURFACE_MODE=fixed \
+          RELEASE_CRATE_FILE="${{ inputs.release_crate_file }}" \
+          STRICT_PUBLISH_SURFACE="${{ inputs.strict_publish_surface }}" \
+          ./scripts/validate-release-surface.sh
+
+      - name: Login to crates.io
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish crates in order
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t CRATES_TO_PUBLISH < <(
+            RELEASE_SURFACE_MODE=fixed \
+            RELEASE_CRATE_FILE="${{ inputs.release_crate_file }}" \
+            ./scripts/release-surface.sh
+          )
+
+          if [[ ${#CRATES_TO_PUBLISH[@]} -eq 0 ]]; then
+            echo "::error::Resolved release surface is empty"
+            exit 1
+          fi
+
+          METADATA_JSON="$(cargo metadata --no-deps --format-version 1)"
+          START_AT="${{ inputs.start_at_crate }}"
+          STARTED=0
+
+          crate_version() {
+            local crate="$1"
+            jq -r --arg crate "$crate" '.packages[] | select(.name == $crate) | .version' <<<"$METADATA_JSON"
+          }
+
+          is_published() {
+            local crate="$1"
+            local version="$2"
+            curl -fsS "https://crates.io/api/v1/crates/${crate}" \
+              | jq -e --arg version "$version" '.versions[] | select(.num == $version)' >/dev/null
+          }
+
+          wait_for_index() {
+            local crate="$1"
+            local version="$2"
+            for attempt in {1..20}; do
+              if cargo info "${crate}@${version}" >/dev/null 2>&1; then
+                return 0
+              fi
+              echo "Waiting for ${crate}@${version} to appear in the index (attempt ${attempt}/20)"
+              sleep 15
+            done
+            echo "::error::Timed out waiting for ${crate}@${version} to appear in the cargo index"
+            return 1
+          }
+
+          for crate in "${CRATES_TO_PUBLISH[@]}"; do
+            version="$(crate_version "$crate")"
+            if [[ -z "$version" || "$version" == "null" ]]; then
+              echo "::error::Unable to resolve local version for ${crate}"
+              exit 1
+            fi
+
+            if [[ -n "$START_AT" && "$STARTED" -eq 0 ]]; then
+              if [[ "$crate" != "$START_AT" ]]; then
+                echo "Skipping ${crate}@${version} until start_at_crate=${START_AT}"
+                continue
+              fi
+              STARTED=1
+            fi
+
+            echo "::group::${crate}@${version}"
+
+            if is_published "$crate" "$version"; then
+              echo "${crate}@${version} is already published; skipping"
+              echo "::endgroup::"
+              continue
+            fi
+
+            published=0
+            for attempt in {1..10}; do
+              if cargo publish --locked -p "$crate"; then
+                published=1
+                break
+              fi
+
+              if is_published "$crate" "$version"; then
+                echo "${crate}@${version} appears to have published despite cargo returning non-zero"
+                published=1
+                break
+              fi
+
+              echo "Publish attempt ${attempt}/10 failed for ${crate}@${version}; retrying in 30s"
+              sleep 30
+            done
+
+            if [[ "$published" -ne 1 ]]; then
+              echo "::error::Failed to publish ${crate}@${version}"
+              exit 1
+            fi
+
+            wait_for_index "$crate" "$version"
+            echo "::endgroup::"
+          done
