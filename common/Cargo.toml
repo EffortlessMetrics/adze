@@ -7,7 +7,8 @@ homepage = "https://github.com/effortlessmetrics/adze"
 documentation = "https://docs.rs/adze-common"
 version = "0.8.0"
 authors = ["Steven Zimmerman, CPA"]
-edition = "2024"
+edition.workspace = true
+rust-version.workspace = true
 license = "MIT"
 publish = ["crates.io"]
 keywords = ["parsing", "codegen"]
@@ -22,7 +23,7 @@ strict_docs = [] # Enable strict documentation requirements
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }
 quote = "1"
-adze-common-syntax-core = { version = "0.8.0", path = "../crates/common-syntax-core" }
+adze-common-syntax-core = { workspace = true }
 
 [dev-dependencies]
 proptest = "1.4"
