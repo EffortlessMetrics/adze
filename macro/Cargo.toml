@@ -9,7 +9,7 @@ version = "0.8.0"
 authors = ["Steven Zimmerman, CPA"]
 edition = "2024"
 license = "MIT"
-publish = true
+publish = ["crates.io"]
 keywords = ["parsing", "codegen"]
 categories = ["development-tools"]
 
