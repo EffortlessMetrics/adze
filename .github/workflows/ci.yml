@@ -320,21 +320,21 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       
       - name: Setup Miri
-        run: cargo miri setup
+        run: cargo +nightly miri setup
       
       - name: Run Miri tests
         env:
           MIRIFLAGS: "-Zmiri-strict-provenance -Zmiri-symbolic-alignment-check"
         run: |
-          cargo miri test -p adze --lib
-          cargo miri test -p adze-glr-core --lib
-          cargo miri test -p adze-tablegen --lib
+          cargo +nightly miri test -p adze --lib
+          cargo +nightly miri test -p adze-glr-core --lib
+          cargo +nightly miri test -p adze-tablegen --lib
       
       - name: Run Miri on external scanner tests
         env:
           MIRIFLAGS: "-Zmiri-strict-provenance"
         run: |
-          cargo miri test -p adze --features external_scanners external_scanner_ || true
+          cargo +nightly miri test -p adze --features external_scanners external_scanner_ || true
 
   ts-compat:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
@@ -376,7 +376,7 @@ jobs:
           RUSTFLAGS: "-Zsanitizer=address"
           RUSTDOCFLAGS: "-Zsanitizer=address"
         run: |
-          cargo test -Zbuild-std --target x86_64-unknown-linux-gnu \
+          cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu \
             -p adze --lib --tests
       
       - name: Run with Undefined Behavior Sanitizer
@@ -384,7 +384,7 @@ jobs:
           RUSTFLAGS: "-Zsanitizer=undefined"
           RUSTDOCFLAGS: "-Zsanitizer=undefined"
         run: |
-          cargo test -Zbuild-std --target x86_64-unknown-linux-gnu \
+          cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu \
             -p adze --lib --tests
 
   minimal-versions:
@@ -744,9 +744,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
+
+      - name: Install target for pinned toolchain
+        run: |
+          TOOLCHAIN="$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)"
+          rustup target add --toolchain "$TOOLCHAIN" ${{ matrix.target }}
 
       - name: Install cross-compilation tools
         if: matrix.target != 'wasm32-unknown-unknown'
@@ -761,7 +764,11 @@ jobs:
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
           mkdir -p .cargo
-          printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config.toml
+          cat >> .cargo/config.toml <<'EOF'
+
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+          EOF
 
       - name: Build for ${{ matrix.target }}
         run: |
