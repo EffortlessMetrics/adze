@@ -41,7 +41,6 @@ dependencies = [
  "ahash",
  "anyhow",
  "criterion",
- "glr-test-support",
  "hex",
  "indexmap",
  "insta",
@@ -3357,7 +3356,7 @@ dependencies = [
 
 [[package]]
 name = "ts-bridge"
-version = "0.1.0"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "cc",

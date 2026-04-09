@@ -4,6 +4,8 @@
 //! - Verifies a fix remains in place (for resolved issues), or
 //! - Documents current behavior for open issues (may be `#[ignore]`d).
 
+mod support;
+
 // ---------------------------------------------------------------------------
 // Issue #89 / PR #90: EOF symbol layout collision (FIXED)
 //
@@ -92,16 +94,16 @@ fn issue_89_parse_table_eof_invariant() {
 
     let gotos = vec![
         vec![
-            glr_test_support::INVALID,
-            glr_test_support::INVALID,
-            glr_test_support::INVALID,
+            support::INVALID,
+            support::INVALID,
+            support::INVALID,
             StateId(1), // EXPR goto
         ],
         vec![
-            glr_test_support::INVALID,
-            glr_test_support::INVALID,
-            glr_test_support::INVALID,
-            glr_test_support::INVALID,
+            support::INVALID,
+            support::INVALID,
+            support::INVALID,
+            support::INVALID,
         ],
     ];
 
@@ -110,7 +112,7 @@ fn issue_89_parse_table_eof_invariant() {
         rhs_len: 1,
     }];
 
-    let table = glr_test_support::make_minimal_table(
+    let table = support::make_minimal_table(
         actions, gotos, rules, expr, eof, /*external_token_count=*/ 0,
     );
 

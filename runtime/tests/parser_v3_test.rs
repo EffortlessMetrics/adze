@@ -3,11 +3,12 @@
 //! as the codebase has moved to parser v4 with GLR support.
 
 mod common;
+mod support;
 
 use adze::parser_v4::Parser;
 use adze_glr_core::{Action, ParseRule, ParseTable};
 use adze_ir::*;
-use glr_test_support::make_minimal_table;
+use support::make_minimal_table;
 
 fn create_simple_arithmetic_grammar() -> Grammar {
     let mut grammar = Grammar {
