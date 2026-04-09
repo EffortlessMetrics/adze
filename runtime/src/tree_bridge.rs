@@ -11,7 +11,8 @@ use std::sync::Arc;
 thread_local! {
     // Keep per-thread bridge arenas rooted until thread exit so the returned
     // parser_v4 trees can borrow stable storage without leaking intentionally.
-    static TREE_BRIDGE_ARENAS: RefCell<Vec<Box<TreeArena>>> = RefCell::new(Vec::new());
+    #[allow(clippy::vec_box)]
+    static TREE_BRIDGE_ARENAS: RefCell<Vec<Box<TreeArena>>> = const { RefCell::new(Vec::new()) };
 }
 
 fn make_subtree(symbol: SymbolId, children: Vec<Arc<Subtree>>) -> Arc<Subtree> {

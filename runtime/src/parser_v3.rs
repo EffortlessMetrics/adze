@@ -763,7 +763,6 @@ mod tests {
 
         // TODO: ParseTable needs to be properly implemented in glr-core
         // For now, skip this test until ParseTable API is available
-        return;
 
         // Unreachable code - commented out until ParseTable is available:
         // let parse_table = ParseTable::default();

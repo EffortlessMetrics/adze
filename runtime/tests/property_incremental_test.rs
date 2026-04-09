@@ -37,7 +37,7 @@ fn test_fresh_parse_sanity() {
 
 #[cfg(all(test, feature = "incremental_glr"))]
 mod incremental_properties {
-    use adze::parser_v4::{Parser, Tree};
+    use adze::parser_v4::Parser;
     use adze::pure_incremental::Edit;
     use adze::pure_parser::Point;
     use adze_glr_core::ParseTable;
@@ -185,18 +185,20 @@ mod incremental_properties {
             let mut parser2 = Parser::new(grammar.clone(), table.clone(), "test".to_string());
 
             // Parse original
-            let tree1 = parser1.parse(&original).expect("Initial parse should succeed");
+            parser1.parse(&original).expect("Initial parse should succeed");
 
             // Apply edit
             let edited = apply_edit(&original, edit_pos, del_len, &insert);
-            let edit = create_edit(edit_pos, del_len, insert.len());
+            let _edit = create_edit(edit_pos, del_len, insert.len());
 
             // Parse fresh
             let tree_fresh = parser2.parse(&edited).expect("Fresh parse should succeed");
 
             // For now, just verify fresh parsing works
-            prop_assert!(tree_fresh.error_count == 0 || tree_fresh.error_count > 0,
-                "Fresh parse should complete with a valid error count");
+            prop_assert!(
+                tree_fresh.error_count() <= edited.len().max(1),
+                "Fresh parse should produce a bounded error count"
+            );
         }
 
         /// Property: Multiple sequential edits should produce the same result regardless of path
@@ -222,8 +224,10 @@ mod incremental_properties {
             // This would verify that the order of incremental edits doesn't affect the final result
 
             // For now, just verify fresh parsing works
-            prop_assert!(tree_fresh.error_count == 0 || tree_fresh.error_count > 0,
-                "Fresh parse should complete with a valid error count");
+            prop_assert!(
+                tree_fresh.error_count() <= final_source.len().max(1),
+                "Fresh parse should produce a bounded error count"
+            );
         }
     }
 }

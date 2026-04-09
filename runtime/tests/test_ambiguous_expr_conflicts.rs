@@ -15,7 +15,7 @@
 #[test]
 fn inspect_ambiguous_expr_conflicts() {
     // Access the generated ambiguous_expr language
-    let lang = unsafe { &adze_example::ambiguous_expr::generated::LANGUAGE };
+    let lang = &adze_example::ambiguous_expr::generated::LANGUAGE;
 
     // Decode the parse table
     let parse_table = adze::decoder::decode_parse_table(lang);
@@ -134,7 +134,7 @@ fn inspect_ambiguous_expr_conflicts() {
     // Always pass the test - this is diagnostic, not assertion-based
     // But the output tells us if GLR is working
     assert!(
-        parse_table.action_table.len() > 0,
+        !parse_table.action_table.is_empty(),
         "Parse table should have at least one state"
     );
 }

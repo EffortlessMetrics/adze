@@ -2,10 +2,8 @@
 ///
 /// Ensures all public API items are properly documented.
 /// This helps maintain API quality and prevents undocumented public items.
-
 #[cfg(all(test, feature = "strict_docs"))]
 mod doc_coverage_tests {
-
     /// This test will fail if any public items lack documentation.
     /// It's gated behind the "strict_docs" feature to allow gradual improvement.
     #[test]
@@ -22,7 +20,7 @@ mod doc_coverage_tests {
             // The actual documentation checking is done by rustdoc
             // This just ensures the modules exist
             assert!(
-                module.len() > 0,
+                !module.is_empty(),
                 "Module {} should exist and be documented",
                 module
             );
@@ -101,9 +99,6 @@ mod doc_coverage_tests {
         // Currently no deprecated items, but when we add them:
         // #[deprecated(since = "0.x.x", note = "Use new_api instead")]
         // pub fn old_api() {}
-
-        // This would generate compiler warnings for users
-        assert!(true, "No deprecated items currently");
     }
 
     /// Test that unsafe APIs are properly documented
@@ -116,8 +111,6 @@ mod doc_coverage_tests {
         // /// # Safety
         // /// This function is safe to call if...
         // pub unsafe fn unsafe_api() {}
-
-        assert!(true, "No public unsafe APIs currently");
     }
 
     /// Ensure version-specific features are documented

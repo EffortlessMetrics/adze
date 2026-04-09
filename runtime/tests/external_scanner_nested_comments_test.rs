@@ -25,20 +25,12 @@ impl ExternalScanner for NestedCommentScanner {
             return None;
         }
 
-        let mut consumed = 0;
-        let mut depth = 0;
-        let mut in_comment = false;
-
         // Check for comment start
         if lexer.lookahead() == Some(b'(') {
             lexer.advance(1);
-            consumed += 1;
 
             if lexer.lookahead() == Some(b'*') {
                 lexer.advance(1);
-                consumed += 1;
-                depth = 1;
-                in_comment = true;
             } else {
                 // Not a comment start, backtrack
                 return None;
@@ -47,8 +39,11 @@ impl ExternalScanner for NestedCommentScanner {
             return None;
         }
 
+        let mut consumed = 2;
+        let mut depth = 1;
+
         // Scan through comment body, handling nesting
-        while in_comment && !lexer.is_eof() {
+        while depth > 0 && !lexer.is_eof() {
             match lexer.lookahead() {
                 Some(b'(') => {
                     lexer.advance(1);
@@ -67,7 +62,6 @@ impl ExternalScanner for NestedCommentScanner {
                         consumed += 1;
                         depth -= 1;
                         if depth == 0 {
-                            in_comment = false;
                             lexer.mark_end();
                             return Some(ScanResult {
                                 symbol: COMMENT,

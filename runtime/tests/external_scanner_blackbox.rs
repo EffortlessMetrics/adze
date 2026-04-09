@@ -2,7 +2,6 @@
 
 /// Black-box tests for external scanner functionality
 /// These tests verify the external scanner API behavior from a user perspective
-use adze::external_scanner_ffi::{RustLexerAdapter, TSLexer, destroy_lexer};
 use adze::linecol::LineCol;
 
 #[test]

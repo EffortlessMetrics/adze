@@ -196,7 +196,7 @@ pub fn reparse<'arena>(
     // Only enable incremental parsing if the feature is enabled
     #[cfg(feature = "incremental_glr")]
     {
-        return None;
+        None
     }
 
     #[cfg(not(feature = "incremental_glr"))]

@@ -12,8 +12,6 @@
 #![cfg(feature = "serialization")]
 
 use adze::serialization::*;
-use std::collections::HashMap;
-
 #[cfg(test)]
 mod serialized_node_tests {
     #[cfg(feature = "serialization")]
@@ -177,7 +175,6 @@ mod s_expr_tests {
     fn test_basic_roundtrip_identity() {
         // Simple atom
         let atom_sexpr = SExpr::Atom("hello".to_string());
-        let serialized = format!("{:?}", atom_sexpr);
         let atom_str = "hello";
         let parsed = parse_sexpr(atom_str).unwrap();
         assert_eq!(atom_sexpr, parsed);
@@ -533,7 +530,7 @@ mod property_based_tests {
         };
 
         if is_leaf {
-            let text_options = vec!["hello", "world", "test", "42", "true", "null"];
+            let text_options = ["hello", "world", "test", "42", "true", "null"];
             node.text = Some(text_options[rng.r#gen::<usize>() % text_options.len()].to_string());
         } else if depth > 0 {
             let child_count = rng.r#gen::<usize>() % 4;
@@ -622,7 +619,7 @@ mod property_based_tests {
 
     fn gen_random_sexpr(depth: usize, rng: &mut rand::SmallRng) -> SExpr {
         if depth == 0 || rng.gen_bool(0.5) {
-            let atoms = vec!["hello", "world", "test", "function", "if", "else", "return"];
+            let atoms = ["hello", "world", "test", "function", "if", "else", "return"];
             SExpr::Atom(atoms[rng.r#gen::<usize>() % atoms.len()].to_string())
         } else {
             let child_count = rng.r#gen::<usize>() % 4 + 1;
@@ -1611,6 +1608,7 @@ mod rand {
             val < p
         }
 
+        #[allow(dead_code)]
         pub fn gen_range(&mut self, min: usize, max: usize) -> usize {
             self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
             let val = (self.state as usize) % (max - min);
@@ -1622,10 +1620,6 @@ mod rand {
             // Simple type-specific implementation for testing
             unsafe { std::mem::transmute_copy(&self.state) }
         }
-    }
-
-    pub mod rngs {
-        pub use super::SmallRng;
     }
 }
 

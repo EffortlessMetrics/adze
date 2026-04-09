@@ -599,10 +599,9 @@ mod tests {
         // This test would require a proper grammar and parse table
         // For now, it demonstrates the API
 
-        let grammar = Grammar::new("test".to_string());
+        let _grammar = Grammar::new("test".to_string());
         // TODO: ParseTable needs to be properly implemented in glr-core
         // For now, skip this test until ParseTable API is available
-        return;
 
         // Unreachable code - commented out until ParseTable is available:
         //

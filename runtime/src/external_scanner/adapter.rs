@@ -137,18 +137,19 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
                 }
 
                 // Check if we need to move to next range
-                if let Some(range) = self.current_range() {
-                    if self.cursor >= range.end && self.ranges.next + 1 < self.ranges.spans.len() {
-                        // Move to next range
-                        self.ranges.next += 1;
-                        if let Some(next_range) = self.ranges.spans.get(self.ranges.next) {
-                            self.cursor = next_range.start;
-                            // Recalculate position for new range
-                            let (row, col) =
-                                position_to_line_col(self.src, self.cursor, self.line_starts);
-                            self.row = row;
-                            self.col = col;
-                        }
+                if let Some(range) = self.current_range()
+                    && self.cursor >= range.end
+                    && self.ranges.next + 1 < self.ranges.spans.len()
+                {
+                    // Move to next range
+                    self.ranges.next += 1;
+                    if let Some(next_range) = self.ranges.spans.get(self.ranges.next) {
+                        self.cursor = next_range.start;
+                        // Recalculate position for new range
+                        let (row, col) =
+                            position_to_line_col(self.src, self.cursor, self.line_starts);
+                        self.row = row;
+                        self.col = col;
                     }
                 }
             } else {

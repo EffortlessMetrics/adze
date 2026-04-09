@@ -7,13 +7,11 @@ mod incremental_reuse_tests {
         Edit, GLREdit, GLRToken, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
-    use adze::glr_parser::GLRParser;
     use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
     use adze_ir::{
         Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
         TokenPattern,
     };
-    use std::sync::Arc;
 
     /// Create a simple arithmetic grammar for testing
     fn create_test_grammar() -> Grammar {
@@ -160,7 +158,7 @@ mod incremental_reuse_tests {
 
         // Create the edit descriptor
         // The "2" is at byte position 4, replaced with "5"
-        let edit = Edit::new(4, 5, 5);
+        let _edit = Edit::new(4, 5, 5);
 
         // Create GLREdit structure for incremental parsing
         let glr_edit = GLREdit {
