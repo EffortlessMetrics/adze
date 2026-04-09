@@ -5,7 +5,14 @@ use crate::glr_incremental::{ForestNode, ForkAlternative};
 use crate::parser_v4::Tree as V4Tree;
 use crate::subtree::{Subtree, SubtreeNode};
 use adze_ir::SymbolId;
+use std::cell::RefCell;
 use std::sync::Arc;
+
+thread_local! {
+    // Keep per-thread bridge arenas rooted until thread exit so the returned
+    // parser_v4 trees can borrow stable storage without leaking intentionally.
+    static TREE_BRIDGE_ARENAS: RefCell<Vec<Box<TreeArena>>> = RefCell::new(Vec::new());
+}
 
 fn make_subtree(symbol: SymbolId, children: Vec<Arc<Subtree>>) -> Arc<Subtree> {
     make_subtree_with_error(symbol, false, children)
@@ -64,6 +71,16 @@ fn v4_to_forest_node<'arena>(tree: &V4Tree<'arena>, handle: NodeHandle) -> Arc<F
     })
 }
 
+fn bridge_arena() -> &'static mut TreeArena {
+    TREE_BRIDGE_ARENAS.with(|arenas| {
+        let mut arenas = arenas.borrow_mut();
+        arenas.push(Box::new(TreeArena::new()));
+        let arena_ptr = arenas.last_mut().unwrap().as_mut() as *mut TreeArena;
+        // The box stays owned by the thread-local vector for the lifetime of the thread.
+        unsafe { &mut *arena_ptr }
+    })
+}
+
 /// Convert a parser_v4::Tree to a ForestNode for incremental parsing.
 ///
 /// This creates an unambiguous forest (single alternative) that represents
@@ -77,7 +94,7 @@ pub fn v4_tree_to_forest<'arena>(tree: &V4Tree<'arena>) -> Arc<ForestNode> {
 /// This flattens forest alternatives by selecting the first alternative
 /// at each node.
 pub fn forest_to_v4_tree<'arena>(forest: &ForestNode) -> V4Tree<'arena> {
-    let arena = Box::leak(Box::new(TreeArena::new()));
+    let arena = bridge_arena();
     let root = forest_to_v4_node(arena, forest);
     let error_count = forest
         .cached_subtree
@@ -126,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_v4_to_forest_conversion_contract() {
-        let arena = Box::leak(Box::new(TreeArena::new()));
+        let arena = bridge_arena();
         let child = arena.alloc(TreeNode::leaf(7));
         let root = arena.alloc(TreeNode::branch_with_symbol(13, vec![child]));
         let tree = V4Tree {

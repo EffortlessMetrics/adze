@@ -1690,6 +1690,7 @@ mod tests {
     use crate::scanner_registry::ExternalScannerBuilder;
     use crate::scanners::IndentationScanner;
     use std::ffi::c_void;
+    use std::sync::OnceLock;
 
     #[allow(dead_code)]
     unsafe extern "C" fn test_custom_lexer_fn(_lexer: *mut c_void, _state: TSLexState) -> bool {
@@ -1697,7 +1698,8 @@ mod tests {
     }
 
     fn minimal_custom_lexer_language() -> &'static TSLanguage {
-        let language = TSLanguage {
+        static LANGUAGE: OnceLock<TSLanguage> = OnceLock::new();
+        LANGUAGE.get_or_init(|| TSLanguage {
             version: 15,
             symbol_count: 0,
             alias_count: 0,
@@ -1732,8 +1734,7 @@ mod tests {
             rules: std::ptr::null(),
             rule_count: 0,
             eof_symbol: 0,
-        };
-        Box::leak(Box::new(language))
+        })
     }
 
     #[test]
