@@ -56,7 +56,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 
 **Area:** docs
 **Symptom:** README.md and book examples refer to old `rust-sitter` naming or outdated macro syntax.
-**Expected:** Documentation matches the current `adze` 0.8.0-dev state.
+**Expected:** Documentation matches the current `adze` release state.
 **Actual:** Users encounter compilation errors when copying examples.
 **Fix:** Repository-wide documentation audit and sync completed in two phases:
 - **Phase 1:** Updated version strings and critical references (2 files)
@@ -65,7 +65,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
   - `incremental` → `incremental_glr`
   - Removed outdated feature references
 - **Phase 3 (Wave 16, 2026-03-28):** Final documentation sync completed:
-  - Updated version strings from v0.5.0-beta to v0.8.0-dev
+  - Updated version strings from v0.5.0-beta to the 0.8 release line
   - Fixed feature flags from `["glr-core", "incremental"]` to `["glr", "incremental_glr"]`
   - Updated crate name references from `adze-runtime` to `adze`
   - Updated API usage examples

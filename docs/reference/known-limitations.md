@@ -1,6 +1,6 @@
 # Known Limitations
 
-> **Doc status:** Up to date for Adze 0.8.0-dev.
+> **Doc status:** Up to date for Adze 0.8.x.
 
 Adze is a high-performance GLR parser generator. While it achieves high compatibility with the Tree-sitter ecosystem, there are some known limitations and experimental areas.
 

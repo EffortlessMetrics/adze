@@ -1,6 +1,6 @@
 # Adze API Documentation
 
-> **Status**: Up to date for Adze 0.8.0-dev.
+> **Status**: Up to date for Adze 0.8.x.
 
 This document describes the public API of the `adze` crate (formerly `rust-sitter`).
 

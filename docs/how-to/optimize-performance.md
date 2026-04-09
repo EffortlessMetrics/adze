@@ -27,7 +27,7 @@ The `simd` feature enables AVX2/NEON accelerated lexing for common patterns.
 
 ```toml
 [dependencies]
-adze = { version = "0.8.0-dev", features = ["simd"] }
+adze = { version = "0.8", features = ["simd"] }
 ```
 
 ### 2. Grammar Optimization

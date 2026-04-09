@@ -64,15 +64,15 @@ For each crate, before running `cargo publish`:
 # 1. Ensure clean working tree
 git status  # should be clean
 
-# 2. Update versions (replace 0.8.0-dev -> 0.8.0 everywhere)
-#    This includes Cargo.toml files and any cross-references.
+# 2. Update versions for the release you are cutting
+#    For example: 0.8.0 -> 0.9.0, including Cargo.toml files and cross-references.
 
 # 3. Run the publish check
 ./scripts/check-publish.sh
 
 # 4. Commit the version bump
-git commit -am "release: v0.8.0"
-git tag v0.8.0
+git commit -am "release: vX.Y.Z"
+git tag vX.Y.Z
 
 # 5. Publish in order (wait for each to appear on crates.io)
 cargo publish -p adze-common

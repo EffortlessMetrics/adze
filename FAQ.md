@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-> **Doc status:** being refreshed to match dev head (0.8.0-dev).
+> **Doc status:** reviewed against the 0.8.x release line.
 > If something here disagrees with the repo, treat the repo as truth
 > and log it in [`docs/status/FRICTION_LOG.md`](./docs/status/FRICTION_LOG.md).
 
@@ -36,7 +36,7 @@ adze is a parser generator for Rust that lets you define grammars using Rust typ
 
 ### Is adze production-ready?
 
-**v0.8.x (RC)**: Macro-based grammar generation is production-ready for the current release-candidate workstream.
+**v0.8.x**: Macro-based grammar generation is production-ready on the current release line.
 - Core parsing (LR): stable, enabled by default
 - GLR parsing: available via `features = ["glr"]`
 - Type-safe ASTs: Working
@@ -74,10 +74,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.8.0-dev"
+adze = "0.8"
 
 [build-dependencies]
-adze-tool = "0.8.0-dev"
+adze-tool = "0.8"
 ```
 
 See [QUICK_START.md](./QUICK_START.md) for a 5-minute tutorial.
@@ -277,7 +277,7 @@ Error nodes are inserted for missing/unexpected tokens.
 
 ```toml
 [dependencies]
-adze = { version = "0.8.0-dev", features = ["pure-rust"] }
+adze = { version = "0.8", features = ["pure-rust"] }
 ```
 
 Then compile to WASM:

@@ -1,7 +1,7 @@
 # Now / Next / Later
 
-**Last updated:** 2026-04-06
-**Status:** **Post-hardening steady state** — `main` is clean, the supported gate is green, workflow hardening (PR #280) is merged, and 0.8.0 is feature-complete. Focus shifts to publication and 0.9.0 planning.
+**Last updated:** 2026-04-09
+**Status:** **Post-release hardening** — `adze` 0.8.0 is live on crates.io, the supported gate remains green, and the active work is broad CI truthfulness, runtime surface repair, and doc/status sync.
 
 Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For the (substantially complete) post-PR264 follow-up plan, see [`plans/POST-PR264-CI-FOLLOWUPS.md`](../../plans/POST-PR264-CI-FOLLOWUPS.md).
 
@@ -28,10 +28,10 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 
 ## Now
 
-### 🚢 Publication and release preparation
-- [ ] Execute the crates.io release checklist against the current publishable core crate set on `main`.
-- [ ] Verify `cargo package --no-verify` succeeds for each crate in `scripts/release-crates.txt`.
-- [ ] Ensure release order documentation is current and matches actual dependency graph.
+### 🧪 Broad CI truthfulness and hardening
+- [ ] Merge the remaining post-release hardening PRs and keep `KNOWN_RED.md` aligned with the real advisory-lane state.
+- [ ] Finish the runtime all-features and GLR/bench stability follow-up lanes now that the crates.io release is complete.
+- [ ] Restore any valuable proof surfaces that were trimmed only to unblock publication into `publish = false` internal harnesses where needed.
 
 ### 📦 Close remaining operational issues
 - [ ] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): Windows pure-rust benchmark-compilation tail is gated but still open; decide whether to trim further or close as acceptable.
@@ -43,7 +43,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 ## Next
 
 ### 📚 Documentation polish
-- [ ] Continue tightening tutorial/reference accuracy around the actual post-merge API surface.
+- [ ] Continue tightening tutorial/reference accuracy around the actual 0.8.x release surface.
 - [ ] Add contributor-facing guidance for temporary worktree lifecycle and closeout hygiene ([issue #268](https://github.com/EffortlessMetrics/adze/issues/268)).
 - [ ] Keep roadmap/status docs aligned with the real repo state after each meaningful convergence wave.
 
