@@ -1,3 +1,5 @@
+#![cfg(all(feature = "test-utils", feature = "glr"))]
+
 //! Comprehensive tests for the Language type and LanguageBuilder.
 
 #[cfg(feature = "glr")]
