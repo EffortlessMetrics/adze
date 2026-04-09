@@ -15,7 +15,6 @@
 #![cfg(feature = "serialization")]
 
 use adze::serialization::*;
-use serde_json::json;
 
 // ============================================================================
 // HELPER FUNCTIONS

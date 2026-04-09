@@ -594,7 +594,7 @@ mod tests {
     #[test]
     #[cfg(feature = "glr")]
     fn given_empty_symbol_zero_node_when_name_lookup_absent_then_marked_error_by_shape() {
-        let names = [b"root\0".as_ptr()];
+        let names = [c"root".as_ptr() as *const u8];
         let language = TSLanguage {
             symbol_count: 1,
             symbol_names: names.as_ptr(),

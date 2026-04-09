@@ -4,8 +4,6 @@ use adze_glr_core::{Action, ParseRule, ParseTable, SymbolMetadata};
 use adze_ir::{Grammar, StateId, SymbolId, Token, TokenPattern};
 use anyhow::Result;
 #[cfg(all(feature = "pure-rust", feature = "with-grammars"))]
-use tree_sitter_json;
-#[cfg(all(feature = "pure-rust", feature = "with-grammars"))]
 use ts_bridge::{extract, schema::Action as TsAction};
 
 #[cfg(all(feature = "pure-rust", feature = "with-grammars"))]

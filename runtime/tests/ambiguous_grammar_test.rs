@@ -8,9 +8,7 @@ mod ambiguous_incremental_tests {
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
     use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
-    use adze_ir::{
-        Associativity, Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern,
-    };
+    use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 
     /// Create the classic dangling-else grammar (genuinely ambiguous)
     /// stmt → if expr then stmt else stmt | if expr then stmt | other
@@ -77,59 +75,56 @@ mod ambiguous_incremental_tests {
         );
 
         // Rules for stmt
-        let mut stmt_rules = Vec::new();
-
-        // Rule 1: stmt → if expr then stmt else stmt
-        stmt_rules.push(Rule {
-            lhs: stmt_id,
-            rhs: vec![
-                Symbol::Terminal(if_id),
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(then_id),
-                Symbol::NonTerminal(stmt_id),
-                Symbol::Terminal(else_id),
-                Symbol::NonTerminal(stmt_id),
-            ],
-            precedence: None, // NO PRECEDENCE - allow ambiguity
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-
-        // Rule 2: stmt → if expr then stmt (without else)
-        stmt_rules.push(Rule {
-            lhs: stmt_id,
-            rhs: vec![
-                Symbol::Terminal(if_id),
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(then_id),
-                Symbol::NonTerminal(stmt_id),
-            ],
-            precedence: None, // NO PRECEDENCE - allow ambiguity
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
-
-        // Rule 3: stmt → other (base case)
-        stmt_rules.push(Rule {
-            lhs: stmt_id,
-            rhs: vec![Symbol::Terminal(other_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(2),
-        });
-
-        // Rule 4: stmt → ID (another base case)
-        stmt_rules.push(Rule {
-            lhs: stmt_id,
-            rhs: vec![Symbol::Terminal(id_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(3),
-        });
+        let stmt_rules = vec![
+            // Rule 1: stmt → if expr then stmt else stmt
+            Rule {
+                lhs: stmt_id,
+                rhs: vec![
+                    Symbol::Terminal(if_id),
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(then_id),
+                    Symbol::NonTerminal(stmt_id),
+                    Symbol::Terminal(else_id),
+                    Symbol::NonTerminal(stmt_id),
+                ],
+                precedence: None, // NO PRECEDENCE - allow ambiguity
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(0),
+            },
+            // Rule 2: stmt → if expr then stmt (without else)
+            Rule {
+                lhs: stmt_id,
+                rhs: vec![
+                    Symbol::Terminal(if_id),
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(then_id),
+                    Symbol::NonTerminal(stmt_id),
+                ],
+                precedence: None, // NO PRECEDENCE - allow ambiguity
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(1),
+            },
+            // Rule 3: stmt → other (base case)
+            Rule {
+                lhs: stmt_id,
+                rhs: vec![Symbol::Terminal(other_id)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(2),
+            },
+            // Rule 4: stmt → ID (another base case)
+            Rule {
+                lhs: stmt_id,
+                rhs: vec![Symbol::Terminal(id_id)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(3),
+            },
+        ];
 
         grammar.rules.insert(stmt_id, stmt_rules);
         grammar.rule_names.insert(stmt_id, "stmt".to_string());
@@ -201,31 +196,30 @@ mod ambiguous_incremental_tests {
         );
 
         // Rules - NO PRECEDENCE OR ASSOCIATIVITY
-        let mut expr_rules = Vec::new();
-
-        // expr → expr - expr
-        expr_rules.push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(minus_id),
-                Symbol::NonTerminal(expr_id),
-            ],
-            precedence: None,    // No precedence!
-            associativity: None, // No associativity!
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-
-        // expr → NUM
-        expr_rules.push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::Terminal(num_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
+        let expr_rules = vec![
+            // expr → expr - expr
+            Rule {
+                lhs: expr_id,
+                rhs: vec![
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(minus_id),
+                    Symbol::NonTerminal(expr_id),
+                ],
+                precedence: None,    // No precedence!
+                associativity: None, // No associativity!
+                fields: vec![],
+                production_id: ProductionId(0),
+            },
+            // expr → NUM
+            Rule {
+                lhs: expr_id,
+                rhs: vec![Symbol::Terminal(num_id)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(1),
+            },
+        ];
 
         grammar.rules.insert(expr_id, expr_rules);
         grammar.rule_names.insert(expr_id, "expr".to_string());
