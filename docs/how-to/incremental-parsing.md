@@ -10,9 +10,9 @@ Add adze with GLR incremental parsing support to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = { version = "0.8.0-dev", features = ["incremental_glr"] }
-adze-glr-core = "0.8.0-dev"
-adze-ir = "0.8.0-dev"
+adze = { version = "0.8", features = ["incremental_glr"] }
+adze-glr-core = "0.8"
+adze-ir = "0.8"
 ```
 
 **Feature Requirements**:
@@ -240,7 +240,7 @@ If you encounter issues with feature combinations:
 ```toml
 # Recommended feature combination for GLR incremental parsing
 [dependencies]
-adze = { version = "0.8.0-dev", features = ["incremental_glr", "external_scanners"] }
+adze = { version = "0.8", features = ["incremental_glr", "external_scanners"] }
 ```
 
 **Avoid** mixing legacy incremental features with GLR:

@@ -1,6 +1,6 @@
 # Adze LSP Generator
 
-> **Status**: Experimental prototype in Adze 0.8.0-dev.
+> **Status**: Experimental prototype in the Adze 0.8.x line.
 
 The Adze LSP Generator (`lsp-generator` crate) is an experimental tool that generates Language Server Protocol (LSP) server projects from Adze grammar definitions.
 

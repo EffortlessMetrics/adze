@@ -1,6 +1,6 @@
 # Adze Roadmap
 
-**Current Version:** 0.8.0-dev
+**Current Version:** 0.8.0
 **MSRV:** 1.92 (Rust 2024 edition)
 
 Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust type definitions into high-performance GLR parse machinery.
@@ -36,11 +36,12 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Backlog Convergence**: Final live branch [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged into `main` on 2026-04-03.
 - ✅ **Workflow Hardening**: PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) merged on 2026-04-06 with CI lane hardening and backend-contract stabilization. Backend-selection contract ([issue #267](https://github.com/EffortlessMetrics/adze/issues/267)) resolved.
 - ✅ **Core Crates Publishable**: PR [#275](https://github.com/EffortlessMetrics/adze/pull/275) made core crates publishable with correct metadata.
+- ✅ **Crates.io Release Landed**: `adze` 0.8.0 and `adze-tool` 0.8.0 are published on crates.io as of 2026-04-08.
 - 🟡 **Windows benchmark tail**: [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) remains open; benchmark compile step on Windows is gated but still slower than ideal.
 - 🟡 **Worktree cleanup docs**: [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) remains open; `scripts/cleanup-worktrees.sh` exists but full contributor documentation is pending.
 
 ## 🚀 Milestone 0.9.0: Ecosystem & Tooling (Current)
-- **Publish to crates.io**: Execute the release checklist against the now-publishable core crate set on `main`.
+- **Post-release hardening**: Finish narrowing workflow-only red and restore any proof surfaces trimmed only for publication.
 - **Close remaining operational issues**: Resolve [#269](https://github.com/EffortlessMetrics/adze/issues/269) (Windows benchmark tail) and [#268](https://github.com/EffortlessMetrics/adze/issues/268) (worktree cleanup docs).
 - **CI Hardening Beyond the Supported Gate**: Reduce advisory-lane churn and make broader workflow behavior easier to interpret.
 - **CLI Polish**: Improve the already-landed CLI surface (`adze check`, `adze stats`, etc.).

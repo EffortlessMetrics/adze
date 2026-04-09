@@ -1,6 +1,6 @@
 # Adze Grammar Examples
 
-This document provides comprehensive examples of how to define grammars using Adze 0.8.0-dev.
+This document provides comprehensive examples of how to define grammars using Adze 0.8.x.
 
 ## Table of Contents
 

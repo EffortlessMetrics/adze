@@ -1,7 +1,7 @@
 # API Stability Matrix
 
 **Last updated:** 2025-07-18
-**Workspace version:** 0.8.0-dev (pre-release)
+**Workspace version:** 0.8.0
 
 This document catalogs the stability status of every public API surface in the adze workspace.
 

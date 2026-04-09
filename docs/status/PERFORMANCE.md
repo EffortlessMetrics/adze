@@ -32,7 +32,7 @@ arithmetic expression fixtures.
   workloads:
   ```toml
   [dependencies]
-  adze = { version = "0.8.0-dev", features = ["glr"] }
+  adze = { version = "0.8", features = ["glr"] }
   ```
 - **GLR forests** maintain multiple parse paths simultaneously. Each fork doubles
   the working set until paths merge or are pruned.
