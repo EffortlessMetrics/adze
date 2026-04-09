@@ -533,6 +533,7 @@ mod tests {
     use super::*;
     use adze_ir::{ProductionId, Symbol, TokenPattern};
 
+    #[allow(dead_code)]
     fn create_simple_grammar() -> Grammar {
         // Create a simple arithmetic grammar
         // E -> E + T | T

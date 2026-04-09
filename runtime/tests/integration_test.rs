@@ -229,10 +229,10 @@ fn test_serialization_feature() {
     let _with_unnamed = TreeSerializer::new(source).with_unnamed_nodes();
 
     // Test with max text length - builder pattern
-    let _with_max = TreeSerializer::new(source).with_max_text_length(Some(10));
+    let with_max = TreeSerializer::new(source).with_max_text_length(Some(10));
 
     // Serialization API is available and builder pattern works
-    assert!(true);
+    assert_eq!(with_max.max_text_length, Some(10));
 }
 
 #[test]

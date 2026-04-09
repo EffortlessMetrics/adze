@@ -8,7 +8,7 @@ use adze_glr_core::Action;
 #[test]
 fn decode_ambiguous_expr_table_deep() {
     // Access the generated ambiguous_expr language
-    let lang = unsafe { &adze_example::ambiguous_expr::generated::LANGUAGE };
+    let lang = &adze_example::ambiguous_expr::generated::LANGUAGE;
 
     // Decode the parse table
     let parse_table = adze::decoder::decode_parse_table(lang);

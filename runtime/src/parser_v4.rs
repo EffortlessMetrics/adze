@@ -1689,7 +1689,13 @@ mod tests {
     use crate::pure_parser::{ExternalScanner, TSLexState};
     use crate::scanner_registry::ExternalScannerBuilder;
     use crate::scanners::IndentationScanner;
+    use std::cell::RefCell;
     use std::ffi::c_void;
+
+    thread_local! {
+        static MINIMAL_CUSTOM_LEXER_LANGUAGE: RefCell<Option<Box<TSLanguage>>> =
+            const { RefCell::new(None) };
+    }
 
     #[allow(dead_code)]
     unsafe extern "C" fn test_custom_lexer_fn(_lexer: *mut c_void, _state: TSLexState) -> bool {
@@ -1697,43 +1703,49 @@ mod tests {
     }
 
     fn minimal_custom_lexer_language() -> &'static TSLanguage {
-        let language = TSLanguage {
-            version: 15,
-            symbol_count: 0,
-            alias_count: 0,
-            token_count: 0,
-            external_token_count: 0,
-            state_count: 0,
-            large_state_count: 0,
-            production_id_count: 0,
-            field_count: 0,
-            max_alias_sequence_length: 0,
-            production_id_map: std::ptr::null(),
-            parse_table: std::ptr::null(),
-            small_parse_table: std::ptr::null(),
-            small_parse_table_map: std::ptr::null(),
-            parse_actions: std::ptr::null(),
-            symbol_names: std::ptr::null(),
-            field_names: std::ptr::null(),
-            field_map_slices: std::ptr::null(),
-            field_map_entries: std::ptr::null(),
-            symbol_metadata: std::ptr::null(),
-            public_symbol_map: std::ptr::null(),
-            alias_map: std::ptr::null(),
-            alias_sequences: std::ptr::null(),
-            lex_modes: std::ptr::null(),
-            lex_fn: Some(test_custom_lexer_fn),
-            keyword_lex_fn: None,
-            keyword_capture_token: 0,
-            external_scanner: ExternalScanner::default(),
-            primary_state_ids: std::ptr::null(),
-            production_lhs_index: std::ptr::null(),
-            production_count: 0,
-            rules: std::ptr::null(),
-            rule_count: 0,
-            eof_symbol: 0,
-        };
-        Box::leak(Box::new(language))
+        MINIMAL_CUSTOM_LEXER_LANGUAGE.with(|language| {
+            let mut language = language.borrow_mut();
+            let language = language.get_or_insert_with(|| {
+                Box::new(TSLanguage {
+                    version: 15,
+                    symbol_count: 0,
+                    alias_count: 0,
+                    token_count: 0,
+                    external_token_count: 0,
+                    state_count: 0,
+                    large_state_count: 0,
+                    production_id_count: 0,
+                    field_count: 0,
+                    max_alias_sequence_length: 0,
+                    production_id_map: std::ptr::null(),
+                    parse_table: std::ptr::null(),
+                    small_parse_table: std::ptr::null(),
+                    small_parse_table_map: std::ptr::null(),
+                    parse_actions: std::ptr::null(),
+                    symbol_names: std::ptr::null(),
+                    field_names: std::ptr::null(),
+                    field_map_slices: std::ptr::null(),
+                    field_map_entries: std::ptr::null(),
+                    symbol_metadata: std::ptr::null(),
+                    public_symbol_map: std::ptr::null(),
+                    alias_map: std::ptr::null(),
+                    alias_sequences: std::ptr::null(),
+                    lex_modes: std::ptr::null(),
+                    lex_fn: Some(test_custom_lexer_fn),
+                    keyword_lex_fn: None,
+                    keyword_capture_token: 0,
+                    external_scanner: ExternalScanner::default(),
+                    primary_state_ids: std::ptr::null(),
+                    production_lhs_index: std::ptr::null(),
+                    production_count: 0,
+                    rules: std::ptr::null(),
+                    rule_count: 0,
+                    eof_symbol: 0,
+                })
+            });
+            let language_ptr = language.as_ref() as *const TSLanguage;
+            unsafe { &*language_ptr }
+        })
     }
 
     #[test]

@@ -518,13 +518,12 @@ fn sexpr_double_nested() {
         "deep".to_string(),
     )])])]);
     // Three levels deep
-    if let SExpr::List(a) = &l {
-        if let SExpr::List(b) = &a[0] {
-            if let SExpr::List(c) = &b[0] {
-                assert_eq!(c[0], SExpr::Atom("deep".to_string()));
-                return;
-            }
-        }
+    if let SExpr::List(a) = &l
+        && let SExpr::List(b) = &a[0]
+        && let SExpr::List(c) = &b[0]
+    {
+        assert_eq!(c[0], SExpr::Atom("deep".to_string()));
+        return;
     }
     panic!("nesting mismatch");
 }

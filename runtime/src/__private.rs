@@ -388,7 +388,7 @@ fn parse_with_pure_parser<T: Extract<T>>(
 }
 
 /// Parse using the GLR parser (parser_v4)
-#[cfg(feature = "glr")]
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
 fn parse_with_glr<T: Extract<T>>(
     input: &str,
     language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
@@ -454,7 +454,7 @@ fn parse_with_glr<T: Extract<T>>(
 }
 
 /// Convert parser_v4::ParseNode to pure_parser::ParsedNode
-#[cfg(feature = "glr")]
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
 fn convert_parse_node_v4_to_pure(
     node: &crate::parser_v4::ParseNode,
     lang: &crate::pure_parser::TSLanguage,
@@ -594,7 +594,7 @@ mod tests {
     #[test]
     #[cfg(feature = "glr")]
     fn given_empty_symbol_zero_node_when_name_lookup_absent_then_marked_error_by_shape() {
-        let names = [b"root\0".as_ptr()];
+        let names = [c"root".as_ptr() as *const u8];
         let language = TSLanguage {
             symbol_count: 1,
             symbol_names: names.as_ptr(),

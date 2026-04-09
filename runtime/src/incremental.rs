@@ -299,6 +299,6 @@ mod tests {
         let affected = tree.apply_edit(&edit);
 
         // Should affect middle nodes
-        assert!(affected.len() > 0);
+        assert!(!affected.is_empty());
     }
 }

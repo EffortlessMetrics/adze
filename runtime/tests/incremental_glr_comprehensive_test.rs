@@ -85,95 +85,94 @@ mod comprehensive_incremental_tests {
         );
 
         // Rules for expr
-        let mut expr_rules = Vec::new();
-        expr_rules.push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(plus_id),
-                Symbol::NonTerminal(term_id),
-            ],
-            precedence: Some(adze_ir::PrecedenceKind::Static(1)),
-            associativity: Some(adze_ir::Associativity::Left),
-            fields: vec![],
-            production_id: ProductionId(0),
-        });
-
-        expr_rules.push(Rule {
-            lhs: expr_id,
-            rhs: vec![
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(minus_id),
-                Symbol::NonTerminal(term_id),
-            ],
-            precedence: Some(adze_ir::PrecedenceKind::Static(1)),
-            associativity: Some(adze_ir::Associativity::Left),
-            fields: vec![],
-            production_id: ProductionId(1),
-        });
-
-        expr_rules.push(Rule {
-            lhs: expr_id,
-            rhs: vec![Symbol::NonTerminal(term_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(2),
-        });
+        let expr_rules = vec![
+            Rule {
+                lhs: expr_id,
+                rhs: vec![
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(plus_id),
+                    Symbol::NonTerminal(term_id),
+                ],
+                precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+                associativity: Some(adze_ir::Associativity::Left),
+                fields: vec![],
+                production_id: ProductionId(0),
+            },
+            Rule {
+                lhs: expr_id,
+                rhs: vec![
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(minus_id),
+                    Symbol::NonTerminal(term_id),
+                ],
+                precedence: Some(adze_ir::PrecedenceKind::Static(1)),
+                associativity: Some(adze_ir::Associativity::Left),
+                fields: vec![],
+                production_id: ProductionId(1),
+            },
+            Rule {
+                lhs: expr_id,
+                rhs: vec![Symbol::NonTerminal(term_id)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(2),
+            },
+        ];
 
         grammar.rules.insert(expr_id, expr_rules);
         grammar.rule_names.insert(expr_id, "expr".to_string());
 
         // Rules for term
-        let mut term_rules = Vec::new();
-        term_rules.push(Rule {
-            lhs: term_id,
-            rhs: vec![
-                Symbol::NonTerminal(term_id),
-                Symbol::Terminal(star_id),
-                Symbol::NonTerminal(factor_id),
-            ],
-            precedence: Some(adze_ir::PrecedenceKind::Static(2)),
-            associativity: Some(adze_ir::Associativity::Left),
-            fields: vec![],
-            production_id: ProductionId(3),
-        });
-
-        term_rules.push(Rule {
-            lhs: term_id,
-            rhs: vec![Symbol::NonTerminal(factor_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(4),
-        });
+        let term_rules = vec![
+            Rule {
+                lhs: term_id,
+                rhs: vec![
+                    Symbol::NonTerminal(term_id),
+                    Symbol::Terminal(star_id),
+                    Symbol::NonTerminal(factor_id),
+                ],
+                precedence: Some(adze_ir::PrecedenceKind::Static(2)),
+                associativity: Some(adze_ir::Associativity::Left),
+                fields: vec![],
+                production_id: ProductionId(3),
+            },
+            Rule {
+                lhs: term_id,
+                rhs: vec![Symbol::NonTerminal(factor_id)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(4),
+            },
+        ];
 
         grammar.rules.insert(term_id, term_rules);
         grammar.rule_names.insert(term_id, "term".to_string());
 
         // Rules for factor
-        let mut factor_rules = Vec::new();
-        factor_rules.push(Rule {
-            lhs: factor_id,
-            rhs: vec![Symbol::Terminal(num_id)],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(5),
-        });
-
-        factor_rules.push(Rule {
-            lhs: factor_id,
-            rhs: vec![
-                Symbol::Terminal(lparen_id),
-                Symbol::NonTerminal(expr_id),
-                Symbol::Terminal(rparen_id),
-            ],
-            precedence: None,
-            associativity: None,
-            fields: vec![],
-            production_id: ProductionId(6),
-        });
+        let factor_rules = vec![
+            Rule {
+                lhs: factor_id,
+                rhs: vec![Symbol::Terminal(num_id)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(5),
+            },
+            Rule {
+                lhs: factor_id,
+                rhs: vec![
+                    Symbol::Terminal(lparen_id),
+                    Symbol::NonTerminal(expr_id),
+                    Symbol::Terminal(rparen_id),
+                ],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(6),
+            },
+        ];
 
         grammar.rules.insert(factor_id, factor_rules);
         grammar.rule_names.insert(factor_id, "factor".to_string());
@@ -313,7 +312,7 @@ mod comprehensive_incremental_tests {
             );
         }
         assert!(
-            new_forest.alternatives.len() > 0,
+            !new_forest.alternatives.is_empty(),
             "Multiple edits should produce valid parse"
         );
     }
@@ -354,7 +353,7 @@ mod comprehensive_incremental_tests {
         // Should still reuse suffix "2*3"
         let reuse_count = get_reuse_count();
         assert!(
-            new_forest.alternatives.len() > 0,
+            !new_forest.alternatives.is_empty(),
             "Edit at beginning should produce valid parse"
         );
         println!(
@@ -399,7 +398,7 @@ mod comprehensive_incremental_tests {
         // Should reuse prefix "1+2*"
         let reuse_count = get_reuse_count();
         assert!(
-            new_forest.alternatives.len() > 0,
+            !new_forest.alternatives.is_empty(),
             "Edit at end should produce valid parse"
         );
         println!(
@@ -463,7 +462,7 @@ mod comprehensive_incremental_tests {
 
         reset_reuse_counter();
         let start = Instant::now();
-        let new_forest = parser.parse_incremental(&new_glr_tokens, &[edit]).unwrap();
+        let _new_forest = parser.parse_incremental(&new_glr_tokens, &[edit]).unwrap();
         let incremental_parse_time = start.elapsed();
         let reuse_count = get_reuse_count();
 
@@ -532,7 +531,7 @@ mod comprehensive_incremental_tests {
         let new_forest = parser.parse_incremental(&new_glr_tokens, &[edit]).unwrap();
 
         assert!(
-            new_forest.alternatives.len() > 0,
+            !new_forest.alternatives.is_empty(),
             "Insertion should produce valid parse"
         );
         println!(
@@ -575,7 +574,7 @@ mod comprehensive_incremental_tests {
         let new_forest = parser.parse_incremental(&new_glr_tokens, &[edit]).unwrap();
 
         assert!(
-            new_forest.alternatives.len() > 0,
+            !new_forest.alternatives.is_empty(),
             "Deletion should produce valid parse"
         );
         println!(
@@ -618,7 +617,7 @@ mod comprehensive_incremental_tests {
         let new_forest = parser.parse_incremental(&new_glr_tokens, &[edit]).unwrap();
 
         assert!(
-            new_forest.alternatives.len() > 0,
+            !new_forest.alternatives.is_empty(),
             "Expansion should produce valid parse"
         );
         println!(
@@ -670,7 +669,7 @@ mod comprehensive_incremental_tests {
         };
 
         reset_reuse_counter();
-        let new_forest = parser.parse_incremental(&new_glr_tokens, &[edit]).unwrap();
+        let _new_forest = parser.parse_incremental(&new_glr_tokens, &[edit]).unwrap();
 
         // With snapshots, we should skip parsing the large prefix
         let reuse_count = get_reuse_count();
@@ -679,7 +678,7 @@ mod comprehensive_incremental_tests {
             "GSS snapshots should enable significant reuse"
         );
         assert!(
-            new_forest.alternatives.len() > 0,
+            !_new_forest.alternatives.is_empty(),
             "Should produce valid parse with snapshots"
         );
         println!(

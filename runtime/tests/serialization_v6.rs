@@ -208,8 +208,8 @@ fn sexpr_nested_list_of_empty_lists() {
     ]);
     let items = root.as_list().unwrap();
     assert_eq!(items.len(), 3);
-    for i in 0..items.len() {
-        assert!(items[i].as_list().unwrap().is_empty());
+    for item in items {
+        assert!(item.as_list().unwrap().is_empty());
     }
 }
 
@@ -513,8 +513,8 @@ fn sexpr_edge_list_with_only_empty_atoms() {
     let l = SExpr::list(vec![SExpr::atom(""), SExpr::atom(""), SExpr::atom("")]);
     let items = l.as_list().unwrap();
     assert_eq!(items.len(), 3);
-    for i in 0..items.len() {
-        assert_eq!(items[i].as_atom(), Some(""));
+    for item in items {
+        assert_eq!(item.as_atom(), Some(""));
     }
     // Display: each empty atom contributes nothing visible between spaces
     assert_eq!(format!("{l}"), "(  )");

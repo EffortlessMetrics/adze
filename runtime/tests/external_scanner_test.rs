@@ -272,8 +272,9 @@ fn test_nested_comment_scanner() {
 #[test]
 #[cfg(feature = "external_scanners")]
 fn test_scanner_state_persistence() {
-    let mut scanner = IndentationScanner::default();
-    scanner.indent_stack = vec![0, 4, 8];
+    let scanner = IndentationScanner {
+        indent_stack: vec![0, 4, 8],
+    };
 
     // Serialize state
     let mut buffer = Vec::new();

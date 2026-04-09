@@ -137,18 +137,19 @@ impl<'a> crate::external_scanner::Lexer for TSLexerAdapter<'a> {
                 }
 
                 // Check if we need to move to next range
-                if let Some(range) = self.current_range() {
-                    if self.cursor >= range.end && self.ranges.next + 1 < self.ranges.spans.len() {
-                        // Move to next range
-                        self.ranges.next += 1;
-                        if let Some(next_range) = self.ranges.spans.get(self.ranges.next) {
-                            self.cursor = next_range.start;
-                            // Recalculate position for new range
-                            let (row, col) =
-                                position_to_line_col(self.src, self.cursor, self.line_starts);
-                            self.row = row;
-                            self.col = col;
-                        }
+                if let Some(range) = self.current_range()
+                    && self.cursor >= range.end
+                    && self.ranges.next + 1 < self.ranges.spans.len()
+                {
+                    // Move to next range
+                    self.ranges.next += 1;
+                    if let Some(next_range) = self.ranges.spans.get(self.ranges.next) {
+                        self.cursor = next_range.start;
+                        // Recalculate position for new range
+                        let (row, col) =
+                            position_to_line_col(self.src, self.cursor, self.line_starts);
+                        self.row = row;
+                        self.col = col;
                     }
                 }
             } else {
@@ -223,7 +224,7 @@ mod tests {
     fn test_advance_crlf() {
         let input = b"hello\r\nworld";
         let line_starts = vec![0, 7]; // "hello\r\n" is 7 bytes
-        let ranges = vec![0..input.len()];
+        let ranges = std::iter::once(0..input.len()).collect::<Vec<_>>();
         let mut adapter = TSLexerAdapter::new(input, 0, &line_starts, ranges);
 
         // Advance through "hello"

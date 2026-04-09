@@ -694,8 +694,7 @@ mod tests {
         reset_reuse_counter();
         let f = p.parse_incremental(&new_toks, &[edit]).unwrap();
         assert!(!f.alternatives.is_empty());
-        // Count should be non-negative
-        assert!(get_reuse_count() >= 0);
+        assert!(get_reuse_count() <= new_toks.len());
     }
 
     // ─── Test 23: Parse error on invalid input ──────────────────────

@@ -86,7 +86,7 @@ fn node_to_sexp(node: &SerializedNode) -> String {
         }
         return format!("({})", node.kind);
     }
-    let child_strs: Vec<String> = node.children.iter().map(|c| node_to_sexp(c)).collect();
+    let child_strs: Vec<String> = node.children.iter().map(node_to_sexp).collect();
     format!("({} {})", node.kind, child_strs.join(" "))
 }
 

@@ -86,7 +86,7 @@ mod pr58_validation {
         );
 
         // 4. child_count() should work (even if returns 0 due to parser_v4 limitations)
-        let child_count = root.child_count();
+        let _child_count = root.child_count();
         // Note: child_count is usize, so it's always >= 0
 
         // 5. child() should handle indices gracefully

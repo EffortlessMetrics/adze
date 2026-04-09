@@ -11,7 +11,7 @@
 #[test]
 fn inspect_arithmetic_parse_table() {
     // Access the generated arithmetic language
-    let lang = unsafe { &adze_example::arithmetic::generated::LANGUAGE };
+    let lang = &adze_example::arithmetic::generated::LANGUAGE;
 
     // Decode the parse table
     let parse_table = adze::decoder::decode_parse_table(lang);
@@ -89,7 +89,7 @@ fn inspect_arithmetic_parse_table() {
 
     // This test always passes - it's just for inspection
     assert!(
-        parse_table.action_table.len() > 0,
+        !parse_table.action_table.is_empty(),
         "Parse table should have at least one state"
     );
 }

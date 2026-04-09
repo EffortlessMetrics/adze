@@ -30,7 +30,9 @@ use std::collections::HashMap;
 type NodeDataCacheKey = (usize, NodeHandle);
 
 thread_local! {
-    static NODE_DATA_CACHE: RefCell<HashMap<NodeDataCacheKey, &'static TreeNodeData>> =
+    // Root per-thread fallback metadata so repeated sanitizer/Miri runs do not
+    // report intentional leaks from boxed placeholders.
+    static NODE_DATA_CACHE: RefCell<HashMap<NodeDataCacheKey, Box<TreeNodeData>>> =
         RefCell::new(HashMap::new());
 }
 
@@ -91,17 +93,15 @@ impl<'arena> Node<'arena> {
     /// symbol while full parse-tree data integration is completed.
     pub fn data(&self) -> &'arena TreeNodeData {
         let key: NodeDataCacheKey = (self.arena as *const _ as usize, self.handle);
+        let symbol = self.raw_node().value() as u16;
 
         NODE_DATA_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
-            if let Some(data) = cache.get(&key) {
-                return *data;
-            }
-
-            let symbol = self.raw_node().value() as u16;
-            let data = Box::leak(Box::new(TreeNodeData::new(symbol, 0, 0)));
-            cache.insert(key, data);
-            data
+            let data = cache
+                .entry(key)
+                .or_insert_with(|| Box::new(TreeNodeData::new(symbol, 0, 0)));
+            let ptr: *const TreeNodeData = data.as_ref();
+            unsafe { &*ptr }
         })
     }
 
