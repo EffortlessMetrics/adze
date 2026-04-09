@@ -3,6 +3,7 @@
 //! Tree-sitter ABI validation and FFI struct definitions.
 
 use crate::compress::CompressedParseTable;
+use std::os::raw::c_char;
 
 /// Validates that a generated Language struct meets Tree-sitter ABI requirements
 pub struct LanguageValidator<'a> {
@@ -27,8 +28,8 @@ pub struct TSLanguage {
     pub small_parse_table: *const u16,
     pub small_parse_table_map: *const u32,
     pub parse_actions: *const TSParseActionEntry,
-    pub symbol_names: *const *const i8,
-    pub field_names: *const *const i8,
+    pub symbol_names: *const *const c_char,
+    pub field_names: *const *const c_char,
     pub field_map_slices: *const TSFieldMapSlice,
     pub field_map_entries: *const TSFieldMapEntry,
     pub symbol_metadata: *const TSSymbolMetadata,

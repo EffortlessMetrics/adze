@@ -6,6 +6,7 @@ use adze_glr_core::ParseTable;
 use adze_ir::Grammar;
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::os::raw::c_char;
 
 /// Language builder that produces validated Language structs
 pub struct LanguageBuilder {
@@ -121,7 +122,7 @@ impl LanguageBuilder {
         })
     }
 
-    fn build_symbol_names(&self) -> Vec<*const i8> {
+    fn build_symbol_names(&self) -> Vec<*const c_char> {
         let mut names = Vec::new();
 
         // Add terminal symbols
@@ -148,7 +149,7 @@ impl LanguageBuilder {
         names
     }
 
-    fn build_field_names(&self) -> Vec<*const i8> {
+    fn build_field_names(&self) -> Vec<*const c_char> {
         let mut names = Vec::new();
 
         // First entry is always empty string

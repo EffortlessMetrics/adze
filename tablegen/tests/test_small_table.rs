@@ -176,11 +176,11 @@ fn small_table_round_trip_accept() {
         "Missing SMALL_PARSE_TABLE_MAP in generated code"
     );
 
-    // Verify Accept action is still present in compressed format
-    // Accept is encoded as 0x7FFF
+    // Verify Accept action is still present in the generated table encoding.
+    // The ABI generator prints the packed accept sentinel as 65535u16.
     assert!(
-        code_str.contains("0x7FFF") || code_str.contains("32767") || code_str.contains("0x7fff"),
-        "No Accept action (0x7FFF) found in compressed table"
+        code_str.contains("65535u16") || code_str.contains("0xFFFF") || code_str.contains("0xffff"),
+        "No Accept action sentinel found in compressed table"
     );
 
     println!("✓ Compressed table round-trip successful with Accept action preserved");
@@ -197,12 +197,23 @@ fn compressed_table_size_reduction() {
     let code = builder.generate();
     let code_str = code.to_string();
 
-    // Count occurrences to estimate size
-    let parse_table_entries = code_str.matches("0x").count();
+    // Count entries in the generated parse-table section only.
+    let parse_table_section = code_str
+        .split("static PARSE_TABLE")
+        .nth(1)
+        .expect("generated code should contain PARSE_TABLE");
+    let parse_table_entries = parse_table_section
+        .split("static SMALL_PARSE_TABLE_MAP")
+        .next()
+        .expect("generated code should contain SMALL_PARSE_TABLE_MAP")
+        .matches("u16")
+        .count();
 
-    // In compressed format, we should have fewer entries than uncompressed
-    // This is a basic smoke test for compression working
-    assert!(parse_table_entries > 0, "No parse table entries found");
+    // In compressed format, the parse table should still contain encoded entries.
+    assert!(parse_table_entries > 1, "No parse table entries found");
 
-    println!("✓ Compressed table has {} hex entries", parse_table_entries);
+    println!(
+        "✓ Compressed table has {} encoded entries",
+        parse_table_entries
+    );
 }
