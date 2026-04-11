@@ -466,10 +466,8 @@ proptest! {
 
     #[test]
     fn eof_consistent_fixed(grammar in arb_fixed_grammar()) {
-        if let Some(t1) = try_build(&grammar) {
-            if let Some(t2) = try_build(&grammar) {
-                prop_assert_eq!(t1.eof_symbol, t2.eof_symbol);
-            }
+        if let Some(t1) = try_build(&grammar) && let Some(t2) = try_build(&grammar) {
+            prop_assert_eq!(t1.eof_symbol, t2.eof_symbol);
         }
     }
 

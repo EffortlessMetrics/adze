@@ -573,7 +573,7 @@ fn goto_nonterminal_augmented_start_in_goto() {
     // There should be at least the user-defined nonterminals plus the augmented start
     let nts = goto_nonterminals(&table);
     assert!(
-        nts.len() >= 1,
+        !nts.is_empty(),
         "goto table must have at least one nonterminal column"
     );
 }
@@ -1016,11 +1016,11 @@ fn goto_boundaries_last_state_is_reachable() {
     let mut reachable = false;
     for &nt in table.nonterminal_to_index.keys() {
         for s in 0..table.state_count {
-            if let Some(tgt) = table.goto(StateId(s as u16), nt) {
-                if tgt == last_state {
-                    reachable = true;
-                    break;
-                }
+            if let Some(tgt) = table.goto(StateId(s as u16), nt)
+                && tgt == last_state
+            {
+                reachable = true;
+                break;
             }
         }
         if reachable {
