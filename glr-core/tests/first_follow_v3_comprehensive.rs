@@ -73,20 +73,6 @@ fn assert_follow_contains(ff: &FirstFollowSets, sym: SymbolId, expected: &[Symbo
     }
 }
 
-/// Check that FOLLOW(sym) contains exactly `expected`.
-fn assert_follow_eq(ff: &FirstFollowSets, sym: SymbolId, expected: &[SymbolId]) {
-    let set = ff
-        .follow(sym)
-        .unwrap_or_else(|| panic!("no FOLLOW set for {sym:?}"));
-    let actual: Vec<u16> = (0..set.len())
-        .filter(|&i| set.contains(i))
-        .map(|i| i as u16)
-        .collect();
-    let mut exp: Vec<u16> = expected.iter().map(|s| s.0).collect();
-    exp.sort();
-    assert_eq!(actual, exp, "FOLLOW({sym:?}) mismatch");
-}
-
 // ---------------------------------------------------------------------------
 // Symbol ID constants
 // ---------------------------------------------------------------------------

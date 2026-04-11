@@ -19,8 +19,8 @@
 //! 14. Polynomial scaling (tests 82–84)
 
 use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
+use adze_ir::Associativity;
 use adze_ir::builder::GrammarBuilder;
-use adze_ir::{Associativity, Grammar};
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -132,11 +132,11 @@ fn alt_table(name: &str, n: usize) -> ParseTable {
     let mut b = GrammarBuilder::new(name);
     let tok_names: Vec<String> = (0..n).map(|i| format!("t{i}")).collect();
     let tok_pats: Vec<String> = (0..n).map(|i| format!("x{i}")).collect();
-    for i in 0..n {
-        b = b.token(&tok_names[i], &tok_pats[i]);
+    for (tok_name, tok_pat) in tok_names.iter().zip(tok_pats.iter()) {
+        b = b.token(tok_name, tok_pat);
     }
-    for i in 0..n {
-        b = b.rule("s", vec![&tok_names[i]]);
+    for tok_name in tok_names.iter() {
+        b = b.rule("s", vec![tok_name]);
     }
     let g = b.start("s").build();
     let ff = FirstFollowSets::compute(&g).expect("ff");
@@ -372,7 +372,7 @@ fn test_as_v9_alt_rules_5v3() {
 fn test_as_v9_symbol_bound_1tok_1nt() {
     // 1 token + 1 NT + EOF = at least 3
     let pt = make_table("as_v9_sb1", &[("a", "a")], &[("s", vec!["a"])], "s");
-    assert!(pt.symbol_count >= 1 + 1 + 1);
+    assert!(pt.symbol_count > 2);
 }
 
 #[test]
@@ -383,7 +383,7 @@ fn test_as_v9_symbol_bound_2tok_1nt() {
         &[("s", vec!["a", "b"])],
         "s",
     );
-    assert!(pt.symbol_count >= 2 + 1 + 1);
+    assert!(pt.symbol_count > 3);
 }
 
 #[test]
@@ -394,7 +394,7 @@ fn test_as_v9_symbol_bound_3tok_2nt() {
         &[("s", vec!["x", "c"]), ("x", vec!["a", "b"])],
         "s",
     );
-    assert!(pt.symbol_count >= 3 + 2 + 1);
+    assert!(pt.symbol_count > 5);
 }
 
 #[test]
@@ -407,7 +407,7 @@ fn test_as_v9_symbol_bound_formula() {
         "s",
     );
     // 4 tokens, 3 NTs, 1 EOF → at least 8
-    assert!(pt.symbol_count >= 4 + 3 + 1);
+    assert!(pt.symbol_count > 7);
 }
 
 #[test]
