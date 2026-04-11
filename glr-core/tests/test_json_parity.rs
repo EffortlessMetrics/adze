@@ -299,10 +299,10 @@ fn test_json_simple_object() {
                     if let Some(t) = quote {
                         toks.push((t, start as u32, (start + 1) as u32));
                     }
-                    if let Some(sc) = str_cont {
-                        if content_end > content_start {
-                            toks.push((sc, content_start as u32, content_end as u32));
-                        }
+                    if let Some(sc) = str_cont
+                        && content_end > content_start
+                    {
+                        toks.push((sc, content_start as u32, content_end as u32));
                     }
                     if pos < b.len() && b[pos] == b'"' {
                         if let Some(t) = quote {

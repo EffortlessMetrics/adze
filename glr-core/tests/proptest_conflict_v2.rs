@@ -612,11 +612,11 @@ proptest! {
         let tok_names: Vec<String> = (0..width).map(|i| format!("t{}", i)).collect();
         let tok_pats: Vec<String> = (0..width).map(|i| format!("{}", (b'a' + i as u8) as char)).collect();
         let mut builder = GrammarBuilder::new("wide_n");
-        for i in 0..width {
-            builder = builder.token(tok_names[i].as_str(), tok_pats[i].as_str());
+        for name in tok_names.iter().zip(tok_pats.iter()) {
+            builder = builder.token(name.0.as_str(), name.1.as_str());
         }
-        for i in 0..width {
-            builder = builder.rule("s", vec![tok_names[i].as_str()]);
+        for tok_name in tok_names.iter().take(width) {
+            builder = builder.rule("s", vec![tok_name.as_str()]);
         }
         let grammar = builder.start("s").build();
         let stats = analyze(&grammar);

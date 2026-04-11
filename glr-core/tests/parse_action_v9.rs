@@ -515,7 +515,7 @@ fn pa_v9_reduce_rhs_len_matches_simple() {
     for (_, _, act) in &all {
         if let Action::Reduce(rid) = act {
             let (_lhs, rhs_len) = table.rule(*rid);
-            assert!(rhs_len > 0 || rhs_len == 0, "rhs_len is valid u16");
+            assert!(rhs_len > 0, "rhs_len must be positive");
         }
     }
 }
@@ -663,7 +663,7 @@ fn pa_v9_goto_expr_from_initial() {
 #[test]
 fn pa_v9_goto_all_nonterminals_valid() {
     let table = build_expr_grammar_and_table();
-    for (&nt, _) in &table.nonterminal_to_index {
+    for &nt in table.nonterminal_to_index.keys() {
         for s in 0..table.state_count {
             if let Some(target) = table.goto(StateId(s as u16), nt) {
                 assert!(
@@ -686,7 +686,7 @@ fn pa_v9_goto_all_nonterminals_valid() {
 fn pa_v9_goto_terminal_returns_none_simple() {
     let table = build_simple_grammar_and_table();
     // Find a terminal symbol
-    for (&sym, _) in &table.symbol_to_index {
+    for &sym in table.symbol_to_index.keys() {
         if !table.nonterminal_to_index.contains_key(&sym) {
             let result = table.goto(table.initial_state, sym);
             assert!(
@@ -701,7 +701,7 @@ fn pa_v9_goto_terminal_returns_none_simple() {
 #[test]
 fn pa_v9_goto_terminal_returns_none_expr() {
     let table = build_expr_grammar_and_table();
-    for (&sym, _) in &table.symbol_to_index {
+    for &sym in table.symbol_to_index.keys() {
         if !table.nonterminal_to_index.contains_key(&sym) {
             for s in 0..table.state_count {
                 let result = table.goto(StateId(s as u16), sym);
@@ -842,7 +842,7 @@ fn pa_v9_state_count_matches_table_len() {
 #[test]
 fn pa_v9_actions_deterministic_simple() {
     let table = build_simple_grammar_and_table();
-    for (&sym, _) in &table.symbol_to_index {
+    for &sym in table.symbol_to_index.keys() {
         for s in 0..table.state_count {
             let sid = StateId(s as u16);
             let first = table.actions(sid, sym);
@@ -855,7 +855,7 @@ fn pa_v9_actions_deterministic_simple() {
 #[test]
 fn pa_v9_actions_deterministic_expr() {
     let table = build_expr_grammar_and_table();
-    for (&sym, _) in &table.symbol_to_index {
+    for &sym in table.symbol_to_index.keys() {
         for s in 0..table.state_count {
             let sid = StateId(s as u16);
             let first = table.actions(sid, sym);
@@ -895,7 +895,10 @@ fn pa_v9_rule_lhs_is_nonterminal() {
     for i in 0..table.rules.len() {
         let (lhs, _) = table.rule(RuleId(i as u16));
         // lhs should be a known nonterminal (or the augmented start)
-        assert!(lhs.0 > 0 || lhs.0 == 0, "lhs symbol id is valid");
+        assert!(
+            table.nonterminal_to_index.contains_key(&lhs),
+            "lhs must be a known nonterminal"
+        );
     }
 }
 
@@ -905,7 +908,7 @@ fn pa_v9_rule_rhs_len_nonnegative() {
     for i in 0..table.rules.len() {
         let (_, rhs_len) = table.rule(RuleId(i as u16));
         // u16 is always >= 0, but verify it's reasonable
-        assert!(rhs_len <= 100, "rhs_len {} seems unreasonable", rhs_len);
+        assert!(rhs_len > 0, "rhs_len should be positive");
     }
 }
 

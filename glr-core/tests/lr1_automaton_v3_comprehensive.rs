@@ -56,7 +56,7 @@ fn collect_all_shifts(table: &adze_glr_core::ParseTable) -> Vec<(StateId, Symbol
     let mut out = Vec::new();
     for st in 0..table.state_count {
         let state = StateId(st as u16);
-        for (&sym, _) in &table.symbol_to_index {
+        for &sym in table.symbol_to_index.keys() {
             for action in table.actions(state, sym) {
                 if let Action::Shift(target) = action {
                     out.push((state, sym, *target));
@@ -71,7 +71,7 @@ fn collect_all_reduces(table: &adze_glr_core::ParseTable) -> Vec<(StateId, Symbo
     let mut out = Vec::new();
     for st in 0..table.state_count {
         let state = StateId(st as u16);
-        for (&sym, _) in &table.symbol_to_index {
+        for &sym in table.symbol_to_index.keys() {
             for action in table.actions(state, sym) {
                 if let Action::Reduce(rid) = action {
                     out.push((state, sym, *rid));
