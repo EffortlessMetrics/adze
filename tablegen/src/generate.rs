@@ -157,7 +157,9 @@ impl LanguageBuilder {
         names.push(Box::leak(Box::new(empty)).as_ptr());
 
         // Add field names in lexicographic order
-        for (_, field_name) in &self.grammar.fields {
+        let mut field_names: Vec<_> = self.grammar.fields.values().collect();
+        field_names.sort_unstable_by_key(|name| name.as_str());
+        for field_name in field_names {
             let name = std::ffi::CString::new(field_name.clone())
                 .expect("field name must not contain NUL bytes");
             names.push(Box::leak(Box::new(name)).as_ptr());
@@ -404,5 +406,30 @@ mod tests {
 
         let language = result.unwrap();
         assert_eq!(language.field_count, 4);
+    }
+
+    #[test]
+    fn test_build_field_names_are_lexicographically_sorted() {
+        let mut grammar = create_test_grammar();
+        grammar.fields.clear();
+        grammar.fields.insert(FieldId(2), "right".to_string());
+        grammar.fields.insert(FieldId(1), "left".to_string());
+        grammar.fields.insert(FieldId(3), "operator".to_string());
+
+        let parse_table = create_test_parse_table();
+        let builder = LanguageBuilder::new(grammar, parse_table);
+        let names = builder.build_field_names();
+
+        let fields: Vec<&str> = names
+            .iter()
+            .skip(1)
+            .map(|&ptr| {
+                // SAFETY: `ptr` values are leaked `CString` pointers produced by
+                // `build_field_names`, so they are valid and nul-terminated.
+                unsafe { std::ffi::CStr::from_ptr(ptr).to_str().unwrap() }
+            })
+            .collect();
+
+        assert_eq!(fields, vec!["left", "operator", "right"]);
     }
 }
