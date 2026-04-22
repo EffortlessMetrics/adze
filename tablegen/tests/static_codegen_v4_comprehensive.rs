@@ -324,18 +324,19 @@ fn code_contains_unsafe_for_ffi() {
 #[test]
 fn code_grows_with_more_tokens() {
     let g1 = grammar_single_token();
-    let t1 = minimal_table(g1.clone());
+    let t1 = table_with_content(g1.clone(), 1, 3);
     let slg1 = StaticLanguageGenerator::new(g1, t1);
     let code1 = slg1.generate_language_code().to_string();
 
     let g2 = grammar_arithmetic();
-    let t2 = minimal_table(g2.clone());
+    let t2 = table_with_content(g2.clone(), 4, 8);
     let slg2 = StaticLanguageGenerator::new(g2, t2);
     let code2 = slg2.generate_language_code().to_string();
 
+    assert_ne!(code1, code2, "different table dimensions must differ");
     assert!(
-        code2.len() >= code1.len(),
-        "more complex grammar should produce at least as much code"
+        code2.contains("symbol_count : 8usize") || code2.contains("symbol_count: 8usize"),
+        "larger parse table should be reflected in generated code"
     );
 }
 

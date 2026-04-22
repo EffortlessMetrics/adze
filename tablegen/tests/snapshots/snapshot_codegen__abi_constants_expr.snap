@@ -1,9 +1,10 @@
 ---
 source: tablegen/tests/snapshot_codegen.rs
+assertion_line: 1104
 expression: output
 ---
 version = 15u32
-symbol_count = 4usize
+symbol_count = 5usize
 alias_count = 0
 token_count = 3u32
 external_token_count = EXTERNAL_TOKEN_COUNT

@@ -239,11 +239,9 @@ fn test_output_contains_lex_modes() {
 
 #[test]
 fn test_larger_grammar_produces_longer_output() {
-    let small = gen_code(
-        minimal_builder("sga_v9_small").build(),
-        ParseTable::default(),
-    );
-    let big = gen_code(
+    let (small_g, small_t) = minimal_pair("sga_v9_small");
+    let small = gen_code(small_g, small_t);
+    let (big_g, big_t) = build_pair(
         GrammarBuilder::new("sga_v9_big")
             .token("a", "a")
             .token("b", "b")
@@ -260,10 +258,9 @@ fn test_larger_grammar_produces_longer_output() {
             .rule("top", vec!["r3"])
             .rule("top", vec!["r4"])
             .rule("top", vec!["r5"])
-            .start("top")
-            .build(),
-        ParseTable::default(),
+            .start("top"),
     );
+    let big = gen_code(big_g, big_t);
     assert!(
         big.len() > small.len(),
         "big grammar output ({}) must exceed small ({})",

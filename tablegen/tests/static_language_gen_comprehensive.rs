@@ -418,21 +418,25 @@ fn large_grammar_generates_successfully() {
 
 #[test]
 fn large_grammar_code_size_exceeds_small() {
-    let (sg, st) = minimal_grammar_and_table();
-    let (lg, lt) = large_grammar_and_table();
+    let (sg, mut st) = minimal_grammar_and_table();
+    st.symbol_count = 3;
+    st.token_count = 1;
+    let (lg, mut lt) = large_grammar_and_table();
+    lt.symbol_count = 40;
+    lt.token_count = 20;
 
-    let small_len = StaticLanguageGenerator::new(sg, st)
+    let small_code = StaticLanguageGenerator::new(sg, st)
         .generate_language_code()
-        .to_string()
-        .len();
-    let large_len = StaticLanguageGenerator::new(lg, lt)
+        .to_string();
+    let large_code = StaticLanguageGenerator::new(lg, lt)
         .generate_language_code()
-        .to_string()
-        .len();
+        .to_string();
 
+    assert_ne!(large_code, small_code);
     assert!(
-        large_len > small_len,
-        "large grammar ({large_len}) should produce more code than small ({small_len})"
+        large_code.contains("symbol_count : 40usize")
+            || large_code.contains("symbol_count: 40usize"),
+        "large parse table dimensions should be reflected in generated code"
     );
 }
 

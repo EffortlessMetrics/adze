@@ -711,8 +711,9 @@ fn generated_code_contains_symbol_count() {
 fn symbol_count_reflects_grammar_size() {
     let (grammar, table) = make_minimal_grammar();
     let code = generate_code(&grammar, &table);
-    // minimal grammar: EOF + 1 token + 1 rule = 3 symbols
-    let expected_count = 1 + grammar.tokens.len() + grammar.rules.len();
+    // The generated ABI is table-bound: it must reflect the exact parse-table
+    // symbol layout, including ERROR/EOF and transformed symbols.
+    let expected_count = table.symbol_count;
     let count_str = format!("{expected_count}");
     assert!(
         code.contains(&format!("symbol_count : {count_str}"))
@@ -1065,15 +1066,37 @@ fn code_changes_when_token_added() {
     let (grammar1, table1) = make_minimal_grammar();
     let code1 = generate_code_static(grammar1, table1);
 
-    let (mut grammar2, table2) = make_minimal_grammar();
+    let (mut grammar2, mut table2) = make_minimal_grammar();
+    let string_symbol = SymbolId(4);
     grammar2.tokens.insert(
-        SymbolId(10),
+        string_symbol,
         Token {
             name: "string_literal".to_string(),
             pattern: TokenPattern::Regex(r#""[^"]*""#.to_string()),
             fragile: false,
         },
     );
+    table2.symbol_count += 1;
+    table2.token_count += 1;
+    table2.symbol_to_index.insert(string_symbol, 4);
+    table2.index_to_symbol.push(string_symbol);
+    for row in &mut table2.action_table {
+        row.push(vec![]);
+    }
+    for row in &mut table2.goto_table {
+        row.push(StateId(u16::MAX));
+    }
+    table2.symbol_metadata.push(SymbolMetadata {
+        name: "string_literal".to_string(),
+        is_visible: true,
+        is_named: true,
+        is_supertype: false,
+        is_terminal: true,
+        is_extra: false,
+        is_fragile: false,
+        symbol_id: string_symbol,
+    });
+    table2.grammar = grammar2.clone();
     let code2 = generate_code_static(grammar2, table2);
 
     assert_ne!(code1, code2, "Adding a token should produce different code");
