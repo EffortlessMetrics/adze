@@ -55,9 +55,10 @@ impl<'a> LanguageGenerator<'a> {
         let lex_modes = self.generate_lex_modes();
         let (compressed_table, small_table_map) = self.generate_compressed_tables();
 
-        // Generate indices for symbol_names and field_names
+        // Generate indices for symbol_names, field_names, and parser states
         let symbol_name_indices: Vec<usize> = (0..symbol_names.len()).collect();
         let field_name_indices: Vec<usize> = (0..field_names.len()).collect();
+        let state_indices: Vec<usize> = (0..self.parse_table.state_count).collect();
 
         // Count various elements
         let symbol_count = self.count_symbols();
@@ -111,7 +112,7 @@ impl<'a> LanguageGenerator<'a> {
 
             // Primary state IDs
             static PRIMARY_STATE_IDS: &[TSStateId] = &[
-                #(TSStateId(#symbol_name_indices as u16)),*
+                #(TSStateId(#state_indices as u16)),*
             ];
 
             // External scanner (if any)
