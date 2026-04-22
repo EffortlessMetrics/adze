@@ -58,11 +58,12 @@ impl LanguageBuilder {
         let external_token_count = self.grammar.externals.len() as u32;
         let field_count = self.grammar.fields.len() as u32;
 
-        // TODO: Calculate these properly
-        let alias_count = 0;
+        let alias_count = calculate_alias_count(&self.grammar);
         let large_state_count = 0;
-        let production_id_count = self.grammar.alias_sequences.len() as u32;
-        let max_alias_sequence_length = 0;
+        let production_id_count =
+            u32::try_from(self.grammar.alias_sequences.len()).unwrap_or(u32::MAX);
+        let max_alias_sequence_length =
+            u16::try_from(self.grammar.max_alias_sequence_length).unwrap_or(u16::MAX);
 
         // Build symbol names array
         let symbol_names = self.build_symbol_names();
@@ -220,6 +221,16 @@ impl LanguageBuilder {
             }
         }
     }
+}
+
+fn calculate_alias_count(grammar: &Grammar) -> u32 {
+    let count = grammar
+        .alias_sequences
+        .values()
+        .flat_map(|sequence| sequence.aliases.iter())
+        .filter(|alias| alias.is_some())
+        .count();
+    u32::try_from(count).unwrap_or(u32::MAX)
 }
 
 #[cfg(test)]

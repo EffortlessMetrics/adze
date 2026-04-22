@@ -336,10 +336,9 @@ fn language_builder_many_tokens_alias_zero() {
     assert_eq!(lang.max_alias_sequence_length, 0);
 }
 
-/// LanguageBuilder with grammar alias_sequences still gets alias_count=0
-/// because alias counting is not yet implemented.
+/// LanguageBuilder counts populated alias sequence entries.
 #[test]
-fn language_builder_ignores_grammar_alias_sequences_for_now() {
+fn language_builder_counts_grammar_alias_sequences() {
     let mut grammar = GrammarBuilder::new("alias_test")
         .token("x", "x")
         .rule("start", vec!["x"])
@@ -362,8 +361,8 @@ fn language_builder_ignores_grammar_alias_sequences_for_now() {
 
     // production_id_count reflects alias_sequences.len()
     assert_eq!(lang.production_id_count, 1);
-    // But alias_count itself is still 0 (TODO in source)
-    assert_eq!(lang.alias_count, 0);
+    assert_eq!(lang.alias_count, 1);
+    assert_eq!(lang.max_alias_sequence_length, 1);
 }
 
 // =========================================================================
@@ -584,10 +583,9 @@ fn serializer_grammar_with_aliases_does_not_panic() {
     assert!(json.is_ok(), "serialization should not fail");
 }
 
-/// Serialized alias_count remains 0 even when grammar has alias_sequences
-/// (serializer does not yet use alias_sequences to compute alias_count).
+/// Serialized alias_count reflects populated grammar alias_sequences.
 #[test]
-fn serializer_alias_count_still_zero_with_grammar_aliases() {
+fn serializer_alias_count_with_grammar_aliases() {
     let mut grammar = GrammarBuilder::new("alias_ser2")
         .token("t", "t")
         .rule("s", vec!["t"])
@@ -604,7 +602,7 @@ fn serializer_alias_count_still_zero_with_grammar_aliases() {
     let table = ParseTable::default();
     let json = serialize_language(&grammar, &table, None).unwrap();
     let lang: SerializableLanguage = serde_json::from_str(&json).unwrap();
-    assert_eq!(lang.alias_count, 0);
+    assert_eq!(lang.alias_count, 1);
 }
 
 // =========================================================================

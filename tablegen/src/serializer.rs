@@ -61,7 +61,7 @@ fn build_serializable_language(
     SerializableLanguage {
         version: TREE_SITTER_LANGUAGE_VERSION,
         symbol_count: calculate_symbol_count(grammar) as u32,
-        alias_count: 0,
+        alias_count: calculate_alias_count(grammar),
         token_count: grammar.tokens.len() as u32,
         external_token_count: grammar.externals.len() as u32,
         state_count: parse_table.state_count as u32,
@@ -75,6 +75,16 @@ fn build_serializable_language(
         small_parse_table_map: small_table_map,
         lex_modes,
     }
+}
+
+fn calculate_alias_count(grammar: &Grammar) -> u32 {
+    let count = grammar
+        .alias_sequences
+        .values()
+        .flat_map(|sequence| sequence.aliases.iter())
+        .filter(|alias| alias.is_some())
+        .count();
+    u32::try_from(count).unwrap_or(u32::MAX)
 }
 
 fn generate_symbol_names(grammar: &Grammar) -> Vec<String> {
