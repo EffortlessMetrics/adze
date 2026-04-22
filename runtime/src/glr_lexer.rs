@@ -42,6 +42,9 @@ impl TokenMatcher {
 
         match self {
             TokenMatcher::Literal(s) => {
+                if s.is_empty() {
+                    return None;
+                }
                 if input[pos..].starts_with(s) {
                     Some(s.len())
                 } else {
@@ -51,7 +54,11 @@ impl TokenMatcher {
             TokenMatcher::Regex(re) => {
                 // Ensure regex matches at start of string slice
                 if let Some(m) = re.find(&input[pos..]) {
-                    if m.start() == 0 { Some(m.len()) } else { None }
+                    if m.start() == 0 && m.len() > 0 {
+                        Some(m.len())
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -376,5 +383,39 @@ mod tests {
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0].text, "a");
         assert_eq!(tokens[1].text, "b");
+    }
+
+    #[test]
+    fn test_zero_length_literal_is_ignored() {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "empty".to_string(),
+                pattern: TokenPattern::String(String::new()),
+                fragile: false,
+            },
+        );
+
+        let mut lexer = GLRLexer::new(&grammar, "abc".to_string()).unwrap();
+        let tokens = lexer.tokenize_all();
+        assert!(tokens.is_empty());
+    }
+
+    #[test]
+    fn test_zero_length_regex_is_ignored() {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "digits_optional".to_string(),
+                pattern: TokenPattern::Regex(r"\d*".to_string()),
+                fragile: false,
+            },
+        );
+
+        let mut lexer = GLRLexer::new(&grammar, "abc".to_string()).unwrap();
+        let tokens = lexer.tokenize_all();
+        assert!(tokens.is_empty());
     }
 }
