@@ -98,9 +98,18 @@ pub struct TsLexerHost<'a> {
     input: &'a [u8],
     pos: usize,
     end_mark: usize,
+    line_start: usize,
 }
 
 impl<'a> TsLexerHost<'a> {
+    fn line_start_for_pos(input: &[u8], pos: usize) -> usize {
+        let clamped_pos = pos.min(input.len());
+        input[..clamped_pos]
+            .iter()
+            .rposition(|&b| b == b'\n')
+            .map_or(0, |idx| idx + 1)
+    }
+
     // C callbacks — invoked by the Tree-sitter lex_fn during `GrammarLexer::next()`.
     // SAFETY (shared across eof/advance/mark_end): `payload` was set to a valid
     // `&mut TsLexerHost` pointer in `GrammarLexer::next()` and these callbacks are
@@ -116,7 +125,11 @@ impl<'a> TsLexerHost<'a> {
         // SAFETY: see shared invariant above.
         let host = unsafe { &mut *(payload as *mut Self) };
         if host.pos < host.input.len() {
+            let byte = host.input[host.pos];
             host.pos += 1;
+            if byte == b'\n' {
+                host.line_start = host.pos;
+            }
             if !skip {
                 host.end_mark = host.pos;
             }
@@ -129,12 +142,14 @@ impl<'a> TsLexerHost<'a> {
         host.end_mark = host.pos;
     }
 
-    extern "C" fn get_column(_payload: *mut c_void) -> u32 {
-        0 // TODO: Track column for proper error reporting
+    extern "C" fn get_column(payload: *mut c_void) -> u32 {
+        // SAFETY: see shared invariant above.
+        let host = unsafe { &mut *(payload as *mut Self) };
+        host.pos.saturating_sub(host.line_start) as u32
     }
 
     extern "C" fn is_included(_payload: *mut c_void) -> bool {
-        false // TODO: Support included ranges for injections
+        true
     }
 }
 
@@ -168,6 +183,7 @@ impl GrammarLexer {
             input: input.as_bytes(),
             pos,
             end_mark: pos,
+            line_start: TsLexerHost::line_start_for_pos(input.as_bytes(), pos),
         };
 
         // Update lookahead
@@ -217,6 +233,8 @@ unsafe extern "C" {
 
 #[cfg(test)]
 mod tests {
+    use super::TsLexerHost;
+    use std::ffi::c_void;
 
     #[test]
     #[ignore = "requires actual Tree-sitter library to be linked"]
@@ -231,5 +249,43 @@ mod tests {
         //     assert!(token.is_some());
         //     assert_eq!(token.unwrap().kind, 1); // { token
         // }
+    }
+
+    #[test]
+    fn test_get_column_tracks_column_across_lines() {
+        let input = b"ab\ncd";
+        let mut host = TsLexerHost {
+            input,
+            pos: 3,
+            end_mark: 3,
+            line_start: TsLexerHost::line_start_for_pos(input, 3),
+        };
+
+        assert_eq!(
+            TsLexerHost::get_column(&mut host as *mut _ as *mut c_void),
+            0
+        );
+
+        TsLexerHost::advance(&mut host as *mut _ as *mut c_void, false);
+        assert_eq!(
+            TsLexerHost::get_column(&mut host as *mut _ as *mut c_void),
+            1
+        );
+    }
+
+    #[test]
+    fn test_get_column_from_midline_position() {
+        let input = b"123\nxy";
+        let mut host = TsLexerHost {
+            input,
+            pos: 5,
+            end_mark: 5,
+            line_start: TsLexerHost::line_start_for_pos(input, 5),
+        };
+
+        assert_eq!(
+            TsLexerHost::get_column(&mut host as *mut _ as *mut c_void),
+            1
+        );
     }
 }
