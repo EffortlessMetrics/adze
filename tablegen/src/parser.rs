@@ -96,18 +96,7 @@ impl Parser {
     }
 
     fn get_action(&self, state: u16, symbol: u16) -> Result<ParseAction, String> {
-        // Access compressed parse table
-        let parse_table = unsafe {
-            // SAFETY: `self.language.parse_table` must be a valid pointer to at least
-            // `state_count * 2` contiguous `u16` values. This is guaranteed by the
-            // TSLanguage ABI contract — callers must supply a well-formed language struct.
-            // TODO(safety): No runtime validation that `parse_table` is non-null; a null
-            // pointer here is instant UB. Consider adding a null check.
-            std::slice::from_raw_parts(
-                self.language.parse_table,
-                self.language.state_count as usize * 2,
-            )
-        };
+        let parse_table = self.parse_table_slice()?;
 
         // Decode compressed action
         let table_offset = (state as usize) * 2;
@@ -158,15 +147,7 @@ impl Parser {
 
     fn perform_reduction(&mut self, rule_id: u16) -> Result<(), String> {
         // Get rule info from grammar
-        let production_id_map = unsafe {
-            // SAFETY: `self.language.production_id_map` must point to at least
-            // `production_id_count` contiguous `u16` values per the TSLanguage ABI.
-            // TODO(safety): No null-pointer guard — UB if production_id_map is null.
-            std::slice::from_raw_parts(
-                self.language.production_id_map,
-                self.language.production_id_count as usize,
-            )
-        };
+        let production_id_map = self.production_id_map_slice()?;
 
         if rule_id as usize >= production_id_map.len() {
             return Err("Invalid rule ID".to_string());
@@ -221,15 +202,7 @@ impl Parser {
 
     fn get_goto(&self, state: u16, _symbol: u16) -> Result<u16, String> {
         // Access small parse table for gotos
-        let small_parse_table_map = unsafe {
-            // SAFETY: `self.language.small_parse_table_map` must point to at least
-            // `state_count * 4` contiguous `u32` values per the TSLanguage ABI.
-            // TODO(safety): No null-pointer guard — UB if small_parse_table_map is null.
-            std::slice::from_raw_parts(
-                self.language.small_parse_table_map,
-                self.language.state_count as usize * 4,
-            )
-        };
+        let small_parse_table_map = self.small_parse_table_map_slice()?;
 
         // Simplified goto lookup - real implementation would decode the compressed goto table
         let map_offset = (state as usize) * 4;
@@ -278,6 +251,42 @@ impl Parser {
         });
 
         Ok(tokens)
+    }
+
+    fn parse_table_slice(&self) -> Result<&[u16], String> {
+        let len = self.language.state_count as usize * 2;
+        if len == 0 {
+            return Ok(&[]);
+        }
+        if self.language.parse_table.is_null() {
+            return Err("Language parse_table pointer is null".to_string());
+        }
+        // SAFETY: pointer nullability is checked above and length is derived from ABI metadata.
+        Ok(unsafe { std::slice::from_raw_parts(self.language.parse_table, len) })
+    }
+
+    fn production_id_map_slice(&self) -> Result<&[u16], String> {
+        let len = self.language.production_id_count as usize;
+        if len == 0 {
+            return Ok(&[]);
+        }
+        if self.language.production_id_map.is_null() {
+            return Err("Language production_id_map pointer is null".to_string());
+        }
+        // SAFETY: pointer nullability is checked above and length is derived from ABI metadata.
+        Ok(unsafe { std::slice::from_raw_parts(self.language.production_id_map, len) })
+    }
+
+    fn small_parse_table_map_slice(&self) -> Result<&[u32], String> {
+        let len = self.language.state_count as usize * 4;
+        if len == 0 {
+            return Ok(&[]);
+        }
+        if self.language.small_parse_table_map.is_null() {
+            return Err("Language small_parse_table_map pointer is null".to_string());
+        }
+        // SAFETY: pointer nullability is checked above and length is derived from ABI metadata.
+        Ok(unsafe { std::slice::from_raw_parts(self.language.small_parse_table_map, len) })
     }
 }
 
@@ -362,5 +371,146 @@ mod tests {
 
         // Test error
         assert!(matches!(parser.decode_action(0xFFFE), ParseAction::Error));
+    }
+
+    #[test]
+    fn test_get_action_rejects_null_parse_table_when_states_present() {
+        let lang = TSLanguage {
+            version: 0,
+            symbol_count: 0,
+            alias_count: 0,
+            token_count: 0,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 0,
+            production_id_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: std::ptr::null(),
+            small_parse_table: std::ptr::null(),
+            small_parse_table_map: std::ptr::null(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: TSSymbol(0),
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+        };
+        let parser = unsafe {
+            let lang_ptr = &lang as *const TSLanguage;
+            Parser::new(&*lang_ptr)
+        };
+        let err = parser
+            .get_action(0, 0)
+            .expect_err("expected null-pointer error");
+        assert!(err.contains("parse_table pointer is null"));
+    }
+
+    #[test]
+    fn test_get_goto_rejects_null_small_parse_table_map_when_states_present() {
+        let parse_table = [0u16, 0u16];
+        let lang = TSLanguage {
+            version: 0,
+            symbol_count: 0,
+            alias_count: 0,
+            token_count: 0,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 0,
+            production_id_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: parse_table.as_ptr(),
+            small_parse_table: std::ptr::null(),
+            small_parse_table_map: std::ptr::null(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: TSSymbol(0),
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+        };
+        let parser = unsafe {
+            let lang_ptr = &lang as *const TSLanguage;
+            Parser::new(&*lang_ptr)
+        };
+        let err = parser
+            .get_goto(0, 0)
+            .expect_err("expected null-pointer error");
+        assert!(err.contains("small_parse_table_map pointer is null"));
+    }
+
+    #[test]
+    fn test_reduction_rejects_null_production_id_map_when_rules_present() {
+        let parse_table = [0u16, 0u16];
+        let small_parse_table_map = [0u32, 0u32, 0u32, 0u32];
+        let lang = TSLanguage {
+            version: 0,
+            symbol_count: 0,
+            alias_count: 0,
+            token_count: 0,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 0,
+            production_id_count: 1,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: parse_table.as_ptr(),
+            small_parse_table: std::ptr::null(),
+            small_parse_table_map: small_parse_table_map.as_ptr(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: TSSymbol(0),
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+        };
+        let mut parser = unsafe {
+            let lang_ptr = &lang as *const TSLanguage;
+            Parser::new(&*lang_ptr)
+        };
+        let err = parser
+            .perform_reduction(0)
+            .expect_err("expected null-pointer error");
+        assert!(err.contains("production_id_map pointer is null"));
     }
 }
