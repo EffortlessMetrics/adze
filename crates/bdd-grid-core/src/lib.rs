@@ -15,6 +15,53 @@ use core::fmt::Write;
 
 pub use adze_bdd_scenario_core::{BddPhase, BddScenario, BddScenarioStatus};
 
+/// Validation issue discovered while checking a BDD scenario grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BddGridIssue {
+    /// Scenario id appears more than once.
+    DuplicateScenarioId {
+        /// The duplicate scenario id.
+        id: u8,
+    },
+    /// Scenario title is empty.
+    EmptyTitle {
+        /// Scenario id carrying the invalid title.
+        id: u8,
+    },
+    /// Scenario reference is empty.
+    EmptyReference {
+        /// Scenario id carrying the invalid reference.
+        id: u8,
+    },
+    /// A deferred status has no reason text.
+    EmptyDeferredReason {
+        /// Scenario id with empty deferred reason.
+        id: u8,
+        /// Phase where the empty deferred reason was found.
+        phase: BddPhase,
+    },
+}
+
+impl BddGridIssue {
+    /// Render this issue as a short human-readable line.
+    pub fn describe(self) -> String {
+        match self {
+            Self::DuplicateScenarioId { id } => {
+                format!("duplicate scenario id `{id}`")
+            }
+            Self::EmptyTitle { id } => {
+                format!("scenario `{id}` has an empty title")
+            }
+            Self::EmptyReference { id } => {
+                format!("scenario `{id}` has an empty reference")
+            }
+            Self::EmptyDeferredReason { id, phase } => {
+                format!("scenario `{id}` has empty deferred reason in {phase} phase")
+            }
+        }
+    }
+}
+
 /// GLR conflict-preservation scenario ledger.
 pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
     BddScenario {
@@ -107,6 +154,45 @@ pub fn bdd_progress(phase: BddPhase, scenarios: &[BddScenario]) -> (usize, usize
     (implemented, scenarios.len())
 }
 
+/// Validate structural integrity of a scenario grid.
+///
+/// This helps governance reporting fail loudly when malformed rows are introduced.
+pub fn bdd_grid_issues(scenarios: &[BddScenario]) -> Vec<BddGridIssue> {
+    let mut issues = Vec::new();
+    let mut seen = [false; 256];
+
+    for scenario in scenarios {
+        let idx = usize::from(scenario.id);
+        if seen[idx] {
+            issues.push(BddGridIssue::DuplicateScenarioId { id: scenario.id });
+        } else {
+            seen[idx] = true;
+        }
+
+        if scenario.title.trim().is_empty() {
+            issues.push(BddGridIssue::EmptyTitle { id: scenario.id });
+        }
+
+        if scenario.reference.trim().is_empty() {
+            issues.push(BddGridIssue::EmptyReference { id: scenario.id });
+        }
+
+        for phase in [BddPhase::Core, BddPhase::Runtime] {
+            let status = scenario.status(phase);
+            if let BddScenarioStatus::Deferred { reason } = status
+                && reason.trim().is_empty()
+            {
+                issues.push(BddGridIssue::EmptyDeferredReason {
+                    id: scenario.id,
+                    phase,
+                });
+            }
+        }
+    }
+
+    issues
+}
+
 /// Shared formatting for BDD progress summaries.
 ///
 /// # Examples
@@ -164,6 +250,19 @@ pub fn bdd_progress_report(
         out.push_str("\nNext: Implement remaining deferred scenarios.");
     }
 
+    let issues = bdd_grid_issues(scenarios);
+    if !issues.is_empty() {
+        let _ = write!(
+            out,
+            "\n\n⚠ Grid validation found {} issue(s):",
+            issues.len()
+        );
+        for issue in issues {
+            out.push_str("\n- ");
+            out.push_str(&issue.describe());
+        }
+    }
+
     out
 }
 
@@ -189,5 +288,44 @@ mod tests {
             bdd_progress_report(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, "Runtime");
         assert!(report.contains("Runtime"));
         assert!(report.contains("Scenario 1"));
+    }
+
+    #[test]
+    fn progress_report_for_valid_grid_has_no_validation_warning() {
+        let report = bdd_progress_report(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, "Core");
+        assert!(!report.contains("Grid validation found"));
+    }
+
+    #[test]
+    fn grid_issues_detect_duplicate_id_and_empty_fields() {
+        let malformed = [
+            BddScenario {
+                id: 1,
+                title: "",
+                reference: "",
+                core_status: BddScenarioStatus::Deferred { reason: "" },
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 1,
+                title: "ok",
+                reference: "docs/ref.md",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Deferred { reason: "" },
+            },
+        ];
+
+        let issues = bdd_grid_issues(&malformed);
+        assert!(issues.contains(&BddGridIssue::DuplicateScenarioId { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::EmptyTitle { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::EmptyReference { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::EmptyDeferredReason {
+            id: 1,
+            phase: BddPhase::Core,
+        }));
+        assert!(issues.contains(&BddGridIssue::EmptyDeferredReason {
+            id: 1,
+            phase: BddPhase::Runtime,
+        }));
     }
 }
