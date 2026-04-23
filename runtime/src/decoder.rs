@@ -9,146 +9,95 @@ use adze_ir::{
     SymbolId, Token, TokenPattern,
 };
 use indexmap::IndexMap;
+use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{CStr, c_char};
+use std::fs;
 use std::path::Path;
 
 use crate::pure_parser::{TSLanguage, TSParseAction};
 use crate::ts_format::TSActionTag;
 
-/// Load token patterns from a Tree-sitter grammar.json file
-/// For now, returns an empty map - will be implemented when serde_json is available
-pub fn load_token_patterns(_grammar_json_path: &Path) -> HashMap<String, TokenPattern> {
-    // TODO: Implement actual JSON parsing when serialization feature is fixed
-    // For now, return a minimal set of hardcoded patterns for testing
+/// Load token patterns from a Tree-sitter `grammar.json` file.
+///
+/// This extracts:
+/// - string literals (`type: "STRING"`) as `TokenPattern::String`
+/// - regex-like patterns (`type: "PATTERN"`) as `TokenPattern::Regex`
+///
+/// The returned map uses:
+/// - token rule names as keys when a rule directly represents a token
+/// - literal text itself as keys for string literals
+pub fn load_token_patterns(grammar_json_path: &Path) -> HashMap<String, TokenPattern> {
+    let Ok(contents) = fs::read_to_string(grammar_json_path) else {
+        return HashMap::new();
+    };
+
     let mut patterns = HashMap::new();
 
-    // Add some basic Python keywords that we know are needed
-    patterns.insert("def".to_string(), TokenPattern::String("def".to_string()));
-    patterns.insert("pass".to_string(), TokenPattern::String("pass".to_string()));
-    patterns.insert(
-        "return".to_string(),
-        TokenPattern::String("return".to_string()),
-    );
-    patterns.insert("if".to_string(), TokenPattern::String("if".to_string()));
-    patterns.insert("else".to_string(), TokenPattern::String("else".to_string()));
-    patterns.insert("elif".to_string(), TokenPattern::String("elif".to_string()));
-    patterns.insert(
-        "while".to_string(),
-        TokenPattern::String("while".to_string()),
-    );
-    patterns.insert("for".to_string(), TokenPattern::String("for".to_string()));
-    patterns.insert("in".to_string(), TokenPattern::String("in".to_string()));
-    patterns.insert(
-        "class".to_string(),
-        TokenPattern::String("class".to_string()),
-    );
-    patterns.insert(
-        "import".to_string(),
-        TokenPattern::String("import".to_string()),
-    );
-    patterns.insert("from".to_string(), TokenPattern::String("from".to_string()));
-    patterns.insert("as".to_string(), TokenPattern::String("as".to_string()));
-    patterns.insert("try".to_string(), TokenPattern::String("try".to_string()));
-    patterns.insert(
-        "except".to_string(),
-        TokenPattern::String("except".to_string()),
-    );
-    patterns.insert(
-        "finally".to_string(),
-        TokenPattern::String("finally".to_string()),
-    );
-    patterns.insert("with".to_string(), TokenPattern::String("with".to_string()));
-    patterns.insert(
-        "async".to_string(),
-        TokenPattern::String("async".to_string()),
-    );
-    patterns.insert(
-        "await".to_string(),
-        TokenPattern::String("await".to_string()),
-    );
-    patterns.insert(
-        "lambda".to_string(),
-        TokenPattern::String("lambda".to_string()),
-    );
-    patterns.insert(
-        "yield".to_string(),
-        TokenPattern::String("yield".to_string()),
-    );
-    patterns.insert(
-        "assert".to_string(),
-        TokenPattern::String("assert".to_string()),
-    );
-    patterns.insert(
-        "break".to_string(),
-        TokenPattern::String("break".to_string()),
-    );
-    patterns.insert(
-        "continue".to_string(),
-        TokenPattern::String("continue".to_string()),
-    );
-    patterns.insert("del".to_string(), TokenPattern::String("del".to_string()));
-    patterns.insert(
-        "global".to_string(),
-        TokenPattern::String("global".to_string()),
-    );
-    patterns.insert(
-        "nonlocal".to_string(),
-        TokenPattern::String("nonlocal".to_string()),
-    );
-    patterns.insert(
-        "raise".to_string(),
-        TokenPattern::String("raise".to_string()),
-    );
-    patterns.insert("None".to_string(), TokenPattern::String("None".to_string()));
-    patterns.insert("True".to_string(), TokenPattern::String("True".to_string()));
-    patterns.insert(
-        "False".to_string(),
-        TokenPattern::String("False".to_string()),
-    );
-    patterns.insert("and".to_string(), TokenPattern::String("and".to_string()));
-    patterns.insert("or".to_string(), TokenPattern::String("or".to_string()));
-    patterns.insert("not".to_string(), TokenPattern::String("not".to_string()));
-    patterns.insert("is".to_string(), TokenPattern::String("is".to_string()));
+    // Named rules whose body directly represents a token.
+    // This handles the common grammar.json shape:
+    // "rules": { "identifier": { "type": "PATTERN", "value": "..." }, ... }
+    let named_rule_re = Regex::new(
+        r#""([^"\\]+)"\s*:\s*\{\s*"type"\s*:\s*"(STRING|PATTERN)"\s*,\s*"value"\s*:\s*"((?:\\.|[^"\\])*)""#,
+    )
+    .expect("regex must compile");
+    for captures in named_rule_re.captures_iter(&contents) {
+        let name = unescape_json_string(&captures[1]);
+        let value = unescape_json_string(&captures[3]);
+        let pattern = if &captures[2] == "STRING" {
+            TokenPattern::String(value)
+        } else {
+            TokenPattern::Regex(value)
+        };
+        patterns.insert(name, pattern);
+    }
 
-    // Common symbols
-    patterns.insert(":".to_string(), TokenPattern::String(":".to_string()));
-    patterns.insert("(".to_string(), TokenPattern::String("(".to_string()));
-    patterns.insert(")".to_string(), TokenPattern::String(")".to_string()));
-    patterns.insert("[".to_string(), TokenPattern::String("[".to_string()));
-    patterns.insert("]".to_string(), TokenPattern::String("]".to_string()));
-    patterns.insert("{".to_string(), TokenPattern::String("{".to_string()));
-    patterns.insert("}".to_string(), TokenPattern::String("}".to_string()));
-    patterns.insert(",".to_string(), TokenPattern::String(",".to_string()));
-    patterns.insert(".".to_string(), TokenPattern::String(".".to_string()));
-    patterns.insert(";".to_string(), TokenPattern::String(";".to_string()));
-    patterns.insert("=".to_string(), TokenPattern::String("=".to_string()));
-    patterns.insert("+".to_string(), TokenPattern::String("+".to_string()));
-    patterns.insert("-".to_string(), TokenPattern::String("-".to_string()));
-    patterns.insert("*".to_string(), TokenPattern::String("*".to_string()));
-    patterns.insert("/".to_string(), TokenPattern::String("/".to_string()));
-    patterns.insert("%".to_string(), TokenPattern::String("%".to_string()));
-    patterns.insert("**".to_string(), TokenPattern::String("**".to_string()));
-    patterns.insert("//".to_string(), TokenPattern::String("//".to_string()));
-    patterns.insert("==".to_string(), TokenPattern::String("==".to_string()));
-    patterns.insert("!=".to_string(), TokenPattern::String("!=".to_string()));
-    patterns.insert("<".to_string(), TokenPattern::String("<".to_string()));
-    patterns.insert(">".to_string(), TokenPattern::String(">".to_string()));
-    patterns.insert("<=".to_string(), TokenPattern::String("<=".to_string()));
-    patterns.insert(">=".to_string(), TokenPattern::String(">=".to_string()));
-    patterns.insert("+=".to_string(), TokenPattern::String("+=".to_string()));
-    patterns.insert("-=".to_string(), TokenPattern::String("-=".to_string()));
-    patterns.insert("*=".to_string(), TokenPattern::String("*=".to_string()));
-    patterns.insert("/=".to_string(), TokenPattern::String("/=".to_string()));
-    patterns.insert("->".to_string(), TokenPattern::String("->".to_string()));
-
-    // Identifiers (regex pattern)
-    patterns.insert(
-        "identifier".to_string(),
-        TokenPattern::Regex(r"[_\p{XID_Start}][_\p{XID_Continue}]*".to_string()),
-    );
+    // String literals that appear anywhere in the grammar.
+    let string_literal_re =
+        Regex::new(r#""type"\s*:\s*"STRING"\s*,\s*"value"\s*:\s*"((?:\\.|[^"\\])*)""#)
+            .expect("regex must compile");
+    for captures in string_literal_re.captures_iter(&contents) {
+        let value = unescape_json_string(&captures[1]);
+        patterns
+            .entry(value.clone())
+            .or_insert_with(|| TokenPattern::String(value));
+    }
 
     patterns
+}
+
+fn unescape_json_string(raw: &str) -> String {
+    let mut out = String::with_capacity(raw.len());
+    let mut chars = raw.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+
+        match chars.next() {
+            Some('"') => out.push('"'),
+            Some('\\') => out.push('\\'),
+            Some('/') => out.push('/'),
+            Some('b') => out.push('\u{0008}'),
+            Some('f') => out.push('\u{000C}'),
+            Some('n') => out.push('\n'),
+            Some('r') => out.push('\r'),
+            Some('t') => out.push('\t'),
+            Some('u') => {
+                let hex: String = chars.by_ref().take(4).collect();
+                if hex.len() == 4
+                    && let Ok(code) = u32::from_str_radix(&hex, 16)
+                    && let Some(ch) = char::from_u32(code)
+                {
+                    out.push(ch);
+                }
+            }
+            Some(other) => out.push(other),
+            None => break,
+        }
+    }
+    out
 }
 
 /// Decode a Grammar from a TSLanguage struct
@@ -1346,6 +1295,8 @@ fn decode_action(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_decoder_safety() {
@@ -1414,5 +1365,51 @@ mod tests {
             decode_action(&recover_action, &empty_rules, &empty_map),
             Action::Error
         ));
+    }
+
+    #[test]
+    fn test_load_token_patterns_reads_json_literals_and_patterns() {
+        let mut grammar_file = NamedTempFile::new().expect("temp file");
+        writeln!(
+            grammar_file,
+            r#"{{
+                "rules": {{
+                    "identifier": {{ "type": "PATTERN", "value": "[a-z_][a-z0-9_]*" }},
+                    "kw_def": {{ "type": "STRING", "value": "def" }},
+                    "function_definition": {{
+                        "type": "SEQ",
+                        "members": [
+                            {{ "type": "STRING", "value": ":" }}
+                        ]
+                    }}
+                }}
+            }}"#
+        )
+        .expect("write grammar");
+
+        let patterns = load_token_patterns(grammar_file.path());
+
+        assert_eq!(
+            patterns.get("identifier"),
+            Some(&TokenPattern::Regex("[a-z_][a-z0-9_]*".to_string()))
+        );
+        assert_eq!(
+            patterns.get("kw_def"),
+            Some(&TokenPattern::String("def".to_string()))
+        );
+        assert_eq!(
+            patterns.get("def"),
+            Some(&TokenPattern::String("def".to_string()))
+        );
+        assert_eq!(
+            patterns.get(":"),
+            Some(&TokenPattern::String(":".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_load_token_patterns_missing_file_returns_empty() {
+        let patterns = load_token_patterns(Path::new("/definitely/missing/grammar.json"));
+        assert!(patterns.is_empty());
     }
 }
