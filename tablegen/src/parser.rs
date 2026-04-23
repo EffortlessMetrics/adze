@@ -96,17 +96,18 @@ impl Parser {
     }
 
     fn get_action(&self, state: u16, symbol: u16) -> Result<ParseAction, String> {
+        let parse_table_len = self.language.state_count as usize * 2;
+        if parse_table_len > 0 && self.language.parse_table.is_null() {
+            return Err("language parse_table pointer is null".to_string());
+        }
+
         // Access compressed parse table
         let parse_table = unsafe {
             // SAFETY: `self.language.parse_table` must be a valid pointer to at least
             // `state_count * 2` contiguous `u16` values. This is guaranteed by the
             // TSLanguage ABI contract — callers must supply a well-formed language struct.
-            // TODO(safety): No runtime validation that `parse_table` is non-null; a null
-            // pointer here is instant UB. Consider adding a null check.
-            std::slice::from_raw_parts(
-                self.language.parse_table,
-                self.language.state_count as usize * 2,
-            )
+            // We guard against null pointers above when a non-zero length is required.
+            std::slice::from_raw_parts(self.language.parse_table, parse_table_len)
         };
 
         // Decode compressed action
@@ -157,15 +158,17 @@ impl Parser {
     }
 
     fn perform_reduction(&mut self, rule_id: u16) -> Result<(), String> {
+        let production_id_count = self.language.production_id_count as usize;
+        if production_id_count > 0 && self.language.production_id_map.is_null() {
+            return Err("language production_id_map pointer is null".to_string());
+        }
+
         // Get rule info from grammar
         let production_id_map = unsafe {
             // SAFETY: `self.language.production_id_map` must point to at least
             // `production_id_count` contiguous `u16` values per the TSLanguage ABI.
-            // TODO(safety): No null-pointer guard — UB if production_id_map is null.
-            std::slice::from_raw_parts(
-                self.language.production_id_map,
-                self.language.production_id_count as usize,
-            )
+            // We guard against null pointers above when a non-zero length is required.
+            std::slice::from_raw_parts(self.language.production_id_map, production_id_count)
         };
 
         if rule_id as usize >= production_id_map.len() {
@@ -220,14 +223,19 @@ impl Parser {
     }
 
     fn get_goto(&self, state: u16, _symbol: u16) -> Result<u16, String> {
+        let small_parse_table_map_len = self.language.state_count as usize * 4;
+        if small_parse_table_map_len > 0 && self.language.small_parse_table_map.is_null() {
+            return Err("language small_parse_table_map pointer is null".to_string());
+        }
+
         // Access small parse table for gotos
         let small_parse_table_map = unsafe {
             // SAFETY: `self.language.small_parse_table_map` must point to at least
             // `state_count * 4` contiguous `u32` values per the TSLanguage ABI.
-            // TODO(safety): No null-pointer guard — UB if small_parse_table_map is null.
+            // We guard against null pointers above when a non-zero length is required.
             std::slice::from_raw_parts(
                 self.language.small_parse_table_map,
-                self.language.state_count as usize * 4,
+                small_parse_table_map_len,
             )
         };
 
@@ -299,11 +307,10 @@ enum ParseAction {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ptr;
 
-    #[test]
-    fn test_decode_action() {
-        // Create a dummy language for testing
-        let lang = TSLanguage {
+    fn make_test_language() -> TSLanguage {
+        TSLanguage {
             version: 0,
             symbol_count: 0,
             alias_count: 0,
@@ -314,39 +321,45 @@ mod tests {
             production_id_count: 0,
             field_count: 0,
             max_alias_sequence_length: 0,
-            production_id_map: std::ptr::null(),
-            parse_table: std::ptr::null(),
-            small_parse_table: std::ptr::null(),
-            small_parse_table_map: std::ptr::null(),
-            parse_actions: std::ptr::null(),
-            symbol_names: std::ptr::null(),
-            field_names: std::ptr::null(),
-            field_map_slices: std::ptr::null(),
-            field_map_entries: std::ptr::null(),
-            symbol_metadata: std::ptr::null(),
-            public_symbol_map: std::ptr::null(),
-            alias_map: std::ptr::null(),
-            alias_sequences: std::ptr::null(),
-            lex_modes: std::ptr::null(),
+            production_id_map: ptr::null(),
+            parse_table: ptr::null(),
+            small_parse_table: ptr::null(),
+            small_parse_table_map: ptr::null(),
+            parse_actions: ptr::null(),
+            symbol_names: ptr::null(),
+            field_names: ptr::null(),
+            field_map_slices: ptr::null(),
+            field_map_entries: ptr::null(),
+            symbol_metadata: ptr::null(),
+            public_symbol_map: ptr::null(),
+            alias_map: ptr::null(),
+            alias_sequences: ptr::null(),
+            lex_modes: ptr::null(),
             lex_fn: None,
             keyword_lex_fn: None,
             keyword_capture_token: TSSymbol(0),
             external_scanner: ExternalScanner::default(),
-            primary_state_ids: std::ptr::null(),
-            production_lhs_index: std::ptr::null(),
+            primary_state_ids: ptr::null(),
+            production_lhs_index: ptr::null(),
             production_count: 0,
             eof_symbol: 0,
-        };
+        }
+    }
 
-        // For testing, we'll use unsafe to extend the lifetime
-        // SAFETY: `lang` is stack-local and lives for the rest of this scope.
-        // We create a pointer and immediately re-borrow it as `&'static` to
-        // satisfy `Parser::new`. This is sound only because `parser` does not
-        // escape this function.
-        let parser = unsafe {
-            let lang_ptr = &lang as *const TSLanguage;
+    fn parser_from_local(lang: &TSLanguage) -> Parser {
+        // SAFETY: `lang` outlives `Parser` in each test callsite.
+        unsafe {
+            let lang_ptr = lang as *const TSLanguage;
             Parser::new(&*lang_ptr)
-        };
+        }
+    }
+
+    #[test]
+    fn test_decode_action() {
+        // Create a dummy language for testing
+        let lang = make_test_language();
+
+        let parser = parser_from_local(&lang);
 
         // Test shift action
         assert!(matches!(parser.decode_action(42), ParseAction::Shift(42)));
@@ -362,5 +375,19 @@ mod tests {
 
         // Test error
         assert!(matches!(parser.decode_action(0xFFFE), ParseAction::Error));
+    }
+
+    #[test]
+    fn test_parse_rejects_null_parse_table_pointer() {
+        let mut lang = make_test_language();
+        lang.state_count = 1;
+        let mut parser = parser_from_local(&lang);
+
+        let result = parser.parse("1");
+        assert!(result.is_err());
+        assert_eq!(
+            result.expect_err("expected null parse_table error"),
+            "language parse_table pointer is null"
+        );
     }
 }
