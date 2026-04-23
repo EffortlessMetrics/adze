@@ -244,16 +244,7 @@ impl BetaTester {
         let total_tests: usize = self.results.iter().map(|r| r.total_tests).sum();
         let failed_tests: usize = self.results.iter().map(|r| r.failed_tests).sum();
 
-        let avg_speedup = if !self.results.is_empty() {
-            self.results
-                .iter()
-                .filter(|r| r.speedup > 0.0)
-                .map(|r| r.speedup)
-                .sum::<f64>()
-                / self.results.len() as f64
-        } else {
-            0.0
-        };
+        let avg_speedup = average_positive_speedup(&self.results);
 
         CompatibilityReport {
             version: env!("CARGO_PKG_VERSION").to_string(),
@@ -322,10 +313,14 @@ impl CompatibilityReport {
 
         md.push_str("## Summary\n\n");
         md.push_str(&format!("- Grammars Tested: {}\n", self.total_grammars));
+        let pass_rate = if self.total_grammars > 0 {
+            (self.passed_grammars as f64 / self.total_grammars as f64) * 100.0
+        } else {
+            0.0
+        };
         md.push_str(&format!(
             "- Grammars Passed: {} ({:.1}%)\n",
-            self.passed_grammars,
-            (self.passed_grammars as f64 / self.total_grammars as f64) * 100.0
+            self.passed_grammars, pass_rate
         ));
         md.push_str(&format!("- Total Tests: {}\n", self.total_tests));
         md.push_str(&format!("- Failed Tests: {}\n\n", self.failed_tests));
@@ -409,16 +404,7 @@ impl TestSuite {
         let total_tests: usize = all_results.iter().map(|r| r.total_tests).sum();
         let failed_tests: usize = all_results.iter().map(|r| r.failed_tests).sum();
 
-        let avg_speedup = if !all_results.is_empty() {
-            all_results
-                .iter()
-                .filter(|r| r.speedup > 0.0)
-                .map(|r| r.speedup)
-                .sum::<f64>()
-                / all_results.len() as f64
-        } else {
-            0.0
-        };
+        let avg_speedup = average_positive_speedup(&all_results);
 
         Ok(CompatibilityReport {
             version: env!("CARGO_PKG_VERSION").to_string(),
@@ -436,6 +422,24 @@ impl TestSuite {
             grammar_results: all_results,
         })
     }
+}
+
+fn average_positive_speedup(results: &[GrammarTestResult]) -> f64 {
+    let mut count = 0usize;
+    let mut sum = 0.0f64;
+
+    for speedup in results.iter().filter_map(|result| {
+        if result.speedup.is_finite() && result.speedup > 0.0 {
+            Some(result.speedup)
+        } else {
+            None
+        }
+    }) {
+        count += 1;
+        sum += speedup;
+    }
+
+    if count > 0 { sum / count as f64 } else { 0.0 }
 }
 
 #[cfg(test)]
@@ -674,5 +678,71 @@ mod tests {
         );
         assert_eq!(deserialized.grammar_results.len(), 1);
         assert_eq!(deserialized.grammar_results[0].name, "perfect-grammar");
+    }
+
+    #[test]
+    fn test_average_positive_speedup_ignores_non_positive_values() {
+        let results = vec![
+            GrammarTestResult {
+                name: "fast".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 1,
+                failed_tests: 0,
+                parse_time_ms: 10.0,
+                tree_sitter_time_ms: 20.0,
+                speedup: 2.0,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+            GrammarTestResult {
+                name: "no-compare".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 1,
+                failed_tests: 0,
+                parse_time_ms: 10.0,
+                tree_sitter_time_ms: 0.0,
+                speedup: 0.0,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+            GrammarTestResult {
+                name: "invalid".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 1,
+                failed_tests: 0,
+                parse_time_ms: 10.0,
+                tree_sitter_time_ms: 0.0,
+                speedup: f64::NAN,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+        ];
+
+        assert_eq!(average_positive_speedup(&results), 2.0);
+    }
+
+    #[test]
+    fn test_save_markdown_zero_grammars_has_stable_percentage() {
+        let report = CompatibilityReport {
+            version: "0.1.0".to_string(),
+            date: "2024-01-01".to_string(),
+            total_grammars: 0,
+            passed_grammars: 0,
+            total_tests: 0,
+            failed_tests: 0,
+            overall_compatibility: 0.0,
+            average_speedup: 0.0,
+            grammar_results: vec![],
+        };
+
+        let tempdir = tempfile::tempdir().unwrap();
+        let md_path = tempdir.path().join("empty_report.md");
+        report.save_markdown(&md_path).unwrap();
+
+        let content = fs::read_to_string(md_path).unwrap();
+        assert!(content.contains("Grammars Passed: 0 (0.0%)"));
     }
 }
