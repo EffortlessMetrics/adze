@@ -79,6 +79,62 @@ pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
     },
 ];
 
+/// Structural validation issue detected in a BDD scenario grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BddGridIssue {
+    /// Scenario title is empty.
+    EmptyTitle {
+        /// Scenario id with an empty title.
+        id: u8,
+    },
+    /// Scenario reference is empty.
+    EmptyReference {
+        /// Scenario id with an empty reference.
+        id: u8,
+    },
+    /// Scenario id appears more than once in the same grid.
+    DuplicateId {
+        /// Duplicate scenario id.
+        id: u8,
+    },
+}
+
+/// Validate structural integrity of a BDD scenario grid.
+///
+/// This check is intentionally lightweight and deterministic so callers can
+/// run it in tests or diagnostics without introducing policy coupling.
+///
+/// # Examples
+///
+/// ```
+/// use adze_bdd_grid_core::*;
+///
+/// let issues = bdd_grid_issues(GLR_CONFLICT_PRESERVATION_GRID);
+/// assert!(issues.is_empty());
+/// ```
+pub fn bdd_grid_issues(scenarios: &[BddScenario]) -> Vec<BddGridIssue> {
+    let mut issues = Vec::new();
+    let mut seen_ids = [false; (u8::MAX as usize) + 1];
+
+    for scenario in scenarios {
+        if scenario.title.trim().is_empty() {
+            issues.push(BddGridIssue::EmptyTitle { id: scenario.id });
+        }
+        if scenario.reference.trim().is_empty() {
+            issues.push(BddGridIssue::EmptyReference { id: scenario.id });
+        }
+
+        let idx = usize::from(scenario.id);
+        if seen_ids[idx] {
+            issues.push(BddGridIssue::DuplicateId { id: scenario.id });
+        } else {
+            seen_ids[idx] = true;
+        }
+    }
+
+    issues
+}
+
 /// Aggregate progress for a phase.
 ///
 /// # Examples
@@ -164,6 +220,24 @@ pub fn bdd_progress_report(
         out.push_str("\nNext: Implement remaining deferred scenarios.");
     }
 
+    let issues = bdd_grid_issues(scenarios);
+    if !issues.is_empty() {
+        out.push_str("\n\nGrid integrity issues:");
+        for issue in issues {
+            match issue {
+                BddGridIssue::EmptyTitle { id } => {
+                    let _ = write!(out, "\n- Scenario {id} has an empty title");
+                }
+                BddGridIssue::EmptyReference { id } => {
+                    let _ = write!(out, "\n- Scenario {id} has an empty reference");
+                }
+                BddGridIssue::DuplicateId { id } => {
+                    let _ = write!(out, "\n- Scenario id {id} is duplicated");
+                }
+            }
+        }
+    }
+
     out
 }
 
@@ -189,5 +263,45 @@ mod tests {
             bdd_progress_report(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, "Runtime");
         assert!(report.contains("Runtime"));
         assert!(report.contains("Scenario 1"));
+    }
+
+    #[test]
+    fn grid_issues_reports_duplicate_and_missing_fields() {
+        let scenarios = [
+            BddScenario {
+                id: 1,
+                title: "",
+                reference: "",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 1,
+                title: "duplicate",
+                reference: "REF-1",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+        ];
+
+        let issues = bdd_grid_issues(&scenarios);
+        assert!(issues.contains(&BddGridIssue::EmptyTitle { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::EmptyReference { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::DuplicateId { id: 1 }));
+    }
+
+    #[test]
+    fn progress_report_includes_integrity_issues_when_present() {
+        let scenarios = [BddScenario {
+            id: 3,
+            title: "",
+            reference: "REF-3",
+            core_status: BddScenarioStatus::Deferred { reason: "todo" },
+            runtime_status: BddScenarioStatus::Deferred { reason: "todo" },
+        }];
+
+        let report = bdd_progress_report(BddPhase::Core, &scenarios, "Core");
+        assert!(report.contains("Grid integrity issues"));
+        assert!(report.contains("empty title"));
     }
 }
