@@ -16,8 +16,8 @@ pub use adze_bdd_governance_reporting_core::{
     bdd_progress_status_line, describe_backend_for_conflicts,
 };
 pub use adze_bdd_grid_core::{
-    BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
-    bdd_progress_report,
+    BddGridIssue, BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID,
+    bdd_grid_is_valid, bdd_grid_issues, bdd_progress, bdd_progress_report,
 };
 pub use adze_feature_policy_core::ParserFeatureProfile;
 

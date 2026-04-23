@@ -15,6 +15,43 @@ use core::fmt::Write;
 
 pub use adze_bdd_scenario_core::{BddPhase, BddScenario, BddScenarioStatus};
 
+/// Integrity issue detected in a BDD scenario grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BddGridIssue {
+    /// Grid has no scenarios.
+    EmptyGrid,
+    /// Scenario id is zero, which is reserved as invalid.
+    ZeroScenarioId,
+    /// Scenario id is duplicated in the grid.
+    DuplicateScenarioId {
+        /// The duplicated id.
+        id: u8,
+    },
+    /// Scenario title is empty.
+    MissingTitle {
+        /// Scenario id whose title is missing.
+        id: u8,
+    },
+    /// Scenario reference path is empty.
+    MissingReference {
+        /// Scenario id whose reference is missing.
+        id: u8,
+    },
+}
+
+impl BddGridIssue {
+    /// Human-readable issue message used by summaries.
+    pub const fn message(self) -> &'static str {
+        match self {
+            Self::EmptyGrid => "grid has no scenarios",
+            Self::ZeroScenarioId => "scenario id must be non-zero",
+            Self::DuplicateScenarioId { .. } => "scenario id is duplicated",
+            Self::MissingTitle { .. } => "scenario title is empty",
+            Self::MissingReference { .. } => "scenario reference is empty",
+        }
+    }
+}
+
 /// GLR conflict-preservation scenario ledger.
 pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
     BddScenario {
@@ -79,6 +116,49 @@ pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
     },
 ];
 
+/// Validate a scenario grid and return all detected issues.
+///
+/// # Examples
+///
+/// ```
+/// use adze_bdd_grid_core::{BddGridIssue, bdd_grid_issues};
+///
+/// let issues = bdd_grid_issues(&[]);
+/// assert_eq!(issues, vec![BddGridIssue::EmptyGrid]);
+/// ```
+pub fn bdd_grid_issues(scenarios: &[BddScenario]) -> Vec<BddGridIssue> {
+    let mut issues = Vec::new();
+    if scenarios.is_empty() {
+        issues.push(BddGridIssue::EmptyGrid);
+        return issues;
+    }
+
+    let mut seen = [false; u8::MAX as usize + 1];
+    for scenario in scenarios {
+        let id = usize::from(scenario.id);
+        if id == 0 {
+            issues.push(BddGridIssue::ZeroScenarioId);
+        } else if seen[id] {
+            issues.push(BddGridIssue::DuplicateScenarioId { id: scenario.id });
+        } else {
+            seen[id] = true;
+        }
+
+        if scenario.title.trim().is_empty() {
+            issues.push(BddGridIssue::MissingTitle { id: scenario.id });
+        }
+        if scenario.reference.trim().is_empty() {
+            issues.push(BddGridIssue::MissingReference { id: scenario.id });
+        }
+    }
+    issues
+}
+
+/// Returns true when the supplied scenario grid has no integrity issues.
+pub fn bdd_grid_is_valid(scenarios: &[BddScenario]) -> bool {
+    bdd_grid_issues(scenarios).is_empty()
+}
+
 /// Aggregate progress for a phase.
 ///
 /// # Examples
@@ -130,10 +210,19 @@ pub fn bdd_progress_report(
     let mut out = String::new();
 
     let (implemented, total) = bdd_progress(phase, scenarios);
+    let issues = bdd_grid_issues(scenarios);
     out.push_str("\n=== BDD GLR Conflict Preservation Test Summary ===\n");
     out.push_str(phase_title);
     out.push('\n');
     out.push('\n');
+
+    if !issues.is_empty() {
+        out.push_str("⚠️ Grid integrity issues:\n");
+        for issue in issues {
+            let _ = writeln!(out, "- {}", issue.message());
+        }
+        out.push('\n');
+    }
 
     for scenario in scenarios {
         let status = scenario.status(phase);
@@ -189,5 +278,35 @@ mod tests {
             bdd_progress_report(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, "Runtime");
         assert!(report.contains("Runtime"));
         assert!(report.contains("Scenario 1"));
+    }
+
+    #[test]
+    fn canonical_grid_has_no_integrity_issues() {
+        assert!(bdd_grid_is_valid(GLR_CONFLICT_PRESERVATION_GRID));
+        assert!(bdd_grid_issues(GLR_CONFLICT_PRESERVATION_GRID).is_empty());
+    }
+
+    #[test]
+    fn integrity_checks_flag_invalid_rows() {
+        let grid = [
+            BddScenario {
+                id: 1,
+                title: "has title",
+                reference: "doc.md",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 1,
+                title: "",
+                reference: "",
+                core_status: BddScenarioStatus::Deferred { reason: "todo" },
+                runtime_status: BddScenarioStatus::Deferred { reason: "todo" },
+            },
+        ];
+        let issues = bdd_grid_issues(&grid);
+        assert!(issues.contains(&BddGridIssue::DuplicateScenarioId { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::MissingTitle { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::MissingReference { id: 1 }));
     }
 }
