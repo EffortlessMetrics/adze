@@ -53,9 +53,58 @@ pub struct CompressedTables {
 impl CompressedTables {
     /// Validate compressed tables against original parse table
     #[must_use = "validation result must be checked"]
-    pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
-        // TODO: Implement validation logic
-        // For now, just return Ok to make tests compile
+    pub fn validate(&self, parse_table: &ParseTable) -> Result<()> {
+        let expected_rows = parse_table.state_count + 1;
+        if self.action_table.row_offsets.len() != expected_rows {
+            return Err(TableGenError::InvalidTable(format!(
+                "action row_offsets length {} does not match state_count + 1 ({expected_rows})",
+                self.action_table.row_offsets.len()
+            )));
+        }
+        if self.goto_table.row_offsets.len() != expected_rows {
+            return Err(TableGenError::InvalidTable(format!(
+                "goto row_offsets length {} does not match state_count + 1 ({expected_rows})",
+                self.goto_table.row_offsets.len()
+            )));
+        }
+        if self.action_table.default_actions.len() != parse_table.state_count {
+            return Err(TableGenError::InvalidTable(format!(
+                "default_actions length {} does not match state_count {}",
+                self.action_table.default_actions.len(),
+                parse_table.state_count
+            )));
+        }
+
+        for (name, row_offsets, data_len) in [
+            (
+                "action",
+                &self.action_table.row_offsets,
+                self.action_table.data.len(),
+            ),
+            (
+                "goto",
+                &self.goto_table.row_offsets,
+                self.goto_table.data.len(),
+            ),
+        ] {
+            for i in 1..row_offsets.len() {
+                if row_offsets[i] < row_offsets[i - 1] {
+                    return Err(TableGenError::InvalidTable(format!(
+                        "{name} row_offsets are not non-decreasing at index {i}: {} < {}",
+                        row_offsets[i],
+                        row_offsets[i - 1]
+                    )));
+                }
+            }
+
+            let last_offset = row_offsets.last().copied().unwrap_or(0) as usize;
+            if last_offset != data_len {
+                return Err(TableGenError::InvalidTable(format!(
+                    "{name} last row offset {last_offset} does not match data length {data_len}"
+                )));
+            }
+        }
+
         Ok(())
     }
 }
@@ -125,6 +174,15 @@ impl Default for TableCompressor {
 }
 
 impl TableCompressor {
+    fn checked_u16(value: usize, context: &'static str) -> Result<u16> {
+        u16::try_from(value).map_err(|_| {
+            TableGenError::Compression(format!(
+                "{context} overflow: {value} exceeds u16::MAX ({})",
+                u16::MAX
+            ))
+        })
+    }
+
     /// Create a new compressor with default thresholds.
     #[must_use]
     pub fn new() -> Self {
@@ -405,7 +463,7 @@ impl TableCompressor {
             let default_action = Action::Error;
 
             default_actions.push(default_action.clone());
-            row_offsets.push(entries.len() as u16);
+            row_offsets.push(Self::checked_u16(entries.len(), "action row offset")?);
 
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
@@ -417,7 +475,7 @@ impl TableCompressor {
 
                     // Use the mapped index directly, not the original symbol ID
                     // This ensures terminals (index < token_count) are correctly identified
-                    let symbol_id = index as u16;
+                    let symbol_id = Self::checked_u16(index, "action symbol index")?;
 
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
@@ -427,7 +485,7 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(Self::checked_u16(entries.len(), "action row offset")?);
 
         // Validate row_offsets are strictly increasing
         for i in 1..row_offsets.len() {
@@ -466,7 +524,7 @@ impl TableCompressor {
         let mut row_offsets = Vec::new();
 
         for row in goto_table {
-            row_offsets.push(entries.len() as u16);
+            row_offsets.push(Self::checked_u16(entries.len(), "goto row offset")?);
 
             let mut last_state = None;
             let mut run_length = 0;
@@ -511,7 +569,7 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(Self::checked_u16(entries.len(), "goto row offset")?);
 
         Ok(CompressedGotoTable {
             data: entries,
@@ -641,12 +699,12 @@ mod tests {
         let tables = CompressedTables {
             action_table: CompressedActionTable {
                 data: vec![],
-                row_offsets: vec![],
-                default_actions: vec![],
+                row_offsets: vec![0, 0],
+                default_actions: vec![Action::Error],
             },
             goto_table: CompressedGotoTable {
                 data: vec![],
-                row_offsets: vec![],
+                row_offsets: vec![0, 0],
             },
             small_table_threshold: 32768,
         };
@@ -661,5 +719,47 @@ mod tests {
         );
         let result = tables.validate(&parse_table);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compressed_tables_validation_rejects_bad_offsets() {
+        let tables = CompressedTables {
+            action_table: CompressedActionTable {
+                data: vec![],
+                row_offsets: vec![0],
+                default_actions: vec![],
+            },
+            goto_table: CompressedGotoTable {
+                data: vec![],
+                row_offsets: vec![0],
+            },
+            small_table_threshold: 32768,
+        };
+
+        let parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![]]],
+            vec![vec![crate::test_helpers::test::INVALID]],
+            vec![],
+            SymbolId(1),
+            SymbolId(1),
+            0,
+        );
+
+        let result = tables.validate(&parse_table);
+        assert!(matches!(result, Err(TableGenError::InvalidTable(_))));
+    }
+
+    #[test]
+    fn test_action_table_compression_fails_on_u16_overflow() {
+        let compressor = TableCompressor::new();
+
+        let action_table = vec![vec![
+            vec![Action::Shift(StateId(1))];
+            usize::from(u16::MAX) + 1
+        ]];
+        let symbol_to_index = BTreeMap::from([(SymbolId(1), 0usize)]);
+
+        let result = compressor.compress_action_table_small(&action_table, &symbol_to_index);
+        assert!(matches!(result, Err(TableGenError::Compression(_))));
     }
 }
