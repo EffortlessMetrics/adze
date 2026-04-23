@@ -122,7 +122,7 @@ impl BetaTester {
             0.0
         };
 
-        if result.tree_sitter_time_ms > 0.0 {
+        if result.tree_sitter_time_ms > 0.0 && result.parse_time_ms > 0.0 {
             result.speedup = result.tree_sitter_time_ms / result.parse_time_ms;
         }
 
@@ -244,16 +244,7 @@ impl BetaTester {
         let total_tests: usize = self.results.iter().map(|r| r.total_tests).sum();
         let failed_tests: usize = self.results.iter().map(|r| r.failed_tests).sum();
 
-        let avg_speedup = if !self.results.is_empty() {
-            self.results
-                .iter()
-                .filter(|r| r.speedup > 0.0)
-                .map(|r| r.speedup)
-                .sum::<f64>()
-                / self.results.len() as f64
-        } else {
-            0.0
-        };
+        let avg_speedup = calculate_average_speedup(&self.results);
 
         CompatibilityReport {
             version: env!("CARGO_PKG_VERSION").to_string(),
@@ -409,16 +400,7 @@ impl TestSuite {
         let total_tests: usize = all_results.iter().map(|r| r.total_tests).sum();
         let failed_tests: usize = all_results.iter().map(|r| r.failed_tests).sum();
 
-        let avg_speedup = if !all_results.is_empty() {
-            all_results
-                .iter()
-                .filter(|r| r.speedup > 0.0)
-                .map(|r| r.speedup)
-                .sum::<f64>()
-                / all_results.len() as f64
-        } else {
-            0.0
-        };
+        let avg_speedup = calculate_average_speedup(&all_results);
 
         Ok(CompatibilityReport {
             version: env!("CARGO_PKG_VERSION").to_string(),
@@ -436,6 +418,20 @@ impl TestSuite {
             grammar_results: all_results,
         })
     }
+}
+
+fn calculate_average_speedup(results: &[GrammarTestResult]) -> f64 {
+    let comparable_results: Vec<f64> = results
+        .iter()
+        .map(|r| r.speedup)
+        .filter(|speedup| *speedup > 0.0 && speedup.is_finite())
+        .collect();
+
+    if comparable_results.is_empty() {
+        return 0.0;
+    }
+
+    comparable_results.iter().sum::<f64>() / comparable_results.len() as f64
 }
 
 #[cfg(test)]
@@ -674,5 +670,83 @@ mod tests {
         );
         assert_eq!(deserialized.grammar_results.len(), 1);
         assert_eq!(deserialized.grammar_results[0].name, "perfect-grammar");
+    }
+
+    #[test]
+    fn test_calculate_average_speedup_uses_only_comparable_results() {
+        let results = vec![
+            GrammarTestResult {
+                name: "with-speedup-1".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 5,
+                failed_tests: 0,
+                parse_time_ms: 10.0,
+                tree_sitter_time_ms: 15.0,
+                speedup: 1.5,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+            GrammarTestResult {
+                name: "without-comparison".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 5,
+                failed_tests: 0,
+                parse_time_ms: 10.0,
+                tree_sitter_time_ms: 0.0,
+                speedup: 0.0,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+            GrammarTestResult {
+                name: "with-speedup-2".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 5,
+                failed_tests: 0,
+                parse_time_ms: 10.0,
+                tree_sitter_time_ms: 20.0,
+                speedup: 2.0,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+        ];
+
+        let average = calculate_average_speedup(&results);
+        assert_eq!(average, 1.75);
+    }
+
+    #[test]
+    fn test_calculate_average_speedup_ignores_non_finite_values() {
+        let results = vec![
+            GrammarTestResult {
+                name: "finite".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 1,
+                failed_tests: 0,
+                parse_time_ms: 5.0,
+                tree_sitter_time_ms: 10.0,
+                speedup: 2.0,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+            GrammarTestResult {
+                name: "infinite".to_string(),
+                version: "1.0.0".to_string(),
+                passed: true,
+                total_tests: 1,
+                failed_tests: 0,
+                parse_time_ms: 0.0,
+                tree_sitter_time_ms: 10.0,
+                speedup: f64::INFINITY,
+                errors: vec![],
+                compatibility_score: 100.0,
+            },
+        ];
+
+        let average = calculate_average_speedup(&results);
+        assert_eq!(average, 2.0);
     }
 }
