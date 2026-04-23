@@ -56,15 +56,12 @@ impl ExternalScannerGenerator {
 
     /// Computes which external tokens are valid in each state
     pub fn compute_state_validity(&self) -> Vec<Vec<bool>> {
-        // Use the pre-computed external scanner states from the parse table
-        // These were already calculated during LR(1) automaton construction
-        self.parse_table.external_scanner_states.clone()
+        self.normalized_state_validity()
     }
 
     /// Generates the external scanner state bitmap with computed validity
     pub fn generate_state_bitmap(&self) -> Vec<Vec<bool>> {
-        // Use the pre-computed external scanner states from the parse table
-        self.parse_table.external_scanner_states.clone()
+        self.normalized_state_validity()
     }
 
     /// Generates the symbol map array that maps external scanner indices to symbol IDs
@@ -146,6 +143,26 @@ impl ExternalScannerGenerator {
     /// Returns the number of external tokens
     pub fn external_token_count(&self) -> usize {
         self.external_tokens.len()
+    }
+
+    /// Normalizes parse-table-provided external scanner states to ensure each
+    /// row width matches the grammar's external token count.
+    fn normalized_state_validity(&self) -> Vec<Vec<bool>> {
+        let expected_width = self.external_tokens.len();
+        self.parse_table
+            .external_scanner_states
+            .iter()
+            .map(|row| {
+                if row.len() == expected_width {
+                    return row.clone();
+                }
+
+                let mut normalized = row.clone();
+                normalized.resize(expected_width, false);
+                normalized.truncate(expected_width);
+                normalized
+            })
+            .collect()
     }
 
     /// Debug helper: print validity matrix
@@ -273,5 +290,64 @@ mod tests {
 
         let symbol_map = generator.generate_symbol_map();
         assert_eq!(symbol_map, vec![200, 201]);
+    }
+
+    #[test]
+    fn test_state_validity_pads_short_rows() {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.externals.push(ExternalToken {
+            name: "A".to_string(),
+            symbol_id: SymbolId(1),
+        });
+        grammar.externals.push(ExternalToken {
+            name: "B".to_string(),
+            symbol_id: SymbolId(2),
+        });
+        grammar.externals.push(ExternalToken {
+            name: "C".to_string(),
+            symbol_id: SymbolId(3),
+        });
+
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![Action::Error]; 1]; 1],
+            vec![vec![crate::test_helpers::test::INVALID; 1]; 1],
+            vec![],
+            SymbolId(1),
+            SymbolId(1),
+            0,
+        );
+        parse_table.external_scanner_states = vec![vec![true]];
+
+        let generator = ExternalScannerGenerator::new(grammar, parse_table);
+        assert_eq!(
+            generator.generate_state_bitmap(),
+            vec![vec![true, false, false]]
+        );
+    }
+
+    #[test]
+    fn test_state_validity_truncates_wide_rows() {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.externals.push(ExternalToken {
+            name: "A".to_string(),
+            symbol_id: SymbolId(1),
+        });
+        grammar.externals.push(ExternalToken {
+            name: "B".to_string(),
+            symbol_id: SymbolId(2),
+        });
+
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![Action::Error]; 1]; 1],
+            vec![vec![crate::test_helpers::test::INVALID; 1]; 1],
+            vec![],
+            SymbolId(1),
+            SymbolId(1),
+            0,
+        );
+        parse_table.external_scanner_states = vec![vec![true, false, true, true]];
+
+        let generator = ExternalScannerGenerator::new(grammar, parse_table);
+        assert_eq!(generator.compute_state_validity(), vec![vec![true, false]]);
     }
 }
