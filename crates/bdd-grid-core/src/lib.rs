@@ -15,6 +15,92 @@ use core::fmt::Write;
 
 pub use adze_bdd_scenario_core::{BddPhase, BddScenario, BddScenarioStatus};
 
+/// Validation issue found in a BDD scenario grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BddGridValidationIssue {
+    /// Scenario id was repeated more than once.
+    DuplicateId {
+        /// Repeated id value.
+        id: u8,
+    },
+    /// Scenario ids are expected to be strictly ascending.
+    OutOfOrderId {
+        /// Previous id encountered.
+        previous: u8,
+        /// Current id that violated ordering.
+        current: u8,
+    },
+    /// Scenario title must not be empty.
+    EmptyTitle {
+        /// Scenario id with missing title.
+        id: u8,
+    },
+    /// Scenario reference must not be empty.
+    EmptyReference {
+        /// Scenario id with missing reference.
+        id: u8,
+    },
+}
+
+impl BddGridValidationIssue {
+    /// Human-readable description for logs/reports.
+    pub fn message(self) -> String {
+        match self {
+            Self::DuplicateId { id } => format!("duplicate scenario id: {id}"),
+            Self::OutOfOrderId { previous, current } => {
+                format!("scenario ids must be ascending: {previous} then {current}")
+            }
+            Self::EmptyTitle { id } => format!("scenario {id} has an empty title"),
+            Self::EmptyReference { id } => format!("scenario {id} has an empty reference"),
+        }
+    }
+}
+
+/// Validate BDD grid integrity constraints used by governance/reporting layers.
+///
+/// Validation rules:
+/// - scenario ids are unique
+/// - scenario ids are strictly ascending
+/// - titles and references are non-empty
+pub fn bdd_grid_validation_issues(scenarios: &[BddScenario]) -> Vec<BddGridValidationIssue> {
+    let mut issues = Vec::new();
+    let mut seen_ids = [false; u8::MAX as usize + 1];
+    let mut previous_id: Option<u8> = None;
+
+    for scenario in scenarios {
+        if let Some(previous) = previous_id {
+            if scenario.id <= previous {
+                issues.push(BddGridValidationIssue::OutOfOrderId {
+                    previous,
+                    current: scenario.id,
+                });
+            }
+        }
+        previous_id = Some(scenario.id);
+
+        let id_idx = usize::from(scenario.id);
+        if seen_ids[id_idx] {
+            issues.push(BddGridValidationIssue::DuplicateId { id: scenario.id });
+        } else {
+            seen_ids[id_idx] = true;
+        }
+
+        if scenario.title.is_empty() {
+            issues.push(BddGridValidationIssue::EmptyTitle { id: scenario.id });
+        }
+        if scenario.reference.is_empty() {
+            issues.push(BddGridValidationIssue::EmptyReference { id: scenario.id });
+        }
+    }
+
+    issues
+}
+
+/// Return true when a scenario grid passes integrity validation.
+pub fn bdd_grid_is_valid(scenarios: &[BddScenario]) -> bool {
+    bdd_grid_validation_issues(scenarios).is_empty()
+}
+
 /// GLR conflict-preservation scenario ledger.
 pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
     BddScenario {
@@ -189,5 +275,55 @@ mod tests {
             bdd_progress_report(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, "Runtime");
         assert!(report.contains("Runtime"));
         assert!(report.contains("Scenario 1"));
+    }
+
+    #[test]
+    fn canonical_grid_passes_validation() {
+        let issues = bdd_grid_validation_issues(GLR_CONFLICT_PRESERVATION_GRID);
+        assert!(issues.is_empty());
+        assert!(bdd_grid_is_valid(GLR_CONFLICT_PRESERVATION_GRID));
+    }
+
+    #[test]
+    fn validation_detects_duplicate_out_of_order_and_empty_fields() {
+        let scenarios = [
+            BddScenario {
+                id: 2,
+                title: "",
+                reference: "ref-2",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 1,
+                title: "scenario-1",
+                reference: "",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 1,
+                title: "scenario-1-duplicate",
+                reference: "ref-1b",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+        ];
+
+        let issues = bdd_grid_validation_issues(&scenarios);
+        assert!(issues.contains(&BddGridValidationIssue::EmptyTitle { id: 2 }));
+        assert!(issues.contains(&BddGridValidationIssue::OutOfOrderId {
+            previous: 2,
+            current: 1,
+        }));
+        assert!(issues.contains(&BddGridValidationIssue::EmptyReference { id: 1 }));
+        assert!(issues.contains(&BddGridValidationIssue::DuplicateId { id: 1 }));
+        assert!(!bdd_grid_is_valid(&scenarios));
+    }
+
+    #[test]
+    fn validation_issue_message_is_human_readable() {
+        let duplicate = BddGridValidationIssue::DuplicateId { id: 7 };
+        assert_eq!(duplicate.message(), "duplicate scenario id: 7");
     }
 }
