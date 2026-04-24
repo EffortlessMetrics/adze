@@ -76,6 +76,8 @@ struct GlrState {
 impl<'t> Driver<'t> {
     /// Maximum insertions allowed at a single position before forcing skip
     const MAX_INSERTS_PER_POS: u32 = 3;
+    /// Hard cap on the number of active stacks to prevent exponential GLR blow-ups.
+    const MAX_ACTIVE_STACKS: usize = 1024;
 
     /// Create a new driver with the given parse tables
     pub fn new(tables: &'t ParseTable) -> Self {
@@ -267,7 +269,7 @@ impl<'t> Driver<'t> {
                             s2.states.push(ns);
                             s2.nodes.push(node_id);
                             s2.pos = token_end;
-                            new_stacks.push(s2);
+                            self.push_limited_stack(&mut new_stacks, s2, "shifting a token")?;
                         }
                         Action::Accept => {
                             if let Some(&root_id) = stk.nodes.last()
@@ -301,7 +303,11 @@ impl<'t> Driver<'t> {
                                     s3.states.push(ns);
                                     s3.nodes.push(node_id);
                                     s3.pos = token_end;
-                                    new_stacks.push(s3);
+                                    self.push_limited_stack(
+                                        &mut new_stacks,
+                                        s3,
+                                        "branching after a reduction",
+                                    )?;
                                 }
                             }
                         }
@@ -342,6 +348,13 @@ impl<'t> Driver<'t> {
                     t.inc_fork_by((new_stacks.len() - 1) as u64);
                 }
                 // Commit the new frontier
+                if new_stacks.len() > Self::MAX_ACTIVE_STACKS {
+                    return Err(GlrError::Parse(format!(
+                        "parse aborted: active stack limit ({}) exceeded while processing byte {}",
+                        Self::MAX_ACTIVE_STACKS,
+                        pos,
+                    )));
+                }
                 state.stacks = new_stacks;
                 inserts_at_pos = 0; // Reset counter on successful real token
             }
@@ -418,6 +431,23 @@ impl<'t> Driver<'t> {
                 .map(|top| !self.tables.actions(top, sym).is_empty())
                 .unwrap_or(false)
         })
+    }
+
+    fn push_limited_stack(
+        &self,
+        stacks: &mut Vec<ParseStack>,
+        stack: ParseStack,
+        context: &str,
+    ) -> Result<(), GlrError> {
+        if stacks.len() >= Self::MAX_ACTIVE_STACKS {
+            return Err(GlrError::Parse(format!(
+                "parse aborted: active stack limit ({}) exceeded while {}",
+                Self::MAX_ACTIVE_STACKS,
+                context,
+            )));
+        }
+        stacks.push(stack);
+        Ok(())
     }
 
     /// Parse from a token stream.
@@ -498,7 +528,7 @@ impl<'t> Driver<'t> {
                             s2.states.push(ns);
                             s2.nodes.push(node_id);
                             s2.pos = end as usize; // Update position to token end
-                            new_stacks.push(s2);
+                            self.push_limited_stack(&mut new_stacks, s2, "shifting a token")?;
                         }
                         Action::Accept => {
                             // Accept on lookahead (rare, usually on EOF)
@@ -541,7 +571,11 @@ impl<'t> Driver<'t> {
                                     s3.states.push(ns);
                                     s3.nodes.push(node_id);
                                     s3.pos = end as usize; // Update position to token end
-                                    new_stacks.push(s3);
+                                    self.push_limited_stack(
+                                        &mut new_stacks,
+                                        s3,
+                                        "branching after a reduction",
+                                    )?;
                                 }
                             }
                         }
@@ -566,7 +600,11 @@ impl<'t> Driver<'t> {
                                     s2.states.push(ns);
                                     s2.nodes.push(node_id);
                                     s2.pos = end as usize; // Update position to token end
-                                    new_stacks.push(s2);
+                                    self.push_limited_stack(
+                                        &mut new_stacks,
+                                        s2,
+                                        "shifting a token",
+                                    )?;
                                 } else if let Action::Reduce(rid) = *a {
                                     let mut s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
                                     self.reduce_closure(&mut state, &mut s2, lookahead)?;
@@ -583,7 +621,11 @@ impl<'t> Driver<'t> {
                                             s3.states.push(ns);
                                             s3.nodes.push(node_id);
                                             s3.pos = end as usize;
-                                            new_stacks.push(s3);
+                                            self.push_limited_stack(
+                                                &mut new_stacks,
+                                                s3,
+                                                "branching after a reduction",
+                                            )?;
                                         }
                                     }
                                 }
@@ -617,6 +659,13 @@ impl<'t> Driver<'t> {
                     start, top_state.0, lookahead.0
                 )));
             } else {
+                if new_stacks.len() > Self::MAX_ACTIVE_STACKS {
+                    return Err(GlrError::Parse(format!(
+                        "parse aborted: active stack limit ({}) exceeded at byte {}",
+                        Self::MAX_ACTIVE_STACKS,
+                        start,
+                    )));
+                }
                 state.stacks = new_stacks;
             }
         }
