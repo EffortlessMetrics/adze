@@ -14,6 +14,7 @@ use adze_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use anyhow::{Result, anyhow, bail};
 use std::collections::HashSet;
 use std::rc::Rc;
+use std::time::Instant;
 
 const PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED: &str = "Custom lexer functions are not yet supported by parser_v4 runtime. \
      Provide a grammar/tokenization path without a custom transform lexer.";
@@ -136,6 +137,8 @@ pub struct Parser {
     custom_lexer_fn: Option<
         unsafe extern "C" fn(*mut core::ffi::c_void, crate::pure_parser::TSLexState) -> bool,
     >,
+    /// Maximum parse duration in microseconds. A value of 0 disables timeouts.
+    timeout_micros: u64,
 }
 
 impl Parser {
@@ -237,6 +240,7 @@ impl Parser {
             external_runtime,
             language,
             custom_lexer_fn: None,
+            timeout_micros: 0,
         }
     }
 
@@ -305,6 +309,7 @@ impl Parser {
             external_runtime,
             language: language_name,
             custom_lexer_fn,
+            timeout_micros: 0,
         }
     }
 
@@ -360,7 +365,18 @@ impl Parser {
             external_runtime,
             language,
             custom_lexer_fn: None,
+            timeout_micros: 0,
         }
+    }
+
+    /// Sets the maximum time the parser may run in microseconds.
+    pub fn set_timeout_micros(&mut self, timeout: u64) {
+        self.timeout_micros = timeout;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn timeout_micros(&self) -> u64 {
+        self.timeout_micros
     }
 
     /// Get current arena metrics
@@ -585,8 +601,17 @@ impl Parser {
         // Main parsing loop with safety limits
         let mut loop_iterations = 0;
         const MAX_LOOP_ITERATIONS: usize = 1_000_000; // Prevent infinite loops
+        let start_time = Instant::now();
 
         loop {
+            if self.timeout_micros > 0
+                && start_time.elapsed().as_micros() as u64 > self.timeout_micros
+            {
+                bail!(
+                    "Parser timed out after {} microseconds",
+                    self.timeout_micros
+                );
+            }
             // Safety check to prevent infinite loops
             loop_iterations += 1;
             if loop_iterations > MAX_LOOP_ITERATIONS {
