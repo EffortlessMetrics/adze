@@ -587,6 +587,41 @@ fn ambiguous_grammar_two_tokens_parse() {
     assert_eq!(view.span(root).start, 0);
     assert_eq!(view.span(root).end, 2);
 }
+#[test]
+fn ambiguous_grammar_large_input_hits_active_stack_limit() {
+    let mut symbol_to_index = std::collections::BTreeMap::new();
+    symbol_to_index.insert(SymbolId(0), 0);
+    symbol_to_index.insert(SymbolId(1), 1);
+
+    let table = ParseTable {
+        state_count: 1,
+        symbol_count: 2,
+        symbol_to_index,
+        start_symbol: SymbolId(1),
+        index_to_symbol: vec![SymbolId(0), SymbolId(1)],
+        action_table: vec![vec![
+            vec![Action::Accept],
+            vec![Action::Fork(vec![
+                Action::Shift(StateId(0)),
+                Action::Shift(StateId(0)),
+            ])],
+        ]],
+        goto_table: vec![vec![]],
+        ..Default::default()
+    };
+
+    let tokens = (0..11).map(|i| (1_u32, i, i + 1));
+    let mut driver = Driver::new(&table);
+    let err = match driver.parse_tokens(tokens) {
+        Ok(_) => panic!("ambiguous input should trip the active stack guard"),
+        Err(err) => err,
+    };
+
+    assert!(
+        err.to_string().contains("active stack limit"),
+        "unexpected error: {err}"
+    );
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // 10. Driver reset / reuse
