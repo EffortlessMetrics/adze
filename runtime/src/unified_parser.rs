@@ -59,12 +59,11 @@ impl Parser {
         let language_name = name.to_string();
 
         // Create a V4 (GLR) parser for this language
-        let v4_parser = parser_v4::Parser::from_language(language, language_name.clone());
+        let mut v4_parser = parser_v4::Parser::from_language(language, language_name.clone());
 
         // Apply any previously set timeout
-        if let Some(_timeout) = self.timeout_micros {
-            // TODO: Add timeout support to parser_v4
-            // v4_parser.set_timeout(timeout);
+        if let Some(timeout) = self.timeout_micros {
+            v4_parser.set_timeout_micros(timeout);
         }
 
         self.inner = Some(v4_parser);
@@ -187,10 +186,9 @@ impl Parser {
     /// * `timeout_micros` - Timeout in microseconds (0 = no timeout)
     pub fn set_timeout_micros(&mut self, timeout_micros: u64) {
         self.timeout_micros = Some(timeout_micros);
-        // TODO: Add timeout support to parser_v4
-        // if let Some(ref mut parser) = self.inner {
-        //     parser.set_timeout(timeout_micros);
-        // }
+        if let Some(ref mut parser) = self.inner {
+            parser.set_timeout_micros(timeout_micros);
+        }
     }
 
     /// Reset the parser state
@@ -271,6 +269,23 @@ mod tests {
         // Then
         assert!(debug.contains("language: None"));
         assert!(debug.contains("has_timeout: true"));
+    }
+
+    #[test]
+    fn given_timeout_is_set_when_inner_parser_exists_then_timeout_is_propagated() {
+        let mut parser = Parser::new();
+        parser.inner = Some(parser_v4::Parser::new(
+            adze_ir::Grammar::new("test".to_string()),
+            adze_glr_core::ParseTable::default(),
+            "test".to_string(),
+        ));
+
+        parser.set_timeout_micros(7_500);
+
+        assert_eq!(
+            parser.inner.as_ref().map(parser_v4::Parser::timeout_micros),
+            Some(7_500)
+        );
     }
 
     #[test]
