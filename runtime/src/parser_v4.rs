@@ -17,6 +17,9 @@ use std::rc::Rc;
 
 const PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED: &str = "Custom lexer functions are not yet supported by parser_v4 runtime. \
      Provide a grammar/tokenization path without a custom transform lexer.";
+const GLR_CONFLICT_REQUIRES_TRUE_GLR: &str = "Encountered parse-table conflict (Action::Fork) in parser_v4. \
+     parser_v4 no longer degrades conflicts into first-success fallback; route conflicted grammars to \
+     the GLR parser engine (runtime/src/glr_parser.rs).";
 
 // Define types directly in parser_v4 (no longer dependent on parser_v3)
 
@@ -795,113 +798,13 @@ impl Parser {
                 }
 
                 Action::Fork(actions) => {
-                    // GLR fork point - multiple valid parse paths
-                    // Quick implementation: try each action in sequence, use first successful one
-                    // #[cfg(feature = "debug")]
-                    // eprintln!(
-                    // "Fork with {} actions at state {}",
-                    // actions.len(),
-                    // current_state.0
-                    // );
-
-                    let mut fork_succeeded = false;
-                    for fork_action in actions.iter() {
-                        // #[cfg(feature = "debug")]
-                        // eprintln!("  Trying fork action {}: {:?}", _i, fork_action);
-
-                        // Clone the current parser state for this fork
-                        let saved_state_stack = state_stack.clone();
-                        let saved_symbol_stack = symbol_stack.clone();
-                        let saved_node_stack = node_stack.clone();
-
-                        // Try to apply the action
-                        match fork_action {
-                            Action::Shift(next_state) => {
-                                // Apply shift as normal
-                                let node = ParseNode {
-                                    symbol: token.symbol,
-                                    symbol_id: token.symbol,
-                                    start_byte: token.start,
-                                    end_byte: token.end,
-                                    children: vec![],
-                                    field_name: None,
-                                };
-
-                                state_stack.push(*next_state);
-                                symbol_stack.push(token.symbol);
-                                node_stack.push(node);
-
-                                // Advance position
-                                current_position = token.end;
-                                fork_succeeded = true;
-                                break;
-                            }
-                            Action::Reduce(rule_id) => {
-                                // Apply reduce as normal
-                                let rule = self.find_rule_by_production_id(*rule_id)?;
-                                let child_count = rule.rhs_len;
-
-                                // Pop items from stacks
-                                let mut children = Vec::new();
-                                for _ in 0..child_count {
-                                    state_stack.pop();
-                                    symbol_stack.pop();
-                                    if let Some(child) = node_stack.pop() {
-                                        children.push(child);
-                                    }
-                                }
-                                children.reverse();
-
-                                // Create a parent node
-                                let start_byte = children
-                                    .first()
-                                    .map(|n| n.start_byte)
-                                    .unwrap_or(current_position);
-                                let end_byte = children
-                                    .last()
-                                    .map(|n| n.end_byte)
-                                    .unwrap_or(current_position);
-                                let parent_node = ParseNode {
-                                    symbol: rule.lhs,
-                                    symbol_id: rule.lhs,
-                                    start_byte,
-                                    end_byte,
-                                    children,
-                                    field_name: None,
-                                };
-
-                                // Get the goto state
-                                let goto_from_state = *state_stack.last().ok_or_else(|| {
-                                    anyhow!(
-                                        "State stack is empty after fork-path reduce of rule {:?}",
-                                        rule_id
-                                    )
-                                })?;
-                                let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
-
-                                // Push the new state and symbol
-                                state_stack.push(goto_state);
-                                symbol_stack.push(rule.lhs);
-                                node_stack.push(parent_node);
-
-                                fork_succeeded = true;
-                                break;
-                            }
-                            _ => {
-                                // Try next fork action
-                                state_stack = saved_state_stack.clone();
-                                symbol_stack = saved_symbol_stack.clone();
-                                node_stack = saved_node_stack.clone();
-                            }
-                        }
-                    }
-
-                    if !fork_succeeded {
-                        // #[cfg(feature = "debug")]
-                        // eprintln!("All fork actions failed");
-                        error_count += 1;
-                        current_position += 1;
-                    }
+                    bail!(
+                        "{} state={} lookahead={} actions={:?}",
+                        GLR_CONFLICT_REQUIRES_TRUE_GLR,
+                        current_state.0,
+                        lookahead.0,
+                        actions
+                    );
                 }
 
                 _ => {

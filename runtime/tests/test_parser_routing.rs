@@ -196,3 +196,59 @@ mod test_helpers {
         false
     }
 }
+
+#[cfg(all(feature = "pure-rust", feature = "glr"))]
+mod conflicted_table_behavior {
+    use adze::parser_v4::Parser;
+    use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
+    use adze_ir::builder::GrammarBuilder;
+
+    fn make_conflicted_parser() -> Parser {
+        // Ambiguous expression grammar: expr -> expr - expr | num
+        let mut grammar = GrammarBuilder::new("ambiguous_for_routing")
+            .token("num", "[0-9]+")
+            .token("minus", "-")
+            .rule("expr", vec!["num"])
+            .rule("expr", vec!["expr", "minus", "expr"])
+            .start("expr")
+            .build();
+        grammar.normalize();
+        let ff = FirstFollowSets::compute_normalized(&mut grammar).expect("first/follow");
+        let table = build_lr1_automaton(&grammar, &ff).expect("lr1 table");
+        Parser::new(grammar, table, "ambiguous_for_routing".to_string())
+    }
+
+    #[test]
+    fn parser_routing_conflicted_table_is_not_first_success_fallback() {
+        let mut parser = make_conflicted_parser();
+
+        // Sanity-check that this table is genuinely conflicted.
+        let has_conflict = parser
+            .parse_table()
+            .action_table
+            .iter()
+            .flat_map(|row| row.iter())
+            .any(|cell| {
+                cell.len() > 1 || cell.iter().any(|action| matches!(action, Action::Fork(_)))
+            });
+        assert!(
+            has_conflict,
+            "test fixture should produce a conflicted table"
+        );
+
+        // Prior behavior silently picked a branch from Action::Fork.
+        // New behavior must fail explicitly instead of ordered fallback.
+        let err = parser
+            .parse_tree_with_error_count("1-2-3")
+            .expect_err("conflicted parser_v4 path should reject fallback parsing");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Action::Fork"),
+            "error should explain conflict handling, got: {msg}"
+        );
+        assert!(
+            msg.contains("route conflicted grammars to the GLR parser engine"),
+            "error should direct users to GLR parser, got: {msg}"
+        );
+    }
+}
