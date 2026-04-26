@@ -1139,16 +1139,6 @@ impl Parser {
             return Ok(None);
         }
 
-        // Convert valid externals to bool array
-        let Some(runtime) = self.external_runtime.as_ref() else {
-            return Ok(None);
-        };
-        let _valid_symbols: Vec<bool> = runtime
-            .get_external_tokens()
-            .iter()
-            .map(|token| valid_externals.contains(&SymbolId(*token)))
-            .collect();
-
         // Create a simple lexer adapter
         struct LexerAdapter<'a> {
             parser: &'a mut Parser,
@@ -1209,6 +1199,14 @@ impl Parser {
         self.external_scanner = Some(scanner);
 
         if let Some(result) = scan_result {
+            if !valid_symbols
+                .get(result.symbol as usize)
+                .copied()
+                .unwrap_or(false)
+            {
+                return Ok(None);
+            }
+
             // Extract token text
             let end = self.position + result.length;
             let text = if end <= self.input.len() {

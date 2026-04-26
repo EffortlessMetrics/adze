@@ -132,6 +132,11 @@ impl ExternalScannerRuntime {
 
         // Scan for external tokens
         if let Some(result) = scanner.scan(lexer, &valid_symbols) {
+            let result_idx = result.symbol as usize;
+            if !valid_symbols.get(result_idx).copied().unwrap_or(false) {
+                return None;
+            }
+
             // Serialize updated state
             self.state.data.clear();
             scanner.serialize(&mut self.state.data);
