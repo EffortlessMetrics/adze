@@ -5,6 +5,8 @@
 
 use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
+use std::fs;
+use tempfile::tempdir;
 
 // ---------------------------------------------------------------------------
 // End-to-end smoke tests (lightweight — no grammar compilation)
@@ -65,6 +67,75 @@ fn test_cli_unknown_command() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("unrecognized subcommand"));
+}
+
+#[test]
+fn test_init_generates_buildable_project() {
+    let temp = tempdir().expect("tempdir should be created");
+    let project_name = "mylang";
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.current_dir(temp.path())
+        .arg("init")
+        .arg(project_name)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Project created"));
+
+    let project_dir = temp.path().join(project_name);
+    assert!(
+        project_dir.join("Cargo.toml").exists(),
+        "generated project should include Cargo.toml"
+    );
+
+    let mut check_cmd = std::process::Command::new("cargo");
+    check_cmd.current_dir(&project_dir).arg("check");
+    let status = check_cmd
+        .status()
+        .expect("cargo check should run in generated project");
+    assert!(
+        status.success(),
+        "generated project should pass cargo check"
+    );
+}
+
+#[test]
+fn test_parse_static_mode_reports_unimplemented_behavior() {
+    let temp = tempdir().expect("tempdir should be created");
+    let grammar = temp.path().join("grammar.rs");
+    let input = temp.path().join("input.txt");
+    fs::write(&grammar, "// placeholder grammar path").expect("grammar file should be written");
+    fs::write(&input, "42;").expect("input file should be written");
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("parse")
+        .arg(&grammar)
+        .arg(&input)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "static parse mode is experimental and not yet implemented in adze-cli",
+        ));
+}
+
+#[test]
+fn test_init_sanitizes_grammar_name_for_non_identifier_project_names() {
+    let temp = tempdir().expect("tempdir should be created");
+    let project_name = "my-lang";
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.current_dir(temp.path())
+        .arg("init")
+        .arg(project_name)
+        .assert()
+        .success();
+
+    let grammar_file = temp.path().join(project_name).join("src/grammar.rs");
+    let grammar_source = fs::read_to_string(grammar_file).expect("grammar file should exist");
+    assert!(
+        grammar_source.contains(r#"#[adze::grammar("my_lang")]"#),
+        "grammar name should be sanitized to a valid identifier-like token"
+    );
 }
 
 // ---------------------------------------------------------------------------
