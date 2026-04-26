@@ -53,7 +53,7 @@ fn encode_action_small_accept() {
 }
 
 #[test]
-fn compressed_tables_validate_empty() {
+fn compressed_tables_validate_empty_rejects() {
     let pt = adze_glr_core::ParseTable::default();
     let tables = CompressedTables {
         action_table: CompressedActionTable {
@@ -68,7 +68,7 @@ fn compressed_tables_validate_empty() {
         small_table_threshold: 0,
     };
     let result = tables.validate(&pt);
-    assert!(result.is_ok());
+    assert!(result.is_err());
 }
 
 #[test]
