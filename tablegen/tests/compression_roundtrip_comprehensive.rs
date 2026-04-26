@@ -50,6 +50,17 @@ fn single_action_table(rows: Vec<Vec<Action>>) -> Vec<Vec<Vec<Action>>> {
         .collect()
 }
 
+fn accepting_states_on_eof(table: &adze_glr_core::ParseTable) -> Vec<usize> {
+    let eof_col = table.symbol_to_index[&table.eof_symbol];
+    (0..table.state_count)
+        .filter(|&state| {
+            table.action_table[state]
+                .get(eof_col)
+                .is_some_and(|cell| cell.iter().any(|a| matches!(a, Action::Accept)))
+        })
+        .collect()
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. Compression of parse tables from simple grammars
 // ═══════════════════════════════════════════════════════════════════════════
@@ -772,9 +783,63 @@ fn pipeline_validates_compressed_tables() {
             .start("start")
             .build()
     });
-    // validate() currently returns Ok unconditionally, but this tests the API
     let result = compressed.validate(&pt);
     assert!(result.is_ok(), "validation should pass: {:?}", result.err());
+}
+
+#[test]
+fn pipeline_preserves_accept_on_eof_for_each_accepting_state() {
+    let (pt, compressed) = pipeline(|| {
+        GrammarBuilder::new("accept_eof_roundtrip")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    let accepting_states = accepting_states_on_eof(&pt);
+    assert!(
+        !accepting_states.is_empty(),
+        "source parse table must have at least one accepting state on EOF"
+    );
+
+    compressed
+        .validate(&pt)
+        .expect("compressed table should preserve Accept on EOF");
+}
+
+#[test]
+fn validation_rejects_missing_accept_on_eof_after_tamper() {
+    let (pt, mut compressed) = pipeline(|| {
+        GrammarBuilder::new("accept_eof_negative")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    let eof_col = pt.symbol_to_index[&pt.eof_symbol] as u16;
+    let accept_state = accepting_states_on_eof(&pt)
+        .into_iter()
+        .next()
+        .expect("expected at least one accepting state");
+
+    let row_start = compressed.action_table.row_offsets[accept_state] as usize;
+    let row_end = compressed.action_table.row_offsets[accept_state + 1] as usize;
+    let accept_entry_index = compressed.action_table.data[row_start..row_end]
+        .iter()
+        .position(|entry| entry.symbol == eof_col && matches!(entry.action, Action::Accept))
+        .expect("accept action for EOF must exist before tampering");
+    compressed.action_table.data[row_start + accept_entry_index].action = Action::Error;
+
+    let err = compressed
+        .validate(&pt)
+        .expect_err("validation must fail when Accept-on-EOF is removed");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("Accept-on-EOF lost"),
+        "error should mention Accept-on-EOF loss, got: {msg}"
+    );
 }
 
 #[test]
