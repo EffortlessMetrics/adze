@@ -125,6 +125,22 @@ impl Default for TableCompressor {
 }
 
 impl TableCompressor {
+    fn checked_u16(&self, value: usize, id_type: &str, context: &str) -> Result<u16> {
+        u16::try_from(value).map_err(|_| {
+            TableGenError::Compression(format!(
+                "{id_type} {value} exceeds u16::MAX while {context}; compression would truncate data"
+            ))
+        })
+    }
+
+    fn checked_row_offset(&self, value: usize, table_kind: &str, row: usize) -> Result<u16> {
+        self.checked_u16(
+            value,
+            "row offset",
+            &format!("encoding {table_kind} row {row}"),
+        )
+    }
+
     /// Create a new compressor with default thresholds.
     #[must_use]
     pub fn new() -> Self {
@@ -405,7 +421,8 @@ impl TableCompressor {
             let default_action = Action::Error;
 
             default_actions.push(default_action.clone());
-            row_offsets.push(entries.len() as u16);
+            let row_index = row_offsets.len();
+            row_offsets.push(self.checked_row_offset(entries.len(), "action table", row_index)?);
 
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
@@ -417,7 +434,16 @@ impl TableCompressor {
 
                     // Use the mapped index directly, not the original symbol ID
                     // This ensures terminals (index < token_count) are correctly identified
-                    let symbol_id = index as u16;
+                    let symbol_id = self.checked_u16(
+                        index,
+                        "symbol id",
+                        &format!("encoding action table row {row_index}"),
+                    )?;
+                    self.encode_action_small(action).map_err(|err| {
+                        TableGenError::Compression(format!(
+                            "invalid action id at action row {row_index}, symbol {index}: {err}"
+                        ))
+                    })?;
 
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
@@ -427,7 +453,11 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(self.checked_row_offset(
+            entries.len(),
+            "action table",
+            action_table.len(),
+        )?);
 
         // Validate row_offsets are strictly increasing
         for i in 1..row_offsets.len() {
@@ -466,10 +496,11 @@ impl TableCompressor {
         let mut row_offsets = Vec::new();
 
         for row in goto_table {
-            row_offsets.push(entries.len() as u16);
+            let row_index = row_offsets.len();
+            row_offsets.push(self.checked_row_offset(entries.len(), "goto table", row_index)?);
 
             let mut last_state = None;
-            let mut run_length = 0;
+            let mut run_length: usize = 0;
 
             for &state_id in row {
                 if last_state == Some(state_id.0) {
@@ -480,10 +511,12 @@ impl TableCompressor {
                         let state = last_state.expect("run_length > 0 implies last_state is set");
                         // Emit previous run
                         if run_length > 2 {
-                            entries.push(CompressedGotoEntry::RunLength {
-                                state,
-                                count: run_length,
-                            });
+                            let count = self.checked_u16(
+                                run_length,
+                                "goto run length",
+                                &format!("encoding goto row {row_index}"),
+                            )?;
+                            entries.push(CompressedGotoEntry::RunLength { state, count });
                         } else {
                             // For short runs, individual entries are more efficient
                             for _ in 0..run_length {
@@ -499,10 +532,12 @@ impl TableCompressor {
             if run_length > 0 {
                 let state = last_state.expect("run_length > 0 implies last_state is set");
                 if run_length > 2 {
-                    entries.push(CompressedGotoEntry::RunLength {
-                        state,
-                        count: run_length,
-                    });
+                    let count = self.checked_u16(
+                        run_length,
+                        "goto run length",
+                        &format!("encoding goto row {row_index}"),
+                    )?;
+                    entries.push(CompressedGotoEntry::RunLength { state, count });
                 } else {
                     for _ in 0..run_length {
                         entries.push(CompressedGotoEntry::Single(state));
@@ -511,7 +546,7 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(self.checked_row_offset(entries.len(), "goto table", goto_table.len())?);
 
         Ok(CompressedGotoTable {
             data: entries,

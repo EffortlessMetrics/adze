@@ -1153,3 +1153,35 @@ fn cb_v9_bitpack_all_reduce_row() {
         );
     }
 }
+
+#[test]
+fn cb_v9_rejects_action_symbol_id_over_u16() {
+    let compressor = TableCompressor::new();
+    let action_table = vec![vec![vec![Action::Shift(StateId(1))]]];
+    let symbol_to_index = std::collections::BTreeMap::from([(adze_ir::SymbolId(1), 70000usize)]);
+
+    let err = compressor
+        .compress_action_table_small(&action_table, &symbol_to_index)
+        .expect_err("compression should reject symbol ids above u16 width");
+
+    let msg = err.to_string();
+    assert!(msg.contains("symbol id 70000 exceeds u16::MAX"), "{msg}");
+}
+
+#[test]
+fn cb_v9_rejects_action_row_offset_over_u16() {
+    let compressor = TableCompressor::new();
+    let mut action_row = Vec::with_capacity(65536);
+    for _ in 0..65536 {
+        action_row.push(vec![Action::Shift(StateId(1))]);
+    }
+    let action_table = vec![action_row];
+    let symbol_to_index = std::collections::BTreeMap::new();
+
+    let err = compressor
+        .compress_action_table_small(&action_table, &symbol_to_index)
+        .expect_err("compression should reject row_offsets above u16 width");
+
+    let msg = err.to_string();
+    assert!(msg.contains("row offset 65536 exceeds u16::MAX"), "{msg}");
+}
