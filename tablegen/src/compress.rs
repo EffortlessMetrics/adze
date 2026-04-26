@@ -53,9 +53,86 @@ pub struct CompressedTables {
 impl CompressedTables {
     /// Validate compressed tables against original parse table
     #[must_use = "validation result must be checked"]
-    pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
-        // TODO: Implement validation logic
-        // For now, just return Ok to make tests compile
+    pub fn validate(&self, parse_table: &ParseTable) -> Result<()> {
+        // Allow trivially empty parse tables used by a few unit tests.
+        if parse_table.state_count == 0 {
+            return Ok(());
+        }
+
+        let expected_rows = parse_table.state_count + 1;
+        if self.action_table.row_offsets.len() != expected_rows {
+            return Err(TableGenError::Compression(format!(
+                "action row_offsets length mismatch: got {}, expected {}",
+                self.action_table.row_offsets.len(),
+                expected_rows
+            )));
+        }
+        if self.goto_table.row_offsets.len() != expected_rows {
+            return Err(TableGenError::Compression(format!(
+                "goto row_offsets length mismatch: got {}, expected {}",
+                self.goto_table.row_offsets.len(),
+                expected_rows
+            )));
+        }
+        if self.action_table.default_actions.len() != parse_table.state_count {
+            return Err(TableGenError::Compression(format!(
+                "default_actions length mismatch: got {}, expected {}",
+                self.action_table.default_actions.len(),
+                parse_table.state_count
+            )));
+        }
+
+        // Core invariant: every original accepting state must still expose Accept on EOF
+        // after compression.
+        let eof_col = *parse_table
+            .symbol_to_index
+            .get(&parse_table.eof_symbol)
+            .ok_or_else(|| {
+                TableGenError::Compression(format!(
+                    "EOF symbol {} missing from symbol_to_index",
+                    parse_table.eof_symbol.0
+                ))
+            })?;
+
+        let mut missing_accept_states = Vec::new();
+        for state in 0..parse_table.state_count {
+            let original_accepts_eof = parse_table.action_table[state]
+                .get(eof_col)
+                .is_some_and(|cell| cell.iter().any(|a| matches!(a, Action::Accept)));
+            if !original_accepts_eof {
+                continue;
+            }
+
+            let row_start = self.action_table.row_offsets[state] as usize;
+            let row_end = self.action_table.row_offsets[state + 1] as usize;
+            if row_end > self.action_table.data.len() || row_start > row_end {
+                return Err(TableGenError::Compression(format!(
+                    "invalid action row slice for state {}: {}..{} (len={})",
+                    state,
+                    row_start,
+                    row_end,
+                    self.action_table.data.len()
+                )));
+            }
+
+            let compressed_accepts_eof =
+                self.action_table.data[row_start..row_end]
+                    .iter()
+                    .any(|entry| {
+                        entry.symbol as usize == eof_col && matches!(entry.action, Action::Accept)
+                    });
+            if !compressed_accepts_eof {
+                missing_accept_states.push(state);
+            }
+        }
+
+        if !missing_accept_states.is_empty() {
+            return Err(TableGenError::Compression(format!(
+                "Accept-on-EOF lost for states {:?}",
+                missing_accept_states
+            )));
+        }
+
         Ok(())
     }
 }

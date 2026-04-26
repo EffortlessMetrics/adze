@@ -9,7 +9,10 @@
 
 use std::collections::BTreeMap;
 
-use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
+use adze_glr_core::{
+    Action, FirstFollowSets, GotoIndexing, LexMode, ParseTable, build_lr1_automaton,
+};
+use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     ExternalToken, FieldId, Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
     TokenPattern,
@@ -19,6 +22,7 @@ use adze_tablegen::compress::{
     CompressedTables,
 };
 use adze_tablegen::serializer::{SerializableLanguage, SerializableLexState, serialize_language};
+use adze_tablegen::{TableCompressor, collect_token_indices, eof_accepts_or_reduces};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -600,6 +604,56 @@ fn serialize_compressed_tables_row_offsets_preserved() {
     assert_eq!(offsets[0].as_u64().unwrap(), 0);
     assert_eq!(offsets[1].as_u64().unwrap(), 2);
     assert_eq!(offsets[2].as_u64().unwrap(), 3);
+}
+
+#[test]
+fn serialize_compressed_tables_preserves_accept_on_eof_entries() {
+    let mut grammar = GrammarBuilder::new("serialize_accept_eof")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute_normalized(&mut grammar).expect("first/follow");
+    let parse_table = build_lr1_automaton(&grammar, &ff).expect("lr automaton");
+    let token_indices = collect_token_indices(&grammar, &parse_table);
+    let compressed = TableCompressor::new()
+        .compress(
+            &parse_table,
+            &token_indices,
+            eof_accepts_or_reduces(&parse_table),
+        )
+        .expect("compress");
+
+    let eof_col = parse_table.symbol_to_index[&parse_table.eof_symbol] as u16;
+    let accepting_states: Vec<_> = (0..parse_table.state_count)
+        .filter(|&state| {
+            parse_table.action_table[state][eof_col as usize]
+                .iter()
+                .any(|a| matches!(a, Action::Accept))
+        })
+        .collect();
+    assert!(
+        !accepting_states.is_empty(),
+        "expected at least one accepting state on EOF before serialization"
+    );
+
+    let json = adze_tablegen::serializer::serialize_compressed_tables(&compressed).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+    let entries = v["action_table"]["entries"].as_array().unwrap();
+    let row_offsets = v["action_table"]["row_offsets"].as_array().unwrap();
+
+    for state in accepting_states {
+        let row_start = row_offsets[state].as_u64().unwrap() as usize;
+        let row_end = row_offsets[state + 1].as_u64().unwrap() as usize;
+        let has_accept_on_eof = (row_start..row_end).any(|i| {
+            let pair = entries[i].as_array().unwrap();
+            pair[0].as_u64().unwrap() as u16 == eof_col && pair[1].as_str().unwrap() == "Accept"
+        });
+        assert!(
+            has_accept_on_eof,
+            "serialized compressed row for state {state} lost Accept on EOF"
+        );
+    }
 }
 
 #[test]
