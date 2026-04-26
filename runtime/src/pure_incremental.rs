@@ -8,6 +8,21 @@ use std::ops::Range;
 // Re-export Point so tests can keep using pure_incremental::Point
 pub use crate::pure_parser::Point;
 
+/// Outcome classification for the last parse call.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IncrementalParseMode {
+    FreshParse,
+    FullReparseFallback,
+}
+
+/// Test-visible status for the last parse call.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IncrementalParseStatus {
+    pub mode: IncrementalParseMode,
+    pub reused_node_count: usize,
+    pub invalidated_ranges: Vec<Range<usize>>,
+}
+
 /// Edit operation for incremental parsing
 #[derive(Debug, Clone)]
 pub struct Edit {
@@ -112,6 +127,7 @@ impl Tree {
 pub struct IncrementalParser {
     parser: Parser,
     previous_tree: Option<Tree>,
+    last_status: IncrementalParseStatus,
 }
 
 impl Default for IncrementalParser {
@@ -126,6 +142,11 @@ impl IncrementalParser {
         IncrementalParser {
             parser: Parser::new(),
             previous_tree: None,
+            last_status: IncrementalParseStatus {
+                mode: IncrementalParseMode::FreshParse,
+                reused_node_count: 0,
+                invalidated_ranges: vec![],
+            },
         }
     }
 
@@ -146,6 +167,15 @@ impl IncrementalParser {
 
     /// Parse with incremental reuse
     pub fn parse(&mut self, source: &str, old_tree: Option<&Tree>) -> ParseResult {
+        self.parse_with_invalidated_ranges(source, old_tree, vec![])
+    }
+
+    fn parse_with_invalidated_ranges(
+        &mut self,
+        source: &str,
+        old_tree: Option<&Tree>,
+        invalidated_ranges: Vec<Range<usize>>,
+    ) -> ParseResult {
         // If we have an old tree, try to reuse nodes
         if let Some(tree) = old_tree {
             self.previous_tree = Some(tree.clone());
@@ -155,6 +185,17 @@ impl IncrementalParser {
 
             // TODO: Implement actual incremental parsing logic
             // For now, fall back to full reparse
+            self.last_status = IncrementalParseStatus {
+                mode: IncrementalParseMode::FullReparseFallback,
+                reused_node_count: 0,
+                invalidated_ranges,
+            };
+        } else {
+            self.last_status = IncrementalParseStatus {
+                mode: IncrementalParseMode::FreshParse,
+                reused_node_count: 0,
+                invalidated_ranges,
+            };
         }
 
         // Parse from scratch
@@ -168,6 +209,11 @@ impl IncrementalParser {
         }
 
         result
+    }
+
+    /// Returns status from the most recent parse call.
+    pub fn last_parse_status(&self) -> &IncrementalParseStatus {
+        &self.last_status
     }
 
     /// Parse with edits
@@ -185,7 +231,11 @@ impl IncrementalParser {
         }
 
         // Parse with the edited tree
-        self.parse(source, old_tree.as_ref())
+        let invalidated_ranges = edits
+            .iter()
+            .map(|edit| edit.start_byte..edit.old_end_byte)
+            .collect();
+        self.parse_with_invalidated_ranges(source, old_tree.as_ref(), invalidated_ranges)
     }
 }
 
@@ -197,6 +247,10 @@ mod tests {
     fn test_incremental_parser_creation() {
         let parser = IncrementalParser::new();
         assert!(parser.previous_tree.is_none());
+        assert_eq!(
+            parser.last_parse_status().mode,
+            IncrementalParseMode::FreshParse
+        );
     }
 
     #[test]
