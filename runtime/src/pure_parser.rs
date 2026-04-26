@@ -818,20 +818,20 @@ impl Parser {
                     && ext_lexer.result_symbol > 0
                     && (ext_lexer.result_symbol as usize) <= external_count
                 {
-                    let symbol = if !language.external_scanner.symbol_map.is_null() {
-                        *language
-                            .external_scanner
-                            .symbol_map
-                            .add(ext_lexer.result_symbol as usize)
-                    } else {
-                        ext_lexer.result_symbol
-                    };
+                    let symbol_index = ext_lexer.result_symbol as usize;
+                    if valid_symbols.get(symbol_index).copied().unwrap_or(0) != 0 {
+                        let symbol = if !language.external_scanner.symbol_map.is_null() {
+                            *language.external_scanner.symbol_map.add(symbol_index)
+                        } else {
+                            ext_lexer.result_symbol
+                        };
 
-                    return Token {
-                        symbol,
-                        length: ext_lexer.token_end,
-                        is_extra: false,
-                    };
+                        return Token {
+                            symbol,
+                            length: ext_lexer.token_end,
+                            is_extra: false,
+                        };
+                    }
                 }
             }
         }
