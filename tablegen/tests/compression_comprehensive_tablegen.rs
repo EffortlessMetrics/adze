@@ -778,11 +778,11 @@ fn multiple_compressions_identical() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TEST 21: Compression handles boundary state IDs
+// TEST 21: Compression rejects out-of-range small-table state IDs
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn compression_handles_boundary_state_ids() {
+fn compression_rejects_out_of_range_small_table_state_ids() {
     let mut table = make_empty_table(5, 3, 1, 0);
 
     // Use boundary state IDs
@@ -797,7 +797,14 @@ fn compression_handles_boundary_state_ids() {
 
     let compressor = TableCompressor::new();
     let result = compressor.compress(&table, &[1, 2, 3, 4], false);
-    assert!(result.is_ok(), "Should handle boundary state IDs");
+    match result {
+        Ok(_) => panic!("small-table compression must reject out-of-range shift states"),
+        Err(err) => {
+            let msg = err.to_string();
+            assert!(msg.contains("Shift state"));
+            assert!(msg.contains("too large for small table encoding"));
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
