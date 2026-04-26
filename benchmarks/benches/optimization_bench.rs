@@ -88,10 +88,12 @@ fn benchmark_arena_allocator(c: &mut Criterion) {
 }
 
 fn benchmark_combined_optimizations(c: &mut Criterion) {
-    let mut group = c.benchmark_group("combined_optimizations");
+    let mut group = c.benchmark_group("combined_optimizations_synthetic");
 
-    // Simulate a parsing workload with both optimizations
-    group.bench_function("parse_simulation", |b| {
+    // Synthetic benchmark: exercises allocator/stack behavior only.
+    // This intentionally does not invoke the parser and should not be treated
+    // as parser or GLR throughput evidence.
+    group.bench_function("synthetic_parse_like_workload", |b| {
         let pool = StackPool::new(32);
 
         b.iter(|| {
@@ -139,7 +141,7 @@ fn benchmark_combined_optimizations(c: &mut Criterion) {
 }
 
 fn benchmark_memory_patterns(c: &mut Criterion) {
-    let mut group = c.benchmark_group("memory_patterns");
+    let mut group = c.benchmark_group("memory_patterns_synthetic");
 
     // Test different allocation patterns
     group.bench_function("small_frequent", |b| {

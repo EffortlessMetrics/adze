@@ -8,7 +8,7 @@ use adze_ir::SymbolId;
 use glr_test_support::test_utilities::make_minimal_table;
 
 pub fn bench_parse_small(c: &mut Criterion) {
-    let mut g = c.benchmark_group("glr-perf-snapshot");
+    let mut g = c.benchmark_group("glr-perf-snapshot-micro");
 
     // Quick/stable knobs: default to "quick" for dev loops; unset for longer runs.
     if std::env::var_os("BENCH_QUICK").is_some() {
@@ -46,7 +46,7 @@ pub fn bench_parse_small(c: &mut Criterion) {
     }
 
     // Time only the hot path.
-    g.bench_function("small-parse", |b| {
+    g.bench_function("micro_eof_only_parse", |b| {
         b.iter(|| {
             #[cfg(feature = "perf_counters")]
             let _ = perf::take(); // zero

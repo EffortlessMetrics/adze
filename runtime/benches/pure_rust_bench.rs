@@ -1,6 +1,9 @@
-// TODO: Fix benchmarks after API stabilization
-// This file is temporarily disabled while we stabilize the pure-Rust parser API
+// Placeholder benchmark entrypoint.
+// This binary exists so `cargo bench` can enumerate the target while
+// pure-Rust benchmark APIs are stabilized. It does NOT run runtime benchmarks.
 
 fn main() {
-    println!("Pure Rust benchmarks temporarily disabled - API migration in progress");
+    println!(
+        "placeholder: pure_rust_bench is disabled while unstable benchmark APIs are stabilized"
+    );
 }
