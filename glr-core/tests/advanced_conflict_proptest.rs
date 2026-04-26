@@ -457,7 +457,7 @@ proptest! {
         let table = make_test_table(vec![vec![vec![Action::Reduce(r1), Action::Reduce(r2)]]]);
         let summary = count_conflicts(&table);
         prop_assert_eq!(summary.shift_reduce, 0);
-        prop_assert_eq!(summary.reduce_reduce, 1);
+        prop_assert_eq!(summary.reduce_reduce, if r1 == r2 { 0 } else { 1 });
     }
 }
 

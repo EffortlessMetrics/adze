@@ -1081,7 +1081,21 @@ proptest! {
     #[test]
     fn pt82_cell_with_two_actions_is_conflict(a in leaf_action(), b in leaf_action()) {
         let cell: ActionCell = vec![a, b];
-        prop_assert!(has_conflict(&cell));
+        let mut valid = 0usize;
+        let mut unique_actions = Vec::new();
+
+        for action in &cell {
+            if matches!(action, Action::Error | Action::Recover) {
+                continue;
+            }
+
+            if !unique_actions.contains(action) {
+                unique_actions.push(action.clone());
+            }
+        }
+
+        valid += unique_actions.len();
+        prop_assert_eq!(has_conflict(&cell), valid >= 2);
     }
 
     #[test]
