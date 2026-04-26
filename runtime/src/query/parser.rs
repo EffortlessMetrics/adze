@@ -307,7 +307,9 @@ impl<'a> QueryParser<'a> {
             "is?" => self.parse_is_predicate(),
             "is-not?" => self.parse_is_not_predicate(),
             "any-of?" => self.parse_any_of_predicate(),
-            _ => self.parse_custom_predicate(name),
+            _ => Err(QueryError::InvalidPredicate(format!(
+                "Unsupported predicate '#{name}'. Supported predicates: #eq?, #not-eq?, #match?, #not-match?, #set!, #is?, #is-not?, #any-of?"
+            ))),
         }
     }
 
@@ -446,25 +448,6 @@ impl<'a> QueryParser<'a> {
 
         Ok(Predicate::AnyOf { capture, values })
     }
-
-    fn parse_custom_predicate(&mut self, name: String) -> Result<Predicate, QueryError> {
-        let mut args = Vec::new();
-
-        self.skip_whitespace();
-        while self.peek_char() != Some(')') {
-            if self.peek_char() == Some('@') {
-                let capture = self.parse_capture_ref()?;
-                args.push(PredicateArg::Capture(capture));
-            } else {
-                let string = self.parse_string()?;
-                args.push(PredicateArg::String(string));
-            }
-            self.skip_whitespace();
-        }
-
-        Ok(Predicate::Custom { name, args })
-    }
-
     // Helper methods
 
     fn parse_capture_ref(&mut self) -> Result<u32, QueryError> {
