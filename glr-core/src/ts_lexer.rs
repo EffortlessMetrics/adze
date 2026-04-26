@@ -4,6 +4,7 @@
 use crate::LexMode;
 use std::ffi::c_void;
 use std::os::raw::c_char;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Tree-sitter lexer struct passed to lex function
 #[repr(C)]
@@ -129,12 +130,32 @@ impl<'a> TsLexerHost<'a> {
         host.end_mark = host.pos;
     }
 
-    extern "C" fn get_column(_payload: *mut c_void) -> u32 {
-        0 // TODO: Track column for proper error reporting
+    extern "C" fn get_column(payload: *mut c_void) -> u32 {
+        // SAFETY: see shared invariant above.
+        let host = unsafe { &mut *(payload as *mut Self) };
+        let pos = host.pos.min(host.input.len());
+
+        let mut line_start = 0usize;
+        for (idx, b) in host.input[..pos].iter().enumerate() {
+            if *b == b'\n' {
+                line_start = idx + 1;
+            }
+        }
+
+        (pos - line_start) as u32
     }
 
-    extern "C" fn is_included(_payload: *mut c_void) -> bool {
-        false // TODO: Support included ranges for injections
+    extern "C" fn is_included(payload: *mut c_void) -> bool {
+        // SAFETY: see shared invariant above.
+        let _host = unsafe { &mut *(payload as *mut Self) };
+        static WARNED_INCLUDED_UNSUPPORTED: AtomicBool = AtomicBool::new(false);
+        if !WARNED_INCLUDED_UNSUPPORTED.swap(true, Ordering::Relaxed) {
+            eprintln!(
+                "adze_glr_core::ts_lexer: included ranges are not implemented; \
+                 `is_included` always returns false"
+            );
+        }
+        false
     }
 }
 
@@ -217,6 +238,8 @@ unsafe extern "C" {
 
 #[cfg(test)]
 mod tests {
+    use super::TsLexerHost;
+    use std::ffi::c_void;
 
     #[test]
     #[ignore = "requires actual Tree-sitter library to be linked"]
@@ -231,5 +254,38 @@ mod tests {
         //     assert!(token.is_some());
         //     assert_eq!(token.unwrap().kind, 1); // { token
         // }
+    }
+
+    #[test]
+    fn host_reports_column_from_last_newline() {
+        let mut host = TsLexerHost {
+            input: b"first\nsecond",
+            pos: 9,
+            end_mark: 9,
+        };
+        let col = TsLexerHost::get_column(&mut host as *mut _ as *mut c_void);
+        assert_eq!(col, 3);
+    }
+
+    #[test]
+    fn host_reports_column_at_input_start() {
+        let mut host = TsLexerHost {
+            input: b"abc",
+            pos: 0,
+            end_mark: 0,
+        };
+        let col = TsLexerHost::get_column(&mut host as *mut _ as *mut c_void);
+        assert_eq!(col, 0);
+    }
+
+    #[test]
+    fn included_ranges_are_explicitly_unsupported() {
+        let mut host = TsLexerHost {
+            input: b"abc",
+            pos: 1,
+            end_mark: 1,
+        };
+        let included = TsLexerHost::is_included(&mut host as *mut _ as *mut c_void);
+        assert!(!included);
     }
 }

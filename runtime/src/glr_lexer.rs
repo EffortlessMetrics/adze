@@ -68,7 +68,15 @@ impl GLRLexer {
         // Compile token patterns
         for (symbol_id, token) in &grammar.tokens {
             let matcher = match &token.pattern {
-                TokenPattern::String(s) => TokenMatcher::Literal(s.clone()),
+                TokenPattern::String(s) => {
+                    if s.is_empty() {
+                        return Err(format!(
+                            "Token '{}' has an empty literal pattern, which would cause lexer no-progress loops",
+                            token.name
+                        ));
+                    }
+                    TokenMatcher::Literal(s.clone())
+                }
                 TokenPattern::Regex(pattern) => {
                     // Add ^ anchor if not present to ensure matching at position
                     let anchored_pattern = if pattern.starts_with('^') {
@@ -78,7 +86,15 @@ impl GLRLexer {
                     };
 
                     match Regex::new(&anchored_pattern) {
-                        Ok(re) => TokenMatcher::Regex(re),
+                        Ok(re) => {
+                            if re.find("").is_some_and(|m| m.start() == 0 && m.end() == 0) {
+                                return Err(format!(
+                                    "Token '{}' has a zero-length regex pattern ('{}'), which is unsupported to prevent lexer no-progress loops",
+                                    token.name, pattern
+                                ));
+                            }
+                            TokenMatcher::Regex(re)
+                        }
                         Err(e) => {
                             let name = grammar
                                 .rule_names

@@ -132,6 +132,9 @@ impl ExternalScannerRuntime {
 
         // Scan for external tokens
         if let Some(result) = scanner.scan(lexer, &valid_symbols) {
+            if result.length == 0 {
+                return None;
+            }
             // Serialize updated state
             self.state.data.clear();
             scanner.serialize(&mut self.state.data);
@@ -567,5 +570,54 @@ mod tests {
 
         assert!(new_scanner.in_string);
         assert_eq!(new_scanner.quote_char, Some(b'\''));
+    }
+
+    #[test]
+    fn test_runtime_rejects_zero_length_scan_result() {
+        use std::collections::HashSet;
+
+        #[derive(Default)]
+        struct ZeroLengthScanner;
+
+        impl ExternalScanner for ZeroLengthScanner {
+            fn scan(
+                &mut self,
+                _lexer: &mut dyn Lexer,
+                _valid_symbols: &[bool],
+            ) -> Option<ScanResult> {
+                Some(ScanResult {
+                    symbol: 0,
+                    length: 0,
+                })
+            }
+
+            fn serialize(&self, _buffer: &mut Vec<u8>) {}
+
+            fn deserialize(&mut self, _buffer: &[u8]) {}
+        }
+
+        struct TestLexer;
+
+        impl Lexer for TestLexer {
+            fn lookahead(&self) -> Option<u8> {
+                Some(b'x')
+            }
+            fn advance(&mut self, _n: usize) {}
+            fn mark_end(&mut self) {}
+            fn column(&self) -> usize {
+                0
+            }
+            fn is_eof(&self) -> bool {
+                false
+            }
+        }
+
+        let mut runtime = ExternalScannerRuntime::new(vec![1]);
+        let mut scanner = ZeroLengthScanner;
+        let mut lexer = TestLexer;
+        let mut valid = HashSet::new();
+        valid.insert(1);
+
+        assert_eq!(runtime.scan(&mut scanner, &mut lexer, &valid), None);
     }
 }

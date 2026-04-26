@@ -416,7 +416,6 @@ fn alternating_single_digits_produces_many_tokens() {
 // ===========================================================================
 
 #[test]
-#[ignore = "known: GLRLexer infinite loops on zero-length regex matches"]
 fn zero_length_regex_token_does_not_infinite_loop() {
     // A regex that can match the empty string (e.g. "\d*")
     let mut g = Grammar::new("zero_len".into());
@@ -441,15 +440,14 @@ fn zero_length_regex_token_does_not_infinite_loop() {
     });
     g.rule_names.insert(s, "start".into());
 
-    // The lexer must not spin forever on empty-match patterns.
-    let mut lexer = GLRLexer::new(&g, "abc".into()).unwrap();
-    let tokens = lexer.tokenize_all();
-    // We just care that it terminates; the token count is implementation-defined.
-    let _ = tokens;
+    // The lexer must reject zero-length patterns to avoid no-progress loops.
+    let err = GLRLexer::new(&g, "abc".into())
+        .err()
+        .expect("zero-length regex should be rejected");
+    assert!(err.contains("zero-length regex pattern"));
 }
 
 #[test]
-#[ignore = "known: GLRLexer infinite loops on empty literal tokens"]
 fn empty_literal_token_does_not_infinite_loop() {
     let mut g = Grammar::new("empty_lit".into());
     let empty = SymbolId(1);
@@ -473,10 +471,11 @@ fn empty_literal_token_does_not_infinite_loop() {
     });
     g.rule_names.insert(s, "start".into());
 
-    // Must terminate.
-    let mut lexer = GLRLexer::new(&g, "hello".into()).unwrap();
-    let tokens = lexer.tokenize_all();
-    let _ = tokens;
+    // Empty literal patterns are rejected to avoid no-progress loops.
+    let err = GLRLexer::new(&g, "hello".into())
+        .err()
+        .expect("empty literal should be rejected");
+    assert!(err.contains("empty literal pattern"));
 }
 
 // ===========================================================================
