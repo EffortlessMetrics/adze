@@ -290,3 +290,54 @@ mod parsing {
         assert!(Cli::try_parse_from(["adze"]).is_err());
     }
 }
+
+#[test]
+fn test_init_generates_buildable_project() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let project_name = "my-adze-lang";
+    let project_dir = tmp.path().join(project_name);
+
+    let mut init = cargo_bin_cmd!("adze");
+    init.current_dir("..")
+        .args([
+            "init",
+            project_name,
+            "--output",
+            tmp.path().to_str().expect("utf-8 path"),
+        ])
+        .assert()
+        .success();
+
+    assert!(project_dir.join("Cargo.toml").exists());
+
+    let status = std::process::Command::new("cargo")
+        .arg("build")
+        .current_dir(&project_dir)
+        .status()
+        .expect("cargo build should execute");
+
+    assert!(
+        status.success(),
+        "generated project should build successfully"
+    );
+}
+
+#[test]
+fn test_parse_static_mode_truthful_unimplemented_message() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let grammar_file = tmp.path().join("grammar.rs");
+    let input_file = tmp.path().join("input.txt");
+    std::fs::write(&grammar_file, "// placeholder grammar").expect("write grammar");
+    std::fs::write(&input_file, "42;").expect("write input");
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.args([
+        "parse",
+        grammar_file.to_str().expect("utf-8 grammar path"),
+        input_file.to_str().expect("utf-8 input path"),
+    ])
+    .assert()
+    .failure()
+    .stderr(predicate::str::contains("not implemented"))
+    .stderr(predicate::str::contains("experimental"));
+}
