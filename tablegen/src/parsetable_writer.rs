@@ -103,7 +103,9 @@ impl<'a> ParsetableWriter<'a> {
             generation: GenerationInfo {
                 timestamp: chrono::Utc::now().to_rfc3339(),
                 tool_version: env!("CARGO_PKG_VERSION").to_string(),
-                rust_version: rustc_version_runtime::version().to_string(),
+                rust_version: rustc_version::version()
+                    .map(|version| version.to_string())
+                    .unwrap_or_else(|_| "unknown".to_string()),
                 host_triple: std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string()),
             },
             statistics: TableStatistics {
