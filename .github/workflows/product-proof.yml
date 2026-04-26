@@ -1,0 +1,36 @@
+name: product-proof
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 4 * * 1' # weekly advisory run
+
+permissions:
+  contents: read
+
+jobs:
+  ci-product:
+    name: ci-product (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: bash -n ci-product-proof script
+        run: bash -n scripts/ci-product-proof.sh
+
+      - name: cargo metadata
+        run: cargo metadata --format-version 1 > /tmp/cargo-metadata.json
+
+      - name: Run advisory product-proof canaries
+        run: scripts/ci-product-proof.sh
+
+      - name: git diff --check
+        run: git diff --check

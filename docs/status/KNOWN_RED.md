@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-04-26
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -39,6 +39,15 @@ This lane is intentionally bounded so it stays reliable and fast enough for day-
 **Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **2,460+ tests across feature combinations, 0 failures in supported lane.** Feature-combination matrix: 12/12 pass (all green). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`.
 
 ---
+
+
+## Advisory product proof lane
+
+A non-blocking `product-proof` workflow now provides bounded canaries for broader product surfaces (`runtime`, `cli`, `golden-tests`, `benchmarks`, `wasm-demo`, one grammar crate, `runtime2`, and one governance/BDD microcrate).
+
+- It is **advisory only** (`workflow_dispatch` + weekly schedule) and does not change required branch protection gates.
+- It reports compile/smoke proof status per surface and keeps running even when some canaries fail.
+- Current lane design intentionally uses compile/no-run checks rather than full behavioral proof to stay fast and bounded.
 
 ## What is excluded (and why)
 
