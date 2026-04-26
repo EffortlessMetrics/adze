@@ -128,9 +128,23 @@ pub mod grammar {
 
 #[cfg(test)]
 mod tests {
+    use super::grammar;
+    use adze::pure_parser::Parser;
+
     #[test]
-    fn test_simple_go() {
-        // Grammar builds successfully
-        assert!(true);
+    fn test_language_object_can_be_loaded() {
+        let mut parser = Parser::new();
+        parser
+            .set_language(grammar::language())
+            .expect("go language should load into pure parser");
+    }
+
+    #[test]
+    fn test_parse_api_reports_current_blocker() {
+        let result = grammar::parse("package main");
+        assert!(
+            result.is_err(),
+            "go smoke grammar currently should report tokenization errors for spaced input"
+        );
     }
 }
