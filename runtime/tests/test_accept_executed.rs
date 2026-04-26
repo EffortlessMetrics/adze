@@ -5,10 +5,8 @@ mod support;
 
 #[cfg(all(test, feature = "pure-rust"))]
 mod tests {
-    use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
-    use adze_ir::SymbolId;
-
     use super::support;
+    use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 
     // Extended parser to track Accept execution
     struct InstrumentedParser {
