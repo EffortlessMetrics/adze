@@ -181,8 +181,8 @@ fn assert_bincode_roundtrip<
 >(
     val: &T,
 ) -> T {
-    let bytes = bincode::serialize(val).expect("bincode serialize");
-    let back: T = bincode::deserialize(&bytes).expect("bincode deserialize");
+    let bytes = postcard::to_allocvec(val).expect("bincode serialize");
+    let back: T = postcard::from_bytes(&bytes).expect("bincode deserialize");
     assert_eq!(val, &back, "bincode roundtrip mismatch");
     back
 }
@@ -549,8 +549,8 @@ proptest! {
     // ---- Bincode determinism: same input produces same bytes ----
     #[test]
     fn bincode_deterministic_symbol(sym in arb_symbol()) {
-        let bytes1 = bincode::serialize(&sym).unwrap();
-        let bytes2 = bincode::serialize(&sym).unwrap();
+        let bytes1 = postcard::to_allocvec(&sym).unwrap();
+        let bytes2 = postcard::to_allocvec(&sym).unwrap();
         prop_assert_eq!(bytes1, bytes2);
     }
 
@@ -564,8 +564,8 @@ proptest! {
         for rule in rules {
             grammar.add_rule(rule);
         }
-        let bytes1 = bincode::serialize(&grammar).unwrap();
-        let bytes2 = bincode::serialize(&grammar).unwrap();
+        let bytes1 = postcard::to_allocvec(&grammar).unwrap();
+        let bytes2 = postcard::to_allocvec(&grammar).unwrap();
         prop_assert_eq!(bytes1, bytes2);
     }
 
@@ -575,8 +575,8 @@ proptest! {
         let from_json: Rule = serde_json::from_str(
             &serde_json::to_string(&rule).unwrap()
         ).unwrap();
-        let from_bincode: Rule = bincode::deserialize(
-            &bincode::serialize(&rule).unwrap()
+        let from_bincode: Rule = postcard::from_bytes(
+            &postcard::to_allocvec(&rule).unwrap()
         ).unwrap();
         prop_assert_eq!(&from_json, &from_bincode);
     }

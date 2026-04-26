@@ -31,12 +31,29 @@ dependencies = [
 name = "adze-bdd-governance-core"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-governance-reporting-core",
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
 ]
 
 [[package]]
+name = "adze-bdd-governance-reporting-core"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
+ "adze-governance-status-core",
+]
+
+[[package]]
 name = "adze-bdd-grid-core"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-scenario-core",
+]
+
+[[package]]
+name = "adze-bdd-scenario-core"
 version = "0.1.0"
 
 [[package]]
@@ -87,6 +104,7 @@ dependencies = [
 name = "adze-concurrency-env-contract-core"
 version = "0.1.0"
 dependencies = [
+ "adze-concurrency-env-vars-core",
  "adze-concurrency-parse-core",
 ]
 
@@ -96,6 +114,10 @@ version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-contract-core",
 ]
+
+[[package]]
+name = "adze-concurrency-env-vars-core"
+version = "0.1.0"
 
 [[package]]
 name = "adze-concurrency-init-bootstrap-core"
@@ -162,6 +184,7 @@ name = "adze-feature-policy-core"
 version = "0.1.0"
 dependencies = [
  "adze-parser-backend-core",
+ "adze-parser-feature-profile-core",
 ]
 
 [[package]]
@@ -212,7 +235,15 @@ dependencies = [
 name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
+ "adze-governance-runtime-profile-core",
  "adze-governance-runtime-reporting",
+]
+
+[[package]]
+name = "adze-governance-runtime-profile-core"
+version = "0.1.0"
+dependencies = [
+ "adze-governance-matrix-contract",
 ]
 
 [[package]]
@@ -220,6 +251,14 @@ name = "adze-governance-runtime-reporting"
 version = "0.1.0"
 dependencies = [
  "adze-governance-matrix-contract",
+]
+
+[[package]]
+name = "adze-governance-status-core"
+version = "0.1.0"
+dependencies = [
+ "adze-bdd-grid-core",
+ "adze-feature-policy-core",
 ]
 
 [[package]]
@@ -250,6 +289,13 @@ dependencies = [
 [[package]]
 name = "adze-parser-backend-core"
 version = "0.1.0"
+
+[[package]]
+name = "adze-parser-feature-profile-core"
+version = "0.1.0"
+dependencies = [
+ "adze-parser-backend-core",
+]
 
 [[package]]
 name = "adze-parsetable-metadata"
@@ -349,7 +395,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
 dependencies = [
  "cfg-if",
- "getrandom",
  "once_cell",
  "version_check",
  "zerocopy",
