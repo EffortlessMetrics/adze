@@ -22,7 +22,7 @@ pub fn bench_parse_small(c: &mut Criterion) {
         g.warm_up_time(Duration::from_secs(3));
     }
 
-    // Minimal table/driver for this microbench.
+    // Minimal table/driver for this microbench (EOF-only toy workload).
     let table = make_minimal_table(
         vec![vec![vec![], vec![], vec![]]], // ERROR, terminal, EOF
         vec![vec![], vec![], vec![]],
@@ -46,7 +46,7 @@ pub fn bench_parse_small(c: &mut Criterion) {
     }
 
     // Time only the hot path.
-    g.bench_function("small-parse", |b| {
+    g.bench_function("micro_eof_only_parse", |b| {
         b.iter(|| {
             #[cfg(feature = "perf_counters")]
             let _ = perf::take(); // zero
