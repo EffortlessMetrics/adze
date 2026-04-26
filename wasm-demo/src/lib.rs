@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 // Called when the WASM module is instantiated
 #[wasm_bindgen(start)]
-pub fn main() {
+pub fn init_wasm_demo() {
     // Set panic hook for better error messages in browser console
     // console_error_panic_hook::set_once();
 
@@ -25,10 +25,29 @@ pub fn parse_arithmetic(source: &str) -> String {
     }
 }
 
+/// Minimal parser-facing WASM smoke path.
+///
+/// This proves `wasm-demo` can compile a parser entrypoint that calls into
+/// generated parsing code (for arithmetic grammar).
+#[wasm_bindgen]
+pub fn parser_facing_smoke() -> bool {
+    adze_example::arithmetic::grammar::parse("1 + 2 * 3").is_ok()
+}
+
 /// Get GLR statistics from the last parse
 #[wasm_bindgen]
 pub fn get_parser_stats() -> String {
     // This would need to be stored in a global or passed back differently
     // For now, just return a placeholder
     "Stats: To be implemented".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parser_facing_smoke() {
+        assert!(parser_facing_smoke());
+    }
 }
