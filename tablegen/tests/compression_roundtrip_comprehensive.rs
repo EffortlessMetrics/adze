@@ -1640,3 +1640,44 @@ fn action_entries_preserve_action_types() {
     assert!(matches!(compressed.data[2].action, Action::Accept));
     assert!(matches!(compressed.data[3].action, Action::Recover));
 }
+
+#[test]
+fn eof_accept_is_preserved_by_table_compressor_validation() {
+    let (parse_table, compressed) = pipeline(|| {
+        GrammarBuilder::new("accept_eof_roundtrip")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    compressed
+        .validate(&parse_table)
+        .expect("compressed tables must preserve Accept on EOF");
+}
+
+#[test]
+fn eof_accept_validation_rejects_corrupted_compressed_tables() {
+    let (parse_table, mut compressed) = pipeline(|| {
+        GrammarBuilder::new("accept_eof_negative")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    let eof_idx = parse_table.symbol_to_index[&parse_table.eof_symbol] as u16;
+    compressed
+        .action_table
+        .data
+        .retain(|entry| !(entry.symbol == eof_idx && matches!(entry.action, Action::Accept)));
+    if let Some(last) = compressed.action_table.row_offsets.last_mut() {
+        *last = compressed.action_table.data.len() as u16;
+    }
+
+    let result = compressed.validate(&parse_table);
+    assert!(
+        result.is_err(),
+        "validation should fail when Accept on EOF is removed"
+    );
+}

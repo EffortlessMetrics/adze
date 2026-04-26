@@ -1393,3 +1393,36 @@ fn large_state_count_is_always_zero() {
     let deser: SerializableLanguage = serde_json::from_str(&json).unwrap();
     assert_eq!(deser.large_state_count, 0);
 }
+
+#[test]
+fn serialize_preserves_accept_on_eof_in_parse_table_data() {
+    let grammar = grammar_with(&["a"], &["start"]);
+    let pt = make_empty_table(1, 1, 1, 0);
+    let eof_col = *pt.symbol_to_index.get(&pt.eof_symbol).unwrap() as u16;
+
+    let compressed = make_compressed(
+        vec![
+            CompressedActionEntry::new(eof_col, Action::Accept),
+            CompressedActionEntry::new(1, Action::Shift(StateId(1))),
+        ],
+        vec![0, 2],
+        vec![Action::Error],
+        vec![],
+        vec![0, 0],
+    );
+
+    let json = serialize_language(&grammar, &pt, Some(&compressed)).unwrap();
+    let deser: SerializableLanguage = serde_json::from_str(&json).unwrap();
+
+    let row_start = deser.small_parse_table_map[0] as usize;
+    let row_end = deser.small_parse_table_map[1] as usize;
+    let row_slice = &deser.parse_table[row_start * 2..row_end * 2];
+
+    let has_accept_on_eof = row_slice
+        .chunks_exact(2)
+        .any(|chunk| chunk[0] == eof_col && chunk[1] == 0xFFFF);
+    assert!(
+        has_accept_on_eof,
+        "serialized parse_table must contain Accept (0xFFFF) on EOF symbol"
+    );
+}
