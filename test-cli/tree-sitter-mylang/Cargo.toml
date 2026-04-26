@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-adze = "0.6.0"
+adze = { path = "../../runtime" }
 
 [build-dependencies]
-adze-tool = "0.6.0"
+adze-tool = { path = "../../tool" }

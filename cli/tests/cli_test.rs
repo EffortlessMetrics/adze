@@ -5,6 +5,7 @@
 
 use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
+use std::process::Command;
 
 // ---------------------------------------------------------------------------
 // End-to-end smoke tests (lightweight — no grammar compilation)
@@ -65,6 +66,55 @@ fn test_cli_unknown_command() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("unrecognized subcommand"));
+}
+
+#[test]
+fn test_init_generates_buildable_project() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "freshlang";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let project_dir = temp.path().join(project_name);
+    assert!(project_dir.join("Cargo.toml").exists());
+    assert!(project_dir.join("src/grammar.rs").exists());
+    assert!(project_dir.join("tests/basic.rs").exists());
+
+    let status = Command::new("cargo")
+        .arg("check")
+        .current_dir(&project_dir)
+        .status()
+        .expect("run cargo check for generated project");
+    assert!(status.success(), "generated project should build");
+
+    let mut check = cargo_bin_cmd!("adze");
+    check
+        .arg("check")
+        .arg(project_dir.join("src/grammar.rs"))
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_parse_static_mode_is_explicitly_unimplemented() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let grammar = temp.path().join("grammar.rs");
+    let input = temp.path().join("input.txt");
+    std::fs::write(&grammar, "// dummy grammar").expect("write grammar");
+    std::fs::write(&input, "x").expect("write input");
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("parse")
+        .arg(&grammar)
+        .arg(&input)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unimplemented"));
 }
 
 // ---------------------------------------------------------------------------
