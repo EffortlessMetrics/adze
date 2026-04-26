@@ -236,6 +236,27 @@ fn serialize_accept_action_encoding() {
 }
 
 #[test]
+fn serialize_roundtrip_preserves_accept_on_eof_encoding() {
+    let grammar = Grammar::new("accept_eof_roundtrip".to_string());
+    let pt = make_empty_table(1, 0, 1, 0);
+
+    let compressed = make_compressed(
+        vec![CompressedActionEntry::new(0, Action::Accept)],
+        vec![0, 1],
+        vec![Action::Error],
+        vec![],
+        vec![0, 0],
+    );
+
+    let json = serialize_language(&grammar, &pt, Some(&compressed)).unwrap();
+    let deser: SerializableLanguage = serde_json::from_str(&json).unwrap();
+
+    // Action entry layout is [symbol, action_code], and Accept must be encoded as 0xFFFF.
+    assert_eq!(deser.parse_table[0], 0);
+    assert_eq!(deser.parse_table[1], 0xFFFF);
+}
+
+#[test]
 fn serialize_error_action_encoding() {
     let compressed = make_compressed(
         vec![CompressedActionEntry::new(1, Action::Error)],

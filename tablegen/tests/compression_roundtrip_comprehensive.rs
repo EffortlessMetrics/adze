@@ -772,9 +772,78 @@ fn pipeline_validates_compressed_tables() {
             .start("start")
             .build()
     });
-    // validate() currently returns Ok unconditionally, but this tests the API
     let result = compressed.validate(&pt);
     assert!(result.is_ok(), "validation should pass: {:?}", result.err());
+}
+
+#[test]
+fn validate_preserves_accept_on_eof_for_all_accepting_states() {
+    let (pt, compressed) = pipeline(|| {
+        GrammarBuilder::new("accept_eof_validate")
+            .token("a", "a")
+            .rule("list", vec!["a"])
+            .rule("list", vec!["list", "a"])
+            .start("list")
+            .build()
+    });
+
+    let eof_col = *pt
+        .symbol_to_index
+        .get(&pt.eof_symbol)
+        .expect("EOF must be present");
+
+    let accepting_states: Vec<_> = (0..pt.state_count)
+        .filter(|&state| {
+            pt.action_table[state][eof_col]
+                .iter()
+                .any(|a| matches!(a, Action::Accept))
+        })
+        .collect();
+    assert!(
+        !accepting_states.is_empty(),
+        "expected at least one accepting state on EOF"
+    );
+
+    assert!(
+        compressed.validate(&pt).is_ok(),
+        "compressed table must preserve Accept-on-EOF"
+    );
+}
+
+#[test]
+fn validate_rejects_when_accept_on_eof_is_dropped() {
+    let (pt, mut compressed) = pipeline(|| {
+        GrammarBuilder::new("accept_eof_negative")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    let eof_col = *pt
+        .symbol_to_index
+        .get(&pt.eof_symbol)
+        .expect("EOF must be present") as u16;
+
+    if let Some(entry) = compressed
+        .action_table
+        .data
+        .iter_mut()
+        .find(|entry| entry.symbol == eof_col && matches!(entry.action, Action::Accept))
+    {
+        entry.action = Action::Error;
+    } else {
+        panic!("failed to locate Accept-on-EOF entry to corrupt");
+    }
+
+    let err = compressed
+        .validate(&pt)
+        .expect_err("validation should fail when Accept-on-EOF is removed");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("Accept-on-EOF mismatch"),
+        "unexpected error message: {msg}"
+    );
 }
 
 #[test]

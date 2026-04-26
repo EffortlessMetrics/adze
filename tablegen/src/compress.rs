@@ -53,9 +53,56 @@ pub struct CompressedTables {
 impl CompressedTables {
     /// Validate compressed tables against original parse table
     #[must_use = "validation result must be checked"]
-    pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
-        // TODO: Implement validation logic
-        // For now, just return Ok to make tests compile
+    pub fn validate(&self, parse_table: &ParseTable) -> Result<()> {
+        let state_count = parse_table.state_count;
+
+        if self.action_table.row_offsets.len() != state_count + 1 {
+            return Err(TableGenError::InvalidTable(format!(
+                "action row_offsets length {} must equal state_count + 1 ({})",
+                self.action_table.row_offsets.len(),
+                state_count + 1
+            )));
+        }
+
+        if self.goto_table.row_offsets.len() != state_count + 1 {
+            return Err(TableGenError::InvalidTable(format!(
+                "goto row_offsets length {} must equal state_count + 1 ({})",
+                self.goto_table.row_offsets.len(),
+                state_count + 1
+            )));
+        }
+
+        let eof_col = *parse_table
+            .symbol_to_index
+            .get(&parse_table.eof_symbol)
+            .ok_or_else(|| {
+                TableGenError::InvalidTable(format!(
+                    "EOF symbol {} not found in symbol_to_index",
+                    parse_table.eof_symbol.0
+                ))
+            })?;
+
+        for state in 0..state_count {
+            let original_has_accept_on_eof = parse_table
+                .action_table
+                .get(state)
+                .and_then(|row| row.get(eof_col))
+                .is_some_and(|cell| cell.iter().any(|a| matches!(a, Action::Accept)));
+
+            let compressed_has_accept_on_eof = self
+                .action_table
+                .actions_for_cell(state, eof_col)?
+                .iter()
+                .any(|a| matches!(a, Action::Accept));
+
+            if original_has_accept_on_eof != compressed_has_accept_on_eof {
+                return Err(TableGenError::InvalidTable(format!(
+                    "Accept-on-EOF mismatch at state {} (eof_col {}): original={}, compressed={}",
+                    state, eof_col, original_has_accept_on_eof, compressed_has_accept_on_eof
+                )));
+            }
+        }
+
         Ok(())
     }
 }
@@ -66,6 +113,36 @@ pub struct CompressedActionTable {
     pub data: Vec<CompressedActionEntry>,
     pub row_offsets: Vec<u16>,
     pub default_actions: Vec<Action>,
+}
+
+impl CompressedActionTable {
+    fn actions_for_cell(&self, state: usize, symbol: usize) -> Result<Vec<&Action>> {
+        let start = *self.row_offsets.get(state).ok_or_else(|| {
+            TableGenError::InvalidTable(format!("missing action row_offset for state {}", state))
+        })? as usize;
+        let end = *self.row_offsets.get(state + 1).ok_or_else(|| {
+            TableGenError::InvalidTable(format!(
+                "missing action row_offset sentinel for state {}",
+                state
+            ))
+        })? as usize;
+
+        if end < start || end > self.data.len() {
+            return Err(TableGenError::InvalidTable(format!(
+                "invalid action row range for state {}: start={}, end={}, data_len={}",
+                state,
+                start,
+                end,
+                self.data.len()
+            )));
+        }
+
+        Ok(self.data[start..end]
+            .iter()
+            .filter(|entry| entry.symbol as usize == symbol)
+            .map(|entry| &entry.action)
+            .collect())
+    }
 }
 
 /// Entry in the action table
