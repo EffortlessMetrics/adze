@@ -1153,3 +1153,45 @@ fn cb_v9_bitpack_all_reduce_row() {
         );
     }
 }
+
+#[test]
+fn cb_v9_rejects_action_symbol_id_over_u16() {
+    let compressor = TableCompressor::new();
+    let mut row = vec![Vec::<Action>::new(); (u16::MAX as usize) + 2];
+    row[u16::MAX as usize + 1] = vec![Action::Accept];
+    let action_table = vec![row];
+
+    let result =
+        compressor.compress_action_table_small(&action_table, &std::collections::BTreeMap::new());
+    let err = result.expect_err("symbol IDs > u16::MAX must fail compression");
+    let msg = err.to_string();
+    assert!(msg.contains("action symbol ID"));
+    assert!(msg.contains("exceeds u16::MAX"));
+}
+
+#[test]
+fn cb_v9_rejects_action_row_offset_over_u16() {
+    let compressor = TableCompressor::new();
+    let action_table = vec![vec![Action::Accept; (u16::MAX as usize) + 1]];
+    let action_table = vec![action_table];
+
+    let result =
+        compressor.compress_action_table_small(&action_table, &std::collections::BTreeMap::new());
+    let err = result.expect_err("action row offsets > u16::MAX must fail compression");
+    let msg = err.to_string();
+    assert!(msg.contains("action row offset"));
+    assert!(msg.contains("exceeds u16::MAX"));
+}
+
+#[test]
+fn cb_v9_rejects_goto_row_offset_over_u16() {
+    let compressor = TableCompressor::new();
+    let goto_row = vec![StateId(1); (u16::MAX as usize) + 1];
+    let goto_table = vec![goto_row];
+
+    let result = compressor.compress_goto_table_small(&goto_table);
+    let err = result.expect_err("goto row offsets > u16::MAX must fail compression");
+    let msg = err.to_string();
+    assert!(msg.contains("goto row offset"));
+    assert!(msg.contains("exceeds u16::MAX"));
+}

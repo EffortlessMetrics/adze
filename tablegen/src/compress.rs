@@ -125,6 +125,15 @@ impl Default for TableCompressor {
 }
 
 impl TableCompressor {
+    fn checked_u16(&self, value: usize, id_kind: &'static str, context: &str) -> Result<u16> {
+        u16::try_from(value).map_err(|_| {
+            TableGenError::Compression(format!(
+                "{id_kind} value {value} exceeds u16::MAX ({}) while {context}",
+                u16::MAX
+            ))
+        })
+    }
+
     /// Create a new compressor with default thresholds.
     #[must_use]
     pub fn new() -> Self {
@@ -405,7 +414,11 @@ impl TableCompressor {
             let default_action = Action::Error;
 
             default_actions.push(default_action.clone());
-            row_offsets.push(entries.len() as u16);
+            row_offsets.push(self.checked_u16(
+                entries.len(),
+                "action row offset",
+                "recording compressed action row start",
+            )?);
 
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
@@ -415,9 +428,15 @@ impl TableCompressor {
                         continue;
                     }
 
+                    self.encode_action_small(action)?;
+
                     // Use the mapped index directly, not the original symbol ID
                     // This ensures terminals (index < token_count) are correctly identified
-                    let symbol_id = index as u16;
+                    let symbol_id = self.checked_u16(
+                        index,
+                        "action symbol ID",
+                        "encoding compressed action entry",
+                    )?;
 
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
@@ -427,7 +446,11 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(self.checked_u16(
+            entries.len(),
+            "action row offset",
+            "recording compressed action table end",
+        )?);
 
         // Validate row_offsets are strictly increasing
         for i in 1..row_offsets.len() {
@@ -466,7 +489,11 @@ impl TableCompressor {
         let mut row_offsets = Vec::new();
 
         for row in goto_table {
-            row_offsets.push(entries.len() as u16);
+            row_offsets.push(self.checked_u16(
+                entries.len(),
+                "goto row offset",
+                "recording compressed goto row start",
+            )?);
 
             let mut last_state = None;
             let mut run_length = 0;
@@ -511,7 +538,11 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(self.checked_u16(
+            entries.len(),
+            "goto row offset",
+            "recording compressed goto table end",
+        )?);
 
         Ok(CompressedGotoTable {
             data: entries,
