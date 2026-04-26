@@ -260,6 +260,53 @@ fn single_character_tokenization() {
     assert_eq!(tokens[0].text, "5");
 }
 
+#[test]
+fn zero_length_regex_token_does_not_loop_forever() {
+    let mut g = Grammar::new("zero_regex".into());
+    g.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "zero".into(),
+            pattern: TokenPattern::Regex(String::new()),
+            fragile: false,
+        },
+    );
+
+    let mut lexer = GLRLexer::new(&g, "abc".to_string()).expect("lexer");
+    let tokens = lexer.tokenize_all();
+    assert!(
+        tokens.is_empty(),
+        "zero-length regex must be rejected to avoid no-progress loops"
+    );
+}
+
+#[test]
+fn zero_length_literal_token_does_not_block_progress() {
+    let mut g = Grammar::new("zero_lit".into());
+    g.tokens.insert(
+        SymbolId(1),
+        Token {
+            name: "zero".into(),
+            pattern: TokenPattern::String(String::new()),
+            fragile: false,
+        },
+    );
+    g.tokens.insert(
+        SymbolId(2),
+        Token {
+            name: "letters".into(),
+            pattern: TokenPattern::Regex("[a-z]+".into()),
+            fragile: false,
+        },
+    );
+
+    let mut lexer = GLRLexer::new(&g, "abc".to_string()).expect("lexer");
+    let tokens = lexer.tokenize_all();
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens[0].symbol_id, SymbolId(2));
+    assert_eq!(tokens[0].text, "abc");
+}
+
 // ===========================================================================
 // 3. Parse maximum token length inputs
 // ===========================================================================

@@ -117,6 +117,10 @@ impl GLRLexer {
         // Try each token pattern
         for (symbol_id, matcher) in &self.token_patterns {
             if let Some(len) = matcher.matches_at(&self.input, self.position) {
+                if len == 0 {
+                    // Prevent no-progress loops from zero-width token patterns.
+                    continue;
+                }
                 // Ensure we're not splitting a UTF-8 sequence
                 let end_pos = self.position + len;
                 if !self.input.is_char_boundary(end_pos) {
@@ -376,5 +380,49 @@ mod tests {
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0].text, "a");
         assert_eq!(tokens[1].text, "b");
+    }
+
+    #[test]
+    fn test_zero_length_regex_is_rejected_without_looping() {
+        let mut grammar = Grammar::new("zero_regex".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "empty".to_string(),
+                pattern: TokenPattern::Regex(String::new()),
+                fragile: false,
+            },
+        );
+
+        let mut lexer = GLRLexer::new(&grammar, "abc".to_string()).unwrap();
+        let tokens = lexer.tokenize_all();
+        assert!(tokens.is_empty());
+    }
+
+    #[test]
+    fn test_zero_length_literal_is_rejected_without_looping() {
+        let mut grammar = Grammar::new("zero_literal".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "empty".to_string(),
+                pattern: TokenPattern::String(String::new()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            SymbolId(2),
+            Token {
+                name: "alpha".to_string(),
+                pattern: TokenPattern::Regex(r"[a-z]+".to_string()),
+                fragile: false,
+            },
+        );
+
+        let mut lexer = GLRLexer::new(&grammar, "abc".to_string()).unwrap();
+        let tokens = lexer.tokenize_all();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].symbol_id, SymbolId(2));
+        assert_eq!(tokens[0].text, "abc");
     }
 }
