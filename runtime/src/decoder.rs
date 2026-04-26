@@ -672,13 +672,6 @@ fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
             0 // Fallback: we don't know the RHS length
         };
 
-        if i < DEBUG_RULE_PRINT_LIMIT {
-            // eprintln!(
-            // "  decode_rules: rule {}: lhs_idx={} from production_lhs_index, rhs_len={}",
-            // i, lhs_idx, rhs_len
-            // );
-        }
-
         rules.push(ParseRule {
             lhs: SymbolId(lhs_idx), // Use the index from production_lhs_index
             rhs_len,
@@ -693,12 +686,50 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     let goto_table = Vec::new();
     let mut symbol_metadata = Vec::new();
     let mut symbol_to_index = BTreeMap::new();
+    let symbol_count = lang.symbol_count as usize;
     let mut extras_set: BTreeSet<SymbolId> = BTreeSet::new();
+
+    // Build the column -> symbol mapping first. If `public_symbol_map` is present, it
+    // supplies the public symbol id for each table column. Otherwise, fall back to
+    // dense column identities.
+    let mut index_to_symbol: Vec<SymbolId> =
+        (0..symbol_count).map(|col| SymbolId(col as u16)).collect();
+
+    if !lang.public_symbol_map.is_null() {
+        let mut saw_symbol = BTreeSet::new();
+        let mut public_map_ok = true;
+        for col in 0..symbol_count {
+            let public_sym = unsafe { *lang.public_symbol_map.add(col) };
+            if !saw_symbol.insert(SymbolId(public_sym)) {
+                // Duplicate public IDs cannot be inverted into `symbol_to_index`.
+                public_map_ok = false;
+                break;
+            }
+            index_to_symbol[col] = SymbolId(public_sym);
+        }
+
+        if !public_map_ok {
+            index_to_symbol = (0..symbol_count).map(|col| SymbolId(col as u16)).collect();
+        }
+    }
+
+    for (col, &sym) in index_to_symbol.iter().enumerate() {
+        symbol_to_index.insert(sym, col);
+    }
+    if symbol_to_index.len() != symbol_count {
+        // Defensive recovery for malformed mappings: restore dense invariants.
+        symbol_to_index.clear();
+        index_to_symbol = (0..symbol_count).map(|col| SymbolId(col as u16)).collect();
+        for (col, &sym) in index_to_symbol.iter().enumerate() {
+            symbol_to_index.insert(sym, col);
+        }
+        // Keep a dense column-index map for the decoded table.
+    }
 
     // Decode grammar and rules from TSLanguage
     let mut grammar = decode_grammar(lang);
     // Extract rules from the grammar in production_id order
-    let rules: Vec<ParseRule> = {
+    let mut rules: Vec<ParseRule> = {
         let mut rules_vec = vec![None; lang.rule_count as usize];
         // Collect all rules from all LHS symbols in the grammar and place them by production_id
         for rules_for_lhs in grammar.rules.values() {
@@ -727,24 +758,20 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             .collect()
     };
 
+    for rule in &mut rules {
+        if (rule.lhs.0 as usize) < index_to_symbol.len() {
+            rule.lhs = index_to_symbol[rule.lhs.0 as usize];
+        }
+    }
+
     // Build (lhs, rhs_len) -> rule_id map for normalizing Reduce actions
     let mut rid_by_pair: HashMap<(u16, u8), u16> = HashMap::with_capacity(rules.len());
     for (i, r) in rules.iter().enumerate() {
         rid_by_pair.insert((r.lhs.0, r.rhs_len as u8), i as u16);
     }
 
-    // eprintln!(
-    // "Decoding parse table: {} states ({} large, {} small), {} symbols",
-    // lang.state_count,
-    // lang.large_state_count,
-    // lang.state_count - lang.large_state_count,
-    // lang.symbol_count
-    // );
-
-    // Build symbol to index mapping and metadata
-    for i in 0..lang.symbol_count as usize {
-        symbol_to_index.insert(SymbolId(i as u16), i);
-
+    // Decode and annotate symbol metadata
+    for (i, sym) in index_to_symbol.iter().copied().enumerate() {
         // Decode symbol metadata
         // SAFETY: Pointer arithmetic on `lang.symbol_metadata` and `lang.symbol_names`
         // is valid because `i < lang.symbol_count` (loop bound). Both pointers are
@@ -772,11 +799,11 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         };
 
         if (ts_metadata & 0x04) != 0 {
-            extras_set.insert(SymbolId(i as u16));
+            extras_set.insert(sym);
         }
 
-        let symbol_id = SymbolId(i as u16);
         let is_terminal = (i as u32) < lang.token_count + lang.external_token_count;
+        let symbol_id = sym;
 
         symbol_metadata.push(SymbolMetadata {
             name,
@@ -809,7 +836,9 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                 if action_idx != 0 {
                     let raw = &*lang.parse_actions.add(action_idx as usize);
                     if raw.extra != 0 && raw.action_type == TSActionTag::Shift as u8 {
-                        extras_set.insert(SymbolId(symbol as u16));
+                        if let Some(&sym) = index_to_symbol.get(symbol) {
+                            extras_set.insert(sym);
+                        }
                     }
                     decode_action(raw, &rules, &rid_by_pair)
                 } else {
@@ -828,16 +857,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     }
 
     // Decode small_parse_table for compressed states
-    // eprintln!(
-    // "small_parse_table_map null: {}, small_parse_table null: {}",
-    // lang.small_parse_table_map.is_null(),
-    // lang.small_parse_table.is_null()
-    // );
     if !lang.small_parse_table_map.is_null() && !lang.small_parse_table.is_null() {
-        // eprintln!(
-        // "Decoding {} compressed states",
-        // lang.state_count - lang.large_state_count
-        // );
         for state in lang.large_state_count as usize..lang.state_count as usize {
             let mut state_actions = vec![vec![]; lang.symbol_count as usize];
 
@@ -901,11 +921,6 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         }
     }
 
-    // eprintln!("Final action_table has {} states", action_table.len());
-    if !action_table.is_empty() {
-        // eprintln!("State 0 has {} actions", action_table[0].len());
-    }
-
     // Decode external scanner states from the TSLanguage struct
     let external_scanner_states =
         if lang.external_token_count > 0 && !lang.external_scanner.states.is_null() {
@@ -941,12 +956,6 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // External tokens now have their transitions in the main action_table
     // No separate map needed
 
-    // Build reverse map for index_to_symbol
-    let mut index_to_symbol = vec![SymbolId(u16::MAX); symbol_to_index.len()];
-    for (sym, &idx) in &symbol_to_index {
-        index_to_symbol[idx] = *sym;
-    }
-
     // Build nonterminal_to_index for goto lookups
     let tcols = (lang.token_count + lang.external_token_count) as usize;
     let mut nonterminal_to_index = BTreeMap::new();
@@ -955,16 +964,6 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             nonterminal_to_index.insert(*sym, col);
         }
     }
-    // eprintln!(
-    // "Built nonterminal_to_index with {} entries",
-    // nonterminal_to_index.len()
-    // );
-    // eprintln!(
-    // "  tcols={}, index_to_symbol.len()={}",
-    // tcols,
-    // index_to_symbol.len()
-    // );
-
     // lang.eof_symbol is the *column index* of EOF, so map it back to the
     // corresponding SymbolId using the index_to_symbol mapping we just built.
     let eof_symbol = index_to_symbol
@@ -1013,6 +1012,20 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
     grammar.extras = extras.clone();
 
+    let mut symbol_to_index: BTreeMap<SymbolId, usize> = index_to_symbol
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(col, sym)| (sym, col))
+        .collect();
+
+    // Safety recovery for any upstream mutation of the symbol-id map.
+    if symbol_to_index.len() != symbol_count {
+        symbol_to_index.clear();
+        for (col, sym) in index_to_symbol.iter().copied().enumerate() {
+            symbol_to_index.entry(sym).or_insert(col);
+        }
+    }
     let mut table = ParseTable {
         action_table,
         goto_table,
@@ -1051,14 +1064,12 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                 let meaningful = nt_symbols
                     .iter()
                     .filter(|s| {
-                        // Get symbol name from symbol_names if available
-                        // SAFETY: `lang.symbol_names` is a `*const *const u8` array with
-                        // `symbol_count` entries. `s.0` is a valid SymbolId from the
-                        // grammar rules, which should be < symbol_count. `as_ref()`
-                        // returns None if the computed pointer is null.
-                        // TODO(safety): No explicit bounds check that `s.0 < symbol_count`.
-                        // If a SymbolId exceeds symbol_count, this reads out of bounds.
-                        if let Some(name_ptr) =
+                        // Skip out-of-range symbol IDs to avoid unsafe OOB reads.
+                        // Some decoded grammars may carry symbol IDs that do not map into
+                        // this table's dense index space.
+                        if s.0 as usize >= lang.symbol_count as usize {
+                            true
+                        } else if let Some(name_ptr) =
                             unsafe { lang.symbol_names.add(s.0 as usize).as_ref() }
                         {
                             // SAFETY: `*name_ptr` is a pointer to a null-terminated C string
@@ -1108,8 +1119,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // Auto-detect GOTO indexing mode
     table.detect_goto_indexing();
 
-    // Ensure downstream components see a canonical EOF column
-    table.normalize_eof_to_zero()
+    table
 }
 
 /// Determine if a symbol is a terminal based on metadata and name
