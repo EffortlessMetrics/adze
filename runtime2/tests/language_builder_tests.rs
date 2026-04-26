@@ -1,6 +1,9 @@
 //! Tests for the LanguageBuilder API.
 
-use adze_runtime::language::{Language, SymbolMetadata};
+use adze_runtime::{
+    Parser,
+    language::{Language, SymbolMetadata},
+};
 
 fn eof_meta() -> SymbolMetadata {
     SymbolMetadata {
@@ -142,4 +145,25 @@ fn builder_is_terminal() {
         .unwrap();
     assert!(lang.is_terminal(0));
     assert!(!lang.is_terminal(1));
+}
+
+#[test]
+fn smoke_language_builder_constructs_and_loads_into_parser() {
+    let language = Language::builder()
+        .version(14)
+        .parse_table(leak_parse_table())
+        .symbol_names(vec!["end".into(), "source_file".into()])
+        .symbol_metadata(vec![eof_meta(), named_meta()])
+        .tokenizer(|_| Box::new(std::iter::empty()))
+        .build()
+        .expect("language should build with minimal required runtime2 data");
+
+    assert_eq!(language.symbol_name(1), Some("source_file"));
+    assert!(language.is_visible(1));
+
+    let mut parser = Parser::new();
+    parser
+        .set_language(language)
+        .expect("parser should accept a minimally constructed runtime2 language");
+    assert!(parser.language().is_some());
 }

@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-04-26
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -45,7 +45,7 @@ This lane is intentionally bounded so it stays reliable and fast enough for day-
 ### Not in the supported lane (workspace members / tools)
 These are intentionally excluded for now because they are prototypes, platform-sensitive, heavier than the supported contract, or still stabilizing:
 
-- `runtime2/` (alt runtime path; still converging)
+- `runtime2/` (**experimental proving ground**; alt runtime path, still converging). See `docs/status/RUNTIME2_STATUS.md` for bounded scope and smoke proof status.
 - `cli/`, `lsp-generator/`, `playground/`, `wasm-demo/` (tooling/prototypes)
 - `golden-tests/` (useful contract, but can be heavy and multi-language)
 - `benchmarks/` (signal, not merge-blocking)
