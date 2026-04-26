@@ -1,6 +1,8 @@
-// TODO: Fix benchmarks after API stabilization
-// This file is temporarily disabled while we stabilize the pure-Rust parser API
+//! Placeholder binary for a future pure-Rust parser benchmark suite.
+//!
+//! This target intentionally does not run Criterion today, and should not be
+//! interpreted as evidence of runtime performance.
 
 fn main() {
-    println!("Pure Rust benchmarks temporarily disabled - API migration in progress");
+    println!("placeholder-only bench target: pure-Rust runtime benchmarks are not implemented yet");
 }

@@ -13,14 +13,16 @@ benchmarking, and known limitations of adze's parsing infrastructure.
 | GLR with few conflicts | O(n) amortized | ~224 µs for 200-op expressions | Fork/merge overhead is constant per conflict site |
 | GLR with pervasive ambiguity | O(n³) worst case | Varies widely | Every token triggers forking; avoid if possible |
 
-The arithmetic grammar benchmarks illustrate typical scaling:
+The arithmetic grammar benchmarks illustrate typical scaling in this repository's
+fixture-driven parser benches (not a cross-machine SLA):
 
 - **Small** (~100 LOC, ~88 expressions): 10–100 µs
 - **Medium** (~2,000 LOC, ~1,914 expressions): 200 µs – 2 ms
 - **Large** (~10,000 LOC, ~9,606 expressions): 1–10 ms
 
-These numbers come from `benchmarks/benches/glr_performance_real.rs` using valid
-arithmetic expression fixtures.
+These ranges come from `benchmarks/benches/glr_performance_real.rs` using valid
+arithmetic expression fixtures on a developer machine. Treat them as directional
+unless you reproduce them locally with the commands in this document.
 
 ### Memory Usage Patterns
 
@@ -154,6 +156,54 @@ cargo bench -p adze-benchmarks
 | `runtime` | `parser_benchmark.rs` | General parser benchmarks |
 | `runtime` | `pure_rust_bench.rs` | Pure-Rust backend performance |
 | `runtime` | `incremental_benchmark.rs` | Incremental parsing overhead |
+
+### Benchmark Inventory and Credibility
+
+The table below classifies every benchmark file under:
+
+- `benchmarks/**`
+- `runtime/benches/**`
+- `glr-core/benches/**`
+- `tablegen/benches/**`
+
+Use this inventory to distinguish **real parser/GLR evidence** from
+**placeholder** and **utility** microbenchmarks.
+
+| Benchmark file | Classification | Notes |
+|---|---|---|
+| `benchmarks/benches/glr_performance.rs` | real parser workload | Parses real arithmetic fixtures with `adze_example::arithmetic::grammar::parse`. |
+| `benchmarks/benches/glr_hot.rs` | real parser workload | Hot-path fixture parsing only (medium/large). |
+| `benchmarks/benches/glr_performance_real.rs` | real parser workload | Primary fixture-driven GLR parser benchmark. |
+| `benchmarks/benches/incremental_bench.rs` | GLR forest/fork workload | Measures incremental parser behavior using grammar/token/edit helpers. |
+| `benchmarks/benches/core_baselines.rs` | tablegen workload | IR normalize, FIRST/FOLLOW, LR(1) automaton, and table compression generation steps. |
+| `benchmarks/benches/arena_vs_box_allocation.rs` | utility microbenchmark | Allocation strategy benchmark; not an end-to-end parser benchmark. |
+| `benchmarks/benches/optimization_bench.rs` | placeholder/mock | Simulated parse/fork loops (`parse_simulation`), not a parser run. |
+| `benchmarks/benches/stack_optimization.rs` | utility microbenchmark | Stack/pool/fork-pattern data-structure costs, synthetic workload. |
+| `benchmarks/benches/parse_bench.rs` | placeholder/mock | Explicit placeholder target (`placeholder_no_parser_workload`). |
+| `runtime/benches/glr_parser_bench.rs` | GLR forest/fork workload | GLR parsing stress cases, including ambiguous grammars. |
+| `runtime/benches/runtime_parse_serialize_bench.rs` | compression/decode workload | Runtime parse + JSON/S-expression serialization traversal costs. |
+| `runtime/benches/parser_benchmark.rs` | real parser workload | Pure-Rust parser over expression inputs. |
+| `runtime/benches/parser_bench.rs` | utility microbenchmark | Lexer/parser/incremental microbench routines on synthetic grammar setup. |
+| `runtime/benches/simple_bench.rs` | utility microbenchmark | Lexer-focused microbenchmarks. |
+| `runtime/benches/perf_benchmark.rs` | utility microbenchmark | Lexer SIMD vs standard and single vs parallel parser utility comparisons. |
+| `runtime/benches/incremental_benchmark.rs` | GLR forest/fork workload | Incremental parsing with edits against tokenized inputs. |
+| `runtime/benches/incremental_parsing.rs` | placeholder/mock | Contains TODO-disabled edit API paths (`parse_incremental(..., &[])`). |
+| `runtime/benches/incremental_simple.rs` | placeholder/mock | Similar TODO-disabled incremental-edit paths. |
+| `runtime/benches/pure_rust_bench.rs` | placeholder/mock | Explicit non-Criterion placeholder binary target. |
+| `glr-core/benches/automaton.rs` | tablegen workload | FIRST/FOLLOW and LR(1) automaton construction only. |
+| `glr-core/benches/perf_snapshot.rs` | placeholder/mock | Minimal synthetic table (`make_minimal_table`) for fast perf snapshots. |
+| `tablegen/benches/compression.rs` | compression/decode workload | Parse table compression plus parse table generation path. |
+
+### Still-Missing Real Benchmark Categories
+
+Current gaps (as of April 26, 2026):
+
+1. **Real language grammar parser benchmarks** (Python/JavaScript fixtures parsed
+   end-to-end in a stable, maintained suite).
+2. **Real incremental editing benchmarks** that exercise edit-aware APIs without
+   TODO-disabled edit vectors.
+3. **Forest-to-tree materialization benchmarks** on large ambiguous inputs with
+   stable, reproducible fixtures.
 
 ### Interpreting Results
 
