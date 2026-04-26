@@ -101,6 +101,29 @@ pub struct TsLexerHost<'a> {
 }
 
 impl<'a> TsLexerHost<'a> {
+    #[must_use]
+    fn current_column(&self) -> u32 {
+        let mut line_start = 0usize;
+        let mut i = 0usize;
+        let limit = self.pos.min(self.input.len());
+        while i < limit {
+            match self.input[i] {
+                b'\n' => {
+                    line_start = i + 1;
+                }
+                b'\r' => {
+                    if i + 1 < limit && self.input[i + 1] == b'\n' {
+                        i += 1;
+                    }
+                    line_start = i + 1;
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        (limit - line_start) as u32
+    }
+
     // C callbacks — invoked by the Tree-sitter lex_fn during `GrammarLexer::next()`.
     // SAFETY (shared across eof/advance/mark_end): `payload` was set to a valid
     // `&mut TsLexerHost` pointer in `GrammarLexer::next()` and these callbacks are
@@ -129,12 +152,18 @@ impl<'a> TsLexerHost<'a> {
         host.end_mark = host.pos;
     }
 
-    extern "C" fn get_column(_payload: *mut c_void) -> u32 {
-        0 // TODO: Track column for proper error reporting
+    extern "C" fn get_column(payload: *mut c_void) -> u32 {
+        // SAFETY: see shared invariant above.
+        let host = unsafe { &mut *(payload as *mut Self) };
+        host.current_column()
     }
 
-    extern "C" fn is_included(_payload: *mut c_void) -> bool {
-        false // TODO: Support included ranges for injections
+    extern "C" fn is_included(payload: *mut c_void) -> bool {
+        // SAFETY: see shared invariant above.
+        let host = unsafe { &mut *(payload as *mut Self) };
+        // Included-range APIs are not implemented in this wrapper yet.
+        // For now we model the whole input as a single included range.
+        host.pos <= host.input.len()
     }
 }
 
@@ -217,6 +246,8 @@ unsafe extern "C" {
 
 #[cfg(test)]
 mod tests {
+    use super::TsLexerHost;
+    use std::ffi::c_void;
 
     #[test]
     #[ignore = "requires actual Tree-sitter library to be linked"]
@@ -241,5 +272,38 @@ mod tests {
         // this test should assert that a scanner-emitted token is rejected
         // whenever its valid_symbols entry is false for the current state.
         panic!("not yet implemented");
+    }
+
+    #[test]
+    fn get_column_tracks_newlines_and_crlf() {
+        let mut host = TsLexerHost {
+            input: b"ab\ncd\r\nef",
+            pos: 2,
+            end_mark: 0,
+        };
+        assert_eq!(
+            TsLexerHost::get_column(&mut host as *mut _ as *mut c_void),
+            2
+        );
+        host.pos = 5;
+        assert_eq!(
+            TsLexerHost::get_column(&mut host as *mut _ as *mut c_void),
+            2
+        );
+        host.pos = 9;
+        assert_eq!(
+            TsLexerHost::get_column(&mut host as *mut _ as *mut c_void),
+            2
+        );
+    }
+
+    #[test]
+    fn is_included_is_true_for_current_input() {
+        let mut host = TsLexerHost {
+            input: b"hello",
+            pos: 3,
+            end_mark: 0,
+        };
+        assert!(TsLexerHost::is_included(&mut host as *mut _ as *mut c_void));
     }
 }

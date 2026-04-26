@@ -147,7 +147,9 @@ impl ExternalScannerRuntime {
             if !emitted_by_index && !emitted_by_symbol_id {
                 return None;
             }
-
+            if result.length == 0 {
+                return None;
+            }
             // Serialize updated state
             self.state.data.clear();
             scanner.serialize(&mut self.state.data);
