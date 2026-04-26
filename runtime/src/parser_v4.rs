@@ -1209,6 +1209,10 @@ impl Parser {
         self.external_scanner = Some(scanner);
 
         if let Some(result) = scan_result {
+            if !valid_externals.contains(&SymbolId(result.symbol)) {
+                return Ok(None);
+            }
+
             // Extract token text
             let end = self.position + result.length;
             let text = if end <= self.input.len() {

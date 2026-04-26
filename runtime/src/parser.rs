@@ -439,12 +439,14 @@ impl Parser {
             }
 
             if success && lexer.result_symbol > 0 {
+                let external_index = lexer.result_symbol as usize;
+                if external_index >= external_token_count || !valid_symbols[external_index] {
+                    return None;
+                }
+
                 // Map external symbol to actual symbol
                 let symbol = if !lang.external_scanner.symbol_map.is_null() {
-                    *lang
-                        .external_scanner
-                        .symbol_map
-                        .add(lexer.result_symbol as usize)
+                    *lang.external_scanner.symbol_map.add(external_index)
                 } else {
                     lexer.result_symbol
                 };

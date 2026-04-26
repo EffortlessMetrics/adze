@@ -818,20 +818,28 @@ impl Parser {
                     && ext_lexer.result_symbol > 0
                     && (ext_lexer.result_symbol as usize) <= external_count
                 {
-                    let symbol = if !language.external_scanner.symbol_map.is_null() {
-                        *language
-                            .external_scanner
-                            .symbol_map
-                            .add(ext_lexer.result_symbol as usize)
+                    let external_index = ext_lexer.result_symbol as usize;
+                    if valid_symbols
+                        .get(external_index)
+                        .copied()
+                        .unwrap_or_default()
+                        == 0
+                    {
+                        // Scanner emitted a token that is not valid in this parse state.
+                        // Ignore this external token and continue with builtin lexing.
                     } else {
-                        ext_lexer.result_symbol
-                    };
+                        let symbol = if !language.external_scanner.symbol_map.is_null() {
+                            *language.external_scanner.symbol_map.add(external_index)
+                        } else {
+                            ext_lexer.result_symbol
+                        };
 
-                    return Token {
-                        symbol,
-                        length: ext_lexer.token_end,
-                        is_extra: false,
-                    };
+                        return Token {
+                            symbol,
+                            length: ext_lexer.token_end,
+                            is_extra: false,
+                        };
+                    }
                 }
             }
         }

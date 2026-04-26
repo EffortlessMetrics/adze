@@ -232,4 +232,13 @@ mod tests {
         //     assert_eq!(token.unwrap().kind, 1); // { token
         // }
     }
+
+    #[test]
+    #[ignore = "contract: GrammarLexer::next currently does not thread valid_symbols into external scanner dispatch"]
+    fn test_external_scanner_contract_requires_valid_symbols_plumbing() {
+        // NOTE: `GrammarLexer::next` accepts `valid_symbols` but does not yet invoke
+        // `TSLanguage.external_scanner.scan`. This contract test documents the missing
+        // API link and should be enabled when external scanner dispatch is wired in.
+        panic!("enable when glr-core external scanner dispatch is implemented");
+    }
 }
