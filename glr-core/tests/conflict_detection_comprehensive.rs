@@ -11,7 +11,7 @@
 use adze_glr_core::advanced_conflict::{ConflictAnalyzer, PrecedenceDecision, PrecedenceResolver};
 use adze_glr_core::conflict_inspection::{
     ConflictType, classify_conflict, count_conflicts, find_conflicts_for_symbol,
-    get_state_conflicts, state_has_conflicts,
+    get_state_conflicts, is_conflicted_cell, state_has_conflicts,
 };
 use adze_glr_core::precedence_compare::{
     PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
@@ -625,8 +625,8 @@ fn test_20_fork_classified_as_reduce_reduce() {
     assert_eq!(classify_conflict(&cell), ConflictType::ReduceReduce);
 }
 
-/// An ambiguous grammar built via GrammarBuilder should produce a table with
-/// multi-action cells (indicating GLR forking points).
+/// An ambiguous grammar built via GrammarBuilder should produce conflicted cells
+/// (indicating GLR forking points).
 #[test]
 fn test_21_grammarbuilder_ambiguous_has_multi_action_cells() {
     let g = GrammarBuilder::new("ambig")
@@ -643,14 +643,14 @@ fn test_21_grammarbuilder_ambiguous_has_multi_action_cells() {
     let has_multi = table
         .action_table
         .iter()
-        .any(|row| row.iter().any(|cell| cell.len() > 1));
+        .any(|row| row.iter().any(|cell| is_conflicted_cell(cell)));
     assert!(
         has_multi,
         "Ambiguous grammar must have at least one multi-action cell (GLR fork)"
     );
 }
 
-/// An unambiguous grammar built via GrammarBuilder should have no multi-action cells.
+/// An unambiguous grammar built via GrammarBuilder should have no conflicted cells.
 #[test]
 fn test_22_grammarbuilder_unambiguous_no_multi_action() {
     let g = GrammarBuilder::new("unamb")
@@ -667,7 +667,7 @@ fn test_22_grammarbuilder_unambiguous_no_multi_action() {
     let has_multi = table
         .action_table
         .iter()
-        .any(|row| row.iter().any(|cell| cell.len() > 1));
+        .any(|row| row.iter().any(|cell| is_conflicted_cell(cell)));
     assert!(
         !has_multi,
         "Unambiguous grammar must have no multi-action cells"

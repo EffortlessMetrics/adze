@@ -19,6 +19,7 @@
 //!  14.  EOF symbol handling (4)
 //!  15.  Multiple grammars with varying complexities (6)
 
+use adze_glr_core::conflict_inspection::is_conflicted_cell;
 use adze_glr_core::{
     Action, ActionCell, FirstFollowSets, ParseTable, RuleId, StateId, SymbolId, build_lr1_automaton,
 };
@@ -110,9 +111,9 @@ fn expr_grammar() -> Grammar {
         .build()
 }
 
-/// Returns true if the ActionCell has more than one action (conflict).
+/// Returns true if the ActionCell has more than one valid parse action (conflict).
 fn has_conflict(cell: &ActionCell) -> bool {
-    cell.len() > 1
+    is_conflicted_cell(cell)
 }
 
 /// Finds any Accept action across all states for a given symbol.

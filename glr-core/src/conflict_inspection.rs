@@ -39,11 +39,11 @@
 //!
 //! ### What Counts as a Conflict?
 //!
-//! A conflict exists when an action cell contains **multiple actions** (`cell.len() > 1`).
+//! A conflict exists when an action cell can lead to **more than one valid parse action**.
 //!
-//! - **Single action** (`cell.len() == 1`): Not a conflict, deterministic behavior
-//! - **Multiple actions** (`cell.len() > 1`): Conflict, GLR fork required
-//! - **Empty cell** (`cell.len() == 0`): Error state, not a conflict
+//! - **Single valid action**: Not a conflict, deterministic behavior
+//! - **Multiple valid actions**: Conflict, GLR fork required
+//! - **Empty cell / no valid actions**: Error state, not a conflict
 //!
 //! ### Conflict Classification
 //!
@@ -63,10 +63,11 @@
 //!
 //! ### Action::Fork Handling
 //!
-//! `Action::Fork(Vec<Action>)` is treated **recursively** during classification:
+//! `Action::Fork(Vec<Action>)` is treated **recursively** during conflict detection/classification:
 //!
-//! - Fork actions themselves don't create conflicts (they represent pre-packaged GLR branches)
-//! - The *contents* of the fork are examined to determine conflict type
+//! - Fork actions themselves don't directly create conflicts
+//! - The *contents* of the fork are examined to determine whether there are
+//!   multiple valid parse actions
 //! - Example: `Fork([Shift(5), Reduce(3)])` is classified as ShiftReduce
 //!
 //! This allows Fork actions to be properly analyzed even when nested.
@@ -149,6 +150,31 @@ pub enum ConflictType {
     Mixed,
 }
 
+/// Return `true` when a cell can take more than one valid parse action.
+///
+/// Valid parse actions are `Shift`, `Reduce`, and `Accept`.
+/// `Fork` is treated as a container and recursively unwrapped.
+/// `Error` and `Recover` are excluded.
+pub fn is_conflicted_cell(actions: &[Action]) -> bool {
+    let mut unique_actions = Vec::new();
+    collect_unique_valid_actions(actions, &mut unique_actions);
+    unique_actions.len() > 1
+}
+
+fn collect_unique_valid_actions(actions: &[Action], out: &mut Vec<Action>) {
+    for action in actions {
+        match action {
+            Action::Shift(_) | Action::Reduce(_) | Action::Accept => {
+                if !out.contains(action) {
+                    out.push(action.clone());
+                }
+            }
+            Action::Fork(inner) => collect_unique_valid_actions(inner, out),
+            Action::Error | Action::Recover => {}
+        }
+    }
+}
+
 /// Inspect parse table and count conflicts
 ///
 /// This function scans the entire action table and identifies
@@ -226,8 +252,8 @@ pub fn count_conflicts(table: &ParseTable) -> ConflictSummary {
                 continue;
             }
 
-            // Conflict exists if cell has multiple actions
-            if action_cell.len() > 1 {
+            // Conflict exists if cell has more than one valid parse action.
+            if is_conflicted_cell(action_cell) {
                 state_has_conflict = true;
 
                 // Get symbol info using index_to_symbol
@@ -324,7 +350,7 @@ pub fn state_has_conflicts(table: &ParseTable, state: StateId) -> bool {
     }
 
     let state_actions = &table.action_table[state.0 as usize];
-    state_actions.iter().any(|cell| cell.len() > 1)
+    state_actions.iter().any(|cell| is_conflicted_cell(cell))
 }
 
 /// Get all conflicts for a specific state
@@ -488,5 +514,20 @@ mod tests {
 
         assert!(state_has_conflicts(&table, StateId(0)));
         assert!(!state_has_conflicts(&table, StateId(1)));
+    }
+
+    #[test]
+    fn test_is_conflicted_cell_single_fork_is_conflict_when_multi_valid() {
+        let cell = vec![Action::Fork(vec![
+            Action::Shift(StateId(1)),
+            Action::Reduce(RuleId(0)),
+        ])];
+        assert!(is_conflicted_cell(&cell));
+    }
+
+    #[test]
+    fn test_is_conflicted_cell_single_fork_is_not_conflict_when_single_valid() {
+        let cell = vec![Action::Fork(vec![Action::Shift(StateId(1)), Action::Error])];
+        assert!(!is_conflicted_cell(&cell));
     }
 }
