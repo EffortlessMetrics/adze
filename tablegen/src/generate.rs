@@ -6,6 +6,7 @@ use adze_glr_core::ParseTable;
 use adze_ir::Grammar;
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::collections::HashSet;
 use std::os::raw::c_char;
 
 /// Language builder that produces validated Language structs
@@ -58,11 +59,9 @@ impl LanguageBuilder {
         let external_token_count = self.grammar.externals.len() as u32;
         let field_count = self.grammar.fields.len() as u32;
 
-        // TODO: Calculate these properly
-        let alias_count = 0;
+        let (alias_count, max_alias_sequence_length) = self.calculate_alias_metrics();
         let large_state_count = 0;
         let production_id_count = self.grammar.alias_sequences.len() as u32;
-        let max_alias_sequence_length = 0;
 
         // Build symbol names array
         let symbol_names = self.build_symbol_names();
@@ -147,6 +146,23 @@ impl LanguageBuilder {
         }
 
         names
+    }
+
+    /// Calculate alias-related ABI counters from grammar alias sequences.
+    fn calculate_alias_metrics(&self) -> (u32, u16) {
+        let mut aliases = HashSet::new();
+        let mut max_len = self.grammar.max_alias_sequence_length;
+
+        for seq in self.grammar.alias_sequences.values() {
+            max_len = max_len.max(seq.aliases.len());
+            for alias in seq.aliases.iter().flatten() {
+                aliases.insert(alias.as_str());
+            }
+        }
+
+        let alias_count = aliases.len() as u32;
+        let max_alias_sequence_length = u16::try_from(max_len).unwrap_or(u16::MAX);
+        (alias_count, max_alias_sequence_length)
     }
 
     fn build_field_names(&self) -> Vec<*const c_char> {

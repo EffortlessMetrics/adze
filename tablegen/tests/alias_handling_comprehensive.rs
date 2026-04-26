@@ -336,10 +336,9 @@ fn language_builder_many_tokens_alias_zero() {
     assert_eq!(lang.max_alias_sequence_length, 0);
 }
 
-/// LanguageBuilder with grammar alias_sequences still gets alias_count=0
-/// because alias counting is not yet implemented.
+/// LanguageBuilder derives alias counters from grammar alias sequences.
 #[test]
-fn language_builder_ignores_grammar_alias_sequences_for_now() {
+fn language_builder_uses_grammar_alias_sequences_for_alias_counters() {
     let mut grammar = GrammarBuilder::new("alias_test")
         .token("x", "x")
         .rule("start", vec!["x"])
@@ -362,8 +361,49 @@ fn language_builder_ignores_grammar_alias_sequences_for_now() {
 
     // production_id_count reflects alias_sequences.len()
     assert_eq!(lang.production_id_count, 1);
-    // But alias_count itself is still 0 (TODO in source)
-    assert_eq!(lang.alias_count, 0);
+    assert_eq!(lang.alias_count, 1);
+    assert_eq!(lang.max_alias_sequence_length, 1);
+}
+
+/// LanguageBuilder deduplicates repeated alias names across productions.
+#[test]
+fn language_builder_deduplicates_alias_names() {
+    let mut grammar = GrammarBuilder::new("alias_dupe")
+        .token("x", "x")
+        .token("y", "y")
+        .rule("start", vec!["x"])
+        .start("start")
+        .build();
+
+    grammar.alias_sequences.insert(
+        ProductionId(0),
+        AliasSequence {
+            aliases: vec![
+                Some("same_alias".to_string()),
+                Some("same_alias".to_string()),
+            ],
+        },
+    );
+    grammar.alias_sequences.insert(
+        ProductionId(1),
+        AliasSequence {
+            aliases: vec![
+                Some("same_alias".to_string()),
+                None,
+                Some("other_alias".to_string()),
+            ],
+        },
+    );
+    grammar.max_alias_sequence_length = 3;
+
+    let table = ParseTable::default();
+    let builder = LanguageBuilder::new(grammar, table);
+    let lang = builder
+        .generate_language()
+        .expect("generate_language failed");
+
+    assert_eq!(lang.alias_count, 2);
+    assert_eq!(lang.max_alias_sequence_length, 3);
 }
 
 // =========================================================================
