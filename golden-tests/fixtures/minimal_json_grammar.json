@@ -1,0 +1,9 @@
+{
+  "name": "golden_minimal_json",
+  "rules": {
+    "source_file": {
+      "type": "STRING",
+      "value": "x"
+    }
+  }
+}
