@@ -132,6 +132,21 @@ impl ExternalScannerRuntime {
 
         // Scan for external tokens
         if let Some(result) = scanner.scan(lexer, &valid_symbols) {
+            // Enforce valid_symbols at dispatch boundary, even if scanner ignores it.
+            // We accept either:
+            // 1) result.symbol as an index into the external token list, or
+            // 2) result.symbol as a concrete SymbolId present in external_tokens.
+            let emitted_is_valid = usize::from(result.symbol) < valid_symbols.len()
+                && valid_symbols[usize::from(result.symbol)]
+                || self
+                    .external_tokens
+                    .iter()
+                    .position(|token| *token == result.symbol)
+                    .is_some_and(|idx| valid_symbols.get(idx) == Some(&true));
+            if !emitted_is_valid {
+                return None;
+            }
+
             // Serialize updated state
             self.state.data.clear();
             scanner.serialize(&mut self.state.data);

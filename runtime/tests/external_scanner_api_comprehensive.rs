@@ -544,6 +544,29 @@ fn runtime_scan_builds_valid_symbols_from_tokens() {
 }
 
 #[test]
+fn runtime_scan_rejects_emitted_token_not_in_valid_symbols() {
+    struct InvalidEmitter;
+    impl ExternalScanner for InvalidEmitter {
+        fn scan(&mut self, _lexer: &mut dyn Lexer, _valid_symbols: &[bool]) -> Option<ScanResult> {
+            // Always emit index 1 even when only index 0 is valid.
+            Some(ScanResult {
+                symbol: 1,
+                length: 1,
+            })
+        }
+        fn serialize(&self, _buffer: &mut Vec<u8>) {}
+        fn deserialize(&mut self, _buffer: &[u8]) {}
+    }
+
+    let mut runtime = ExternalScannerRuntime::new(vec![10, 20]);
+    let mut scanner = InvalidEmitter;
+    let mut lexer = TestLexer::new(b"x");
+    let valid: HashSet<u16> = [10u16].into_iter().collect();
+
+    assert_eq!(runtime.scan(&mut scanner, &mut lexer, &valid), None);
+}
+
+#[test]
 fn runtime_persists_state_across_scans() {
     struct CountingScanner {
         counter: u8,

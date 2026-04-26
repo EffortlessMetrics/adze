@@ -89,7 +89,9 @@ impl DynExternalScanner for CScannerWrapper {
         let scan_result = unsafe { self.scanner.scan(&mut ts_lexer, valid_symbols) };
         if scan_result {
             let symbol_index = ts_lexer.result_symbol as usize;
-            if symbol_index < self.external_tokens.len() {
+            if symbol_index < self.external_tokens.len()
+                && valid_symbols.get(symbol_index).copied().unwrap_or(false)
+            {
                 Some(ScanResult {
                     symbol: self.external_tokens[symbol_index].0,
                     length: adapter.token_length(),
