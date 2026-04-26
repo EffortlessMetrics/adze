@@ -12,6 +12,7 @@ all-features = true
 
 [advisories]
 version = 2
+ignore = ["RUSTSEC-2025-0141"]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
@@ -63,6 +64,8 @@ skip = [
     { crate = "thiserror@1", reason = "tree-sitter 0.20 uses thiserror 1, rest uses thiserror 2" },
     { crate = "thiserror-impl@1", reason = "pulled in by thiserror 1.x" },
     { crate = "tree-sitter@0.20", reason = "legacy tree-sitter-c2rust backend" },
+    { crate = "rustc_version@0.2.3", reason = "kept for tablegen rustc version metadata compatibility" },
+    { crate = "semver@0.9.0", reason = "pulled via rustc_version 0.2.3 dependency chain" },
 ]
 
 # Skip entire dependency trees for platform-specific crates with many versions
