@@ -53,11 +53,72 @@ pub struct CompressedTables {
 impl CompressedTables {
     /// Validate compressed tables against original parse table
     #[must_use = "validation result must be checked"]
-    pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
-        // TODO: Implement validation logic
-        // For now, just return Ok to make tests compile
+    pub fn validate(&self, parse_table: &ParseTable) -> Result<()> {
+        if self.action_table.row_offsets.len() != parse_table.state_count + 1 {
+            return Err(TableGenError::Compression(format!(
+                "action row_offsets length {} must equal state_count + 1 ({})",
+                self.action_table.row_offsets.len(),
+                parse_table.state_count + 1
+            )));
+        }
+        if let Some(&last) = self.action_table.row_offsets.last()
+            && (last as usize) > self.action_table.data.len()
+        {
+            return Err(TableGenError::Compression(format!(
+                "action row_offsets end {} exceeds action data length {}",
+                last,
+                self.action_table.data.len()
+            )));
+        }
+        for pair in self.action_table.row_offsets.windows(2) {
+            if pair[1] < pair[0] {
+                return Err(TableGenError::Compression(format!(
+                    "action row_offsets must be nondecreasing, got {} then {}",
+                    pair[0], pair[1]
+                )));
+            }
+        }
+
+        let eof_col = *parse_table
+            .symbol_to_index
+            .get(&parse_table.eof_symbol)
+            .ok_or_else(|| {
+                TableGenError::InvalidTable(format!(
+                    "EOF symbol {} missing from symbol_to_index",
+                    parse_table.eof_symbol.0
+                ))
+            })?;
+
+        // Invariant: if a state accepts in the source table, the compressed table must
+        // still expose an Accept action at the EOF column for that state.
+        for state in 0..parse_table.state_count {
+            let source_accept_on_eof = parse_table.action_table[state]
+                .get(eof_col)
+                .is_some_and(|cell| cell.iter().any(|a| matches!(a, Action::Accept)));
+
+            if source_accept_on_eof
+                && !state_has_accept_on_symbol(&self.action_table, state, eof_col as u16)
+            {
+                return Err(TableGenError::Compression(format!(
+                    "Accept-on-EOF lost in compression at state {} (EOF column {})",
+                    state, eof_col
+                )));
+            }
+        }
+
         Ok(())
     }
+}
+
+fn state_has_accept_on_symbol(table: &CompressedActionTable, state: usize, symbol: u16) -> bool {
+    let start = table.row_offsets[state] as usize;
+    let end = table.row_offsets[state + 1] as usize;
+    if end > table.data.len() || start > end {
+        return false;
+    }
+    table.data[start..end]
+        .iter()
+        .any(|entry| entry.symbol == symbol && matches!(entry.action, Action::Accept))
 }
 
 /// Compressed action table
