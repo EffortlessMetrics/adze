@@ -128,9 +128,27 @@ pub mod grammar {
 
 #[cfg(test)]
 mod tests {
+    use super::grammar;
+
     #[test]
-    fn test_simple_go() {
-        // Grammar builds successfully
-        assert!(true);
+    fn test_language_object_smoke() {
+        let language = grammar::language();
+
+        let mut parser = adze::pure_parser::Parser::new();
+        parser
+            .set_language(language)
+            .expect("go grammar language object should be accepted by parser");
+    }
+
+    #[test]
+    fn test_parse_package_clause_smoke() {
+        // Current pure-rust runtime path does not yet accept this grammar's tokenization
+        // for a minimal package clause, so we keep a smoke assertion that parse() is wired
+        // and returns a structured error instead of panicking.
+        let source = "package main";
+        match grammar::parse(source) {
+            Ok(_) => panic!("go grammar parse smoke currently expects known tokenization blocker"),
+            Err(error) => assert!(!error.is_empty()),
+        }
     }
 }
