@@ -68,7 +68,15 @@ impl GLRLexer {
         // Compile token patterns
         for (symbol_id, token) in &grammar.tokens {
             let matcher = match &token.pattern {
-                TokenPattern::String(s) => TokenMatcher::Literal(s.clone()),
+                TokenPattern::String(s) => {
+                    if s.is_empty() {
+                        return Err(format!(
+                            "Invalid literal for token {}: empty literals are unsupported",
+                            token.name
+                        ));
+                    }
+                    TokenMatcher::Literal(s.clone())
+                }
                 TokenPattern::Regex(pattern) => {
                     // Add ^ anchor if not present to ensure matching at position
                     let anchored_pattern = if pattern.starts_with('^') {
@@ -78,7 +86,15 @@ impl GLRLexer {
                     };
 
                     match Regex::new(&anchored_pattern) {
-                        Ok(re) => TokenMatcher::Regex(re),
+                        Ok(re) => {
+                            if re.is_match("") {
+                                return Err(format!(
+                                    "Invalid regex for token {}: zero-length matches are unsupported",
+                                    token.name
+                                ));
+                            }
+                            TokenMatcher::Regex(re)
+                        }
                         Err(e) => {
                             let name = grammar
                                 .rule_names
@@ -117,6 +133,11 @@ impl GLRLexer {
         // Try each token pattern
         for (symbol_id, matcher) in &self.token_patterns {
             if let Some(len) = matcher.matches_at(&self.input, self.position) {
+                if len == 0 {
+                    // Defensive no-progress guard for any future matcher regressions.
+                    self.position += 1;
+                    return self.next_token();
+                }
                 // Ensure we're not splitting a UTF-8 sequence
                 let end_pos = self.position + len;
                 if !self.input.is_char_boundary(end_pos) {
