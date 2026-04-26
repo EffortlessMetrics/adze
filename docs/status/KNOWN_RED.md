@@ -5,6 +5,7 @@
 This file tracks intentional exclusions from the supported lane:
 
 - Required PR gate: `just ci-supported` locally, `CI / ci-supported` in GitHub checks
+- Support tier/source-of-truth mapping: [`SUPPORT_TIERS.md`](../../SUPPORT_TIERS.md)
 
 Rule: if something is excluded from the supported lane, it must be listed here with:
 - what is excluded
