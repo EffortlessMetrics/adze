@@ -68,6 +68,17 @@ cargo test --features python-grammar
 cargo test --features javascript-grammar
 ```
 
+### Stable canary (smallest product-facing golden)
+
+The `javascript/fixtures/canary_expression.js` fixture contains a single
+semicolon (`;`) and is validated by
+`javascript_canary_expression_golden` in strict mode. This test is the current
+minimal canary that must parse and match a checked-in S-expression + SHA-256.
+
+```bash
+cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture
+```
+
 ### Update References
 
 If the expected output changes (e.g., due to grammar updates), regenerate references:

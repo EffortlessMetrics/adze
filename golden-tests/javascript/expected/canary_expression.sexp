@@ -1,0 +1,11 @@
+(source_file
+  (Program
+    (Program_statements_vec_contents
+      (Statement
+        (EmptyStatement
+          ";"
+        )
+      )
+    )
+  )
+)
