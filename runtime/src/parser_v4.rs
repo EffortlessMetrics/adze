@@ -599,18 +599,20 @@ impl Parser {
         let mut current_position = 0;
 
         // Main parsing loop with safety limits
-        let mut loop_iterations = 0;
+        let mut loop_iterations = 0usize;
         const MAX_LOOP_ITERATIONS: usize = 1_000_000; // Prevent infinite loops
+        const TIMEOUT_CHECK_INTERVAL: usize = 32; // Amortize time checks in hot loops
         let start_time = Instant::now();
 
         loop {
-            if self.timeout_micros > 0
-                && start_time.elapsed().as_micros() as u64 > self.timeout_micros
-            {
-                bail!(
-                    "Parser timed out after {} microseconds",
-                    self.timeout_micros
-                );
+            // Periodically enforce time-based parse limits to avoid per-iteration overhead.
+            if self.timeout_micros > 0 && loop_iterations % TIMEOUT_CHECK_INTERVAL == 0 {
+                if start_time.elapsed().as_micros() as u64 > self.timeout_micros {
+                    bail!(
+                        "Parser timed out after {} microseconds",
+                        self.timeout_micros
+                    );
+                }
             }
             // Safety check to prevent infinite loops
             loop_iterations += 1;
