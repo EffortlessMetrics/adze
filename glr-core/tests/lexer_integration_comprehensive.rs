@@ -955,3 +955,23 @@ fn parse_tokens_zero_width_span() {
     // Should still succeed (the grammar only cares about the kind)
     assert!(r.is_ok());
 }
+
+#[test]
+fn parse_streaming_zero_width_token_does_not_loop_forever() {
+    let t = single_a_table();
+    let r = stream_parse(&t, "abc", |_input, pos, _mode| {
+        if pos == 0 {
+            Some(NextToken {
+                kind: 1,
+                start: 0,
+                end: 0,
+            })
+        } else {
+            None
+        }
+    });
+    assert!(
+        r.is_err(),
+        "zero-width token streams must terminate instead of looping"
+    );
+}

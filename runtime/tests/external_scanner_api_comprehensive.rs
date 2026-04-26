@@ -518,6 +518,23 @@ fn runtime_scan_returns_none_when_scanner_returns_none() {
 }
 
 #[test]
+fn runtime_scan_rejects_zero_length_tokens() {
+    let mut runtime = ExternalScannerRuntime::new(vec![10]);
+    let mut scanner = FixedScanner {
+        result: Some(ScanResult {
+            symbol: 0,
+            length: 0,
+        }),
+    };
+    let mut lexer = TestLexer::new(b"hello");
+    let mut valid = HashSet::new();
+    valid.insert(10u16);
+
+    let result = runtime.scan(&mut scanner, &mut lexer, &valid);
+    assert_eq!(result, None);
+}
+
+#[test]
 fn runtime_scan_builds_valid_symbols_from_tokens() {
     struct CheckingScanner {
         observed_valid: Vec<bool>,

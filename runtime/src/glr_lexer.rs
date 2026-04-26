@@ -42,6 +42,9 @@ impl TokenMatcher {
 
         match self {
             TokenMatcher::Literal(s) => {
+                if s.is_empty() {
+                    return None;
+                }
                 if input[pos..].starts_with(s) {
                     Some(s.len())
                 } else {
@@ -51,7 +54,11 @@ impl TokenMatcher {
             TokenMatcher::Regex(re) => {
                 // Ensure regex matches at start of string slice
                 if let Some(m) = re.find(&input[pos..]) {
-                    if m.start() == 0 { Some(m.len()) } else { None }
+                    if m.start() == 0 && !m.as_str().is_empty() {
+                        Some(m.len())
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -68,7 +75,15 @@ impl GLRLexer {
         // Compile token patterns
         for (symbol_id, token) in &grammar.tokens {
             let matcher = match &token.pattern {
-                TokenPattern::String(s) => TokenMatcher::Literal(s.clone()),
+                TokenPattern::String(s) => {
+                    if s.is_empty() {
+                        return Err(format!(
+                            "Token '{}' has an empty literal pattern; zero-length tokens are not supported",
+                            token.name
+                        ));
+                    }
+                    TokenMatcher::Literal(s.clone())
+                }
                 TokenPattern::Regex(pattern) => {
                     // Add ^ anchor if not present to ensure matching at position
                     let anchored_pattern = if pattern.starts_with('^') {
@@ -78,7 +93,15 @@ impl GLRLexer {
                     };
 
                     match Regex::new(&anchored_pattern) {
-                        Ok(re) => TokenMatcher::Regex(re),
+                        Ok(re) => {
+                            if re.find("").is_some_and(|m| m.start() == 0 && m.end() == 0) {
+                                return Err(format!(
+                                    "Token '{}' regex '{}' can match empty input; zero-length tokens are not supported",
+                                    token.name, pattern
+                                ));
+                            }
+                            TokenMatcher::Regex(re)
+                        }
                         Err(e) => {
                             let name = grammar
                                 .rule_names
@@ -117,6 +140,10 @@ impl GLRLexer {
         // Try each token pattern
         for (symbol_id, matcher) in &self.token_patterns {
             if let Some(len) = matcher.matches_at(&self.input, self.position) {
+                if len == 0 {
+                    // Defensive guard: treat zero-length tokens as non-matches to guarantee progress.
+                    continue;
+                }
                 // Ensure we're not splitting a UTF-8 sequence
                 let end_pos = self.position + len;
                 if !self.input.is_char_boundary(end_pos) {

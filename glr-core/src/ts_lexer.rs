@@ -129,12 +129,38 @@ impl<'a> TsLexerHost<'a> {
         host.end_mark = host.pos;
     }
 
-    extern "C" fn get_column(_payload: *mut c_void) -> u32 {
-        0 // TODO: Track column for proper error reporting
+    extern "C" fn get_column(payload: *mut c_void) -> u32 {
+        // SAFETY: see shared invariant above.
+        let host = unsafe { &mut *(payload as *mut Self) };
+
+        let mut line_start = 0usize;
+        let mut i = 0usize;
+        while i < host.pos && i < host.input.len() {
+            match host.input[i] {
+                b'\n' => {
+                    line_start = i + 1;
+                    i += 1;
+                }
+                b'\r' => {
+                    line_start = i + 1;
+                    if i + 1 < host.pos && i + 1 < host.input.len() && host.input[i + 1] == b'\n' {
+                        line_start = i + 2;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+                _ => i += 1,
+            }
+        }
+
+        host.pos.saturating_sub(line_start) as u32
     }
 
     extern "C" fn is_included(_payload: *mut c_void) -> bool {
-        false // TODO: Support included ranges for injections
+        // Included ranges are not modeled in this host yet.
+        // For compatibility with full-buffer lexing, we treat every byte as included.
+        true
     }
 }
 
@@ -217,6 +243,8 @@ unsafe extern "C" {
 
 #[cfg(test)]
 mod tests {
+    use super::TsLexerHost;
+    use std::ffi::c_void;
 
     #[test]
     #[ignore = "requires actual Tree-sitter library to be linked"]
@@ -231,5 +259,40 @@ mod tests {
         //     assert!(token.is_some());
         //     assert_eq!(token.unwrap().kind, 1); // { token
         // }
+    }
+
+    #[test]
+    fn get_column_tracks_ascii_and_newlines() {
+        let input = b"abc\r\ndef\nxy";
+        let mut host = TsLexerHost {
+            input,
+            pos: 0,
+            end_mark: 0,
+        };
+
+        let payload = &mut host as *mut _ as *mut c_void;
+
+        assert_eq!(TsLexerHost::get_column(payload), 0);
+        host.pos = 3;
+        assert_eq!(TsLexerHost::get_column(payload), 3);
+        host.pos = 5; // after "\r\n"
+        assert_eq!(TsLexerHost::get_column(payload), 0);
+        host.pos = 8; // after "def"
+        assert_eq!(TsLexerHost::get_column(payload), 3);
+        host.pos = 9; // after '\n'
+        assert_eq!(TsLexerHost::get_column(payload), 0);
+        host.pos = 11;
+        assert_eq!(TsLexerHost::get_column(payload), 2);
+    }
+
+    #[test]
+    fn is_included_defaults_to_true_without_range_support() {
+        let mut host = TsLexerHost {
+            input: b"",
+            pos: 0,
+            end_mark: 0,
+        };
+        let payload = &mut host as *mut _ as *mut c_void;
+        assert!(TsLexerHost::is_included(payload));
     }
 }
