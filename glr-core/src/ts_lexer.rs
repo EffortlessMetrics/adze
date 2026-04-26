@@ -2,20 +2,21 @@
 #![cfg_attr(feature = "strict_docs", allow(missing_docs))]
 
 use crate::LexMode;
-use std::ffi::c_void;
+use std::ffi::{CStr, c_void};
 use std::os::raw::c_char;
+use std::ptr;
 
 /// Tree-sitter lexer struct passed to lex function
 #[repr(C)]
 pub struct TSLexer {
     pub lookahead: i32,
     pub result_symbol: u16,
-    pub eof: extern "C" fn(payload: *mut c_void) -> bool,
-    pub advance: extern "C" fn(payload: *mut c_void, is_skipped: bool),
-    pub mark_end: extern "C" fn(payload: *mut c_void),
-    pub get_column: extern "C" fn(payload: *mut c_void) -> u32,
-    pub is_included: extern "C" fn(payload: *mut c_void) -> bool,
-    pub payload: *mut c_void,
+    pub advance: extern "C" fn(lexer: *mut TSLexer, is_skipped: bool),
+    pub mark_end: extern "C" fn(lexer: *mut TSLexer),
+    pub get_column: extern "C" fn(lexer: *mut TSLexer) -> u32,
+    pub is_at_included_range_start: extern "C" fn(lexer: *const TSLexer) -> bool,
+    pub eof: extern "C" fn(lexer: *const TSLexer) -> bool,
+    pub log: extern "C" fn(lexer: *const TSLexer, message: *const c_char),
 }
 
 /// Function pointer type for lexer functions
@@ -93,6 +94,33 @@ pub struct NextToken {
     pub end: u32,
 }
 
+#[repr(C)]
+struct TSLexerWrapper<'a> {
+    lexer: TSLexer,
+    host: TsLexerHost<'a>,
+}
+
+impl<'a> TSLexerWrapper<'a> {
+    fn from_mut_lexer(lexer: *mut TSLexer) -> &'a mut Self {
+        // SAFETY: `TSLexerWrapper` is `#[repr(C)]` with `lexer` as its first field,
+        // so a pointer to `lexer` has the same address as the wrapper.
+        unsafe { &mut *(lexer.cast::<Self>()) }
+    }
+
+    fn from_const_lexer(lexer: *const TSLexer) -> &'a Self {
+        // SAFETY: Same layout guarantee as `from_mut_lexer`, but for shared access.
+        unsafe { &*(lexer.cast::<Self>()) }
+    }
+
+    fn refresh_lookahead(&mut self) {
+        self.lexer.lookahead = self
+            .host
+            .input
+            .get(self.host.pos)
+            .map_or(0, |byte| i32::from(*byte));
+    }
+}
+
 /// Host struct for callbacks from the C lexer
 pub struct TsLexerHost<'a> {
     input: &'a [u8],
@@ -102,39 +130,46 @@ pub struct TsLexerHost<'a> {
 
 impl<'a> TsLexerHost<'a> {
     // C callbacks — invoked by the Tree-sitter lex_fn during `GrammarLexer::next()`.
-    // SAFETY (shared across eof/advance/mark_end): `payload` was set to a valid
-    // `&mut TsLexerHost` pointer in `GrammarLexer::next()` and these callbacks are
-    // only called synchronously by the C lex_fn during that call, so the pointer is
-    // valid and exclusively borrowed for the duration.
-    extern "C" fn eof(payload: *mut c_void) -> bool {
-        // SAFETY: see shared invariant above.
-        let host = unsafe { &mut *(payload as *mut Self) };
-        host.pos >= host.input.len()
+    // SAFETY: Tree-sitter passes the same `TSLexer *` pointer that `GrammarLexer::next()`
+    // provided to `lex_fn`. `TSLexerWrapper` is `#[repr(C)]` with `lexer` as the first field,
+    // so casting that pointer back to the wrapper is valid for the duration of the call.
+    extern "C" fn eof(lexer: *const TSLexer) -> bool {
+        let wrapper = TSLexerWrapper::from_const_lexer(lexer);
+        wrapper.host.pos >= wrapper.host.input.len()
     }
 
-    extern "C" fn advance(payload: *mut c_void, skip: bool) {
-        // SAFETY: see shared invariant above.
-        let host = unsafe { &mut *(payload as *mut Self) };
-        if host.pos < host.input.len() {
-            host.pos += 1;
+    extern "C" fn advance(lexer: *mut TSLexer, skip: bool) {
+        let wrapper = TSLexerWrapper::from_mut_lexer(lexer);
+        if wrapper.host.pos < wrapper.host.input.len() {
+            wrapper.host.pos += 1;
             if !skip {
-                host.end_mark = host.pos;
+                wrapper.host.end_mark = wrapper.host.pos;
             }
         }
+        wrapper.refresh_lookahead();
     }
 
-    extern "C" fn mark_end(payload: *mut c_void) {
-        // SAFETY: see shared invariant above.
-        let host = unsafe { &mut *(payload as *mut Self) };
-        host.end_mark = host.pos;
+    extern "C" fn mark_end(lexer: *mut TSLexer) {
+        let wrapper = TSLexerWrapper::from_mut_lexer(lexer);
+        wrapper.host.end_mark = wrapper.host.pos;
     }
 
-    extern "C" fn get_column(_payload: *mut c_void) -> u32 {
+    extern "C" fn get_column(_lexer: *mut TSLexer) -> u32 {
         0 // TODO: Track column for proper error reporting
     }
 
-    extern "C" fn is_included(_payload: *mut c_void) -> bool {
+    extern "C" fn is_at_included_range_start(_lexer: *const TSLexer) -> bool {
         false // TODO: Support included ranges for injections
+    }
+
+    extern "C" fn log(_lexer: *const TSLexer, message: *const c_char) {
+        if message.is_null() {
+            return;
+        }
+
+        // Tree-sitter's `log` callback is variadic in C, but generated lexers typically
+        // pass a plain C string literal. Ignore invalid UTF-8 to preserve behavior.
+        let _ = unsafe { CStr::from_ptr(message) }.to_str();
     }
 }
 
@@ -164,45 +199,40 @@ impl GrammarLexer {
         mode: LexMode,
         _valid_symbols: &[bool], // TODO: Use for external scanner
     ) -> Option<NextToken> {
-        let mut host = TsLexerHost {
-            input: input.as_bytes(),
-            pos,
-            end_mark: pos,
+        let mut wrapper = TSLexerWrapper {
+            lexer: TSLexer {
+                lookahead: 0,
+                result_symbol: 0,
+                advance: TsLexerHost::advance,
+                mark_end: TsLexerHost::mark_end,
+                get_column: TsLexerHost::get_column,
+                is_at_included_range_start: TsLexerHost::is_at_included_range_start,
+                eof: TsLexerHost::eof,
+                log: TsLexerHost::log,
+            },
+            host: TsLexerHost {
+                input: input.as_bytes(),
+                pos,
+                end_mark: pos,
+            },
         };
-
-        // Update lookahead
-        let lookahead = if pos < host.input.len() {
-            host.input[pos] as i32
-        } else {
-            0 // EOF
-        };
-
-        let mut c_lexer = TSLexer {
-            lookahead,
-            result_symbol: 0,
-            eof: TsLexerHost::eof,
-            advance: TsLexerHost::advance,
-            mark_end: TsLexerHost::mark_end,
-            get_column: TsLexerHost::get_column,
-            is_included: TsLexerHost::is_included,
-            payload: &mut host as *mut _ as *mut _,
-        };
+        wrapper.refresh_lookahead();
 
         // SAFETY: `self.lang` was required to be a valid, non-null pointer to a live
         // TSLanguage by the safety contract of `GrammarLexer::new()`.
         let lex_fn = unsafe { (*self.lang).lex_fn }?;
         // SAFETY: `lex_fn` is a Tree-sitter-generated C function that expects a valid
         // TSLexer pointer; `c_lexer` is a stack-local struct with valid callbacks.
-        let ok = unsafe { lex_fn(&mut c_lexer as *mut TSLexer, mode.lex_state) };
+        let ok = unsafe { lex_fn(ptr::addr_of_mut!(wrapper.lexer), mode.lex_state) };
 
-        if !ok || c_lexer.result_symbol == 0 {
+        if !ok || wrapper.lexer.result_symbol == 0 {
             return None;
         }
 
         Some(NextToken {
-            kind: c_lexer.result_symbol as u32,
+            kind: wrapper.lexer.result_symbol as u32,
             start: pos as u32,
-            end: host.end_mark as u32,
+            end: wrapper.host.end_mark as u32,
         })
     }
 }
@@ -217,19 +247,100 @@ unsafe extern "C" {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use std::mem::offset_of;
 
     #[test]
-    #[ignore = "requires actual Tree-sitter library to be linked"]
-    fn test_json_lexer() {
-        // This test would require linking to a real Tree-sitter grammar
-        // unsafe {
-        //     let lang = tree_sitter_json();
-        //     let lexer = GrammarLexer::new(lang);
-        //     let mode = LexMode { lex_state: 0, external_lex_state: 0 };
-        //     let valid = vec![true; 100];
-        //     let token = lexer.next("{", 0, mode, &valid);
-        //     assert!(token.is_some());
-        //     assert_eq!(token.unwrap().kind, 1); // { token
-        // }
+    fn test_ts_lexer_layout_matches_tree_sitter_abi() {
+        assert_eq!(offset_of!(TSLexer, lookahead), 0);
+        assert_eq!(offset_of!(TSLexer, result_symbol), 4);
+        assert_eq!(offset_of!(TSLexer, advance), 8);
+        assert_eq!(offset_of!(TSLexer, mark_end), 16);
+        assert_eq!(offset_of!(TSLexer, get_column), 24);
+        assert_eq!(offset_of!(TSLexer, is_at_included_range_start), 32);
+        assert_eq!(offset_of!(TSLexer, eof), 40);
+        assert_eq!(offset_of!(TSLexer, log), 48);
+        assert_eq!(std::mem::size_of::<TSLexer>(), 56);
+    }
+
+    unsafe extern "C" fn test_lex_fn(lexer: *mut TSLexer, _state: u16) -> bool {
+        let lexer = unsafe { &mut *lexer };
+        if (lexer.eof)(lexer) {
+            return false;
+        }
+
+        assert!(
+            !(lexer.is_at_included_range_start)(lexer),
+            "should start outside included range"
+        );
+        assert_eq!((lexer.get_column)(lexer), 0, "stubbed get_column returns 0");
+        let log_message = b"parser callback test\0".as_ptr() as *const c_char;
+        (lexer.log)(lexer, log_message);
+        (lexer.mark_end)(lexer);
+        (lexer.advance)(lexer, false);
+        lexer.result_symbol = 7;
+        true
+    }
+
+    #[test]
+    fn test_grammar_lexer_uses_tree_sitter_callback_abi() {
+        let lex_modes = [TSLexMode {
+            lex_state: 0,
+            external_lex_state: 0,
+        }];
+        let lang = TSLanguage {
+            version: 0,
+            symbol_count: 0,
+            alias_count: 0,
+            token_count: 0,
+            external_token_count: 0,
+            state_count: 0,
+            large_state_count: 0,
+            production_id_count: 0,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            _parse_table: ptr::null(),
+            _small_parse_table: ptr::null(),
+            _small_parse_table_map: ptr::null(),
+            _parse_actions: ptr::null(),
+            _symbol_names: ptr::null(),
+            _field_names: ptr::null(),
+            _field_map_slices: ptr::null(),
+            _field_map_entries: ptr::null(),
+            _symbol_metadata: ptr::null(),
+            _public_symbol_map: ptr::null(),
+            _alias_map: ptr::null(),
+            _alias_sequences: ptr::null(),
+            lex_modes: lex_modes.as_ptr(),
+            lex_fn: Some(test_lex_fn),
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: ExternalScanner {
+                states: ptr::null(),
+                symbol_map: ptr::null(),
+                create: None,
+                destroy: None,
+                scan: None,
+                serialize: None,
+                deserialize: None,
+            },
+        };
+
+        let lexer = unsafe { GrammarLexer::new(&lang) };
+        let token = lexer.next(
+            "ab",
+            0,
+            LexMode {
+                lex_state: 0,
+                external_lex_state: 0,
+            },
+            &[],
+        );
+
+        assert!(token.is_some());
+        let token = token.unwrap();
+        assert_eq!(token.kind, 7);
+        assert_eq!(token.start, 0);
+        assert_eq!(token.end, 1);
     }
 }
