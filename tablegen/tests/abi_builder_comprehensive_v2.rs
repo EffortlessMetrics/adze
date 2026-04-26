@@ -1099,7 +1099,8 @@ fn compressed_tables_validate_ok() {
         small_table_threshold: 32768,
     };
     let pt = ParseTable::default();
-    assert!(tables.validate(&pt).is_ok());
+    // Empty parse tables are not structurally valid anymore.
+    assert!(tables.validate(&pt).is_err());
 }
 
 #[test]

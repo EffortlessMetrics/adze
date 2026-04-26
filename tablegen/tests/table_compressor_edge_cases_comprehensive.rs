@@ -853,7 +853,7 @@ fn validate_on_real_tables() {
 }
 
 #[test]
-fn validate_on_empty_compressed() {
+fn validate_on_empty_compressed_rejects() {
     let ct = CompressedTables {
         action_table: CompressedActionTable {
             data: vec![],
@@ -867,7 +867,7 @@ fn validate_on_empty_compressed() {
         small_table_threshold: 32768,
     };
     let (_, pt) = build(minimal_grammar());
-    assert!(ct.validate(&pt).is_ok());
+    assert!(ct.validate(&pt).is_err());
 }
 
 // ============================================================================
