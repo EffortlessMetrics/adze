@@ -587,6 +587,33 @@ fn ambiguous_grammar_two_tokens_parse() {
     assert_eq!(view.span(root).start, 0);
     assert_eq!(view.span(root).end, 2);
 }
+
+#[test]
+fn ambiguous_grammar_small_input_remains_under_active_stack_limit() {
+    let table = ambiguous_grammar_table().unwrap();
+
+    let a_id = {
+        let mut id = None;
+        for (&sym, tok) in &table.grammar.tokens {
+            if tok.name == "a" {
+                id = Some(sym);
+            }
+        }
+        id.expect("token 'a' should exist")
+    };
+
+    let tokens = (0..4).map(|i| (a_id.0 as u32, i, i + 1));
+    let mut driver = Driver::new(&table);
+    let forest = driver
+        .parse_tokens(tokens)
+        .expect("ambiguous grammar should parse short input within stack cap");
+
+    let view = forest.view();
+    let root = view.roots()[0];
+    assert_eq!(view.span(root).start, 0);
+    assert_eq!(view.span(root).end, 4);
+}
+
 #[test]
 fn ambiguous_grammar_large_input_hits_active_stack_limit() {
     let mut symbol_to_index = std::collections::BTreeMap::new();
