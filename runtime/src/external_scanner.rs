@@ -132,6 +132,22 @@ impl ExternalScannerRuntime {
 
         // Scan for external tokens
         if let Some(result) = scanner.scan(lexer, &valid_symbols) {
+            // Enforce Tree-sitter contract: external scanners may only emit symbols
+            // that are valid in the current parser state.
+            let emitted_index = usize::from(result.symbol);
+            let emitted_by_index =
+                emitted_index < valid_symbols.len() && valid_symbols[emitted_index];
+            let emitted_by_symbol_id = self
+                .external_tokens
+                .iter()
+                .enumerate()
+                .find_map(|(idx, token)| (*token == result.symbol).then_some(idx))
+                .is_some_and(|idx| valid_symbols.get(idx) == Some(&true));
+
+            if !emitted_by_index && !emitted_by_symbol_id {
+                return None;
+            }
+
             // Serialize updated state
             self.state.data.clear();
             scanner.serialize(&mut self.state.data);
@@ -567,5 +583,55 @@ mod tests {
 
         assert!(new_scanner.in_string);
         assert_eq!(new_scanner.quote_char, Some(b'\''));
+    }
+
+    #[test]
+    fn test_runtime_rejects_emitted_symbol_not_valid_for_state() {
+        #[derive(Default)]
+        struct InvalidScanner;
+
+        impl ExternalScanner for InvalidScanner {
+            fn scan(
+                &mut self,
+                _lexer: &mut dyn Lexer,
+                _valid_symbols: &[bool],
+            ) -> Option<ScanResult> {
+                // Emit symbol index 1, even if caller only allows index 0.
+                Some(ScanResult {
+                    symbol: 1,
+                    length: 0,
+                })
+            }
+
+            fn serialize(&self, _buffer: &mut Vec<u8>) {}
+
+            fn deserialize(&mut self, _buffer: &[u8]) {}
+        }
+
+        struct EmptyLexer;
+        impl Lexer for EmptyLexer {
+            fn lookahead(&self) -> Option<u8> {
+                None
+            }
+            fn advance(&mut self, _n: usize) {}
+            fn mark_end(&mut self) {}
+            fn column(&self) -> usize {
+                0
+            }
+            fn is_eof(&self) -> bool {
+                true
+            }
+        }
+
+        let mut runtime = ExternalScannerRuntime::new(vec![SymbolId(0), SymbolId(1)]);
+        let mut scanner = InvalidScanner;
+        let mut lexer = EmptyLexer;
+        let valid_external_tokens = std::iter::once(SymbolId(0)).collect();
+
+        let scanned = runtime.scan(&mut scanner, &mut lexer, &valid_external_tokens);
+        assert!(
+            scanned.is_none(),
+            "scanner emission must be filtered by valid_symbols",
+        );
     }
 }

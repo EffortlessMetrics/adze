@@ -232,4 +232,14 @@ mod tests {
         //     assert_eq!(token.unwrap().kind, 1); // { token
         // }
     }
+
+    #[test]
+    #[ignore = "external scanner plumbing missing: GrammarLexer::next currently does not dispatch external scanners with valid_symbols"]
+    fn contract_external_scanner_must_respect_valid_symbols() {
+        // Contract marker test:
+        // once GrammarLexer::next dispatches language.external_scanner.scan,
+        // this test should assert that a scanner-emitted token is rejected
+        // whenever its valid_symbols entry is false for the current state.
+        panic!("not yet implemented");
+    }
 }
