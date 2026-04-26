@@ -269,6 +269,13 @@ mod tests {
             return false;
         }
 
+        assert!(
+            !(lexer.is_at_included_range_start)(lexer),
+            "should start outside included range"
+        );
+        assert_eq!((lexer.get_column)(lexer), 0, "stubbed get_column returns 0");
+        let log_message = b"parser callback test\0".as_ptr() as *const c_char;
+        (lexer.log)(lexer, log_message);
         (lexer.mark_end)(lexer);
         (lexer.advance)(lexer, false);
         lexer.result_symbol = 7;
