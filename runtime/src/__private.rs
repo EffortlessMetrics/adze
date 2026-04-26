@@ -460,6 +460,31 @@ fn convert_parse_node_v4_to_pure(
     lang: &crate::pure_parser::TSLanguage,
     source: &[u8],
 ) -> crate::pure_parser::ParsedNode {
+    fn lookup_field_id(lang: &crate::pure_parser::TSLanguage, field_name: &str) -> Option<u16> {
+        if lang.field_count == 0 || lang.field_names.is_null() {
+            return None;
+        }
+
+        // SAFETY: `field_names` points to a static array of `field_count` C strings.
+        let field_names =
+            unsafe { std::slice::from_raw_parts(lang.field_names, lang.field_count as usize) };
+
+        for (idx, raw_name) in field_names.iter().enumerate() {
+            if raw_name.is_null() {
+                continue;
+            }
+            // SAFETY: Pointers in `field_names` are NUL-terminated strings owned by
+            // the static language table.
+            let parsed = unsafe { std::ffi::CStr::from_ptr(*raw_name as *const i8) }
+                .to_str()
+                .ok()?;
+            if parsed == field_name {
+                return Some(idx as u16);
+            }
+        }
+        None
+    }
+
     let is_error_symbol = |symbol: u16| {
         if symbol as u32 >= lang.symbol_count || lang.symbol_names.is_null() {
             return false;
@@ -520,7 +545,10 @@ fn convert_parse_node_v4_to_pure(
         is_error: is_error_symbol(node.symbol.0) || is_empty_error_node,
         is_missing: false,
         is_named,
-        field_id: None, // TODO: Convert field_name to field_id using language field_names
+        field_id: node
+            .field_name
+            .as_deref()
+            .and_then(|name| lookup_field_id(lang, name)),
         language: Some(lang as *const _),
     }
 }
@@ -616,6 +644,7 @@ mod tests {
 
     static FIELD_NAME_VALUE: &[u8] = b"value\0";
     static FIELD_NAME_NAME: &[u8] = b"name\0";
+    static FIELD_NAME_INNER: &[u8] = b"inner\0";
 
     #[repr(transparent)]
     struct FieldNames([*const u8; 2]);
@@ -625,6 +654,16 @@ mod tests {
 
     static FIELD_NAMES: FieldNames =
         FieldNames([FIELD_NAME_VALUE.as_ptr(), FIELD_NAME_NAME.as_ptr()]);
+    #[repr(transparent)]
+    struct ExtendedFieldNames([*const u8; 3]);
+    // SAFETY: The pointers refer to static byte string literals and remain valid.
+    unsafe impl Sync for ExtendedFieldNames {}
+
+    static EXTENDED_FIELD_NAMES: ExtendedFieldNames = ExtendedFieldNames([
+        FIELD_NAME_VALUE.as_ptr(),
+        FIELD_NAME_NAME.as_ptr(),
+        FIELD_NAME_INNER.as_ptr(),
+    ]);
     static LEX_MODES: [TSLexState; 1] = [TSLexState {
         lex_state: 0,
         external_lex_state: 0,
@@ -666,6 +705,11 @@ mod tests {
         rules: ptr::null::<TSRule>(),
         rule_count: 0,
     };
+    static EXTENDED_FIELD_LANGUAGE: TSLanguage = TSLanguage {
+        field_count: 3,
+        field_names: EXTENDED_FIELD_NAMES.0.as_ptr(),
+        ..FIELD_LANGUAGE
+    };
 
     fn node(
         symbol: u16,
@@ -694,6 +738,16 @@ mod tests {
             field_id,
             language: None,
         }
+    }
+
+    fn wrapped_leaf(symbol: u16, start: usize, end: usize, field_id: Option<u16>) -> ParsedNode {
+        node(
+            symbol,
+            start,
+            end,
+            field_id,
+            vec![node(symbol + 100, start, end, None, vec![])],
+        )
     }
 
     #[test]
@@ -797,6 +851,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "glr")]
+    fn given_parser_v4_field_name_when_converting_then_field_id_is_preserved() {
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 3,
+            field_name: Some("name".to_string()),
+            children: vec![],
+        };
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &FIELD_LANGUAGE, b"abc");
+        assert_eq!(converted.field_id, Some(1));
+    }
+
+    #[test]
     fn given_out_of_range_field_id_when_reading_field_name_then_returns_none() {
         // Given
         let child = node(2, 0, 1, Some(2), vec![]);
@@ -841,6 +910,119 @@ mod tests {
         // Then
         assert_eq!(extracted, "");
         assert_eq!(last_idx, 4);
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Pair {
+        name: String,
+        value: String,
+    }
+
+    impl crate::Extract<Pair> for Pair {
+        type LeafFn = fn(&str) -> Pair;
+
+        fn extract(
+            node: Option<&ParsedNode>,
+            source: &[u8],
+            _offset: usize,
+            _closure_ref: Option<&Self::LeafFn>,
+        ) -> Pair {
+            let parsed = node.expect("expected node");
+            super::extract_struct_or_variant(parsed, |cursor_opt, last_idx| Pair {
+                name: super::extract_field::<String, String>(
+                    cursor_opt, source, last_idx, "name", None,
+                ),
+                value: super::extract_field::<String, String>(
+                    cursor_opt, source, last_idx, "value", None,
+                ),
+            })
+        }
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Wrapper {
+        inner: Pair,
+    }
+
+    impl crate::Extract<Wrapper> for Wrapper {
+        type LeafFn = fn(&str) -> Wrapper;
+
+        fn extract(
+            node: Option<&ParsedNode>,
+            source: &[u8],
+            _offset: usize,
+            _closure_ref: Option<&Self::LeafFn>,
+        ) -> Wrapper {
+            let parsed = node.expect("expected node");
+            super::extract_struct_or_variant(parsed, |cursor_opt, last_idx| Wrapper {
+                inner: super::extract_field::<Pair, Pair>(
+                    cursor_opt, source, last_idx, "inner", None,
+                ),
+            })
+        }
+    }
+
+    #[test]
+    fn given_struct_with_named_children_when_extracting_fields_then_values_follow_field_ids() {
+        let name = wrapped_leaf(2, 0, 3, Some(1));
+        let value = wrapped_leaf(3, 4, 7, Some(0));
+        let mut root = node(1, 0, 7, None, vec![name, value]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+
+        let out = Pair::extract(Some(&root), b"abc def", 0, None);
+        assert_eq!(
+            out,
+            Pair {
+                name: "abc".to_string(),
+                value: "def".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn given_nested_named_field_when_extracting_then_inner_struct_preserves_metadata() {
+        let inner_name = wrapped_leaf(4, 0, 3, Some(1));
+        let inner_value = wrapped_leaf(5, 4, 7, Some(0));
+        let mut inner = node(6, 0, 7, Some(2), vec![inner_name, inner_value]);
+        let mut root = node(7, 0, 7, None, vec![inner.clone()]);
+        inner.language = Some(&EXTENDED_FIELD_LANGUAGE as *const _);
+        root.children[0] = inner;
+        root.language = Some(&EXTENDED_FIELD_LANGUAGE as *const _);
+
+        let out = Wrapper::extract(Some(&root), b"abc def", 0, None);
+        assert_eq!(
+            out,
+            Wrapper {
+                inner: Pair {
+                    name: "abc".to_string(),
+                    value: "def".to_string(),
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn given_unmapped_or_absent_fields_when_extracting_then_missing_fields_default() {
+        // first field maps to name; second field has no mapping and is treated as absent
+        let name = wrapped_leaf(9, 0, 3, Some(1));
+        let unknown = wrapped_leaf(8, 4, 7, Some(9));
+        let mut root = node(10, 0, 7, None, vec![name, unknown]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+
+        let out = Pair::extract(Some(&root), b"abc def", 0, None);
+        assert_eq!(out.name, "abc");
+        assert_eq!(out.value, "");
+    }
+
+    #[test]
+    fn given_missing_required_field_when_extracting_then_field_extract_returns_default() {
+        let name = node(11, 0, 3, Some(1), vec![]);
+        let mut root = node(12, 0, 3, None, vec![name]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+
+        let out = Pair::extract(Some(&root), b"abc", 0, None);
+        assert_eq!(out.name, "abc");
+        assert_eq!(out.value, "");
     }
 
     #[test]

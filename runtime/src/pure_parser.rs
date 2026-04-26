@@ -1467,6 +1467,9 @@ impl Parser {
             // Check if this symbol is hidden (e.g., _Expression)
             let is_hidden = self.is_hidden_symbol(language, symbol);
 
+            // Annotate reduced children with field metadata when available.
+            Self::apply_field_ids_for_production(language, production_index, &mut children);
+
             // Create parent node or unwrap if hidden
             let parent = if is_hidden && children.len() == 1 {
                 // Return the child directly, skipping the hidden wrapper
@@ -1559,6 +1562,67 @@ impl Parser {
                 // symbol >= language.token_count as u16
                 // );
                 false
+            }
+        }
+    }
+
+    /// Applies field IDs to reduced children based on language field-map metadata.
+    fn apply_field_ids_for_production(
+        language: &TSLanguage,
+        production_index: u16,
+        children: &mut [Subtree],
+    ) {
+        if children.is_empty()
+            || language.field_count == 0
+            || language.field_map_slices.is_null()
+            || language.field_map_entries.is_null()
+        {
+            return;
+        }
+
+        let slice_len = language.production_id_count as usize * 2;
+        if slice_len == 0 {
+            return;
+        }
+
+        // SAFETY: Null checked above; array length follows Tree-sitter ABI:
+        // two u16 values (start, len) per production.
+        let field_map_slices =
+            unsafe { std::slice::from_raw_parts(language.field_map_slices, slice_len) };
+        let slice_offset = production_index as usize * 2;
+        if slice_offset + 1 >= field_map_slices.len() {
+            return;
+        }
+
+        let entries_start = field_map_slices[slice_offset] as usize;
+        let entries_len = field_map_slices[slice_offset + 1] as usize;
+        if entries_len == 0 {
+            return;
+        }
+
+        // SAFETY: Null checked above; we only read the exact 2*u16 values needed
+        // for this production's packed entries.
+        let packed_entries = unsafe {
+            std::slice::from_raw_parts(
+                language.field_map_entries,
+                (entries_start + entries_len).saturating_mul(2),
+            )
+        };
+
+        for i in 0..entries_len {
+            let packed_offset = (entries_start + i) * 2;
+            if packed_offset + 1 >= packed_entries.len() {
+                break;
+            }
+
+            let low = packed_entries[packed_offset] as u32;
+            let high = packed_entries[packed_offset + 1] as u32;
+            let packed = (high << 16) | low;
+            let field_id = (packed & 0xFFFF) as u16;
+            let child_index = ((packed >> 16) & 0xFF) as usize;
+
+            if child_index < children.len() && field_id < language.field_count as u16 {
+                children[child_index].field_id = Some(field_id);
             }
         }
     }
