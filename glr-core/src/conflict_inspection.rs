@@ -39,12 +39,12 @@
 //!
 //! ### What Counts as a Conflict?
 //!
-//! A conflict exists when an action cell represents **multiple parse branches**
-//! from the same state/lookahead.
+//! A conflict exists when an action cell can produce **more than one valid parse action**
+//! from the same state + lookahead.
 //!
-//! - **Single branch**: Not a conflict, deterministic behavior
-//! - **Multiple branches**: Conflict, GLR fork required
-//! - **Empty cell** (`cell.len() == 0`): Error state, not a conflict
+//! - **Single effective action**: Not a conflict, deterministic behavior
+//! - **Multiple effective actions**: Conflict, GLR fork required
+//! - **Empty cell**: Error state, not a conflict
 //!
 //! ### Conflict Classification
 //!
@@ -66,9 +66,8 @@
 //!
 //! `Action::Fork(Vec<Action>)` is treated **recursively**:
 //!
-//! - A single top-level `Fork` can still be conflicted if it contains multiple
-//!   inner branches
-//! - The *contents* of the fork are examined to determine conflict type
+//! - A single `Fork` may itself be conflicted when it contains multiple valid branches
+//! - The *contents* of the fork are flattened and deduplicated for conflict checks
 //! - Example: `Fork([Shift(5), Reduce(3)])` is classified as ShiftReduce
 //!
 //! This allows Fork actions to be properly analyzed even when nested.
@@ -151,6 +150,31 @@ pub enum ConflictType {
     Mixed,
 }
 
+/// Returns true when an action cell has more than one valid parse action.
+///
+/// This is the canonical conflict predicate for `adze-glr-core` and is used by
+/// summary/counting APIs. It treats a single `Action::Fork` with multiple inner
+/// actions as conflicted, because the parser can branch from the same
+/// state/lookahead position.
+pub fn cell_has_conflict(actions: &[Action]) -> bool {
+    let mut flattened = Vec::new();
+    collect_effective_actions(actions, &mut flattened);
+    flattened.len() > 1
+}
+
+fn collect_effective_actions(actions: &[Action], out: &mut Vec<Action>) {
+    for action in actions {
+        match action {
+            Action::Fork(inner) => collect_effective_actions(inner, out),
+            other => {
+                if !out.contains(other) {
+                    out.push(other.clone());
+                }
+            }
+        }
+    }
+}
+
 /// Count how many parse-action branches a single action represents.
 ///
 /// Most actions represent exactly one branch. `Action::Fork` represents the
@@ -163,16 +187,6 @@ pub fn action_branch_count(action: &Action) -> usize {
         Action::Error | Action::Recover => 0,
     }
 }
-
-/// Unified conflict predicate for action cells.
-///
-/// A cell is conflicted iff it can lead to more than one parse-action branch
-/// from the same state/lookahead position.
-#[must_use]
-pub fn action_cell_has_conflict(cell: &[Action]) -> bool {
-    cell.iter().map(action_branch_count).sum::<usize>() > 1
-}
-
 /// Inspect parse table and count conflicts
 ///
 /// This function scans the entire action table and identifies
@@ -250,8 +264,8 @@ pub fn count_conflicts(table: &ParseTable) -> ConflictSummary {
                 continue;
             }
 
-            // Conflict exists iff this cell represents more than one parse branch.
-            if action_cell_has_conflict(action_cell) {
+            // Conflict exists if this state/lookahead can take multiple effective actions
+            if cell_has_conflict(action_cell) {
                 state_has_conflict = true;
 
                 // Get symbol info using index_to_symbol
@@ -348,9 +362,7 @@ pub fn state_has_conflicts(table: &ParseTable, state: StateId) -> bool {
     }
 
     let state_actions = &table.action_table[state.0 as usize];
-    state_actions
-        .iter()
-        .any(|cell| action_cell_has_conflict(cell))
+    state_actions.iter().any(|cell| cell_has_conflict(cell))
 }
 
 /// Get all conflicts for a specific state
@@ -476,18 +488,18 @@ mod tests {
     }
 
     #[test]
-    fn test_action_cell_has_conflict_for_single_fork_with_two_branches() {
+    fn test_cell_has_conflict_for_single_fork_with_two_branches() {
         let cell = vec![Action::Fork(vec![
             Action::Shift(StateId(1)),
             Action::Reduce(RuleId(1)),
         ])];
-        assert!(action_cell_has_conflict(&cell));
+        assert!(cell_has_conflict(&cell));
     }
 
     #[test]
-    fn test_action_cell_no_conflict_for_single_fork_with_one_branch() {
+    fn test_cell_has_no_conflict_for_single_fork_with_one_branch() {
         let cell = vec![Action::Fork(vec![Action::Shift(StateId(1))])];
-        assert!(!action_cell_has_conflict(&cell));
+        assert!(!cell_has_conflict(&cell));
     }
 
     #[test]

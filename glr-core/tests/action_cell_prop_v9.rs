@@ -17,7 +17,7 @@
 
 use adze_glr_core::{
     Action, ActionCell, FirstFollowSets, ParseTable, build_lr1_automaton,
-    conflict_inspection::action_branch_count, conflict_inspection::action_cell_has_conflict,
+    conflict_inspection::cell_has_conflict,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar, RuleId, StateId, SymbolId};
@@ -134,11 +134,26 @@ fn build_table_normalized(g: &Grammar) -> ParseTable {
 }
 
 fn has_conflict(cell: &[Action]) -> bool {
-    action_cell_has_conflict(cell)
+    cell_has_conflict(cell)
 }
 
-fn valid_action_count(cell: &[Action]) -> usize {
-    cell.iter().map(action_branch_count).sum()
+fn effective_action_count(cell: &[Action]) -> usize {
+    let mut flattened = Vec::new();
+    collect_effective_actions(cell, &mut flattened);
+    flattened.len()
+}
+
+fn collect_effective_actions(actions: &[Action], out: &mut Vec<Action>) {
+    for action in actions {
+        match action {
+            Action::Fork(inner) => collect_effective_actions(inner, out),
+            other => {
+                if !out.contains(other) {
+                    out.push(other.clone());
+                }
+            }
+        }
+    }
 }
 
 fn find_accept_in_table(pt: &ParseTable) -> bool {
@@ -505,8 +520,8 @@ proptest! {
     }
 
     #[test]
-    fn pt38_cell_conflict_iff_multi_action(cell in arb_action_cell()) {
-        prop_assert_eq!(has_conflict(&cell), valid_action_count(&cell) > 1);
+    fn pt38_cell_conflict_iff_multiple_effective_actions(cell in arb_action_cell()) {
+        prop_assert_eq!(has_conflict(&cell), effective_action_count(&cell) > 1);
     }
 
     #[test]
@@ -1076,9 +1091,9 @@ proptest! {
     }
 
     #[test]
-    fn pt82_cell_with_two_actions_is_conflict(a in leaf_action(), b in leaf_action()) {
+    fn pt82_cell_conflict_uses_effective_actions(a in leaf_action(), b in leaf_action()) {
         let cell: ActionCell = vec![a, b];
-        prop_assert_eq!(has_conflict(&cell), valid_action_count(&cell) > 1);
+        prop_assert_eq!(has_conflict(&cell), effective_action_count(&cell) > 1);
     }
 
     #[test]
