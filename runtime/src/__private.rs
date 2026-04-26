@@ -295,6 +295,76 @@ fn parse_with_pure_parser<T: Extract<T>>(
     input: &str,
     language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
+    fn symbol_name(lang: &crate::pure_parser::TSLanguage, symbol: u16) -> String {
+        if (symbol as usize) < lang.symbol_count as usize {
+            // SAFETY: `symbol` is bounds-checked above against `symbol_count`.
+            // `symbol_names` and `public_symbol_map` point to static language
+            // tables that live for the entire parse.
+            unsafe {
+                let public_symbol = if !lang.public_symbol_map.is_null() {
+                    *lang.public_symbol_map.add(symbol as usize)
+                } else {
+                    symbol
+                };
+
+                if (public_symbol as usize) < lang.symbol_count as usize {
+                    let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
+                    if !symbol_ptr.is_null() {
+                        std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
+                            .to_string_lossy()
+                            .to_string()
+                    } else {
+                        format!("symbol {} (public {})", symbol, public_symbol)
+                    }
+                } else {
+                    format!("symbol {} (public {} out of bounds)", symbol, public_symbol)
+                }
+            }
+        } else {
+            format!("symbol {} (out of bounds)", symbol)
+        }
+    }
+
+    fn convert_lr_errors(
+        parse_errors: Vec<crate::pure_parser::ParseError>,
+        input: &str,
+        lang: &crate::pure_parser::TSLanguage,
+    ) -> Vec<crate::errors::ParseError> {
+        parse_errors
+            .into_iter()
+            .map(|error| {
+                let found_name = symbol_name(lang, error.found);
+                let expected_names: Vec<_> = error
+                    .expected
+                    .iter()
+                    .map(|symbol| symbol_name(lang, *symbol))
+                    .collect();
+
+                let message = if expected_names.is_empty() {
+                    found_name
+                } else {
+                    format!(
+                        "{} (expected one of: {})",
+                        found_name,
+                        expected_names.join(", ")
+                    )
+                };
+
+                let end = if error.position < input.len() {
+                    error.position.saturating_add(1)
+                } else {
+                    error.position
+                };
+
+                crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                    start: error.position,
+                    end,
+                }
+            })
+            .collect()
+    }
+
     let mut parser = crate::pure_parser::Parser::new();
     let lang = language();
     parser.set_language(lang).map_err(|e| {
@@ -306,52 +376,6 @@ fn parse_with_pure_parser<T: Extract<T>>(
     })?;
 
     let parse_result = parser.parse_string(input);
-
-    if !parse_result.errors.is_empty() {
-        let errors = parse_result
-            .errors
-            .into_iter()
-            .map(|e| {
-                // Get symbol name from language if available
-                let symbol_name = if (e.found as usize) < lang.symbol_count as usize {
-                    // SAFETY: `e.found` is bounds-checked above against `symbol_count`.
-                    // `symbol_names` and `public_symbol_map` point to static language
-                    // tables that live for the entire parse.
-                    unsafe {
-                        let public_symbol = if !lang.public_symbol_map.is_null() {
-                            *lang.public_symbol_map.add(e.found as usize)
-                        } else {
-                            e.found
-                        };
-
-                        if (public_symbol as usize) < lang.symbol_count as usize {
-                            let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
-                            if !symbol_ptr.is_null() {
-                                std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
-                                    .to_string_lossy()
-                                    .to_string()
-                            } else {
-                                format!("symbol {} (public {})", e.found, public_symbol)
-                            }
-                        } else {
-                            format!(
-                                "symbol {} (public {} out of bounds)",
-                                e.found, public_symbol
-                            )
-                        }
-                    }
-                } else {
-                    format!("symbol {} (out of bounds)", e.found)
-                };
-                crate::errors::ParseError {
-                    reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
-                    start: e.position,
-                    end: e.position,
-                }
-            })
-            .collect();
-        return Err(errors);
-    }
 
     let root_node = match parse_result.root {
         Some(root_node) => root_node,
@@ -365,6 +389,14 @@ fn parse_with_pure_parser<T: Extract<T>>(
             }]);
         }
     };
+
+    let mut errors = convert_lr_errors(parse_result.errors, input, lang);
+    if root_node.has_error() {
+        crate::errors::collect_parsing_errors(&root_node, input.as_bytes(), &mut errors);
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
 
     // Check if the root node is source_file wrapper
     // In the augmented grammar, we have S' -> source_file -> actual_language_root

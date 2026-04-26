@@ -742,6 +742,62 @@ fn test_collect_parsing_errors_no_errors() {
 }
 
 #[test]
+fn test_collect_parsing_errors_unexpected_token_from_error_leaf() {
+    let error_leaf = make_node(
+        1,
+        vec![],
+        1,
+        2,
+        pt(0, 1),
+        pt(0, 2),
+        false,
+        true,
+        false,
+        true,
+        None,
+    );
+    let root = parent_node(0, vec![error_leaf]);
+    let mut errors = vec![];
+    adze::errors::collect_parsing_errors(&root, b"a@c", &mut errors);
+
+    assert_eq!(errors.len(), 1);
+    match &errors[0].reason {
+        ParseErrorReason::UnexpectedToken(token) => assert_eq!(token, "@"),
+        other => panic!("Expected UnexpectedToken, got {other:?}"),
+    }
+    assert_eq!(errors[0].start, 1);
+    assert_eq!(errors[0].end, 2);
+}
+
+#[test]
+fn test_collect_parsing_errors_missing_token_is_reported() {
+    let missing_node = make_node(
+        9,
+        vec![],
+        4,
+        4,
+        pt(0, 4),
+        pt(0, 4),
+        false,
+        false,
+        true,
+        true,
+        None,
+    );
+    let root = parent_node(0, vec![missing_node]);
+    let mut errors = vec![];
+    adze::errors::collect_parsing_errors(&root, b"test", &mut errors);
+
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(
+        errors[0].reason,
+        ParseErrorReason::MissingToken(_)
+    ));
+    assert_eq!(errors[0].start, 4);
+    assert_eq!(errors[0].end, 4);
+}
+
+#[test]
 fn test_symbol_id_is_u16() {
     assert_eq!(
         std::mem::size_of::<adze::SymbolId>(),
