@@ -26,6 +26,7 @@ Tree-sitter compatible query support (`.scm` files) is under active development.
 ### 3. Incremental Parsing
 Reparsing only changed parts of a file is supported in the core engine but may fall back to full parses in complex GLR scenarios.
 - **Status**: Conservative fallback enabled; forest-splicing is experimental.
+- **Observability**: `IncrementalGLRParser::last_parse_report()` exposes whether the last call reused nodes or explicitly fell back, plus reused node count and invalidated ranges.
 
 ### 4. `transform` Closures
 There is a known bug (FR-005) where `transform` closures on leaf nodes are captured but not executed.
