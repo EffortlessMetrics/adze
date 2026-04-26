@@ -307,7 +307,9 @@ impl<'a> QueryParser<'a> {
             "is?" => self.parse_is_predicate(),
             "is-not?" => self.parse_is_not_predicate(),
             "any-of?" => self.parse_any_of_predicate(),
-            _ => self.parse_custom_predicate(name),
+            _ => Err(QueryError::InvalidPredicate(format!(
+                "Unsupported predicate '#{name}'. Supported predicates: #eq?, #not-eq?, #match?, #not-match?, #any-of?, #set!, #is?, #is-not?"
+            ))),
         }
     }
 
