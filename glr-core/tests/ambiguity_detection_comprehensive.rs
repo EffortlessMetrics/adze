@@ -7,8 +7,8 @@
 //! grammars remain conflict-free.
 
 use adze_glr_core::conflict_inspection::{
-    ConflictType, count_conflicts, find_conflicts_for_symbol, get_state_conflicts,
-    state_has_conflicts,
+    ConflictType, action_cell_has_conflict, classify_conflict, count_conflicts,
+    find_conflicts_for_symbol, get_state_conflicts, state_has_conflicts,
 };
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
@@ -30,12 +30,12 @@ fn build_table_normalized(grammar: &mut Grammar) -> adze_glr_core::ParseTable {
     build_lr1_automaton(grammar, &ff).expect("LR(1) automaton failed")
 }
 
-/// Count the total number of multi-action cells in a parse table.
-fn count_multi_action_cells(table: &adze_glr_core::ParseTable) -> usize {
+/// Count the total number of conflicted cells in a parse table.
+fn count_conflicted_cells(table: &adze_glr_core::ParseTable) -> usize {
     let mut count = 0;
     for state in 0..table.state_count {
         for sym in 0..table.action_table[state].len() {
-            if table.action_table[state][sym].len() > 1 {
+            if action_cell_has_conflict(&table.action_table[state][sym]) {
                 count += 1;
             }
         }
@@ -43,22 +43,20 @@ fn count_multi_action_cells(table: &adze_glr_core::ParseTable) -> usize {
     count
 }
 
-/// Return true if any cell in the table has more than one action.
+/// Return true if any cell in the table is conflicted.
 fn has_any_conflict(table: &adze_glr_core::ParseTable) -> bool {
-    count_multi_action_cells(table) > 0
+    count_conflicted_cells(table) > 0
 }
 
-/// Count how many cells contain a Shift among the multi-action cells.
+/// Count how many conflicted cells are shift/reduce conflicts.
 fn count_cells_with_shift_reduce(table: &adze_glr_core::ParseTable) -> usize {
     let mut count = 0;
     for state in &table.action_table {
         for cell in state {
-            if cell.len() > 1 {
-                let has_shift = cell.iter().any(|a| matches!(a, Action::Shift(_)));
-                let has_reduce = cell.iter().any(|a| matches!(a, Action::Reduce(_)));
-                if has_shift && has_reduce {
-                    count += 1;
-                }
+            if action_cell_has_conflict(cell)
+                && matches!(classify_conflict(cell), ConflictType::ShiftReduce)
+            {
+                count += 1;
             }
         }
     }
@@ -335,7 +333,7 @@ fn test_concat_ambiguity_conflict_count() {
         .build();
 
     let table = build_table(&grammar);
-    let n = count_multi_action_cells(&table);
+    let n = count_conflicted_cells(&table);
     assert!(n >= 1, "Expected ≥1 multi-action cells, got {}", n);
 }
 
@@ -1153,8 +1151,8 @@ fn test_more_operators_at_least_as_many_conflicts() {
     let t2 = build_table(&g2);
     let t3 = build_table(&g3);
 
-    let c2 = count_multi_action_cells(&t2);
-    let c3 = count_multi_action_cells(&t3);
+    let c2 = count_conflicted_cells(&t2);
+    let c3 = count_conflicted_cells(&t3);
     assert!(
         c3 >= c2,
         "Adding an operator should not reduce conflicts ({} vs {})",
