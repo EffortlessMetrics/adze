@@ -53,6 +53,7 @@ mod tests {
         match language {
             "python" => parse_python(source),
             "javascript" => parse_javascript(source),
+            "python-simple" => parse_python_simple(source),
             _ => anyhow::bail!("Unsupported language: {}", language),
         }
     }
@@ -122,7 +123,43 @@ mod tests {
         anyhow::bail!("JavaScript grammar feature not enabled")
     }
 
-    #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
+    /// Parse python-simple source code and return S-expression
+    #[cfg(feature = "python-simple-grammar")]
+    fn parse_python_simple(source: &str) -> Result<String> {
+        use adze::pure_parser::Parser;
+
+        let mut parser = Parser::new();
+        parser
+            .set_language(&adze_python_simple::grammar::LANGUAGE)
+            .map_err(|e| anyhow::anyhow!(e))?;
+        let result = parser.parse_string(source);
+        if let Some(root) = result.root {
+            Ok(tree_to_sexp(&root, source))
+        } else {
+            let err = result
+                .errors
+                .first()
+                .map(|e| {
+                    format!(
+                        "pos {} expected {:?} found {}",
+                        e.position, e.expected, e.found
+                    )
+                })
+                .unwrap_or_else(|| "unknown error".to_string());
+            anyhow::bail!("parse failed: {}", err)
+        }
+    }
+
+    #[cfg(not(feature = "python-simple-grammar"))]
+    fn parse_python_simple(_source: &str) -> Result<String> {
+        anyhow::bail!("python-simple grammar feature not enabled")
+    }
+
+    #[cfg(any(
+        feature = "python-grammar",
+        feature = "javascript-grammar",
+        feature = "python-simple-grammar"
+    ))]
     fn tree_to_sexp(node: &adze::pure_parser::ParsedNode, source: &str) -> String {
         fn node_to_sexp(
             node: &adze::pure_parser::ParsedNode,
@@ -159,7 +196,11 @@ mod tests {
         node_to_sexp(node, source, 0)
     }
 
-    #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
+    #[cfg(any(
+        feature = "python-grammar",
+        feature = "javascript-grammar",
+        feature = "python-simple-grammar"
+    ))]
     fn escape_string(s: &str) -> String {
         s.chars()
             .flat_map(|c| match c {
@@ -389,6 +430,18 @@ mod tests {
         })
     }
 
+    // ===== Python-simple canary =====
+
+    #[test]
+    #[ignore = "Golden parser harness still skips parse failures; see golden-tests/src/example_integration.rs"]
+    #[cfg(feature = "python-simple-grammar")]
+    fn python_simple_canary_golden_pending_harness() -> Result<()> {
+        run_golden_test(GoldenTest {
+            language: "python-simple",
+            fixture_name: "tiny_expr.py",
+        })
+    }
+
     // ===== Infrastructure tests =====
 
     #[test]
@@ -599,7 +652,33 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
+    #[test]
+    fn python_simple_canary_reference_assets_present() {
+        let test = GoldenTest {
+            language: "python-simple",
+            fixture_name: "tiny_expr.py",
+        };
+
+        assert!(test.fixture_path().exists(), "canary fixture missing");
+        assert!(
+            test.expected_sexp_path().exists(),
+            "canary expected sexp missing"
+        );
+        assert!(
+            test.expected_hash_path().exists(),
+            "canary expected hash missing"
+        );
+
+        let expected_sexp = fs::read_to_string(test.expected_sexp_path()).expect("read sexp");
+        let expected_hash = fs::read_to_string(test.expected_hash_path()).expect("read hash");
+        assert_eq!(compute_hash(&expected_sexp), expected_hash.trim());
+    }
+
+    #[cfg(any(
+        feature = "python-grammar",
+        feature = "javascript-grammar",
+        feature = "python-simple-grammar"
+    ))]
     mod escape_tests {
         use super::escape_string;
 

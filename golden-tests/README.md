@@ -113,3 +113,16 @@ fn python_my_new_test() -> Result<()> {
 - **Fast comparison**: SHA256 hashes avoid storing large S-expression files in git
 - **Easy debugging**: On failure, both expected and actual outputs are available
 - **Regression prevention**: CI catches any deviation from expected behavior
+## Canary fixture for stable user-visible output
+
+A minimal canary fixture is included at:
+
+- `python-simple/fixtures/tiny_expr.py`
+- `python-simple/expected/tiny_expr.sexp`
+- `python-simple/expected/tiny_expr.sha256`
+
+This canary is intentionally tiny (`x = 1 + 2`) and locks down a user-visible parse tree shape via S-expression + SHA256 hash.
+
+### Current harness status
+
+The `python_simple_canary_golden_pending_harness` test is `#[ignore]` for now because the golden harness currently treats parser failures as skips (`run_golden_test` returns `Ok(())` on parse errors), so it cannot yet enforce a true parse-output contract. The intended integration point is documented in `src/example_integration.rs`.
