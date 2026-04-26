@@ -373,7 +373,7 @@ impl TableCompressor {
             index_to_symbol.insert(index, symbol_id);
         }
 
-        for action_row in action_table.iter() {
+        for (state_idx, action_row) in action_table.iter().enumerate() {
             // Find the most common action across all cells
             let mut action_counts: HashMap<Action, usize> = HashMap::new();
             let mut _has_shift = false;
@@ -405,7 +405,11 @@ impl TableCompressor {
             let default_action = Action::Error;
 
             default_actions.push(default_action.clone());
-            row_offsets.push(entries.len() as u16);
+            row_offsets.push(Self::checked_u16(
+                entries.len(),
+                "action row offset",
+                Some(state_idx),
+            )?);
 
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
@@ -415,9 +419,18 @@ impl TableCompressor {
                         continue;
                     }
 
+                    // Validate the action can be represented by the encoded width used by
+                    // the small table backend (15-bit shift target / 14-bit production id).
+                    self.encode_action_small(action).map_err(|err| {
+                        TableGenError::Compression(format!(
+                            "Action at state {state_idx}, symbol column {index} cannot be encoded safely: {err}"
+                        ))
+                    })?;
+
                     // Use the mapped index directly, not the original symbol ID
                     // This ensures terminals (index < token_count) are correctly identified
-                    let symbol_id = index as u16;
+                    let symbol_id =
+                        Self::checked_u16(index, "symbol column index", Some(state_idx))?;
 
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
@@ -427,7 +440,11 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(Self::checked_u16(
+            entries.len(),
+            "action row offset tail",
+            None,
+        )?);
 
         // Validate row_offsets are strictly increasing
         for i in 1..row_offsets.len() {
@@ -465,8 +482,12 @@ impl TableCompressor {
         let mut entries = Vec::new();
         let mut row_offsets = Vec::new();
 
-        for row in goto_table {
-            row_offsets.push(entries.len() as u16);
+        for (state_idx, row) in goto_table.iter().enumerate() {
+            row_offsets.push(Self::checked_u16(
+                entries.len(),
+                "goto row offset",
+                Some(state_idx),
+            )?);
 
             let mut last_state = None;
             let mut run_length = 0;
@@ -511,7 +532,11 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(Self::checked_u16(
+            entries.len(),
+            "goto row offset tail",
+            None,
+        )?);
 
         Ok(CompressedGotoTable {
             data: entries,
@@ -521,6 +546,19 @@ impl TableCompressor {
 
     // Removed in 0.8.0 - use compress(parse_table, token_indices, start_can_be_empty)
     // See MIGRATING.md for migration guide
+
+    fn checked_u16(value: usize, id_kind: &str, state_idx: Option<usize>) -> Result<u16> {
+        u16::try_from(value).map_err(|_| {
+            let state_note = state_idx
+                .map(|idx| format!(", state {idx}"))
+                .unwrap_or_default();
+            TableGenError::Compression(format!(
+                "{id_kind} value {value} exceeds u16::MAX (65535){state_note}; \
+                 table is too large for the current compressed representation. \
+                 Reduce grammar/table size or adjust encoding width."
+            ))
+        })
+    }
 }
 
 #[cfg(test)]
@@ -661,5 +699,72 @@ mod tests {
         );
         let result = tables.validate(&parse_table);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compress_action_table_rejects_symbol_index_over_u16() {
+        let compressor = TableCompressor::new();
+        let action_table = vec![vec![
+            vec![Action::Shift(StateId(1))];
+            (u16::MAX as usize) + 1
+        ]];
+        let symbol_to_index = std::collections::BTreeMap::new();
+
+        let err = compressor
+            .compress_action_table_small(&action_table, &symbol_to_index)
+            .expect_err("symbol index overflow must be rejected");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("symbol column index value"),
+            "unexpected error message: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_compress_action_table_rejects_shift_width_overflow() {
+        let compressor = TableCompressor::new();
+        let action_table = vec![vec![vec![Action::Shift(StateId(0x8000))]]];
+        let symbol_to_index = std::collections::BTreeMap::new();
+
+        let err = compressor
+            .compress_action_table_small(&action_table, &symbol_to_index)
+            .expect_err("shift encoding overflow must be rejected");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("cannot be encoded safely"),
+            "unexpected error message: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_compress_action_table_rejects_reduce_width_overflow() {
+        let compressor = TableCompressor::new();
+        let action_table = vec![vec![vec![Action::Reduce(adze_ir::RuleId(0x4000))]]];
+        let symbol_to_index = std::collections::BTreeMap::new();
+
+        let err = compressor
+            .compress_action_table_small(&action_table, &symbol_to_index)
+            .expect_err("reduce encoding overflow must be rejected");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("cannot be encoded safely"),
+            "unexpected error message: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_compress_goto_table_rejects_row_offset_over_u16() {
+        let compressor = TableCompressor::new();
+        let row_len = (u16::MAX as usize) + 1;
+        let goto_table = vec![vec![StateId(1); row_len], vec![StateId(2); row_len]];
+
+        let err = compressor
+            .compress_goto_table_small(&goto_table)
+            .expect_err("goto row offset overflow must be rejected");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("goto row offset value"),
+            "unexpected error message: {msg}"
+        );
     }
 }
