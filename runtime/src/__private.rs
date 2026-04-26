@@ -460,6 +460,29 @@ fn convert_parse_node_v4_to_pure(
     lang: &crate::pure_parser::TSLanguage,
     source: &[u8],
 ) -> crate::pure_parser::ParsedNode {
+    let field_name_to_id = |field_name: &str| -> Option<u16> {
+        if lang.field_names.is_null() || lang.field_count == 0 {
+            return None;
+        }
+
+        // SAFETY: `field_names` points to `field_count` static C-string pointers
+        // generated alongside the language tables.
+        let field_names =
+            unsafe { std::slice::from_raw_parts(lang.field_names, lang.field_count as usize) };
+        for (idx, name_ptr) in field_names.iter().enumerate() {
+            if name_ptr.is_null() {
+                continue;
+            }
+            // SAFETY: `name_ptr` was null-checked and points to a NUL-terminated
+            // static field name from generated language metadata.
+            let name = unsafe { std::ffi::CStr::from_ptr(*name_ptr as *const i8).to_str() }.ok();
+            if name == Some(field_name) {
+                return u16::try_from(idx).ok();
+            }
+        }
+        None
+    };
+
     let is_error_symbol = |symbol: u16| {
         if symbol as u32 >= lang.symbol_count || lang.symbol_names.is_null() {
             return false;
@@ -520,7 +543,7 @@ fn convert_parse_node_v4_to_pure(
         is_error: is_error_symbol(node.symbol.0) || is_empty_error_node,
         is_missing: false,
         is_named,
-        field_id: None, // TODO: Convert field_name to field_id using language field_names
+        field_id: node.field_name.as_deref().and_then(field_name_to_id),
         language: Some(lang as *const _),
     }
 }
@@ -612,6 +635,62 @@ mod tests {
 
         let converted = convert_parse_node_v4_to_pure(&parse_node, &language, b"");
         assert!(converted.is_error);
+    }
+
+    #[test]
+    #[cfg(feature = "glr")]
+    fn given_parse_node_with_known_field_name_when_converting_then_field_id_is_preserved() {
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 1,
+            field_name: Some("value".to_string()),
+            children: vec![],
+        };
+
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &FIELD_LANGUAGE, b"x");
+        assert_eq!(converted.field_id, Some(0));
+    }
+
+    #[test]
+    #[cfg(feature = "glr")]
+    fn given_nested_parse_node_with_known_field_name_when_converting_then_child_field_id_is_set() {
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 3,
+            field_name: None,
+            children: vec![crate::parser_v4::ParseNode {
+                symbol: adze_ir::SymbolId(2),
+                symbol_id: adze_ir::SymbolId(2),
+                start_byte: 1,
+                end_byte: 2,
+                field_name: Some("name".to_string()),
+                children: vec![],
+            }],
+        };
+
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &FIELD_LANGUAGE, b"abc");
+        assert_eq!(converted.children.len(), 1);
+        assert_eq!(converted.children[0].field_id, Some(1));
+    }
+
+    #[test]
+    #[cfg(feature = "glr")]
+    fn given_parse_node_with_unknown_field_name_when_converting_then_field_id_is_none() {
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 1,
+            field_name: Some("missing".to_string()),
+            children: vec![],
+        };
+
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &FIELD_LANGUAGE, b"x");
+        assert_eq!(converted.field_id, None);
     }
 
     static FIELD_NAME_VALUE: &[u8] = b"value\0";
@@ -769,6 +848,47 @@ mod tests {
         assert_eq!(extracted, "");
         assert_eq!(last_idx, 2);
         assert!(cursor_opt.is_some());
+    }
+
+    #[test]
+    fn given_mismatched_labeled_child_when_extracting_field_then_returns_default() {
+        // Given
+        let child = node(1, 0, 1, Some(1), vec![node(11, 0, 1, None, vec![])]); // "name"
+        let mut root = node(9, 0, 1, None, vec![child]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+        let mut cursor_opt = Some(cursor);
+        let mut last_idx = 0;
+
+        // When
+        let extracted: String =
+            extract_field::<String, String>(&mut cursor_opt, b"a", &mut last_idx, "value", None);
+
+        // Then
+        assert_eq!(extracted, "");
+        assert_eq!(last_idx, 0);
+    }
+
+    #[test]
+    fn given_anonymous_child_before_named_field_when_extracting_then_anonymous_is_skipped() {
+        // Given
+        let anon = node(1, 0, 1, None, vec![node(10, 0, 1, None, vec![])]);
+        let named = node(2, 1, 2, Some(0), vec![]); // "value"
+        let mut root = node(9, 0, 2, None, vec![anon, named]);
+        root.language = Some(&FIELD_LANGUAGE as *const _);
+        let mut cursor = TreeCursor::new(&root);
+        assert!(cursor.goto_first_child());
+        let mut cursor_opt = Some(cursor);
+        let mut last_idx = 0;
+
+        // When
+        let extracted: String =
+            extract_field::<String, String>(&mut cursor_opt, b"ab", &mut last_idx, "value", None);
+
+        // Then
+        assert_eq!(extracted, "b");
+        assert_eq!(last_idx, 2);
     }
 
     #[test]
