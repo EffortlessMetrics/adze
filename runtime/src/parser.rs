@@ -439,6 +439,11 @@ impl Parser {
             }
 
             if success && lexer.result_symbol > 0 {
+                let emitted_index = lexer.result_symbol as usize;
+                if emitted_index >= valid_symbols.len() || !valid_symbols[emitted_index] {
+                    return None;
+                }
+
                 // Map external symbol to actual symbol
                 let symbol = if !lang.external_scanner.symbol_map.is_null() {
                     *lang
