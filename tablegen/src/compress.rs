@@ -53,11 +53,133 @@ pub struct CompressedTables {
 impl CompressedTables {
     /// Validate compressed tables against original parse table
     #[must_use = "validation result must be checked"]
-    pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
-        // TODO: Implement validation logic
-        // For now, just return Ok to make tests compile
+    pub fn validate(&self, parse_table: &ParseTable) -> Result<()> {
+        let state_count = parse_table.state_count;
+        let symbol_count = parse_table.symbol_count;
+
+        if self.action_table.row_offsets.len() != state_count + 1 {
+            return Err(TableGenError::Compression(format!(
+                "invalid action row_offsets length: got {}, expected {} (state_count + 1)",
+                self.action_table.row_offsets.len(),
+                state_count + 1
+            )));
+        }
+
+        if self.action_table.default_actions.len() != state_count {
+            return Err(TableGenError::Compression(format!(
+                "invalid default_actions length: got {}, expected {} (state_count)",
+                self.action_table.default_actions.len(),
+                state_count
+            )));
+        }
+
+        for (i, offsets) in self.action_table.row_offsets.windows(2).enumerate() {
+            if offsets[0] > offsets[1] {
+                return Err(TableGenError::Compression(format!(
+                    "action row_offsets must be monotonic: row {} offset {} > next {}",
+                    i, offsets[0], offsets[1]
+                )));
+            }
+        }
+
+        let action_data_len_u16 = u16::try_from(self.action_table.data.len()).map_err(|_| {
+            TableGenError::Compression(format!(
+                "action table data length {} exceeds u16::MAX ({})",
+                self.action_table.data.len(),
+                u16::MAX
+            ))
+        })?;
+
+        for (i, &offset) in self.action_table.row_offsets.iter().enumerate() {
+            if offset > action_data_len_u16 {
+                return Err(TableGenError::Compression(format!(
+                    "action row_offsets[{i}] = {offset} exceeds action data length {}",
+                    self.action_table.data.len()
+                )));
+            }
+        }
+
+        for (idx, entry) in self.action_table.data.iter().enumerate() {
+            if usize::from(entry.symbol) >= symbol_count {
+                return Err(TableGenError::Compression(format!(
+                    "action entry {} has symbol id {} outside symbol_count {}",
+                    idx, entry.symbol, symbol_count
+                )));
+            }
+        }
+
+        if self.goto_table.row_offsets.len() != state_count + 1 {
+            return Err(TableGenError::Compression(format!(
+                "invalid goto row_offsets length: got {}, expected {} (state_count + 1)",
+                self.goto_table.row_offsets.len(),
+                state_count + 1
+            )));
+        }
+
+        for (i, offsets) in self.goto_table.row_offsets.windows(2).enumerate() {
+            if offsets[0] > offsets[1] {
+                return Err(TableGenError::Compression(format!(
+                    "goto row_offsets must be monotonic: row {} offset {} > next {}",
+                    i, offsets[0], offsets[1]
+                )));
+            }
+        }
+
+        let goto_data_len_u16 = u16::try_from(self.goto_table.data.len()).map_err(|_| {
+            TableGenError::Compression(format!(
+                "goto table data length {} exceeds u16::MAX ({})",
+                self.goto_table.data.len(),
+                u16::MAX
+            ))
+        })?;
+
+        for (i, &offset) in self.goto_table.row_offsets.iter().enumerate() {
+            if offset > goto_data_len_u16 {
+                return Err(TableGenError::Compression(format!(
+                    "goto row_offsets[{i}] = {offset} exceeds goto data length {}",
+                    self.goto_table.data.len()
+                )));
+            }
+        }
+
+        for (idx, entry) in self.goto_table.data.iter().enumerate() {
+            match entry {
+                CompressedGotoEntry::Single(state) => {
+                    if *state != u16::MAX && usize::from(*state) >= state_count {
+                        return Err(TableGenError::Compression(format!(
+                            "goto entry {} has state id {} outside state_count {}",
+                            idx, state, state_count
+                        )));
+                    }
+                }
+                CompressedGotoEntry::RunLength { state, count } => {
+                    if *state != u16::MAX && usize::from(*state) >= state_count {
+                        return Err(TableGenError::Compression(format!(
+                            "goto run-length entry {} has state id {} outside state_count {}",
+                            idx, state, state_count
+                        )));
+                    }
+                    if *count == 0 {
+                        return Err(TableGenError::Compression(format!(
+                            "goto run-length entry {} has zero count, which is invalid",
+                            idx
+                        )));
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
+}
+
+fn checked_u16(value: usize, id_kind: &str, where_in_compression: &str) -> Result<u16> {
+    u16::try_from(value).map_err(|_| {
+        TableGenError::Compression(format!(
+            "{id_kind} {value} exceeds u16::MAX ({}) while {where_in_compression}",
+            u16::MAX
+        ))
+    })
 }
 
 /// Compressed action table
@@ -405,7 +527,11 @@ impl TableCompressor {
             let default_action = Action::Error;
 
             default_actions.push(default_action.clone());
-            row_offsets.push(entries.len() as u16);
+            row_offsets.push(checked_u16(
+                entries.len(),
+                "action row offset",
+                "building compressed action row_offsets",
+            )?);
 
             for (index, action_cell) in action_row.iter().enumerate() {
                 // Process each action in the cell
@@ -417,7 +543,11 @@ impl TableCompressor {
 
                     // Use the mapped index directly, not the original symbol ID
                     // This ensures terminals (index < token_count) are correctly identified
-                    let symbol_id = index as u16;
+                    let symbol_id = checked_u16(
+                        index,
+                        "symbol id",
+                        "encoding compressed action entry symbol",
+                    )?;
 
                     entries.push(CompressedActionEntry {
                         symbol: symbol_id,
@@ -427,7 +557,11 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(checked_u16(
+            entries.len(),
+            "action row offset",
+            "finalizing compressed action row_offsets sentinel",
+        )?);
 
         // Validate row_offsets are strictly increasing
         for i in 1..row_offsets.len() {
@@ -466,10 +600,14 @@ impl TableCompressor {
         let mut row_offsets = Vec::new();
 
         for row in goto_table {
-            row_offsets.push(entries.len() as u16);
+            row_offsets.push(checked_u16(
+                entries.len(),
+                "goto row offset",
+                "building compressed goto row_offsets",
+            )?);
 
             let mut last_state = None;
-            let mut run_length = 0;
+            let mut run_length: usize = 0;
 
             for &state_id in row {
                 if last_state == Some(state_id.0) {
@@ -482,7 +620,11 @@ impl TableCompressor {
                         if run_length > 2 {
                             entries.push(CompressedGotoEntry::RunLength {
                                 state,
-                                count: run_length,
+                                count: checked_u16(
+                                    run_length,
+                                    "goto run length",
+                                    "encoding goto run-length entry",
+                                )?,
                             });
                         } else {
                             // For short runs, individual entries are more efficient
@@ -501,7 +643,11 @@ impl TableCompressor {
                 if run_length > 2 {
                     entries.push(CompressedGotoEntry::RunLength {
                         state,
-                        count: run_length,
+                        count: checked_u16(
+                            run_length,
+                            "goto run length",
+                            "encoding final goto run-length entry",
+                        )?,
                     });
                 } else {
                     for _ in 0..run_length {
@@ -511,7 +657,11 @@ impl TableCompressor {
             }
         }
 
-        row_offsets.push(entries.len() as u16);
+        row_offsets.push(checked_u16(
+            entries.len(),
+            "goto row offset",
+            "finalizing compressed goto row_offsets sentinel",
+        )?);
 
         Ok(CompressedGotoTable {
             data: entries,
@@ -641,12 +791,12 @@ mod tests {
         let tables = CompressedTables {
             action_table: CompressedActionTable {
                 data: vec![],
-                row_offsets: vec![],
-                default_actions: vec![],
+                row_offsets: vec![0, 0],
+                default_actions: vec![Action::Error],
             },
             goto_table: CompressedGotoTable {
                 data: vec![],
-                row_offsets: vec![],
+                row_offsets: vec![0, 0],
             },
             small_table_threshold: 32768,
         };
