@@ -7,7 +7,7 @@
 #![deny(private_interfaces)]
 #![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
 #![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
