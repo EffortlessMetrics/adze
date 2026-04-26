@@ -196,3 +196,42 @@ mod test_helpers {
         false
     }
 }
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+mod conflict_runtime_contract_tests {
+    use adze::parser_v4::Parser;
+    use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+    use adze_ir::builder::GrammarBuilder;
+
+    #[test]
+    fn conflicted_table_does_not_use_first_success_fallback() {
+        let mut grammar = GrammarBuilder::new("ambiguous")
+            .token("num", r"[0-9]+")
+            .token("minus", "-")
+            .rule("expr", vec!["expr", "minus", "expr"])
+            .rule("expr", vec!["num"])
+            .start("expr")
+            .build();
+        grammar.normalize();
+
+        let ff = FirstFollowSets::compute_normalized(&mut grammar).expect("first/follow");
+        let parse_table = build_lr1_automaton(&grammar, &ff).expect("lr1 table");
+        assert!(
+            parse_table
+                .action_table
+                .iter()
+                .any(|row| row.iter().any(|cell| cell.len() > 1)),
+            "fixture must contain at least one conflict cell"
+        );
+
+        let mut parser = Parser::new(grammar, parse_table, "ambiguous".to_string());
+        let err = parser
+            .parse_tree("1-2-3")
+            .expect_err("conflicted tables must not silently fallback");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Ordered Action::Fork fallback is disabled"),
+            "expected explicit GLR-required diagnostic, got: {msg}"
+        );
+    }
+}

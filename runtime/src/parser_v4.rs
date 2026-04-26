@@ -17,6 +17,8 @@ use std::rc::Rc;
 
 const PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED: &str = "Custom lexer functions are not yet supported by parser_v4 runtime. \
      Provide a grammar/tokenization path without a custom transform lexer.";
+const CONFLICTED_TABLE_REQUIRES_FULL_GLR: &str = "parser_v4 encountered a conflicted parse table (multi-action cell). \
+     Ordered Action::Fork fallback is disabled; route this grammar to the full GLR parser engine.";
 
 // Define types directly in parser_v4 (no longer dependent on parser_v3)
 
@@ -517,6 +519,15 @@ impl Parser {
     /// Internal parsing implementation shared by parse() and parse_tree()
     /// Returns (ParseNode, error_count)
     fn parse_internal(&mut self, input: &str, _return_tree: bool) -> Result<(ParseNode, usize)> {
+        if self
+            .parse_table
+            .action_table
+            .iter()
+            .any(|row| row.iter().any(|cell| cell.len() > 1))
+        {
+            bail!(CONFLICTED_TABLE_REQUIRES_FULL_GLR);
+        }
+
         // eprintln!("\nStarting parse of: {:?}", input);
         // Store the input
         self.input = input.as_bytes().to_vec();
