@@ -9,8 +9,8 @@ fn roundtrip_json(g: &Grammar) -> Grammar {
 }
 
 fn roundtrip_bincode(g: &Grammar) -> Grammar {
-    let bytes = bincode::serialize(g).unwrap();
-    bincode::deserialize(&bytes).unwrap()
+    let bytes = postcard::to_allocvec(g).unwrap();
+    postcard::from_bytes(&bytes).unwrap()
 }
 
 #[test]

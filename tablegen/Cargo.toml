@@ -41,7 +41,7 @@ tree-sitter-c2rust = { version = "0.25.2", optional = true }
 proptest = "1.5"
 insta = "1.40"
 rustc-hash = "2.1"
-criterion = "0.5"
+criterion.workspace = true
 syn = { version = "2", features = ["full", "parsing"] }
 adze-bdd-grid-core = { version = "0.1.0", path = "../crates/bdd-grid-core" }
 adze-glr-core = { version = "0.8.0-dev", path = "../glr-core" }

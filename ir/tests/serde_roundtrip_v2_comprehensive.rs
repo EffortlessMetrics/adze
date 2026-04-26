@@ -28,8 +28,8 @@ fn bincode_roundtrip<
 >(
     val: &T,
 ) {
-    let bytes = bincode::serialize(val).expect("bincode serialize");
-    let back: T = bincode::deserialize(&bytes).expect("bincode deserialize");
+    let bytes = postcard::to_allocvec(val).expect("bincode serialize");
+    let back: T = postcard::from_bytes(&bytes).expect("bincode deserialize");
     assert_eq!(*val, back);
 }
 
@@ -623,7 +623,7 @@ fn test_bincode_smaller_than_json() {
         .start("expr")
         .build();
     let json_len = serde_json::to_string(&g).unwrap().len();
-    let bin_len = bincode::serialize(&g).unwrap().len();
+    let bin_len = postcard::to_allocvec(&g).unwrap().len();
     assert!(
         bin_len < json_len,
         "bincode ({bin_len}) should be smaller than json ({json_len})"

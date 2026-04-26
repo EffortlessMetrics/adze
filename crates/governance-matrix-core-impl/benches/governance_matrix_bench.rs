@@ -2,7 +2,8 @@
 //!
 //! Measures performance of matrix operations used in governance.
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 use adze_governance_matrix_core_impl::{
     BddGovernanceMatrix, BddPhase, GLR_CONFLICT_PRESERVATION_GRID, ParserFeatureProfile,
