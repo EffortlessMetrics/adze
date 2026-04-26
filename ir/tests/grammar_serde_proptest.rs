@@ -221,8 +221,8 @@ fn bincode_roundtrip<
 >(
     val: &T,
 ) -> T {
-    let bytes = bincode::serialize(val).expect("bincode serialize");
-    let back: T = bincode::deserialize(&bytes).expect("bincode deserialize");
+    let bytes = postcard::to_allocvec(val).expect("bincode serialize");
+    let back: T = postcard::from_bytes(&bytes).expect("bincode deserialize");
     assert_eq!(val, &back, "bincode roundtrip mismatch");
     back
 }
@@ -367,8 +367,8 @@ proptest! {
     // -----------------------------------------------------------------------
     #[test]
     fn serialization_preserves_all_fields_bincode(g in arb_full_grammar()) {
-        let bytes = bincode::serialize(&g).unwrap();
-        let back: Grammar = bincode::deserialize(&bytes).unwrap();
+        let bytes = postcard::to_allocvec(&g).unwrap();
+        let back: Grammar = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(&g.name, &back.name);
         prop_assert_eq!(&g.rules, &back.rules);
         prop_assert_eq!(&g.tokens, &back.tokens);
@@ -408,7 +408,7 @@ proptest! {
     fn deserialization_error_corrupt_bincode(
         garbage in prop::collection::vec(any::<u8>(), 1..32),
     ) {
-        let result = bincode::deserialize::<Grammar>(&garbage);
+        let result = postcard::from_bytes::<Grammar>(&garbage);
         if result.is_ok() {
             let g = result.unwrap();
             let back = bincode_roundtrip(&g);
@@ -587,8 +587,8 @@ proptest! {
     // -----------------------------------------------------------------------
     #[test]
     fn bincode_deterministic_grammar(g in arb_full_grammar()) {
-        let bytes1 = bincode::serialize(&g).unwrap();
-        let bytes2 = bincode::serialize(&g).unwrap();
+        let bytes1 = postcard::to_allocvec(&g).unwrap();
+        let bytes2 = postcard::to_allocvec(&g).unwrap();
         prop_assert_eq!(bytes1, bytes2);
     }
 
@@ -600,8 +600,8 @@ proptest! {
         let from_json: Grammar = serde_json::from_str(
             &serde_json::to_string(&g).unwrap()
         ).unwrap();
-        let from_bincode: Grammar = bincode::deserialize(
-            &bincode::serialize(&g).unwrap()
+        let from_bincode: Grammar = postcard::from_bytes(
+            &postcard::to_allocvec(&g).unwrap()
         ).unwrap();
         prop_assert_eq!(&from_json, &from_bincode);
     }
@@ -640,10 +640,10 @@ proptest! {
     // -----------------------------------------------------------------------
     #[test]
     fn double_roundtrip_bincode(g in arb_full_grammar()) {
-        let bytes1 = bincode::serialize(&g).unwrap();
-        let back1: Grammar = bincode::deserialize(&bytes1).unwrap();
-        let bytes2 = bincode::serialize(&back1).unwrap();
-        let back2: Grammar = bincode::deserialize(&bytes2).unwrap();
+        let bytes1 = postcard::to_allocvec(&g).unwrap();
+        let back1: Grammar = postcard::from_bytes(&bytes1).unwrap();
+        let bytes2 = postcard::to_allocvec(&back1).unwrap();
+        let back2: Grammar = postcard::from_bytes(&bytes2).unwrap();
         prop_assert_eq!(&g, &back2);
         prop_assert_eq!(bytes1, bytes2);
     }
@@ -680,10 +680,10 @@ proptest! {
     // -----------------------------------------------------------------------
     #[test]
     fn truncated_bincode_fails(g in arb_full_grammar()) {
-        let bytes = bincode::serialize(&g).unwrap();
+        let bytes = postcard::to_allocvec(&g).unwrap();
         if bytes.len() > 1 {
             let truncated = &bytes[..bytes.len() / 2];
-            let result = bincode::deserialize::<Grammar>(truncated);
+            let result = postcard::from_bytes::<Grammar>(truncated);
             prop_assert!(result.is_err());
         }
     }
@@ -781,8 +781,8 @@ fn complex_builder_grammar_roundtrip() {
     let from_json: Grammar = serde_json::from_str(&json).unwrap();
     assert_eq!(g, from_json);
 
-    let bytes = bincode::serialize(&g).unwrap();
-    let from_bincode: Grammar = bincode::deserialize(&bytes).unwrap();
+    let bytes = postcard::to_allocvec(&g).unwrap();
+    let from_bincode: Grammar = postcard::from_bytes(&bytes).unwrap();
     assert_eq!(g, from_bincode);
     assert_eq!(from_json, from_bincode);
 }

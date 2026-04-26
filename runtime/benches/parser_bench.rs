@@ -5,7 +5,8 @@
 
 use adze::lexer::{ErrorRecoveringLexer, ErrorRecoveryMode, GrammarLexer};
 use adze::parser_v4::{ParserV4 as ParserV2, Token};
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 // use adze::incremental::{IncrementalParser, Edit, IncrementalTree};
 use adze_glr_core::{Action, ParseTable, SymbolMetadata};
 use adze_ir::{

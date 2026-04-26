@@ -4,7 +4,8 @@
 
 use std::collections::BTreeMap;
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 use adze_glr_core::{
     Action, GotoIndexing, Grammar, LexMode, ParseTable, RuleId, StateId, SymbolId, SymbolMetadata,

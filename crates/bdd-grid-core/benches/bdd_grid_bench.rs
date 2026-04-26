@@ -2,7 +2,8 @@
 //!
 //! Measures performance of scenario lookup and progress reporting used in BDD framework.
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 use adze_bdd_grid_core::{
     BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
