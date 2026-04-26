@@ -228,6 +228,9 @@ pub fn validate_parse_table(table: &ParseTable) -> Result<(), Vec<SchemaError>> 
     // Track seen actions to detect duplicates
     let mut seen_actions: HashSet<(u16, u16)> = HashSet::new();
     let mut has_accept = false;
+    let mut accept_states_any_symbol: HashSet<usize> = HashSet::new();
+    let mut accept_states_on_eof: HashSet<usize> = HashSet::new();
+    let eof_col = table.symbol_to_index.get(&table.eof_symbol).copied();
 
     // Validate all actions
     for (state_idx, action_row) in table.action_table.iter().enumerate() {
@@ -244,6 +247,10 @@ pub fn validate_parse_table(table: &ParseTable) -> Result<(), Vec<SchemaError>> 
                         // Check for Accept
                         if matches!(action, Action::Accept) {
                             has_accept = true;
+                            accept_states_any_symbol.insert(state_idx);
+                            if eof_col == Some(symbol_idx) {
+                                accept_states_on_eof.insert(state_idx);
+                            }
                         }
                     }
                     Err(e) => errors.push(e),
@@ -287,6 +294,30 @@ pub fn validate_parse_table(table: &ParseTable) -> Result<(), Vec<SchemaError>> 
     // Check that there's at least one Accept action
     if !has_accept {
         errors.push(SchemaError::MissingAcceptState);
+    }
+
+    match eof_col {
+        Some(eof_idx) => {
+            let mut bad_states: Vec<usize> = accept_states_any_symbol
+                .difference(&accept_states_on_eof)
+                .copied()
+                .collect();
+            bad_states.sort_unstable();
+            if !bad_states.is_empty() {
+                errors.push(SchemaError::InvalidEOFHandling {
+                    reason: format!(
+                        "Accept must be present on EOF column {} for accepting states; missing on states {:?}",
+                        eof_idx, bad_states
+                    ),
+                });
+            }
+        }
+        None => errors.push(SchemaError::InvalidEOFHandling {
+            reason: format!(
+                "EOF symbol {} missing from symbol_to_index",
+                table.eof_symbol.0
+            ),
+        }),
     }
 
     if errors.is_empty() {
@@ -337,6 +368,36 @@ mod tests {
             validate_action_encoding(&Action::Reduce(RuleId(100))),
             Ok(0x8064)
         );
+    }
+
+    #[test]
+    fn test_validate_parse_table_accept_must_be_on_eof() {
+        let table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![Action::Accept], vec![]]],
+            vec![vec![crate::test_helpers::test::INVALID; 2]],
+            vec![],
+            adze_ir::SymbolId(1),
+            adze_ir::SymbolId(1),
+            0,
+        );
+        let errs = validate_parse_table(&table).expect_err("non-EOF accept must fail");
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, SchemaError::InvalidEOFHandling { .. }))
+        );
+    }
+
+    #[test]
+    fn test_validate_parse_table_accept_on_eof_passes() {
+        let table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![], vec![Action::Accept]]],
+            vec![vec![crate::test_helpers::test::INVALID; 2]],
+            vec![],
+            adze_ir::SymbolId(1),
+            adze_ir::SymbolId(1),
+            0,
+        );
+        assert!(validate_parse_table(&table).is_ok());
     }
 
     #[test]
