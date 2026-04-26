@@ -1535,6 +1535,27 @@ fn row_offsets_last_equals_data_len() {
     assert_eq!(last_offset, compressed.data.len());
 }
 
+#[test]
+fn compression_rejects_oversized_action_ids_with_location_context() {
+    let compressor = TableCompressor::new();
+    let action_table = vec![vec![vec![Action::Shift(StateId(0x8000))]]];
+    let sym_map = std::collections::BTreeMap::from([(adze_ir::SymbolId(1), 0usize)]);
+
+    let err = compressor
+        .compress_action_table_small(&action_table, &sym_map)
+        .expect_err("oversized shift state should fail compression");
+
+    let msg = err.to_string();
+    assert!(
+        msg.contains("invalid action id at action row 0, symbol 0"),
+        "{msg}"
+    );
+    assert!(
+        msg.contains("Shift state 32768 too large for small table encoding"),
+        "{msg}"
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 23. Integration: grammar → pipeline → validate
 // ═══════════════════════════════════════════════════════════════════════════
