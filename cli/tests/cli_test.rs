@@ -5,6 +5,7 @@
 
 use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
+use tempfile::tempdir;
 
 // ---------------------------------------------------------------------------
 // End-to-end smoke tests (lightweight — no grammar compilation)
@@ -65,6 +66,55 @@ fn test_cli_unknown_command() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("unrecognized subcommand"));
+}
+
+#[test]
+fn test_init_generates_project_that_checks() {
+    let temp = tempdir().expect("tempdir");
+    let project_name = "fresh-lang";
+    let project_dir = temp.path().join(project_name);
+
+    let mut init_cmd = cargo_bin_cmd!("adze");
+    init_cmd
+        .args(["init", project_name, "--output"])
+        .arg(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Project created"));
+
+    assert!(project_dir.join("Cargo.toml").exists());
+    assert!(project_dir.join("src/grammar.rs").exists());
+    assert!(project_dir.join("tests/basic.rs").exists());
+
+    let status = std::process::Command::new("cargo")
+        .arg("check")
+        .current_dir(&project_dir)
+        .status()
+        .expect("run cargo check for generated project");
+    assert!(
+        status.success(),
+        "generated project should pass cargo check"
+    );
+}
+
+#[test]
+fn test_parse_static_mode_is_explicitly_unimplemented() {
+    let temp = tempdir().expect("tempdir");
+    let grammar_file = temp.path().join("grammar.rs");
+    let input_file = temp.path().join("input.txt");
+    std::fs::write(&grammar_file, "// placeholder grammar").expect("write grammar");
+    std::fs::write(&input_file, "x").expect("write input");
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("parse")
+        .arg(&grammar_file)
+        .arg(&input_file)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "static parse mode is not implemented yet",
+        ))
+        .stderr(predicate::str::contains("experimental"));
 }
 
 // ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ pub(crate) enum Commands {
         watch: bool,
     },
 
-    /// Parse a file using the grammar
+    /// Parse a file using the grammar (experimental: parser execution not yet wired)
     Parse {
         /// Grammar file (or .so/.dylib path when using --dynamic)
         grammar: PathBuf,
@@ -139,6 +139,18 @@ fn main() -> Result<()> {
 fn init_grammar(name: &str, output: Option<PathBuf>) -> Result<()> {
     let dir = output.unwrap_or_else(|| PathBuf::from("."));
     let project_dir = dir.join(name);
+    let scaffold_version = released_version(env!("CARGO_PKG_VERSION"));
+    let crate_name = name.replace('-', "_");
+    let language_name = crate_name.clone();
+    let local_paths = discover_local_adze_paths();
+    let adze_dep = if let Some((runtime_path, _tool_path)) = &local_paths {
+        format!(r#"adze = {{ path = "{}" }}"#, runtime_path.display())
+    } else {
+        format!(
+            r#"adze = {{ git = "https://github.com/effortlessmetrics/adze", tag = "v{}", package = "adze" }}"#,
+            scaffold_version
+        )
+    };
 
     println!(
         "{} Creating new grammar project: {}",
@@ -160,26 +172,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-adze = {{ version = "0.5.0-beta" }}
-
-[build-dependencies]
-adze-tool = {{ version = "0.5.0-beta" }}
-
-[dev-dependencies]
-insta = "1.40"
+{adze_dep}
 "#,
-        name
+        name,
+        adze_dep = adze_dep
     );
 
     fs::write(project_dir.join("Cargo.toml"), cargo_toml)?;
 
     // Create build.rs
-    let build_rs = r#"use adze_tool::build_parsers;
-use std::path::PathBuf;
-
-fn main() {
+    let build_rs = r#"fn main() {
+    // Placeholder build script: rerun when the grammar file changes.
+    // To generate parser artifacts, add `adze-tool` as a build-dependency
+    // and call `adze_tool::build_parsers(...)` here once your grammar is ready.
     println!("cargo:rerun-if-changed=src/grammar.rs");
-    build_parsers(&PathBuf::from("src/grammar.rs"));
 }
 "#;
 
@@ -188,47 +194,39 @@ fn main() {
     // Create example grammar
     let grammar_rs = format!(
         r#"//! {} grammar definition
+//!
+//! This scaffold is intentionally buildable out-of-the-box.
+//! Replace these placeholder AST types with `#[adze::grammar("{}")]`
+//! declarations once you're ready to generate parser artifacts.
 
-#[adze::grammar("{}")]
-mod grammar {{
-    /// Root node of the grammar
-    #[adze::language]
-    pub struct Program {{
-        #[adze::repeat]
-        pub statements: Vec<Statement>,
-    }}
-    
-    /// A statement in the language
-    #[adze::language]
-    pub struct Statement {{
-        pub expr: Expr,
-        #[adze::leaf(text = ";")]
-        _semicolon: (),
-    }}
-    
-    /// An expression
-    #[adze::language]
-    pub enum Expr {{
-        Number(Number),
-        Identifier(Identifier),
-    }}
-    
-    /// A numeric literal
-    #[adze::language]
-    pub struct Number {{
-        #[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
-        pub value: i32,
-    }}
-    
-    /// An identifier
-    #[adze::language]
-    pub struct Identifier {{
-        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
-        pub name: String,
-    }}
+/// Root node of the grammar.
+pub struct Program {{
+    pub first: Statement,
+    pub rest: Vec<Statement>,
+}}
+
+/// A statement in the language.
+pub struct Statement {{
+    pub expr: Expr,
+}}
+
+/// An expression.
+pub enum Expr {{
+    Number(Number),
+    Identifier(Identifier),
+}}
+
+/// A numeric literal.
+pub struct Number {{
+    pub value: i32,
+}}
+
+/// An identifier.
+pub struct Identifier {{
+    pub name: String,
 }}
 "#,
-        name, name
+        name, language_name
     );
 
     fs::write(project_dir.join("src/grammar.rs"), grammar_rs)?;
@@ -242,15 +240,19 @@ pub use grammar::*;
     fs::write(project_dir.join("src/lib.rs"), lib_rs)?;
 
     // Create example test
-    let test_rs = r#"use insta::assert_snapshot;
+    let test_rs = r#"use std::mem::size_of;
+
+use __CRATE__::grammar::{Identifier, Number, Program, Statement};
 
 #[test]
-fn test_simple_program() {
-    let input = "42; foo;";
-    // TODO: Add parsing logic once grammar is built
-    assert_snapshot!(input);
+fn test_generated_grammar_types_compile() {
+    assert!(size_of::<Program>() > 0);
+    assert!(size_of::<Statement>() > 0);
+    assert!(size_of::<Number>() > 0);
+    assert!(size_of::<Identifier>() > 0);
 }
-"#;
+"#
+    .replace("__CRATE__", &crate_name);
 
     fs::write(project_dir.join("tests/basic.rs"), test_rs)?;
 
@@ -292,6 +294,26 @@ MIT
         "✅".green(),
         project_dir.display().to_string().bright_blue()
     );
+    if scaffold_version != env!("CARGO_PKG_VERSION") {
+        println!(
+            "{} Using published dependency line {} (CLI version is {}).",
+            "ℹ️ ".blue(),
+            scaffold_version.bright_blue(),
+            env!("CARGO_PKG_VERSION").bright_black()
+        );
+    }
+    if local_paths.is_some() {
+        println!(
+            "{} Using local path dependencies because an adze workspace was detected.",
+            "ℹ️ ".blue()
+        );
+    } else {
+        println!(
+            "{} Using git dependencies pinned to release tag v{}.",
+            "ℹ️ ".blue(),
+            scaffold_version.bright_blue()
+        );
+    }
     println!("\n{}", "Next steps:".bright_yellow());
     println!("  cd {}", name);
     println!("  cargo build");
@@ -384,11 +406,9 @@ fn parse_file(
         }
         #[cfg(not(feature = "dynamic"))]
         {
-            eprintln!(
-                "{}\n",
-                "Error: Dynamic loading not enabled. Build with --features dynamic".red()
-            );
-            std::process::exit(2);
+            anyhow::bail!(
+                "dynamic parsing is experimental: rebuild adze-cli with --features dynamic"
+            )
         }
     }
     println!("{} Parsing file: {}", "📄".blue(), input.display());
@@ -400,12 +420,9 @@ fn parse_file(
         input.display(),
         input_content.len()
     );
-    println!(
-        "{} Static parsing not yet implemented. Use `adze build` first, then parse in your Rust code.",
-        "⚠️ ".yellow()
-    );
-
-    Ok(())
+    anyhow::bail!(
+        "static parse mode is not implemented yet. `adze parse` is currently experimental and does not produce parse trees"
+    )
 }
 
 #[cfg(feature = "dynamic")]
@@ -443,22 +460,18 @@ fn parse_file_dynamic(
             lib.get(&sym_name)?;
         let _lang_ptr = get_language();
 
-        // TODO: Bridge to adze's pure parser using the language pointer
+        let _ = (format, input_content.len());
         println!(
-            "{} Loaded language from: {}",
-            "✓".green(),
+            "{} Loaded language symbol '{}' from {}",
+            "🧪".yellow(),
+            symbol,
             grammar.display()
         );
-        println!("Input size: {} bytes", input_content.len());
-
-        // For now, just show we loaded it successfully
-        match format {
-            OutputFormat::Json => println!("{{\"status\": \"dynamic loading successful\"}}"),
-            _ => println!("Dynamic loading successful - parser integration pending"),
-        }
     }
 
-    Ok(())
+    anyhow::bail!(
+        "dynamic parse mode is experimental: grammar loading works, but executing the parser is not implemented yet"
+    )
 }
 
 fn test_grammar(_path: &Path, update: bool) -> Result<()> {
@@ -564,4 +577,25 @@ fn print_stats_summary(result: &BuildResult) {
 
 fn print_version() {
     println!("adze {}", env!("CARGO_PKG_VERSION"));
+}
+
+fn released_version(version: &str) -> String {
+    version
+        .split_once('-')
+        .map_or(version, |(base, _)| base)
+        .to_string()
+}
+
+fn discover_local_adze_paths() -> Option<(PathBuf, PathBuf)> {
+    let mut current = std::env::current_dir().ok()?;
+    loop {
+        let runtime_path = current.join("runtime");
+        let tool_path = current.join("tool");
+        if runtime_path.join("Cargo.toml").exists() && tool_path.join("Cargo.toml").exists() {
+            return Some((runtime_path, tool_path));
+        }
+        if !current.pop() {
+            return None;
+        }
+    }
 }
