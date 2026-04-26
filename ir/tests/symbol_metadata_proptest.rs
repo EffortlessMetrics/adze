@@ -104,14 +104,14 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------
-// 3. SymbolMetadata serde bincode roundtrip
+// 3. SymbolMetadata serde postcard roundtrip
 // ---------------------------------------------------------------------------
 
 proptest! {
     #[test]
     fn serde_bincode_roundtrip(meta in symbol_metadata_strategy()) {
-        let bytes = bincode::serialize(&meta).unwrap();
-        let restored: SymbolMetadata = bincode::deserialize(&bytes).unwrap();
+        let bytes = postcard::to_stdvec(&meta).unwrap();
+        let restored: SymbolMetadata = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(meta, restored);
     }
 }
@@ -555,12 +555,12 @@ proptest! {
 
 proptest! {
     #[test]
-    fn bincode_size_consistent(
+    fn postcard_size_consistent(
         a in symbol_metadata_strategy(),
         b in symbol_metadata_strategy(),
     ) {
-        let bytes_a = bincode::serialize(&a).unwrap();
-        let bytes_b = bincode::serialize(&b).unwrap();
+        let bytes_a = postcard::to_stdvec(&a).unwrap();
+        let bytes_b = postcard::to_stdvec(&b).unwrap();
         prop_assert_eq!(bytes_a.len(), bytes_b.len());
     }
 }

@@ -1,7 +1,7 @@
 //! Comprehensive serialization roundtrip tests for all IR types.
 //!
 //! This module provides 30+ tests exercising serialization roundtrip for all IR types
-//! using serde_json (and bincode where available).
+//! using serde_json (and postcard where available).
 //!
 //! Key coverage:
 //! 1. Grammar variants (default, with rules, extras, conflicts, etc.)
@@ -37,18 +37,18 @@ fn assert_json_roundtrip(grammar: &Grammar, test_name: &str) {
     );
 }
 
-// Helper function to perform bincode roundtrip test
+// Helper function to perform postcard roundtrip test
 fn assert_bincode_roundtrip(grammar: &Grammar, test_name: &str) {
-    let bytes = bincode::serialize(grammar)
-        .unwrap_or_else(|_| panic!("{}: failed to serialize with bincode", test_name));
-    let deserialized: Grammar = bincode::deserialize(&bytes)
-        .unwrap_or_else(|_| panic!("{}: failed to deserialize from bincode", test_name));
-    let roundtrip_bytes = bincode::serialize(&deserialized)
-        .unwrap_or_else(|_| panic!("{}: failed to re-serialize with bincode", test_name));
+    let bytes = postcard::to_stdvec(grammar)
+        .unwrap_or_else(|_| panic!("{}: failed to serialize with postcard", test_name));
+    let deserialized: Grammar = postcard::from_bytes(&bytes)
+        .unwrap_or_else(|_| panic!("{}: failed to deserialize from postcard", test_name));
+    let roundtrip_bytes = postcard::to_stdvec(&deserialized)
+        .unwrap_or_else(|_| panic!("{}: failed to re-serialize with postcard", test_name));
 
     assert_eq!(
         bytes, roundtrip_bytes,
-        "{}:bincode roundtrip mismatch",
+        "{}:postcard roundtrip mismatch",
         test_name
     );
 }
@@ -537,8 +537,8 @@ fn test_symbol_epsilon_json_roundtrip() {
 #[test]
 fn test_symbol_epsilon_bincode_roundtrip() {
     let symbol = Symbol::Epsilon;
-    let bytes = bincode::serialize(&symbol).expect("serialize");
-    let deserialized: Symbol = bincode::deserialize(&bytes).expect("deserialize");
+    let bytes = postcard::to_stdvec(&symbol).expect("serialize");
+    let deserialized: Symbol = postcard::from_bytes(&bytes).expect("deserialize");
     assert_eq!(symbol, deserialized);
 }
 
@@ -566,8 +566,8 @@ fn test_external_token_bincode_roundtrip() {
         name: "DEDENT".to_string(),
         symbol_id: SymbolId(101),
     };
-    let bytes = bincode::serialize(&external).expect("serialize");
-    let deserialized: ExternalToken = bincode::deserialize(&bytes).expect("deserialize");
+    let bytes = postcard::to_stdvec(&external).expect("serialize");
+    let deserialized: ExternalToken = postcard::from_bytes(&bytes).expect("deserialize");
     assert_eq!(external, deserialized);
 }
 
@@ -675,8 +675,8 @@ fn test_symbol_id_json_roundtrip() {
 #[test]
 fn test_symbol_id_bincode_roundtrip() {
     let id = SymbolId(54321);
-    let bytes = bincode::serialize(&id).expect("serialize");
-    let deserialized: SymbolId = bincode::deserialize(&bytes).expect("deserialize");
+    let bytes = postcard::to_stdvec(&id).expect("serialize");
+    let deserialized: SymbolId = postcard::from_bytes(&bytes).expect("deserialize");
     assert_eq!(id, deserialized);
 }
 
@@ -951,16 +951,16 @@ fn test_precedence_kind_dynamic_json_roundtrip() {
 #[test]
 fn test_precedence_kind_static_bincode_roundtrip() {
     let kind = PrecedenceKind::Static(0);
-    let bytes = bincode::serialize(&kind).expect("serialize");
-    let deserialized: PrecedenceKind = bincode::deserialize(&bytes).expect("deserialize");
+    let bytes = postcard::to_stdvec(&kind).expect("serialize");
+    let deserialized: PrecedenceKind = postcard::from_bytes(&bytes).expect("deserialize");
     assert_eq!(kind, deserialized);
 }
 
 #[test]
 fn test_precedence_kind_dynamic_bincode_roundtrip() {
     let kind = PrecedenceKind::Dynamic(100);
-    let bytes = bincode::serialize(&kind).expect("serialize");
-    let deserialized: PrecedenceKind = bincode::deserialize(&bytes).expect("deserialize");
+    let bytes = postcard::to_stdvec(&kind).expect("serialize");
+    let deserialized: PrecedenceKind = postcard::from_bytes(&bytes).expect("deserialize");
     assert_eq!(kind, deserialized);
 }
 
@@ -997,8 +997,8 @@ fn test_associativity_all_variants_bincode_roundtrip() {
     ];
 
     for assoc in variants {
-        let bytes = bincode::serialize(&assoc).expect("serialize");
-        let deserialized: Associativity = bincode::deserialize(&bytes).expect("deserialize");
+        let bytes = postcard::to_stdvec(&assoc).expect("serialize");
+        let deserialized: Associativity = postcard::from_bytes(&bytes).expect("deserialize");
         assert_eq!(assoc, deserialized);
     }
 }
@@ -1014,9 +1014,9 @@ fn test_empty_grammar_comprehensive_roundtrip() {
     assert_eq!(json, json_roundtrip);
 
     // Bincode roundtrip
-    let bytes = bincode::serialize(&grammar).expect("serialize");
-    let from_bytes: Grammar = bincode::deserialize(&bytes).expect("deserialize");
-    let bytes_roundtrip = bincode::serialize(&from_bytes).expect("re-serialize");
+    let bytes = postcard::to_stdvec(&grammar).expect("serialize");
+    let from_bytes: Grammar = postcard::from_bytes(&bytes).expect("deserialize");
+    let bytes_roundtrip = postcard::to_stdvec(&from_bytes).expect("re-serialize");
     assert_eq!(bytes, bytes_roundtrip);
 }
 
@@ -1257,7 +1257,7 @@ fn test_mixed_token_patterns_json_roundtrip() {
 fn test_grammar_with_many_rules_bincode_roundtrip() {
     let mut grammar = Grammar::new("many_rules_bincode".to_string());
 
-    // Create many rules for comprehensive bincode coverage
+    // Create many rules for comprehensive postcard coverage
     for i in 0..50 {
         let rule_id = SymbolId(i as u16);
         grammar.rule_names.insert(rule_id, format!("rule_{}", i));
@@ -1309,9 +1309,9 @@ fn test_all_symbol_types_bincode_roundtrip() {
     ];
 
     for (idx, symbol) in symbols.into_iter().enumerate() {
-        let bytes = bincode::serialize(&symbol).unwrap_or_else(|_| panic!("serialize {}", idx));
+        let bytes = postcard::to_stdvec(&symbol).unwrap_or_else(|_| panic!("serialize {}", idx));
         let deserialized: Symbol =
-            bincode::deserialize(&bytes).unwrap_or_else(|_| panic!("deserialize {}", idx));
+            postcard::from_bytes(&bytes).unwrap_or_else(|_| panic!("deserialize {}", idx));
         assert_eq!(symbol, deserialized, "Symbol roundtrip failed for {}", idx);
     }
 }
@@ -1432,8 +1432,8 @@ fn test_state_id_max_json_roundtrip() {
 #[test]
 fn test_state_id_bincode_roundtrip() {
     let id = StateId(1024);
-    let bytes = bincode::serialize(&id).expect("serialize");
-    let deserialized: StateId = bincode::deserialize(&bytes).expect("deserialize");
+    let bytes = postcard::to_stdvec(&id).expect("serialize");
+    let deserialized: StateId = postcard::from_bytes(&bytes).expect("deserialize");
     assert_eq!(id, deserialized);
 }
 

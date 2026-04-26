@@ -7,7 +7,8 @@
 //! Run with: cargo bench --bench arena_vs_box_allocation
 
 use adze::arena_allocator::{TreeArena, TreeNode};
-use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use std::hint::black_box;
 
 /// Benchmark arena allocation for N nodes
 fn bench_arena_allocation(c: &mut Criterion) {
