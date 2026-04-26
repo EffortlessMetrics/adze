@@ -5,7 +5,7 @@
 #![allow(unreachable_pub)]
 #![allow(clippy::redundant_closure)]
 
-use std::ffi::CStr;
+use std::ffi::{CStr, c_char};
 
 use crate::pure_incremental::Tree as PureTree;
 use crate::pure_parser::{ParsedNode, Parser as PureParser, TSLanguage};
@@ -182,7 +182,7 @@ impl TreeCursor {
                 return None;
             }
 
-            unsafe { CStr::from_ptr(field_ptr as *const i8).to_str().ok() }
+            unsafe { CStr::from_ptr(field_ptr as *const c_char).to_str().ok() }
         })
     }
 }

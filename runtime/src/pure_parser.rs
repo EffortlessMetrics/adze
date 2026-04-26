@@ -21,7 +21,7 @@
 // Pure-Rust Tree-sitter compatible parser runtime
 // This implements the core parsing algorithm with GLR support
 
-use std::ffi::c_void;
+use std::ffi::{CStr, c_char, c_void};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
@@ -1616,7 +1616,7 @@ impl Parser {
                         if symbol < language.symbol_count as u16 {
                             let name_ptr = symbol_names[symbol as usize];
                             if !name_ptr.is_null() {
-                                let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
+                                let c_str = CStr::from_ptr(name_ptr as *const c_char);
                                 let _name = c_str.to_string_lossy();
                             }
                         }
@@ -1832,7 +1832,7 @@ impl ParsedNode {
                         language.symbol_count as usize,
                     );
                     let name_ptr = symbol_names[self.symbol as usize];
-                    let c_str = std::ffi::CStr::from_ptr(name_ptr as *const i8);
+                    let c_str = CStr::from_ptr(name_ptr as *const c_char);
                     c_str.to_str().unwrap_or("unknown")
                 } else {
                     "unknown"

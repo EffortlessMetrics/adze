@@ -1114,7 +1114,8 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                         {
                             // SAFETY: `*name_ptr` is a pointer to a null-terminated C string
                             // per TSLanguage contract.
-                            let name = unsafe { std::ffi::CStr::from_ptr(*name_ptr as *const i8) };
+                            let name =
+                                unsafe { std::ffi::CStr::from_ptr(*name_ptr as *const c_char) };
                             if let Ok(name_str) = name.to_str() {
                                 // Prefer symbols that don't look like internal helpers
                                 !name_str.contains("repeat") && !name_str.starts_with('_')

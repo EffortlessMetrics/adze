@@ -327,7 +327,7 @@ fn parse_with_pure_parser<T: Extract<T>>(
                         if (public_symbol as usize) < lang.symbol_count as usize {
                             let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
                             if !symbol_ptr.is_null() {
-                                std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
+                                std::ffi::CStr::from_ptr(symbol_ptr as *const c_char)
                                     .to_string_lossy()
                                     .to_string()
                             } else {
@@ -476,7 +476,7 @@ fn convert_parse_node_v4_to_pure(
 
         // SAFETY: `name_ptr` was just null-checked. It points to a static NUL-
         // terminated C string from the language tables.
-        let name = unsafe { std::ffi::CStr::from_ptr(name_ptr as *const i8).to_str() }.ok();
+        let name = unsafe { std::ffi::CStr::from_ptr(name_ptr as *const c_char).to_str() }.ok();
         matches!(name, Some("ERROR"))
     };
 
