@@ -544,6 +544,54 @@ fn runtime_scan_builds_valid_symbols_from_tokens() {
 }
 
 #[test]
+fn runtime_rejects_token_not_enabled_by_valid_symbols() {
+    struct InvalidEmitter;
+    impl ExternalScanner for InvalidEmitter {
+        fn scan(&mut self, _lexer: &mut dyn Lexer, _valid_symbols: &[bool]) -> Option<ScanResult> {
+            // Emit token index 1 even when only index 0 is valid.
+            Some(ScanResult {
+                symbol: 1,
+                length: 1,
+            })
+        }
+        fn serialize(&self, _buffer: &mut Vec<u8>) {}
+        fn deserialize(&mut self, _buffer: &[u8]) {}
+    }
+
+    let mut runtime = ExternalScannerRuntime::new(vec![10, 20]);
+    let mut scanner = InvalidEmitter;
+    let mut lexer = TestLexer::new(b"x");
+    let valid: HashSet<u16> = [10].into_iter().collect();
+
+    let result = runtime.scan(&mut scanner, &mut lexer, &valid);
+    assert_eq!(result, None);
+}
+
+#[test]
+fn runtime_rejects_symbol_id_not_enabled_by_valid_symbols() {
+    struct InvalidEmitter;
+    impl ExternalScanner for InvalidEmitter {
+        fn scan(&mut self, _lexer: &mut dyn Lexer, _valid_symbols: &[bool]) -> Option<ScanResult> {
+            // Emit symbol id 20 while only symbol id 10 is valid.
+            Some(ScanResult {
+                symbol: 20,
+                length: 1,
+            })
+        }
+        fn serialize(&self, _buffer: &mut Vec<u8>) {}
+        fn deserialize(&mut self, _buffer: &[u8]) {}
+    }
+
+    let mut runtime = ExternalScannerRuntime::new(vec![10, 20]);
+    let mut scanner = InvalidEmitter;
+    let mut lexer = TestLexer::new(b"x");
+    let valid: HashSet<u16> = [10].into_iter().collect();
+
+    let result = runtime.scan(&mut scanner, &mut lexer, &valid);
+    assert_eq!(result, None);
+}
+
+#[test]
 fn runtime_persists_state_across_scans() {
     struct CountingScanner {
         counter: u8,

@@ -1209,6 +1209,20 @@ impl Parser {
         self.external_scanner = Some(scanner);
 
         if let Some(result) = scan_result {
+            let emitted_symbol = SymbolId(result.symbol);
+            let valid_for_state = self
+                .grammar
+                .externals
+                .iter()
+                .position(|external| external.symbol_id == emitted_symbol)
+                .and_then(|idx| valid_symbols.get(idx))
+                .copied()
+                .unwrap_or(false);
+
+            if !valid_for_state {
+                return Ok(None);
+            }
+
             // Extract token text
             let end = self.position + result.length;
             let text = if end <= self.input.len() {
@@ -1218,7 +1232,7 @@ impl Parser {
             };
 
             Ok(Some(LexerToken {
-                symbol: SymbolId(result.symbol),
+                symbol: emitted_symbol,
                 text,
                 start: self.position,
                 end,
@@ -1818,6 +1832,86 @@ mod tests {
         assert_eq!(scanned.end, 2);
         // Text is empty because position advanced past input during scan
         assert!(scanned.text.is_empty());
+    }
+
+    #[test]
+    fn test_external_scanner_result_must_be_valid_for_state() {
+        #[derive(Default)]
+        struct InvalidScanner;
+
+        impl crate::external_scanner::ExternalScanner for InvalidScanner {
+            fn scan(
+                &mut self,
+                _lexer: &mut dyn crate::external_scanner::Lexer,
+                _valid_symbols: &[bool],
+            ) -> Option<crate::external_scanner::ScanResult> {
+                // Emit DEDENT, even though only NEWLINE is valid in state 0.
+                Some(crate::external_scanner::ScanResult {
+                    symbol: 2,
+                    length: 1,
+                })
+            }
+
+            fn serialize(&self, _buffer: &mut Vec<u8>) {}
+
+            fn deserialize(&mut self, _buffer: &[u8]) {}
+        }
+
+        let language_name = "test_external_scanner_result_must_be_valid_for_state".to_string();
+        ExternalScannerBuilder::new(language_name.clone()).register_rust::<InvalidScanner>();
+
+        let mut grammar = Grammar::new(language_name.clone());
+        grammar.externals.push(adze_ir::ExternalToken {
+            name: "NEWLINE".to_string(),
+            symbol_id: SymbolId(0),
+        });
+        grammar.externals.push(adze_ir::ExternalToken {
+            name: "INDENT".to_string(),
+            symbol_id: SymbolId(1),
+        });
+        grammar.externals.push(adze_ir::ExternalToken {
+            name: "DEDENT".to_string(),
+            symbol_id: SymbolId(2),
+        });
+
+        let parse_table = ParseTable {
+            action_table: vec![],
+            goto_table: vec![],
+            symbol_metadata: vec![],
+            state_count: 0,
+            symbol_count: 0,
+            symbol_to_index: std::collections::BTreeMap::new(),
+            index_to_symbol: vec![],
+            external_scanner_states: vec![vec![true, false, false]],
+            rules: vec![],
+            nonterminal_to_index: std::collections::BTreeMap::new(),
+            goto_indexing: adze_glr_core::GotoIndexing::NonterminalMap,
+            eof_symbol: SymbolId(0),
+            start_symbol: SymbolId(1),
+            grammar: Grammar::default(),
+            initial_state: StateId(0),
+            token_count: 0,
+            external_token_count: 0,
+            lex_modes: vec![],
+            extras: vec![],
+            dynamic_prec_by_rule: vec![],
+            rule_assoc_by_rule: vec![],
+            alias_sequences: vec![],
+            field_names: vec![],
+            field_map: std::collections::BTreeMap::new(),
+        };
+
+        let mut parser = Parser::new(grammar, parse_table, language_name);
+        parser.input = b"
+"
+        .to_vec();
+        parser.position = 0;
+
+        let scanned = parser
+            .try_external_scanner(StateId(0))
+            .expect("external scanner dispatch should run");
+
+        assert!(scanned.is_none());
     }
 
     #[test]
