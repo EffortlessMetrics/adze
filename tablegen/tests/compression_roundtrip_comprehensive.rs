@@ -6,7 +6,10 @@
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{RuleId, StateId};
-use adze_tablegen::compress::{CompressedGotoEntry, TableCompressor};
+use adze_tablegen::compress::{
+    CompressedActionTable, CompressedGotoEntry, CompressedGotoTable, CompressedTables,
+    TableCompressor,
+};
 use adze_tablegen::compression::{
     compress_action_table, compress_goto_table, decompress_action, decompress_goto,
 };
@@ -265,6 +268,76 @@ fn dedup_reduces_identical_rows() {
         "4 identical rows → 1 unique"
     );
     assert_eq!(compressed.state_to_row.len(), 4);
+}
+
+#[test]
+fn validate_rejects_action_symbol_out_of_bounds() {
+    let (pt, _) = pipeline(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    let bad = CompressedTables {
+        action_table: CompressedActionTable {
+            data: vec![adze_tablegen::compress::CompressedActionEntry {
+                symbol: u16::MAX,
+                action: Action::Accept,
+            }],
+            row_offsets: vec![0; pt.state_count + 1],
+            default_actions: vec![Action::Error; pt.state_count],
+        },
+        goto_table: CompressedGotoTable {
+            data: vec![],
+            row_offsets: vec![0; pt.state_count + 1],
+        },
+        small_table_threshold: 32768,
+    };
+
+    let err = bad
+        .validate(&pt)
+        .expect_err("out-of-bounds action symbol must be rejected");
+    assert!(err.to_string().contains("outside symbol_count"));
+}
+
+#[test]
+fn validate_rejects_goto_state_out_of_bounds() {
+    let (pt, _) = pipeline(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    let bad = CompressedTables {
+        action_table: CompressedActionTable {
+            data: vec![adze_tablegen::compress::CompressedActionEntry {
+                symbol: 0,
+                action: Action::Reduce(RuleId(u16::MAX)),
+            }],
+            row_offsets: vec![0; pt.state_count + 1],
+            default_actions: vec![Action::Error; pt.state_count],
+        },
+        goto_table: CompressedGotoTable {
+            data: vec![CompressedGotoEntry::Single(pt.state_count as u16)],
+            row_offsets: {
+                let mut offsets = vec![0; pt.state_count + 1];
+                if pt.state_count > 0 {
+                    offsets[pt.state_count] = 1;
+                }
+                offsets
+            },
+        },
+        small_table_threshold: 32768,
+    };
+
+    let err = bad
+        .validate(&pt)
+        .expect_err("out-of-bounds goto state must be rejected");
+    assert!(err.to_string().contains("outside state_count"));
 }
 
 #[test]
