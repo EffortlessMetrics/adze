@@ -21,6 +21,11 @@ use tree_sitter_runtime_c2rust::TreeCursor;
 #[cfg(feature = "serialization")]
 use serde_json::{Value, json};
 
+#[cfg(feature = "pure-rust")]
+fn to_usize_pos(value: u32) -> usize {
+    usize::try_from(value).unwrap_or(usize::MAX)
+}
+
 /// Serializable representation of a parse tree node
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedNode {
@@ -167,10 +172,13 @@ impl<'a> TreeSerializer<'a> {
             is_named: node.is_named,
             field_name: node.field_id.map(|id| format!("field_{}", id)), // Convert field_id to placeholder name
             start_position: (
-                node.start_point.row as usize,
-                node.start_point.column as usize,
+                to_usize_pos(node.start_point.row),
+                to_usize_pos(node.start_point.column),
             ),
-            end_position: (node.end_point.row as usize, node.end_point.column as usize),
+            end_position: (
+                to_usize_pos(node.end_point.row),
+                to_usize_pos(node.end_point.column),
+            ),
             start_byte: node.start_byte,
             end_byte: node.end_byte,
             text: None,
@@ -204,12 +212,28 @@ impl<'a> TreeSerializer<'a> {
 
     #[cfg(not(feature = "pure-rust"))]
     pub fn serialize_node(&self, node: Node) -> SerializedNode {
+        #[cfg(feature = "pure-rust")]
+        fn to_usize_coord(value: u32) -> usize {
+            usize::try_from(value).unwrap_or(usize::MAX)
+        }
+
+        #[cfg(not(feature = "pure-rust"))]
+        fn to_usize_coord(value: u32) -> usize {
+            usize::try_from(value).unwrap_or(usize::MAX)
+        }
+
         let mut serialized = SerializedNode {
             kind: node.kind().to_string(),
             is_named: node.is_named(),
             field_name: node.field_name().map(|s| s.to_string()),
-            start_position: (node.start_position().row, node.start_position().column),
-            end_position: (node.end_position().row, node.end_position().column),
+            start_position: (
+                to_usize_coord(node.start_position().row),
+                to_usize_coord(node.start_position().column),
+            ),
+            end_position: (
+                to_usize_coord(node.end_position().row),
+                to_usize_coord(node.end_position().column),
+            ),
             start_byte: node.start_byte(),
             end_byte: node.end_byte(),
             text: None,
