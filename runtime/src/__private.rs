@@ -460,6 +460,25 @@ fn convert_parse_node_v4_to_pure(
     lang: &crate::pure_parser::TSLanguage,
     source: &[u8],
 ) -> crate::pure_parser::ParsedNode {
+    let resolve_field_id = |field_name: &str| -> Option<u16> {
+        if lang.field_count == 0 || lang.field_names.is_null() {
+            return None;
+        }
+        // SAFETY: `field_names` points to a static array of `field_count` pointers.
+        let field_names =
+            unsafe { std::slice::from_raw_parts(lang.field_names, lang.field_count as usize) };
+        field_names.iter().enumerate().find_map(|(idx, name_ptr)| {
+            if name_ptr.is_null() {
+                return None;
+            }
+            // SAFETY: name_ptr is validated non-null and points to NUL-terminated static bytes.
+            let raw = unsafe { std::ffi::CStr::from_ptr(*name_ptr as *const i8) };
+            let Ok(name) = raw.to_str() else {
+                return None;
+            };
+            (name == field_name).then_some(idx as u16)
+        })
+    };
     let is_error_symbol = |symbol: u16| {
         if symbol as u32 >= lang.symbol_count || lang.symbol_names.is_null() {
             return false;
@@ -520,7 +539,7 @@ fn convert_parse_node_v4_to_pure(
         is_error: is_error_symbol(node.symbol.0) || is_empty_error_node,
         is_missing: false,
         is_named,
-        field_id: None, // TODO: Convert field_name to field_id using language field_names
+        field_id: node.field_name.as_deref().and_then(resolve_field_id),
         language: Some(lang as *const _),
     }
 }
@@ -853,5 +872,79 @@ mod tests {
         assert_eq!(byte_to_point(source, 4), Point { row: 1, column: 1 });
         assert_eq!(byte_to_point(source, 7), Point { row: 2, column: 0 });
         assert_eq!(byte_to_point(source, 99), Point { row: 2, column: 1 });
+    }
+
+    #[test]
+    #[cfg(feature = "glr")]
+    fn given_parse_node_with_known_field_name_when_converting_then_field_id_is_preserved() {
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 1,
+            field_name: Some("name".to_string()),
+            children: vec![],
+        };
+
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &FIELD_LANGUAGE, b"x");
+        assert_eq!(converted.field_id, Some(1));
+    }
+
+    #[test]
+    #[cfg(feature = "glr")]
+    fn given_nested_parse_nodes_with_field_names_when_converting_then_nested_field_ids_are_preserved()
+     {
+        let parse_node = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 2,
+            field_name: None,
+            children: vec![crate::parser_v4::ParseNode {
+                symbol: adze_ir::SymbolId(2),
+                symbol_id: adze_ir::SymbolId(2),
+                start_byte: 0,
+                end_byte: 2,
+                field_name: Some("value".to_string()),
+                children: vec![crate::parser_v4::ParseNode {
+                    symbol: adze_ir::SymbolId(3),
+                    symbol_id: adze_ir::SymbolId(3),
+                    start_byte: 0,
+                    end_byte: 1,
+                    field_name: Some("name".to_string()),
+                    children: vec![],
+                }],
+            }],
+        };
+
+        let converted = convert_parse_node_v4_to_pure(&parse_node, &FIELD_LANGUAGE, b"xy");
+        assert_eq!(converted.children[0].field_id, Some(0));
+        assert_eq!(converted.children[0].children[0].field_id, Some(1));
+    }
+
+    #[test]
+    #[cfg(feature = "glr")]
+    fn given_parse_node_with_missing_or_unknown_field_when_converting_then_field_id_is_none() {
+        let absent = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 1,
+            field_name: None,
+            children: vec![],
+        };
+        let unknown = crate::parser_v4::ParseNode {
+            symbol: adze_ir::SymbolId(1),
+            symbol_id: adze_ir::SymbolId(1),
+            start_byte: 0,
+            end_byte: 1,
+            field_name: Some("does_not_exist".to_string()),
+            children: vec![],
+        };
+
+        let converted_absent = convert_parse_node_v4_to_pure(&absent, &FIELD_LANGUAGE, b"x");
+        let converted_unknown = convert_parse_node_v4_to_pure(&unknown, &FIELD_LANGUAGE, b"x");
+        assert_eq!(converted_absent.field_id, None);
+        assert_eq!(converted_unknown.field_id, None);
     }
 }

@@ -1449,6 +1449,7 @@ impl Parser {
 
             // Reverse children to correct order
             children.reverse();
+            self.assign_field_ids_for_production(language, production_id, &mut children);
 
             // Handle empty reduction
             if children.is_empty() && child_count == 0 {
@@ -1559,6 +1560,57 @@ impl Parser {
                 // symbol >= language.token_count as u16
                 // );
                 false
+            }
+        }
+    }
+
+    fn assign_field_ids_for_production(
+        &self,
+        language: &TSLanguage,
+        production_id: u16,
+        children: &mut [Subtree],
+    ) {
+        if children.is_empty()
+            || language.field_count == 0
+            || language.field_map_slices.is_null()
+            || language.field_map_entries.is_null()
+        {
+            return;
+        }
+
+        let slices_len = language.production_id_count as usize * 2;
+        // SAFETY: `field_map_slices` is non-null and points to static language data.
+        let field_map_slices =
+            unsafe { std::slice::from_raw_parts(language.field_map_slices, slices_len) };
+        let slice_offset = production_id as usize * 2;
+        if slice_offset + 1 >= field_map_slices.len() {
+            return;
+        }
+
+        let slice_start = field_map_slices[slice_offset] as usize;
+        let slice_length = field_map_slices[slice_offset + 1] as usize;
+        if slice_length == 0 {
+            return;
+        }
+
+        let entries_len = (slice_start + slice_length) * 2;
+        // SAFETY: `field_map_entries` is non-null and points to static language data.
+        let field_map_entries =
+            unsafe { std::slice::from_raw_parts(language.field_map_entries, entries_len) };
+
+        for idx in 0..slice_length {
+            let entry_offset = (slice_start + idx) * 2;
+            if entry_offset + 1 >= field_map_entries.len() {
+                break;
+            }
+
+            let packed_entry = ((field_map_entries[entry_offset + 1] as u32) << 16)
+                | (field_map_entries[entry_offset] as u32);
+            let field_id = (packed_entry & 0xFFFF) as u16;
+            let child_index = ((packed_entry >> 16) & 0xFF) as usize;
+
+            if child_index < children.len() && field_id < language.field_count as u16 {
+                children[child_index].field_id = Some(field_id);
             }
         }
     }
@@ -2069,6 +2121,11 @@ fn create_ts_lexer(ext_lexer: &mut ExternalLexer) -> crate::lex::TsLexer {
 mod tests {
     use super::*;
 
+    fn pack_field_map_entry(field_id: u16, child_index: u8, inherited: u8) -> [u16; 2] {
+        let packed = (field_id as u32) | ((child_index as u32) << 16) | ((inherited as u32) << 24);
+        [packed as u16, (packed >> 16) as u16]
+    }
+
     #[test]
     fn test_parser_creation() {
         let parser = Parser::new();
@@ -2244,5 +2301,87 @@ mod tests {
         assert!(!unsafe { ExternalLexer::eof(&mut ts) });
         unsafe { ExternalLexer::advance(&mut ts, true) };
         assert!(unsafe { ExternalLexer::eof(&mut ts) });
+    }
+
+    #[test]
+    fn test_assign_field_ids_for_production_preserves_named_fields() {
+        let entry_first = pack_field_map_entry(1, 0, 0);
+        let entry_second = pack_field_map_entry(2, 1, 0);
+        let field_map_entries = [
+            entry_first[0],
+            entry_first[1],
+            entry_second[0],
+            entry_second[1],
+        ];
+        // production 0 -> empty; production 1 -> two entries from offset 0
+        let field_map_slices = [0u16, 0u16, 0u16, 2u16];
+        let language = TSLanguage {
+            version: TREE_SITTER_LANGUAGE_VERSION,
+            symbol_count: 2,
+            alias_count: 0,
+            token_count: 1,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 1,
+            production_id_count: 2,
+            field_count: 3,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: std::ptr::null(),
+            small_parse_table: std::ptr::null(),
+            small_parse_table_map: std::ptr::null(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: field_map_slices.as_ptr(),
+            field_map_entries: field_map_entries.as_ptr(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+            rules: std::ptr::null(),
+            rule_count: 0,
+        };
+        let mut children = vec![
+            Subtree {
+                symbol: 1,
+                children: vec![],
+                start_byte: 0,
+                end_byte: 1,
+                start_point: Point { row: 0, column: 0 },
+                end_point: Point { row: 0, column: 1 },
+                is_extra: false,
+                is_error: false,
+                is_missing: false,
+                production_id: 0,
+                field_id: None,
+            },
+            Subtree {
+                symbol: 1,
+                children: vec![],
+                start_byte: 1,
+                end_byte: 2,
+                start_point: Point { row: 0, column: 1 },
+                end_point: Point { row: 0, column: 2 },
+                is_extra: false,
+                is_error: false,
+                is_missing: false,
+                production_id: 0,
+                field_id: None,
+            },
+        ];
+
+        Parser::new().assign_field_ids_for_production(&language, 1, &mut children);
+        assert_eq!(children[0].field_id, Some(1));
+        assert_eq!(children[1].field_id, Some(2));
     }
 }
