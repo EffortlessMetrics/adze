@@ -93,8 +93,8 @@ fn grammar_serde_bincode_roundtrip() {
         .rule("s", vec!["x"])
         .start("s")
         .build();
-    let bytes = bincode::serialize(&g).unwrap();
-    let g2: adze_ir::Grammar = bincode::deserialize(&bytes).unwrap();
+    let bytes = postcard::to_stdvec(&g).unwrap();
+    let g2: adze_ir::Grammar = postcard::from_bytes(&bytes).unwrap();
     assert_eq!(g.name, g2.name);
 }
 
