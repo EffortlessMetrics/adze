@@ -53,10 +53,61 @@ pub struct CompressedTables {
 impl CompressedTables {
     /// Validate compressed tables against original parse table
     #[must_use = "validation result must be checked"]
-    pub fn validate(&self, _parse_table: &ParseTable) -> Result<()> {
-        // TODO: Implement validation logic
-        // For now, just return Ok to make tests compile
+    pub fn validate(&self, parse_table: &ParseTable) -> Result<()> {
+        let state_count = parse_table.state_count;
+        if self.action_table.row_offsets.len() != state_count + 1 {
+            return Err(TableGenError::InvalidTable(format!(
+                "Compressed action row_offsets length {} does not match state_count + 1 ({})",
+                self.action_table.row_offsets.len(),
+                state_count + 1
+            )));
+        }
+
+        let eof_index = *parse_table
+            .symbol_to_index
+            .get(&parse_table.eof_symbol)
+            .ok_or_else(|| {
+                TableGenError::InvalidTable(format!(
+                    "EOF symbol {} is not present in symbol_to_index",
+                    parse_table.eof_symbol.0
+                ))
+            })?;
+
+        let mut source_accepting_states = Vec::new();
+        for state in 0..state_count {
+            if parse_table.action_table[state]
+                .get(eof_index)
+                .is_some_and(|cell| cell.iter().any(|a| matches!(a, Action::Accept)))
+            {
+                source_accepting_states.push(state);
+            }
+        }
+
+        if source_accepting_states.is_empty() {
+            return Err(TableGenError::InvalidTable(
+                "Source parse table has no Accept action on EOF".to_string(),
+            ));
+        }
+
+        for state in source_accepting_states {
+            if !self.has_action(state, eof_index, &Action::Accept) {
+                return Err(TableGenError::InvalidTable(format!(
+                    "Accept on EOF lost during compression for state {} (EOF column {})",
+                    state, eof_index
+                )));
+            }
+        }
+
         Ok(())
+    }
+
+    fn has_action(&self, state: usize, symbol_index: usize, expected: &Action) -> bool {
+        let start = self.action_table.row_offsets[state] as usize;
+        let end = self.action_table.row_offsets[state + 1] as usize;
+
+        self.action_table.data[start..end]
+            .iter()
+            .any(|entry| entry.symbol as usize == symbol_index && entry.action == *expected)
     }
 }
 
@@ -640,26 +691,54 @@ mod tests {
     fn test_compressed_tables_validation() {
         let tables = CompressedTables {
             action_table: CompressedActionTable {
-                data: vec![],
-                row_offsets: vec![],
-                default_actions: vec![],
+                data: vec![CompressedActionEntry::new(1, Action::Accept)],
+                row_offsets: vec![0, 1],
+                default_actions: vec![Action::Error],
             },
             goto_table: CompressedGotoTable {
                 data: vec![],
-                row_offsets: vec![],
+                row_offsets: vec![0, 0],
             },
             small_table_threshold: 32768,
         };
 
         let parse_table = crate::test_helpers::test::make_minimal_table(
-            vec![vec![vec![]]], // 1 state, 1 symbol (minimum required)
+            vec![vec![vec![], vec![Action::Accept]]], // 1 state, 2 symbols; Accept on EOF
             vec![vec![crate::test_helpers::test::INVALID]], // 1 state, 1 symbol
-            vec![],             // 0 rules
-            SymbolId(1),        // start_symbol
-            SymbolId(1),        // eof_symbol (must be >= 1)
-            0,                  // external_token_count
+            vec![],                                   // 0 rules
+            SymbolId(1),                              // start_symbol
+            SymbolId(1),                              // eof_symbol (must be >= 1)
+            0,                                        // external_token_count
         );
         let result = tables.validate(&parse_table);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compressed_tables_validation_rejects_missing_eof_accept() {
+        let tables = CompressedTables {
+            action_table: CompressedActionTable {
+                data: vec![],
+                row_offsets: vec![0, 0],
+                default_actions: vec![Action::Error],
+            },
+            goto_table: CompressedGotoTable {
+                data: vec![],
+                row_offsets: vec![0, 0],
+            },
+            small_table_threshold: 32768,
+        };
+
+        let parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![], vec![Action::Accept]]], // 1 state, 2 symbols; Accept on EOF
+            vec![vec![crate::test_helpers::test::INVALID]], // 1 state, 1 symbol
+            vec![],                                   // 0 rules
+            SymbolId(1),                              // start_symbol
+            SymbolId(1),                              // eof_symbol (must be >= 1)
+            0,                                        // external_token_count
+        );
+
+        let result = tables.validate(&parse_table);
+        assert!(result.is_err());
     }
 }
