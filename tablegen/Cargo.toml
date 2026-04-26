@@ -62,3 +62,4 @@ serialization = [
     "adze-glr-core/serialization",
 ] # Enable serialization support (used by runtime2)
 small-table = [] # Test-only feature for compressed table round-trip tests
+incremental_glr = [] # Expose incremental_glr table metadata flag
