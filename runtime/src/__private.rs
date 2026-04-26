@@ -295,6 +295,38 @@ fn parse_with_pure_parser<T: Extract<T>>(
     input: &str,
     language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
+    fn symbol_name(
+        lang: &crate::pure_parser::TSLanguage,
+        symbol: crate::pure_parser::TSSymbol,
+    ) -> String {
+        if (symbol as usize) >= lang.symbol_count as usize {
+            return format!("symbol {} (out of bounds)", symbol);
+        }
+
+        // SAFETY: `symbol` is bounds-checked above and the language tables
+        // are static pointers owned by generated grammar definitions.
+        unsafe {
+            let public_symbol = if !lang.public_symbol_map.is_null() {
+                *lang.public_symbol_map.add(symbol as usize)
+            } else {
+                symbol
+            };
+
+            if (public_symbol as usize) < lang.symbol_count as usize {
+                let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
+                if !symbol_ptr.is_null() {
+                    std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
+                        .to_string_lossy()
+                        .to_string()
+                } else {
+                    format!("symbol {} (public {})", symbol, public_symbol)
+                }
+            } else {
+                format!("symbol {} (public {} out of bounds)", symbol, public_symbol)
+            }
+        }
+    }
+
     let mut parser = crate::pure_parser::Parser::new();
     let lang = language();
     parser.set_language(lang).map_err(|e| {
@@ -308,48 +340,45 @@ fn parse_with_pure_parser<T: Extract<T>>(
     let parse_result = parser.parse_string(input);
 
     if !parse_result.errors.is_empty() {
-        let errors = parse_result
-            .errors
-            .into_iter()
-            .map(|e| {
-                // Get symbol name from language if available
-                let symbol_name = if (e.found as usize) < lang.symbol_count as usize {
-                    // SAFETY: `e.found` is bounds-checked above against `symbol_count`.
-                    // `symbol_names` and `public_symbol_map` point to static language
-                    // tables that live for the entire parse.
-                    unsafe {
-                        let public_symbol = if !lang.public_symbol_map.is_null() {
-                            *lang.public_symbol_map.add(e.found as usize)
-                        } else {
-                            e.found
-                        };
+        let mut errors = Vec::new();
+        if let Some(root) = parse_result.root.as_ref()
+            && root.has_error()
+        {
+            crate::errors::collect_parsing_errors(root, input.as_bytes(), &mut errors);
+        }
 
-                        if (public_symbol as usize) < lang.symbol_count as usize {
-                            let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
-                            if !symbol_ptr.is_null() {
-                                std::ffi::CStr::from_ptr(symbol_ptr as *const i8)
-                                    .to_string_lossy()
-                                    .to_string()
-                            } else {
-                                format!("symbol {} (public {})", e.found, public_symbol)
-                            }
-                        } else {
-                            format!(
-                                "symbol {} (public {} out of bounds)",
-                                e.found, public_symbol
-                            )
-                        }
-                    }
-                } else {
-                    format!("symbol {} (out of bounds)", e.found)
-                };
-                crate::errors::ParseError {
-                    reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
-                    start: e.position,
-                    end: e.position,
-                }
-            })
-            .collect();
+        for e in parse_result.errors {
+            // Prefer harvested tree-anchored spans when available.
+            if !errors.is_empty() && errors.iter().any(|err| err.start == e.position) {
+                continue;
+            }
+            let expected = if e.expected.is_empty() {
+                None
+            } else {
+                Some(
+                    e.expected
+                        .into_iter()
+                        .map(|sym| symbol_name(lang, sym))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                )
+            };
+            let unexpected = symbol_name(lang, e.found);
+            let message = match expected {
+                Some(expected) => format!("{unexpected}; expected one of: {expected}"),
+                None => unexpected,
+            };
+            let end = if e.position < input.len() {
+                e.position + 1
+            } else {
+                e.position
+            };
+            errors.push(crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                start: e.position,
+                end,
+            });
+        }
         return Err(errors);
     }
 
