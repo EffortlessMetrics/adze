@@ -17,6 +17,19 @@ fn can_set_language() {
 }
 
 #[test]
+fn language_smoke_exposes_metadata_queries() {
+    let language = stub_language();
+
+    assert_eq!(language.symbol_count, 1);
+    assert_eq!(language.field_count, 0);
+
+    assert_eq!(language.symbol_name(0), Some("placeholder"));
+    assert_eq!(language.symbol_for_name("placeholder", true), Some(0));
+    assert!(language.is_terminal(0));
+    assert!(language.is_visible(0));
+}
+
+#[test]
 fn parse_requires_language() {
     let mut parser = Parser::new();
     let result = parser.parse_utf8("test input", None);
