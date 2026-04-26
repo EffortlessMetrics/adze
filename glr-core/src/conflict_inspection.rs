@@ -39,11 +39,14 @@
 //!
 //! ### What Counts as a Conflict?
 //!
-//! A conflict exists when an action cell contains **multiple actions** (`cell.len() > 1`).
+//! A conflict exists when an action cell can lead to **more than one valid parse action**
+//! for the same state/lookahead pair.
 //!
-//! - **Single action** (`cell.len() == 1`): Not a conflict, deterministic behavior
-//! - **Multiple actions** (`cell.len() > 1`): Conflict, GLR fork required
-//! - **Empty cell** (`cell.len() == 0`): Error state, not a conflict
+//! - **0 or 1 valid actions**: Not a conflict, deterministic behavior
+//! - **2+ valid actions**: Conflict, GLR branching required
+//! - **Empty cell** (`cell.len() == 0`): No action, not a conflict
+//!
+//! This treats `Action::Fork(_)` as an encoded set of alternatives rather than a single action.
 //!
 //! ### Conflict Classification
 //!
@@ -226,8 +229,8 @@ pub fn count_conflicts(table: &ParseTable) -> ConflictSummary {
                 continue;
             }
 
-            // Conflict exists if cell has multiple actions
-            if action_cell.len() > 1 {
+            // Conflict exists if this cell can take >1 valid parse actions.
+            if action_cell_has_conflict(action_cell) {
                 state_has_conflict = true;
 
                 // Get symbol info using index_to_symbol
@@ -324,7 +327,30 @@ pub fn state_has_conflicts(table: &ParseTable, state: StateId) -> bool {
     }
 
     let state_actions = &table.action_table[state.0 as usize];
-    state_actions.iter().any(|cell| cell.len() > 1)
+    state_actions
+        .iter()
+        .any(|cell| action_cell_has_conflict(cell))
+}
+
+/// Returns true when an action cell contains more than one valid parse action.
+///
+/// This unifies conflict detection for both representations:
+/// - multi-entry cells (e.g. `[Shift(..), Reduce(..)]`)
+/// - single-entry fork cells (e.g. `[Fork([Shift(..), Reduce(..)])]`)
+pub fn action_cell_has_conflict(cell: &[Action]) -> bool {
+    count_valid_parse_actions(cell) > 1
+}
+
+fn count_valid_parse_actions(cell: &[Action]) -> usize {
+    cell.iter().map(count_valid_actions_in_action).sum()
+}
+
+fn count_valid_actions_in_action(action: &Action) -> usize {
+    match action {
+        Action::Shift(_) | Action::Reduce(_) | Action::Accept => 1,
+        Action::Fork(inner) => count_valid_parse_actions(inner),
+        Action::Error | Action::Recover => 0,
+    }
 }
 
 /// Get all conflicts for a specific state
