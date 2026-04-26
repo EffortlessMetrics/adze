@@ -778,26 +778,37 @@ fn multiple_compressions_identical() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TEST 21: Compression handles boundary state IDs
+// TEST 21: Compression rejects state IDs that exceed encoded width
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn compression_handles_boundary_state_ids() {
+fn compression_rejects_state_ids_beyond_small_table_width() {
     let mut table = make_empty_table(5, 3, 1, 0);
 
-    // Use boundary state IDs
+    // Include an unencodable shift target (>= 0x8000)
     if let Some(row) = table.action_table.get_mut(0) {
         if let Some(cell) = row.get_mut(1) {
             cell.push(Action::Shift(StateId(0))); // Min state
         }
         if let Some(cell) = row.get_mut(2) {
-            cell.push(Action::Shift(StateId(u16::MAX - 1))); // Near max state
+            cell.push(Action::Shift(StateId(0x8000))); // Just beyond small-table width
         }
     }
 
     let compressor = TableCompressor::new();
     let result = compressor.compress(&table, &[1, 2, 3, 4], false);
-    assert!(result.is_ok(), "Should handle boundary state IDs");
+    assert!(
+        result.is_err(),
+        "Compression must reject unencodable state IDs"
+    );
+    let msg = match result {
+        Ok(_) => String::new(),
+        Err(err) => err.to_string(),
+    };
+    assert!(
+        msg.contains("cannot be encoded safely"),
+        "Error should be actionable, got: {msg}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
