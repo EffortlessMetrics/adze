@@ -2,12 +2,13 @@
 //!
 //! Measures performance of scenario lookup and progress reporting used in BDD framework.
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_bdd_grid_core::{
     BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
     bdd_progress_report,
 };
+use std::hint::black_box;
 
 fn bench_bdd_progress_core(c: &mut Criterion) {
     c.bench_function("bdd_progress_core_phase", |b| {

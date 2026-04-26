@@ -2,9 +2,10 @@
 //!
 //! Measures performance of backend selection used in parser.
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_parser_backend_core::ParserBackend;
+use std::hint::black_box;
 
 fn bench_backend_is_glr(c: &mut Criterion) {
     c.bench_function("backend_is_glr", |b| {

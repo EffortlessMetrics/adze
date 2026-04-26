@@ -1,7 +1,8 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_feature_policy_core::ParserFeatureProfile;
 use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use std::hint::black_box;
 
 fn sample_profile_snapshot() -> ParserFeatureProfileSnapshot {
     ParserFeatureProfileSnapshot::new(true, false, true, false)

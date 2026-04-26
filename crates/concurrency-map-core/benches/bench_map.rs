@@ -1,8 +1,9 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_concurrency_map_core::{
     ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency,
 };
+use std::hint::black_box;
 
 fn bench_normalized_concurrency(c: &mut Criterion) {
     c.bench_function("normalized_concurrency_zero", |b| {
