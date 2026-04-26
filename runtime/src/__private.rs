@@ -308,7 +308,7 @@ fn parse_with_pure_parser<T: Extract<T>>(
     let parse_result = parser.parse_string(input);
 
     if !parse_result.errors.is_empty() {
-        let errors = parse_result
+        let mut errors: Vec<crate::errors::ParseError> = parse_result
             .errors
             .into_iter()
             .map(|e| {
@@ -350,6 +350,10 @@ fn parse_with_pure_parser<T: Extract<T>>(
                 }
             })
             .collect();
+
+        if let Some(root_node) = parse_result.root.as_ref() {
+            crate::errors::collect_parsing_errors(root_node, input.as_bytes(), &mut errors);
+        }
         return Err(errors);
     }
 
@@ -365,6 +369,14 @@ fn parse_with_pure_parser<T: Extract<T>>(
             }]);
         }
     };
+
+    if root_node.has_error() {
+        let mut errors = vec![];
+        crate::errors::collect_parsing_errors(&root_node, input.as_bytes(), &mut errors);
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+    }
 
     // Check if the root node is source_file wrapper
     // In the augmented grammar, we have S' -> source_file -> actual_language_root
