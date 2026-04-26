@@ -1,6 +1,10 @@
 # How to Use GLR Incremental Parsing in adze
 
-> **⚠️ Status**: The incremental parsing path is currently **disabled** and falls back to fresh parsing for consistency. The infrastructure documented here exists but has known issues. See `glr_incremental.rs` for details.
+> **⚠️ Status**: Incremental GLR currently uses conservative heuristics: it may
+> splice reusable prefix/suffix forest nodes for safe edits, or explicitly
+> fall back to a full reparse when safety checks fail. Inspect
+> `IncrementalGLRParser::last_parse_status()` after each parse for the exact
+> outcome.
 
 This guide documents adze's GLR incremental parsing infrastructure (implemented September 2025) with fork-aware subtree reuse and conservative fallback strategies.
 

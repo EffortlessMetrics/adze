@@ -473,6 +473,10 @@ mod tests {
         reset_reuse_counter();
         let new_forest = p.parse_incremental(&old_toks, &[edit]).unwrap();
         assert!(!new_forest.alternatives.is_empty());
+        let status = p.last_parse_status();
+        assert_eq!(status.invalidated_ranges, vec![1..1]);
+        assert!(!status.full_reparse_fallback);
+        assert!(status.reused_node_count > 0);
     }
 
     // ─── Test 14: Replace first token ───────────────────────────────
@@ -695,6 +699,35 @@ mod tests {
         let f = p.parse_incremental(&new_toks, &[edit]).unwrap();
         assert!(!f.alternatives.is_empty());
         assert!(get_reuse_count() <= new_toks.len());
+        let status = p.last_parse_status();
+        assert!(!status.full_reparse_fallback);
+        assert!(status.reused_node_count > 0);
+        assert_eq!(status.invalidated_ranges, vec![start..end]);
+    }
+
+    #[test]
+    fn test_status_reports_explicit_fallback_when_old_forest_missing() {
+        let g = arith_grammar();
+        let mut p = make_parser(&g);
+        let new_toks = to_glr(&tokenize(&g, "1+2"));
+
+        let edit = GLREdit {
+            old_range: 0..0,
+            new_text: b"1+2".to_vec(),
+            old_token_range: 0..0,
+            new_tokens: new_toks.clone(),
+            old_tokens: vec![],
+            old_forest: None,
+        };
+
+        let forest = p.parse_incremental(&new_toks, &[edit]).unwrap();
+        assert!(!forest.alternatives.is_empty());
+
+        let status = p.last_parse_status();
+        assert!(status.full_reparse_fallback);
+        assert_eq!(status.reused_node_count, 0);
+        assert_eq!(status.invalidated_ranges, vec![0..0]);
+        assert_eq!(status.fallback_reason, Some("missing_old_forest"));
     }
 
     // ─── Test 23: Parse error on invalid input ──────────────────────
