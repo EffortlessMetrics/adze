@@ -129,12 +129,19 @@ impl<'a> TsLexerHost<'a> {
         host.end_mark = host.pos;
     }
 
-    extern "C" fn get_column(_payload: *mut c_void) -> u32 {
-        0 // TODO: Track column for proper error reporting
+    extern "C" fn get_column(payload: *mut c_void) -> u32 {
+        // SAFETY: see shared invariant above.
+        let host = unsafe { &mut *(payload as *mut Self) };
+        let pos = host.pos.min(host.input.len());
+        let line_start = host.input[..pos]
+            .iter()
+            .rposition(|&b| b == b'\n')
+            .map_or(0, |idx| idx + 1);
+        (pos - line_start) as u32
     }
 
     extern "C" fn is_included(_payload: *mut c_void) -> bool {
-        false // TODO: Support included ranges for injections
+        true
     }
 }
 
@@ -217,6 +224,35 @@ unsafe extern "C" {
 
 #[cfg(test)]
 mod tests {
+    use super::TsLexerHost;
+
+    fn host_for(input: &'static str, pos: usize) -> TsLexerHost<'static> {
+        TsLexerHost {
+            input: input.as_bytes(),
+            pos,
+            end_mark: pos,
+        }
+    }
+
+    #[test]
+    fn test_get_column_at_start_of_input_is_zero() {
+        let mut host = host_for("abc", 0);
+        let col = TsLexerHost::get_column(&mut host as *mut _ as *mut _);
+        assert_eq!(col, 0);
+    }
+
+    #[test]
+    fn test_get_column_after_newline_uses_line_relative_offset() {
+        let mut host = host_for("abc\ndef", 5);
+        let col = TsLexerHost::get_column(&mut host as *mut _ as *mut _);
+        assert_eq!(col, 1);
+    }
+
+    #[test]
+    fn test_is_included_defaults_to_true() {
+        let mut host = host_for("abc", 0);
+        assert!(TsLexerHost::is_included(&mut host as *mut _ as *mut _));
+    }
 
     #[test]
     #[ignore = "requires actual Tree-sitter library to be linked"]
