@@ -11,6 +11,8 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 - why
 - how it becomes supported (or why it won't)
 
+Support tiers and proof commands for major surfaces are tracked in [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
+
 ---
 
 ## ✅ Previously broken — now fixed
