@@ -232,4 +232,12 @@ mod tests {
         //     assert_eq!(token.unwrap().kind, 1); // { token
         // }
     }
+
+    #[test]
+    #[ignore = "GrammarLexer does not yet dispatch the Tree-sitter external scanner; valid_symbols is currently unused in this path"]
+    fn contract_valid_symbols_must_gate_external_scanner_emission() {
+        // Contract test placeholder:
+        // once external scanner dispatch is wired here, this should assert that
+        // tokens emitted while valid_symbols[token_index] == false are rejected.
+    }
 }

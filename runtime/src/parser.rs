@@ -439,6 +439,11 @@ impl Parser {
             }
 
             if success && lexer.result_symbol > 0 {
+                let result_idx = lexer.result_symbol as usize;
+                if !valid_symbols.get(result_idx).copied().unwrap_or(false) {
+                    return None;
+                }
+
                 // Map external symbol to actual symbol
                 let symbol = if !lang.external_scanner.symbol_map.is_null() {
                     *lang
