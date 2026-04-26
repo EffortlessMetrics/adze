@@ -108,8 +108,8 @@ mod tests {
         let lang = Box::leak(Box::new(lang));
         let decoder = adze::decoder::decode_parse_table(lang);
 
-        // Find EOF column
-        let eof_symbol = SymbolId(0); // EOF is typically 0
+        // Find EOF column from the decoded table's own metadata.
+        let eof_symbol = decoder.eof_symbol;
         let eof_col = decoder.symbol_to_index.get(&eof_symbol);
 
         if let Some(&col) = eof_col {

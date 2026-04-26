@@ -533,6 +533,14 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
     let primary_state_ids: Vec<u16> = (0..parse_table.state_count as u16).collect();
     let primary_state_ids = Box::leak(Box::new(primary_state_ids));
 
+    // Tree-sitter ABI expects `eof_symbol` to be a *column index* in parse-table space,
+    // not a raw SymbolId.
+    let eof_symbol_col = parse_table
+        .symbol_to_index
+        .get(&parse_table.eof_symbol)
+        .copied()
+        .unwrap_or(0) as u16;
+
     // If we have states, they should all be large states for simplicity
     // since we're not implementing compression
     TSLanguage {
@@ -567,7 +575,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         primary_state_ids: primary_state_ids.as_ptr(),
         production_lhs_index: production_lhs.as_ptr(),
         production_count: parse_table.rules.len() as u16,
-        eof_symbol: parse_table.eof_symbol.0,
+        eof_symbol: eof_symbol_col,
         rules: ts_rules.as_ptr(),
         rule_count: parse_table.rules.len() as u16,
     }
