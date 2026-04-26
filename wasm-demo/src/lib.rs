@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 // Called when the WASM module is instantiated
 #[wasm_bindgen(start)]
-pub fn main() {
+pub fn wasm_demo_start() {
     // Set panic hook for better error messages in browser console
     // console_error_panic_hook::set_once();
 
@@ -31,4 +31,17 @@ pub fn get_parser_stats() -> String {
     // This would need to be stored in a global or passed back differently
     // For now, just return a placeholder
     "Stats: To be implemented".to_string()
+}
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod wasm_smoke {
+    use super::*;
+
+    #[test]
+    fn test_wasm_parser_facing_smoke_compile() {
+        // Parser-facing smoke: ensure the exported entrypoint compiles for wasm32
+        // and reaches a real parse path from the demo surface.
+        let result = parse_arithmetic("1+2");
+        assert!(!result.is_empty());
+    }
 }
