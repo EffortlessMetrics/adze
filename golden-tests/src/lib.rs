@@ -333,6 +333,20 @@ mod tests {
         })
     }
 
+    /// Canary golden for a single-token Python program.
+    ///
+    /// This test is intentionally ignored until the Python pure-parser path is
+    /// fully wired for golden parity (tracking: GH-74).
+    #[test]
+    #[cfg(feature = "python-grammar")]
+    #[ignore = "Golden parse parity is blocked on lexer/tokenizer integration (tracking: GH-74)"]
+    fn python_canary_pass_golden() -> Result<()> {
+        run_golden_test(GoldenTest {
+            language: "python",
+            fixture_name: "canary_pass.py",
+        })
+    }
+
     // ===== JavaScript golden tests =====
 
     #[test]
@@ -464,6 +478,42 @@ mod tests {
         let sexp_path = test.expected_sexp_path();
         assert!(hash_path.ends_with("python/expected/unicode_identifiers.sha256"));
         assert!(sexp_path.ends_with("python/expected/unicode_identifiers.sexp"));
+    }
+
+    #[test]
+    fn python_canary_reference_files_are_consistent() {
+        let test = GoldenTest {
+            language: "python",
+            fixture_name: "canary_pass.py",
+        };
+
+        assert!(
+            test.fixture_path().exists(),
+            "Canary fixture missing: {}",
+            test.fixture_path().display()
+        );
+        assert!(
+            test.expected_sexp_path().exists(),
+            "Canary S-expression missing: {}",
+            test.expected_sexp_path().display()
+        );
+        assert!(
+            test.expected_hash_path().exists(),
+            "Canary hash missing: {}",
+            test.expected_hash_path().display()
+        );
+
+        let expected = fs::read_to_string(test.expected_sexp_path())
+            .expect("Canary S-expression should be readable");
+        let expected_hash =
+            fs::read_to_string(test.expected_hash_path()).expect("Canary hash should be readable");
+        let actual_hash = compute_hash(&expected);
+
+        assert_eq!(
+            actual_hash,
+            expected_hash.trim(),
+            "Canary S-expression hash must match stored digest"
+        );
     }
 
     #[test]

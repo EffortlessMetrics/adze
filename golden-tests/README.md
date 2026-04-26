@@ -113,3 +113,16 @@ fn python_my_new_test() -> Result<()> {
 - **Fast comparison**: SHA256 hashes avoid storing large S-expression files in git
 - **Easy debugging**: On failure, both expected and actual outputs are available
 - **Regression prevention**: CI catches any deviation from expected behavior
+
+## Canary fixture
+
+This repo now includes a tiny user-visible canary fixture:
+
+- Input fixture: `python/fixtures/canary_pass.py`
+- Expected output: `python/expected/canary_pass.sexp` + `python/expected/canary_pass.sha256`
+
+The runnable check in default `cargo test -p adze-golden-tests` validates that these
+reference artifacts are present and internally consistent (hash matches content).
+
+The parser-execution golden for this canary is compiled but ignored for now:
+`python_canary_pass_golden` in `src/lib.rs` (tracking parser parity gap: GH-74).
