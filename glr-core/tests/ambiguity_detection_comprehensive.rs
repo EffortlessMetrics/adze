@@ -7,8 +7,8 @@
 //! grammars remain conflict-free.
 
 use adze_glr_core::conflict_inspection::{
-    ConflictType, count_conflicts, find_conflicts_for_symbol, get_state_conflicts,
-    state_has_conflicts,
+    ConflictType, cell_has_conflict, count_conflicts, find_conflicts_for_symbol,
+    get_state_conflicts, state_has_conflicts,
 };
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
@@ -35,7 +35,7 @@ fn count_multi_action_cells(table: &adze_glr_core::ParseTable) -> usize {
     let mut count = 0;
     for state in 0..table.state_count {
         for sym in 0..table.action_table[state].len() {
-            if table.action_table[state][sym].len() > 1 {
+            if cell_has_conflict(&table.action_table[state][sym]) {
                 count += 1;
             }
         }
@@ -53,7 +53,7 @@ fn count_cells_with_shift_reduce(table: &adze_glr_core::ParseTable) -> usize {
     let mut count = 0;
     for state in &table.action_table {
         for cell in state {
-            if cell.len() > 1 {
+            if cell_has_conflict(cell) {
                 let has_shift = cell.iter().any(|a| matches!(a, Action::Shift(_)));
                 let has_reduce = cell.iter().any(|a| matches!(a, Action::Reduce(_)));
                 if has_shift && has_reduce {
@@ -409,7 +409,7 @@ fn test_get_state_conflicts_returns_details() {
     assert!(!conflicts.is_empty(), "Should return conflict details");
     for c in &conflicts {
         assert!(
-            c.actions.len() > 1,
+            cell_has_conflict(&c.actions),
             "Each conflict must have multiple actions"
         );
     }

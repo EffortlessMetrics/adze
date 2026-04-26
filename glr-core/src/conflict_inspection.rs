@@ -39,11 +39,12 @@
 //!
 //! ### What Counts as a Conflict?
 //!
-//! A conflict exists when an action cell contains **multiple actions** (`cell.len() > 1`).
+//! A conflict exists when an action cell can produce **more than one valid parse action**
+//! from the same state + lookahead.
 //!
-//! - **Single action** (`cell.len() == 1`): Not a conflict, deterministic behavior
-//! - **Multiple actions** (`cell.len() > 1`): Conflict, GLR fork required
-//! - **Empty cell** (`cell.len() == 0`): Error state, not a conflict
+//! - **Single effective action**: Not a conflict, deterministic behavior
+//! - **Multiple effective actions**: Conflict, GLR fork required
+//! - **Empty cell**: Error state, not a conflict
 //!
 //! ### Conflict Classification
 //!
@@ -65,8 +66,8 @@
 //!
 //! `Action::Fork(Vec<Action>)` is treated **recursively** during classification:
 //!
-//! - Fork actions themselves don't create conflicts (they represent pre-packaged GLR branches)
-//! - The *contents* of the fork are examined to determine conflict type
+//! - A single `Fork` may itself be conflicted when it contains multiple valid branches
+//! - The *contents* of the fork are flattened and deduplicated for conflict checks
 //! - Example: `Fork([Shift(5), Reduce(3)])` is classified as ShiftReduce
 //!
 //! This allows Fork actions to be properly analyzed even when nested.
@@ -149,6 +150,31 @@ pub enum ConflictType {
     Mixed,
 }
 
+/// Returns true when an action cell has more than one valid parse action.
+///
+/// This is the canonical conflict predicate for `adze-glr-core` and is used by
+/// summary/counting APIs. It treats a single `Action::Fork` with multiple inner
+/// actions as conflicted, because the parser can branch from the same
+/// state/lookahead position.
+pub fn cell_has_conflict(actions: &[Action]) -> bool {
+    let mut flattened = Vec::new();
+    collect_effective_actions(actions, &mut flattened);
+    flattened.len() > 1
+}
+
+fn collect_effective_actions(actions: &[Action], out: &mut Vec<Action>) {
+    for action in actions {
+        match action {
+            Action::Fork(inner) => collect_effective_actions(inner, out),
+            other => {
+                if !out.contains(other) {
+                    out.push(other.clone());
+                }
+            }
+        }
+    }
+}
+
 /// Inspect parse table and count conflicts
 ///
 /// This function scans the entire action table and identifies
@@ -226,8 +252,8 @@ pub fn count_conflicts(table: &ParseTable) -> ConflictSummary {
                 continue;
             }
 
-            // Conflict exists if cell has multiple actions
-            if action_cell.len() > 1 {
+            // Conflict exists if this state/lookahead can take multiple effective actions
+            if cell_has_conflict(action_cell) {
                 state_has_conflict = true;
 
                 // Get symbol info using index_to_symbol
@@ -324,7 +350,7 @@ pub fn state_has_conflicts(table: &ParseTable, state: StateId) -> bool {
     }
 
     let state_actions = &table.action_table[state.0 as usize];
-    state_actions.iter().any(|cell| cell.len() > 1)
+    state_actions.iter().any(|cell| cell_has_conflict(cell))
 }
 
 /// Get all conflicts for a specific state

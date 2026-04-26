@@ -20,7 +20,8 @@
 //!  15.  Multiple grammars with varying complexities (6)
 
 use adze_glr_core::{
-    Action, ActionCell, FirstFollowSets, ParseTable, RuleId, StateId, SymbolId, build_lr1_automaton,
+    Action, ActionCell, FirstFollowSets, ParseTable, RuleId, StateId, SymbolId,
+    build_lr1_automaton, conflict_inspection::cell_has_conflict,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{Associativity, Grammar};
@@ -110,9 +111,9 @@ fn expr_grammar() -> Grammar {
         .build()
 }
 
-/// Returns true if the ActionCell has more than one action (conflict).
+/// Returns true if the ActionCell has more than one effective parse action (conflict).
 fn has_conflict(cell: &ActionCell) -> bool {
-    cell.len() > 1
+    cell_has_conflict(cell)
 }
 
 /// Finds any Accept action across all states for a given symbol.
@@ -943,7 +944,7 @@ fn grammar_ambiguous_builds_with_conflicts() {
     let any_conflict = (0..pt.state_count).any(|s| {
         pt.symbol_to_index
             .keys()
-            .any(|&sym| pt.actions(StateId(s as u16), sym).len() > 1)
+            .any(|&sym| cell_has_conflict(pt.actions(StateId(s as u16), sym)))
     });
     // Either conflict or resolved—table should still build
     let _ = any_conflict;
