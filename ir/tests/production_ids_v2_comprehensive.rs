@@ -383,8 +383,8 @@ fn test_grammar_with_alias_data_serde_roundtrip() {
 #[test]
 fn test_production_id_bincode_roundtrip() {
     let id = ProductionId(255);
-    let encoded = bincode::serialize(&id).unwrap();
-    let decoded: ProductionId = bincode::deserialize(&encoded).unwrap();
+    let encoded = postcard::to_stdvec(&id).unwrap();
+    let decoded: ProductionId = postcard::from_bytes(&encoded).unwrap();
     assert_eq!(id, decoded);
 }
 

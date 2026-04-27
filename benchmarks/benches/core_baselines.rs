@@ -10,7 +10,8 @@ use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
 use adze_tablegen::compress::TableCompressor;
 use adze_tablegen::helpers;
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 /// Build a grammar with `n` binary-operator rules over a single expression nonterminal.
 /// This creates: expr -> expr OP_i expr  (for i in 0..n)  plus  expr -> NUMBER.

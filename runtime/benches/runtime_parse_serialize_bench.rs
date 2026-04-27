@@ -17,7 +17,8 @@ use adze::glr_tree_bridge::{GLRTree, subtree_to_tree};
 use adze::subtree::Subtree;
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 // ---------------------------------------------------------------------------
 // Grammar helpers

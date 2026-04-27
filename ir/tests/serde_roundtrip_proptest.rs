@@ -2,7 +2,7 @@
 
 //! Property-based serde roundtrip tests for all IR types.
 //!
-//! Each test serializes a value to both JSON and bincode, deserializes back,
+//! Each test serializes a value to both JSON and postcard, deserializes back,
 //! and asserts the result equals the original.
 
 use adze_ir::{
@@ -175,15 +175,15 @@ fn assert_json_roundtrip<T: serde::Serialize + serde::de::DeserializeOwned>(val:
     back
 }
 
-/// Roundtrip via bincode and assert equality.
+/// Roundtrip via postcard and assert equality.
 fn assert_bincode_roundtrip<
     T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + std::fmt::Debug,
 >(
     val: &T,
 ) -> T {
-    let bytes = bincode::serialize(val).expect("bincode serialize");
-    let back: T = bincode::deserialize(&bytes).expect("bincode deserialize");
-    assert_eq!(val, &back, "bincode roundtrip mismatch");
+    let bytes = postcard::to_stdvec(val).expect("postcard serialize");
+    let back: T = postcard::from_bytes(&bytes).expect("postcard deserialize");
+    assert_eq!(val, &back, "postcard roundtrip mismatch");
     back
 }
 
@@ -548,15 +548,15 @@ proptest! {
 
     // ---- Bincode determinism: same input produces same bytes ----
     #[test]
-    fn bincode_deterministic_symbol(sym in arb_symbol()) {
-        let bytes1 = bincode::serialize(&sym).unwrap();
-        let bytes2 = bincode::serialize(&sym).unwrap();
+    fn postcard_deterministic_symbol(sym in arb_symbol()) {
+        let bytes1 = postcard::to_stdvec(&sym).unwrap();
+        let bytes2 = postcard::to_stdvec(&sym).unwrap();
         prop_assert_eq!(bytes1, bytes2);
     }
 
     // ---- Bincode determinism for Grammar ----
     #[test]
-    fn bincode_deterministic_grammar(
+    fn postcard_deterministic_grammar(
         name in "[a-zA-Z][a-zA-Z0-9_]{0,10}",
         rules in prop::collection::vec(arb_rule(), 0..3),
     ) {
@@ -564,20 +564,20 @@ proptest! {
         for rule in rules {
             grammar.add_rule(rule);
         }
-        let bytes1 = bincode::serialize(&grammar).unwrap();
-        let bytes2 = bincode::serialize(&grammar).unwrap();
+        let bytes1 = postcard::to_stdvec(&grammar).unwrap();
+        let bytes2 = postcard::to_stdvec(&grammar).unwrap();
         prop_assert_eq!(bytes1, bytes2);
     }
 
-    // ---- Cross-format: JSON and bincode produce equal values ----
+    // ---- Cross-format: JSON and postcard produce equal values ----
     #[test]
     fn cross_format_rule(rule in arb_rule()) {
         let from_json: Rule = serde_json::from_str(
             &serde_json::to_string(&rule).unwrap()
         ).unwrap();
-        let from_bincode: Rule = bincode::deserialize(
-            &bincode::serialize(&rule).unwrap()
+        let from_postcard: Rule = postcard::from_bytes(
+            &postcard::to_stdvec(&rule).unwrap()
         ).unwrap();
-        prop_assert_eq!(&from_json, &from_bincode);
+        prop_assert_eq!(&from_json, &from_postcard);
     }
 }

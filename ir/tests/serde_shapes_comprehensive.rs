@@ -9,8 +9,8 @@ fn roundtrip_json(g: &Grammar) -> Grammar {
 }
 
 fn roundtrip_bincode(g: &Grammar) -> Grammar {
-    let bytes = bincode::serialize(g).unwrap();
-    bincode::deserialize(&bytes).unwrap()
+    let bytes = postcard::to_stdvec(g).unwrap();
+    postcard::from_bytes(&bytes).unwrap()
 }
 
 #[test]
@@ -25,7 +25,7 @@ fn json_simple() {
 }
 
 #[test]
-fn bincode_simple() {
+fn postcard_simple() {
     let g = GrammarBuilder::new("s2")
         .token("a", "a")
         .rule("s", vec!["a"])
@@ -49,7 +49,7 @@ fn json_two_alts() {
 }
 
 #[test]
-fn bincode_two_alts() {
+fn postcard_two_alts() {
     let g = GrammarBuilder::new("a3")
         .token("a", "a")
         .token("b", "b")
@@ -73,7 +73,7 @@ fn json_preserves_start() {
 }
 
 #[test]
-fn bincode_preserves_start() {
+fn postcard_preserves_start() {
     let g = GrammarBuilder::new("st2")
         .token("a", "a")
         .rule("s", vec!["a"])
@@ -114,7 +114,7 @@ fn json_large() {
 }
 
 #[test]
-fn bincode_large() {
+fn postcard_large() {
     let mut b = GrammarBuilder::new("big2");
     for i in 0..30 {
         let n = format!("t{}", i);

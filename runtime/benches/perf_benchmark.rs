@@ -4,7 +4,8 @@
 #![cfg(feature = "unstable-benches")]
 
 /*
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 use adze::lexer::GrammarLexer;
 use adze::parallel_parser::{ParallelConfig, ParallelParser};
 use adze::parser_v3::Parser;
@@ -14,7 +15,8 @@ use adze::simd_lexer::SimdLexer;
 use adze::lexer::GrammarLexer;
 use adze_glr_core::{Action, ParseTable};
 use adze_ir::{Grammar, Rule, SymbolId, TokenPattern};
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 use std::time::Duration;
 
 /// Create a test grammar for benchmarking
