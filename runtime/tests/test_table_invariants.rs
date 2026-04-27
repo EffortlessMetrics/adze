@@ -41,11 +41,6 @@ fn test_rule_count_preservation() {
         original_rule_count,
         "Rules lost during encode/decode"
     );
-
-    println!(
-        "✓ Rule count preserved through encode/decode: {}",
-        original_rule_count
-    );
 }
 
 #[test]
@@ -76,8 +71,6 @@ fn test_token_lhs_invariant() {
             );
         }
     }
-
-    println!("✓ Token/NT partition invariant preserved: no tokens as rule LHS");
 }
 
 #[test]
@@ -102,6 +95,7 @@ fn test_dense_column_mapping() {
     // Build, encode, decode
     let lang = support::language_builder::build_json_ts_language(&grammar, &parse_table);
     let lang = Box::leak(Box::new(lang));
+
     let decoded_table = decoder::decode_parse_table(lang);
 
     // Verify dense property is preserved after decode
@@ -113,8 +107,6 @@ fn test_dense_column_mapping() {
             .expect("Symbol not in symbol_to_index after decode");
         assert_eq!(mapped, i, "Non-dense mapping at column {} after decode", i);
     }
-
-    println!("✓ Dense column mapping preserved through encode/decode");
 }
 
 #[test]
@@ -142,8 +134,6 @@ fn test_no_sentinel_symbols() {
         !decoded_table.index_to_symbol.iter().any(|s| s.0 == 65535),
         "Augmented sentinel leaked into decoded index_to_symbol"
     );
-
-    println!("✓ No sentinel symbols in final tables");
 }
 
 #[test]
@@ -173,8 +163,6 @@ fn test_reduce_action_child_count() {
             }
         }
     }
-
-    println!("✓ Reduce actions have correct child counts");
 }
 
 #[test]
@@ -229,8 +217,6 @@ fn test_accept_action_existence() {
         has_accept_decoded,
         "Accept action lost during encode/decode"
     );
-
-    println!("✓ Accept action preserved through encode/decode");
 }
 
 #[test]
@@ -297,12 +283,6 @@ fn test_accept_goto_shape() {
     if decoded_start_col >= decoded_table.action_table[0].len() {
         // Start symbol column might be beyond the action table width
         // This can happen if the start symbol is a non-terminal
-        println!(
-            "Note: Start symbol column {} is beyond action table width {}",
-            decoded_start_col,
-            decoded_table.action_table[0].len()
-        );
-        println!("This is expected for grammars where the start symbol is purely internal");
         return;
     }
 
@@ -329,12 +309,7 @@ fn test_accept_goto_shape() {
             "Accept state shape not preserved after decode"
         );
     } else {
-        println!(
-            "Note: No shift on start symbol after decode - this may be expected for some grammars"
-        );
     }
-
-    println!("✓ Accept = GOTO(I0, start) shape preserved");
 }
 
 #[test]
@@ -362,16 +337,7 @@ fn test_eof_column_placement() {
     // This is a soft invariant - some grammars might place EOF elsewhere
     // But for standard grammars, EOF should be within the token band
     if eof_col >= tcols {
-        println!(
-            "Warning: EOF column {} is outside token band (tcols {})",
-            eof_col, tcols
-        );
-        println!("This is unusual but may be valid for some grammars");
     } else {
-        println!(
-            "✓ EOF column {} is within token band (< {})",
-            eof_col, tcols
-        );
     }
 }
 
@@ -419,8 +385,6 @@ fn test_no_sentinel_leakage() {
             }
         }
     }
-
-    println!("✓ No sentinel values (65535) leaked into tables");
 }
 
 #[test]
@@ -482,11 +446,6 @@ fn test_lhs_production_agreement() {
             r.rhs_len
         );
     }
-
-    println!(
-        "✓ LHS/production size agreement verified ({} rules)",
-        original_rule_count
-    );
 }
 
 #[test]
@@ -526,8 +485,6 @@ fn test_external_scanner_array_sizes() {
             decoded_table.index_to_symbol.len()
         );
     }
-
-    println!("✓ External scanner array sizes verified");
 }
 
 #[test]
@@ -559,10 +516,5 @@ fn test_normalization_performance_bound() {
         bound_ms,
         state_count,
         symbol_count
-    );
-
-    println!(
-        "✓ Normalization completed in {:?} (bound: {}ms)",
-        duration, bound_ms
     );
 }
