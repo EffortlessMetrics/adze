@@ -74,6 +74,8 @@ complete walkthrough.
 
 ## Features
 
+> Capability overview only. For authoritative support tiers, proof commands, and CI coverage, see [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
+
 | Feature | Status | Description |
 |---------|--------|-------------|
 | **Typed extraction** | ✅ Stable | Grammar *is* your AST — parse directly into your Rust types |
