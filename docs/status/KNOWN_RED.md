@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-04-26
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -63,6 +63,28 @@ These may run as optional signal (nightly/manual/canary), but are not required f
 - All other `.github/workflows/ci.yml` jobs are optional unless explicitly promoted in settings.
 
 ---
+
+
+## Advisory product proof lane (non-blocking)
+
+A broad-surface advisory lane now exists as `.github/workflows/product-proof.yml` and runs `scripts/ci-product.sh` on schedule/manual dispatch.
+
+This lane is **not** part of required merge gates. It provides bounded smoke proof across product surfaces that are outside `ci-supported`.
+
+Current canaries:
+
+- `adze` runtime pure-rust smoke — **compile-only** (`cargo check -p adze --features pure-rust`)
+- `adze-cli` smoke — **compile-only** (`cargo check -p adze-cli`)
+- `adze-golden-tests` smoke — **compile-only** (`cargo test -p adze-golden-tests --features python-grammar --no-run`)
+- `adze-benchmarks` canary — **compile-only** (`cargo bench -p adze-benchmarks --no-run`)
+- `wasm-demo` canary — **compile-only** (`cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown`)
+- grammar smoke (`adze-python`) — **compile-only** (`cargo check -p adze-python`)
+- `runtime2` canary — **compile-only** (`cargo test --manifest-path runtime2/Cargo.toml --no-run`)
+- governance/BDD microcrate smoke (`adze-bdd-grid-core`) — **compile-only** (`cargo test -p adze-bdd-grid-core --lib --no-run`)
+
+Notes:
+- This lane intentionally does not provide full behavior proof; it is bounded canary signal only.
+- If one canary is red, the advisory job can fail while remaining non-blocking due to workflow `continue-on-error: true`.
 
 ## Known warnings (non-blocking)
 
