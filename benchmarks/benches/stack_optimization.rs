@@ -92,12 +92,12 @@ fn benchmark_memory_pooling(c: &mut Criterion) {
     group.finish();
 }
 
-/// Benchmark fork/merge patterns with optimizations
+/// Synthetic fork/merge allocation patterns (no parser invocation)
 fn benchmark_fork_merge_patterns(c: &mut Criterion) {
-    let mut group = c.benchmark_group("fork_merge_patterns");
+    let mut group = c.benchmark_group("fork_merge_patterns_synthetic");
 
     // Simulate a parse that forks frequently
-    group.bench_function("frequent_fork_pattern", |b| {
+    group.bench_function("frequent_fork_pattern_synthetic", |b| {
         b.iter(|| {
             let stack = StackNode::with_state(0);
             let mut active_stacks = vec![stack];
@@ -131,7 +131,7 @@ fn benchmark_fork_merge_patterns(c: &mut Criterion) {
     });
 
     // Simulate a parse with deep recursion
-    group.bench_function("deep_recursion_pattern", |b| {
+    group.bench_function("deep_recursion_pattern_synthetic", |b| {
         b.iter(|| {
             let mut stack = StackNode::new();
 

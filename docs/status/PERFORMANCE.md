@@ -141,19 +141,41 @@ cargo bench -p adze-tablegen
 cargo bench -p adze-benchmarks
 ```
 
-**Benchmark suites across the workspace:**
+**Benchmark inventory (scope: `benchmarks/**`, `runtime/benches/**`, `glr-core/benches/**`, `tablegen/benches/**`)**
 
-| Crate | Benchmark | What It Measures |
-|---|---|---|
-| `adze-benchmarks` | `glr_performance.rs` | End-to-end GLR parsing of arithmetic fixtures |
-| `adze-benchmarks` | `glr_performance_real.rs` | Release-gated real parsing benchmarks |
-| `adze-glr-core` | `automaton.rs` | LR(1) automaton construction time |
-| `adze-glr-core` | `perf_snapshot.rs` | GLR core performance snapshots |
-| `adze-tablegen` | `compression.rs` | Parse table compression speed |
-| `runtime` | `glr_parser_bench.rs` | GLR parser with ambiguous grammars |
-| `runtime` | `parser_benchmark.rs` | General parser benchmarks |
-| `runtime` | `pure_rust_bench.rs` | Pure-Rust backend performance |
-| `runtime` | `incremental_benchmark.rs` | Incremental parsing overhead |
+> Classification key: real parser workload, tablegen workload, compression/decode workload,
+> GLR forest/fork workload, placeholder/mock, utility microbenchmark.
+
+| Crate | Benchmark file | Classification | What it actually measures |
+|---|---|---|---|
+| `adze-benchmarks` | `glr_performance.rs` | real parser workload | Parses valid arithmetic fixtures with `adze_example::arithmetic::grammar::parse`. |
+| `adze-benchmarks` | `glr_performance_real.rs` | real parser workload + utility microbenchmark | Real parsing on valid arithmetic fixtures; also includes fixture-loading and parse-result-check microbenches. |
+| `adze-benchmarks` | `glr_hot.rs` | real parser workload | Hot-path parse loops on medium/large arithmetic fixtures. |
+| `adze-benchmarks` | `incremental_bench.rs` | GLR forest/fork workload | Incremental GLR parse behavior under synthetic edit patterns; includes full-reparse comparison. |
+| `adze-benchmarks` | `core_baselines.rs` | tablegen workload + compression/decode workload + utility microbenchmark | IR normalization, FIRST/FOLLOW, LR(1) automaton construction, and table compression on synthetic grammars. |
+| `adze-benchmarks` | `arena_vs_box_allocation.rs` | utility microbenchmark | Allocator behavior for tree-node-like allocations (arena vs `Box`). |
+| `adze-benchmarks` | `optimization_bench.rs` | placeholder/mock | Synthetic stack/arena/allocation simulations; does **not** call parser APIs. |
+| `adze-benchmarks` | `stack_optimization.rs` | placeholder/mock | Synthetic fork/merge and pooling patterns; does **not** parse source text. |
+| `adze-benchmarks` | `parse_bench.rs` | placeholder/mock | Criterion harness smoke target only (`1 + 1`). |
+| `adze` runtime | `glr_parser_bench.rs` | GLR forest/fork workload | Real GLR parser/lexer loop over intentionally ambiguous arithmetic grammar. |
+| `adze` runtime | `runtime_parse_serialize_bench.rs` | real parser workload + utility microbenchmark | GLR parse + tree serialization/traversal/construction costs. |
+| `adze` runtime | `simple_bench.rs` | utility microbenchmark | Lexer throughput on synthetic token sets and source snippets. |
+| `adze` runtime | `parser_benchmark.rs` | real parser workload | Parses expressions through `tree_sitter::Parser` with generated grammar (`unstable-benches`). |
+| `adze` runtime | `parser_bench.rs` | utility microbenchmark | Lexer/parser component costs on synthetic token streams (`unstable-benches`). |
+| `adze` runtime | `perf_benchmark.rs` | utility microbenchmark | Lexer (standard vs SIMD) and parser wrappers on synthetic corpora (`unstable-benches`). |
+| `adze` runtime | `incremental_benchmark.rs` | GLR forest/fork workload | Incremental GLR parse/reparse comparisons with explicit edits (`unstable-benches`). |
+| `adze` runtime | `incremental_parsing.rs` | placeholder/mock | Legacy incremental benchmark with TODO-marked API gaps (`unstable-benches`). |
+| `adze` runtime | `incremental_simple.rs` | placeholder/mock | Legacy/simple incremental benchmark with TODO-marked API gaps (`unstable-benches`). |
+| `adze` runtime | `pure_rust_bench.rs` | placeholder/mock | Placeholder entrypoint that prints a disabled message. |
+| `adze-glr-core` | `automaton.rs` | tablegen workload | FIRST/FOLLOW + LR(1) automaton construction from grammar builders. |
+| `adze-glr-core` | `perf_snapshot.rs` | utility microbenchmark | Minimal-driver microbench (`EOF` token path), useful for regressions, not end-to-end parsing. |
+| `adze-tablegen` | `compression.rs` | compression/decode workload + tablegen workload | Parse-table generation + compression cost across grammar sizes/shapes. |
+
+### Gaps still missing from current benchmark coverage
+
+- No checked-in **real-language GLR corpus benchmark** (Python/JavaScript fixtures parsed by their production grammars).
+- No **table decode/runtime dispatch** benchmark isolated from compression.
+- No **long-running incremental edit trace** benchmark from recorded real editor sessions.
 
 ### Interpreting Results
 
