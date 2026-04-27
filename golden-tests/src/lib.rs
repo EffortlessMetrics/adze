@@ -181,8 +181,23 @@ mod tests {
         format!("{:x}", hasher.finalize())
     }
 
-    /// Run a golden test
+    /// Run a golden test.
+    ///
+    /// In legacy mode parse failures are treated as skips so this crate can run
+    /// even when a grammar is partially wired.
     fn run_golden_test(test: GoldenTest) -> Result<()> {
+        run_golden_test_internal(test, false)
+    }
+
+    /// Run a golden test and fail hard on parse errors.
+    ///
+    /// Use this mode for canary fixtures that must always produce a stable
+    /// user-visible output.
+    fn run_golden_test_strict(test: GoldenTest) -> Result<()> {
+        run_golden_test_internal(test, true)
+    }
+
+    fn run_golden_test_internal(test: GoldenTest, strict_parse: bool) -> Result<()> {
         // Read the source file
         let source = fs::read_to_string(test.fixture_path())
             .with_context(|| format!("Failed to read fixture: {}", test.fixture_name))?;
@@ -191,6 +206,9 @@ mod tests {
         let sexp = match parse_with_adze(test.language, &source) {
             Ok(s) => s,
             Err(e) => {
+                if strict_parse {
+                    anyhow::bail!("Parse failed for {}: {}", test.fixture_name, e);
+                }
                 eprintln!("Skipping {}: {}", test.fixture_name, e);
                 return Ok(());
             }
@@ -341,6 +359,15 @@ mod tests {
         run_golden_test(GoldenTest {
             language: "javascript",
             fixture_name: "simple_program.js",
+        })
+    }
+
+    #[test]
+    #[cfg(feature = "javascript-grammar")]
+    fn javascript_canary_expression_golden() -> Result<()> {
+        run_golden_test_strict(GoldenTest {
+            language: "javascript",
+            fixture_name: "canary_expression.js",
         })
     }
 
