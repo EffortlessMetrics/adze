@@ -153,6 +153,7 @@ fn init_grammar(name: &str, output: Option<PathBuf>) -> Result<()> {
     fs::create_dir_all(project_dir.join("examples"))?;
 
     // Create Cargo.toml
+    let dependency_block = scaffold_dependency_block(&project_dir)?;
     let cargo_toml = format!(
         r#"[package]
 name = "{}"
@@ -160,97 +161,65 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-adze = {{ version = "0.5.0-beta" }}
+{}
 
 [build-dependencies]
-adze-tool = {{ version = "0.5.0-beta" }}
+{}
 
 [dev-dependencies]
 insta = "1.40"
 "#,
-        name
+        name, dependency_block.0, dependency_block.1
     );
 
     fs::write(project_dir.join("Cargo.toml"), cargo_toml)?;
 
     // Create build.rs
-    let build_rs = r#"use adze_tool::build_parsers;
-use std::path::PathBuf;
-
-fn main() {
-    println!("cargo:rerun-if-changed=src/grammar.rs");
-    build_parsers(&PathBuf::from("src/grammar.rs"));
+    let build_rs = r#"fn main() {
+    println!("cargo:rerun-if-changed=src/lib.rs");
 }
 "#;
 
     fs::write(project_dir.join("build.rs"), build_rs)?;
 
     // Create example grammar
-    let grammar_rs = format!(
+    let lib_rs = format!(
         r#"//! {} grammar definition
 
-#[adze::grammar("{}")]
-mod grammar {{
-    /// Root node of the grammar
-    #[adze::language]
-    pub struct Program {{
-        #[adze::repeat]
-        pub statements: Vec<Statement>,
-    }}
-    
-    /// A statement in the language
-    #[adze::language]
-    pub struct Statement {{
-        pub expr: Expr,
-        #[adze::leaf(text = ";")]
-        _semicolon: (),
-    }}
-    
-    /// An expression
-    #[adze::language]
-    pub enum Expr {{
-        Number(Number),
-        Identifier(Identifier),
-    }}
-    
-    /// A numeric literal
-    #[adze::language]
-    pub struct Number {{
-        #[adze::leaf(pattern = r"\d+", transform = |s| s.parse().unwrap())]
-        pub value: i32,
-    }}
-    
-    /// An identifier
-    #[adze::language]
-    pub struct Identifier {{
-        #[adze::leaf(pattern = r"[a-zA-Z_]\w*")]
-        pub name: String,
+/// Returns the current parser scaffold status.
+///
+/// This starter project is buildable immediately. To add parsing:
+/// 1. define an `#[adze::grammar(...)]` module in `src/lib.rs`,
+/// 2. call `adze_tool::build_parsers(...)` from `build.rs`.
+pub fn parser_status() -> &'static str {{
+    "Parser generation is not configured yet."
+}}
+
+#[cfg(test)]
+mod tests {{
+    #[test]
+    fn test_scaffold_status_message_is_truthful() {{
+        assert!(crate::parser_status().contains("not configured"));
     }}
 }}
 "#,
-        name, name
+        name
     );
-
-    fs::write(project_dir.join("src/grammar.rs"), grammar_rs)?;
-
-    // Create lib.rs
-    let lib_rs = r#"pub mod grammar;
-
-pub use grammar::*;
-"#;
 
     fs::write(project_dir.join("src/lib.rs"), lib_rs)?;
 
-    // Create example test
-    let test_rs = r#"use insta::assert_snapshot;
+    // Create test that confirms the scaffold is truthful about next steps.
+    let crate_ident = sanitize_crate_identifier(name);
+    let test_rs = format!(
+        r#"use {} as generated;
 
 #[test]
-fn test_simple_program() {
-    let input = "42; foo;";
-    // TODO: Add parsing logic once grammar is built
-    assert_snapshot!(input);
-}
-"#;
+fn test_scaffold_status_message() {{
+    assert!(generated::parser_status().contains("not configured"));
+}}
+"#,
+        crate_ident
+    );
 
     fs::write(project_dir.join("tests/basic.rs"), test_rs)?;
 
@@ -262,18 +231,14 @@ A adze grammar for {}.
 
 ## Usage
 
-```rust
-// TODO: Add usage example
-```
+Build generated parser artifacts:
 
-## Development
-
-Build the grammar:
 ```bash
 cargo build
 ```
 
-Run tests:
+Run grammar checks and tests:
+
 ```bash
 cargo test
 ```
@@ -298,6 +263,81 @@ MIT
     println!("  cargo test");
 
     Ok(())
+}
+
+fn scaffold_dependency_block(project_dir: &Path) -> Result<(String, String)> {
+    if let Some((adze_path, tool_path)) = find_workspace_dependency_paths(project_dir) {
+        return Ok((
+            format!("adze = {{ path = \"{}\" }}", adze_path.display()),
+            format!("adze-tool = {{ path = \"{}\" }}", tool_path.display()),
+        ));
+    }
+
+    let version = env!("CARGO_PKG_VERSION");
+    Ok((
+        format!("adze = \"{version}\""),
+        format!("adze-tool = \"{version}\""),
+    ))
+}
+
+fn sanitize_crate_identifier(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    for ch in name.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '_' {
+            out.push(ch);
+        } else {
+            out.push('_');
+        }
+    }
+
+    if out.is_empty() || out.chars().next().is_some_and(|ch| ch.is_ascii_digit()) {
+        out.insert(0, '_');
+    }
+
+    out
+}
+
+fn find_workspace_dependency_paths(project_dir: &Path) -> Option<(PathBuf, PathBuf)> {
+    let current_dir = std::env::current_dir().ok()?;
+
+    for ancestor in current_dir.ancestors() {
+        let runtime = ancestor.join("runtime").join("Cargo.toml");
+        let tool = ancestor.join("tool").join("Cargo.toml");
+
+        if runtime.exists() && tool.exists() {
+            let runtime_rel = path_relative_to(&ancestor.join("runtime"), project_dir)?;
+            let tool_rel = path_relative_to(&ancestor.join("tool"), project_dir)?;
+            return Some((runtime_rel, tool_rel));
+        }
+    }
+
+    None
+}
+
+fn path_relative_to(target: &Path, from: &Path) -> Option<PathBuf> {
+    let target = target.canonicalize().ok()?;
+    let from = from.canonicalize().ok()?;
+
+    let target_components: Vec<_> = target.components().collect();
+    let from_components: Vec<_> = from.components().collect();
+
+    let common = target_components
+        .iter()
+        .zip(from_components.iter())
+        .take_while(|(a, b)| a == b)
+        .count();
+
+    let mut rel = PathBuf::new();
+
+    for _ in common..from_components.len() {
+        rel.push("..");
+    }
+
+    for component in target_components.iter().skip(common) {
+        rel.push(component.as_os_str());
+    }
+
+    Some(rel)
 }
 
 fn build_grammar(path: &Path) -> Result<()> {
@@ -377,20 +417,6 @@ fn parse_file(
     dynamic: bool,
     _symbol: &str,
 ) -> Result<()> {
-    if dynamic {
-        #[cfg(feature = "dynamic")]
-        {
-            return parse_file_dynamic(grammar, input, _format, _symbol);
-        }
-        #[cfg(not(feature = "dynamic"))]
-        {
-            eprintln!(
-                "{}\n",
-                "Error: Dynamic loading not enabled. Build with --features dynamic".red()
-            );
-            std::process::exit(2);
-        }
-    }
     println!("{} Parsing file: {}", "📄".blue(), input.display());
 
     let input_content = fs::read_to_string(input)?;
@@ -400,12 +426,23 @@ fn parse_file(
         input.display(),
         input_content.len()
     );
-    println!(
-        "{} Static parsing not yet implemented. Use `adze build` first, then parse in your Rust code.",
-        "⚠️ ".yellow()
-    );
 
-    Ok(())
+    if dynamic {
+        #[cfg(feature = "dynamic")]
+        {
+            return parse_file_dynamic(grammar, input, _format, _symbol);
+        }
+        #[cfg(not(feature = "dynamic"))]
+        {
+            anyhow::bail!(
+                "Dynamic parse mode is experimental and requires building adze-cli with --features dynamic"
+            );
+        }
+    }
+
+    anyhow::bail!(
+        "Static `adze parse` mode is not implemented yet. This command is experimental; use `adze check`/`adze build` and parse via generated Rust APIs for now"
+    )
 }
 
 #[cfg(feature = "dynamic")]
@@ -413,52 +450,12 @@ fn parse_file_dynamic(
     grammar: &Path,
     input: &Path,
     format: OutputFormat,
-    symbol: &str,
+    _symbol: &str,
 ) -> Result<()> {
-    use libloading::Library;
-
-    println!(
-        "{} Loading dynamic grammar: {}",
-        "🔧".blue(),
-        grammar.display()
-    );
-    let input_content = fs::read_to_string(input)?;
-
-    unsafe {
-        // Check if file exists
-        if !grammar.exists() {
-            anyhow::bail!("dynamic grammar not found: {}", grammar.display());
-        }
-
-        let lib = Library::new(grammar)?;
-        // Build symbol name with null terminator
-        let sym_name = {
-            let mut s = symbol.as_bytes().to_vec();
-            if !s.ends_with(b"\0") {
-                s.push(0);
-            }
-            s
-        };
-        let get_language: libloading::Symbol<unsafe extern "C" fn() -> *const u8> =
-            lib.get(&sym_name)?;
-        let _lang_ptr = get_language();
-
-        // TODO: Bridge to adze's pure parser using the language pointer
-        println!(
-            "{} Loaded language from: {}",
-            "✓".green(),
-            grammar.display()
-        );
-        println!("Input size: {} bytes", input_content.len());
-
-        // For now, just show we loaded it successfully
-        match format {
-            OutputFormat::Json => println!("{{\"status\": \"dynamic loading successful\"}}"),
-            _ => println!("Dynamic loading successful - parser integration pending"),
-        }
-    }
-
-    Ok(())
+    let _ = (grammar, input, format);
+    anyhow::bail!(
+        "Dynamic `adze parse --dynamic` is experimental and not implemented yet. Grammar loading exists, but parser execution is pending"
+    )
 }
 
 fn test_grammar(_path: &Path, update: bool) -> Result<()> {
