@@ -14,6 +14,8 @@
   - `#401` canonical for field metadata retention.
   - `#392` canonical for pure-Rust diagnostics.
 - Duplicate closure rule after canonical merge:
-  - `#423` is superseded by `#420 + #422` (now closed).
-  - `#388` and `#389` should be closed as superseded by `#390` once live property status for pt38/pt82 is verified green.
+  - `#423` is superseded by `#420 + #422`.
+  - `#388` and `#389` are superseded by `#390` and closed.
+  - `#404`, `#406`, `#411` are superseded by `#405` and closed.
+  - `#391`, `#393`, `#394` are superseded by `#392` and closed.
   - Closure note: `Closed as superseded by #<canonical>, which landed the canonical implementation/test for this family.`

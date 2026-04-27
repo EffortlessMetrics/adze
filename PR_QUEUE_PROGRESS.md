@@ -1,7 +1,7 @@
 # PR Queue Progress
 
 - Current ladder:
-  1. GLR conflict semantics follow-on (`#388/#389` against merged `#390`)
+  1. true GLR routing follow-up in runtime (`runtime`)
   2. typed AST contract family (`#412/#414/#415/#416`)
   3. product-proof CI (`#395`)
   4. Criterion / bincode cleanup (`#396/#397/#398/#413`)
@@ -12,5 +12,8 @@
   - `#401` merged.
   - `#392` merged.
   - `#423` superseded/closed.
-  - `#388` and `#389` remain open and should be closed once property failures are resolved.
-  - Next action: verify/fix `adze-glr-core` pt38/pt82 semantic status on current main and then close duplicate PRs.
+  - `#388` and `#389` superseded/closed.
+  - `#404`, `#406`, `#411` superseded/closed.
+  - `#391`, `#393`, `#394` superseded/closed.
+  - Parser-v4 canonical `#405` landed; e2e follow-up still has known ambiguity routing gaps.
+  - Runtime/GLR parser follow-up still blocked on ambiguity/`Parse` integration tests.
