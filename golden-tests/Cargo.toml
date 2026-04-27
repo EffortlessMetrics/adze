@@ -19,3 +19,6 @@ javascript-grammar = ["adze-javascript", "adze"]
 all-grammars = ["python-grammar", "javascript-grammar"]
 
 [dev-dependencies]
+adze-tool = { path = "../tool" }
+serde_json.workspace = true
+tempfile.workspace = true
