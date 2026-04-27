@@ -121,35 +121,19 @@ pub fn build_parsers(root_file: &Path) {
 
     if use_pure_rust {
         // Use pure-Rust builder exclusively
-        use pure_rust_builder::{BuildOptions, build_parser_for_crate};
-        let options = BuildOptions::default();
-        match build_parser_for_crate(root_file, options) {
-            Ok(results) => {
-                for result in results {
-                    println!("cargo:rerun-if-changed={}", result.parser_path);
-                    if std::env::var("RUST_LOG")
-                        .ok()
-                        .unwrap_or_default()
-                        .contains("debug")
-                    {
-                        println!("Built pure-Rust parser for {}", result.grammar_name);
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to build pure-Rust parser: {}", e);
-                // Print the full error chain
-                let mut source = e.source();
-                while let Some(err) = source {
-                    eprintln!("  Caused by: {}", err);
-                    source = err.source();
-                }
-                panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
-            }
-        }
+        run_pure_rust_builder(root_file, true);
         // Critical: don't fall through to C generation
         return;
     }
+
+    // Build pure-Rust parser modules opportunistically even on the C-codegen path.
+    //
+    // Why: downstream crates can enable `adze/pure-rust` without having a
+    // corresponding local Cargo feature. In that case `CARGO_FEATURE_PURE_RUST`
+    // is not set for the build script, but the proc-macro still expands to an
+    // `include!(.../parser_<grammar>.rs)` path. Generating the Rust parser here
+    // avoids that mismatch and keeps C codegen behavior unchanged.
+    run_pure_rust_builder(root_file, false);
 
     // If we get here, use C-based generation exclusively
     use std::env;
@@ -354,6 +338,39 @@ pub fn build_parsers(root_file: &Path) {
             .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
             .collect();
         c_config.compile(&lib_name);
+    }
+}
+
+fn run_pure_rust_builder(root_file: &Path, strict: bool) {
+    use pure_rust_builder::{BuildOptions, build_parser_for_crate};
+    let options = BuildOptions::default();
+    match build_parser_for_crate(root_file, options) {
+        Ok(results) => {
+            for result in results {
+                println!("cargo:rerun-if-changed={}", result.parser_path);
+                if std::env::var("RUST_LOG")
+                    .ok()
+                    .unwrap_or_default()
+                    .contains("debug")
+                {
+                    println!("Built pure-Rust parser for {}", result.grammar_name);
+                }
+            }
+        }
+        Err(e) if strict => {
+            eprintln!("Failed to build pure-Rust parser: {}", e);
+            let mut source = e.source();
+            while let Some(err) = source {
+                eprintln!("  Caused by: {}", err);
+                source = err.source();
+            }
+            panic!("FATAL: Pure-Rust parser generation failed: {:#}", e);
+        }
+        Err(e) => {
+            println!(
+                "cargo:warning=Failed to build optional pure-Rust parser modules: {e}"
+            );
+        }
     }
 }
 
