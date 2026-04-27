@@ -131,3 +131,49 @@ fn glr_grid_constant_has_items() {
     assert!(!GLR_CONFLICT_PRESERVATION_GRID.is_empty());
     assert_eq!(GLR_CONFLICT_PRESERVATION_GRID.len(), 8);
 }
+
+#[test]
+fn bdd_grid_validation_helpers_detect_invalid_rows() {
+    let scenarios = [
+        BddScenario {
+            id: 9,
+            title: "scenario a",
+            reference: "ref",
+            core_status: BddScenarioStatus::Implemented,
+            runtime_status: BddScenarioStatus::Implemented,
+        },
+        BddScenario {
+            id: 9,
+            title: "",
+            reference: "",
+            core_status: BddScenarioStatus::Deferred { reason: "" },
+            runtime_status: BddScenarioStatus::Deferred { reason: "later" },
+        },
+    ];
+
+    assert!(!bdd_grid_is_valid(&scenarios));
+    let issues = bdd_grid_validation_issues(&scenarios);
+    assert!(issues.contains(&BddGridValidationIssue::DuplicateScenarioId { id: 9 }));
+    assert!(issues.contains(&BddGridValidationIssue::EmptyTitle { id: 9 }));
+    assert!(issues.contains(&BddGridValidationIssue::EmptyReference { id: 9 }));
+    assert!(
+        issues.contains(&BddGridValidationIssue::DeferredWithoutReason {
+            id: 9,
+            phase: BddPhase::Core,
+        })
+    );
+}
+
+#[test]
+fn bdd_progress_report_warns_for_invalid_grid() {
+    let scenarios = [BddScenario {
+        id: 1,
+        title: "test",
+        reference: "ref",
+        core_status: BddScenarioStatus::Deferred { reason: "" },
+        runtime_status: BddScenarioStatus::Implemented,
+    }];
+
+    let report = bdd_progress_report(BddPhase::Core, &scenarios, "Core");
+    assert!(report.contains("Grid validation issues detected: 1"));
+}
