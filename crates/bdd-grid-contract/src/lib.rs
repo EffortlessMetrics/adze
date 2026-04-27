@@ -12,7 +12,8 @@
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 pub use adze_bdd_grid_core::{
-    BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
+    BddGridValidationIssue, BddPhase, BddScenario, BddScenarioStatus,
+    GLR_CONFLICT_PRESERVATION_GRID, bdd_grid_is_valid, bdd_grid_validation_issues, bdd_progress,
     bdd_progress_report,
 };
 
@@ -76,5 +77,12 @@ mod tests {
             let debug = format!("{:?}", scenario);
             assert!(!debug.is_empty());
         }
+    }
+
+    #[test]
+    fn canonical_grid_validation_succeeds() {
+        assert!(bdd_grid_is_valid(GLR_CONFLICT_PRESERVATION_GRID));
+        let issues = bdd_grid_validation_issues(GLR_CONFLICT_PRESERVATION_GRID);
+        assert!(issues.is_empty());
     }
 }
