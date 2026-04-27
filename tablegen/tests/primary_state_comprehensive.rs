@@ -446,13 +446,14 @@ fn count_unaffected_by_externals() {
 }
 
 #[test]
-fn lang_gen_primary_state_count_equals_symbol_count() {
-    // LanguageGenerator uses symbol_name_indices for primary state IDs
+fn lang_gen_primary_state_count_equals_state_count() {
     let (g, t) = build_grammar_and_table("lgcnt", 2, 1, 0, 3);
     let code = lang_gen_code(&g, &t);
     let count = count_primary_state_entries(&code);
-    // LanguageGenerator's PRIMARY_STATE_IDS is indexed by symbol names
-    assert!(count > 0, "should have primary state entries");
+    assert_eq!(
+        count, t.state_count,
+        "LanguageGenerator PRIMARY_STATE_IDS should have one entry per parse state"
+    );
 }
 
 // ===========================================================================
