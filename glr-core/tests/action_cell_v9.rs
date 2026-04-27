@@ -6,7 +6,7 @@
 
 use adze_glr_core::{
     Action, ActionCell, FirstFollowSets, GotoIndexing, LexMode, ParseRule, ParseTable, RuleId,
-    StateId, SymbolId, build_lr1_automaton,
+    StateId, SymbolId, build_lr1_automaton, conflict_inspection::action_cell_has_conflict,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
@@ -940,7 +940,7 @@ fn t72_sr_conflict_has_multi_action_cell() {
         .action_table
         .iter()
         .flat_map(|row| row.iter())
-        .any(|cell| cell.len() > 1);
+        .any(|cell| action_cell_has_conflict(cell));
     assert!(
         has_multi,
         "SR conflict grammar should produce multi-action cells"
@@ -955,7 +955,7 @@ fn t73_sr_conflict_multi_cell_has_shift_and_reduce() {
         .action_table
         .iter()
         .flat_map(|row| row.iter())
-        .find(|cell| cell.len() > 1);
+        .find(|cell| action_cell_has_conflict(cell));
     if let Some(cell) = multi_cell {
         let has_shift = cell.iter().any(|a| matches!(a, Action::Shift(_)));
         let has_reduce = cell.iter().any(|a| matches!(a, Action::Reduce(_)));
