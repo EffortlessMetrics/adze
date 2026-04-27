@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
 // Called when the WASM module is instantiated
-#[wasm_bindgen(start)]
+#[cfg_attr(not(test), wasm_bindgen(start))]
 pub fn main() {
     // Set panic hook for better error messages in browser console
     // console_error_panic_hook::set_once();
@@ -25,10 +25,29 @@ pub fn parse_arithmetic(source: &str) -> String {
     }
 }
 
+// Compile-time smoke for wasm32 builds: ensure the exported parser-facing entrypoint
+// has the expected signature and remains available.
+#[cfg(target_arch = "wasm32")]
+const _PARSE_ARITHMETIC_ENTRYPOINT: fn(&str) -> String = parse_arithmetic;
+
 /// Get GLR statistics from the last parse
 #[wasm_bindgen]
 pub fn get_parser_stats() -> String {
     // This would need to be stored in a global or passed back differently
     // For now, just return a placeholder
     "Stats: To be implemented".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_arithmetic;
+
+    #[test]
+    fn test_parse_arithmetic_smoke_success() {
+        let output = parse_arithmetic("1 + 2");
+        assert!(
+            output.contains("Parse successful!"),
+            "expected parser success output, got: {output}"
+        );
+    }
 }
