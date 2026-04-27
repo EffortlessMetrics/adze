@@ -79,6 +79,95 @@ pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
     },
 ];
 
+/// Validation issue found while auditing a BDD scenario grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BddGridIssue {
+    /// Scenario title was empty.
+    EmptyTitle {
+        /// Scenario id attached to the issue.
+        id: u8,
+    },
+    /// Scenario reference was empty.
+    EmptyReference {
+        /// Scenario id attached to the issue.
+        id: u8,
+    },
+    /// Deferred status has an empty reason string.
+    EmptyDeferredReason {
+        /// Scenario id attached to the issue.
+        id: u8,
+        /// Phase where the deferred reason was missing.
+        phase: BddPhase,
+    },
+    /// Scenario ids must be unique.
+    DuplicateId {
+        /// Duplicated scenario id.
+        id: u8,
+    },
+    /// Scenario ids should be monotonically increasing for stable reporting.
+    NonMonotonicIdOrder {
+        /// Previous id in traversal order.
+        previous_id: u8,
+        /// Current id in traversal order.
+        current_id: u8,
+    },
+}
+
+/// Audit a scenario slice for data-integrity issues.
+///
+/// This helper is useful when "locking" BDD grids in tests so accidental
+/// regressions (duplicate IDs, empty metadata, malformed deferred reasons)
+/// are caught early.
+pub fn bdd_grid_issues(scenarios: &[BddScenario]) -> Vec<BddGridIssue> {
+    let mut issues = Vec::new();
+    let mut seen_ids = [false; u8::MAX as usize + 1];
+    let mut previous_id = None;
+
+    for scenario in scenarios {
+        if scenario.title.trim().is_empty() {
+            issues.push(BddGridIssue::EmptyTitle { id: scenario.id });
+        }
+        if scenario.reference.trim().is_empty() {
+            issues.push(BddGridIssue::EmptyReference { id: scenario.id });
+        }
+        if let BddScenarioStatus::Deferred { reason } = scenario.core_status
+            && reason.trim().is_empty()
+        {
+            issues.push(BddGridIssue::EmptyDeferredReason {
+                id: scenario.id,
+                phase: BddPhase::Core,
+            });
+        }
+        if let BddScenarioStatus::Deferred { reason } = scenario.runtime_status
+            && reason.trim().is_empty()
+        {
+            issues.push(BddGridIssue::EmptyDeferredReason {
+                id: scenario.id,
+                phase: BddPhase::Runtime,
+            });
+        }
+
+        let index = scenario.id as usize;
+        if seen_ids[index] {
+            issues.push(BddGridIssue::DuplicateId { id: scenario.id });
+        } else {
+            seen_ids[index] = true;
+        }
+
+        if let Some(prev) = previous_id
+            && scenario.id <= prev
+        {
+            issues.push(BddGridIssue::NonMonotonicIdOrder {
+                previous_id: prev,
+                current_id: scenario.id,
+            });
+        }
+        previous_id = Some(scenario.id);
+    }
+
+    issues
+}
+
 /// Aggregate progress for a phase.
 ///
 /// # Examples
@@ -189,5 +278,47 @@ mod tests {
             bdd_progress_report(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, "Runtime");
         assert!(report.contains("Runtime"));
         assert!(report.contains("Scenario 1"));
+    }
+
+    #[test]
+    fn canonical_grid_has_no_integrity_issues() {
+        assert!(bdd_grid_issues(GLR_CONFLICT_PRESERVATION_GRID).is_empty());
+    }
+
+    #[test]
+    fn integrity_audit_reports_duplicate_ids_and_missing_metadata() {
+        let scenarios = [
+            BddScenario {
+                id: 1,
+                title: "",
+                reference: "ref",
+                core_status: BddScenarioStatus::Deferred { reason: "" },
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 1,
+                title: "ok",
+                reference: "",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Deferred { reason: "   " },
+            },
+        ];
+
+        let issues = bdd_grid_issues(&scenarios);
+        assert!(issues.contains(&BddGridIssue::EmptyTitle { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::EmptyReference { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::EmptyDeferredReason {
+            id: 1,
+            phase: BddPhase::Core
+        }));
+        assert!(issues.contains(&BddGridIssue::EmptyDeferredReason {
+            id: 1,
+            phase: BddPhase::Runtime
+        }));
+        assert!(issues.contains(&BddGridIssue::DuplicateId { id: 1 }));
+        assert!(issues.contains(&BddGridIssue::NonMonotonicIdOrder {
+            previous_id: 1,
+            current_id: 1
+        }));
     }
 }
