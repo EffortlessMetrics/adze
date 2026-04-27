@@ -10,9 +10,27 @@ pub mod grammar {
     }
 }
 
+#[adze::grammar("typed_ast")]
+pub mod typed_ast {
+    #[derive(Debug, PartialEq, Eq)]
+    #[adze::language]
+    pub enum Expr {
+        Number(#[adze::leaf(pattern = r"\d+", transform = |s| s.parse::<i32>().unwrap())] i32),
+
+        #[adze::prec_left(1)]
+        Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+    }
+
+    #[adze::extra]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s")]
+        _whitespace: (),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::grammar;
+    use crate::{grammar, typed_ast};
 
     #[test]
     fn test_number() {
@@ -61,5 +79,24 @@ mod tests {
         assert!(result.is_ok());
         let program: grammar::Program = result.unwrap();
         assert_eq!(program.number, "42");
+    }
+
+    #[test]
+    #[ignore = "blocked: Extract called with None node for enum when parsing recursive Expr in generated typed extraction"]
+    fn typed_ast_left_associative_addition_contract() {
+        let expr = typed_ast::parse("1 + 2 + 3").expect("typed AST parse should succeed");
+
+        assert_eq!(
+            expr,
+            typed_ast::Expr::Add(
+                Box::new(typed_ast::Expr::Add(
+                    Box::new(typed_ast::Expr::Number(1)),
+                    (),
+                    Box::new(typed_ast::Expr::Number(2)),
+                )),
+                (),
+                Box::new(typed_ast::Expr::Number(3)),
+            )
+        );
     }
 }
