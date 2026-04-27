@@ -12,8 +12,8 @@
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 pub use adze_bdd_grid_core::{
-    BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
-    bdd_progress_report,
+    BddGridIssue, BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID,
+    bdd_grid_issues, bdd_progress, bdd_progress_report,
 };
 
 #[cfg(test)]
@@ -76,5 +76,10 @@ mod tests {
             let debug = format!("{:?}", scenario);
             assert!(!debug.is_empty());
         }
+    }
+
+    #[test]
+    fn grid_issues_is_empty_for_canonical_grid() {
+        assert!(bdd_grid_issues(GLR_CONFLICT_PRESERVATION_GRID).is_empty());
     }
 }
