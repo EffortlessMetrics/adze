@@ -308,7 +308,6 @@ fn test_accept_goto_shape() {
                 .any(|a| matches!(a, Action::Accept)),
             "Accept state shape not preserved after decode"
         );
-    } else {
     }
 }
 
@@ -332,13 +331,7 @@ fn test_eof_column_placement() {
         .symbol_to_index
         .get(&eof)
         .expect("EOF col missing");
-    let tcols = (decoded_table.token_count + decoded_table.external_token_count) as usize;
-
-    // This is a soft invariant - some grammars might place EOF elsewhere
-    // But for standard grammars, EOF should be within the token band
-    if eof_col >= tcols {
-    } else {
-    }
+    let _ = eof_col;
 }
 
 #[test]

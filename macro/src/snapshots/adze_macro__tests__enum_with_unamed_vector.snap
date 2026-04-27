@@ -43,11 +43,16 @@ mod grammar {
         ) -> Self {
             let node = node.expect("Extract called with None node for enum");
             fn unwrap_hidden_rules(node: ::adze::tree_sitter::Node) -> ::adze::tree_sitter::Node {
-                if (node.kind().starts_with('_') || node.child_count() == 1)
-                    && node.child_count() > 0
+                let mut cursor = node.walk();
+                let non_extra_children: Vec<_> = node
+                    .children(&mut cursor)
+                    .filter(|c| !c.is_extra())
+                    .collect();
+                if (node.kind().starts_with('_') || non_extra_children.len() == 1)
+                    && !non_extra_children.is_empty()
                 {
-                    if let Some(child) = node.child(0) {
-                        return unwrap_hidden_rules(child);
+                    if let Some(child) = non_extra_children.first() {
+                        return unwrap_hidden_rules(*child);
                     }
                 }
                 node
