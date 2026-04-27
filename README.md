@@ -74,14 +74,16 @@ complete walkthrough.
 
 ## Features
 
-| Feature | Status | Description |
+Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
+
+| Feature | Tier | Description |
 |---------|--------|-------------|
 | **Typed extraction** | ✅ Stable | Grammar *is* your AST — parse directly into your Rust types |
 | **Pure Rust** | ✅ Stable | Default backend is 100% Rust; no C toolchain needed |
 | **GLR parsing** | ✅ Stable | Handles ambiguous grammars (C++, JavaScript, etc.) |
 | **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for disambiguation |
-| **WASM support** | ✅ Stable | Compile parsers to WebAssembly with `features = ["wasm"]` |
-| **Tree-sitter interop** | ✅ Stable | Import existing Tree-sitter grammars via `ts-bridge` |
+| **WASM support** | 📎 Advisory | Compile parsers to WebAssembly with `features = ["wasm"]` |
+| **Tree-sitter interop** | 📎 Advisory | Import existing Tree-sitter grammars via `ts-bridge` |
 | **Serialization** | ✅ Stable | JSON and S-expression output with `features = ["serialization"]` |
 | **External scanners** | 🧪 Experimental | Custom tokenization via `ExternalScanner` trait |
 | **Incremental parsing** | 🧪 Experimental | Re-parse only edited regions (falls back to fresh parse) |
