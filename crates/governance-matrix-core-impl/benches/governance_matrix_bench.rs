@@ -2,13 +2,14 @@
 //!
 //! Measures performance of matrix operations used in governance.
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_governance_matrix_core_impl::{
     BddGovernanceMatrix, BddPhase, GLR_CONFLICT_PRESERVATION_GRID, ParserFeatureProfile,
     bdd_governance_snapshot, bdd_progress_report, bdd_progress_report_with_profile,
     bdd_progress_status_line, describe_backend_for_conflicts,
 };
+use std::hint::black_box;
 
 fn bench_bdd_governance_snapshot(c: &mut Criterion) {
     c.bench_function("bdd_governance_snapshot", |b| {

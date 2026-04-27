@@ -4,12 +4,13 @@
 
 use std::collections::BTreeMap;
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_glr_core::{
     Action, GotoIndexing, Grammar, LexMode, ParseTable, RuleId, StateId, SymbolId, SymbolMetadata,
 };
 use adze_ts_format_core::{choose_action, choose_action_with_precedence};
+use std::hint::black_box;
 
 /// Create a symbol metadata instance for testing.
 fn make_symbol_metadata(id: u16) -> SymbolMetadata {

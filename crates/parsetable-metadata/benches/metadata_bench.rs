@@ -1,8 +1,9 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_parsetable_metadata::{
     FeatureFlags, GenerationInfo, GrammarInfo, ParsetableMetadata, TableStatistics,
 };
+use std::hint::black_box;
 
 fn sample_metadata() -> ParsetableMetadata {
     ParsetableMetadata {

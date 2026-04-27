@@ -1,6 +1,7 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_stack_pool_core::StackPool;
+use std::hint::black_box;
 
 fn bench_sequential_push_pop(c: &mut Criterion) {
     c.bench_function("acquire_release_cycle_100", |b| {

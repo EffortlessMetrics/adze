@@ -1,8 +1,9 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use adze_concurrency_caps_core::{
     ConcurrencyCaps, normalized_concurrency, parse_positive_usize_or_default,
 };
+use std::hint::black_box;
 
 fn bench_caps_from_lookup(c: &mut Criterion) {
     c.bench_function("caps_from_lookup_defaults", |b| {

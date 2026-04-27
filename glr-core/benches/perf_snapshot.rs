@@ -1,4 +1,4 @@
-use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use std::time::Duration;
 
 use adze_glr_core::Driver;
@@ -6,6 +6,7 @@ use adze_glr_core::Driver;
 use adze_glr_core::perf;
 use adze_ir::SymbolId;
 use glr_test_support::test_utilities::make_minimal_table;
+use std::hint::black_box;
 
 pub fn bench_parse_small(c: &mut Criterion) {
     let mut g = c.benchmark_group("glr-perf-snapshot");
