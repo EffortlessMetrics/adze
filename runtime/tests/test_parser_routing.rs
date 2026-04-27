@@ -44,6 +44,89 @@ mod parser_routing_tests {
         // This will be implemented in Step 3.
     }
 
+    /// Test: Conflicted table in parser_v4 does not silently use first-success fallback
+    #[test]
+    #[cfg(feature = "glr")]
+    fn test_conflicted_table_requires_true_glr_runtime() {
+        use adze::parser_v4::Parser;
+        use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
+        use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, Token, TokenPattern};
+
+        // Ambiguous grammar:
+        //   E -> E E | "a"
+        //   source_file -> E
+        let mut grammar = Grammar::new("ambiguous_concat".to_string());
+        let a = SymbolId(1);
+        let e = SymbolId(10);
+        let source_file = SymbolId(11);
+
+        grammar.tokens.insert(
+            a,
+            Token {
+                name: "A".to_string(),
+                pattern: TokenPattern::String("a".to_string()),
+                fragile: false,
+            },
+        );
+
+        grammar.rules.insert(
+            e,
+            vec![
+                Rule {
+                    lhs: e,
+                    rhs: vec![Symbol::NonTerminal(e), Symbol::NonTerminal(e)],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(0),
+                },
+                Rule {
+                    lhs: e,
+                    rhs: vec![Symbol::Terminal(a)],
+                    precedence: None,
+                    associativity: None,
+                    fields: vec![],
+                    production_id: ProductionId(1),
+                },
+            ],
+        );
+        grammar.rules.insert(
+            source_file,
+            vec![Rule {
+                lhs: source_file,
+                rhs: vec![Symbol::NonTerminal(e)],
+                precedence: None,
+                associativity: None,
+                fields: vec![],
+                production_id: ProductionId(2),
+            }],
+        );
+
+        let first_follow = FirstFollowSets::compute(&grammar).expect("first/follow");
+        let parse_table = build_lr1_automaton(&grammar, &first_follow).expect("parse table");
+        let conflict_cells = parse_table
+            .action_table
+            .iter()
+            .flatten()
+            .filter(|cell| cell.len() > 1)
+            .count();
+        assert!(
+            conflict_cells > 0,
+            "test fixture must contain parse conflicts"
+        );
+
+        let mut parser = Parser::new(grammar, parse_table, "ambiguous_concat".to_string());
+        let err = parser
+            .parse_tree_with_error_count("aaa")
+            .expect_err("conflicted table should not silently choose first fork branch");
+
+        let message = err.to_string();
+        assert!(
+            message.contains("GLR conflict encountered in parser_v4"),
+            "expected explicit GLR conflict diagnostic, got: {message}"
+        );
+    }
+
     /// Test: Conflicting grammar without GLR feature panics
     #[test]
     #[cfg(all(feature = "pure-rust", not(feature = "glr")))]

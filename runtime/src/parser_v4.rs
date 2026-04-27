@@ -17,6 +17,7 @@ use std::rc::Rc;
 
 const PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED: &str = "Custom lexer functions are not yet supported by parser_v4 runtime. \
      Provide a grammar/tokenization path without a custom transform lexer.";
+const GLR_CONFLICT_REQUIRES_TRUE_GLR: &str = "GLR conflict encountered in parser_v4: refusing ordered first-success fallback. Route conflicted tables to the GLR parser runtime.";
 
 // Define types directly in parser_v4 (no longer dependent on parser_v3)
 
@@ -132,6 +133,15 @@ pub struct Parser {
 }
 
 impl Parser {
+    #[inline]
+    fn has_conflicted_actions(&self) -> bool {
+        self.parse_table
+            .action_table
+            .iter()
+            .flat_map(|row| row.iter())
+            .any(|cell| cell.len() > 1)
+    }
+
     /// Get the grammar used by this parser
     pub fn grammar(&self) -> &Grammar {
         &self.grammar
@@ -518,6 +528,10 @@ impl Parser {
     /// Returns (ParseNode, error_count)
     fn parse_internal(&mut self, input: &str, _return_tree: bool) -> Result<(ParseNode, usize)> {
         // eprintln!("\nStarting parse of: {:?}", input);
+        if self.has_conflicted_actions() {
+            bail!("{GLR_CONFLICT_REQUIRES_TRUE_GLR}");
+        }
+
         // Store the input
         self.input = input.as_bytes().to_vec();
         self.position = 0;
@@ -795,113 +809,12 @@ impl Parser {
                 }
 
                 Action::Fork(actions) => {
-                    // GLR fork point - multiple valid parse paths
-                    // Quick implementation: try each action in sequence, use first successful one
-                    // #[cfg(feature = "debug")]
-                    // eprintln!(
-                    // "Fork with {} actions at state {}",
-                    // actions.len(),
-                    // current_state.0
-                    // );
-
-                    let mut fork_succeeded = false;
-                    for fork_action in actions.iter() {
-                        // #[cfg(feature = "debug")]
-                        // eprintln!("  Trying fork action {}: {:?}", _i, fork_action);
-
-                        // Clone the current parser state for this fork
-                        let saved_state_stack = state_stack.clone();
-                        let saved_symbol_stack = symbol_stack.clone();
-                        let saved_node_stack = node_stack.clone();
-
-                        // Try to apply the action
-                        match fork_action {
-                            Action::Shift(next_state) => {
-                                // Apply shift as normal
-                                let node = ParseNode {
-                                    symbol: token.symbol,
-                                    symbol_id: token.symbol,
-                                    start_byte: token.start,
-                                    end_byte: token.end,
-                                    children: vec![],
-                                    field_name: None,
-                                };
-
-                                state_stack.push(*next_state);
-                                symbol_stack.push(token.symbol);
-                                node_stack.push(node);
-
-                                // Advance position
-                                current_position = token.end;
-                                fork_succeeded = true;
-                                break;
-                            }
-                            Action::Reduce(rule_id) => {
-                                // Apply reduce as normal
-                                let rule = self.find_rule_by_production_id(*rule_id)?;
-                                let child_count = rule.rhs_len;
-
-                                // Pop items from stacks
-                                let mut children = Vec::new();
-                                for _ in 0..child_count {
-                                    state_stack.pop();
-                                    symbol_stack.pop();
-                                    if let Some(child) = node_stack.pop() {
-                                        children.push(child);
-                                    }
-                                }
-                                children.reverse();
-
-                                // Create a parent node
-                                let start_byte = children
-                                    .first()
-                                    .map(|n| n.start_byte)
-                                    .unwrap_or(current_position);
-                                let end_byte = children
-                                    .last()
-                                    .map(|n| n.end_byte)
-                                    .unwrap_or(current_position);
-                                let parent_node = ParseNode {
-                                    symbol: rule.lhs,
-                                    symbol_id: rule.lhs,
-                                    start_byte,
-                                    end_byte,
-                                    children,
-                                    field_name: None,
-                                };
-
-                                // Get the goto state
-                                let goto_from_state = *state_stack.last().ok_or_else(|| {
-                                    anyhow!(
-                                        "State stack is empty after fork-path reduce of rule {:?}",
-                                        rule_id
-                                    )
-                                })?;
-                                let goto_state = self.get_goto_state(goto_from_state, rule.lhs)?;
-
-                                // Push the new state and symbol
-                                state_stack.push(goto_state);
-                                symbol_stack.push(rule.lhs);
-                                node_stack.push(parent_node);
-
-                                fork_succeeded = true;
-                                break;
-                            }
-                            _ => {
-                                // Try next fork action
-                                state_stack = saved_state_stack.clone();
-                                symbol_stack = saved_symbol_stack.clone();
-                                node_stack = saved_node_stack.clone();
-                            }
-                        }
-                    }
-
-                    if !fork_succeeded {
-                        // #[cfg(feature = "debug")]
-                        // eprintln!("All fork actions failed");
-                        error_count += 1;
-                        current_position += 1;
-                    }
+                    bail!(
+                        "{GLR_CONFLICT_REQUIRES_TRUE_GLR} state={}, lookahead={}, actions={:?}",
+                        current_state.0,
+                        lookahead.0,
+                        actions
+                    );
                 }
 
                 _ => {
