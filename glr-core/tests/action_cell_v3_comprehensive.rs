@@ -8,7 +8,7 @@
 
 use adze_glr_core::{
     Action, ActionCell, FirstFollowSets, ParseRule, ParseTable, RuleId, StateId, SymbolId,
-    build_lr1_automaton,
+    build_lr1_automaton, conflict_inspection::cell_has_conflict,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
@@ -395,14 +395,8 @@ fn ambiguous_grammar_produces_multi_action_cells() {
     let mut has_multi_action = false;
     for state_row in &table.action_table {
         for cell in state_row {
-            if cell.len() > 1 {
+            if cell_has_conflict(cell) {
                 has_multi_action = true;
-            }
-            // Fork actions also indicate multi-action
-            for action in cell {
-                if matches!(action, Action::Fork(_)) {
-                    has_multi_action = true;
-                }
             }
         }
     }
