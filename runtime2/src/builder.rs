@@ -9,6 +9,8 @@ use crate::tree::{Tree, TreeNode};
 
 #[cfg(feature = "glr")]
 use adze_glr_core::ForestView as CoreForestView;
+#[cfg(feature = "glr-core")]
+use rustc_hash::FxHashSet;
 
 /// Converts a GLR parse forest into a Tree-sitter compatible tree.
 ///
@@ -151,11 +153,12 @@ fn build_from_glr(core: adze_glr_core::Forest) -> Tree {
     Tree::new(root_node)
 }
 
-/// Recursive tree builder with performance metrics tracking.
+/// Iterative tree builder with performance metrics tracking.
 ///
 /// This function builds a `TreeNode` tree from a forest view while tracking
-/// performance metrics like node count and maximum depth. It's used by
-/// `build_from_glr()` to provide detailed conversion statistics.
+/// performance metrics like node count and maximum depth. It uses an explicit
+/// traversal stack so deeply nested user input cannot overflow the Rust call
+/// stack during forest-to-tree conversion.
 ///
 /// # Arguments
 ///
@@ -185,16 +188,71 @@ fn build_node_with_metrics(
     node_count: &mut usize,
     max_depth: &mut usize,
 ) -> TreeNode {
-    *node_count += 1;
-    *max_depth = (*max_depth).max(depth);
+    #[derive(Debug, Clone, Copy)]
+    struct PendingNode {
+        id: u32,
+        depth: usize,
+        expanded: bool,
+    }
 
-    let span = view.span(id);
-    let kind = view.kind(id);
-    let kids = view
-        .best_children(id)
-        .iter()
-        .copied()
-        .map(|c| build_node_with_metrics(view, c, depth + 1, node_count, max_depth))
-        .collect();
-    TreeNode::new_with_children(kind, span.start as usize, span.end as usize, kids)
+    let mut pending = vec![PendingNode {
+        id,
+        depth,
+        expanded: false,
+    }];
+    let mut active = FxHashSet::default();
+    let mut built = Vec::new();
+
+    while let Some(node) = pending.pop() {
+        if !node.expanded {
+            *node_count += 1;
+            *max_depth = (*max_depth).max(node.depth);
+
+            if !active.insert(node.id) {
+                let span = view.span(node.id);
+                let kind = view.kind(node.id);
+                built.push(TreeNode::new_with_children(
+                    kind,
+                    span.start as usize,
+                    span.end as usize,
+                    Vec::new(),
+                ));
+                continue;
+            }
+
+            pending.push(PendingNode {
+                id: node.id,
+                depth: node.depth,
+                expanded: true,
+            });
+
+            for &child_id in view.best_children(node.id).iter().rev() {
+                pending.push(PendingNode {
+                    id: child_id,
+                    depth: node.depth + 1,
+                    expanded: false,
+                });
+            }
+
+            continue;
+        }
+
+        active.remove(&node.id);
+
+        let span = view.span(node.id);
+        let kind = view.kind(node.id);
+        let child_count = view.best_children(node.id).len();
+        let split_at = built.len() - child_count;
+        let children = built.split_off(split_at);
+        built.push(TreeNode::new_with_children(
+            kind,
+            span.start as usize,
+            span.end as usize,
+            children,
+        ));
+    }
+
+    built
+        .pop()
+        .expect("forest-to-tree conversion should build a root node")
 }
