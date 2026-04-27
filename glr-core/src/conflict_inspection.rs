@@ -159,9 +159,8 @@ pub enum ConflictType {
 pub fn action_branch_count(action: &Action) -> usize {
     match action {
         Action::Fork(inner) => inner.iter().map(action_branch_count).sum(),
-        Action::Shift(_) | Action::Reduce(_) | Action::Accept | Action::Error | Action::Recover => {
-            1
-        }
+        Action::Shift(_) | Action::Reduce(_) | Action::Accept => 1,
+        Action::Error | Action::Recover => 0,
     }
 }
 
