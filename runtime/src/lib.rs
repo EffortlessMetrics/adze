@@ -425,11 +425,7 @@ impl<L> Extract<L> for WithLeaf<L> {
         leaf_fn: Option<&Self::LeafFn>,
     ) -> L {
         let text = node
-            .and_then(|n| {
-                // Extract text from node's byte range
-                let text = &source[n.start_byte..n.end_byte];
-                std::str::from_utf8(text).ok()
-            })
+            .and_then(|n| pure_node_leaf_text(n, source))
             .unwrap_or_default();
 
         if let Some(f) = leaf_fn {
@@ -440,6 +436,22 @@ impl<L> Extract<L> for WithLeaf<L> {
             )
         }
     }
+}
+
+#[cfg(feature = "pure-rust")]
+fn pure_node_leaf_text<'a>(
+    node: &crate::pure_parser::ParsedNode,
+    source: &'a [u8],
+) -> Option<&'a str> {
+    let end = node
+        .children
+        .iter()
+        .filter(|child| child.is_extra)
+        .map(|child| child.start_byte)
+        .min()
+        .unwrap_or(node.end_byte);
+    let text = source.get(node.start_byte..end)?;
+    std::str::from_utf8(text).ok()
 }
 
 #[cfg(test)]
@@ -1083,13 +1095,9 @@ impl Extract<String> for String {
         _last_idx: usize,
         _leaf_fn: Option<&Self::LeafFn>,
     ) -> String {
-        node.and_then(|n| {
-            // Extract text from node's byte range
-            let text = &source[n.start_byte..n.end_byte];
-            std::str::from_utf8(text).ok()
-        })
-        .unwrap_or_default()
-        .to_string()
+        node.and_then(|n| pure_node_leaf_text(n, source))
+            .unwrap_or_default()
+            .to_string()
     }
 }
 
@@ -1117,12 +1125,9 @@ macro_rules! impl_extract_for_primitive {
                 _last_idx: usize,
                 _leaf_fn: Option<&Self::LeafFn>,
             ) -> $t {
-                node.and_then(|n| {
-                    let text = &source[n.start_byte..n.end_byte];
-                    std::str::from_utf8(text).ok()
-                })
-                .and_then(|s| s.parse().ok())
-                .unwrap_or_default()
+                node.and_then(|n| pure_node_leaf_text(n, source))
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or_default()
             }
         }
     };

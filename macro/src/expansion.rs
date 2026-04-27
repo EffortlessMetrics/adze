@@ -377,8 +377,9 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                     let node = node.expect("Extract called with None node for enum");
 
                                     fn unwrap_hidden_rules<'a>(node: &'a ::adze::pure_parser::ParsedNode) -> &'a ::adze::pure_parser::ParsedNode {
-                                        if (node.kind().starts_with('_') || node.children.len() == 1) && node.children.len() > 0 {
-                                            return unwrap_hidden_rules(&node.children[0]);
+                                        let non_extra_children: Vec<_> = node.children.iter().filter(|c| !c.is_extra).collect();
+                                        if (node.kind().starts_with('_') || non_extra_children.len() == 1) && !non_extra_children.is_empty() {
+                                            return unwrap_hidden_rules(non_extra_children[0]);
                                         }
                                         node
                                     }
@@ -395,7 +396,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                     let node = unwrapped_node;
                                     #(#variant_detection_logic)*
 
-                                    if unwrapped_node.children.is_empty() {
+                                    if non_extra_children.is_empty() {
                                         let node = unwrapped_node;
                                         #(#leaf_variant_detection)*
                                     }
@@ -415,9 +416,11 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                                     let node = node.expect("Extract called with None node for enum");
 
                                     fn unwrap_hidden_rules(node: ::adze::tree_sitter::Node) -> ::adze::tree_sitter::Node {
-                                        if (node.kind().starts_with('_') || node.child_count() == 1) && node.child_count() > 0 {
-                                            if let Some(child) = node.child(0) {
-                                                return unwrap_hidden_rules(child);
+                                        let mut cursor = node.walk();
+                                        let non_extra_children: Vec<_> = node.children(&mut cursor).filter(|c| !c.is_extra()).collect();
+                                        if (node.kind().starts_with('_') || non_extra_children.len() == 1) && !non_extra_children.is_empty() {
+                                            if let Some(child) = non_extra_children.first() {
+                                                return unwrap_hidden_rules(*child);
                                             }
                                         }
                                         node
