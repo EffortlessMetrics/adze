@@ -25,10 +25,26 @@ pub fn parse_arithmetic(source: &str) -> String {
     }
 }
 
+/// Minimal parser-facing smoke entrypoint for WASM checks.
+///
+/// Returns `true` when the bundled arithmetic grammar can parse a tiny input.
+#[wasm_bindgen]
+pub fn parser_smoke() -> bool {
+    adze_example::arithmetic::grammar::parse("1 + 2 * 3").is_ok()
+}
+
 /// Get GLR statistics from the last parse
 #[wasm_bindgen]
 pub fn get_parser_stats() -> String {
     // This would need to be stored in a global or passed back differently
     // For now, just return a placeholder
     "Stats: To be implemented".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_parser_smoke_entrypoint() {
+        assert!(super::parser_smoke());
+    }
 }

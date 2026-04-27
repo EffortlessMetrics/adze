@@ -80,7 +80,7 @@ complete walkthrough.
 | **Pure Rust** | ✅ Stable | Default backend is 100% Rust; no C toolchain needed |
 | **GLR parsing** | ✅ Stable | Handles ambiguous grammars (C++, JavaScript, etc.) |
 | **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for disambiguation |
-| **WASM support** | ✅ Stable | Compile parsers to WebAssembly with `features = ["wasm"]` |
+| **WASM support** | ✅ Stable | Compile parsers to WebAssembly with `features = ["wasm"]`; `adze-wasm-demo` includes a parser-facing smoke entrypoint (`parser_smoke`) |
 | **Tree-sitter interop** | ✅ Stable | Import existing Tree-sitter grammars via `ts-bridge` |
 | **Serialization** | ✅ Stable | JSON and S-expression output with `features = ["serialization"]` |
 | **External scanners** | 🧪 Experimental | Custom tokenization via `ExternalScanner` trait |
