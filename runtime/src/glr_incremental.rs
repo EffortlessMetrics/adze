@@ -88,6 +88,19 @@ pub fn get_reuse_count() -> usize {
     SUBTREE_REUSE_COUNT.load(Ordering::SeqCst)
 }
 
+/// Test-visible status for the most recent incremental parse attempt.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct IncrementalParseStatus {
+    /// True when incremental parsing explicitly fell back to a full reparse.
+    pub full_reparse_fallback: bool,
+    /// Number of forest nodes reused from the previous parse.
+    pub reused_node_count: usize,
+    /// Invalidated byte ranges derived from incoming edits.
+    pub invalidated_ranges: Vec<Range<usize>>,
+    /// Optional machine-readable reason for fallback.
+    pub fallback_reason: Option<&'static str>,
+}
+
 /// Helper function to tokenize source code for arithmetic grammar
 #[allow(dead_code)]
 fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
@@ -389,6 +402,8 @@ pub struct IncrementalGLRParser {
     tokens: Vec<GLRToken>,
     /// Edit byte delta (new_text.len() - old_text.len())
     edit_byte_delta: isize,
+    /// Status of the most recent parse attempt.
+    last_parse_status: IncrementalParseStatus,
 }
 
 /// Tracks fork relationships and dependencies
@@ -459,6 +474,7 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            last_parse_status: IncrementalParseStatus::default(),
         }
     }
 
@@ -481,7 +497,13 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            last_parse_status: IncrementalParseStatus::default(),
         }
+    }
+
+    /// Return status for the most recent incremental parse attempt.
+    pub fn last_parse_status(&self) -> &IncrementalParseStatus {
+        &self.last_parse_status
     }
 
     /// Parse with incremental reuse
@@ -490,6 +512,13 @@ impl IncrementalGLRParser {
         tokens: &[GLRToken],
         edits: &[GLREdit],
     ) -> Result<Arc<ForestNode>, String> {
+        self.last_parse_status = IncrementalParseStatus {
+            full_reparse_fallback: false,
+            reused_node_count: 0,
+            invalidated_ranges: edits.iter().map(|edit| edit.old_range.clone()).collect(),
+            fallback_reason: None,
+        };
+
         // If we have edits and a previous parse, try to reuse
         if !edits.is_empty() {
             // Check if we have an old forest to reuse from
@@ -500,10 +529,13 @@ impl IncrementalGLRParser {
                 self.reparse_with_edits(tokens, edits)
             } else {
                 // No previous parse, do fresh parse
+                self.last_parse_status.full_reparse_fallback = true;
+                self.last_parse_status.fallback_reason = Some("missing_old_forest");
                 self.parse_fresh(tokens)
             }
         } else {
             // No edits, fresh parse
+            self.last_parse_status.fallback_reason = Some("fresh_parse_no_edits");
             self.parse_fresh(tokens)
         }
     }
@@ -671,6 +703,8 @@ impl IncrementalGLRParser {
                     might_introduce_ambiguity
                 );
                 // Fall back to full parsing to ensure ambiguity is correctly handled
+                self.last_parse_status.full_reparse_fallback = true;
+                self.last_parse_status.fallback_reason = Some("ambiguity_safety_fallback");
                 return self.parse_fresh(tokens);
             }
 
@@ -773,6 +807,9 @@ impl IncrementalGLRParser {
                         }
                         _ => {
                             // Middle segment failed to parse - fall back to full parse
+                            self.last_parse_status.full_reparse_fallback = true;
+                            self.last_parse_status.fallback_reason =
+                                Some("middle_segment_parse_failed");
                             return self.parse_fresh(tokens);
                         }
                     }
@@ -812,16 +849,21 @@ impl IncrementalGLRParser {
                 if reuse_count > 0 {
                     SUBTREE_REUSE_COUNT.fetch_add(reuse_count, Ordering::SeqCst);
                 }
+                self.last_parse_status.reused_node_count = reuse_count;
 
                 self.forest = Some(spliced_forest.clone());
                 self.previous_forest = Some(spliced_forest.clone());
                 Ok(spliced_forest)
             } else {
                 // No benefit from splicing - do a full parse
+                self.last_parse_status.full_reparse_fallback = true;
+                self.last_parse_status.fallback_reason = Some("no_splice_benefit");
                 self.parse_fresh(tokens)
             }
         } else {
             // No old forest, do fresh parse
+            self.last_parse_status.full_reparse_fallback = true;
+            self.last_parse_status.fallback_reason = Some("missing_old_forest");
             self.parse_fresh(tokens)
         }
     }
