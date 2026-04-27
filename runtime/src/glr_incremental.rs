@@ -88,6 +88,25 @@ pub fn get_reuse_count() -> usize {
     SUBTREE_REUSE_COUNT.load(Ordering::SeqCst)
 }
 
+/// Outcome of an incremental GLR parse attempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IncrementalParseOutcome {
+    /// A normal full parse (no edits or no prior forest available).
+    FreshParse,
+    /// Incremental path attempted but conservatively fell back to full reparse.
+    FullReparseFallback,
+    /// Direct forest splicing reused nodes.
+    Reused,
+}
+
+/// Test-visible metrics for the most recent parse.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IncrementalParseMetrics {
+    pub outcome: IncrementalParseOutcome,
+    pub reused_node_count: usize,
+    pub invalidated_ranges: Vec<Range<usize>>,
+}
+
 /// Helper function to tokenize source code for arithmetic grammar
 #[allow(dead_code)]
 fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
@@ -389,6 +408,8 @@ pub struct IncrementalGLRParser {
     tokens: Vec<GLRToken>,
     /// Edit byte delta (new_text.len() - old_text.len())
     edit_byte_delta: isize,
+    /// Metrics from the most recent incremental call.
+    last_parse_metrics: IncrementalParseMetrics,
 }
 
 /// Tracks fork relationships and dependencies
@@ -459,6 +480,11 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            last_parse_metrics: IncrementalParseMetrics {
+                outcome: IncrementalParseOutcome::FreshParse,
+                reused_node_count: 0,
+                invalidated_ranges: vec![],
+            },
         }
     }
 
@@ -481,7 +507,17 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            last_parse_metrics: IncrementalParseMetrics {
+                outcome: IncrementalParseOutcome::FreshParse,
+                reused_node_count: 0,
+                invalidated_ranges: vec![],
+            },
         }
+    }
+
+    /// Metrics from the most recent parse call.
+    pub fn last_parse_metrics(&self) -> &IncrementalParseMetrics {
+        &self.last_parse_metrics
     }
 
     /// Parse with incremental reuse
@@ -490,6 +526,11 @@ impl IncrementalGLRParser {
         tokens: &[GLRToken],
         edits: &[GLREdit],
     ) -> Result<Arc<ForestNode>, String> {
+        self.last_parse_metrics.invalidated_ranges =
+            edits.iter().map(|e| e.old_range.clone()).collect();
+        self.last_parse_metrics.reused_node_count = 0;
+        self.last_parse_metrics.outcome = IncrementalParseOutcome::FreshParse;
+
         // If we have edits and a previous parse, try to reuse
         if !edits.is_empty() {
             // Check if we have an old forest to reuse from
@@ -510,6 +551,14 @@ impl IncrementalGLRParser {
 
     /// Parse from scratch
     fn parse_fresh(&mut self, tokens: &[GLRToken]) -> Result<Arc<ForestNode>, String> {
+        let had_edits = !self.last_parse_metrics.invalidated_ranges.is_empty();
+        self.last_parse_metrics.outcome = if had_edits {
+            IncrementalParseOutcome::FullReparseFallback
+        } else {
+            IncrementalParseOutcome::FreshParse
+        };
+        self.last_parse_metrics.reused_node_count = 0;
+
         // Reset state
         self.fork_tracker = ForkTracker::new();
         // GSS snapshots removed - using direct forest splicing instead
@@ -812,6 +861,8 @@ impl IncrementalGLRParser {
                 if reuse_count > 0 {
                     SUBTREE_REUSE_COUNT.fetch_add(reuse_count, Ordering::SeqCst);
                 }
+                self.last_parse_metrics.outcome = IncrementalParseOutcome::Reused;
+                self.last_parse_metrics.reused_node_count = reuse_count;
 
                 self.forest = Some(spliced_forest.clone());
                 self.previous_forest = Some(spliced_forest.clone());
