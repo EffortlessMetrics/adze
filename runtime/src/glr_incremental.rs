@@ -88,6 +88,25 @@ pub fn get_reuse_count() -> usize {
     SUBTREE_REUSE_COUNT.load(Ordering::SeqCst)
 }
 
+/// How the most recent incremental parse request was executed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IncrementalExecution {
+    /// Parsed from scratch (no edits or no reusable baseline).
+    FreshParse,
+    /// Incremental request fell back to full reparse for correctness.
+    FullReparseFallback,
+    /// Incremental chunk splicing path executed and reused nodes.
+    IncrementalReuse,
+}
+
+/// Test-visible telemetry for the latest parse invocation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IncrementalParseReport {
+    pub execution: IncrementalExecution,
+    pub reused_node_count: usize,
+    pub invalidated_ranges: Vec<Range<usize>>,
+}
+
 /// Helper function to tokenize source code for arithmetic grammar
 #[allow(dead_code)]
 fn tokenize_source(source: &[u8], _grammar: &Grammar) -> Vec<GLRToken> {
@@ -389,6 +408,8 @@ pub struct IncrementalGLRParser {
     tokens: Vec<GLRToken>,
     /// Edit byte delta (new_text.len() - old_text.len())
     edit_byte_delta: isize,
+    /// Telemetry for last parse invocation.
+    last_report: Option<IncrementalParseReport>,
 }
 
 /// Tracks fork relationships and dependencies
@@ -459,6 +480,7 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            last_report: None,
         }
     }
 
@@ -481,6 +503,7 @@ impl IncrementalGLRParser {
             chunk_suffix_len: 0,
             tokens: vec![],
             edit_byte_delta: 0,
+            last_report: None,
         }
     }
 
@@ -490,8 +513,14 @@ impl IncrementalGLRParser {
         tokens: &[GLRToken],
         edits: &[GLREdit],
     ) -> Result<Arc<ForestNode>, String> {
+        let reuse_before = get_reuse_count();
+        let invalidated_ranges = edits
+            .iter()
+            .map(|e| e.old_range.clone())
+            .collect::<Vec<_>>();
+
         // If we have edits and a previous parse, try to reuse
-        if !edits.is_empty() {
+        let result = if !edits.is_empty() {
             // Check if we have an old forest to reuse from
             let has_old_forest =
                 edits.iter().any(|e| e.old_forest.is_some()) || self.previous_forest.is_some();
@@ -505,11 +534,36 @@ impl IncrementalGLRParser {
         } else {
             // No edits, fresh parse
             self.parse_fresh(tokens)
+        };
+
+        if result.is_ok() {
+            let execution = if edits.is_empty() {
+                IncrementalExecution::FreshParse
+            } else if self.chunk_prefix_len > 0 || self.chunk_suffix_len > 0 {
+                IncrementalExecution::IncrementalReuse
+            } else {
+                IncrementalExecution::FullReparseFallback
+            };
+
+            self.last_report = Some(IncrementalParseReport {
+                execution,
+                reused_node_count: get_reuse_count().saturating_sub(reuse_before),
+                invalidated_ranges,
+            });
         }
+
+        result
+    }
+
+    /// Returns the report from the most recent parse call.
+    pub fn last_parse_report(&self) -> Option<&IncrementalParseReport> {
+        self.last_report.as_ref()
     }
 
     /// Parse from scratch
     fn parse_fresh(&mut self, tokens: &[GLRToken]) -> Result<Arc<ForestNode>, String> {
+        self.chunk_prefix_len = 0;
+        self.chunk_suffix_len = 0;
         // Reset state
         self.fork_tracker = ForkTracker::new();
         // GSS snapshots removed - using direct forest splicing instead
@@ -613,6 +667,9 @@ impl IncrementalGLRParser {
             let edit_delta =
                 (edits[0].new_text.len() as isize) - (edits[0].old_range.len() as isize);
             let suffix_len = chunk_id.find_suffix_boundary(&old_tokens, tokens, edit_delta);
+            self.chunk_prefix_len = prefix_len;
+            self.chunk_suffix_len = suffix_len;
+            self.edit_byte_delta = edit_delta;
 
             // Debug chunk boundaries for troubleshooting
             debug_trace!(
@@ -822,6 +879,8 @@ impl IncrementalGLRParser {
             }
         } else {
             // No old forest, do fresh parse
+            self.chunk_prefix_len = 0;
+            self.chunk_suffix_len = 0;
             self.parse_fresh(tokens)
         }
     }

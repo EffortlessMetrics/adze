@@ -9,7 +9,7 @@
 mod tests {
     use adze::glr_incremental::{
         ChunkIdentifier, Edit, ForestNode, ForkAlternative, GLREdit, GLRToken,
-        IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
+        IncrementalExecution, IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
     use adze::subtree::{Subtree, SubtreeNode};
@@ -694,7 +694,7 @@ mod tests {
         reset_reuse_counter();
         let f = p.parse_incremental(&new_toks, &[edit]).unwrap();
         assert!(!f.alternatives.is_empty());
-        assert!(get_reuse_count() <= new_toks.len());
+        assert!(get_reuse_count() > 0);
     }
 
     // ─── Test 23: Parse error on invalid input ──────────────────────
@@ -926,5 +926,54 @@ mod tests {
         assert_eq!(n2.byte_range, 5..15);
         let dbg = format!("{:?}", n2);
         assert!(dbg.contains("ForestNode"));
+    }
+
+    // ─── Test 34: Report marks explicit fallback when no reuse baseline ─────
+
+    #[test]
+    fn test_incremental_report_full_reparse_fallback() {
+        let g = arith_grammar();
+        let mut p = make_parser(&g);
+        let toks = to_glr(&tokenize(&g, "1+2+3"));
+        let edit = GLREdit {
+            old_range: 2..3,
+            new_text: b"9".to_vec(),
+            old_token_range: 1..2,
+            new_tokens: vec![make_token(1, b"9", 2)],
+            old_tokens: vec![],
+            old_forest: None,
+        };
+
+        let _ = p.parse_incremental(&toks, &[edit]).unwrap();
+        let report = p.last_parse_report().expect("report should be recorded");
+        assert_eq!(report.execution, IncrementalExecution::FullReparseFallback);
+        assert_eq!(report.invalidated_ranges, vec![2..3]);
+        assert_eq!(report.reused_node_count, 0);
+    }
+
+    // ─── Test 35: Report marks reuse path and captures invalidated range ─────
+
+    #[test]
+    fn test_incremental_report_reuse_path() {
+        let g = arith_grammar();
+        let mut p = make_parser(&g);
+        let (old_toks, old_forest) = fresh_parse(&mut p, &g, "1+2+3");
+        let new_toks = to_glr(&tokenize(&g, "1+9+3"));
+        reset_reuse_counter();
+
+        let edit = GLREdit {
+            old_range: 2..3,
+            new_text: b"9".to_vec(),
+            old_token_range: 2..3,
+            new_tokens: vec![new_toks[2].clone()],
+            old_tokens: old_toks,
+            old_forest: Some(old_forest),
+        };
+
+        let _ = p.parse_incremental(&new_toks, &[edit]).unwrap();
+        let report = p.last_parse_report().expect("report should be recorded");
+        assert_eq!(report.execution, IncrementalExecution::IncrementalReuse);
+        assert_eq!(report.invalidated_ranges, vec![2..3]);
+        assert!(report.reused_node_count > 0);
     }
 }

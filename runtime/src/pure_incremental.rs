@@ -39,6 +39,26 @@ pub struct ReusableNode {
     is_error: bool,
 }
 
+/// Mode used by the last incremental parse attempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IncrementalParseMode {
+    /// Parsing was performed from scratch with no old tree context.
+    FreshParse,
+    /// An incremental parse was requested but implementation fell back to full reparse.
+    FullReparseFallback,
+}
+
+/// Test-visible report for the last parse attempt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IncrementalParseReport {
+    /// Whether parse ran fresh or as an explicit full-reparse fallback.
+    pub mode: IncrementalParseMode,
+    /// Number of nodes discovered as theoretically reusable from the previous tree.
+    pub reusable_nodes_found: usize,
+    /// Byte ranges invalidated by edits, if parse_with_edits was used.
+    pub invalidated_ranges: Vec<Range<usize>>,
+}
+
 impl Tree {
     /// Create a new tree from a parse result
     pub fn new(root: ParsedNode, language: &'static TSLanguage, source: &[u8]) -> Self {
@@ -112,6 +132,7 @@ impl Tree {
 pub struct IncrementalParser {
     parser: Parser,
     previous_tree: Option<Tree>,
+    last_report: Option<IncrementalParseReport>,
 }
 
 impl Default for IncrementalParser {
@@ -126,6 +147,7 @@ impl IncrementalParser {
         IncrementalParser {
             parser: Parser::new(),
             previous_tree: None,
+            last_report: None,
         }
     }
 
@@ -146,12 +168,17 @@ impl IncrementalParser {
 
     /// Parse with incremental reuse
     pub fn parse(&mut self, source: &str, old_tree: Option<&Tree>) -> ParseResult {
+        let mut mode = IncrementalParseMode::FreshParse;
+        let mut reusable_nodes_found = 0;
+
         // If we have an old tree, try to reuse nodes
         if let Some(tree) = old_tree {
             self.previous_tree = Some(tree.clone());
 
             // Get reusable nodes
-            let _reusable_nodes = tree.get_reusable_nodes();
+            let reusable_nodes = tree.get_reusable_nodes();
+            reusable_nodes_found = reusable_nodes.len();
+            mode = IncrementalParseMode::FullReparseFallback;
 
             // TODO: Implement actual incremental parsing logic
             // For now, fall back to full reparse
@@ -166,6 +193,12 @@ impl IncrementalParser {
         {
             self.previous_tree = Some(Tree::new(root.clone(), language, source.as_bytes()));
         }
+
+        self.last_report = Some(IncrementalParseReport {
+            mode,
+            reusable_nodes_found,
+            invalidated_ranges: Vec::new(),
+        });
 
         result
     }
@@ -185,7 +218,20 @@ impl IncrementalParser {
         }
 
         // Parse with the edited tree
-        self.parse(source, old_tree.as_ref())
+        let result = self.parse(source, old_tree.as_ref());
+        if let Some(report) = &mut self.last_report {
+            report.invalidated_ranges = edits
+                .iter()
+                .map(|e| e.start_byte..e.old_end_byte)
+                .collect::<Vec<_>>();
+        }
+        // Keep signature unchanged and return parse result.
+        result
+    }
+
+    /// Return telemetry for the last parse invocation.
+    pub fn last_parse_report(&self) -> Option<&IncrementalParseReport> {
+        self.last_report.as_ref()
     }
 }
 
