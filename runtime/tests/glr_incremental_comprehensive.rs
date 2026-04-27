@@ -9,7 +9,7 @@
 mod tests {
     use adze::glr_incremental::{
         ChunkIdentifier, Edit, ForestNode, ForkAlternative, GLREdit, GLRToken,
-        IncrementalGLRParser, get_reuse_count, reset_reuse_counter,
+        IncrementalGLRParser, IncrementalParseMode, get_reuse_count, reset_reuse_counter,
     };
     use adze::glr_lexer::{GLRLexer, TokenWithPosition};
     use adze::subtree::{Subtree, SubtreeNode};
@@ -473,6 +473,34 @@ mod tests {
         reset_reuse_counter();
         let new_forest = p.parse_incremental(&old_toks, &[edit]).unwrap();
         assert!(!new_forest.alternatives.is_empty());
+        let status = p.last_parse_status();
+        assert_eq!(status.mode, IncrementalParseMode::IncrementalReuse);
+        assert!(status.reused_node_count > 0);
+        assert_eq!(status.invalidated_ranges, vec![1..1]);
+    }
+
+    #[test]
+    fn test_incremental_reports_full_reparse_fallback() {
+        let g = arith_grammar();
+        let mut p = make_parser(&g);
+        let (old_toks, old_forest) = fresh_parse(&mut p, &g, "1+2+3+4+5+6");
+        let new_toks = to_glr(&tokenize(&g, "7*8*9*10*11*12"));
+
+        let edit = GLREdit {
+            old_range: 0..11,
+            new_text: b"7*8*9*10*11*12".to_vec(),
+            old_token_range: 0..old_toks.len(),
+            new_tokens: new_toks.clone(),
+            old_tokens: old_toks,
+            old_forest: Some(old_forest),
+        };
+
+        let forest = p.parse_incremental(&new_toks, &[edit]).unwrap();
+        assert!(!forest.alternatives.is_empty());
+        let status = p.last_parse_status();
+        assert_eq!(status.mode, IncrementalParseMode::FullReparseFallback);
+        assert_eq!(status.reused_node_count, 0);
+        assert_eq!(status.invalidated_ranges, vec![0..11]);
     }
 
     // ─── Test 14: Replace first token ───────────────────────────────
