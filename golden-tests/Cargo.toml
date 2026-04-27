@@ -10,12 +10,14 @@ anyhow.workspace = true
 sha2 = "0.10"
 adze-python = { path = "../grammars/python", optional = true }
 adze-javascript = { path = "../grammars/javascript", optional = true }
+adze-python-simple = { path = "../grammars/python-simple", optional = true }
 adze = { path = "../runtime", optional = true }
 
 [features]
 default = []
 python-grammar = ["adze-python", "adze"]
 javascript-grammar = ["adze-javascript", "adze"]
-all-grammars = ["python-grammar", "javascript-grammar"]
+python-simple-grammar = ["adze-python-simple", "adze"]
+all-grammars = ["python-grammar", "javascript-grammar", "python-simple-grammar"]
 
 [dev-dependencies]
