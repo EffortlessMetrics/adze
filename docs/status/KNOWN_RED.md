@@ -36,7 +36,7 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
-**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **2,460+ tests across feature combinations, 0 failures in supported lane.** Feature-combination matrix: 12/12 pass (all green). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`.
+**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **2,460+ tests across feature combinations, 0 failures in supported lane.** Feature-combination matrix: 12/12 pass (all green). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`, plus `wasm-demo` has a parser-facing compile smoke entrypoint (`parser_facing_smoke` for arithmetic grammar).
 
 ---
 

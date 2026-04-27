@@ -1082,6 +1082,8 @@ jobs:
             echo "Checking $crate..."
             cargo check --target wasm32-unknown-unknown -p "$crate"
           done
+      - name: Check parser-facing wasm-demo smoke for WASM
+        run: cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown
 
   cross-platform:
     name: Cross-platform (${{ matrix.os }})
