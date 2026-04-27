@@ -625,10 +625,10 @@ mod tests {
             }
         }
 
-        let mut runtime = ExternalScannerRuntime::new(vec![SymbolId(0), SymbolId(1)]);
+        let mut runtime = ExternalScannerRuntime::new(vec![0, 1]);
         let mut scanner = InvalidScanner;
         let mut lexer = EmptyLexer;
-        let valid_external_tokens = std::iter::once(SymbolId(0)).collect();
+        let valid_external_tokens: HashSet<SymbolId> = std::iter::once(0).collect();
 
         let scanned = runtime.scan(&mut scanner, &mut lexer, &valid_external_tokens);
         assert!(
