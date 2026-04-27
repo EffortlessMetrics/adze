@@ -482,24 +482,24 @@ proptest! {
     // 41. Precedence bincode serde roundtrip
     #[test]
     fn precedence_bincode_roundtrip(p in arb_precedence()) {
-        let bytes = bincode::serialize(&p).unwrap();
-        let back: Precedence = bincode::deserialize(&bytes).unwrap();
+        let bytes = postcard::to_stdvec(&p).unwrap();
+        let back: Precedence = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(&p, &back);
     }
 
     // 42. Associativity bincode serde roundtrip
     #[test]
     fn associativity_bincode_roundtrip(a in arb_associativity()) {
-        let bytes = bincode::serialize(&a).unwrap();
-        let back: Associativity = bincode::deserialize(&bytes).unwrap();
+        let bytes = postcard::to_stdvec(&a).unwrap();
+        let back: Associativity = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(a, back);
     }
 
     // 43. PrecedenceKind bincode roundtrip
     #[test]
     fn prec_kind_bincode_roundtrip(pk in arb_precedence_kind()) {
-        let bytes = bincode::serialize(&pk).unwrap();
-        let back: PrecedenceKind = bincode::deserialize(&bytes).unwrap();
+        let bytes = postcard::to_stdvec(&pk).unwrap();
+        let back: PrecedenceKind = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(pk, back);
     }
 

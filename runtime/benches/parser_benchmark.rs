@@ -1,7 +1,8 @@
 #![cfg(feature = "unstable-benches")]
 
 use adze::tree_sitter::Parser;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 // Simple arithmetic grammar for benchmarking
 #[adze::grammar("benchmark")]

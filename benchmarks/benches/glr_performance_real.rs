@@ -42,7 +42,8 @@
 //! - Fixtures: benchmarks/fixtures/arithmetic/
 
 use adze_example::arithmetic::grammar::parse;
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 // Load arithmetic fixtures at compile time (deterministic, zero I/O overhead)
 const ARITH_SMALL: &str = include_str!("../fixtures/arithmetic/small.expr");
