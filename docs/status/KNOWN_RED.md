@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-04-26
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -22,6 +22,31 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 
 ### Core pipeline crates
 - `adze-ir`, `adze-glr-core`, `adze-tablegen`, `adze-common`, `adze-macro`, `adze-tool` all pass `cargo check`, `cargo clippy`, and `cargo test`.
+
+---
+
+
+## Advisory product proof lane
+
+A new **non-blocking** workflow (`Product Proof (Advisory)`) runs on manual dispatch and weekly schedule.
+It provides bounded canaries for broader product surfaces without changing required merge gates.
+
+Canaries currently included:
+
+| Surface | Canary type | Command |
+|---|---|---|
+| Main runtime (`adze`) | smoke-test | `cargo test -p adze --lib` |
+| CLI (`adze-cli`) | compile-only | `cargo check -p adze-cli` |
+| Golden tests (`adze-golden-tests`) | compile-only | `cargo test -p adze-golden-tests --no-run` |
+| Benchmarks (`adze-benchmarks`) | compile-only | `cargo test -p adze-benchmarks --no-run` |
+| WASM demo (`adze-wasm-demo`) | compile-only | `cargo check -p adze-wasm-demo` |
+| One grammar (`adze-python-simple`) | compile-only | `cargo check -p adze-python-simple` |
+| Runtime2 (`runtime2/Cargo.toml`) | compile-only | `cargo test --manifest-path runtime2/Cargo.toml --no-run` |
+| One governance microcrate (`adze-runtime2-governance`) | compile-only | `cargo check -p adze-runtime2-governance` |
+
+Notes:
+- This lane is advisory and intentionally bounded; failures here should be treated as signal, not branch blockers.
+- If any surface is temporarily unable to run, the workflow still records that result without changing `ci-supported` protections.
 
 ---
 

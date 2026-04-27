@@ -77,6 +77,11 @@ ci-supported:
     cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
     cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"
 
+
+# Advisory broad product-surface canaries (non-blocking lane counterpart)
+ci-product:
+    ./scripts/ci-product-proof.sh
+
 # Run mutation testing on adze-ir (quick check)
 mutate crate="adze-ir":
     cargo mutants -p {{crate}} --timeout-multiplier 2 -- --lib

@@ -1,0 +1,32 @@
+name: Product Proof (Advisory)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * 1'
+
+concurrency:
+  group: product-proof-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci-product-proof:
+    name: ci-product-proof
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: 2
+      RUST_TEST_THREADS: 2
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Show canary matrix
+        run: scripts/ci-product-proof.sh --list
+
+      - name: Run advisory product proof canaries
+        run: scripts/ci-product-proof.sh
