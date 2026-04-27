@@ -110,8 +110,8 @@ proptest! {
 proptest! {
     #[test]
     fn serde_bincode_roundtrip(meta in symbol_metadata_strategy()) {
-        let bytes = bincode::serialize(&meta).unwrap();
-        let restored: SymbolMetadata = bincode::deserialize(&bytes).unwrap();
+        let bytes = postcard::to_allocvec(&meta).unwrap();
+        let restored: SymbolMetadata = postcard::from_bytes(&bytes).unwrap();
         prop_assert_eq!(meta, restored);
     }
 }
@@ -559,8 +559,8 @@ proptest! {
         a in symbol_metadata_strategy(),
         b in symbol_metadata_strategy(),
     ) {
-        let bytes_a = bincode::serialize(&a).unwrap();
-        let bytes_b = bincode::serialize(&b).unwrap();
+        let bytes_a = postcard::to_allocvec(&a).unwrap();
+        let bytes_b = postcard::to_allocvec(&b).unwrap();
         prop_assert_eq!(bytes_a.len(), bytes_b.len());
     }
 }
