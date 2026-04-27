@@ -622,7 +622,6 @@ pub fn decode_grammar_with_patterns(
 }
 
 fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
-    const DEBUG_RULE_PRINT_LIMIT: usize = 5;
     let production_count = lang.production_count as usize;
 
     // Prevent excessive allocations to avoid DoS
@@ -835,10 +834,11 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
 
                 if action_idx != 0 {
                     let raw = &*lang.parse_actions.add(action_idx as usize);
-                    if raw.extra != 0 && raw.action_type == TSActionTag::Shift as u8 {
-                        if let Some(&sym) = index_to_symbol.get(symbol) {
-                            extras_set.insert(sym);
-                        }
+                    if raw.extra != 0
+                        && raw.action_type == TSActionTag::Shift as u8
+                        && let Some(&sym) = index_to_symbol.get(symbol)
+                    {
+                        extras_set.insert(sym);
                     }
                     decode_action(raw, &rules, &rid_by_pair)
                 } else {
