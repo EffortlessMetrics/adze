@@ -1,0 +1,37 @@
+name: product-proof
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 4 * * 1'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  product-proof:
+    name: Advisory product canaries
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Shell syntax check
+        run: bash -n scripts/ci-product.sh
+
+      - name: Product proof canaries (advisory)
+        run: scripts/ci-product.sh
+
+      - name: Trailing whitespace / merge marker guard
+        run: git diff --check

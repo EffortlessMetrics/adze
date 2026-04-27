@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-04-26
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -61,6 +61,26 @@ These may run as optional signal (nightly/manual/canary), but are not required f
 - deployment workflows (mdBook / pages)
 - performance regression canaries
 - All other `.github/workflows/ci.yml` jobs are optional unless explicitly promoted in settings.
+
+### Advisory product proof lane
+
+- New non-blocking workflow: `.github/workflows/product-proof.yml`
+- Script entrypoint: `scripts/ci-product.sh`
+- Triggering: `workflow_dispatch` and weekly schedule
+- Policy: advisory only (`continue-on-error: true`), does **not** change required gates.
+
+The lane is intentionally bounded and currently provides smoke/compile canaries for:
+
+- `adze` runtime (test listing smoke)
+- `adze-cli` (compile-only)
+- `adze-golden-tests` (compile-only via `--no-run`)
+- `adze-benchmarks` (compile-only via `cargo bench --no-run`)
+- `adze-wasm-demo` (compile-only for `wasm32-unknown-unknown`)
+- one grammar crate: `adze-python-simple` (compile-only)
+- `runtime2` surface via `adze-runtime` (compile-only via `--no-run`)
+- one governance/BDD microcrate: `adze-bdd-contract` (compile-only)
+
+This lane is designed to close the support/proof gap without widening the required PR gate.
 
 ---
 
