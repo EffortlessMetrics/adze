@@ -405,16 +405,12 @@ impl Parser {
                 column: 0,
             };
 
-            // Build valid symbols array based on external lex state
+            // Build valid symbols array based on external lex state.
+            // Tree-sitter scanners expect a 1-based array of flags where index 0 is
+            // unused. `Vec<bool>` is bit-packed and unsuitable for FFI.
             let external_token_count = lang.external_token_count as usize;
-            let mut valid_symbols = vec![false; external_token_count];
-
-            // The external_lex_state is a bitset indicating which external tokens are valid
-            for i in 0..external_token_count {
-                if (lex_state.external_lex_state >> i) & 1 != 0 {
-                    valid_symbols[i] = true;
-                }
-            }
+            let valid_symbols =
+                build_external_valid_symbols(lex_state.external_lex_state, external_token_count);
 
             // Create scanner instance if needed
             let scanner_instance = if let Some(create_fn) = lang.external_scanner.create {
@@ -428,7 +424,7 @@ impl Parser {
             let success = scan_fn(
                 scanner_instance,
                 &mut ts_lexer as *mut _ as *mut c_void,
-                valid_symbols.as_ptr(),
+                valid_symbols.as_ptr().cast::<bool>(),
             );
 
             // Clean up scanner instance
@@ -445,7 +441,9 @@ impl Parser {
                 }
 
                 // Map external symbol to actual symbol
-                let symbol = if !lang.external_scanner.symbol_map.is_null() {
+                let symbol = if !lang.external_scanner.symbol_map.is_null()
+                    && (lexer.result_symbol as usize) <= external_token_count
+                {
                     *lang
                         .external_scanner
                         .symbol_map
@@ -713,6 +711,16 @@ impl Parser {
         *position += skip;
         true
     }
+}
+
+fn build_external_valid_symbols(external_lex_state: u16, external_token_count: usize) -> Vec<u8> {
+    let mut valid_symbols = vec![0u8; external_token_count + 1];
+    for i in 0..external_token_count {
+        if (external_lex_state >> i) & 1 != 0 {
+            valid_symbols[i + 1] = 1;
+        }
+    }
+    valid_symbols
 }
 
 /// Simple lexer interface for external scanners
@@ -1012,5 +1020,17 @@ mod tests {
         let point = advance_point(point, b"\nworld");
         assert_eq!(point.row, 1);
         assert_eq!(point.column, 5);
+    }
+
+    #[test]
+    fn test_external_valid_symbols_uses_1_based_layout() {
+        let symbols = build_external_valid_symbols(0b101, 3);
+        assert_eq!(symbols, vec![0, 1, 0, 1]);
+    }
+
+    #[test]
+    fn test_external_valid_symbols_empty_count_has_only_sentinel() {
+        let symbols = build_external_valid_symbols(0b1111, 0);
+        assert_eq!(symbols, vec![0]);
     }
 }
