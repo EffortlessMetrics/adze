@@ -107,6 +107,67 @@ pub fn bdd_progress(phase: BddPhase, scenarios: &[BddScenario]) -> (usize, usize
     (implemented, scenarios.len())
 }
 
+/// Validate scenario-grid integrity and return all discovered issues.
+///
+/// This is intended as a lightweight governance guardrail so downstream crates
+/// can catch malformed grids (for example duplicate IDs) before producing status
+/// reports.
+pub fn bdd_grid_integrity_issues(scenarios: &[BddScenario]) -> Vec<String> {
+    let mut issues = Vec::new();
+
+    if scenarios.is_empty() {
+        issues.push("grid has no scenarios".to_owned());
+        return issues;
+    }
+
+    for (index, scenario) in scenarios.iter().enumerate() {
+        if scenario.title.trim().is_empty() {
+            issues.push(format!("scenario {} has an empty title", scenario.id));
+        }
+        if scenario.reference.trim().is_empty() {
+            issues.push(format!("scenario {} has an empty reference", scenario.id));
+        }
+        if matches!(
+            scenario.core_status,
+            BddScenarioStatus::Deferred { reason: "" }
+        ) {
+            issues.push(format!(
+                "scenario {} has an empty core deferred reason",
+                scenario.id
+            ));
+        }
+        if matches!(
+            scenario.runtime_status,
+            BddScenarioStatus::Deferred { reason: "" }
+        ) {
+            issues.push(format!(
+                "scenario {} has an empty runtime deferred reason",
+                scenario.id
+            ));
+        }
+
+        if index > 0 {
+            let prev = scenarios[index - 1].id;
+            if scenario.id <= prev {
+                issues.push(format!(
+                    "scenario IDs are not strictly increasing at {} (previous: {})",
+                    scenario.id, prev
+                ));
+            }
+        }
+    }
+
+    for i in 0..scenarios.len() {
+        for j in i + 1..scenarios.len() {
+            if scenarios[i].id == scenarios[j].id {
+                issues.push(format!("duplicate scenario ID: {}", scenarios[i].id));
+            }
+        }
+    }
+
+    issues
+}
+
 /// Shared formatting for BDD progress summaries.
 ///
 /// # Examples
@@ -164,6 +225,15 @@ pub fn bdd_progress_report(
         out.push_str("\nNext: Implement remaining deferred scenarios.");
     }
 
+    let integrity_issues = bdd_grid_integrity_issues(scenarios);
+    if !integrity_issues.is_empty() {
+        out.push_str("\n\nGrid integrity warnings:");
+        for issue in integrity_issues {
+            out.push_str("\n- ");
+            out.push_str(&issue);
+        }
+    }
+
     out
 }
 
@@ -189,5 +259,36 @@ mod tests {
             bdd_progress_report(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, "Runtime");
         assert!(report.contains("Runtime"));
         assert!(report.contains("Scenario 1"));
+    }
+
+    #[test]
+    fn integrity_issues_are_empty_for_default_grid() {
+        assert!(bdd_grid_integrity_issues(GLR_CONFLICT_PRESERVATION_GRID).is_empty());
+    }
+
+    #[test]
+    fn integrity_issues_detect_duplicate_ids() {
+        let scenarios = [
+            BddScenario {
+                id: 1,
+                title: "A",
+                reference: "R-1",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 1,
+                title: "B",
+                reference: "R-2",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+        ];
+        let issues = bdd_grid_integrity_issues(&scenarios);
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("duplicate scenario ID"))
+        );
     }
 }
