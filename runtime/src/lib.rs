@@ -630,6 +630,67 @@ mod tests {
         let s = source.as_mut_str();
         let _ = &mut s[span];
     }
+
+    #[cfg(feature = "pure-rust")]
+    #[test]
+    fn collect_parsing_errors_pure_rust_unexpected_token_preserves_span() {
+        let source = b"abc";
+        let node = crate::pure_parser::ParsedNode {
+            symbol: 1,
+            children: vec![],
+            start_byte: 1,
+            end_byte: 2,
+            start_point: crate::pure_parser::Point { row: 0, column: 1 },
+            end_point: crate::pure_parser::Point { row: 0, column: 2 },
+            is_extra: false,
+            is_error: true,
+            is_missing: false,
+            is_named: false,
+            field_id: None,
+            language: None,
+        };
+
+        let mut errors = vec![];
+        crate::errors::collect_parsing_errors(&node, source, &mut errors);
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].start, 1);
+        assert_eq!(errors[0].end, 2);
+        assert!(matches!(
+            errors[0].reason,
+            crate::errors::ParseErrorReason::UnexpectedToken(_)
+        ));
+    }
+
+    #[cfg(feature = "pure-rust")]
+    #[test]
+    fn collect_parsing_errors_pure_rust_missing_token_uses_kind() {
+        let node = crate::pure_parser::ParsedNode {
+            symbol: 999,
+            children: vec![],
+            start_byte: 3,
+            end_byte: 3,
+            start_point: crate::pure_parser::Point { row: 0, column: 3 },
+            end_point: crate::pure_parser::Point { row: 0, column: 3 },
+            is_extra: false,
+            is_error: false,
+            is_missing: true,
+            is_named: false,
+            field_id: None,
+            language: None,
+        };
+
+        let mut errors = vec![];
+        crate::errors::collect_parsing_errors(&node, b"", &mut errors);
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].start, 3);
+        assert_eq!(errors[0].end, 3);
+        assert!(matches!(
+            &errors[0].reason,
+            crate::errors::ParseErrorReason::MissingToken(kind) if kind == "unknown"
+        ));
+    }
 }
 
 impl Extract<()> for () {
@@ -1171,24 +1232,43 @@ pub mod errors {
         source: &[u8],
         errors: &mut Vec<ParseError>,
     ) {
-        // TODO: Implement error collection for pure-rust parser
-        // For now, just check if this is an error node
-        if false {
-            // TODO: Check if error node
-            let contents =
-                std::str::from_utf8(&source[node.start_byte..node.end_byte]).unwrap_or("");
-            if !contents.is_empty() {
-                errors.push(ParseError {
-                    reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
-                    start: node.start_byte,
-                    end: node.end_byte,
-                })
-            }
-        }
+        if node.is_error() {
+            if node.child(0).is_some() {
+                // We managed to parse some children, so collect nested failures.
+                let mut inner_errors = vec![];
+                for child in node.children() {
+                    collect_parsing_errors(child, source, &mut inner_errors);
+                }
 
-        // Recursively check children
-        for child in &node.children {
-            collect_parsing_errors(child, source, errors);
+                errors.push(ParseError {
+                    reason: ParseErrorReason::FailedNode(inner_errors),
+                    start: node.start_byte(),
+                    end: node.end_byte(),
+                });
+            } else {
+                match node.utf8_text(source) {
+                    Ok(contents) if !contents.is_empty() => errors.push(ParseError {
+                        reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
+                        start: node.start_byte(),
+                        end: node.end_byte(),
+                    }),
+                    Ok(_) | Err(_) => errors.push(ParseError {
+                        reason: ParseErrorReason::FailedNode(vec![]),
+                        start: node.start_byte(),
+                        end: node.end_byte(),
+                    }),
+                }
+            }
+        } else if node.is_missing() {
+            errors.push(ParseError {
+                reason: ParseErrorReason::MissingToken(node.kind().to_string()),
+                start: node.start_byte(),
+                end: node.end_byte(),
+            });
+        } else if node.has_error() {
+            for child in node.children() {
+                collect_parsing_errors(child, source, errors);
+            }
         }
     }
 }

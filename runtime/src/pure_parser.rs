@@ -452,6 +452,8 @@ impl Parser {
         let start_time = Instant::now();
         // Collect extra tokens so they can be attached to the final tree after parsing
         let mut extra_nodes: Vec<Subtree> = Vec::new();
+        // Collect error nodes so callers can harvest structured diagnostics from ParsedNode.
+        let mut error_nodes: Vec<Subtree> = Vec::new();
 
         // Main parsing loop
         let mut iteration_count = 0;
@@ -681,6 +683,15 @@ impl Parser {
                             root.end_byte = max_end_byte;
                             root.end_point = max_end_point;
                         }
+                        if !error_nodes.is_empty() {
+                            for error in error_nodes.drain(..) {
+                                if error.end_byte > root.end_byte {
+                                    root.end_byte = error.end_byte;
+                                    root.end_point = error.end_point;
+                                }
+                                root.children.push(error);
+                            }
+                        }
                         return ParseResult {
                             root: Some(subtree_to_node(root, Some(language as *const _))),
                             errors,
@@ -702,6 +713,41 @@ impl Parser {
                         expected: expected_symbols,
                         found: token.symbol,
                     });
+
+                    let end_byte = position.saturating_add(token.length).min(source.len());
+                    let end_point = if end_byte > position {
+                        advance_point(point, &source[position..end_byte])
+                    } else {
+                        point
+                    };
+                    let error_node = Subtree {
+                        symbol: token.symbol,
+                        children: Vec::new(),
+                        start_byte: position,
+                        end_byte,
+                        start_point: point,
+                        end_point,
+                        is_extra: false,
+                        is_error: true,
+                        is_missing: token.length == 0,
+                        production_id: 0,
+                        field_id: None,
+                    };
+
+                    if let Some(top) = self.stack.last_mut() {
+                        if let Some(ref mut node) = top.subtree {
+                            let prev_end_byte = node.end_byte;
+                            node.end_byte = node.end_byte.max(error_node.end_byte);
+                            if error_node.end_byte >= prev_end_byte {
+                                node.end_point = error_node.end_point;
+                            }
+                            node.children.push(error_node);
+                        } else {
+                            error_nodes.push(error_node);
+                        }
+                    } else {
+                        error_nodes.push(error_node);
+                    }
 
                     // Simple error recovery: skip token
                     if position < source.len() {

@@ -307,9 +307,23 @@ fn parse_with_pure_parser<T: Extract<T>>(
 
     let parse_result = parser.parse_string(input);
 
-    if !parse_result.errors.is_empty() {
-        let errors = parse_result
-            .errors
+    let crate::pure_parser::ParseResult {
+        root,
+        errors: parser_errors,
+    } = parse_result;
+
+    if let Some(ref root_node) = root
+        && root_node.has_error()
+    {
+        let mut errors = vec![];
+        crate::errors::collect_parsing_errors(root_node, input.as_bytes(), &mut errors);
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+    }
+
+    if !parser_errors.is_empty() {
+        let errors = parser_errors
             .into_iter()
             .map(|e| {
                 // Get symbol name from language if available
@@ -346,14 +360,18 @@ fn parse_with_pure_parser<T: Extract<T>>(
                 crate::errors::ParseError {
                     reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
                     start: e.position,
-                    end: e.position,
+                    end: if e.position < input.len() {
+                        e.position + 1
+                    } else {
+                        e.position
+                    },
                 }
             })
             .collect();
         return Err(errors);
     }
 
-    let root_node = match parse_result.root {
+    let root_node = match root {
         Some(root_node) => root_node,
         None => {
             return Err(vec![crate::errors::ParseError {
