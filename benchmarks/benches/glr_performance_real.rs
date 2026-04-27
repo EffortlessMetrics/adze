@@ -102,12 +102,12 @@ fn benchmark_real_parsing(c: &mut Criterion) {
     group.finish();
 }
 
-/// Benchmark fixture loading overhead (should be ~0ns with include_str!)
+/// Utility microbenchmark: fixture loading overhead (should be ~0ns with include_str!)
 ///
 /// This validates that compile-time embedding works correctly.
 /// With `include_str!()`, this should be just a pointer dereference.
 fn benchmark_fixture_loading(c: &mut Criterion) {
-    c.bench_function("fixture_loading_small", |b| {
+    c.bench_function("utility_fixture_loading_small", |b| {
         b.iter(|| {
             // With include_str!(), this is just a pointer dereference
             // Expected time: < 1 ns
@@ -116,7 +116,7 @@ fn benchmark_fixture_loading(c: &mut Criterion) {
         });
     });
 
-    c.bench_function("fixture_loading_large", |b| {
+    c.bench_function("utility_fixture_loading_large", |b| {
         b.iter(|| {
             let source = ARITH_LARGE;
             black_box(source)
@@ -124,15 +124,14 @@ fn benchmark_fixture_loading(c: &mut Criterion) {
     });
 }
 
-/// Benchmark parse result validation (tree traversal overhead)
+/// Utility microbenchmark: parse result flag check (not parser throughput)
 ///
-/// Measures cost of validating parse trees, which will be important
-/// for correctness testing alongside performance benchmarks.
+/// Measures only `Result::is_ok()` on a precomputed parse result.
 fn benchmark_parse_validation(c: &mut Criterion) {
     // Pre-parse once to get a tree for validation benchmarks
     let small_result = parse(ARITH_SMALL);
 
-    c.bench_function("validate_parse_result", |b| {
+    c.bench_function("utility_parse_result_is_ok", |b| {
         b.iter(|| {
             // Simulate validation: check if parse succeeded and extract result
             let is_valid = small_result.is_ok();
