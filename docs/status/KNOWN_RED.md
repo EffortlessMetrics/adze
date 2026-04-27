@@ -45,7 +45,7 @@ This lane is intentionally bounded so it stays reliable and fast enough for day-
 ### Not in the supported lane (workspace members / tools)
 These are intentionally excluded for now because they are prototypes, platform-sensitive, heavier than the supported contract, or still stabilizing:
 
-- `runtime2/` (alt runtime path; still converging)
+- `runtime2/` (experimental proving ground; see `docs/status/RUNTIME2_STATUS.md` for bounded support expectations and smoke coverage)
 - `cli/`, `lsp-generator/`, `playground/`, `wasm-demo/` (tooling/prototypes)
 - `golden-tests/` (useful contract, but can be heavy and multi-language)
 - `benchmarks/` (signal, not merge-blocking)
