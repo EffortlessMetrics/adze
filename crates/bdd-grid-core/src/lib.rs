@@ -12,6 +12,7 @@
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 use core::fmt::Write;
+use std::collections::BTreeSet;
 
 pub use adze_bdd_scenario_core::{BddPhase, BddScenario, BddScenarioStatus};
 
@@ -107,6 +108,57 @@ pub fn bdd_progress(phase: BddPhase, scenarios: &[BddScenario]) -> (usize, usize
     (implemented, scenarios.len())
 }
 
+/// Validate that a BDD scenario grid is well-formed.
+///
+/// Returns a list of human-readable issues. An empty list means the grid passed
+/// all built-in checks.
+///
+/// Current checks:
+/// - scenario IDs are unique
+/// - scenario IDs are strictly increasing (stable report ordering)
+/// - scenario titles are non-empty after trimming
+/// - scenario references are non-empty after trimming
+pub fn bdd_grid_integrity_issues(scenarios: &[BddScenario]) -> Vec<String> {
+    let mut issues = Vec::new();
+    let mut seen_ids = BTreeSet::new();
+    let mut previous_id = None::<u8>;
+
+    for (index, scenario) in scenarios.iter().enumerate() {
+        if !seen_ids.insert(scenario.id) {
+            issues.push(format!(
+                "Scenario index {index} has duplicate id {}.",
+                scenario.id
+            ));
+        }
+
+        if let Some(prev) = previous_id
+            && scenario.id <= prev
+        {
+            issues.push(format!(
+                "Scenario index {index} has non-increasing id {} (previous id was {prev}).",
+                scenario.id
+            ));
+        }
+        previous_id = Some(scenario.id);
+
+        if scenario.title.trim().is_empty() {
+            issues.push(format!(
+                "Scenario index {index} (id {}) has an empty title.",
+                scenario.id
+            ));
+        }
+
+        if scenario.reference.trim().is_empty() {
+            issues.push(format!(
+                "Scenario index {index} (id {}) has an empty reference.",
+                scenario.id
+            ));
+        }
+    }
+
+    issues
+}
+
 /// Shared formatting for BDD progress summaries.
 ///
 /// # Examples
@@ -130,6 +182,7 @@ pub fn bdd_progress_report(
     let mut out = String::new();
 
     let (implemented, total) = bdd_progress(phase, scenarios);
+    let integrity_issues = bdd_grid_integrity_issues(scenarios);
     out.push_str("\n=== BDD GLR Conflict Preservation Test Summary ===\n");
     out.push_str(phase_title);
     out.push('\n');
@@ -163,6 +216,13 @@ pub fn bdd_progress_report(
     if implemented < total {
         out.push_str("\nNext: Implement remaining deferred scenarios.");
     }
+    if !integrity_issues.is_empty() {
+        out.push_str("\nGrid integrity warnings:");
+        for issue in integrity_issues {
+            out.push_str("\n- ");
+            out.push_str(&issue);
+        }
+    }
 
     out
 }
@@ -189,5 +249,37 @@ mod tests {
             bdd_progress_report(BddPhase::Runtime, GLR_CONFLICT_PRESERVATION_GRID, "Runtime");
         assert!(report.contains("Runtime"));
         assert!(report.contains("Scenario 1"));
+    }
+
+    #[test]
+    fn canonical_grid_has_no_integrity_issues() {
+        let issues = bdd_grid_integrity_issues(GLR_CONFLICT_PRESERVATION_GRID);
+        assert!(issues.is_empty(), "unexpected integrity issues: {issues:?}");
+    }
+
+    #[test]
+    fn malformed_grid_reports_integrity_issues() {
+        let malformed = [
+            BddScenario {
+                id: 2,
+                title: "first",
+                reference: "REF-1",
+                core_status: BddScenarioStatus::Implemented,
+                runtime_status: BddScenarioStatus::Implemented,
+            },
+            BddScenario {
+                id: 2,
+                title: " ",
+                reference: "",
+                core_status: BddScenarioStatus::Deferred { reason: "todo" },
+                runtime_status: BddScenarioStatus::Deferred { reason: "todo" },
+            },
+        ];
+
+        let issues = bdd_grid_integrity_issues(&malformed);
+        assert!(!issues.is_empty());
+        assert!(issues.iter().any(|issue| issue.contains("duplicate id")));
+        assert!(issues.iter().any(|issue| issue.contains("empty title")));
+        assert!(issues.iter().any(|issue| issue.contains("empty reference")));
     }
 }
