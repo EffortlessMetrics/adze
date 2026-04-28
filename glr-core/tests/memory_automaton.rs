@@ -5,9 +5,15 @@
 mod memory_tests {
     use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
     use adze_ir::builder::GrammarBuilder;
+    use std::sync::Mutex;
+
+    static DHAT_PROFILER_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn dhat_heap_lr1_automaton() {
+        let _guard = DHAT_PROFILER_LOCK
+            .lock()
+            .expect("dhat profiler lock poisoned");
         let _profiler = dhat::Profiler::new_heap();
 
         let g = GrammarBuilder::new("memdemo")
@@ -26,6 +32,9 @@ mod memory_tests {
 
     #[test]
     fn dhat_heap_larger_grammar() {
+        let _guard = DHAT_PROFILER_LOCK
+            .lock()
+            .expect("dhat profiler lock poisoned");
         let _profiler = dhat::Profiler::new_heap();
 
         // Build a larger grammar to better see memory patterns
@@ -35,7 +44,7 @@ mod memory_tests {
             .token("PLUS", r"\+")
             .token("MINUS", r"-")
             .token("TIMES", r"\*")
-            .token("DIV", r"/")
+            .token("DIV", r"\/")
             .token("LPAREN", r"\(")
             .token("RPAREN", r"\)")
             .token("SEMICOLON", r";")

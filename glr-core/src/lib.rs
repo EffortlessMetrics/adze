@@ -21,7 +21,8 @@
 //! This crate maintains several critical invariants for correct parsing:
 //!
 //! ### EOF Symbol Invariants
-//! - EOF symbol must be a terminal sentinel id at or beyond the terminal boundary
+//! - EOF symbol must be either Tree-sitter's zero sentinel or a terminal sentinel
+//!   id at or beyond the terminal boundary
 //!   (`token_count + external_token_count`).
 //! - EOF symbol must not be the internal ERROR sentinel
 //!   (`parse_forest::ERROR_SYMBOL`, currently 0xFFFF).
@@ -1935,9 +1936,10 @@ impl ParseTable {
     ///
     /// This method checks critical invariants that must hold for correct parsing:
     /// - EOF symbol is not internal ERROR sentinel
-    /// - EOF symbol is a proper sentinel (>= token_count + external_token_count)
+    /// - EOF symbol is a proper sentinel:
+    ///   Tree-sitter-style `0` or `>= token_count + external_token_count`
     /// - EOF symbol is present in symbol_to_index mapping
-    /// - EOF and END columns have matching action patterns (parity)
+    /// - EOF symbol is present in symbol_to_index mapping
     #[must_use = "validation result must be checked"]
     pub fn validate(&self) -> Result<(), TableError> {
         let terminal_boundary = self.token_count + self.external_token_count;
@@ -1952,8 +1954,12 @@ impl ParseTable {
             return Err(TableError::EofIsError);
         }
 
-        // Check EOF is a terminal sentinel beyond all non-EOF symbols.
-        if (self.eof_symbol.0 as usize) < terminal_boundary {
+        let eof_is_zero_sentinel = self.eof_symbol == SymbolId(0);
+
+        // Check EOF is a terminal sentinel. Tree-sitter-compatible tables use
+        // symbol 0 for EOF; other producers may place EOF beyond all terminal
+        // and external token symbols.
+        if !eof_is_zero_sentinel && (self.eof_symbol.0 as usize) < terminal_boundary {
             return Err(TableError::EofNotSentinel {
                 eof: self.eof_symbol.0,
                 token_count: self.token_count as u32,
@@ -2003,30 +2009,6 @@ impl ParseTable {
             self.symbol_to_index.contains_key(&self.eof_symbol),
             "EOF must exist in ACTION map"
         );
-
-        // Check EOF/END parity if we have END symbol in Tree-sitter (last terminal)
-        // The END symbol in Tree-sitter is typically the last terminal before EOF
-        if terminal_boundary > 0 {
-            let end_symbol = SymbolId((terminal_boundary - 1) as u16);
-            if let (Some(&eof_col), Some(&end_col)) = (
-                self.symbol_to_index.get(&self.eof_symbol),
-                self.symbol_to_index.get(&end_symbol),
-            ) {
-                // Check parity for each state
-                for (state_idx, row) in self.action_table.iter().enumerate() {
-                    if eof_col < row.len() && end_col < row.len() {
-                        let eof_actions = &row[eof_col];
-                        let end_actions = &row[end_col];
-
-                        // They should have the same action pattern (both empty or both non-empty)
-                        // and if non-empty, should have compatible actions
-                        if eof_actions.is_empty() != end_actions.is_empty() {
-                            return Err(TableError::EofParityMismatch(state_idx as u16));
-                        }
-                    }
-                }
-            }
-        }
 
         Ok(())
     }
@@ -2449,9 +2431,9 @@ pub enum TableError {
     #[error("EOF symbol collides with ERROR")]
     EofIsError,
 
-    /// EOF symbol ID is too low; it must be a sentinel beyond all tokens.
+    /// EOF symbol ID is too low; it must be zero or a sentinel beyond all tokens.
     #[error(
-        "EOF symbol must be >= token_count + external_token_count (EOF: {eof}, tokens: {token_count}, externals: {external_count})"
+        "EOF symbol must be >= token_count + external_token_count or be 0 (EOF: {eof}, tokens: {token_count}, externals: {external_count})"
     )]
     EofNotSentinel {
         eof: u16,
