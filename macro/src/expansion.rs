@@ -1,6 +1,6 @@
 //! Grammar macro expansion from annotated Rust types to parser code.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::errors::IteratorExt as _;
 use adze_common::*;
@@ -285,6 +285,14 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
         .cloned()
         .map(|c| match c {
             Item::Enum(mut e) => {
+                    let enum_name = &e.ident;
+                    let mut variant_arity_counts = HashMap::<usize, usize>::new();
+                    for variant in &e.variants {
+                        *variant_arity_counts
+                            .entry(variant.fields.iter().count())
+                            .or_insert(0) += 1;
+                    }
+
                     let variant_detection_logic = e.variants.iter().map(|v| {
                         let extract_expr = gen_struct_or_variant(
                             v.fields.clone(),
@@ -305,6 +313,42 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                         Ok(detection_expr)
                     }).collect::<Result<Vec<_>>>()?;
+
+                    let unique_shape_variant_detection = e.variants.iter().filter_map(|v| {
+                        let arity = v.fields.iter().count();
+                        let arity_is_unique = variant_arity_counts
+                            .get(&arity)
+                            .copied()
+                            .unwrap_or_default()
+                            == 1;
+
+                        let is_leaf_variant = if let Fields::Unnamed(ref unnamed) = v.fields {
+                            unnamed.unnamed.len() == 1 && unnamed.unnamed[0]
+                                .attrs
+                                .iter()
+                                .any(|attr| attr.path() == &syn::parse_quote!(adze::leaf))
+                        } else {
+                            false
+                        };
+
+                        if !arity_is_unique || is_leaf_variant || arity == 0 {
+                            return None;
+                        }
+
+                        let extract_expr = gen_struct_or_variant(
+                            v.fields.clone(),
+                            Some(v.ident.clone()),
+                            e.ident.clone(),
+                            v.attrs.clone(),
+                        ).ok()?;
+
+                        Some(quote! {
+                            if unwrapped_node.kind() == stringify!(#enum_name) && non_extra_children.len() == #arity {
+                                let node = unwrapped_node;
+                                return #extract_expr;
+                            }
+                        })
+                    }).collect::<Vec<_>>();
 
                     let leaf_variant_detection = e.variants.iter().filter_map(|v| {
                         let is_leaf_variant = if let Fields::Unnamed(ref unnamed) = v.fields {
@@ -365,7 +409,6 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
                         Ok(detection_expr)
                     }).collect::<Result<Vec<_>>>()?;
 
-                    let enum_name = &e.ident;
                     let extract_impl: Item = if cfg!(feature = "pure-rust") {
                         syn::parse_quote! {
                             impl ::adze::Extract<#enum_name> for #enum_name {
@@ -395,6 +438,7 @@ pub fn expand_grammar(input: ItemMod) -> Result<ItemMod> {
 
                                     let node = unwrapped_node;
                                     #(#variant_detection_logic)*
+                                    #(#unique_shape_variant_detection)*
 
                                     if non_extra_children.is_empty() {
                                         let node = unwrapped_node;

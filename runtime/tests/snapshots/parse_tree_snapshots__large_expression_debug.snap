@@ -2,14 +2,62 @@
 source: runtime/tests/parse_tree_snapshots.rs
 expression: "safe_arith_parse_debug(\"1-2-3-4-5-6-7-8-9-10\")"
 ---
-Err(
-    [
-        ParseError {
-            reason: UnexpectedToken(
-                "TreeSitter backend is not supported in pure-rust mode",
+Ok(
+    Sub(
+        Sub(
+            Sub(
+                Sub(
+                    Sub(
+                        Sub(
+                            Sub(
+                                Sub(
+                                    Sub(
+                                        Number(
+                                            1,
+                                        ),
+                                        (),
+                                        Number(
+                                            2,
+                                        ),
+                                    ),
+                                    (),
+                                    Number(
+                                        3,
+                                    ),
+                                ),
+                                (),
+                                Number(
+                                    4,
+                                ),
+                            ),
+                            (),
+                            Number(
+                                5,
+                            ),
+                        ),
+                        (),
+                        Number(
+                            6,
+                        ),
+                    ),
+                    (),
+                    Number(
+                        7,
+                    ),
+                ),
+                (),
+                Number(
+                    8,
+                ),
             ),
-            start: 0,
-            end: 0,
-        },
-    ],
+            (),
+            Number(
+                9,
+            ),
+        ),
+        (),
+        Number(
+            10,
+        ),
+    ),
 )
