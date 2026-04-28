@@ -19,6 +19,7 @@ pub mod regex_grammar;
 pub mod repetitions;
 pub mod test_precedence;
 pub mod test_whitespace;
+pub mod typed_ast_contract;
 pub mod words;
 
 // Tree-sitter compatibility language helpers
