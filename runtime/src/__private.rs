@@ -201,6 +201,19 @@ pub fn extract_field<LT: Extract<T>, T>(
                 } else {
                     return LT::extract(None, source, *last_idx, closure_ref);
                 }
+            } else if field_name
+                .parse::<usize>()
+                .is_ok_and(|idx| idx == cursor.current_index)
+            {
+                let out = LT::extract(Some(n), source, *last_idx, closure_ref);
+
+                if !cursor.goto_next_sibling() {
+                    *cursor_opt = None;
+                }
+
+                *last_idx = n.end_byte;
+
+                return out;
             } else {
                 *last_idx = n.end_byte;
             }
@@ -411,21 +424,19 @@ fn parse_with_glr<T: Extract<T>>(
     input: &str,
     language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
-    // GLR Parser Integration (In Progress)
-    //
-    // Current Status:
-    // ✅ parser_v4 module exists with GLR fork/merge logic
-    // ✅ parser_v4::from_language() can load from TSLanguage structs
-    // ✅ parser_v4::parse() now returns an arena-backed Tree
-    // ✅ parser_v4::parse_tree() returns ParseNode for conversion
-    //
-    // Design Note:
-    // parser_v4::parse() now returns Tree for callers that need tree-shaped APIs,
-    // while parse_tree() is used by typed extraction.
     use crate::parser_v4::Parser;
+    use adze_glr_core::conflict_inspection::state_has_conflicts;
+    use adze_ir::StateId;
 
-    // Get the language
+    // Get the language and inspect the parse table for real conflicts.
     let lang = language();
+    let parse_table = crate::decoder::decode_parse_table(lang);
+    let has_conflicts = (0..parse_table.state_count)
+        .any(|state| state_has_conflicts(&parse_table, StateId(state as u16)));
+
+    if has_conflicts {
+        return parse_with_true_glr_runtime::<T>(input, lang, parse_table);
+    }
 
     // Create parser from TSLanguage with the correct grammar name for external scanner lookup
     let mut parser = Parser::from_language(lang, T::GRAMMAR_NAME.to_string());
@@ -469,6 +480,123 @@ fn parse_with_glr<T: Extract<T>>(
         0,
         None,
     ))
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn parse_with_true_glr_runtime<T: Extract<T>>(
+    input: &str,
+    language: &'static crate::pure_parser::TSLanguage,
+    parse_table: adze_glr_core::ParseTable,
+) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
+    let source = input.as_bytes();
+    let grammar = crate::decoder::decode_grammar(language);
+    let mut lexer = match crate::glr_lexer::GLRLexer::new(&grammar, input.to_string()) {
+        Ok(lexer) => lexer,
+        Err(message) => {
+            return Err(vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                start: 0,
+                end: source.len(),
+            }]);
+        }
+    };
+
+    let mut parser = crate::glr_parser::GLRParser::new(parse_table, grammar);
+
+    while let Some(token) = lexer.next_token() {
+        parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+    }
+
+    parser.process_eof(source.len());
+    let root_node = match parser.finish() {
+        Ok(root_node) => root_node,
+        Err(message) => {
+            return Err(vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                start: 0,
+                end: source.len(),
+            }]);
+        }
+    };
+
+    let parsed_node = convert_subtree_to_pure(&root_node, language, source);
+    let non_extra_root_children: Vec<_> = parsed_node
+        .children
+        .iter()
+        .filter(|c| !c.is_extra)
+        .collect();
+    let extract_node = if parsed_node.kind() == "source_file" && non_extra_root_children.len() == 1
+    {
+        non_extra_root_children[0]
+    } else {
+        &parsed_node
+    };
+
+    if extract_node.has_error() {
+        let mut errors = vec![];
+        crate::errors::collect_parsing_errors(extract_node, source, &mut errors);
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+    }
+
+    Ok(<T as crate::Extract<_>>::extract(
+        Some(extract_node),
+        source,
+        0,
+        None,
+    ))
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn convert_subtree_to_pure(
+    subtree: &crate::subtree::Subtree,
+    language: &'static crate::pure_parser::TSLanguage,
+    source: &[u8],
+) -> crate::pure_parser::ParsedNode {
+    let is_named = if (subtree.node.symbol_id.0 as usize) < language.symbol_count as usize
+        && !language.symbol_metadata.is_null()
+    {
+        // SAFETY: `symbol_metadata` is a pointer to `symbol_count` entries.
+        // `subtree.node.symbol_id` was checked to be in bounds above.
+        let metadata = unsafe {
+            *language
+                .symbol_metadata
+                .add(subtree.node.symbol_id.0 as usize)
+        };
+        (metadata & 0x02) != 0
+    } else {
+        true
+    };
+
+    let children = subtree
+        .children
+        .iter()
+        .map(|child| {
+            let mut parsed_child = convert_subtree_to_pure(&child.subtree, language, source);
+            parsed_child.field_id = if child.field_id == crate::subtree::FIELD_NONE {
+                None
+            } else {
+                Some(child.field_id)
+            };
+            parsed_child
+        })
+        .collect();
+
+    crate::pure_parser::ParsedNode {
+        symbol: subtree.node.symbol_id.0,
+        children,
+        start_byte: subtree.node.byte_range.start,
+        end_byte: subtree.node.byte_range.end,
+        start_point: byte_to_point(source, subtree.node.byte_range.start),
+        end_point: byte_to_point(source, subtree.node.byte_range.end),
+        is_extra: false,
+        is_error: subtree.node.is_error,
+        is_missing: false,
+        is_named,
+        field_id: None,
+        language: Some(language as *const _),
+    }
 }
 
 /// Convert parser_v4::ParseNode to pure_parser::ParsedNode
