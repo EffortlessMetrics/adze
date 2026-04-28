@@ -22,6 +22,7 @@ pub mod typed_ast {
     }
 
     #[adze::extra]
+    #[allow(dead_code)]
     struct Whitespace {
         #[adze::leaf(pattern = r"\s")]
         _ws: (),
