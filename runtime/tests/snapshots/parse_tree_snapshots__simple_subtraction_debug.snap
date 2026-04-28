@@ -2,14 +2,14 @@
 source: runtime/tests/parse_tree_snapshots.rs
 expression: "safe_arith_parse_debug(\"1-2\")"
 ---
-Err(
-    [
-        ParseError {
-            reason: UnexpectedToken(
-                "TreeSitter backend is not supported in pure-rust mode",
-            ),
-            start: 0,
-            end: 0,
-        },
-    ],
+Ok(
+    Sub(
+        Number(
+            1,
+        ),
+        (),
+        Number(
+            2,
+        ),
+    ),
 )
