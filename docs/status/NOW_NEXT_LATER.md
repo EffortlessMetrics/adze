@@ -4,6 +4,7 @@
 **Status:** **Post-release hardening on `main`** — `adze` 0.8.0 is live on crates.io, the supported gate remains green, there is no open PR stack, and the remaining work is the residual advisory/broad CI tail on current `main`.
 
 Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For the (substantially complete) post-PR264 follow-up plan, see [`plans/POST-PR264-CI-FOLLOWUPS.md`](../../plans/POST-PR264-CI-FOLLOWUPS.md).
+For the Wave 2 semantic substrate execution plan, see [`plans/WAVE2-SEMANTIC-FACT-SUBSTRATE.md`](../../plans/WAVE2-SEMANTIC-FACT-SUBSTRATE.md).
 
 ---
 
