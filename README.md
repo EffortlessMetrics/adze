@@ -6,12 +6,19 @@
 [![MSRV](https://img.shields.io/badge/MSRV-1.92-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
 
-**Define your grammar as Rust types. Get a typed AST back.**
+**Your grammar is your AST.** Formerly `rust-sitter`.
 
-Adze (formerly `rust-sitter`) is an AST-first grammar toolchain for Rust.
-Describe your language with enums and structs, and the build tooling generates
-an optimized GLR parser that returns your own types — no manual tree-walking
-required.
+Most parser generators make you maintain two things: the grammar and the AST you actually want to use. Adze collapses those into one. You describe your language as Rust types, and the build tooling generates a parser that returns those types directly.
+
+```text
+grammar as Rust types  →  generated parser  →  typed Rust AST
+```
+
+not:
+
+```text
+grammar  →  generic tree  →  hand-written tree walker  →  hand-written AST mapper
+```
 
 ```rust
 #[adze::grammar("arithmetic")]
@@ -19,10 +26,13 @@ pub mod grammar {
     #[adze::language]
     #[derive(Debug, PartialEq)]
     pub enum Expr {
-        Number(#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())] i32),
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32,
+        ),
 
         #[adze::prec_left(1)]
-        Sub(Box<Expr>, #[adze::leaf(text = "-")] (), Box<Expr>),
+        Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
 
         #[adze::prec_left(2)]
         Mul(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>),
@@ -30,21 +40,16 @@ pub mod grammar {
 
     #[adze::extra]
     struct Whitespace {
-        #[adze::leaf(pattern = r"\s")]
+        #[adze::leaf(pattern = r"\s+")]
         _ws: (),
     }
 }
 
-fn main() {
-    let ast = grammar::parse("1 - 2 * 3").unwrap();
-    // ast = Sub(Number(1), (), Mul(Number(2), (), Number(3)))
-    println!("{ast:?}");
-}
+let expr = grammar::parse("1 + 2 * 3")?;
+// expr = Add(Number(1), (), Mul(Number(2), (), Number(3)))
 ```
 
-## Quick Start
-
-Add the dependencies to your `Cargo.toml`:
+## Install
 
 ```toml
 [dependencies]
@@ -54,122 +59,88 @@ adze = "0.8"
 adze-tool = "0.8"
 ```
 
-Create a `build.rs` in your project root:
+Add a `build.rs` pointing at the file that contains your `#[adze::grammar]` module:
 
 ```rust
 use std::path::PathBuf;
 
 fn main() {
-    // Point this at the file containing your `#[adze::grammar(...)]` module.
-    // Use `src/main.rs` for binary crates, or `src/lib.rs` for library crates.
-    adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
+    // src/lib.rs for library crates, src/main.rs for binary crates
+    adze_tool::build_parsers(&PathBuf::from("src/lib.rs"));
 }
 ```
 
-Define your grammar with `#[adze::grammar]` attributes in your Rust source,
-then call `grammar::parse(input)` to get a `Result<YourType, Vec<ParseError>>`.
+Then call `grammar::parse(input)` to get `Result<YourType, Vec<ParseError>>`.
 
-See the [Getting Started tutorial](./docs/tutorials/getting-started.md) for a
-complete walkthrough.
+See the [Getting Started tutorial](./docs/tutorials/getting-started.md) for a full walkthrough.
 
-## Features
+## Current status
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **Typed extraction** | ✅ Stable | Grammar *is* your AST — parse directly into your Rust types |
-| **Pure Rust** | ✅ Stable | Default backend is 100% Rust; no C toolchain needed |
-| **GLR parsing** | ✅ Stable | Handles ambiguous grammars (C++, JavaScript, etc.) |
-| **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for disambiguation |
-| **WASM support** | ✅ Stable | Compile parsers to WebAssembly with `features = ["wasm"]` |
-| **Tree-sitter interop** | ✅ Stable | Import existing Tree-sitter grammars via `ts-bridge` |
-| **Serialization** | ✅ Stable | JSON and S-expression output with `features = ["serialization"]` |
-| **External scanners** | 🧪 Experimental | Custom tokenization via `ExternalScanner` trait |
-| **Incremental parsing** | 🧪 Experimental | Re-parse only edited regions (falls back to fresh parse) |
+Adze is under active development. The core parser pipeline is working and tested. Some broader surfaces — WASM, grammar crates, golden tests, benchmarks, Tree-sitter bridge — are still being hardened.
 
-### Cargo Features
+| Surface                     | Status                      | Notes                                                                                            |
+| --------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------ |
+| Pure-Rust parser generation | Supported / hardening       | Default path for generated parsers.                                                              |
+| Typed AST extraction        | Supported for proven shapes | Exact-value tests define the contract.                                                           |
+| Operator precedence         | Supported / hardening       | Used for expression grammars.                                                                    |
+| GLR routing                 | Stabilizing                 | True GLR conflict routing is in place; broader ambiguity behavior is still being expanded.       |
+| Structured parse errors     | Stabilizing                 | Covered by focused runtime tests.                                                                |
+| External scanners           | Experimental                | Useful, but not yet a broad support claim.                                                       |
+| Incremental parsing         | Experimental                | Exists, but should be treated as a developing surface.                                           |
+| Tree-sitter bridge          | Advisory                    | Useful interop path; workflow and parity coverage are being hardened.                            |
+| WASM                        | Advisory                    | Compile/proof surface is being expanded; runtime/browser execution is not yet the main contract. |
+| Grammar crates              | Advisory                    | Valuable smoke coverage; not all grammar crates are production-ready.                            |
+| Benchmarks                  | Advisory                    | Benchmarks are signal, not support proof.                                                        |
 
-```toml
-# Default: pure-Rust backend
-adze = "0.8"
+Adze is a good fit if you are building a parser or DSL in Rust, you control the grammar, and you want the result as plain Rust types integrated into a normal Cargo build. It is not yet a drop-in replacement for mature parser generators, and surfaces outside the core lane should be treated as developing.
 
-# Enable GLR parser for ambiguous grammars
-adze = { version = "0.8", features = ["glr"] }
+## How it works
 
-# Enable WASM support
-adze = { version = "0.8", features = ["wasm"] }
+At build time, `adze-tool` reads your annotated Rust types, constructs a grammar IR, computes LR(1)/GLR parse tables via `adze-glr-core`, and emits generated Rust through `adze-tablegen`. At runtime, `adze` uses those tables to parse input and return your typed value directly — no generic tree, no secondary mapping step.
 
-# Use the standard C Tree-sitter runtime instead
-adze = { version = "0.8", default-features = false, features = ["tree-sitter-standard"] }
+```text
+adze-macro  →  adze-tool  →  adze-ir  →  adze-glr-core  →  adze-tablegen  →  adze runtime  →  typed extraction
 ```
 
-## Why Adze?
+## Repository layout
 
-- **Type safety** — Your grammar *is* your AST. No manual mapping from generic
-  tree nodes to domain types. Parse errors are caught at the type level.
-- **Pure Rust** — The default runtime needs no C compiler, making
-  cross-compilation and WASM targets straightforward.
-- **GLR power** — Handles inherently ambiguous grammars that standard LR(1)
-  parsers cannot, with automatic fork/merge at conflict points.
-- **Interoperable** — Import existing Tree-sitter grammars and export
-  Tree-sitter-compatible parse tables.
+| Crate           | Role                                                  |
+| --------------- | ----------------------------------------------------- |
+| `adze`          | Runtime parser, parse trees, typed extraction, errors |
+| `adze-macro`    | Grammar attributes and extraction support             |
+| `adze-tool`     | Build-time parser generation                          |
+| `adze-ir`       | Grammar intermediate representation                   |
+| `adze-glr-core` | LR/GLR automata, conflicts, ambiguity machinery       |
+| `adze-tablegen` | Parse table generation and compression                |
 
-## How It Works
-
-```
-  ┌─────────────┐    build.rs     ┌──────────────┐    compile    ┌─────────────┐
-  │  Rust types  │ ──────────────▶ │  Parse tables │ ──────────▶  │  Runtime    │
-  │  + #[adze]   │   adze-tool    │  (generated)  │              │  parser     │
-  └─────────────┘                 └──────────────┘              └──────┬──────┘
-                                                                       │
-                                                            text ──▶ parse()
-                                                                       │
-                                                                ▼
-                                                        Result<YourType, Vec<ParseError>>
-```
-
-1. **Define** — Annotate Rust enums/structs with `#[adze::grammar]`,
-   `#[adze::language]`, `#[adze::leaf]`, and precedence attributes.
-2. **Generate** — `adze-tool` in `build.rs` extracts your grammar, builds an
-   IR, computes LR(1)/GLR parse tables, and emits optimized Rust code.
-3. **Parse** — At runtime, call `grammar::parse(input)` to get back your typed
-   AST or a list of parse errors.
-
-### Workspace Crates
-
-| Crate | Role |
-|-------|------|
-| [`adze`](./runtime/) | Runtime library — parsing, extraction, error handling |
-| [`adze-macro`](./macro/) | Proc-macro attributes (`#[adze::grammar]`, etc.) |
-| [`adze-tool`](./tool/) | Build-time code generation (called from `build.rs`) |
-| [`adze-ir`](./ir/) | Grammar intermediate representation |
-| [`adze-glr-core`](./glr-core/) | GLR table generation — FIRST/FOLLOW, LR(1) items, conflicts |
-| [`adze-tablegen`](./tablegen/) | Parse table compression and FFI-compatible output |
+Additional workspace areas include grammar crates, benchmarks, WASM demos, golden tests, bridge tooling, and test-support infrastructure. These are useful but not all are part of the supported core lane.
 
 ## Documentation
 
-- [**Getting Started**](./docs/tutorials/getting-started.md) — Build your first parser in 5 minutes
-- [**Architecture**](./docs/explanations/architecture.md) — How the macro, tool, and runtime fit together
-- [**Grammar Examples**](./docs/reference/grammar-examples.md) — Patterns for common language constructs
-- [**Quick Reference**](./QUICK_REFERENCE.md) — Attribute cheat sheet
-- [**API Reference**](https://docs.rs/adze) — Generated API docs on docs.rs
+- [Getting Started](./docs/tutorials/getting-started.md) — build your first parser
+- [Architecture](./docs/explanations/architecture.md) — how the macro, tool, and runtime fit together
+- [Grammar Examples](./docs/reference/grammar-examples.md) — patterns for common constructs
+- [API Reference](https://docs.rs/adze) — generated docs on docs.rs
 
 ## Contributing
 
-Contributions are welcome! Please see [`CONTRIBUTING.md`](./CONTRIBUTING.md) for
-guidelines and [`ROADMAP.md`](./ROADMAP.md) for planned work.
+Contributions are welcome. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidelines, [`ROADMAP.md`](./ROADMAP.md) for planned work, and the [Developer Guide](./docs/DEVELOPER_GUIDE.md) for internal setup.
 
-For internal development setup, see the
-[Developer Guide](./docs/DEVELOPER_GUIDE.md).
+## Development
+
+```bash
+just ci-supported      # required PR gate — fmt + clippy + tests on core crates
+just test              # core lib tests
+just clippy            # lint core crates
+cargo fmt --all --check
+cargo t2               # tests with 2 threads
+```
 
 ## License
 
-Licensed under either of
+Licensed under either:
 
-- [Apache License, Version 2.0](./LICENSE-APACHE)
-- [MIT License](./LICENSE-MIT)
+- Apache-2.0
+- MIT
 
 at your option.
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
