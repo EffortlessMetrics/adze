@@ -591,7 +591,7 @@ fn error_recovering_lexer_fail_mode() {
 }
 
 #[test]
-fn glr_lexer_skips_unknown_and_continues() {
+fn glr_lexer_stops_at_unknown_input() {
     let mut grammar = Grammar::new("test".to_string());
     grammar.tokens.insert(
         SymbolId(1),
@@ -602,11 +602,11 @@ fn glr_lexer_skips_unknown_and_continues() {
         },
     );
 
-    // '@' is not matched — GLRLexer skips it and continues
+    // '@' is not matched — GLRLexer now stops at first unknown input
     let mut lexer = GLRLexer::new(&grammar, "@ 42".to_string()).unwrap();
     let tokens = lexer.tokenize_all();
-    assert_eq!(tokens.len(), 1);
-    assert_eq!(tokens[0].text, "42");
+    assert!(tokens.is_empty());
+    assert_eq!(lexer.invalid_span(), Some((0, 1)));
 }
 
 // ---------------------------------------------------------------------------
