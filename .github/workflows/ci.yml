@@ -941,10 +941,10 @@ jobs:
       - name: List discovered tests (${{ matrix.features || 'default-features' }})
         run: |
           set -e
-          cargo nextest list --workspace ${{ matrix.features }} > .nextest-list.txt
+          cargo nextest list --workspace ${{ matrix.features }} --message-format oneline > .nextest-list.txt
           echo "### Discovered tests for feature set: ${{ matrix.features || 'default' }}"
           head -200 .nextest-list.txt || true
-          COUNT=$(grep -E '^\s+(test|bench|example)' .nextest-list.txt | wc -l | tr -d ' ')
+          COUNT=$(grep -cve '^[[:space:]]*$' .nextest-list.txt)
           echo "TOTAL_DISCOVERED_TESTS=$COUNT" >> $GITHUB_ENV
           echo "Total discovered: $COUNT tests"
 
