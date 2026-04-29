@@ -1,4 +1,4 @@
-use adze_glr_core::{Action, GotoIndexing, ParseTable, SymbolMetadata};
+use adze_glr_core::{Action, GotoIndexing, ParseRule, ParseTable, SymbolMetadata};
 /// Test grammars for benchmarking incremental parsing
 use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId,
@@ -145,6 +145,14 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         },
     ];
 
+    let parse_rules = rules
+        .iter()
+        .map(|rule| ParseRule {
+            lhs: rule.lhs,
+            rhs_len: rule.rhs.len() as u16,
+        })
+        .collect();
+
     grammar.rules.insert(expr_symbol, rules);
 
     // Add rule names
@@ -283,8 +291,8 @@ pub fn load_arithmetic_grammar() -> (Grammar, ParseTable) {
         action_table,
         goto_table,
 
-        // Grammar rules (empty for this test grammar)
-        rules: vec![],
+        // Grammar rules used by GLR reductions.
+        rules: parse_rules,
 
         // Shapes
         state_count,
