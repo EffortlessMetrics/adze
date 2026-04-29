@@ -1,0 +1,30 @@
+name: Product Proof (Advisory)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 4 * * 1' # weekly Monday advisory canary
+
+permissions:
+  contents: read
+
+jobs:
+  ci-product:
+    name: ci-product advisory canaries
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Show canary plan (dry-run)
+        run: scripts/ci-product.sh --dry-run
+
+      - name: Run ci-product advisory lane
+        run: scripts/ci-product.sh
