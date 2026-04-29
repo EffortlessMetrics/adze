@@ -694,7 +694,10 @@ mod tests {
         reset_reuse_counter();
         let f = p.parse_incremental(&new_toks, &[edit]).unwrap();
         assert!(!f.alternatives.is_empty());
-        assert!(get_reuse_count() <= new_toks.len());
+        assert!(
+            get_reuse_count() > 0,
+            "compatible incremental edit should reuse at least one subtree"
+        );
     }
 
     // ─── Test 23: Parse error on invalid input ──────────────────────
