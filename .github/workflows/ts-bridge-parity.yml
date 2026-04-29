@@ -23,7 +23,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq libtree-sitter-dev pkg-config
       - name: Build ts-bridge
-        run: cargo build -p ts-bridge --release
+        run: cargo build --manifest-path tools/ts-bridge/Cargo.toml --release --target-dir target
       - name: Run parity cases
         run: |
           set -e
