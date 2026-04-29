@@ -6,27 +6,9 @@
 [![MSRV](https://img.shields.io/badge/MSRV-1.92-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
 
-**Typed parser generation for Rust.** Formerly `rust-sitter`.
+**Your grammar is your AST.** Formerly `rust-sitter`.
 
-Describe a grammar with Rust enums and structs. Get a typed AST back. No tree-walking required.
-
-```toml
-[dependencies]
-adze = "0.8"
-
-[build-dependencies]
-adze-tool = "0.8"
-```
-
-See the [Getting Started tutorial](./docs/tutorials/getting-started.md) for a full walkthrough.
-
----
-
-## What problem does Adze solve?
-
-Parser generators usually make you maintain two models: the grammar and the AST you actually want to use. Adze collapses those into one.
-
-The goal is:
+Most parser generators make you maintain two things: the grammar and the AST you actually want to use. Adze collapses those into one. You describe your language as Rust types, and the build tooling generates a parser that returns those types directly.
 
 ```text
 grammar as Rust types  →  generated parser  →  typed Rust AST
@@ -37,8 +19,6 @@ not:
 ```text
 grammar  →  generic tree  →  hand-written tree walker  →  hand-written AST mapper
 ```
-
-You write Rust types:
 
 ```rust
 #[adze::grammar("arithmetic")]
@@ -64,20 +44,22 @@ pub mod grammar {
         _ws: (),
     }
 }
-```
 
-Then parse directly into those types:
-
-```rust
 let expr = grammar::parse("1 + 2 * 3")?;
 // expr = Add(Number(1), (), Mul(Number(2), (), Number(3)))
 ```
 
-## Quick start
+## Install
 
-**1. Add dependencies** (shown above).
+```toml
+[dependencies]
+adze = "0.8"
 
-**2. Add a `build.rs`** pointing at the file that contains your `#[adze::grammar]` module:
+[build-dependencies]
+adze-tool = "0.8"
+```
+
+Add a `build.rs` pointing at the file that contains your `#[adze::grammar]` module:
 
 ```rust
 use std::path::PathBuf;
@@ -88,19 +70,13 @@ fn main() {
 }
 ```
 
-**3. Define your grammar** with `#[adze::grammar]`, `#[adze::language]`, `#[adze::leaf]`, and precedence attributes in your Rust source.
+Then call `grammar::parse(input)` to get `Result<YourType, Vec<ParseError>>`.
 
-**4. Parse:** call the generated `grammar::parse(input)` to get `Result<YourType, Vec<ParseError>>`.
+See the [Getting Started tutorial](./docs/tutorials/getting-started.md) for a full walkthrough.
 
 ## Current status
 
 Adze is under active development. The core parser pipeline is working and tested. Some broader surfaces — WASM, grammar crates, golden tests, benchmarks, Tree-sitter bridge — are still being hardened.
-
-The supported lane runs through these crates:
-
-```text
-adze-macro  →  adze-tool  →  adze-ir  →  adze-glr-core  →  adze-tablegen  →  adze runtime  →  typed extraction
-```
 
 | Surface                     | Status                      | Notes                                                                                            |
 | --------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -116,49 +92,15 @@ adze-macro  →  adze-tool  →  adze-ir  →  adze-glr-core  →  adze-tablegen
 | Grammar crates              | Advisory                    | Valuable smoke coverage; not all grammar crates are production-ready.                            |
 | Benchmarks                  | Advisory                    | Benchmarks are signal, not support proof.                                                        |
 
-## What Adze is good for today
-
-- Building a parser or DSL in Rust where you control the grammar
-- Projects that want the AST as plain Rust types, not a second mapping layer
-- Pure-Rust builds with no C toolchain dependency
-- Parser generation integrated into `build.rs` as part of a normal Cargo workflow
-
-## What Adze is not yet
-
-- A drop-in replacement for mature, broadly-tested parser generators
-- A guaranteed-stable surface for large real-world grammars
-- Full Tree-sitter grammar import parity
-- Proven browser/runtime WASM execution
-- Stable incremental parsing or external scanner contracts
-- Alternative runtime implementations or internal policy infrastructure
-
-Those areas exist in the codebase and may work in practice. They are not part of the same support tier as the core pipeline.
+Adze is a good fit if you are building a parser or DSL in Rust, you control the grammar, and you want the result as plain Rust types integrated into a normal Cargo build. It is not yet a drop-in replacement for mature parser generators, and surfaces outside the core lane should be treated as developing.
 
 ## How it works
 
-```text
-Rust types + #[adze]
-        │
-        ▼
-adze-macro extracts grammar shape
-        │
-        ▼
-adze-tool builds grammar IR
-        │
-        ▼
-adze-glr-core builds parse automata
-        │
-        ▼
-adze-tablegen emits parse tables / generated Rust
-        │
-        ▼
-adze runtime parses input
-        │
-        ▼
-typed extraction returns your AST
-```
+At build time, `adze-tool` reads your annotated Rust types, constructs a grammar IR, computes LR(1)/GLR parse tables via `adze-glr-core`, and emits generated Rust through `adze-tablegen`. At runtime, `adze` uses those tables to parse input and return your typed value directly — no generic tree, no secondary mapping step.
 
-The key boundary is typed extraction. Adze is not done when it can parse text into nodes; it is done when it returns the expected Rust value for the grammar shape being claimed.
+```text
+adze-macro  →  adze-tool  →  adze-ir  →  adze-glr-core  →  adze-tablegen  →  adze runtime  →  typed extraction
+```
 
 ## Repository layout
 
@@ -173,7 +115,18 @@ The key boundary is typed extraction. Adze is not done when it can parse text in
 
 Additional workspace areas include grammar crates, benchmarks, WASM demos, golden tests, bridge tooling, and test-support infrastructure. These are useful but not all are part of the supported core lane.
 
-## Running the core checks
+## Documentation
+
+- [Getting Started](./docs/tutorials/getting-started.md) — build your first parser
+- [Architecture](./docs/explanations/architecture.md) — how the macro, tool, and runtime fit together
+- [Grammar Examples](./docs/reference/grammar-examples.md) — patterns for common constructs
+- [API Reference](https://docs.rs/adze) — generated docs on docs.rs
+
+## Contributing
+
+Contributions are welcome. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidelines, [`ROADMAP.md`](./ROADMAP.md) for planned work, and the [Developer Guide](./docs/DEVELOPER_GUIDE.md) for internal setup.
+
+## Development
 
 ```bash
 just ci-supported      # required PR gate — fmt + clippy + tests on core crates
@@ -182,42 +135,6 @@ just clippy            # lint core crates
 cargo fmt --all --check
 cargo t2               # tests with 2 threads
 ```
-
-## Design principles
-
-- The grammar should be readable as Rust.
-- The AST should be the user's Rust type, not a second mapping layer.
-- Ambiguity should be handled explicitly, not hidden by silent fallback.
-- Claims should be tied to proof commands.
-- Unsupported or advisory surfaces should be labeled as such.
-
-## Documentation
-
-- [Getting Started](./docs/tutorials/getting-started.md) — build your first parser
-- [Architecture](./docs/explanations/architecture.md) — how the macro, tool, and runtime fit together
-- [Grammar Examples](./docs/reference/grammar-examples.md) — patterns for common constructs
-- [API Reference](https://docs.rs/adze) — generated docs on docs.rs
-
-## Roadmap
-
-Near-term:
-
-- expand the typed-extraction shape matrix
-- keep GLR conflict routing honest and tested
-- improve diagnostics around grammar/build/runtime failures
-- add advisory CI coverage for broader surfaces
-
-Longer-term:
-
-- stronger grammar crate canaries
-- stricter golden output tests
-- browser/runtime WASM proof
-- deeper Tree-sitter bridge parity
-- clearer benchmark baselines
-
-## Contributing
-
-Contributions are welcome. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidelines and [`ROADMAP.md`](./ROADMAP.md) for planned work. For internal development setup, see the [Developer Guide](./docs/DEVELOPER_GUIDE.md).
 
 ## License
 
