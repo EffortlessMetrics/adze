@@ -318,13 +318,14 @@ pub fn build_parser_from_grammar_js(
 
     // Grammar converted successfully
 
-    #[cfg(feature = "optimize")]
-    let grammar = {
-        use adze_ir::optimizer::optimize_grammar;
-        optimize_grammar(grammar).context("Failed to optimize grammar")?
-    };
-
-    // Grammar optimized successfully
+    // TODO: Re-enable optimization after fixing unit rule elimination.
+    //
+    // The grammar.js path produces pattern-wrapper unit productions such as
+    // `source -> item` and `item -> TOKEN`. The current optimizer can remove
+    // those unit productions without preserving an equivalent start rule,
+    // leaving a grammar with tokens but no rules under `--all-features`.
+    // Keep this aligned with `build_parser_from_json` until that optimizer
+    // behavior is fixed.
 
     // Build the parser
     build_parser(grammar, options)
