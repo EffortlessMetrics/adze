@@ -124,7 +124,7 @@ impl GLRLexer {
 
     /// Get the next token from input
     pub fn next_token(&mut self) -> Option<TokenWithPosition> {
-        loop {
+        'tokenize: loop {
             // Skip whitespace
             self.skip_whitespace();
 
@@ -140,7 +140,7 @@ impl GLRLexer {
                     if len == 0 {
                         // Defensive no-progress guard for any future matcher regressions.
                         self.position = self.advance_one_char(self.position);
-                        continue;
+                        continue 'tokenize;
                     }
                     // Ensure we're not splitting a UTF-8 sequence
                     let end_pos = self.position + len;
