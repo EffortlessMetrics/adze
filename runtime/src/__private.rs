@@ -506,6 +506,15 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
     while let Some(token) = lexer.next_token() {
         parser.process_token(token.symbol_id, &token.text, token.byte_offset);
     }
+    if let Some((start, end)) = lexer.invalid_span() {
+        return Err(vec![crate::errors::ParseError {
+            reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                "unexpected token while lexing".to_string(),
+            ),
+            start,
+            end,
+        }]);
+    }
 
     parser.process_eof(source.len());
     let root_node = match parser.finish() {

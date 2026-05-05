@@ -25,6 +25,8 @@ pub struct GLRLexer {
     input: String,
     /// Current position in input
     position: usize,
+    /// First invalid byte span encountered during lexing
+    invalid_span: Option<(usize, usize)>,
 }
 
 /// Token matching strategy
@@ -116,92 +118,84 @@ impl GLRLexer {
             token_patterns,
             input,
             position: 0,
+            invalid_span: None,
         })
     }
 
     /// Get the next token from input
     pub fn next_token(&mut self) -> Option<TokenWithPosition> {
-        // Skip whitespace
-        self.skip_whitespace();
+        'tokenize: loop {
+            // Skip whitespace
+            self.skip_whitespace();
 
-        if self.position >= self.input.len() {
-            return None;
-        }
-
-        let start_pos = self.position;
-
-        // Try each token pattern
-        for (symbol_id, matcher) in &self.token_patterns {
-            if let Some(len) = matcher.matches_at(&self.input, self.position) {
-                if len == 0 {
-                    // Defensive no-progress guard for any future matcher regressions.
-                    self.position += 1;
-                    return self.next_token();
-                }
-                // Ensure we're not splitting a UTF-8 sequence
-                let end_pos = self.position + len;
-                if !self.input.is_char_boundary(end_pos) {
-                    continue;
-                }
-
-                let text = self.input[self.position..end_pos].to_string();
-                self.position = end_pos;
-
-                return Some(TokenWithPosition {
-                    symbol_id: *symbol_id,
-                    text,
-                    byte_offset: start_pos,
-                    byte_length: len,
-                });
+            if self.position >= self.input.len() {
+                return None;
             }
-        }
 
-        // No token matched - skip one UTF-8 character and try again
-        // Find the next character boundary
-        let mut next_pos = self.position + 1;
-        while next_pos < self.input.len() && !self.input.is_char_boundary(next_pos) {
-            next_pos += 1;
-        }
-        self.position = next_pos;
+            let start_pos = self.position;
 
-        if self.position < self.input.len() {
-            self.next_token()
-        } else {
-            None
+            // Try each token pattern
+            for (symbol_id, matcher) in &self.token_patterns {
+                if let Some(len) = matcher.matches_at(&self.input, self.position) {
+                    if len == 0 {
+                        // Defensive no-progress guard for any future matcher regressions.
+                        self.position = self.advance_one_char(self.position);
+                        continue 'tokenize;
+                    }
+                    // Ensure we're not splitting a UTF-8 sequence
+                    let end_pos = self.position + len;
+                    if !self.input.is_char_boundary(end_pos) {
+                        continue;
+                    }
+
+                    let text = self.input[self.position..end_pos].to_string();
+                    self.position = end_pos;
+
+                    return Some(TokenWithPosition {
+                        symbol_id: *symbol_id,
+                        text,
+                        byte_offset: start_pos,
+                        byte_length: len,
+                    });
+                }
+            }
+
+            // No token matched - report the first invalid character span and stop lexing.
+            let end_pos = self.advance_one_char(self.position);
+            self.invalid_span.get_or_insert((start_pos, end_pos));
+            self.position = end_pos;
+            return None;
         }
     }
 
     /// Skip whitespace characters
     fn skip_whitespace(&mut self) {
-        let input_chars: Vec<char> = self.input.chars().collect();
-        let mut char_pos = 0;
-        let mut byte_pos = 0;
-
-        // Find current position in characters
-        for (i, ch) in self.input.chars().enumerate() {
-            if byte_pos >= self.position {
-                char_pos = i;
-                break;
-            }
-            byte_pos += ch.len_utf8();
-        }
-
-        // Skip whitespace characters
-        while char_pos < input_chars.len() {
-            match input_chars[char_pos] {
-                ' ' | '\t' | '\n' | '\r' => {
-                    self.position += input_chars[char_pos].len_utf8();
-                    char_pos += 1;
-                }
+        while self.position < self.input.len() {
+            match self.input.as_bytes()[self.position] {
+                b' ' | b'\t' | b'\n' | b'\r' => self.position += 1,
                 _ => break,
             }
         }
+    }
+
+    fn advance_one_char(&self, pos: usize) -> usize {
+        let mut next_pos = pos.saturating_add(1);
+        while next_pos < self.input.len() && !self.input.is_char_boundary(next_pos) {
+            next_pos += 1;
+        }
+        next_pos
+    }
+
+    /// Returns the first invalid byte range encountered while tokenizing.
+    pub fn invalid_span(&self) -> Option<(usize, usize)> {
+        self.invalid_span
     }
 
     /// Reset lexer to beginning
     #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.position = 0;
+        self.invalid_span = None;
     }
 
     /// Get all tokens from input
@@ -393,9 +387,9 @@ mod tests {
         let mut lexer = GLRLexer::new(&grammar, input).unwrap();
         let tokens = lexer.tokenize_all();
 
-        // Should tokenize only the ASCII letters, skipping the emoji
-        assert_eq!(tokens.len(), 2);
+        // Lexer should stop at first unknown multibyte character
+        assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0].text, "a");
-        assert_eq!(tokens[1].text, "b");
+        assert_eq!(lexer.invalid_span(), Some((1, 5)));
     }
 }
