@@ -116,12 +116,21 @@ cargo +nightly fuzz run fuzz_external_scanner
 
 ## Coverage
 
-Code coverage is generated using `cargo-llvm-cov` and uploaded to codecov.io.
+Coverage is generated with `cargo-llvm-cov` and uploaded to Codecov as LCOV.
 
-To generate coverage locally:
+Local run:
+
 ```bash
-cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+cargo llvm-cov --workspace \
+  --exclude adze-wasm-demo \
+  --features "pure-rust,glr,incremental_glr,external_scanners,serialization,ts-compat" \
+  --lcov \
+  --output-path lcov.info
 ```
+
+The first Codecov integration is advisory. Codecov checks and comments should not be required in branch protection until the baseline has stabilized on `main`.
+
+Required branch protection remains `CI / ci-supported`.
 
 ## Maintenance
 
