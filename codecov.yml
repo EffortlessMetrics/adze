@@ -1,0 +1,37 @@
+coverage:
+  precision: 2
+  round: down
+  range: "50...85"
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+        informational: true
+        flags:
+          - rust
+
+    patch:
+      default:
+        target: 60%
+        threshold: 10%
+        informational: true
+        flags:
+          - rust
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: true
+
+github_checks:
+  annotations: false
+
+ignore:
+  - "target/**"
+  - "runtime/fuzz/**"
+  - "tools/ts-bridge/**"
+  - "book/book/**"
+  - "docs/archive/**"
+  - "benchmarks/results/**"
