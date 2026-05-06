@@ -143,6 +143,21 @@ pub fn run(opts: RunOpts) -> Result<CheckOutcome> {
     let allowlist = read_allowlist(&allowlist_path)?;
     let findings = scan(&root)?;
 
+    // Reject duplicate IDs eagerly — receipts must be uniquely addressable.
+    let mut seen_ids: BTreeSet<&str> = BTreeSet::new();
+    let mut duplicate_ids: Vec<&str> = Vec::new();
+    for entry in &allowlist.allows {
+        if !seen_ids.insert(entry.id.as_str()) {
+            duplicate_ids.push(entry.id.as_str());
+        }
+    }
+    if !duplicate_ids.is_empty() {
+        anyhow::bail!(
+            "policy/no-panic-allowlist.toml has duplicate id(s): {}",
+            duplicate_ids.join(", ")
+        );
+    }
+
     let mut allow_index: BTreeMap<_, &AllowEntry> = BTreeMap::new();
     let mut allow_matched: BTreeSet<usize> = BTreeSet::new();
     for entry in &allowlist.allows {

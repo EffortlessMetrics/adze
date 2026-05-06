@@ -4,6 +4,10 @@ name: policy
 # Runs the no-panic, file-policy, and lint-policy checkers as **advisory**
 # (continue-on-error). Reports are uploaded as artifacts so reviewers can
 # inspect them without blocking merges.
+#
+# A separate `file-policy-required` job blocks the merge if a non-Rust
+# file is added without a receipt. That lane is currently clean and worth
+# protecting eagerly.
 
 on:
   pull_request:
@@ -25,33 +29,26 @@ concurrency:
   group: policy-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_BUILD_JOBS: "2"
+  RUST_TEST_THREADS: "2"
+  RAYON_NUM_THREADS: "4"
+  TOKIO_WORKER_THREADS: "2"
+
 jobs:
   policy-report:
     name: policy report (advisory)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      CARGO_TERM_COLOR: always
-      CARGO_BUILD_JOBS: "2"
-      RUST_TEST_THREADS: "2"
-      RAYON_NUM_THREADS: "4"
-      TOKIO_WORKER_THREADS: "2"
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Cache cargo registry
-        uses: actions/cache@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: policy-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            policy-${{ runner.os }}-
-      - name: Setup Rust toolchain
-        run: rustup show
+          shared-key: policy
       - name: Run no-panic checker (advisory)
         run: cargo run -p xtask --quiet -- check-no-panic-family
         continue-on-error: true
@@ -76,12 +73,14 @@ jobs:
   file-policy-required:
     name: file policy (required)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Setup Rust toolchain
-        run: rustup show
-      - name: Enforce file policy
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: policy
+      - name: Enforce file policy (--strict)
         run: cargo run -p xtask --quiet -- check-file-policy --strict
