@@ -103,10 +103,8 @@ impl ErrorReporter {
     }
 
     /// Get expected tokens from parser state
-    fn get_expected_tokens(&self, _parser: &GLRParser) -> Vec<String> {
-        // In a real implementation, this would examine the parse table
-        // to determine valid tokens at the current state
-        vec![] // Placeholder
+    fn get_expected_tokens(&self, parser: &GLRParser) -> Vec<String> {
+        expected_token_names(parser)
     }
 
     /// Get context around the error
@@ -141,6 +139,7 @@ impl ErrorReportingExt for GLRParser {
 
         for (symbol_id, token_text) in tokens {
             reporter.record_token(&token_text, 0);
+            let expected_before_token = expected_token_names(self);
 
             // Try to process the token
             let initial_stack_count = self.stack_count();
@@ -148,20 +147,37 @@ impl ErrorReportingExt for GLRParser {
 
             // Check if all stacks died (parse error)
             if self.stack_count() == 0 && initial_stack_count > 0 {
-                errors.push(reporter.error_at_current(self, Some(token_text.clone())));
+                let mut error = reporter.error_at_current(self, Some(token_text.clone()));
+                if error.expected.is_empty() {
+                    error.expected = expected_before_token;
+                }
+                errors.push(error);
                 return Err(errors);
             }
         }
 
+        let expected_before_eof = expected_token_names(self);
         self.process_eof(0); // No byte tracking in error reporter
 
         if let Some(tree) = self.get_best_parse() {
             Ok(Arc::try_unwrap(tree).unwrap_or_else(|arc| (*arc).clone()))
         } else {
-            errors.push(reporter.error_at_current(self, None));
+            let mut error = reporter.error_at_current(self, None);
+            if error.expected.is_empty() {
+                error.expected = expected_before_eof;
+            }
+            errors.push(error);
             Err(errors)
         }
     }
+}
+
+fn expected_token_names(parser: &GLRParser) -> Vec<String> {
+    parser
+        .expected_symbols()
+        .into_iter()
+        .map(|symbol| format!("{symbol:?}"))
+        .collect()
 }
 
 #[cfg(test)]
