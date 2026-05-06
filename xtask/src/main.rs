@@ -10,6 +10,7 @@ mod fixtures;
 mod golden;
 mod grammar_json;
 mod lint;
+mod policy;
 mod profile;
 mod test_grammars;
 mod test_local_grammars;
@@ -190,6 +191,52 @@ enum Commands {
         #[arg(short = 'd', long, default_value = "benchmarks/fixtures/arithmetic")]
         dir: String,
     },
+    /// Check the panic-family allowlist policy.
+    ///
+    /// See `docs/policy/NO_PANIC_POLICY.md`.
+    /// Default mode is advisory: writes reports under
+    /// `target/policy/reports/` but always exits 0.
+    /// Pass `--strict` to fail on unallowlisted findings, stale entries, or
+    /// expired entries.
+    CheckNoPanicFamily {
+        /// Fail (exit non-zero) on any policy issue.
+        #[arg(long)]
+        strict: bool,
+    },
+    /// Manage the panic-family allowlist.
+    NoPanic {
+        #[command(subcommand)]
+        action: NoPanicAction,
+    },
+    /// Check the non-Rust file allowlist policy.
+    ///
+    /// See `docs/policy/FILE_POLICY.md`.
+    CheckFilePolicy {
+        /// Fail (exit non-zero) on any policy issue.
+        #[arg(long)]
+        strict: bool,
+    },
+    /// Check the Clippy / rustc lint policy.
+    ///
+    /// See `docs/policy/CLIPPY_POLICY.md`.
+    CheckLintPolicy {
+        /// Fail (exit non-zero) on any policy issue.
+        #[arg(long)]
+        strict: bool,
+    },
+    /// Run all policy checkers and write a combined summary.
+    PolicyReport {
+        /// Fail (exit non-zero) if any checker has findings.
+        #[arg(long)]
+        strict: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum NoPanicAction {
+    /// Generate `target/policy/reports/no-panic-proposed-allowlist.toml`
+    /// from the current scan. Never modifies `policy/no-panic-allowlist.toml`.
+    Propose,
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -370,6 +417,29 @@ fn main() -> Result<()> {
         }
         Commands::FixturesInfo { dir } => {
             fixtures::info_fixtures(&dir)?;
+        }
+        Commands::CheckNoPanicFamily { strict } => {
+            policy::no_panic::run(policy::no_panic::RunOpts {
+                strict,
+                propose: false,
+            })?;
+        }
+        Commands::NoPanic { action } => match action {
+            NoPanicAction::Propose => {
+                policy::no_panic::run(policy::no_panic::RunOpts {
+                    strict: false,
+                    propose: true,
+                })?;
+            }
+        },
+        Commands::CheckFilePolicy { strict } => {
+            policy::file_policy::run(policy::file_policy::RunOpts { strict })?;
+        }
+        Commands::CheckLintPolicy { strict } => {
+            policy::lint_policy::run(policy::lint_policy::RunOpts { strict })?;
+        }
+        Commands::PolicyReport { strict } => {
+            policy::report::run(policy::report::RunOpts { strict })?;
         }
     }
 

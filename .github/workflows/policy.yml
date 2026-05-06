@@ -1,0 +1,87 @@
+name: policy
+
+# Stage 1 of the policy rollout (see docs/policy/).
+# Runs the no-panic, file-policy, and lint-policy checkers as **advisory**
+# (continue-on-error). Reports are uploaded as artifacts so reviewers can
+# inspect them without blocking merges.
+
+on:
+  pull_request:
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.toml"
+      - "Cargo.lock"
+      - "policy/**"
+      - "docs/policy/**"
+      - "xtask/src/policy/**"
+      - ".github/workflows/policy.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: policy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy-report:
+    name: policy report (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: "2"
+      RUST_TEST_THREADS: "2"
+      RAYON_NUM_THREADS: "4"
+      TOKIO_WORKER_THREADS: "2"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: policy-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            policy-${{ runner.os }}-
+      - name: Setup Rust toolchain
+        run: rustup show
+      - name: Run no-panic checker (advisory)
+        run: cargo run -p xtask --quiet -- check-no-panic-family
+        continue-on-error: true
+      - name: Run file-policy checker (advisory)
+        run: cargo run -p xtask --quiet -- check-file-policy
+        continue-on-error: true
+      - name: Run lint-policy checker (advisory)
+        run: cargo run -p xtask --quiet -- check-lint-policy
+        continue-on-error: true
+      - name: Generate combined policy summary
+        run: cargo run -p xtask --quiet -- policy-report
+        continue-on-error: true
+      - name: Upload policy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: policy-reports
+          path: target/policy/reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  file-policy-required:
+    name: file policy (required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Rust toolchain
+        run: rustup show
+      - name: Enforce file policy
+        run: cargo run -p xtask --quiet -- check-file-policy --strict

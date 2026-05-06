@@ -63,6 +63,26 @@ bench-perf:
 snap:
     cargo insta review
 
+# Run the full policy stack (advisory). Reports land under target/policy/reports/.
+policy-report:
+    cargo run -p xtask --quiet -- policy-report
+
+# Check the panic-family allowlist (advisory by default).
+check-no-panic-family:
+    cargo run -p xtask --quiet -- check-no-panic-family
+
+# Check the non-Rust file allowlist (advisory by default).
+check-file-policy:
+    cargo run -p xtask --quiet -- check-file-policy
+
+# Check the Clippy / rustc lint policy (advisory by default).
+check-lint-policy:
+    cargo run -p xtask --quiet -- check-lint-policy
+
+# Generate target/policy/reports/no-panic-proposed-allowlist.toml
+no-panic-propose:
+    cargo run -p xtask --quiet -- no-panic propose
+
 supported_crates := "-p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen"
 
 # Required PR gate: this is the single supported CI lane for branch protection

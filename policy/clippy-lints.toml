@@ -1,0 +1,306 @@
+# Adze repository lint policy
+#
+# Source-of-truth for lint configuration that should be applied across the
+# workspace. The current root `Cargo.toml` only carries a small subset of these
+# rules; the rest are tracked here as planned activations and audited by
+# `cargo xtask check-lint-policy`.
+#
+# Identity: name + level + activate_when_msrv
+# Strategy: deny-by-default for active lints, planned lints are tracked but
+# not yet enforced.
+
+schema_version = "1.0"
+msrv = "1.92"
+
+[policy]
+panic_free_tests = false           # Stage 1: not yet enforced. Burn-down required.
+allow_test_carveouts = false       # No allow-*-in-tests in clippy.toml.
+suppression_style = "expect-with-reason"
+blanket_categories = false         # No `clippy::all = warn` / `pedantic = warn`.
+
+# Lints that are active today in `Cargo.toml`. Mirroring them here lets the
+# policy checker verify they have not silently regressed.
+[[active]]
+name = "rust::unsafe_op_in_unsafe_fn"
+level = "deny"
+reason = "All unsafe operations must be locally annotated within unsafe fns."
+
+[[active]]
+name = "rust::unused_must_use"
+level = "deny"
+reason = "Must-use values must not be silently discarded."
+
+[[active]]
+name = "rust::missing_docs"
+level = "warn"
+reason = "Public items should be documented; promote to deny per crate."
+
+[[active]]
+name = "rust::unused_extern_crates"
+level = "deny"
+reason = "Unused extern crate declarations are dead code."
+
+# Planned activations. These are not enforced yet; `check-lint-policy` records
+# their status and reports drift against the active set.
+#
+# Levels can be one of "deny" | "warn" | "allow".
+# A lint is activated when MSRV reaches `activate_when_msrv` AND any debt
+# captured in `clippy-debt.toml` is cleared.
+
+# ---------- Panic-family / abrupt exits ----------------------------------------
+
+[[planned]]
+name = "clippy::dbg_macro"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "dbg!() prints to stderr in production paths; use tracing instead."
+
+[[planned]]
+name = "clippy::todo"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "todo!() panics at runtime; use Result errors instead."
+
+[[planned]]
+name = "clippy::unimplemented"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "unimplemented!() panics at runtime; use Result errors instead."
+
+[[planned]]
+name = "clippy::panic"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Direct panic!() should be receipt-only."
+
+[[planned]]
+name = "clippy::unreachable"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "unreachable!() panics at runtime; use Result errors instead."
+
+[[planned]]
+name = "clippy::unwrap_used"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Unwrap is panic-prone; use receipts via no-panic-allowlist.toml."
+
+[[planned]]
+name = "clippy::expect_used"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Expect is panic-prone; use receipts via no-panic-allowlist.toml."
+
+[[planned]]
+name = "clippy::get_unwrap"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Indexed `.get(_).unwrap()` is panic-prone; use ? or match."
+
+[[planned]]
+name = "clippy::unwrap_in_result"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Unwrap inside Result-returning fns hides legitimate errors."
+
+[[planned]]
+name = "clippy::panic_in_result_fn"
+level = "warn"
+activate_when_msrv = "1.92"
+reason = "Promote later when fallible test helpers are pervasive."
+
+[[planned]]
+name = "clippy::string_slice"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Byte-indexed string slicing can split UTF-8 codepoints; parser-critical."
+
+[[planned]]
+name = "clippy::indexing_slicing"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Unchecked indexing/slicing panics on out-of-bounds."
+
+[[planned]]
+name = "clippy::out_of_bounds_indexing"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Static OOB indexing detection."
+
+# ---------- UTF-8 / parser safety -----------------------------------------------
+
+[[planned]]
+name = "clippy::char_indices_as_byte_indices"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Mixing char_indices with byte indexing produces invalid UTF-8."
+
+[[planned]]
+name = "clippy::index_refutable_slice"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Refutable slice indexing can panic; prefer match patterns."
+
+# ---------- Silent failure ------------------------------------------------------
+
+[[planned]]
+name = "clippy::let_underscore_future"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Dropped futures never run; use .await or tokio::spawn."
+
+[[planned]]
+name = "clippy::let_underscore_must_use"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Discarding must-use values via `let _ =` defeats the marker."
+
+[[planned]]
+name = "clippy::let_underscore_lock"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Dropping a lock guard immediately leaves shared state unprotected."
+
+[[planned]]
+name = "clippy::map_err_ignore"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Discarding the source error loses context for callers."
+
+[[planned]]
+name = "clippy::lines_filter_map_ok"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Silently dropping IO errors from BufRead::lines() hides failures."
+
+# ---------- Async / concurrency -------------------------------------------------
+
+[[planned]]
+name = "clippy::await_holding_lock"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Holding sync locks across await is a common deadlock pattern."
+
+[[planned]]
+name = "clippy::await_holding_refcell_ref"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "RefCell borrows across await are non-Send and panic-prone."
+
+[[planned]]
+name = "clippy::rc_mutex"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Rc<Mutex<T>> is almost always wrong; use Arc<Mutex<T>> or Rc<RefCell<T>>."
+
+[[planned]]
+name = "clippy::mut_mutex_lock"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Mutating Mutex with &mut bypasses the lock."
+
+# ---------- Unsafe / memory -----------------------------------------------------
+
+[[planned]]
+name = "clippy::mem_forget"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "mem::forget leaks resources; prefer ManuallyDrop with explicit intent."
+
+[[planned]]
+name = "clippy::undocumented_unsafe_blocks"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Every unsafe block must carry a SAFETY: comment."
+
+[[planned]]
+name = "clippy::multiple_unsafe_ops_per_block"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Each unsafe op deserves its own justification."
+
+# ---------- Numeric correctness -------------------------------------------------
+
+[[planned]]
+name = "clippy::float_cmp"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Direct float equality is rarely correct; use approx comparisons."
+
+[[planned]]
+name = "clippy::cast_sign_loss"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Sign-losing casts hide negative-value bugs; use try_from."
+
+[[planned]]
+name = "clippy::cast_possible_truncation"
+level = "warn"
+activate_when_msrv = "1.92"
+reason = "Promote per-crate; many parser ID widenings need conscious review."
+
+[[planned]]
+name = "clippy::cast_possible_wrap"
+level = "warn"
+activate_when_msrv = "1.92"
+reason = "Signed/unsigned wrap-around is numerically subtle."
+
+# ---------- File / process / path footguns --------------------------------------
+
+[[planned]]
+name = "clippy::suspicious_open_options"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "OpenOptions misuse silently truncates or appends incorrectly."
+
+[[planned]]
+name = "clippy::path_buf_push_overwrite"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "PathBuf::push with absolute path silently discards prior path."
+
+[[planned]]
+name = "clippy::exit"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "process::exit bypasses destructors; CLI boundary only."
+
+# ---------- Governance ----------------------------------------------------------
+
+[[planned]]
+name = "clippy::allow_attributes"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Use #[expect(..., reason = \"...\")] instead of bare #[allow]."
+
+[[planned]]
+name = "clippy::allow_attributes_without_reason"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Suppressions must justify themselves."
+
+[[planned]]
+name = "clippy::blanket_clippy_restriction_lints"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "Avoid clippy::restriction blanket allows; opt in per lint."
+
+[[planned]]
+name = "clippy::should_panic_without_expect"
+level = "deny"
+activate_when_msrv = "1.92"
+reason = "should_panic without `expected = \"...\"` masks unrelated panics."
+
+# Future flips — tracked early so estate-wide search shows the plan.
+
+[[planned]]
+name = "clippy::same_length_and_capacity"
+level = "deny"
+activate_when_msrv = "1.94"
+reason = "Catch raw-parts reconstruction mistakes."
+
+[[planned]]
+name = "clippy::manual_checked_ops"
+level = "warn"
+activate_when_msrv = "1.95"
+reason = "Prefer checked arithmetic over manual divide-by-zero guards."

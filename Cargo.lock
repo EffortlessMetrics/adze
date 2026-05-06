@@ -449,8 +449,11 @@ dependencies = [
  "adze",
  "adze-javascript",
  "adze-python",
+ "adze-tool",
  "anyhow",
+ "serde_json",
  "sha2",
+ "tempfile",
 ]
 
 [[package]]
@@ -3946,10 +3949,12 @@ dependencies = [
  "clap",
  "console",
  "glob",
+ "regex",
  "serde",
  "serde_json",
  "similar",
  "tempfile",
+ "toml 0.8.23",
  "walkdir",
  "xshell",
 ]

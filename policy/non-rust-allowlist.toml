@@ -1,0 +1,531 @@
+# Non-Rust file allowlist
+#
+# Authoritative receipts for non-Rust files in the tree. Every committed file
+# whose extension is not on the implicit-allow list (see below) must either be
+# matched by a glob entry here, or be backed by a Rust-equivalent and removed.
+#
+# Implicit-allow extensions (no entry needed):
+#   .rs   .toml   .lock   .md   .txt   .gitignore   .editorconfig
+#   .snap  .proptest-regressions  .sha256  .sha
+#
+# Required keys:
+#   glob, kind, owner, surface, classification, reason
+# Optional keys:
+#   covered_by   — list of commands that validate the contents
+#   expires      — ISO date; expired entries fail the checker
+#   retired      — true means entry is intentionally kept for audit history
+#
+# The checker `cargo xtask check-file-policy` fails on any unallowlisted
+# non-Rust files and on stale entries unless `retired = true`.
+
+schema_version = "1.0"
+
+# ---------------------------------------------------------------------------
+# Repository scaffolding
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = ".github/workflows/*.yml"
+kind = "ci_declarative"
+owner = "release/ci"
+surface = "ci"
+classification = "config"
+reason = "GitHub Actions workflow definitions are platform-required YAML."
+
+[[allow]]
+glob = ".github/ISSUE_TEMPLATE/*.yml"
+kind = "github_metadata"
+owner = "repo"
+surface = "github"
+classification = "config"
+reason = "GitHub issue template forms are platform-required YAML."
+
+[[allow]]
+glob = ".github/*.yml"
+kind = "github_metadata"
+owner = "repo"
+surface = "github"
+classification = "config"
+reason = "GitHub repo settings (FUNDING, settings, etc.)."
+
+[[allow]]
+glob = ".pre-commit-config.yaml"
+kind = "tooling_config"
+owner = "repo"
+surface = "tooling"
+classification = "config"
+reason = "pre-commit framework requires YAML configuration."
+
+[[allow]]
+glob = ".vscode/*.json"
+kind = "ide_config"
+owner = "repo"
+surface = "ide"
+classification = "config"
+reason = "Workspace IDE settings; opt-in via VS Code."
+
+[[allow]]
+glob = ".clippy-quarantine"
+kind = "tooling_config"
+owner = "repo"
+surface = "tooling"
+classification = "config"
+reason = "Quarantined-clippy lint inventory consumed by clippy-quarantine-report.yml."
+
+[[allow]]
+glob = "codecov.yml"
+kind = "tooling_config"
+owner = "release/ci"
+surface = "ci"
+classification = "config"
+reason = "Codecov advisory configuration."
+
+[[allow]]
+glob = "docker-compose.test.yml"
+kind = "tooling_config"
+owner = "release/ci"
+surface = "ci"
+classification = "config"
+reason = "Compose file for local CI reproduction."
+
+[[allow]]
+glob = ".docker/*.dockerfile"
+kind = "container_definition"
+owner = "release/ci"
+surface = "ci"
+classification = "config"
+reason = "Container definitions for reproducible local CI."
+
+[[allow]]
+glob = ".githooks/pre-commit"
+kind = "git_hook"
+owner = "repo"
+surface = "tooling"
+classification = "tooling"
+reason = "Project-managed pre-commit hook installed via .githooks/install.sh."
+
+[[allow]]
+glob = ".githooks/pre-push"
+kind = "git_hook"
+owner = "repo"
+surface = "tooling"
+classification = "tooling"
+reason = "Project-managed pre-push hook installed via .githooks/install.sh."
+
+[[allow]]
+glob = "hooks/pre-push.sample"
+kind = "git_hook_sample"
+owner = "repo"
+surface = "tooling"
+classification = "tooling"
+reason = "Reference sample for contributors who want to install a pre-push hook manually."
+
+# ---------------------------------------------------------------------------
+# Build / release scripts (deliberate Bash boundary)
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "scripts/*.sh"
+kind = "shell_script"
+owner = "release/ci"
+surface = "scripts"
+classification = "tooling"
+reason = "CI / release shell scripts. Long-term plan: re-home into xtask."
+expires = "2027-01-01"
+covered_by = ["bash -n scripts/*.sh"]
+
+[[allow]]
+glob = ".githooks/install.sh"
+kind = "shell_script"
+owner = "repo"
+surface = "scripts"
+classification = "tooling"
+reason = "Git hooks installer; platform requires shell."
+
+[[allow]]
+glob = "Makefile"
+kind = "tooling_config"
+owner = "repo"
+surface = "tooling"
+classification = "config"
+reason = "Convenience aliases for contributors who do not have `just`."
+
+[[allow]]
+glob = "justfile"
+kind = "tooling_config"
+owner = "repo"
+surface = "tooling"
+classification = "config"
+reason = "Just runner recipes; documented in CLAUDE.md."
+
+# ---------------------------------------------------------------------------
+# Workflow / fixture / corpus inputs
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "benchmarks/fixtures/**"
+kind = "fixture_input"
+owner = "benchmarks"
+surface = "fixtures"
+classification = "test"
+reason = "Benchmark fixtures (arithmetic, javascript, python) consumed by criterion harnesses."
+covered_by = ["cargo test -p adze-benchmarks"]
+
+[[allow]]
+glob = "golden-tests/**"
+kind = "fixture_input"
+owner = "golden-tests"
+surface = "fixtures"
+classification = "test"
+reason = "Reference inputs and expected outputs for tree-sitter parity validation."
+covered_by = ["cargo test -p adze-golden-tests"]
+
+[[allow]]
+glob = "xtask/fixtures/**"
+kind = "fixture_input"
+owner = "xtask"
+surface = "fixtures"
+classification = "test"
+reason = "Tree-sitter grammar fixtures pulled in by xtask runners."
+
+[[allow]]
+glob = "tests/grammars/**"
+kind = "fixture_input"
+owner = "tests"
+surface = "fixtures"
+classification = "test"
+reason = "Workspace-level grammar fixtures used by integration tests."
+
+[[allow]]
+glob = "tests/golden/**"
+kind = "fixture_input"
+owner = "tests"
+surface = "fixtures"
+classification = "test"
+reason = "Golden references for integration tests."
+
+[[allow]]
+glob = "tests/features/**"
+kind = "fixture_input"
+owner = "tests"
+surface = "fixtures"
+classification = "test"
+reason = "Cucumber/BDD feature files consumed by governance tests."
+
+[[allow]]
+glob = "macro/tests/**"
+kind = "fixture_input"
+owner = "macro"
+surface = "fixtures"
+classification = "test"
+reason = "Compile-fail / pass cases for adze-macro."
+
+[[allow]]
+glob = "glr-core/tests/fixtures/**"
+kind = "fixture_input"
+owner = "glr-core"
+surface = "fixtures"
+classification = "test"
+reason = "ParseTable / parser fixtures consumed by glr-core integration tests, including expected stderr captures."
+
+[[allow]]
+glob = "glr-core/tests/*.example"
+kind = "fixture_input"
+owner = "glr-core"
+surface = "fixtures"
+classification = "test"
+reason = "Reference seed snippets kept alongside proptest harnesses for human review."
+
+[[allow]]
+glob = "grammars/**/*.py"
+kind = "fixture_input"
+owner = "grammars"
+surface = "fixtures"
+classification = "test"
+reason = "Sample Python sources used to exercise grammar fixtures."
+
+[[allow]]
+glob = "grammars/python-simple/src/lib.rs.ISSUES_DOCUMENTED"
+kind = "fixture_input"
+owner = "grammars"
+surface = "fixtures"
+classification = "test"
+reason = "Issue annotations captured alongside the simple-python grammar fixture."
+
+[[allow]]
+glob = "testing/test-suite.json"
+kind = "test_manifest"
+owner = "testing"
+surface = "test-runner"
+classification = "test"
+reason = "Manifest enumerating governance test surfaces."
+
+# ---------------------------------------------------------------------------
+# Demo / playground UI (deliberately non-Rust until ported)
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "playground/static/**"
+kind = "web_assets"
+owner = "playground"
+surface = "demo"
+classification = "production"
+reason = "Playground static assets shipped as the demo HTML/JS surface."
+expires = "2027-01-01"
+
+[[allow]]
+glob = "wasm-demo/index.html"
+kind = "web_assets"
+owner = "wasm-demo"
+surface = "demo"
+classification = "production"
+reason = "WASM demo entrypoint for adze on the web."
+
+[[allow]]
+glob = "wasm-demo/build.sh"
+kind = "shell_script"
+owner = "wasm-demo"
+surface = "scripts"
+classification = "tooling"
+reason = "wasm-pack build wrapper."
+
+[[allow]]
+glob = "runtime/build-wasm.sh"
+kind = "shell_script"
+owner = "runtime"
+surface = "scripts"
+classification = "tooling"
+reason = "WASM build wrapper for the adze runtime."
+
+[[allow]]
+glob = "runtime/build-wasm-demo.sh"
+kind = "shell_script"
+owner = "runtime"
+surface = "scripts"
+classification = "tooling"
+reason = "WASM demo build wrapper."
+
+[[allow]]
+glob = "runtime/wasm-demo/**"
+kind = "web_assets"
+owner = "runtime"
+surface = "demo"
+classification = "production"
+reason = "Runtime WASM demo assets."
+
+[[allow]]
+glob = "dashboard-template/**"
+kind = "web_assets"
+owner = "playground"
+surface = "demo"
+classification = "production"
+reason = "Static template scaffolded by `xtask init-dashboard`."
+
+# ---------------------------------------------------------------------------
+# Tooling helpers (Python/shell utilities)
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "tools/check_debug_blocks.py"
+kind = "tooling_script"
+owner = "tooling"
+surface = "tooling"
+classification = "tooling"
+reason = "Pre-existing debug-block validator; xtask `lint` already mirrors the Rust path."
+expires = "2026-12-01"
+
+[[allow]]
+glob = "tools/test_debug_blocks.py"
+kind = "tooling_script"
+owner = "tooling"
+surface = "tooling"
+classification = "tooling"
+reason = "Test for the debug-block validator above; retire alongside it."
+expires = "2026-12-01"
+
+[[allow]]
+glob = "tools/sane-cargo.sh"
+kind = "shell_script"
+owner = "tooling"
+surface = "tooling"
+classification = "tooling"
+reason = "Cargo wrapper enforcing concurrency caps."
+
+[[allow]]
+glob = "scripts/process-utils.js"
+kind = "tooling_script"
+owner = "tooling"
+surface = "scripts"
+classification = "tooling"
+reason = "Node.js helper for process control during dashboard generation."
+expires = "2026-12-01"
+
+# ---------------------------------------------------------------------------
+# ts-bridge (C interop) — ts-bridge is excluded from the workspace and built
+# explicitly with -p; see Cargo.toml exclude list.
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "tools/ts-bridge/**"
+kind = "c_interop"
+owner = "ts-bridge"
+surface = "ffi"
+classification = "production"
+reason = "C bindings to libtree-sitter for parse-table extraction."
+
+[[allow]]
+glob = "crates/ts-c-harness/**"
+kind = "c_interop"
+owner = "ts-bridge"
+surface = "ffi"
+classification = "test"
+reason = "Test harness around the ts-bridge C interface."
+
+# ---------------------------------------------------------------------------
+# Examples / demos in repository root
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "example/**/*.sh"
+kind = "shell_script"
+owner = "example"
+surface = "scripts"
+classification = "tooling"
+reason = "Example debug build scripts used during macro development."
+
+[[allow]]
+glob = "test-cli/**"
+kind = "fixture_input"
+owner = "cli"
+surface = "fixtures"
+classification = "test"
+reason = "Tree-sitter sample CLI fixture (tree-sitter-mylang submodule contents)."
+
+[[allow]]
+glob = "test_python.py"
+kind = "fixture_input"
+owner = "tests"
+surface = "fixtures"
+classification = "test"
+reason = "Sample Python source exercised by repro flows; expire when reproduction case is folded into golden-tests/."
+expires = "2026-12-01"
+
+[[allow]]
+glob = "test_javascript.js"
+kind = "fixture_input"
+owner = "tests"
+surface = "fixtures"
+classification = "test"
+reason = "Sample JavaScript source exercised by repro flows; expire when reproduction case is folded into golden-tests/."
+expires = "2026-12-01"
+
+[[allow]]
+glob = "simple.js"
+kind = "fixture_input"
+owner = "tests"
+surface = "fixtures"
+classification = "test"
+reason = "Sample JavaScript exercised by integration tests; expire alongside the others."
+expires = "2026-12-01"
+
+[[allow]]
+glob = "simple_python.py"
+kind = "fixture_input"
+owner = "tests"
+surface = "fixtures"
+classification = "test"
+reason = "Sample Python exercised by integration tests; expire alongside the others."
+expires = "2026-12-01"
+
+[[allow]]
+glob = "examples/comprehensive/examples/*.mini"
+kind = "fixture_input"
+owner = "examples"
+surface = "fixtures"
+classification = "test"
+reason = "Example input file in adze's own `mini` grammar."
+
+# ---------------------------------------------------------------------------
+# Generated baselines / metadata
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "baselines/*.json"
+kind = "generated_metadata"
+owner = "benchmarks"
+surface = "baseline"
+classification = "generated"
+reason = "Criterion benchmark baselines saved for regression comparisons."
+covered_by = ["cargo xtask save-baseline"]
+
+[[allow]]
+glob = "book/**"
+kind = "generated_artifact"
+owner = "docs"
+surface = "site"
+classification = "generated"
+reason = "Static mdbook output. See `mdbook.yml` workflow for regeneration."
+expires = "2026-08-01"
+covered_by = ["mdbook build book"]
+
+[[allow]]
+glob = "tool/src/wasm-sysroot/*.h"
+kind = "vendored_header"
+owner = "tool"
+surface = "build"
+classification = "production"
+reason = "Minimal WASM sysroot headers compiled into the tool's WASM build path."
+
+[[allow]]
+glob = "glr-core/dhat-heap.json"
+kind = "profiling_artifact"
+owner = "glr-core"
+surface = "profiling"
+classification = "generated"
+reason = "Captured dhat heap profile for regression analysis."
+expires = "2026-08-01"
+
+# ---------------------------------------------------------------------------
+# Fuzzing corpora — extension-less binary inputs collected by cargo-fuzz.
+# Treat the whole tree as a single classification; the corpora are
+# regenerated on demand by `cargo fuzz run`.
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "fuzz/corpus/**"
+kind = "fuzz_corpus"
+owner = "fuzz"
+surface = "fixtures"
+classification = "test"
+reason = "Cargo-fuzz corpus snapshots; regenerated by `cargo fuzz run`."
+covered_by = ["cargo fuzz run"]
+
+# ---------------------------------------------------------------------------
+# Documented-issues files — historical breadcrumbs that flag previously
+# documented analysis. Plan: re-home into docs/archive/ and remove the
+# special extension.
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "PERFORMANCE_GUIDE.md.ISSUES_DOCUMENTED"
+kind = "issue_breadcrumb"
+owner = "docs"
+surface = "ci"
+classification = "config"
+reason = "Captures pre-existing documentation gaps that are tracked in dedicated issues."
+expires = "2026-12-01"
+
+# ---------------------------------------------------------------------------
+# Python tooling cache directories must be ignored, not allowlisted.
+# Adding the `__pycache__` glob keeps the checker quiet while we tighten
+# .gitignore in a follow-up PR.
+# ---------------------------------------------------------------------------
+
+[[allow]]
+glob = "tools/__pycache__/**"
+kind = "build_artifact"
+owner = "tooling"
+surface = "tooling"
+classification = "generated"
+reason = "Stale Python bytecode cache; planned removal: tighten .gitignore and drop the directory."
+expires = "2026-08-01"

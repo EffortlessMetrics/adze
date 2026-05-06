@@ -1,0 +1,21 @@
+# Clippy debt ledger
+#
+# When a planned lint cannot be activated yet because of pre-existing debt,
+# record it here with an owner, an explanation, and an expiry date. The
+# `cargo xtask check-lint-policy` task fails on expired entries.
+#
+# Identity: lint name + crate
+# Levels: keep the planned lint at "warn" (or remove from active set) until
+# debt is cleared.
+
+schema_version = "1.0"
+
+# Example template — populate as actual baselines are taken.
+#
+# [[debt]]
+# name = "clippy::unwrap_used"
+# crate = "adze-glr-core"
+# owner = "parser-core"
+# explanation = "Receipts are tracked individually in policy/no-panic-allowlist.toml; flip to deny when allowlist is exhausted."
+# expires = "2026-09-01"
+# covered_by = ["cargo xtask check-no-panic-family"]
