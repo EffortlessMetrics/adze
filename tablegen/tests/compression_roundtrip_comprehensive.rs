@@ -268,6 +268,57 @@ fn dedup_reduces_identical_rows() {
 }
 
 #[test]
+fn validate_rejects_action_symbol_out_of_bounds() {
+    let (pt, mut bad) = pipeline(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    bad.action_table
+        .data
+        .push(adze_tablegen::compress::CompressedActionEntry {
+            symbol: u16::MAX,
+            action: Action::Shift(StateId(0)),
+        });
+    *bad.action_table
+        .row_offsets
+        .last_mut()
+        .expect("compressed table has sentinel row offset") = bad.action_table.data.len() as u16;
+
+    let err = bad
+        .validate(&pt)
+        .expect_err("out-of-bounds action symbol must be rejected");
+    assert!(err.to_string().contains("outside symbol_count"));
+}
+
+#[test]
+fn validate_rejects_goto_state_out_of_bounds() {
+    let (pt, mut bad) = pipeline(|| {
+        GrammarBuilder::new("t")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    bad.goto_table
+        .data
+        .push(CompressedGotoEntry::Single(pt.state_count as u16));
+    *bad.goto_table
+        .row_offsets
+        .last_mut()
+        .expect("compressed table has sentinel row offset") = bad.goto_table.data.len() as u16;
+
+    let err = bad
+        .validate(&pt)
+        .expect_err("out-of-bounds goto state must be rejected");
+    assert!(err.to_string().contains("outside state_count"));
+}
+
+#[test]
 fn sparse_goto_uses_fewer_entries_than_cells() {
     let n_states = 10;
     let n_syms = 10;

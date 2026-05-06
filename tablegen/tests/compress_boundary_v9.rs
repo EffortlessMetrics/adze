@@ -1110,6 +1110,61 @@ fn cb_v9_20_token_validate_passes() {
 }
 
 #[test]
+fn cb_v9_rejects_action_symbol_id_over_u16() {
+    let compressor = TableCompressor::new();
+    let mut row = vec![vec![]; (u16::MAX as usize) + 2];
+    row[(u16::MAX as usize) + 1] = vec![Action::Accept];
+    let table = vec![row];
+    let err = compressor
+        .compress_action_table_small(&table, &std::collections::BTreeMap::new())
+        .expect_err("symbol indices > u16::MAX must be rejected");
+    let msg = err.to_string();
+    assert!(msg.contains("symbol id"));
+    assert!(msg.contains("u16::MAX"));
+}
+
+#[test]
+fn cb_v9_rejects_action_row_offset_over_u16() {
+    let compressor = TableCompressor::new();
+    let row = vec![vec![Action::Accept]; (u16::MAX as usize) + 1];
+    let table = vec![row];
+    let err = compressor
+        .compress_action_table_small(&table, &std::collections::BTreeMap::new())
+        .expect_err("row offsets > u16::MAX must be rejected");
+    let msg = err.to_string();
+    assert!(msg.contains("action row offset"));
+    assert!(msg.contains("u16::MAX"));
+}
+
+#[test]
+fn cb_v9_rejects_goto_row_offset_over_u16() {
+    let compressor = TableCompressor::new();
+    let row: Vec<StateId> = (0..((u16::MAX as usize) + 1))
+        .map(|i| StateId((i % 2) as u16))
+        .collect();
+    let table = vec![row];
+    let err = compressor
+        .compress_goto_table_small(&table)
+        .expect_err("goto row offsets > u16::MAX must be rejected");
+    let msg = err.to_string();
+    assert!(msg.contains("goto row offset"));
+    assert!(msg.contains("u16::MAX"));
+}
+
+#[test]
+fn cb_v9_rejects_goto_run_length_over_u16() {
+    let compressor = TableCompressor::new();
+    let row = vec![StateId(1); (u16::MAX as usize) + 1];
+    let table = vec![row];
+    let err = compressor
+        .compress_goto_table_small(&table)
+        .expect_err("goto run length > u16::MAX must be rejected");
+    let msg = err.to_string();
+    assert!(msg.contains("goto run length"));
+    assert!(msg.contains("u16::MAX"));
+}
+
+#[test]
 fn cb_v9_bitpack_empty_table_no_panic() {
     let table: Vec<Vec<Action>> = vec![];
     let _packed = BitPackedActionTable::from_table(&table);
