@@ -702,10 +702,10 @@ mod tests {
             get_reuse_count() > 0,
             "compatible incremental edit should reuse at least one subtree"
         );
-        assert!(get_reuse_count() <= new_toks.len());
         let status = p.last_parse_status();
         assert!(!status.full_reparse_fallback);
         assert!(status.reused_node_count > 0);
+        assert!(status.reused_node_count <= new_toks.len());
         assert_eq!(status.invalidated_ranges, vec![start..end]);
     }
 
