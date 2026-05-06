@@ -39,6 +39,17 @@ pub struct ReusableNode {
     is_error: bool,
 }
 
+/// Test-visible status for the most recent incremental parse attempt.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct IncrementalParseStatus {
+    /// True when incremental parsing fell back to a full parse.
+    pub full_reparse_fallback: bool,
+    /// Number of reusable nodes discovered from the previous tree.
+    pub reused_node_count: usize,
+    /// Invalidated byte ranges derived from incoming edits.
+    pub invalidated_ranges: Vec<Range<usize>>,
+}
+
 impl Tree {
     /// Create a new tree from a parse result
     pub fn new(root: ParsedNode, language: &'static TSLanguage, source: &[u8]) -> Self {
@@ -112,6 +123,7 @@ impl Tree {
 pub struct IncrementalParser {
     parser: Parser,
     previous_tree: Option<Tree>,
+    last_parse_status: IncrementalParseStatus,
 }
 
 impl Default for IncrementalParser {
@@ -126,7 +138,13 @@ impl IncrementalParser {
         IncrementalParser {
             parser: Parser::new(),
             previous_tree: None,
+            last_parse_status: IncrementalParseStatus::default(),
         }
+    }
+
+    /// Return status for the most recent parse attempt.
+    pub fn last_parse_status(&self) -> &IncrementalParseStatus {
+        &self.last_parse_status
     }
 
     /// Set the language for parsing
@@ -146,12 +164,17 @@ impl IncrementalParser {
 
     /// Parse with incremental reuse
     pub fn parse(&mut self, source: &str, old_tree: Option<&Tree>) -> ParseResult {
+        self.last_parse_status.full_reparse_fallback = false;
+        self.last_parse_status.reused_node_count = 0;
+
         // If we have an old tree, try to reuse nodes
         if let Some(tree) = old_tree {
             self.previous_tree = Some(tree.clone());
 
             // Get reusable nodes
-            let _reusable_nodes = tree.get_reusable_nodes();
+            let reusable_nodes = tree.get_reusable_nodes();
+            self.last_parse_status.reused_node_count = reusable_nodes.len();
+            self.last_parse_status.full_reparse_fallback = true;
 
             // TODO: Implement actual incremental parsing logic
             // For now, fall back to full reparse
@@ -177,6 +200,11 @@ impl IncrementalParser {
         mut old_tree: Option<Tree>,
         edits: &[Edit],
     ) -> ParseResult {
+        self.last_parse_status.invalidated_ranges = edits
+            .iter()
+            .map(|edit| edit.start_byte..edit.old_end_byte)
+            .collect();
+
         // Apply edits to the old tree
         if let Some(ref mut tree) = old_tree {
             for edit in edits {
