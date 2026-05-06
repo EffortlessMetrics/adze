@@ -36,9 +36,9 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 
 ### Product proof alignment
 - [ ] Keep `just ci-supported` as the fast required gate.
-- [ ] Convert `scripts/ci-product.sh` from compile-only advisory smoke to one behavior proof per major product surface.
+- [x] Convert `scripts/ci-product.sh` from compile-only advisory smoke to bounded behavior canaries where behavior is currently truthful; benchmarks and WASM remain explicit compile/no-run canaries.
+- [x] Open focused follow-up issues after the queue is empty for GLR product proof, tablegen ABI completeness, parse diagnostics, CLI clean-room quickstart, and support-tier reconciliation.
 - [ ] Keep README feature claims aligned with [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md): no Stable claim without a named proof command.
-- [ ] Open focused follow-up issues after the queue is empty for GLR product proof, tablegen ABI completeness, parse diagnostics, CLI clean-room quickstart, and benchmark truthfulness.
 
 ### Operational tail
 - [ ] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): Windows pure-rust benchmark-compilation tail is gated but still open; decide whether to trim further or close as acceptable.
