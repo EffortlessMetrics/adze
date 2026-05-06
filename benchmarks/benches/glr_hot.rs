@@ -1,5 +1,6 @@
 use adze_example::arithmetic::grammar::parse;
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 const ARITH_MEDIUM: &str = include_str!("../fixtures/arithmetic/medium.expr");
 const ARITH_LARGE: &str = include_str!("../fixtures/arithmetic/large.expr");

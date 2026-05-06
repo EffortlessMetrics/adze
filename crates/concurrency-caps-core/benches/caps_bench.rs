@@ -1,4 +1,5 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 use adze_concurrency_caps_core::{
     ConcurrencyCaps, normalized_concurrency, parse_positive_usize_or_default,

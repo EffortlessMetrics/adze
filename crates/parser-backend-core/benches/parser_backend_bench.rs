@@ -2,7 +2,8 @@
 //!
 //! Measures performance of backend selection used in parser.
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 use adze_parser_backend_core::ParserBackend;
 
