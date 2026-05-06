@@ -1,0 +1,45 @@
+name: Droid Auto Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  droid-review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Check Factory API key
+        id: check_key
+        run: |
+          if [ -z "$FACTORY_API_KEY" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::FACTORY_API_KEY not configured — skipping Droid review"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+      - name: Checkout repository
+        if: steps.check_key.outputs.available == 'true'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Run Droid Auto Review
+        if: steps.check_key.outputs.available == 'true'
+        continue-on-error: true
+        uses: Factory-AI/droid-action@main
+        with:
+          factory_api_key: ${{ secrets.FACTORY_API_KEY }}
+          automatic_review: true
+          automatic_security_review: true
