@@ -39,7 +39,12 @@ impl ScannerWrapper {
                 .lock()
                 .unwrap_or_else(|err| err.into_inner())
                 .scan(lexer, valid_symbols)
-                .is_some(),
+                .is_some_and(|result| {
+                    valid_symbols
+                        .get(result.symbol as usize)
+                        .copied()
+                        .unwrap_or(false)
+                }),
             ScannerWrapper::C(_guard) => {
                 // C scanners use the FFI interface
                 // This would need conversion from our Lexer trait to TSLexer FFI
