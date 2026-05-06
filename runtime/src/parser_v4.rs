@@ -14,6 +14,7 @@ use adze_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use anyhow::{Result, anyhow, bail};
 use std::collections::HashSet;
 use std::rc::Rc;
+use std::time::Instant;
 
 const PARSE_WITH_CUSTOM_LEXER_UNSUPPORTED: &str = "Custom lexer functions are not yet supported by parser_v4 runtime. \
      Provide a grammar/tokenization path without a custom transform lexer.";
@@ -130,6 +131,8 @@ pub struct Parser {
     /// Language name for scanner registry lookup
     #[allow(dead_code)]
     language: String,
+    /// Maximum parse duration in microseconds. A value of 0 disables timeouts.
+    timeout_micros: u64,
 }
 
 impl Parser {
@@ -239,6 +242,7 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
+            timeout_micros: 0,
         }
     }
 
@@ -305,6 +309,7 @@ impl Parser {
             external_scanner,
             external_runtime,
             language: language_name,
+            timeout_micros: 0,
         }
     }
 
@@ -359,7 +364,18 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
+            timeout_micros: 0,
         }
+    }
+
+    /// Sets the maximum time the parser may run in microseconds.
+    pub fn set_timeout_micros(&mut self, timeout: u64) {
+        self.timeout_micros = timeout;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn timeout_micros(&self) -> u64 {
+        self.timeout_micros
     }
 
     /// Get current arena metrics
@@ -572,10 +588,22 @@ impl Parser {
         let mut current_position = 0;
 
         // Main parsing loop with safety limits
-        let mut loop_iterations = 0;
+        let mut loop_iterations = 0usize;
         const MAX_LOOP_ITERATIONS: usize = 1_000_000; // Prevent infinite loops
+        const TIMEOUT_CHECK_INTERVAL: usize = 32; // Amortize time checks in hot loops
+        let start_time = Instant::now();
 
         loop {
+            // Periodically enforce time-based parse limits to avoid per-iteration overhead.
+            if self.timeout_micros > 0
+                && loop_iterations.is_multiple_of(TIMEOUT_CHECK_INTERVAL)
+                && start_time.elapsed().as_micros() as u64 > self.timeout_micros
+            {
+                bail!(
+                    "Parser timed out after {} microseconds",
+                    self.timeout_micros
+                );
+            }
             // Safety check to prevent infinite loops
             loop_iterations += 1;
             if loop_iterations > MAX_LOOP_ITERATIONS {
