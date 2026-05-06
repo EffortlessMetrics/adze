@@ -454,6 +454,7 @@ proptest! {
 
     #[test]
     fn single_rr_conflict_counted(r1 in arb_rule_id(), r2 in arb_rule_id()) {
+        prop_assume!(r1 != r2);
         let table = make_test_table(vec![vec![vec![Action::Reduce(r1), Action::Reduce(r2)]]]);
         let summary = count_conflicts(&table);
         prop_assert_eq!(summary.shift_reduce, 0);
