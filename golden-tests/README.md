@@ -6,6 +6,10 @@ This directory contains golden-master tests that ensure adze parsers produce ide
 
 ```
 golden-tests/
+├── fixtures/
+│   └── minimal_json_grammar.json   # Tiny grammar fixture for stable node_types JSON
+├── expected/
+│   └── minimal_json_grammar.node_types.json
 ├── python/
 │   ├── fixtures/        # Python source files to parse
 │   └── expected/        # Expected S-expressions and hashes
@@ -58,6 +62,9 @@ This will:
 ### Run Golden Tests
 
 ```bash
+# Runs the default canary golden test (no grammar feature flags needed)
+cargo test -p adze-golden-tests
+
 # Run all golden tests (when grammars are integrated)
 cargo test --features all-grammars
 
@@ -101,10 +108,15 @@ fn python_my_new_test() -> Result<()> {
 
 ## How It Works
 
-1. **Reference Generation**: Uses official Tree-sitter to parse fixtures and save S-expressions
-2. **Hash Comparison**: Computes SHA256 of S-expressions for fast comparison
-3. **Detailed Diff**: On mismatch, saves actual output for debugging
-4. **CI Integration**: Tests run in CI to catch regressions
+1. **JSON canary (active by default)**: Builds a tiny grammar from `fixtures/minimal_json_grammar.json` and compares emitted `node_types_json` to `expected/minimal_json_grammar.node_types.json`.
+2. **Reference Generation (feature-gated)**: Uses official Tree-sitter to parse fixtures and save S-expressions
+3. **Hash Comparison**: Computes SHA256 of S-expressions for fast comparison
+4. **Detailed Diff**: On mismatch, saves actual output for debugging
+5. **CI Integration**: Tests run in CI to catch regressions
+
+## Current Harness Gap
+
+The language S-expression path in `src/lib.rs` currently soft-skips parse failures (`run_golden_test` prints `Skipping ...` and returns `Ok(())`). The default JSON canary exists so `cargo test -p adze-golden-tests` still proves one user-visible parser artifact is stable while the runtime grammar harness is being completed.
 
 ## Benefits
 

@@ -4,6 +4,7 @@ mod example_integration;
 mod tests {
     #![allow(dead_code)]
 
+    use adze_tool::pure_rust_builder::{BuildOptions, build_parser_from_json};
     use anyhow::{Context, Result};
     use sha2::{Digest, Sha256};
     use std::fs;
@@ -597,6 +598,61 @@ mod tests {
     fn unsupported_language_returns_error() {
         let result = parse_with_adze("cobol", "DISPLAY 'HELLO'");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn minimal_json_grammar_node_types_golden() -> Result<()> {
+        let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures")
+            .join("minimal_json_grammar.json");
+        let expected_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("expected")
+            .join("minimal_json_grammar.node_types.json");
+
+        let grammar_json = fs::read_to_string(&fixture_path)
+            .with_context(|| format!("Failed to read fixture: {}", fixture_path.display()))?;
+
+        let temp_out = tempfile::tempdir()?;
+        let options = BuildOptions {
+            out_dir: temp_out.path().to_string_lossy().into_owned(),
+            emit_artifacts: false,
+            compress_tables: false,
+        };
+
+        let result = build_parser_from_json(grammar_json, options)
+            .with_context(|| "Failed to build parser from JSON fixture")?;
+
+        let actual_pretty = serde_json::to_string_pretty(&serde_json::from_str::<
+            serde_json::Value,
+        >(&result.node_types_json)?)?;
+        if std::env::var("UPDATE_GOLDEN").is_ok() {
+            if let Some(parent) = expected_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&expected_path, &actual_pretty)?;
+            return Ok(());
+        }
+
+        let expected_pretty = fs::read_to_string(&expected_path).with_context(|| {
+            format!(
+                "Failed to read expected output: {}",
+                expected_path.display()
+            )
+        })?;
+
+        if actual_pretty != expected_pretty {
+            let actual_path = expected_path.with_extension("actual.json");
+            fs::write(&actual_path, actual_pretty)?;
+            anyhow::bail!(
+                "node_types JSON mismatch for fixture {}. \
+                 Expected: {}. Actual written to: {}",
+                fixture_path.display(),
+                expected_path.display(),
+                actual_path.display()
+            );
+        }
+
+        Ok(())
     }
 
     #[cfg(any(feature = "python-grammar", feature = "javascript-grammar"))]
