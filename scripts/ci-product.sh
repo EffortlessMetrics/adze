@@ -8,14 +8,14 @@ fi
 
 # Canary definitions: "label|proof_type|command"
 CANARIES=(
-  "adze runtime pure-rust smoke|compile-only|cargo check -p adze --features pure-rust"
-  "adze-cli smoke|compile-only|cargo check -p adze-cli"
-  "golden-tests smoke|compile-only|cargo test -p adze-golden-tests --features python-grammar --no-run"
+  "adze runtime pure-rust typed extraction|behavior|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture"
+  "adze-cli clean-room init smoke|behavior|cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture"
+  "golden-tests javascript canary|behavior|cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture"
   "benchmarks canary|compile-only|cargo bench -p adze-benchmarks --no-run"
   "wasm-demo canary|compile-only|cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown"
-  "grammar smoke (python)|compile-only|cargo check -p adze-python"
-  "runtime2 canary|compile-only|cargo test --manifest-path runtime2/Cargo.toml --no-run"
-  "governance/BDD microcrate smoke|compile-only|cargo test -p adze-bdd-grid-core --lib --no-run"
+  "grammar metadata smoke (python)|behavior|cargo test -p adze-python test_python_language_exists -- --exact --nocapture"
+  "runtime2 metadata smoke|behavior|cargo test --manifest-path runtime2/Cargo.toml --features test-utils --test basic language_smoke_exposes_metadata_queries -- --exact --nocapture"
+  "governance/BDD microcrate smoke|behavior|cargo test -p adze-bdd-grid-core --lib tests::progress_summary_reports_counts -- --exact --nocapture"
 )
 
 printf '== ci-product advisory canaries ==\n'
