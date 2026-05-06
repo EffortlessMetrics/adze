@@ -772,9 +772,79 @@ fn pipeline_validates_compressed_tables() {
             .start("start")
             .build()
     });
-    // validate() currently returns Ok unconditionally, but this tests the API
+    // validate() checks compressed-table shape and Accept-on-EOF preservation.
     let result = compressed.validate(&pt);
     assert!(result.is_ok(), "validation should pass: {:?}", result.err());
+}
+
+#[test]
+fn pipeline_preserves_accept_on_eof_states_in_compressed_table() {
+    let (pt, compressed) = pipeline(|| {
+        GrammarBuilder::new("acc_eof")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    let eof_col = *pt
+        .symbol_to_index
+        .get(&pt.eof_symbol)
+        .expect("EOF must be in symbol_to_index");
+
+    let accepting_states: Vec<usize> = pt
+        .action_table
+        .iter()
+        .enumerate()
+        .filter_map(|(state, row)| {
+            row.get(eof_col).and_then(|cell| {
+                cell.iter()
+                    .any(|a| matches!(a, Action::Accept))
+                    .then_some(state)
+            })
+        })
+        .collect();
+
+    assert!(
+        !accepting_states.is_empty(),
+        "source table should contain Accept-on-EOF"
+    );
+
+    for state in accepting_states {
+        let start = compressed.action_table.row_offsets[state] as usize;
+        let end = compressed.action_table.row_offsets[state + 1] as usize;
+        let has_accept_on_eof = compressed.action_table.data[start..end]
+            .iter()
+            .any(|entry| entry.symbol as usize == eof_col && entry.action == Action::Accept);
+        assert!(
+            has_accept_on_eof,
+            "compressed table lost Accept-on-EOF for state {state}"
+        );
+    }
+}
+
+#[test]
+fn compressed_validation_fails_when_accept_on_eof_is_dropped() {
+    let (pt, mut compressed) = pipeline(|| {
+        GrammarBuilder::new("acc_eof_neg")
+            .token("a", "a")
+            .rule("start", vec!["a"])
+            .start("start")
+            .build()
+    });
+
+    // Simulate corruption: rewrite Accept entries to Error while keeping table shape.
+    for entry in &mut compressed.action_table.data {
+        if entry.action == Action::Accept {
+            entry.action = Action::Error;
+        }
+    }
+
+    let err = compressed
+        .validate(&pt)
+        .expect_err("validator should reject missing Accept-on-EOF");
+    let msg = err.to_string();
+    assert!(msg.contains("Accept-on-EOF"), "unexpected error: {msg}");
 }
 
 #[test]

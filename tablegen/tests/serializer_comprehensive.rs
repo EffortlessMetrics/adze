@@ -9,7 +9,10 @@
 
 use std::collections::BTreeMap;
 
-use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable};
+use adze_glr_core::{
+    Action, FirstFollowSets, GotoIndexing, LexMode, ParseTable, build_lr1_automaton,
+};
+use adze_ir::builder::GrammarBuilder;
 use adze_ir::{
     ExternalToken, FieldId, Grammar, ProductionId, Rule, RuleId, StateId, Symbol, SymbolId, Token,
     TokenPattern,
@@ -19,6 +22,7 @@ use adze_tablegen::compress::{
     CompressedTables,
 };
 use adze_tablegen::serializer::{SerializableLanguage, SerializableLexState, serialize_language};
+use adze_tablegen::{TableCompressor, collect_token_indices, eof_accepts_or_reduces};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -932,6 +936,61 @@ fn eof_metadata_is_visible_not_named() {
     assert_ne!(eof_meta & 0x01, 0, "EOF should be visible");
     // named=false → bit 0x02 not set
     assert_eq!(eof_meta & 0x02, 0, "EOF should not be named");
+}
+
+#[test]
+fn serialize_preserves_accept_on_eof_in_compressed_rows() {
+    let mut grammar = GrammarBuilder::new("ser_acc_eof")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    let ff = FirstFollowSets::compute_normalized(&mut grammar).expect("first/follow");
+    let table = build_lr1_automaton(&grammar, &ff).expect("automaton");
+    let token_indices = collect_token_indices(&grammar, &table);
+    let start_empty = eof_accepts_or_reduces(&table);
+    let compressed = TableCompressor::new()
+        .compress(&table, &token_indices, start_empty)
+        .expect("compress");
+
+    let json = serialize_language(&grammar, &table, Some(&compressed)).expect("serialize");
+    let deser: SerializableLanguage = serde_json::from_str(&json).expect("deserialize json");
+
+    let eof_col = *table
+        .symbol_to_index
+        .get(&table.eof_symbol)
+        .expect("EOF in symbol_to_index");
+    let accepting_states: Vec<usize> = table
+        .action_table
+        .iter()
+        .enumerate()
+        .filter_map(|(state, row)| {
+            row.get(eof_col).and_then(|cell| {
+                cell.iter()
+                    .any(|a| matches!(a, Action::Accept))
+                    .then_some(state)
+            })
+        })
+        .collect();
+
+    assert!(
+        !accepting_states.is_empty(),
+        "source table must accept on EOF"
+    );
+
+    for state in accepting_states {
+        let row_start = deser.small_parse_table_map[state] as usize;
+        let row_end = deser.small_parse_table_map[state + 1] as usize;
+        let row_words = &deser.parse_table[row_start * 2..row_end * 2];
+
+        let has_accept_on_eof = row_words
+            .chunks_exact(2)
+            .any(|pair| pair[0] as usize == eof_col && pair[1] == 0xFFFF);
+        assert!(
+            has_accept_on_eof,
+            "serialized table lost Accept-on-EOF for state {state}"
+        );
+    }
 }
 
 #[test]
