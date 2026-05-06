@@ -216,7 +216,7 @@ pub fn bdd_progress_report(
     let mut out = String::new();
 
     let (implemented, total) = bdd_progress(phase, scenarios);
-    out.push_str("\n=== BDD GLR Conflict Preservation Test Summary ===\n");
+    out.push_str("=== BDD Scenario Progress Summary ===\n");
     out.push_str(phase_title);
     out.push('\n');
     out.push('\n');
@@ -246,6 +246,9 @@ pub fn bdd_progress_report(
         "{}: {}/{} scenarios complete",
         phase_title, implemented, total
     );
+    if let Some(reference) = scenarios.first().map(|scenario| scenario.reference) {
+        let _ = write!(out, "\nReference: {reference}");
+    }
     if implemented < total {
         out.push_str("\nNext: Implement remaining deferred scenarios.");
     }
@@ -294,6 +297,19 @@ mod tests {
     fn progress_report_for_valid_grid_has_no_validation_warning() {
         let report = bdd_progress_report(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, "Core");
         assert!(!report.contains("Grid validation found"));
+    }
+
+    #[test]
+    fn progress_report_uses_generic_heading_and_reference() {
+        let report = bdd_progress_report(BddPhase::Core, GLR_CONFLICT_PRESERVATION_GRID, "Core");
+        assert!(report.starts_with("=== BDD Scenario Progress Summary ==="));
+        assert!(report.contains("Reference: docs/archive/plans/BDD_GLR_CONFLICT_PRESERVATION.md"));
+    }
+
+    #[test]
+    fn progress_report_omits_reference_for_empty_grid() {
+        let report = bdd_progress_report(BddPhase::Core, &[], "Core");
+        assert!(!report.contains("Reference:"));
     }
 
     #[test]

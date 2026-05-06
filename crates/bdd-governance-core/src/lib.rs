@@ -171,7 +171,7 @@ mod tests {
         assert!(
             matrix
                 .report("Core")
-                .contains("=== BDD GLR Conflict Preservation Test Summary ===")
+                .contains("=== BDD Scenario Progress Summary ===")
         );
         assert!(matrix.status_line().starts_with("core:"));
     }
