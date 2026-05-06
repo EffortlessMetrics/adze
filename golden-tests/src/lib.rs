@@ -622,9 +622,8 @@ mod tests {
         let result = build_parser_from_json(grammar_json, options)
             .with_context(|| "Failed to build parser from JSON fixture")?;
 
-        let actual_pretty = serde_json::to_string_pretty(&serde_json::from_str::<
-            serde_json::Value,
-        >(&result.node_types_json)?)?;
+        let actual_value = serde_json::from_str::<serde_json::Value>(&result.node_types_json)?;
+        let actual_pretty = serde_json::to_string_pretty(&actual_value)?;
         if std::env::var("UPDATE_GOLDEN").is_ok() {
             if let Some(parent) = expected_path.parent() {
                 fs::create_dir_all(parent)?;
@@ -639,8 +638,9 @@ mod tests {
                 expected_path.display()
             )
         })?;
+        let expected_value = serde_json::from_str::<serde_json::Value>(&expected_pretty)?;
 
-        if actual_pretty != expected_pretty {
+        if actual_value != expected_value {
             let actual_path = expected_path.with_extension("actual.json");
             fs::write(&actual_path, actual_pretty)?;
             anyhow::bail!(

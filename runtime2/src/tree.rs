@@ -150,6 +150,15 @@ impl TreeNode {
     }
 }
 
+impl Drop for TreeNode {
+    fn drop(&mut self) {
+        let mut pending = std::mem::take(&mut self.children);
+        while let Some(mut node) = pending.pop() {
+            pending.extend(std::mem::take(&mut node.children));
+        }
+    }
+}
+
 impl Tree {
     /// Create a new tree from a root node
     #[allow(dead_code)]
@@ -196,8 +205,8 @@ impl Tree {
         end_byte: usize,
         children: Vec<Tree>,
     ) -> Self {
-        fn tree_to_node(t: Tree) -> TreeNode {
-            let child_nodes = t.root.children.into_iter().collect();
+        fn tree_to_node(mut t: Tree) -> TreeNode {
+            let child_nodes = std::mem::take(&mut t.root.children);
             TreeNode {
                 symbol: t.root.symbol,
                 start_byte: t.root.start_byte,

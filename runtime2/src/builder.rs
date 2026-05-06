@@ -9,7 +9,7 @@ use crate::tree::{Tree, TreeNode};
 
 #[cfg(feature = "glr")]
 use adze_glr_core::ForestView as CoreForestView;
-#[cfg(feature = "glr-core")]
+#[cfg(feature = "glr")]
 use rustc_hash::FxHashSet;
 
 /// Converts a GLR parse forest into a Tree-sitter compatible tree.
