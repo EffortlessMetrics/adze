@@ -10,6 +10,7 @@ mod fixtures;
 mod golden;
 mod grammar_json;
 mod lint;
+mod policy;
 mod profile;
 mod test_grammars;
 mod test_local_grammars;
@@ -169,6 +170,14 @@ enum Commands {
         #[arg(last = true)]
         clippy_args: Vec<String>,
     },
+    /// Check the governed Clippy policy ledger and workspace lint inheritance
+    CheckLintPolicy,
+    /// Validate the semantic no-panic allowlist schema
+    CheckNoPanicFamily,
+    /// Validate the non-Rust file policy allowlist schema
+    CheckFilePolicy,
+    /// Print a summary of configured policy ledgers
+    PolicyReport,
     /// Generate arithmetic expression fixtures for benchmarking
     GenerateFixtures {
         /// Output directory for fixtures
@@ -361,6 +370,18 @@ fn main() -> Result<()> {
             clippy_args,
         } => {
             lint::lint(&sh, fix, changed_only, since, fast, clippy_args)?;
+        }
+        Commands::CheckLintPolicy => {
+            policy::check_lint_policy()?;
+        }
+        Commands::CheckNoPanicFamily => {
+            policy::check_no_panic_family()?;
+        }
+        Commands::CheckFilePolicy => {
+            policy::check_file_policy()?;
+        }
+        Commands::PolicyReport => {
+            policy::policy_report()?;
         }
         Commands::GenerateFixtures { output, force } => {
             fixtures::generate_fixtures(&sh, &output, force)?;

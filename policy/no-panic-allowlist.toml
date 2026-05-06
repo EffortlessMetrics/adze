@@ -1,0 +1,5 @@
+schema_version = "0.3"
+
+# Panic-family exceptions are intentionally empty for this first policy ratchet.
+# Future exceptions must use path + family + selector identity with owner,
+# classification, explanation, advisory last_seen, and optional expires.

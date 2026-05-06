@@ -23,6 +23,12 @@ test:
 check-fast:
     cargo check -p adze -p adze-ir -p adze-glr-core --profile dev-fast
 
+# Check governed policy ledgers
+check-lint-policy:
+    cargo xtask check-lint-policy
+    cargo xtask check-no-panic-family
+    cargo xtask check-file-policy
+
 # Run pre-commit checks
 pre:
     .githooks/pre-commit
@@ -73,6 +79,9 @@ ci-supported:
     export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
     export RUST_TEST_THREADS="${RUST_TEST_THREADS:-2}"
     cargo fmt --all -- --check
+    cargo xtask check-lint-policy
+    cargo xtask check-no-panic-family
+    cargo xtask check-file-policy
     cargo clippy {{supported_crates}} --all-targets -- -D warnings
     cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
     cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"

@@ -5,7 +5,13 @@
 #![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
 #![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+#![cfg_attr(
+    not(feature = "strict_docs"),
+    allow(
+        missing_docs,
+        reason = "strict docs are enforced only when the strict_docs feature is enabled"
+    )
+)]
 
 use core::fmt::{self, Display, Formatter};
 
@@ -73,6 +79,10 @@ impl ParserBackend {
     ///
     /// # Panics
     /// Panics if `has_conflicts` is true and the `pure-rust` feature is enabled without the `glr` feature.
+    #[expect(
+        clippy::panic,
+        reason = "public API preserves the documented panic contract for incompatible backend features"
+    )]
     pub const fn select(_has_conflicts: bool) -> Self {
         match Self::select_contract(_has_conflicts) {
             ParserBackendSelection::Backend(backend) => backend,

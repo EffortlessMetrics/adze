@@ -1,0 +1,7 @@
+# Repo-local Clippy configuration for Adze.
+#
+# Keep lint levels in Cargo.toml and policy/clippy-lints.toml. This file is only
+# for domain-specific disallowed-methods/types/macros or lint configuration that
+# Clippy cannot express through [workspace.lints]. Do not add test carveouts such
+# as allow-unwrap-in-tests, allow-expect-in-tests, allow-panic-in-tests,
+# allow-indexing-slicing-in-tests, or allow-dbg-in-tests.

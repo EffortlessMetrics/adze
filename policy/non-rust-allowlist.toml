@@ -1,0 +1,5 @@
+schema_version = "1.0"
+
+# Non-Rust file policy will be populated as the file-policy checker lands.
+# Entries must use path or glob plus kind, owner, reason, surface,
+# classification, covered_by, and optional expires.
