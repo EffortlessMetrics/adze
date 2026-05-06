@@ -185,8 +185,8 @@ impl<'a> TsLexerHost<'a> {
     extern "C" fn is_at_included_range_start(lexer: *const TSLexer) -> bool {
         let wrapper = TSLexerWrapper::from_const_lexer(lexer);
         // Included-range APIs are not implemented in this wrapper yet.
-        // For now we model the whole input as a single included range.
-        wrapper.host.pos <= wrapper.host.input.len()
+        // Model the whole input as a single included range starting at byte 0.
+        wrapper.host.pos == 0
     }
 
     extern "C" fn log(_lexer: *const TSLexer, message: *const c_char) {
@@ -275,7 +275,6 @@ unsafe extern "C" {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::c_void;
     use std::mem::offset_of;
 
     #[test]
@@ -298,11 +297,11 @@ mod tests {
         }
 
         assert!(
-            !(lexer.is_at_included_range_start)(lexer),
-            "should start outside included range"
+            (lexer.is_at_included_range_start)(lexer),
+            "should start at the whole-input included range"
         );
         assert_eq!((lexer.get_column)(lexer), 0, "stubbed get_column returns 0");
-        let log_message = b"parser callback test\0".as_ptr() as *const c_char;
+        let log_message = c"parser callback test".as_ptr();
         (lexer.log)(lexer, log_message);
         (lexer.mark_end)(lexer);
         (lexer.advance)(lexer, false);
@@ -401,25 +400,16 @@ mod tests {
                 end_mark: 0,
             },
         };
-        assert_eq!(
-            TsLexerHost::get_column(&mut wrapper.lexer as *mut _),
-            2
-        );
+        assert_eq!(TsLexerHost::get_column(&mut wrapper.lexer as *mut _), 2);
         wrapper.host.pos = 5;
-        assert_eq!(
-            TsLexerHost::get_column(&mut wrapper.lexer as *mut _),
-            2
-        );
+        assert_eq!(TsLexerHost::get_column(&mut wrapper.lexer as *mut _), 2);
         wrapper.host.pos = 9;
-        assert_eq!(
-            TsLexerHost::get_column(&mut wrapper.lexer as *mut _),
-            2
-        );
+        assert_eq!(TsLexerHost::get_column(&mut wrapper.lexer as *mut _), 2);
     }
 
     #[test]
-    fn is_at_included_range_start_is_true_for_current_input() {
-        let wrapper = TSLexerWrapper {
+    fn is_at_included_range_start_tracks_whole_input_start() {
+        let mut wrapper = TSLexerWrapper {
             lexer: TSLexer {
                 lookahead: 0,
                 result_symbol: 0,
@@ -432,11 +422,15 @@ mod tests {
             },
             host: TsLexerHost {
                 input: b"hello",
-                pos: 3,
+                pos: 0,
                 end_mark: 0,
             },
         };
         assert!(TsLexerHost::is_at_included_range_start(
+            &wrapper.lexer as *const _
+        ));
+        wrapper.host.pos = 3;
+        assert!(!TsLexerHost::is_at_included_range_start(
             &wrapper.lexer as *const _
         ));
     }
