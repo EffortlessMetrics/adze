@@ -131,13 +131,6 @@ pub struct Parser {
     /// Language name for scanner registry lookup
     #[allow(dead_code)]
     language: String,
-    /// Optional custom lexer function provided by the generated parser.
-    ///
-    /// `parser_v4` currently does not implement this path, so parse attempts are
-    /// rejected explicitly when present.
-    custom_lexer_fn: Option<
-        unsafe extern "C" fn(*mut core::ffi::c_void, crate::pure_parser::TSLexState) -> bool,
-    >,
     /// Maximum parse duration in microseconds. A value of 0 disables timeouts.
     timeout_micros: u64,
 }
@@ -249,7 +242,6 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
-            custom_lexer_fn: None,
             timeout_micros: 0,
         }
     }
@@ -317,7 +309,6 @@ impl Parser {
             external_scanner,
             external_runtime,
             language: language_name,
-            custom_lexer_fn: None,
             timeout_micros: 0,
         }
     }
@@ -373,7 +364,6 @@ impl Parser {
             external_scanner,
             external_runtime,
             language,
-            custom_lexer_fn: None,
             timeout_micros: 0,
         }
     }
@@ -605,13 +595,14 @@ impl Parser {
 
         loop {
             // Periodically enforce time-based parse limits to avoid per-iteration overhead.
-            if self.timeout_micros > 0 && loop_iterations % TIMEOUT_CHECK_INTERVAL == 0 {
-                if start_time.elapsed().as_micros() as u64 > self.timeout_micros {
-                    bail!(
-                        "Parser timed out after {} microseconds",
-                        self.timeout_micros
-                    );
-                }
+            if self.timeout_micros > 0
+                && loop_iterations.is_multiple_of(TIMEOUT_CHECK_INTERVAL)
+                && start_time.elapsed().as_micros() as u64 > self.timeout_micros
+            {
+                bail!(
+                    "Parser timed out after {} microseconds",
+                    self.timeout_micros
+                );
             }
             // Safety check to prevent infinite loops
             loop_iterations += 1;
