@@ -10,8 +10,8 @@
 
 use adze_glr_core::advanced_conflict::{ConflictAnalyzer, PrecedenceDecision, PrecedenceResolver};
 use adze_glr_core::conflict_inspection::{
-    ConflictType, action_cell_has_conflict, classify_conflict, count_conflicts,
-    find_conflicts_for_symbol, get_state_conflicts, state_has_conflicts,
+    ConflictType, cell_has_conflict, classify_conflict, count_conflicts, find_conflicts_for_symbol,
+    get_state_conflicts, state_has_conflicts,
 };
 use adze_glr_core::precedence_compare::{
     PrecedenceComparison, PrecedenceInfo, StaticPrecedenceResolver, compare_precedences,
@@ -643,7 +643,7 @@ fn test_21_grammarbuilder_ambiguous_has_multi_action_cells() {
     let has_conflicted_cell = table
         .action_table
         .iter()
-        .any(|row| row.iter().any(|cell| action_cell_has_conflict(cell)));
+        .any(|row| row.iter().any(|cell| cell_has_conflict(cell)));
     assert!(
         has_conflicted_cell,
         "Ambiguous grammar must have at least one conflicted action cell (GLR fork)"
@@ -667,7 +667,7 @@ fn test_22_grammarbuilder_unambiguous_no_multi_action() {
     let has_conflicted_cell = table
         .action_table
         .iter()
-        .any(|row| row.iter().any(|cell| action_cell_has_conflict(cell)));
+        .any(|row| row.iter().any(|cell| cell_has_conflict(cell)));
     assert!(
         !has_conflicted_cell,
         "Unambiguous grammar must have no conflicted action cells"

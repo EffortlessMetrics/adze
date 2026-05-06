@@ -5,7 +5,8 @@
 
 use adze_glr_core::{
     Action, ActionCell, FirstFollowSets, GotoIndexing, LexMode, ParseRule, ParseTable, RuleId,
-    StateId, SymbolId, build_lr1_automaton, sanity_check_tables,
+    StateId, SymbolId, build_lr1_automaton, conflict_inspection::cell_has_conflict,
+    sanity_check_tables,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
@@ -748,7 +749,7 @@ fn sr_conflict_grammar_produces_multi_action_cells() {
         .action_table
         .iter()
         .flat_map(|r| r.iter())
-        .filter(|cell| cell.len() > 1)
+        .filter(|cell| cell_has_conflict(cell))
         .count();
     assert!(
         multi_action_count > 0,
@@ -1241,7 +1242,7 @@ fn builder_recursive_grammar() {
         .action_table
         .iter()
         .flat_map(|r| r.iter())
-        .filter(|c| c.len() > 1)
+        .filter(|c| cell_has_conflict(c))
         .count();
     assert!(
         multi > 0,
