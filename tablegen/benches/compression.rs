@@ -7,7 +7,8 @@ use adze_tablegen::{
     TableCompressor,
     helpers::{collect_token_indices, eof_accepts_or_reduces},
 };
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 /// Benchmark small grammar compression
 fn bench_small_grammar(c: &mut Criterion) {
