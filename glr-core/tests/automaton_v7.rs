@@ -980,10 +980,10 @@ fn first_set_cardinality() {
         .find(|(_, v)| v.as_str() == "S")
         .map(|(&k, _)| k);
 
-    if let Some(s) = s_id {
-        if let Some(first) = ff.first(s) {
-            assert!(first.count_ones(..) >= 1);
-        }
+    if let Some(s) = s_id
+        && let Some(first) = ff.first(s)
+    {
+        assert!(first.count_ones(..) >= 1);
     }
 }
 
@@ -1144,10 +1144,10 @@ fn follow_set_cardinality() {
         .find(|(_, v)| v.as_str() == "A")
         .map(|(&k, _)| k);
 
-    if let Some(a) = a_id {
-        if let Some(follow) = ff.follow(a) {
-            assert!(follow.count_ones(..) >= 0);
-        }
+    if let Some(a) = a_id
+        && let Some(follow) = ff.follow(a)
+    {
+        assert!(follow.count_ones(..) >= 1);
     }
 }
 

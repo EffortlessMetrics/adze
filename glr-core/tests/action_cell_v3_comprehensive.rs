@@ -7,12 +7,11 @@
 //! patterns, and edge cases.
 
 use adze_glr_core::{
-    Action, ActionCell, FirstFollowSets, ParseRule, ParseTable, RuleId, StateId, SymbolId,
-    build_lr1_automaton,
+    Action, ActionCell, FirstFollowSets, RuleId, StateId, SymbolId, build_lr1_automaton,
 };
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::*;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 
 // ===========================================================================
 // Helpers

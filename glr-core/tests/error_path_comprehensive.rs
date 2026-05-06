@@ -4,7 +4,9 @@
 //! Covers: empty tables, invalid indices, missing symbols, GlrError formatting,
 //! parse failures, empty grammars, and FIRST/FOLLOW edge cases.
 
-use adze_glr_core::driver::{Driver, GlrError};
+#[cfg(not(feature = "strict-invariants"))]
+use adze_glr_core::driver::Driver;
+use adze_glr_core::driver::GlrError;
 use adze_glr_core::{
     Action, FirstFollowSets, GLRError, GotoIndexing, LexMode, ParseRule, ParseTable, SymbolId,
     build_lr1_automaton,
