@@ -161,11 +161,11 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Area:** tooling
 **Symptom:** To validate a grammar, users must write a full Rust program with `build.rs` integration.
 **Expected:** A CLI command like `adze check grammar.rs` validates grammars without a full project.
-**Actual:** No CLI binary exists yet.
-**Fix:** Implement `adze check` and `adze stats` subcommands.
+**Actual:** `adze check`, `adze stats`, `adze init`, `adze build`, `adze test`, and `adze doc` exist. `adze parse` is present as a command shape, but static and dynamic parse output currently fail explicitly as unimplemented.
+**Fix:** Implement `adze check` and `adze stats` subcommands; keep parse-mode documentation and errors explicit until parse output is behavior-backed.
 **Status:** Resolved
 **Discovered:** Wave 14
-**Resolved:** Wave 15 (2026-03-25) - CLI is fully implemented in `cli/` with all required commands: `adze check` (grammar validation), `adze stats` (parse table metrics), `adze init` (project initialization), `adze build` (build grammar parsers), `adze parse` (parse files), `adze test` (test grammars), and `adze doc` (generate documentation). All 20 tests passing.
+**Resolved:** Wave 15 (2026-03-25) - CLI validation and project scaffolding exist in `cli/`. Parse output remains a developing surface, tracked separately under CLI truthfulness/product-proof work.
 
 ### FR-014 - Stale Runtime Test API References
 
