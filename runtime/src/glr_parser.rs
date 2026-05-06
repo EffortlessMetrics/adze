@@ -2231,6 +2231,32 @@ impl GLRParser {
         symbols
     }
 
+    /// Return the grammar name for a symbol when one is available.
+    pub fn symbol_name(&self, symbol: SymbolId) -> Option<&str> {
+        self.grammar
+            .tokens
+            .get(&symbol)
+            .map(|token| token.name.as_str())
+            .or_else(|| self.grammar.rule_names.get(&symbol).map(String::as_str))
+    }
+
+    /// Get display names for symbols expected at the current parse state.
+    pub fn expected_symbol_names(&self) -> Vec<String> {
+        let mut symbols = self
+            .expected_symbols()
+            .into_iter()
+            .map(|symbol| {
+                self.symbol_name(symbol)
+                    .map(str::to_string)
+                    .unwrap_or_else(|| format!("{symbol:?}"))
+            })
+            .collect::<Vec<_>>();
+
+        symbols.sort();
+        symbols.dedup();
+        symbols
+    }
+
     /// Perform all possible reductions on a stack until no more are possible
     ///
     /// # Errors

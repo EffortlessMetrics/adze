@@ -173,11 +173,7 @@ impl ErrorReportingExt for GLRParser {
 }
 
 fn expected_token_names(parser: &GLRParser) -> Vec<String> {
-    parser
-        .expected_symbols()
-        .into_iter()
-        .map(|symbol| format!("{symbol:?}"))
-        .collect()
+    parser.expected_symbol_names()
 }
 
 #[cfg(test)]

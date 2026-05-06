@@ -1252,8 +1252,8 @@ fn reporting_error_reporter_populates_expected_tokens() {
 
     assert_eq!(error.unexpected_token.as_deref(), Some("@"));
     assert!(
-        error.expected.iter().any(|token| token == "SymbolId(1)"),
-        "expected token set should include the one-token grammar's number symbol: {:?}",
+        error.expected.iter().any(|token| token == "num"),
+        "expected token set should include the one-token grammar's token name: {:?}",
         error.expected
     );
 }
@@ -1268,10 +1268,7 @@ fn reporting_parse_with_errors_preserves_expected_tokens_after_bad_input() {
 
     assert_eq!(errors.len(), 1);
     assert!(
-        errors[0]
-            .expected
-            .iter()
-            .any(|token| token == "SymbolId(1)"),
+        errors[0].expected.iter().any(|token| token == "num"),
         "expected token set should survive parse failure: {:?}",
         errors[0].expected
     );
