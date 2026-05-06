@@ -1,3 +1,4 @@
 fn main() {
-    adze_tool::build_parsers();
+    let grammar = std::path::PathBuf::from("src/lib.rs");
+    adze_tool::build_parsers(&grammar);
 }
