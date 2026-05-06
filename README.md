@@ -84,7 +84,7 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 |---------|--------|-------------|
 | **Typed extraction** | ✅ Stable | Grammar *is* your AST — parse directly into your Rust types |
 | **Pure Rust** | ✅ Stable | Default backend is 100% Rust; no C toolchain needed |
-| **GLR parsing** | ✅ Stable | Handles ambiguous grammars (C++, JavaScript, etc.) |
+| **GLR conflict routing** | 🚧 Stabilizing | Core GLR routing exists; full ambiguous typed extraction proof is still being expanded |
 | **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for disambiguation |
 | **WASM support** | 📎 Advisory | Compile parsers to WebAssembly with `features = ["wasm"]` |
 | **Tree-sitter interop** | 📎 Advisory | Import existing Tree-sitter grammars via `ts-bridge` |
@@ -105,6 +105,8 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 | WASM                        | Advisory                    | Compile/proof surface is being expanded; runtime/browser execution is not yet the main contract. |
 | Grammar crates              | Advisory                    | Valuable smoke coverage; not all grammar crates are production-ready.                            |
 | Benchmarks                  | Advisory                    | Benchmarks are signal, not support proof.                                                        |
+
+Rule for documentation and CI promotion: no Stable feature claim without a named proof command in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
 
 Adze is a good fit if you are building a parser or DSL in Rust, you control the grammar, and you want the result as plain Rust types integrated into a normal Cargo build. It is not yet a drop-in replacement for mature parser generators, and surfaces outside the core lane should be treated as developing.
 

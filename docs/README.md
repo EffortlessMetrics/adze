@@ -61,6 +61,8 @@ Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-nativ
 ## Project Status
 
 - [**Roadmap**](../ROADMAP.md) - Milestones for 0.8.0, 0.9.0, and 1.0.
+- [**Correctness Push Plan**](./status/CORRECTNESS_PUSH.md) - Current merge/proof sequence for parser, GLR, tablegen ABI, CLI, and product-proof convergence.
+- [**Support Tiers**](./status/SUPPORT_TIERS.md) - Feature claims mapped to proof commands and CI lanes.
 - [**Friction Log**](./status/FRICTION_LOG.md) - Current developer pain points we are burning down.
 - [**Now / Next / Later**](./status/NOW_NEXT_LATER.md) - Rolling execution plan.
 - [**Known Red**](./status/KNOWN_RED.md) - Exclusions from the supported CI lane.

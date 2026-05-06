@@ -1,9 +1,9 @@
 # Now / Next / Later
 
-**Last updated:** 2026-04-11
-**Status:** **Post-release hardening on `main`** — `adze` 0.8.0 is live on crates.io, the supported gate remains green, there is no open PR stack, and the remaining work is the residual advisory/broad CI tail on current `main`.
+**Last updated:** 2026-05-06
+**Status:** **Correctness push in progress** — `adze` 0.8.0 is live on crates.io and the supported gate remains bounded, but the live GitHub PR queue must be treated as the execution baseline before any merge. The current push is tracked in [`CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
 
-Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For the (substantially complete) post-PR264 follow-up plan, see [`plans/POST-PR264-CI-FOLLOWUPS.md`](../../plans/POST-PR264-CI-FOLLOWUPS.md).
+Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For support-tier proof commands, see [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
 
 ---
 
@@ -18,24 +18,29 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [x] A safety archive of the pre-cleanup dirty checkout was preserved outside `/tmp`.
 - [x] Issue #268 worktree cleanup documentation and validation is now documented and backed by a helper script.
 
-### ✅ Immediate close-out state
+### ✅ Prior close-out state
 - [x] PR `#280` (workflow hardening) merged on 2026-04-06.
 - [x] PR `#281` (roadmap/execution-state refresh) merged.
 - [x] `main` is aligned with `origin/main` and is now the source of truth for the remaining hardening work.
-- [x] GitHub currently shows no open PRs; any remaining hardening should restart from fresh branches off current `main`.
 - [x] A restore audit on 2026-04-11 confirmed that the proof surfaces trimmed during publication are already present again on `main`.
 
 ---
 
 ## Now
 
-### 🧪 Broad CI truthfulness and hardening
-- [ ] Finish the workflow/toolchain tail on current `main`: sanitizers, minimal-versions, supply-chain checks, cross-compilation, and the long-running Miri lane.
-- [ ] Clear the remaining `adze` broad-surface failures on current `main`: matrix smoke, coverage, strict-invariants release mode, feature-matrix `serialization` / `all-features` / `glr`, and the matching cross-platform test lanes.
-- [ ] Clear the remaining GLR tail on current `main`: `adze-glr-core / all-features` and deterministic codegen.
-- [ ] Keep `KNOWN_RED.md` aligned with the real advisory-lane state whenever a lane stops being intentionally red.
+### Correctness merge queue
+- [ ] Refresh live PR state before each merge with `gh pr list --state open --limit 50 --json number,title,mergeable,isDraft,headRefName,baseRefName,updatedAt,url`.
+- [ ] Land mergeable parser/tablegen/runtime/CLI correctness PRs in the order documented in [`CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
+- [ ] Manually resolve conflict PRs instead of taking either side wholesale.
+- [ ] Report proof commands, open PR count, red checks, and the next blocker after each merge.
 
-### 📦 Close remaining operational issues
+### Product proof alignment
+- [ ] Keep `just ci-supported` as the fast required gate.
+- [ ] Convert `scripts/ci-product.sh` from compile-only advisory smoke to one behavior proof per major product surface.
+- [ ] Keep README feature claims aligned with [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md): no Stable claim without a named proof command.
+- [ ] Open focused follow-up issues after the queue is empty for GLR product proof, tablegen ABI completeness, parse diagnostics, CLI clean-room quickstart, and benchmark truthfulness.
+
+### Operational tail
 - [ ] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): Windows pure-rust benchmark-compilation tail is gated but still open; decide whether to trim further or close as acceptable.
 - [ ] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): Worktree cleanup script exists (`scripts/cleanup-worktrees.sh`); contributor documentation still needs finishing.
 - [ ] Investigate the current rustdoc-only `Documentation` lane failure separately from reader-facing markdown/status drift.
@@ -44,10 +49,10 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 
 ## Next
 
-### 📚 Documentation polish
-- [ ] Continue tightening tutorial/reference accuracy around the actual 0.8.x release surface.
-- [ ] Add contributor-facing guidance for temporary worktree lifecycle and closeout hygiene ([issue #268](https://github.com/EffortlessMetrics/adze/issues/268)).
-- [ ] Keep roadmap/status docs aligned with the real repo state after each meaningful convergence wave, but only after the corresponding code/CI family lands on `main`.
+### Behavior-proof product lane
+- [ ] Add a stable product lane only after advisory behavior smokes pass consistently.
+- [ ] Promote only README-stable claims into `ci-product-stable`.
+- [ ] Keep broad workspace, fuzzing, Miri, sanitizers, browser WASM, grammar corpus, runtime2, and benchmarks scheduled/manual unless explicitly promoted.
 
 ---
 
