@@ -124,13 +124,65 @@ pub mod grammar {
         #[adze::leaf(pattern = r"[a-zA-Z_][a-zA-Z0-9_]*")]
         pub name: (),
     }
+
+    #[adze::extra]
+    pub enum Extra {
+        #[adze::leaf(pattern = r"\s+")]
+        Whitespace,
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::grammar;
+    use adze::pure_parser::Parser;
+
     #[test]
-    fn test_simple_go() {
-        // Grammar builds successfully
-        assert!(true);
+    fn smoke_build_language_and_parse_minimal_fixture() {
+        let source = "package main";
+
+        let mut parser = Parser::new();
+        parser
+            .set_language(grammar::language())
+            .expect("failed to construct adze-go language");
+
+        let parse_result = parser.parse_bytes(source.as_bytes());
+        assert!(
+            parse_result.root.is_some(),
+            "expected parse root for minimal Go fixture"
+        );
+        assert!(
+            parse_result.errors.is_empty(),
+            "unexpected parse errors: {:?}",
+            parse_result.errors
+        );
+    }
+
+    #[test]
+    fn smoke_known_blocker_package_with_declaration_fixture_reports_errors() {
+        let source = "package main var answer int";
+
+        let mut parser = Parser::new();
+        parser
+            .set_language(grammar::language())
+            .expect("failed to construct adze-go language");
+        let parse_result = parser.parse_bytes(source.as_bytes());
+
+        assert!(
+            parse_result.root.is_some(),
+            "expected parse root for package + var fixture"
+        );
+        assert!(
+            !parse_result.errors.is_empty(),
+            "expected current declaration parsing blocker to report errors"
+        );
+        assert!(
+            parse_result
+                .errors
+                .iter()
+                .any(|error| error.position >= "package main".len()),
+            "expected errors at or after declaration start, got: {:?}",
+            parse_result.errors
+        );
     }
 }
