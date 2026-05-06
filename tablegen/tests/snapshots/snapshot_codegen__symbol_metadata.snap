@@ -1,8 +1,10 @@
 ---
 source: tablegen/tests/snapshot_codegen.rs
+assertion_line: 218
 expression: formatted
 ---
 [0] 0b00000011
 [1] 0b00000011
 [2] 0b00000011
 [3] 0b00000011
+[4] 0b00000011

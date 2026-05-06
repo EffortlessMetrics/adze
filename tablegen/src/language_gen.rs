@@ -355,9 +355,11 @@ impl<'a> LanguageGenerator<'a> {
     }
 
     fn count_symbols(&self) -> usize {
-        1 + // EOF
-        self.grammar.tokens.len() +
-        self.grammar.rules.len()
+        // ParseTable already defines the exact symbol layout and count used by
+        // ACTION/GOTO columns and symbol-name emission (including externals).
+        // Deriving this from grammar token/rule lengths can drift for grammars
+        // with external tokens or transformed symbol sets.
+        self.parse_table.symbol_count
     }
 
     fn count_production_ids(&self) -> usize {
@@ -410,5 +412,37 @@ mod tests {
         let output_str = output.to_string();
         assert!(output_str.contains("TSLanguage"));
         assert!(output_str.contains("tree_sitter_test"));
+    }
+
+    #[test]
+    fn test_count_symbols_uses_parse_table_count_with_externals() {
+        let mut grammar = Grammar::new("externals".to_string());
+        grammar.tokens.insert(
+            SymbolId(1),
+            Token {
+                name: "ident".to_string(),
+                pattern: TokenPattern::Regex("[a-z]+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.externals.push(ExternalToken {
+            name: "_external_nl".to_string(),
+            symbol_id: SymbolId(3),
+        });
+        grammar
+            .rule_names
+            .insert(SymbolId(2), "source_file".to_string());
+
+        let parse_table = adze_glr_core::ParseTable {
+            state_count: 1,
+            symbol_count: 4, // EOF + token + nonterminal + external
+            index_to_symbol: vec![SymbolId(0), SymbolId(1), SymbolId(2), SymbolId(3)],
+            token_count: 2,
+            external_token_count: 1,
+            ..Default::default()
+        };
+
+        let generator = LanguageGenerator::new(&grammar, &parse_table);
+        assert_eq!(generator.count_symbols(), 4);
     }
 }

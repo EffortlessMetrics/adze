@@ -3,6 +3,7 @@
 //! Covers: struct definition, static arrays, symbol names, state tables,
 //! code generation determinism, different grammars, node types JSON, and edge cases.
 
+use adze_glr_core::ParseTable;
 use adze_ir::FieldId;
 use adze_ir::builder::GrammarBuilder;
 use adze_tablegen::StaticLanguageGenerator;
@@ -424,7 +425,19 @@ fn different_grammar_names_different_ffi_export() {
 
 #[test]
 fn different_token_count_different_output() {
-    let one_token = minimal_generator("tok");
+    let one_token = {
+        let g = GrammarBuilder::new("tok")
+            .token("number", r"\d+")
+            .rule("expr", vec!["number"])
+            .start("expr")
+            .build();
+        let table = ParseTable {
+            symbol_count: 3,
+            token_count: 1,
+            ..ParseTable::default()
+        };
+        StaticLanguageGenerator::new(g, table)
+    };
     let two_tokens = {
         let g = GrammarBuilder::new("tok")
             .token("number", r"\d+")
@@ -432,7 +445,12 @@ fn different_token_count_different_output() {
             .rule("expr", vec!["number"])
             .start("expr")
             .build();
-        StaticLanguageGenerator::new(g, Default::default())
+        let table = ParseTable {
+            symbol_count: 4,
+            token_count: 2,
+            ..ParseTable::default()
+        };
+        StaticLanguageGenerator::new(g, table)
     };
     let a = lang_code_str(&one_token);
     let b = lang_code_str(&two_tokens);

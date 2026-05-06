@@ -190,15 +190,14 @@ fn code_length_stable_static_gen() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 8–11. Array sizes in generated code match grammar
+// 8–11. Array sizes in generated code match the ABI source of truth
 // ═══════════════════════════════════════════════════════════════════════
 
 #[test]
-fn symbol_count_matches_grammar_language_gen() {
+fn symbol_count_matches_parse_table_language_gen() {
     let (g, t) = minimal_grammar();
     let code = gen_lang(&g, &t);
-    // count_symbols = 1 (EOF) + tokens + rules
-    let expected = 1 + g.tokens.len() + g.rules.len();
+    let expected = t.symbol_count;
     assert!(
         code.contains(&format!("symbol_count : {expected}"))
             || code.contains(&format!("symbol_count: {expected}")),
@@ -207,12 +206,13 @@ fn symbol_count_matches_grammar_language_gen() {
 }
 
 #[test]
-fn symbol_count_matches_grammar_arithmetic() {
+fn symbol_count_matches_parse_table_arithmetic() {
     let (g, t) = arithmetic_grammar();
     let code = gen_lang(&g, &t);
-    let expected = 1 + g.tokens.len() + g.rules.len();
+    let expected = t.symbol_count;
     assert!(
-        code.contains(&format!("{expected}u32")) || code.contains(&format!("{expected} u32")),
+        code.contains(&format!("symbol_count : {expected}"))
+            || code.contains(&format!("symbol_count: {expected}")),
         "symbol_count should be {expected}"
     );
 }

@@ -262,7 +262,10 @@ fn prettyprint_tokens(raw: &str) -> String {
             _ => out.push(ch),
         }
     }
-    out
+    out.lines()
+        .map(str::trim_end)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn push_indent(out: &mut String, level: usize) {
