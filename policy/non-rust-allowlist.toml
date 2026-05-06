@@ -1,0 +1,19 @@
+schema_version = "1.0"
+
+[[allow]]
+glob = ".github/workflows/*.yml"
+kind = "ci_declarative"
+owner = "release/ci"
+reason = "GitHub Actions workflow definitions are platform-required YAML."
+surface = "ci"
+classification = "config"
+covered_by = ["cargo xtask check-lint-policy"]
+
+[[allow]]
+glob = "xtask/fixtures/**"
+kind = "fixture_input"
+owner = "analysis-fixtures"
+reason = "Fixture workspaces intentionally contain analyzed source files."
+surface = "fixtures"
+classification = "test"
+covered_by = ["cargo xtask test-pure-rust"]

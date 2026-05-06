@@ -1,0 +1,7 @@
+# Adze keeps test carveouts disabled: no allow-unwrap-in-tests, allow-expect-in-tests,
+# allow-panic-in-tests, allow-indexing-slicing-in-tests, or allow-dbg-in-tests.
+# Repo-specific disallowed-methods/types/macros should be added here with policy
+# entries instead of weakening the workspace lint baseline.
+disallowed-methods = []
+disallowed-types = []
+disallowed-macros = []
