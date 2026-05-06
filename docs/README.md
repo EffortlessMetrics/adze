@@ -64,4 +64,5 @@ Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-nativ
 - [**Friction Log**](./status/FRICTION_LOG.md) - Current developer pain points we are burning down.
 - [**Now / Next / Later**](./status/NOW_NEXT_LATER.md) - Rolling execution plan.
 - [**Known Red**](./status/KNOWN_RED.md) - Exclusions from the supported CI lane.
+- [**Support Tiers**](./status/SUPPORT_TIERS.md) - Feature support level, proof command, CI lane, and limitations.
 - [**PR Template**](./PR_TEMPLATE.md) - Checklist for contributors.
