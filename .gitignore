@@ -65,3 +65,8 @@ benchmarks/results/
 
 # Proptest regression files
 *.proptest-regressions
+
+# Coverage reports
+lcov.info
+coverage.json
+coverage.txt
