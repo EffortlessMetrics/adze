@@ -30,8 +30,8 @@ pub struct TSLanguage {
     pub parse_actions: *const TSParseActionEntry,
     pub symbol_names: *const *const c_char,
     pub field_names: *const *const c_char,
-    pub field_map_slices: *const TSFieldMapSlice,
-    pub field_map_entries: *const TSFieldMapEntry,
+    pub field_map_slices: *const u16,
+    pub field_map_entries: *const u16,
     pub symbol_metadata: *const TSSymbolMetadata,
     pub public_symbol_map: *const TSSymbol,
     pub alias_map: *const u16,
@@ -49,26 +49,6 @@ pub struct TSLanguage {
 pub struct TSParseActionEntry {
     /// Packed action value.
     pub action: u32,
-}
-
-/// Describes a slice into the field-map entries table.
-#[repr(C)]
-pub struct TSFieldMapSlice {
-    /// Start index into the field-map entries array.
-    pub start: u16,
-    /// Number of entries in this slice.
-    pub length: u16,
-}
-
-/// A single field-mapping from a production to its child.
-#[repr(C)]
-pub struct TSFieldMapEntry {
-    /// Field identifier.
-    pub field_id: u16,
-    /// Index of the child node this field maps to.
-    pub child_index: u8,
-    /// Whether this mapping is inherited from a parent rule.
-    pub inherited: bool,
 }
 
 /// Metadata for a grammar symbol (visibility and naming).
@@ -145,7 +125,7 @@ pub enum ValidationError {
     InvalidProductionId { id: u32, max: u32 },
 
     /// Invalid field mapping
-    InvalidFieldMapping { field_id: u16, max: u16 },
+    InvalidFieldMapping { field_id: u16, max: u32 },
 }
 
 impl<'a> LanguageValidator<'a> {
@@ -178,6 +158,9 @@ impl<'a> LanguageValidator<'a> {
 
         // Validate field names ordering
         self.validate_field_names(&mut errors);
+
+        // Validate field-map entries
+        self.validate_field_maps(&mut errors);
 
         // Validate table dimensions
         self.validate_table_dimensions(&mut errors);
@@ -231,6 +214,20 @@ impl<'a> LanguageValidator<'a> {
         if self.language.field_count > 0 && self.language.field_names.is_null() {
             errors.push(ValidationError::NullPointer("field_names"));
         }
+
+        if self.language.field_count > 0
+            && self.language.production_id_count > 0
+            && self.language.field_map_slices.is_null()
+        {
+            errors.push(ValidationError::NullPointer("field_map_slices"));
+        }
+
+        if self.language.field_count > 0
+            && self.language.production_id_count > 0
+            && self.language.field_map_entries.is_null()
+        {
+            errors.push(ValidationError::NullPointer("field_map_entries"));
+        }
     }
 
     fn validate_symbol_metadata(&self, errors: &mut Vec<ValidationError>) {
@@ -282,6 +279,54 @@ impl<'a> LanguageValidator<'a> {
                 if prev >= curr {
                     errors.push(ValidationError::FieldNamesNotSorted);
                     break;
+                }
+            }
+        }
+    }
+
+    fn validate_field_maps(&self, errors: &mut Vec<ValidationError>) {
+        if self.language.field_count == 0
+            || self.language.production_id_count == 0
+            || self.language.field_map_slices.is_null()
+            || self.language.field_map_entries.is_null()
+        {
+            return;
+        }
+
+        let slices_len = self.language.production_id_count as usize * 2;
+        // SAFETY: `field_map_slices` is non-null and should point to two packed
+        // u16 words per production ID: start entry index, then entry count.
+        let slices =
+            unsafe { std::slice::from_raw_parts(self.language.field_map_slices, slices_len) };
+
+        let entries_len = slices
+            .chunks_exact(2)
+            .map(|slice| slice[0] as usize + slice[1] as usize)
+            .max()
+            .unwrap_or(0);
+        if entries_len == 0 {
+            return;
+        }
+
+        let entry_words_len = entries_len * 2;
+        // SAFETY: `field_map_entries` is non-null and should contain every
+        // referenced packed field entry, two u16 words per entry.
+        let entries =
+            unsafe { std::slice::from_raw_parts(self.language.field_map_entries, entry_words_len) };
+
+        for slice in slices.chunks_exact(2) {
+            let start = slice[0] as usize;
+            let len = slice[1] as usize;
+            for idx in 0..len {
+                let entry_offset = (start + idx) * 2;
+                let packed_entry =
+                    ((entries[entry_offset + 1] as u32) << 16) | entries[entry_offset] as u32;
+                let field_id = (packed_entry & 0xFFFF) as u16;
+                if u32::from(field_id) >= self.language.field_count {
+                    errors.push(ValidationError::InvalidFieldMapping {
+                        field_id,
+                        max: self.language.field_count,
+                    });
                 }
             }
         }
@@ -383,5 +428,83 @@ mod tests {
                 .iter()
                 .any(|e| matches!(e, ValidationError::NullPointer(_)))
         );
+    }
+
+    #[test]
+    fn test_field_count_requires_field_map_pointers() {
+        let mut language = create_test_language();
+        language.field_count = 1;
+        language.production_id_count = 1;
+        let tables = CompressedParseTable::new_for_testing(10, 20);
+        let validator = LanguageValidator::new(&language, &tables);
+
+        let errors = validator.validate().unwrap_err();
+        assert!(errors.contains(&ValidationError::NullPointer("field_map_slices")));
+        assert!(errors.contains(&ValidationError::NullPointer("field_map_entries")));
+    }
+
+    #[test]
+    fn test_field_names_without_productions_allow_null_field_maps() {
+        let parse_table = [0u16];
+        let field_name_empty = b"\0";
+        let field_name_value = b"value\0";
+        let field_names = [
+            field_name_empty.as_ptr().cast::<std::os::raw::c_char>(),
+            field_name_value.as_ptr().cast::<std::os::raw::c_char>(),
+        ];
+        let symbol_names = [std::ptr::null::<std::os::raw::c_char>()];
+        let symbol_metadata = [TSSymbolMetadata {
+            visible: false,
+            named: false,
+        }];
+
+        let mut language = create_test_language();
+        language.symbol_count = 1;
+        language.state_count = 1;
+        language.field_count = 1;
+        language.production_id_count = 0;
+        language.parse_table = parse_table.as_ptr();
+        language.symbol_names = symbol_names.as_ptr();
+        language.symbol_metadata = symbol_metadata.as_ptr();
+        language.field_names = field_names.as_ptr();
+
+        let tables = CompressedParseTable::new_for_testing(1, 1);
+        let validator = LanguageValidator::new(&language, &tables);
+        let result = validator.validate();
+
+        assert_eq!(result, Ok(()));
+    }
+
+    #[test]
+    fn test_invalid_field_map_field_id_rejected() {
+        let parse_table = [0u16];
+        let symbol_names = [std::ptr::null::<std::os::raw::c_char>()];
+        let symbol_metadata = [TSSymbolMetadata {
+            visible: false,
+            named: false,
+        }];
+        let field_map_slices = [0u16, 1u16];
+        let packed_entry = 2u32;
+        let field_map_entries = [packed_entry as u16, (packed_entry >> 16) as u16];
+
+        let mut language = create_test_language();
+        language.symbol_count = 1;
+        language.state_count = 1;
+        language.field_count = 1;
+        language.production_id_count = 1;
+        language.parse_table = parse_table.as_ptr();
+        language.symbol_names = symbol_names.as_ptr();
+        language.symbol_metadata = symbol_metadata.as_ptr();
+        language.field_map_slices = field_map_slices.as_ptr();
+        language.field_map_entries = field_map_entries.as_ptr();
+
+        let tables = CompressedParseTable::new_for_testing(1, 1);
+        let validator = LanguageValidator::new(&language, &tables);
+        let errors = validator.validate().unwrap_err();
+
+        assert!(errors.contains(&ValidationError::InvalidFieldMapping {
+            field_id: 2,
+            max: 1,
+        }));
     }
 }
