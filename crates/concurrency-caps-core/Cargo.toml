@@ -36,3 +36,6 @@ adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-no
 [[bench]]
 name = "caps_bench"
 harness = false
+
+[lints]
+workspace = true

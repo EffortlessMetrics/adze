@@ -31,3 +31,6 @@ adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core
 adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
 adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }
+
+[lints]
+workspace = true

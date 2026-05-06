@@ -24,3 +24,6 @@ strict_docs = ["adze-bdd-grid-core/strict_docs", "adze-feature-policy-core/stric
 [dependencies]
 adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
 adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
+
+[lints]
+workspace = true

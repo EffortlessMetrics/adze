@@ -10,3 +10,6 @@ publish = false
 adze-ir = { path = "../../ir" }
 adze-glr-core = { path = "../../glr-core" }
 adze-tablegen = { path = "../../tablegen" }
+
+[lints]
+workspace = true

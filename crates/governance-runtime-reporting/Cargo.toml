@@ -31,3 +31,6 @@ adze-governance-metadata = { version = "0.1.0", path = "../governance-metadata" 
 adze-governance-runtime-core = { version = "0.1.0", path = "../governance-runtime-core" }
 proptest = { workspace = true }
 serde_json.workspace = true
+
+[lints]
+workspace = true

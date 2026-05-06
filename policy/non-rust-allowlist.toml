@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[[allow]]
+glob = ".github/workflows/*.yml"
+kind = "ci_declarative"
+owner = "release/ci"
+reason = "GitHub Actions workflow definitions are platform-required YAML."
+surface = "ci"
+classification = "config"
+covered_by = ["cargo xtask check-lint-policy"]
+
+[[allow]]
+glob = "docs/**"
+kind = "documentation"
+owner = "docs"
+reason = "Repository documentation is intentionally Markdown."
+surface = "docs"
+classification = "documentation"
+covered_by = ["cargo xtask check-lint-policy"]
+
+[[allow]]
+glob = "scripts/**"
+kind = "developer_tooling"
+owner = "dev-infra"
+reason = "Shell and Python helper scripts support local and CI workflows while migration candidates are evaluated for xtask."
+surface = "tooling"
+classification = "tooling"
+covered_by = ["cargo xtask lint --fast"]

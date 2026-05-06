@@ -22,3 +22,6 @@ strict_docs = ["adze-bdd-grid-contract/strict_docs"]
 
 [dev-dependencies]
 proptest = { workspace = true }
+
+[lints]
+workspace = true

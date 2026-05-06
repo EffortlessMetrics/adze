@@ -25,3 +25,6 @@ adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-
 proptest.workspace = true
 adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
+
+[lints]
+workspace = true

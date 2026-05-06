@@ -1,0 +1,6 @@
+schema_version = "0.3"
+
+# Semantic panic-family exceptions use identity = path + family + selector.
+# last_seen is advisory only and should be refreshed by policy tooling.
+# No reviewed call-site exceptions have been migrated yet; current broad debt is
+# tracked in policy/clippy-debt.toml for the first rollout PR.

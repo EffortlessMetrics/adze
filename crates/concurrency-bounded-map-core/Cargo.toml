@@ -24,3 +24,6 @@ rayon.workspace = true
 [dev-dependencies]
 proptest.workspace = true
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
+
+[lints]
+workspace = true

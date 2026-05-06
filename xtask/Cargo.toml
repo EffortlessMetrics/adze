@@ -18,3 +18,6 @@ chrono = "0.4.44"
 serde.workspace = true
 adze-tool = { version = "0.8.0-dev", path = "../tool" }
 tempfile.workspace = true
+
+[lints]
+workspace = true

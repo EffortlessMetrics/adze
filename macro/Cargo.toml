@@ -2,7 +2,7 @@
 name = "adze-macro"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.92"
+rust-version = "1.93.0"
 authors = ["Steven Zimmerman, CPA"]
 description = "Procedural macros for defining tree-sitter grammars alongside Rust logic"
 license = "Apache-2.0 OR MIT"
@@ -37,3 +37,6 @@ insta = "1.39"
 tempfile = "3"
 trybuild = "1.0"
 proptest = "1.4"
+
+[lints]
+workspace = true

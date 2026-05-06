@@ -15,3 +15,6 @@ strict_docs = []
 
 [dependencies]
 adze-linecol-core = { path = "../linecol-core" }
+
+[lints]
+workspace = true

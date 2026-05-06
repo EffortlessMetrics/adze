@@ -15,3 +15,6 @@ perf-counters = ["adze-glr-core/perf-counters"]
 
 [lib]
 path = "src/lib.rs"
+
+[lints]
+workspace = true

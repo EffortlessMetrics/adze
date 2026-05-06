@@ -26,3 +26,6 @@ adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" 
 
 [dev-dependencies]
 proptest = { workspace = true }
+
+[lints]
+workspace = true

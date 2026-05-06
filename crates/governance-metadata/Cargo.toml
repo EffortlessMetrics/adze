@@ -31,3 +31,6 @@ criterion.workspace = true
 [[bench]]
 name = "bench_governance"
 harness = false
+
+[lints]
+workspace = true

@@ -23,3 +23,6 @@ tree-sitter-standard = ["adze-governance-contract/tree-sitter-standard"]
 glr = ["pure-rust", "adze-governance-contract/glr"]
 strict_api = ["adze-governance-contract/strict_api"]
 strict_docs = ["adze-governance-contract/strict_docs"]
+
+[lints]
+workspace = true

@@ -2,7 +2,7 @@
 name = "adze"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.92"
+rust-version = "1.93.0"
 authors = ["Steven Zimmerman, CPA"]
 description = "Define tree-sitter grammars alongside Rust logic with AST-first parsing"
 license = "Apache-2.0 OR MIT"
@@ -168,3 +168,6 @@ required-features = ["experimental_examples"]
 # [[example]]
 # name = "validation_demo"
 # required-features = ["experimental_examples"]
+
+[lints]
+workspace = true

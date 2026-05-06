@@ -1,0 +1,29 @@
+schema = 1
+
+[[debt]]
+lint = "rust::unsafe_code"
+path = "tool/src/lib.rs"
+owner = "tooling"
+reason = "Build-time code generation currently contains reviewed unsafe fast paths; isolate or replace before enabling unsafe_code=forbid."
+expires = "2026-07-01"
+
+[[debt]]
+lint = "rust::unsafe_code"
+path = "tablegen/src/lexer_gen.rs"
+owner = "parser-runtime"
+reason = "Generated Tree-sitter lexer adapter emits unsafe FFI access; move to a narrow audited boundary before forbidding unsafe_code."
+expires = "2026-07-01"
+
+[[debt]]
+lint = "clippy::unwrap_used"
+path = "**/*.rs"
+owner = "workspace"
+reason = "Initial strict-policy rollout found broad panic-family debt in tests and implementation; retire via semantic no-panic allowlist and typed test helpers."
+expires = "2026-07-01"
+
+[[debt]]
+lint = "clippy::indexing_slicing"
+path = "**/*.rs"
+owner = "parser-runtime"
+reason = "Parser and generated table code need checked table abstractions before unchecked indexing can be denied globally."
+expires = "2026-07-01"

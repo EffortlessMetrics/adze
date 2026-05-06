@@ -249,3 +249,6 @@ required-features = ["test-utils", "glr"]
 [[test]]
 name = "timeout_behavior_comprehensive"
 required-features = ["test-utils", "glr"]
+
+[lints]
+workspace = true

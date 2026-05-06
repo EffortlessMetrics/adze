@@ -99,14 +99,16 @@ homepage = "https://github.com/effortlessmetrics/adze"
 license = "Apache-2.0 OR MIT"
 publish = false
 repository = "https://github.com/effortlessmetrics/adze"
-rust-version = "1.92.0"
+rust-version = "1.93.0"
 
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 unused_must_use = "deny"
-missing_docs = "warn"
 unused_extern_crates = "deny"
+unexpected_cfgs = "warn"
+const_item_interior_mutations = "deny"
+function_casts_as_integer = "deny"
 
 [workspace.dependencies]
 tree-sitter = "=0.26.7"

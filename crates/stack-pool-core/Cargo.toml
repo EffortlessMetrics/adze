@@ -24,3 +24,6 @@ criterion.workspace = true
 [[bench]]
 name = "stack_pool_bench"
 harness = false
+
+[lints]
+workspace = true

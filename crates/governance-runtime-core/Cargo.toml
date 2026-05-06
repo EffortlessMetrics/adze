@@ -46,3 +46,6 @@ adze-governance-runtime-reporting = { version = "0.1.0", path = "../governance-r
 
 [dev-dependencies]
 proptest = { workspace = true }
+
+[lints]
+workspace = true

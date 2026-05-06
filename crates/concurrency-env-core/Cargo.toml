@@ -22,3 +22,6 @@ adze-concurrency-env-contract-core = { version = "0.1.0", path = "../concurrency
 
 [dev-dependencies]
 proptest.workspace = true
+
+[lints]
+workspace = true

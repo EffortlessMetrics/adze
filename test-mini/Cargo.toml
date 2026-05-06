@@ -13,3 +13,6 @@ adze = { path = "../runtime", default-features = false }
 
 [build-dependencies]
 adze-tool = { path = "../tool" }
+
+[lints]
+workspace = true

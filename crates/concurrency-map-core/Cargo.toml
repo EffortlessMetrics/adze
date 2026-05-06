@@ -30,3 +30,6 @@ adze-concurrency-bounded-map-core = { version = "0.1.0", path = "../concurrency-
 [[bench]]
 name = "bench_map"
 harness = false
+
+[lints]
+workspace = true

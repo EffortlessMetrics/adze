@@ -23,3 +23,6 @@ strict_api = []
 
 [dependencies]
 adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }
+
+[lints]
+workspace = true

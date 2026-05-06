@@ -20,3 +20,6 @@ clap.workspace = true
 [[bin]]
 name = "adze-playground"
 path = "src/bin/playground.rs"
+
+[lints]
+workspace = true

@@ -24,3 +24,6 @@ adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-i
 
 [dev-dependencies]
 proptest.workspace = true
+
+[lints]
+workspace = true

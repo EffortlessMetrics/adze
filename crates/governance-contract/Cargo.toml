@@ -23,3 +23,6 @@ strict_docs = ["adze-parser-governance-contract/strict_docs"]
 
 [dependencies]
 adze-parser-governance-contract = { version = "0.1.0", path = "../parser-governance-contract" }
+
+[lints]
+workspace = true

@@ -35,3 +35,6 @@ proptest = { workspace = true }
 [[bench]]
 name = "governance_matrix_bench"
 harness = false
+
+[lints]
+workspace = true

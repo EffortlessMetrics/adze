@@ -14,3 +14,6 @@ adze = { path = "../../runtime" }
 [build-dependencies]
 adze-tool = { path = "../../tool" }
 serde_json.workspace = true
+
+[lints]
+workspace = true

@@ -23,3 +23,6 @@ adze-bdd-governance-contract = { version = "0.1.0", path = "../bdd-governance-co
 
 [dev-dependencies]
 proptest = { workspace = true }
+
+[lints]
+workspace = true

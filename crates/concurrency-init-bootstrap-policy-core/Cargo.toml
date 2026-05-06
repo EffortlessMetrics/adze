@@ -23,3 +23,6 @@ adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-no
 
 [dev-dependencies]
 proptest.workspace = true
+
+[lints]
+workspace = true

@@ -17,3 +17,6 @@ adze-example = { path = "../example", features = ["pure-rust", "ts-compat"] }
 [dependencies.web-sys]
 version = "0.3"
 features = ["console"]
+
+[lints]
+workspace = true

@@ -16,3 +16,6 @@ documentation = "https://docs.rs/adze-bdd-scenario-core"
 default = []
 strict_api = []
 strict_docs = []
+
+[lints]
+workspace = true

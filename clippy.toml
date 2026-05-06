@@ -1,0 +1,4 @@
+# Adze uses Cargo.toml workspace lints and policy/clippy-lints.toml as the
+# source of truth for Clippy policy. This file is reserved for repo-specific
+# disallowed-methods/types/macros configuration and must not contain test
+# carveouts such as allow-unwrap-in-tests.

@@ -85,6 +85,11 @@ mutate crate="adze-ir":
 mutate-all:
     cargo mutants -- --lib
 
+
+# Verify Clippy policy ledgers and workspace lint inheritance
+check-lint-policy:
+    cargo xtask check-lint-policy
+
 # Verify MSRV is consistent across all Cargo.toml files
 check-msrv:
     #!/usr/bin/env bash

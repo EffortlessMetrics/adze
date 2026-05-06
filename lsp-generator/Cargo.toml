@@ -20,3 +20,6 @@ path = "src/bin/adze-lsp-gen.rs"
 
 [dependencies.clap]
 workspace = true
+
+[lints]
+workspace = true
