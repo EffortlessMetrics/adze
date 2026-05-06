@@ -2,7 +2,7 @@
 name = "adze-tablegen"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.92"
+rust-version.workspace = true
 description = "Table generation and compression for pure-Rust Tree-sitter"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/effortlessmetrics/adze"

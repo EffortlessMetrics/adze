@@ -1,0 +1,6 @@
+schema_version = "0.3"
+
+# No panic-family exceptions are approved for the workspace baseline. If a
+# follow-up cleanup needs a temporary exception, add an [[allow]] entry using
+# path + family + selector identity, owner, classification, explanation, and an
+# optional expires date.

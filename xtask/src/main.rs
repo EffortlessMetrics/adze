@@ -10,6 +10,7 @@ mod fixtures;
 mod golden;
 mod grammar_json;
 mod lint;
+mod lint_policy;
 mod profile;
 mod test_grammars;
 mod test_local_grammars;
@@ -169,6 +170,8 @@ enum Commands {
         #[arg(last = true)]
         clippy_args: Vec<String>,
     },
+    /// Verify the workspace lint policy, debt ledger, and Clippy configuration
+    CheckLintPolicy,
     /// Generate arithmetic expression fixtures for benchmarking
     GenerateFixtures {
         /// Output directory for fixtures
@@ -361,6 +364,9 @@ fn main() -> Result<()> {
             clippy_args,
         } => {
             lint::lint(&sh, fix, changed_only, since, fast, clippy_args)?;
+        }
+        Commands::CheckLintPolicy => {
+            lint_policy::check_lint_policy()?;
         }
         Commands::GenerateFixtures { output, force } => {
             fixtures::generate_fixtures(&sh, &output, force)?;

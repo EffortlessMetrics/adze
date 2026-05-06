@@ -1,0 +1,6 @@
+# Effortless Metrics Clippy policy configuration.
+#
+# Keep this file for repo-specific disallowed methods/types/macros and other
+# Clippy configuration that cannot live in Cargo.toml. Tests must use the same
+# panic-free policy as production code; do not configure test-only relaxations
+# here.

@@ -73,6 +73,7 @@ ci-supported:
     export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
     export RUST_TEST_THREADS="${RUST_TEST_THREADS:-2}"
     cargo fmt --all -- --check
+    cargo xtask check-lint-policy
     cargo clippy {{supported_crates}} --all-targets -- -D warnings
     cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
     cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"
