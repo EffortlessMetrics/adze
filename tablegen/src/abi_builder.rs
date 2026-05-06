@@ -887,7 +887,8 @@ impl<'a> AbiLanguageBuilder<'a> {
 
     /// Generate field maps
     fn generate_field_maps(&self) -> (Vec<TokenStream>, Vec<TokenStream>) {
-        let mut field_map_slices = Vec::new();
+        let production_id_count = self.calculate_counts().production_id_count as usize;
+        let mut field_map_slices = vec![quote! { 0u16 }; production_id_count * 2];
         let mut field_map_entries = Vec::new();
 
         // Group rules by production ID
@@ -904,11 +905,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // Build field map entries for each production
         for (production_id, rules) in rules_by_production {
-            if production_id == 0 {
-                continue; // Skip production ID 0
-            }
-
-            let start_index = field_map_entries.len() as u16;
+            let start_index = (field_map_entries.len() / 2) as u16;
             let mut entry_count = 0u16;
 
             // Process each rule with this production ID
@@ -931,21 +928,12 @@ impl<'a> AbiLanguageBuilder<'a> {
 
             // Add slice for this production ID if it has fields
             if entry_count > 0 {
-                // Ensure we have slices for all production IDs up to this one
-                while field_map_slices.len() < production_id as usize {
-                    field_map_slices.push(quote! { 0u16 }); // start
-                    field_map_slices.push(quote! { 0u16 }); // length
+                let slice_offset = production_id as usize * 2;
+                if slice_offset + 1 < field_map_slices.len() {
+                    field_map_slices[slice_offset] = quote! { #start_index };
+                    field_map_slices[slice_offset + 1] = quote! { #entry_count };
                 }
-
-                // Add this production's slice
-                field_map_slices.push(quote! { #start_index });
-                field_map_slices.push(quote! { #entry_count });
             }
-        }
-
-        // If no field maps were generated, provide minimal data
-        if field_map_slices.is_empty() {
-            field_map_slices.push(quote! { 0u16 });
         }
         if field_map_entries.is_empty() {
             field_map_entries.push(quote! { 0u16 });
@@ -1667,5 +1655,99 @@ mod tests {
                 table.token_count
             );
         }
+    }
+
+    #[test]
+    fn test_field_map_slices_are_dense_and_include_production_zero() {
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        let mut grammar = Grammar::new("field_maps".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.fields.insert(FieldId(0), "first".to_string());
+        grammar.fields.insert(FieldId(1), "third".to_string());
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 0)],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(1), 0)],
+            production_id: ProductionId(2),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (slices, entries) = builder.generate_field_maps();
+        let slices: Vec<String> = slices.iter().map(ToString::to_string).collect();
+
+        assert_eq!(
+            slices.len(),
+            6,
+            "field_map_slices must have two words per production ID"
+        );
+        assert_eq!(slices[0], "0u16", "production 0 start");
+        assert_eq!(slices[1], "1u16", "production 0 length");
+        assert_eq!(slices[2], "0u16", "production 1 gap start");
+        assert_eq!(slices[3], "0u16", "production 1 gap length");
+        assert_eq!(
+            slices[4], "1u16",
+            "production 2 start is entry index, not word offset"
+        );
+        assert_eq!(slices[5], "1u16", "production 2 length");
+        assert_eq!(
+            entries.len(),
+            4,
+            "two field-map entries should emit two u16 words each"
+        );
+    }
+
+    #[test]
+    fn test_empty_field_maps_keep_dense_slices_and_non_null_entry_placeholder() {
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        let mut grammar = Grammar::new("empty_field_maps".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (slices, entries) = builder.generate_field_maps();
+        let slices: Vec<String> = slices.iter().map(ToString::to_string).collect();
+        let entries: Vec<String> = entries.iter().map(ToString::to_string).collect();
+
+        assert_eq!(slices, vec!["0u16", "0u16"]);
+        assert_eq!(entries, vec!["0u16"]);
     }
 }

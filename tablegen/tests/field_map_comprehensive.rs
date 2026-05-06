@@ -341,8 +341,8 @@ fn abi_field_map_entries_for_rule_with_fields() {
 }
 
 #[test]
-fn abi_field_map_skips_production_id_zero() {
-    // Production ID 0 is skipped in generate_field_maps
+fn abi_field_map_includes_production_id_zero() {
+    // Production ID 0 is a valid runtime production index and must get a slice.
     let tok = (SymbolId(1), string_token("x", "x"));
     let rule = Rule {
         lhs: SymbolId(3),
@@ -350,14 +350,17 @@ fn abi_field_map_skips_production_id_zero() {
         precedence: None,
         associativity: None,
         fields: vec![(FieldId(0), 0)],
-        production_id: ProductionId(0), // production 0 is skipped
+        production_id: ProductionId(0),
     };
     let fields = vec![(FieldId(0), "value".into())];
     let (g, t) = build_grammar_and_table("test", vec![tok], vec![rule], fields, 1);
     let builder = AbiLanguageBuilder::new(&g, &t);
     let code = builder.generate().to_string();
 
-    // Should still compile but field map entries are minimal (placeholder 0u16)
+    assert!(
+        code.contains("FIELD_MAP_SLICES : & [u16] = & [0u16 , 1u16]"),
+        "production 0 should have a field-map slice, got:\n{code}"
+    );
     assert!(code.contains("FIELD_MAP_ENTRIES"));
 }
 
