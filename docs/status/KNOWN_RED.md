@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-04-29
+**Last updated:** 2026-05-06
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -11,7 +11,7 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 - why
 - how it becomes supported (or why it won't)
 
-Support tiers and proof commands for major surfaces are tracked in [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
+Support tiers and proof commands for major surfaces are tracked in [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md). The active correctness merge/proof sequence is tracked in [`docs/status/CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
 
 ---
 
@@ -89,6 +89,7 @@ Current canaries:
 
 Notes:
 - This lane intentionally does not provide full behavior proof; it is bounded canary signal only.
+- The next promotion step is to replace each compile-only canary with one real behavior proof while keeping the lane advisory until it is reliable.
 - If one canary is red, the advisory job can fail while remaining non-blocking due to workflow `continue-on-error: true`.
 
 ## Known warnings (non-blocking)
@@ -104,6 +105,7 @@ To add a crate/workflow to the supported lane, it must be:
 - reproducible on a normal dev machine
 - stable across the supported toolchain/MSRV
 - bounded in time/resources
+- behavior-proven, not just compile-proven
 - documented (how to run it locally; common failure modes)
 
 When you add something to `ci-supported`, update this file in the same PR.
