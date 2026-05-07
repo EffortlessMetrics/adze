@@ -119,6 +119,49 @@ static EXTERNAL_PRIMARY_STATE_IDS: [u16; 2] = [0, 1];
 static EXTERNAL_SCANNER_STATES: [bool; 2] = [true, false];
 static EXTERNAL_SCANNER_SYMBOL_MAP: [u16; 1] = [2];
 
+// Combined fixture:
+// - sparse public symbol IDs
+// - one external terminal
+// - non-zero lex modes and external scanner state bits
+// - alias sequence data
+// - field-map data
+// - compressed small-table action/goto rows
+static COMBINED_SMALL_PARSE_TABLE: [u16; 8] = [
+    2, 1, // external indent => Shift(1)
+    3, 2, // start => goto StateId(2)
+    0, 0x8001, // EOF => Reduce(RuleId(0))
+    0, 0xFFFF, // EOF => Accept
+];
+static COMBINED_SMALL_PARSE_TABLE_MAP: [u32; 4] = [0, 4, 6, 8];
+static COMBINED_LEX_MODES: [TSLexState; 3] = [
+    TSLexState {
+        lex_state: 4,
+        external_lex_state: 0,
+    },
+    TSLexState {
+        lex_state: 7,
+        external_lex_state: 1,
+    },
+    TSLexState {
+        lex_state: 3,
+        external_lex_state: 0,
+    },
+];
+static COMBINED_PRIMARY_STATE_IDS: [u16; 3] = [0, 1, 2];
+static COMBINED_PRODUCTION_ID_MAP: [u16; 1] = [0];
+static COMBINED_PRODUCTION_LHS_INDEX: [u16; 1] = [3];
+static COMBINED_TS_RULES: [TSRule; 1] = [TSRule {
+    lhs: 3,
+    rhs_len: 1,
+    _pad: 0,
+}];
+static COMBINED_ALIAS_MAP: [u16; 1] = [0];
+static COMBINED_ALIAS_SEQUENCES: [u16; 1] = [2];
+static COMBINED_FIELD_MAP_SLICES: [u16; 2] = [0, 1];
+static COMBINED_FIELD_MAP_ENTRIES: [u16; 2] = [0, 0];
+static COMBINED_EXTERNAL_SCANNER_STATES: [bool; 3] = [true, false, true];
+static COMBINED_EXTERNAL_SCANNER_SYMBOL_MAP: [u16; 1] = [2];
+
 static LANGUAGE: TSLanguage = TSLanguage {
     version: 15,
     symbol_count: 3,
@@ -209,6 +252,51 @@ static LANGUAGE_WITH_EXTERNAL: TSLanguage = TSLanguage {
     rule_count: 0,
 };
 
+static LANGUAGE_COMBINED_ABI: TSLanguage = TSLanguage {
+    version: 15,
+    symbol_count: 4,
+    alias_count: 1,
+    token_count: 2,
+    external_token_count: 1,
+    state_count: 3,
+    large_state_count: 0,
+    production_id_count: 1,
+    field_count: 1,
+    max_alias_sequence_length: 1,
+    production_id_map: COMBINED_PRODUCTION_ID_MAP.as_ptr(),
+    parse_table: ptr::null(),
+    small_parse_table: COMBINED_SMALL_PARSE_TABLE.as_ptr(),
+    small_parse_table_map: COMBINED_SMALL_PARSE_TABLE_MAP.as_ptr(),
+    parse_actions: PARSE_ACTIONS.as_ptr(),
+    symbol_names: EXTERNAL_SYMBOL_NAMES.0.as_ptr(),
+    field_names: FIELD_NAMES.0.as_ptr(),
+    field_map_slices: COMBINED_FIELD_MAP_SLICES.as_ptr(),
+    field_map_entries: COMBINED_FIELD_MAP_ENTRIES.as_ptr(),
+    symbol_metadata: EXTERNAL_SYMBOL_METADATA.as_ptr(),
+    public_symbol_map: EXTERNAL_PUBLIC_SYMBOL_MAP.as_ptr(),
+    alias_map: COMBINED_ALIAS_MAP.as_ptr(),
+    alias_sequences: COMBINED_ALIAS_SEQUENCES.as_ptr(),
+    lex_modes: COMBINED_LEX_MODES.as_ptr(),
+    lex_fn: None,
+    keyword_lex_fn: None,
+    keyword_capture_token: 0,
+    external_scanner: ExternalScanner {
+        states: COMBINED_EXTERNAL_SCANNER_STATES.as_ptr() as *const u8,
+        symbol_map: COMBINED_EXTERNAL_SCANNER_SYMBOL_MAP.as_ptr(),
+        create: None,
+        destroy: None,
+        scan: None,
+        serialize: None,
+        deserialize: None,
+    },
+    primary_state_ids: COMBINED_PRIMARY_STATE_IDS.as_ptr(),
+    production_lhs_index: COMBINED_PRODUCTION_LHS_INDEX.as_ptr(),
+    production_count: 1,
+    eof_symbol: 0,
+    rules: COMBINED_TS_RULES.as_ptr(),
+    rule_count: 1,
+};
+
 #[test]
 fn compressed_tslanguage_decode_preserves_metadata_actions_and_fields() {
     let decoded = decode_parse_table(&LANGUAGE);
@@ -297,4 +385,49 @@ fn compressed_tslanguage_decode_preserves_external_token_metadata() {
     assert_eq!(decoded.lex_modes[0].lex_state, 4);
     assert_eq!(decoded.lex_modes[1].lex_state, 7);
     assert_eq!(decoded.lex_modes[1].external_lex_state, 1);
+}
+
+#[test]
+fn combined_tslanguage_decode_preserves_metadata_fields_aliases_externals_and_lex_modes() {
+    let decoded = decode_parse_table(&LANGUAGE_COMBINED_ABI);
+
+    assert_eq!(decoded.symbol_count, 4);
+    assert_eq!(decoded.token_count, 2);
+    assert_eq!(decoded.external_token_count, 1);
+    assert_eq!(decoded.state_count, 3);
+    assert_eq!(
+        decoded.index_to_symbol,
+        vec![SymbolId(0), SymbolId(5), SymbolId(8), SymbolId(9)]
+    );
+    assert_eq!(decoded.symbol_to_index.get(&SymbolId(8)), Some(&2));
+    assert_eq!(decoded.nonterminal_to_index.get(&SymbolId(9)), Some(&3));
+
+    assert_eq!(decoded.action_table[0][2], vec![Action::Shift(StateId(1))]);
+    assert_eq!(decoded.goto_table[0][3], StateId(2));
+    assert_eq!(decoded.action_table[1][0], vec![Action::Reduce(RuleId(0))]);
+    assert_eq!(decoded.action_table[2][0], vec![Action::Accept]);
+
+    assert_eq!(decoded.rules.len(), 1);
+    assert_eq!(decoded.rules[0].lhs, SymbolId(9));
+    assert_eq!(decoded.rules[0].rhs_len, 1);
+    assert_eq!(decoded.field_names, vec!["value".to_string()]);
+    assert_eq!(decoded.field_map.get(&(RuleId(0), 0)), Some(&0));
+    assert_eq!(decoded.alias_sequences, vec![vec![Some(SymbolId(8))]]);
+
+    assert_eq!(decoded.symbol_metadata[2].name, "indent");
+    assert_eq!(decoded.symbol_metadata[2].symbol_id, SymbolId(8));
+    assert!(decoded.symbol_metadata[2].is_terminal);
+    assert_eq!(decoded.grammar.externals.len(), 1);
+    assert_eq!(decoded.grammar.externals[0].name, "indent");
+    assert_eq!(decoded.grammar.externals[0].symbol_id, SymbolId(8));
+    assert_eq!(
+        decoded.external_scanner_states,
+        vec![vec![true], vec![false], vec![true]]
+    );
+
+    assert_eq!(decoded.lex_modes.len(), 3);
+    assert_eq!(decoded.lex_modes[0].lex_state, 4);
+    assert_eq!(decoded.lex_modes[1].lex_state, 7);
+    assert_eq!(decoded.lex_modes[1].external_lex_state, 1);
+    assert_eq!(decoded.lex_modes[2].lex_state, 3);
 }
