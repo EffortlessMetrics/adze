@@ -94,6 +94,7 @@ Current canaries:
 - `adze-cli` check rejects non-grammar Rust files — **behavior** (`cargo test -p adze-cli test_check_rejects_file_without_adze_grammar -- --exact --nocapture`)
 - `adze-cli` stats rejects non-grammar Rust files — **behavior** (`cargo test -p adze-cli test_stats_rejects_file_without_adze_grammar -- --exact --nocapture`)
 - `adze-cli` parse unsupported-mode truthfulness — **behavior** (`cargo test -p adze-cli test_parse_static_mode_is_explicitly_unimplemented -- --exact --nocapture`)
+- `adze-tool` test command rejects corpus without parser execution — **behavior** (`cargo test -p adze-tool --test cli_test test_test_command_rejects_corpus_without_parser -- --exact --nocapture`)
 - `adze-golden-tests` JavaScript canary — **behavior** (`cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture`)
 - benchmark arithmetic fixture validity — **behavior** (`cargo test -p adze-benchmarks --test verify_fixture_parsing verify_arithmetic_benchmark_fixtures_parse_with_arithmetic_grammar -- --exact --nocapture`)
 - benchmark parse_bench real parser workload — **behavior** (`cargo test -p adze-benchmarks --test verify_fixture_parsing verify_parse_bench_uses_real_parser_workload -- --exact --nocapture`)
