@@ -7,23 +7,20 @@ coverage:
     project:
       default:
         target: auto
-        threshold: 2%
+        threshold: 5%
         informational: true
         flags:
-          - rust
+          - rust-core
 
     patch:
       default:
-        target: 60%
-        threshold: 10%
+        target: 70%
+        threshold: 20%
         informational: true
         flags:
-          - rust
+          - rust-core
 
-comment:
-  layout: "reach,diff,flags,tree"
-  behavior: default
-  require_changes: true
+comment: false
 
 github_checks:
   annotations: false
@@ -32,6 +29,5 @@ ignore:
   - "target/**"
   - "runtime/fuzz/**"
   - "tools/ts-bridge/**"
-  - "book/book/**"
-  - "docs/archive/**"
-  - "benchmarks/results/**"
+  - "crates/ts-c-harness/**"
+  - "example/**"
