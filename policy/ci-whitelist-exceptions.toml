@@ -1,0 +1,89 @@
+# CI lane whitelist exceptions for adze.
+#
+# Each exception explains why an expensive or duplicate lane is currently
+# allowed on the default PR path. Exceptions must have an owner, an issue
+# pointer, and a review/expiry date. They are not permanent.
+#
+# Lifecycle:
+#   1. lane is added to policy/ci-lane-whitelist.toml as expensive=true,
+#      default_pr=true; whitelist lint flags it.
+#   2. an exception is added here with `allowed = true`.
+#   3. the lane is later routed by risk pack and the exception is closed.
+
+schema_version = "1.0"
+policy = "ci-whitelist-exceptions"
+owner = "release/ci"
+status = "active"
+updated = "2026-05-07"
+
+[[exception]]
+id = "ci-exception-pure-rust-os-matrix-default-pr"
+kind = "expensive_default_pr_lane"
+lane = "pure-rust-os-matrix"
+allowed = true
+owner = "core/runtime"
+issue = "TODO"
+reason = "Current PR workflow runs broad OS/toolchain proof. Keep temporarily until PR Plan and actual LEM data support routing to main/nightly/labels (PR 13 in docs/ci/adze-rollout-plan.md)."
+created = "2026-05-07"
+review_after = "2026-06-07"
+expires = "2026-08-07"
+
+[[exception]]
+id = "ci-exception-microcrate-ci-default-pr"
+kind = "expensive_default_pr_lane"
+lane = "microcrate-ci"
+allowed = true
+owner = "core/build"
+issue = "TODO"
+reason = "Microcrate split is under active hardening. Keep default until risk packs distinguish core, governance, BDD, parser, concurrency, and docs surfaces (PR 14)."
+created = "2026-05-07"
+review_after = "2026-06-07"
+expires = "2026-08-07"
+
+[[exception]]
+id = "ci-exception-fuzz-default-pr"
+kind = "expensive_default_pr_lane"
+lane = "fuzz-pr"
+allowed = true
+owner = "core/parser"
+issue = "TODO"
+reason = "Fuzzing is currently PR-visible. Move to nightly/label after parser risk-pack property/oracle coverage is confirmed (PR 10)."
+created = "2026-05-07"
+review_after = "2026-06-07"
+expires = "2026-08-07"
+
+[[exception]]
+id = "ci-exception-performance-default-pr"
+kind = "expensive_default_pr_lane"
+lane = "performance-regression"
+allowed = true
+owner = "core/perf"
+issue = "TODO"
+reason = "Performance workflows overlap. Keep visible until benchmark ownership is unified and perf-risk routing exists (PR 11)."
+created = "2026-05-07"
+review_after = "2026-06-07"
+expires = "2026-08-07"
+
+[[exception]]
+id = "ci-exception-benchmarks-default-pr"
+kind = "expensive_default_pr_lane"
+lane = "benchmarks-pr"
+allowed = true
+owner = "core/perf"
+issue = "TODO"
+reason = "Benchmark workflow overlaps with performance-regression workflow. Keep until whitelist inventory selects one PR owner (PR 11)."
+created = "2026-05-07"
+review_after = "2026-06-07"
+expires = "2026-08-07"
+
+[[exception]]
+id = "ci-exception-golden-tests-default-pr"
+kind = "expensive_default_pr_lane"
+lane = "golden-tests"
+allowed = true
+owner = "grammar/fixtures"
+issue = "TODO"
+reason = "Golden grammar parity is high-value but should become grammar/golden-risk routed after PR Plan lands (PR 12)."
+created = "2026-05-07"
+review_after = "2026-06-07"
+expires = "2026-08-07"

@@ -1,0 +1,107 @@
+name: PR Plan
+
+# Reusable workflow only. pr-gate.yml and ripr.yml call this via workflow_call
+# to compute LEM/band/docs_only. A standalone pull_request trigger would just
+# duplicate work and be cancelled by the shared concurrency group.
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      docs_only:
+        description: "true if the PR only touches docs / README / changelog"
+        value: ${{ jobs.plan.outputs.docs_only }}
+      estimated_lem:
+        description: "estimated total LEM for the selected lanes"
+        value: ${{ jobs.plan.outputs.estimated_lem }}
+      band:
+        description: "budget band (ordinary | elevated | high | over-ceiling)"
+        value: ${{ jobs.plan.outputs.band }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  # Include github.workflow so a parent (pr-gate / ripr) gets its own group
+  # rather than cancelling the other parent's invocation.
+  group: pr-plan-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: PR Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+      estimated_lem: ${{ steps.classify.outputs.estimated_lem }}
+      band: ${{ steps.classify.outputs.band }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: adze-xtask-${{ hashFiles('Cargo.lock') }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Resolve base/head SHAs
+        id: shas
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="$(git rev-parse origin/main 2>/dev/null || git rev-parse HEAD~1)"
+            HEAD_SHA="$(git rev-parse HEAD)"
+          fi
+          echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+      - name: Compute PR Plan (xtask, canonical)
+        id: classify
+        env:
+          BASE_SHA: ${{ steps.shas.outputs.base }}
+          HEAD_SHA: ${{ steps.shas.outputs.head }}
+          PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/ci
+          # Convert JSON label array into comma-separated list for xtask.
+          LABELS_CSV=$(python3 -c "import json,os,sys; print(','.join(json.loads(os.environ.get('PR_LABELS_JSON','[]') or '[]')))")
+          if cargo run -q -p xtask -- ci-plan \
+              --base "$BASE_SHA" \
+              --head "$HEAD_SHA" \
+              --labels "$LABELS_CSV" \
+              --json-out target/ci/ci-plan.json \
+              --github-summary "$GITHUB_STEP_SUMMARY"; then
+            echo "xtask-ci-plan ok"
+          else
+            echo "xtask-ci-plan failed; falling back to scripts/ci/pr-plan.py"
+            python3 scripts/ci/pr-plan.py \
+              --base "$BASE_SHA" \
+              --head "$HEAD_SHA" \
+              --json-out target/ci/ci-plan.json \
+              --summary "$GITHUB_STEP_SUMMARY"
+          fi
+          DOCS_ONLY=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); a=set((p.get('changed') or {}).get('areas') or []); print('true' if a and a <= {'docs'} else 'false')")
+          LEM=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); print((p.get('budget') or {}).get('estimated_lem', 0))")
+          BAND=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); print((p.get('budget') or {}).get('band', 'ordinary'))")
+          echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
+          echo "estimated_lem=$LEM" >> "$GITHUB_OUTPUT"
+          echo "band=$BAND" >> "$GITHUB_OUTPUT"
+      - name: Upload ci-plan.json
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-plan
+          path: target/ci/ci-plan.json
+          if-no-files-found: warn

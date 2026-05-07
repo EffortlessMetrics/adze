@@ -1,19 +1,64 @@
 name: Golden-Master Tests
 
+# Routed by grammar/golden risk pack: PR runs only when grammar surfaces are
+# touched, or when 'ci:golden' / 'full-ci' is set. See
+# docs/ci/adze-rollout-plan.md (PR 12) and policy/ci-risk-packs.toml.
+#
+# Note: a workflow-level `paths:` filter would be evaluated by GitHub *before*
+# the job-level `if:`, so a PR labeled `ci:golden` outside the listed paths
+# would never start the workflow at all. Path detection therefore lives in a
+# `paths` setup job and is consumed by the matrix job's `if:`.
+
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened, labeled]
 
 jobs:
+  paths:
+    name: Detect Grammar Paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      grammar_changed: ${{ steps.detect.outputs.grammar_changed }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+      - id: detect
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "grammar_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" || true)
+          if echo "$changed" | grep -qE '^(golden-tests/|grammars/|corpus/|crates/grammar-analysis-core/|crates/common-syntax-core/|glr-core/|tablegen/|runtime/|runtime2/|\.github/workflows/golden-tests\.yml$)'; then
+            echo "grammar_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "grammar_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   golden-tests:
     name: Golden Tests - ${{ matrix.language }}
+    needs: paths
+    if: |
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.labels.*.name, 'ci:golden') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci') ||
+      (
+        needs.paths.outputs.grammar_changed == 'true' &&
+        !contains(github.event.pull_request.labels.*.name, 'skip-golden')
+      )
     runs-on: ubuntu-latest
     strategy:
       matrix:
         language: [python, javascript]
-    
+
     steps:
     - uses: actions/checkout@v6.0.2
 
@@ -67,6 +112,8 @@ jobs:
         fi
     
     - uses: Swatinem/rust-cache@v2
+      with:
+        save-if: ${{ github.ref == 'refs/heads/main' }}
     
     - name: Run golden tests
       run: |

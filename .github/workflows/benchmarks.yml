@@ -1,10 +1,16 @@
 name: Benchmarks
 
+# PR ownership of benchmark comparison is performance.yml. This workflow
+# runs the full benchmark suite on main, on workflow_dispatch, and on PRs
+# that explicitly opt in via the `ci:perf`, `benchmarks`, or `full-ci`
+# label. See docs/ci/adze-rollout-plan.md (PR 11).
+
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 env:
@@ -18,6 +24,12 @@ permissions:
 jobs:
   benchmark:
     name: Performance Benchmarks
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'ci:perf') ||
+      contains(github.event.pull_request.labels.*.name, 'benchmarks') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6.0.2
@@ -26,6 +38,8 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     
     - uses: Swatinem/rust-cache@v2
+      with:
+        save-if: ${{ github.ref == 'refs/heads/main' }}
     
     # Run benchmarks and save results
     - name: Run benchmarks

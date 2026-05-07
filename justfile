@@ -177,3 +177,7 @@ policy-files mode="advisory":
 # Verify Cargo.toml / clippy.toml against policy/clippy-lints.toml (advisory)
 policy-lints mode="advisory":
     cargo run -q -p xtask -- check-lint-policy --mode {{mode}}
+
+# Lint workflows against policy/ci-lane-whitelist.toml (advisory)
+policy-ci-lane-whitelist mode="advisory":
+    cargo run -q -p xtask -- check-ci-lane-whitelist --mode {{mode}}

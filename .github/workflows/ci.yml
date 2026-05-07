@@ -51,6 +51,8 @@ jobs:
         with:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install jq
         run: |
@@ -146,6 +148,8 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install nextest
         uses: taiki-e/install-action@v2
@@ -187,6 +191,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install Tree-sitter development libraries
         run: |
@@ -208,6 +214,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Test glr-core with debug assertions
         env:
@@ -241,6 +249,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Run tests in release mode
         run: cargo test --workspace --release ${{ matrix.features }} -- --test-threads=$RUST_TEST_THREADS
@@ -261,6 +271,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Check glr-core benchmarks compile
         run: cargo bench -p adze-glr-core --bench automaton --no-run
@@ -285,6 +297,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -318,6 +332,8 @@ jobs:
         with:
           components: miri
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Setup Miri
         run: cargo +nightly miri setup
@@ -344,6 +360,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Build with ts-compat feature
         run: |
@@ -370,6 +388,8 @@ jobs:
         with:
           components: rust-src   # required by -Zbuild-std
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Run with Address Sanitizer
         env:
@@ -396,6 +416,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Update to minimal versions
         run: cargo +nightly update -Z minimal-versions
@@ -414,6 +436,8 @@ jobs:
       
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install cargo-semver-checks
         run: cargo install cargo-semver-checks --locked
@@ -460,6 +484,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Check codegen determinism
         env:
@@ -571,6 +597,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install cargo-hack
         uses: taiki-e/install-action@v2
@@ -626,6 +654,8 @@ jobs:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install API tools
         run: |
@@ -654,6 +684,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install cargo-deny
         uses: taiki-e/install-action@v2
@@ -745,6 +777,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install target for pinned toolchain
         run: |
@@ -792,6 +826,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install Tree-sitter development libraries
         run: |
@@ -846,6 +882,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install cargo-geiger
         run: cargo install cargo-geiger --locked
@@ -879,6 +917,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install cargo-fuzz
         run: cargo install cargo-fuzz
@@ -917,6 +957,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install dependencies
         run: |
@@ -1016,6 +1058,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Validate package manifests (FR-012)
         run: |
@@ -1041,6 +1085,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Build benches (no run)
         run: cargo bench -p adze --features unstable-benches --no-run
 
@@ -1057,6 +1103,8 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Install just
         uses: taiki-e/install-action@v2
         with:
@@ -1076,6 +1124,8 @@ jobs:
       - name: Ensure workspace toolchain has WASM target
         run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Check core crates for WASM
         run: |
           for crate in adze-ir adze-glr-core adze-tablegen adze-common; do
@@ -1098,6 +1148,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Cargo check
         run: cargo check -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen
       - name: Cargo test --lib

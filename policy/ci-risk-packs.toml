@@ -1,0 +1,94 @@
+# CI risk packs for adze.
+#
+# Risk packs are the routing vocabulary used by PR Plan and (later) by the
+# routing PRs (10–14). Each pack maps file paths and labels to a set of
+# lanes that are appropriate for the surface being touched.
+#
+# This file is the **canonical** source. The lighter Python plan in
+# scripts/ci/pr-plan.py mirrors it; xtask ci plan (PR 09) reads it
+# directly.
+
+schema_version = "1.0"
+policy = "ci-risk-packs"
+owner = "release/ci"
+status = "advisory"
+updated = "2026-05-07"
+
+[risk_pack.core_runtime]
+description = "Runtime parser, typed extraction, errors, and public runtime behavior."
+paths = ["runtime/**", "runtime2/**", "common/**", "cli/**"]
+lanes = ["ci-supported", "ripr-advisory"]
+deep_lanes = ["pure-rust-os-matrix", "product-proof-advisory"]
+labels = ["full-ci", "coverage"]
+
+[risk_pack.macro_tool]
+description = "Macro and build-time parser generation tooling."
+paths = ["macro/**", "tool/**", "lsp-generator/**"]
+lanes = ["ci-supported", "ripr-advisory"]
+deep_lanes = ["pure-rust-os-matrix", "product-proof-advisory"]
+labels = ["full-ci"]
+
+[risk_pack.glr_core]
+description = "LR/GLR automata, conflict routing, ambiguity machinery, parse-table behavior."
+paths = ["glr-core/**", "crates/glr-versioning/**", "crates/parser-backend-core/**"]
+lanes = ["ci-supported", "ripr-advisory"]
+deep_lanes = ["fuzz-pr", "benchmarks-pr", "performance-regression"]
+labels = ["mutation", "property-tests", "ci:perf"]
+
+[risk_pack.tablegen]
+description = "Parse-table generation, compression, metadata, and ABI decode."
+paths = ["tablegen/**", "crates/parsetable-metadata/**"]
+lanes = ["ci-supported", "ripr-advisory"]
+deep_lanes = ["product-proof-advisory", "benchmarks-pr"]
+labels = ["full-ci", "ci:perf"]
+
+[risk_pack.grammar_golden]
+description = "Grammar crates, corpora, golden outputs, tree-sitter parity."
+paths = ["grammars/**", "golden-tests/**", "corpus/**", "crates/grammar-analysis-core/**"]
+lanes = ["golden-tests", "ripr-advisory"]
+deep_lanes = ["product-proof-advisory"]
+labels = ["ci:golden", "full-ci"]
+
+[risk_pack.microcrate_governance]
+description = "Governance, BDD, parser contracts, runtime governance, feature policy."
+paths = [
+    "crates/governance*/**",
+    "crates/bdd*/**",
+    "tests/governance/**",
+    "crates/parser-contract*/**",
+    "crates/feature-policy*/**",
+    "crates/runtime-governance*/**",
+]
+lanes = ["microcrate-ci", "test-policy"]
+deep_lanes = ["core-tests"]
+labels = ["ci:microcrate", "full-ci"]
+
+[risk_pack.concurrency]
+description = "Concurrency caps, environment normalization, rayon/bootstrap/init behavior."
+paths = ["crates/concurrency*/**"]
+keywords = ["thread", "rayon", "parallel", "bootstrap"]
+lanes = ["microcrate-ci", "ripr-advisory"]
+deep_lanes = []
+labels = ["ci:concurrency", "full-ci"]
+
+[risk_pack.wasm]
+description = "WASM demo, runtime wasm feature, browser/playground proof surface."
+paths = ["wasm-demo/**", "runtime/wasm-demo/**", "playground/**"]
+lanes = []
+deep_lanes = ["pure-rust-os-matrix", "product-proof-advisory"]
+labels = ["wasm", "full-ci"]
+
+[risk_pack.performance]
+description = "Benchmarks, baselines, parser hot paths, benchmark fixtures."
+paths = ["benchmarks/**", "baselines/**", "docs/PERFORMANCE_BASELINE.md"]
+keywords = ["bench", "performance", "hot path"]
+lanes = ["criterion-smoke"]
+deep_lanes = ["performance-regression", "benchmarks-pr"]
+labels = ["ci:perf", "benchmarks", "full-ci"]
+
+[risk_pack.manifest_release]
+description = "Manifest, lockfile, toolchain, dependency, publish, API, MSRV, release surfaces."
+paths = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "deny.toml", ".cargo/**"]
+lanes = ["ci-supported"]
+deep_lanes = []
+labels = ["security-audit", "release-check", "full-ci"]

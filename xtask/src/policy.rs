@@ -5,6 +5,7 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
+pub mod ci_lane_whitelist;
 pub mod file_policy;
 pub mod lint_policy;
 pub mod no_panic;

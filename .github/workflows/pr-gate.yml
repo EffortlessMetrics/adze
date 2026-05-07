@@ -1,0 +1,127 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: PR Plan
+    if: github.event_name != 'merge_group'
+    uses: ./.github/workflows/pr-plan.yml
+
+  supported:
+    name: Supported Rust Gate
+    needs: plan
+    if: |
+      always() &&
+      (needs.plan.result == 'skipped' || needs.plan.outputs.docs_only != 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: adze-supported-${{ hashFiles('Cargo.lock') }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Install just
+        run: cargo install just --locked || true
+      - name: Run supported lane
+        run: just ci-supported
+
+  docs-gate:
+    name: Docs Gate
+    needs: plan
+    if: |
+      always() &&
+      needs.plan.result == 'success' &&
+      needs.plan.outputs.docs_only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
+
+  success:
+    name: PR Gate Success
+    needs: [plan, supported, docs-gate]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Aggregate gate result
+        run: |
+          set -euo pipefail
+          PLAN='${{ needs.plan.result }}'
+          SUPPORTED='${{ needs.supported.result }}'
+          DOCS='${{ needs.docs-gate.result }}'
+          echo "plan=$PLAN supported=$SUPPORTED docs=$DOCS"
+          # Plan must not fail (it can be skipped in merge_group).
+          if [ "$PLAN" = "failure" ] || [ "$PLAN" = "cancelled" ]; then
+            echo "::error::PR Plan failed"; exit 1
+          fi
+          # Exactly one of supported / docs must succeed; the other is
+          # skipped based on the docs_only output.
+          if [ "$SUPPORTED" = "success" ] && [ "$DOCS" = "skipped" ]; then
+            echo "Supported Rust Gate passed."
+            exit 0
+          fi
+          if [ "$DOCS" = "success" ] && [ "$SUPPORTED" = "skipped" ]; then
+            echo "Docs Gate passed."
+            exit 0
+          fi
+          echo "::error::Required gate did not pass (supported=$SUPPORTED, docs=$DOCS)"; exit 1
+      - name: Append summary
+        if: always()
+        run: |
+          {
+            echo "## PR Gate Success";
+            echo "";
+            echo "- plan: ${{ needs.plan.result }}";
+            echo "- supported: ${{ needs.supported.result }}";
+            echo "- docs-gate: ${{ needs.docs-gate.result }}";
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v6.0.2
+        if: always()
+      - uses: actions/setup-python@v6
+        if: always()
+        with:
+          python-version: "3.12"
+      - name: Download ci-plan artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-plan
+          path: target/ci/
+      - name: Emit ci-actuals.json
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: python3 scripts/ci/emit-ci-actuals.py
+      - name: Upload ci-actuals
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-actuals
+          path: target/ci/ci-actuals.json
+          if-no-files-found: warn

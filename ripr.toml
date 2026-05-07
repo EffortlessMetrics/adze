@@ -1,0 +1,35 @@
+# ripr — static RIPR exposure analysis configuration for adze.
+#
+# ripr inspects changed Rust code and asks whether each behavioural delta
+# appears exposed to a meaningful test discriminator. It does not run
+# mutants; do not use mutation-runtime language ("killed" / "survived")
+# when reading or writing ripr policy.
+#
+# This config keeps ripr advisory: every severity is "notice" or "warning",
+# and `[policy] fail_on = []` ensures the workflow never blocks merge.
+#
+# See docs/ci/ripr.md.
+
+schema_version = "1.0"
+
+[analysis]
+mode = "diff"
+
+[policy]
+fail_on = []
+
+[report]
+max_related_tests = 8
+include_context = true
+
+[severity]
+exposed = "notice"
+weakly_exposed = "warning"
+reachable_unrevealed = "warning"
+no_static_path = "notice"
+infection_unknown = "notice"
+propagation_unknown = "notice"
+static_unknown = "notice"
+
+[suppressions]
+path = "policy/ripr-suppressions.toml"
