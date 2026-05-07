@@ -12,6 +12,10 @@ const JS_SMALL: &str = include_str!("../fixtures/javascript/small.js");
 const JS_MEDIUM: &str = include_str!("../fixtures/javascript/medium.js");
 const JS_LARGE: &str = include_str!("../fixtures/javascript/large.js");
 
+const ARITH_SMALL: &str = include_str!("../fixtures/arithmetic/small.expr");
+const ARITH_MEDIUM: &str = include_str!("../fixtures/arithmetic/medium.expr");
+const ARITH_LARGE: &str = include_str!("../fixtures/arithmetic/large.expr");
+
 #[test]
 fn verify_python_fixtures_do_not_parse_with_arithmetic_grammar() {
     // This test documents the current state: Python fixtures contain code
@@ -58,6 +62,24 @@ fn verify_javascript_fixtures_do_not_parse_with_arithmetic_grammar() {
                 println!("{}: Parse failed: {:?}", label, e);
             }
         }
+    }
+}
+
+#[test]
+fn verify_arithmetic_benchmark_fixtures_parse_with_arithmetic_grammar() {
+    for (label, source) in &[
+        ("small.expr", ARITH_SMALL),
+        ("medium.expr", ARITH_MEDIUM),
+        ("large.expr", ARITH_LARGE),
+    ] {
+        eprintln!("validating arithmetic benchmark fixture: {}", label);
+        let result = parse(source);
+        assert!(
+            result.is_ok(),
+            "arithmetic benchmark fixture {} failed to parse: {:?}",
+            label,
+            result
+        );
     }
 }
 
