@@ -32,7 +32,7 @@ macro_rules! eprintln {
 pub struct GrammarJsConverter {
     grammar_js: GrammarJs,
     symbol_names: OrderedMap<String, SymbolId>,
-    pattern_symbols: HashMap<SymbolId, SymbolId>, // Maps pattern rule symbols to their token IDs
+    token_symbols: HashMap<SymbolId, SymbolId>, // Maps token-backed rule symbols to their token IDs
     next_symbol_id: usize,
     next_production_id: usize,
     next_field_id: usize,
@@ -44,7 +44,7 @@ impl GrammarJsConverter {
         Self {
             grammar_js,
             symbol_names: OrderedMap::new(),
-            pattern_symbols: HashMap::new(),
+            token_symbols: HashMap::new(),
             next_symbol_id: 1, // Start at 1 to reserve SymbolId(0) for EOF
             next_production_id: 0,
             next_field_id: 0,
@@ -308,6 +308,7 @@ impl GrammarJsConverter {
                 // Create a literal token rule
                 let token_id =
                     self.get_or_create_token(grammar, value, TokenPattern::String(value.clone()));
+                self.token_symbols.insert(lhs, token_id);
                 let rhs = vec![Symbol::Terminal(token_id)];
                 self.add_rule(grammar, lhs, rhs, None, None);
             }
@@ -321,7 +322,7 @@ impl GrammarJsConverter {
                     TokenPattern::Regex(value.clone()),
                 );
                 // Track that this symbol is actually a pattern that resolves to a token
-                self.pattern_symbols.insert(lhs, token_id);
+                self.token_symbols.insert(lhs, token_id);
                 let rhs = vec![Symbol::Terminal(token_id)];
                 self.add_rule(grammar, lhs, rhs, None, None);
             }
@@ -807,10 +808,10 @@ impl GrammarJsConverter {
                 eprintln!("Debug: rule_to_symbol for Symbol '{}'", name);
                 if let Some(&id) = self.symbol_names.get(name) {
                     eprintln!("Debug:   Found symbol ID {}", id.0);
-                    // Check if this symbol is actually a pattern that maps to a token
-                    if let Some(&token_id) = self.pattern_symbols.get(&id) {
+                    // Check if this symbol is actually a token-backed wrapper.
+                    if let Some(token_id) = self.token_for_wrapped_rule(grammar, id, name) {
                         eprintln!(
-                            "Debug:   Symbol {} is a pattern, returning Terminal({})",
+                            "Debug:   Symbol {} is token-backed, returning Terminal({})",
                             id.0, token_id.0
                         );
                         Some(Symbol::Terminal(token_id))
@@ -851,6 +852,31 @@ impl GrammarJsConverter {
             }
             _ => None, // Other types not yet handled
         }
+    }
+
+    fn token_for_wrapped_rule(
+        &mut self,
+        grammar: &mut Grammar,
+        id: SymbolId,
+        name: &str,
+    ) -> Option<SymbolId> {
+        if let Some(&token_id) = self.token_symbols.get(&id) {
+            return Some(token_id);
+        }
+
+        let rule = self.grammar_js.rules.get(name)?.clone();
+        let token_id = match rule {
+            JsRule::String { value } => {
+                self.get_or_create_token(grammar, &value, TokenPattern::String(value.clone()))
+            }
+            JsRule::Pattern { value } => {
+                let token_name = format!("_{}", id.0);
+                self.get_or_create_token(grammar, &token_name, TokenPattern::Regex(value.clone()))
+            }
+            _ => return None,
+        };
+        self.token_symbols.insert(id, token_id);
+        Some(token_id)
     }
 
     fn add_rule(
@@ -1027,5 +1053,54 @@ mod tests {
         assert_eq!(grammar.name, "test");
         assert!(!grammar.rules.is_empty());
         assert!(!grammar.tokens.is_empty());
+    }
+
+    #[test]
+    fn string_wrapper_symbols_lower_to_terminals_when_referenced() {
+        let mut grammar_js = GrammarJs::new("string_wrapper".to_string());
+
+        grammar_js.rules.insert(
+            "source_file".to_string(),
+            JsRule::Seq {
+                members: vec![JsRule::Symbol {
+                    name: "keyword_if".to_string(),
+                }],
+            },
+        );
+        grammar_js.rules.insert(
+            "keyword_if".to_string(),
+            JsRule::String {
+                value: "if".to_string(),
+            },
+        );
+
+        let grammar = GrammarJsConverter::new(grammar_js).convert().unwrap();
+        let source_file = grammar
+            .rule_names
+            .iter()
+            .find_map(|(id, name)| (name == "source_file").then_some(*id))
+            .expect("source_file symbol should exist");
+        let keyword_if = grammar
+            .rule_names
+            .iter()
+            .find_map(|(id, name)| (name == "keyword_if").then_some(*id))
+            .expect("keyword_if symbol should exist");
+        let if_token = grammar
+            .tokens
+            .iter()
+            .find_map(|(id, token)| (token.name == "if").then_some(*id))
+            .expect("literal token should exist");
+
+        let source_rule = grammar
+            .rules
+            .get(&source_file)
+            .and_then(|rules| rules.first())
+            .expect("source_file rule should exist");
+
+        assert_eq!(source_rule.rhs, vec![Symbol::Terminal(if_token)]);
+        assert!(
+            !source_rule.rhs.contains(&Symbol::NonTerminal(keyword_if)),
+            "string leaf wrappers must not hide token lookahead behind nonterminals"
+        );
     }
 }
