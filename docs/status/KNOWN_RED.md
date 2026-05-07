@@ -82,6 +82,7 @@ Current canaries:
 - `adze` GLR ambiguous typed extraction — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture`)
 - `adze` GLR generated conflict preservation — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_conflict_generation -- --exact --nocapture`)
 - `adze` structured parse diagnostics — **behavior** (`cargo test -p adze --test error_display_tests reporting_parse_with_errors_includes_source_excerpt_after_bad_input --features "pure-rust,glr" -- --exact --nocapture`)
+- `adze` core parse-table serialization roundtrip — **behavior** (`cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture`)
 - README arithmetic quickstart clean-room — **behavior** (`cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`)
 - `adze-cli` clean-room init smoke — **behavior** (`cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture`)
 - `adze-golden-tests` JavaScript canary — **behavior** (`cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture`)
