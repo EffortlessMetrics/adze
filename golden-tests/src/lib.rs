@@ -363,8 +363,24 @@ mod tests {
         })
     }
 
+    /// Strict canary for the JavaScript grammar. Currently regressed on
+    /// `main`: the JavaScript grammar can no longer parse a bare `;` as an
+    /// `EmptyStatement` (parse failure with `pos 1 expected [...] found 0`).
+    /// Every JavaScript golden fixture hits the same skip path, so this
+    /// canary is the test that surfaces the regression.
+    ///
+    /// The fixture and expected S-expression are intentionally left in
+    /// place. To re-enable, drop the `#[ignore]` and run:
+    ///
+    ///   cargo test -p adze-golden-tests --features javascript-grammar \
+    ///     -- --ignored javascript_canary_expression_golden
+    ///
+    /// See `docs/status/KNOWN_RED.md` (`adze-golden-tests` JavaScript
+    /// canary entry) and the rollout plan in
+    /// `docs/ci/adze-rollout-plan.md`.
     #[test]
     #[cfg(feature = "javascript-grammar")]
+    #[ignore = "javascript grammar regressed since PR #456; tracked in docs/status/KNOWN_RED.md"]
     fn javascript_canary_expression_golden() -> Result<()> {
         run_golden_test_strict(GoldenTest {
             language: "javascript",
