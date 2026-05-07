@@ -20,13 +20,13 @@ use adze :: tree_sitter as ts ;
 }
 ] ;
  static LEX_MODES : & [TSLexState] = & [TSLexState {
-     lex_state : 0usize as u16 , external_lex_state : 0 ,
+     lex_state : 0u16 , external_lex_state : 0u16 ,
 }
  , TSLexState {
-     lex_state : 1usize as u16 , external_lex_state : 0 ,
+     lex_state : 0u16 , external_lex_state : 0u16 ,
 }
  , TSLexState {
-     lex_state : 2usize as u16 , external_lex_state : 0 ,
+     lex_state : 0u16 , external_lex_state : 0u16 ,
 }
 ] ;
  static PARSE_TABLE : & [u16] = & [1u16 , 1u16 , 1u16 , 1u16 , 3u16 , 32769u16 , 1u16 , 3u16 , 65535u16] ;

@@ -864,11 +864,22 @@ impl<'a> AbiLanguageBuilder<'a> {
     fn generate_lex_modes(&self) -> Vec<TokenStream> {
         let mut modes = Vec::new();
 
-        for i in 0..self.parse_table.state_count {
+        for state_index in 0..self.parse_table.state_count {
+            let mode = self
+                .parse_table
+                .lex_modes
+                .get(state_index)
+                .copied()
+                .unwrap_or(adze_glr_core::LexMode {
+                    lex_state: 0,
+                    external_lex_state: 0,
+                });
+            let lex_state = mode.lex_state;
+            let external_lex_state = mode.external_lex_state;
             modes.push(quote! {
                 TSLexState {
-                    lex_state: #i as u16,
-                    external_lex_state: 0,
+                    lex_state: #lex_state,
+                    external_lex_state: #external_lex_state,
                 }
             });
         }
@@ -1379,6 +1390,7 @@ struct LanguageCounts {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use adze_glr_core::LexMode;
     use adze_ir::*;
 
     fn token_stream_u16(token: &TokenStream) -> u16 {
@@ -1488,6 +1500,34 @@ mod tests {
         assert_eq!(production_map[0].to_string(), "0u16");
         assert_eq!(production_map[1].to_string(), "1u16");
         assert_eq!(production_map[2].to_string(), "2u16");
+    }
+
+    #[test]
+    fn test_generate_lex_modes_uses_parse_table_modes() {
+        let grammar = Grammar::new("lex_modes".to_string());
+        let mut parse_table = crate::empty_table!(states: 3, terms: 1, nonterms: 1, externals: 1);
+        parse_table.lex_modes = vec![
+            LexMode {
+                lex_state: 4,
+                external_lex_state: 0,
+            },
+            LexMode {
+                lex_state: 7,
+                external_lex_state: 2,
+            },
+            LexMode {
+                lex_state: 4,
+                external_lex_state: 9,
+            },
+        ];
+
+        let builder = AbiLanguageBuilder::new(&grammar, &parse_table);
+        let modes = builder.generate_lex_modes();
+
+        assert!(modes[0].to_string().contains("lex_state : 4u16"));
+        assert!(modes[1].to_string().contains("lex_state : 7u16"));
+        assert!(modes[1].to_string().contains("external_lex_state : 2u16"));
+        assert!(modes[2].to_string().contains("external_lex_state : 9u16"));
     }
 
     // --- ABI compatibility tests (correctness-tablegen-compat) ---

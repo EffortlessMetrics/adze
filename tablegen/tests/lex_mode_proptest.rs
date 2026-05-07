@@ -304,16 +304,16 @@ proptest! {
         }
     }
 
-    /// Serialized default lex modes all have lex_state = index and external_lex_state = 0.
+    /// Serialized default lex modes preserve the parse table's zero mode values.
     #[test]
-    fn serialized_default_lex_modes_have_sequential_lex_state(states in 1usize..=16) {
+    fn serialized_default_lex_modes_preserve_parse_table_values(states in 1usize..=16) {
         let pt = empty_table(states, 1, 1, 0);
         let json = serialize_language(&pt.grammar, &pt, None).unwrap();
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         let modes = v["lex_modes"].as_array().unwrap();
-        for (i, mode) in modes.iter().enumerate() {
+        for mode in modes {
             let ls = mode["lex_state"].as_u64().unwrap();
-            prop_assert_eq!(ls, i as u64, "serialized lex_state should equal index");
+            prop_assert_eq!(ls, 0, "serialized lex_state should match parse table");
             let ext = mode["external_lex_state"].as_u64().unwrap();
             prop_assert_eq!(ext, 0, "default external_lex_state should be 0");
         }
@@ -808,15 +808,34 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(32))]
 
-    /// Serialized lex_state values are sequential 0..state_count for default table.
+    /// Serialized lex_state values preserve parse-table lex modes.
     #[test]
-    fn serialized_lex_state_sequential(states in 1usize..=16) {
+    fn serialized_lex_state_preserves_parse_table_modes(states in 1usize..=16) {
         let pt = empty_table(states, 1, 1, 0);
         let json = serialize_language(&pt.grammar, &pt, None).unwrap();
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         let modes = v["lex_modes"].as_array().unwrap();
         for (i, mode) in modes.iter().enumerate() {
-            prop_assert_eq!(mode["lex_state"].as_u64().unwrap(), i as u64);
+            prop_assert_eq!(
+                mode["lex_state"].as_u64().unwrap(),
+                pt.lex_modes[i].lex_state as u64
+            );
+        }
+    }
+
+    /// Serialized custom lex modes preserve lex_state and external_lex_state exactly.
+    #[test]
+    fn serialized_custom_lex_modes_preserve_values((n, modes) in lex_modes_for_states(16)) {
+        let pt = table_with_lex_modes(n, modes.clone());
+        let json = serialize_language(&pt.grammar, &pt, None).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let serialized = v["lex_modes"].as_array().unwrap();
+        for (i, mode) in serialized.iter().enumerate() {
+            prop_assert_eq!(mode["lex_state"].as_u64().unwrap(), modes[i].lex_state as u64);
+            prop_assert_eq!(
+                mode["external_lex_state"].as_u64().unwrap(),
+                modes[i].external_lex_state as u64
+            );
         }
     }
 
@@ -884,6 +903,28 @@ proptest! {
         let count = code.matches("TSLexState").count();
         // At least one TSLexState type reference + N entries
         prop_assert!(count >= states, "expected at least {states} TSLexState mentions, got {count}");
+    }
+
+    /// Generated code preserves nontrivial lex modes from the parse table.
+    #[test]
+    fn generated_code_preserves_custom_lex_modes(_dummy in 0u8..1) {
+        let modes = vec![
+            LexMode {
+                lex_state: 4,
+                external_lex_state: 0,
+            },
+            LexMode {
+                lex_state: 7,
+                external_lex_state: 2,
+            },
+        ];
+        let pt = table_with_lex_modes(2, modes);
+        let slg = StaticLanguageGenerator::new(pt.grammar.clone(), pt);
+        let code = slg.generate_language_code().to_string();
+
+        prop_assert!(code.contains("lex_state : 4u16"));
+        prop_assert!(code.contains("lex_state : 7u16"));
+        prop_assert!(code.contains("external_lex_state : 2u16"));
     }
 
     /// Generated code references lex_modes field in TSLanguage struct.

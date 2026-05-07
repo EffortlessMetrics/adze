@@ -249,11 +249,22 @@ impl<'a> LanguageGenerator<'a> {
         let state_count = self.parse_table.state_count;
         let mut modes = vec![];
 
-        for i in 0..state_count {
+        for state_index in 0..state_count {
+            let mode = self
+                .parse_table
+                .lex_modes
+                .get(state_index)
+                .copied()
+                .unwrap_or(adze_glr_core::LexMode {
+                    lex_state: 0,
+                    external_lex_state: 0,
+                });
+            let lex_state = mode.lex_state;
+            let external_lex_state = mode.external_lex_state;
             modes.push(quote! {
                 TSLexState {
-                    lex_state: #i as u16,
-                    external_lex_state: 0,
+                    lex_state: #lex_state,
+                    external_lex_state: #external_lex_state,
                 }
             });
         }
