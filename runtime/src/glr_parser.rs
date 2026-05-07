@@ -335,6 +335,29 @@ pub struct GLRParser {
     telemetry: TelemetryCounters,
 }
 
+type SubtreeSelectionKey = Vec<(usize, usize, u16, u16, usize)>;
+
+fn subtree_selection_key(node: &Subtree) -> SubtreeSelectionKey {
+    let mut key = Vec::new();
+    append_subtree_selection_key(node, &mut key);
+    key
+}
+
+fn append_subtree_selection_key(node: &Subtree, key: &mut SubtreeSelectionKey) {
+    key.push((
+        node.node.byte_range.start,
+        node.node.byte_range.end,
+        node.node.symbol_id.0,
+        u16::from(node.node.is_error),
+        node.children.len(),
+    ));
+
+    for edge in &node.children {
+        key.push((usize::MAX, usize::MAX, edge.field_id, 0, 0));
+        append_subtree_selection_key(&edge.subtree, key);
+    }
+}
+
 /// Dummy telemetry type when feature is disabled
 #[cfg(not(feature = "glr_telemetry"))]
 #[allow(dead_code)]
@@ -2064,6 +2087,7 @@ impl GLRParser {
             );
 
             let mut best_stack_idx = complete_stacks[0];
+            let mut best_tree_key = subtree_selection_key(&self.stacks[best_stack_idx].nodes[0]);
             for &stack_idx in &complete_stacks[1..] {
                 match compare_versions(
                     &self.stacks[best_stack_idx].version,
@@ -2076,6 +2100,20 @@ impl GLRParser {
                             best_stack_idx
                         );
                         best_stack_idx = stack_idx;
+                        best_tree_key =
+                            subtree_selection_key(&self.stacks[best_stack_idx].nodes[0]);
+                    }
+                    CompareResult::Tie => {
+                        let tree_key = subtree_selection_key(&self.stacks[stack_idx].nodes[0]);
+                        if tree_key < best_tree_key {
+                            debug_glr!(
+                                "finish: Stack {} wins stable structural tie-break over stack {}",
+                                stack_idx,
+                                best_stack_idx
+                            );
+                            best_stack_idx = stack_idx;
+                            best_tree_key = tree_key;
+                        }
                     }
                     _ => {
                         debug_glr!(
