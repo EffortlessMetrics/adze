@@ -104,3 +104,44 @@ fn generated_typed_parser_unexpected_eof_reports_zero_width_source_span() {
         "rendered diagnostic should place a caret at EOF: {rendered}"
     );
 }
+
+#[test]
+fn generated_typed_parser_unexpected_eof_lists_expected_tokens() {
+    let source = "1 +";
+    let errors = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("truncated expression must fail through the generated typed parser");
+
+    let first = errors
+        .first()
+        .expect("generated parser should return at least one parse error");
+
+    let ParseErrorReason::UnexpectedToken(message) = &first.reason else {
+        panic!(
+            "truncated generated-parser input should report an unexpected token: {:?}",
+            first.reason
+        );
+    };
+
+    assert!(
+        message.contains("expected one of:"),
+        "unexpected-token detail should include normalized expected tokens: {message}"
+    );
+    assert!(
+        message.contains(r"/\d+/"),
+        "expected-token detail should use generated token names, not raw ids: {message}"
+    );
+    assert!(
+        !message.contains("SymbolId") && !message.contains("symbol ") && !message.contains("_4"),
+        "expected-token detail should not expose raw symbol ids or extra-token internals: {message}"
+    );
+
+    let rendered = first.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("expected one of:"),
+        "rendered diagnostic should include expected-token context: {rendered}"
+    );
+    assert!(
+        rendered.contains(r"/\d+/"),
+        "rendered diagnostic should include the expected token name: {rendered}"
+    );
+}

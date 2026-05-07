@@ -1258,7 +1258,11 @@ pub mod errors {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
                 ParseErrorReason::UnexpectedToken(token) => {
-                    write!(f, "unexpected token {token:?}")
+                    if let Some((token, expected)) = token.split_once("; expected one of: ") {
+                        write!(f, "unexpected token {token:?}, expected one of: {expected}")
+                    } else {
+                        write!(f, "unexpected token {token:?}")
+                    }
                 }
                 ParseErrorReason::FailedNode(errors) if errors.is_empty() => {
                     write!(f, "failed to parse node")

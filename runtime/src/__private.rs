@@ -339,39 +339,12 @@ fn parse_with_pure_parser<T: Extract<T>>(
         let errors = parser_errors
             .into_iter()
             .map(|e| {
-                // Get symbol name from language if available
-                let symbol_name = if (e.found as usize) < lang.symbol_count as usize {
-                    // SAFETY: `e.found` is bounds-checked above against `symbol_count`.
-                    // `symbol_names` and `public_symbol_map` point to static language
-                    // tables that live for the entire parse.
-                    unsafe {
-                        let public_symbol = if !lang.public_symbol_map.is_null() {
-                            *lang.public_symbol_map.add(e.found as usize)
-                        } else {
-                            e.found
-                        };
-
-                        if (public_symbol as usize) < lang.symbol_count as usize {
-                            let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
-                            if !symbol_ptr.is_null() {
-                                std::ffi::CStr::from_ptr(symbol_ptr as *const c_char)
-                                    .to_string_lossy()
-                                    .to_string()
-                            } else {
-                                format!("symbol {} (public {})", e.found, public_symbol)
-                            }
-                        } else {
-                            format!(
-                                "symbol {} (public {} out of bounds)",
-                                e.found, public_symbol
-                            )
-                        }
-                    }
-                } else {
-                    format!("symbol {} (out of bounds)", e.found)
-                };
+                let symbol_name = symbol_name_for_diagnostic(lang, e.found);
+                let expected = expected_symbol_names_for_diagnostic(lang, &e.expected);
                 crate::errors::ParseError {
-                    reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                        unexpected_token_message(symbol_name, expected),
+                    ),
                     start: e.position,
                     end: diagnostic_end_for_byte(input.as_bytes(), e.position),
                 }
@@ -866,6 +839,82 @@ fn diagnostic_end_for_byte(source: &[u8], start: usize) -> usize {
         .unwrap_or_else(|| (start + 1).min(source.len()))
 }
 
+#[cfg(feature = "pure-rust")]
+fn symbol_name_for_diagnostic(
+    lang: &crate::pure_parser::TSLanguage,
+    symbol: crate::pure_parser::TSSymbol,
+) -> String {
+    if (symbol as u32) >= lang.symbol_count {
+        return format!("symbol {symbol} (out of bounds)");
+    }
+
+    // SAFETY: `symbol` is bounds-checked above. Generated language metadata
+    // points to static arrays that live for the whole parse.
+    unsafe {
+        let public_symbol = if !lang.public_symbol_map.is_null() {
+            *lang.public_symbol_map.add(symbol as usize)
+        } else {
+            symbol
+        };
+
+        if (public_symbol as u32) >= lang.symbol_count {
+            return format!("symbol {symbol} (public {public_symbol} out of bounds)");
+        }
+
+        if lang.symbol_names.is_null() {
+            return format!("symbol {symbol} (public {public_symbol})");
+        }
+
+        let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
+        if symbol_ptr.is_null() {
+            return format!("symbol {symbol} (public {public_symbol})");
+        }
+
+        CStr::from_ptr(symbol_ptr as *const c_char)
+            .to_string_lossy()
+            .to_string()
+    }
+}
+
+#[cfg(feature = "pure-rust")]
+fn expected_symbol_names_for_diagnostic(
+    lang: &crate::pure_parser::TSLanguage,
+    expected: &[crate::pure_parser::TSSymbol],
+) -> Vec<String> {
+    let mut names = expected
+        .iter()
+        .copied()
+        .filter(|symbol| !is_extra_symbol_for_diagnostic(lang, *symbol))
+        .map(|symbol| symbol_name_for_diagnostic(lang, symbol))
+        .collect::<Vec<_>>();
+    names.sort();
+    names.dedup();
+    names
+}
+
+#[cfg(feature = "pure-rust")]
+fn is_extra_symbol_for_diagnostic(
+    lang: &crate::pure_parser::TSLanguage,
+    symbol: crate::pure_parser::TSSymbol,
+) -> bool {
+    if (symbol as u32) >= lang.symbol_count || lang.symbol_metadata.is_null() {
+        return false;
+    }
+
+    // SAFETY: `symbol` is bounds-checked above and `symbol_metadata` points to
+    // one metadata byte per generated language symbol.
+    unsafe { (*lang.symbol_metadata.add(symbol as usize) & 0x04) != 0 }
+}
+
+#[cfg(feature = "pure-rust")]
+fn unexpected_token_message(found: String, expected: Vec<String>) -> String {
+    if expected.is_empty() {
+        found
+    } else {
+        format!("{found}; expected one of: {}", expected.join(", "))
+    }
+}
+
 /// Parse using the GLR parser (stub for when feature is not enabled)
 #[cfg(all(feature = "pure-rust", not(feature = "glr")))]
 fn parse_with_glr<T: Extract<T>>(
@@ -1186,6 +1235,31 @@ mod tests {
         assert_eq!(diagnostic_end_for_byte(source, 1), 3);
         assert_eq!(diagnostic_end_for_byte(source, 3), 4);
         assert_eq!(diagnostic_end_for_byte(source, 4), 4);
+    }
+
+    #[test]
+    fn expected_symbol_names_for_diagnostic_are_sorted_and_deduped() {
+        let names = [
+            c"ERROR".as_ptr() as *const u8,
+            c"_whitespace".as_ptr() as *const u8,
+            c"plus".as_ptr() as *const u8,
+            c"number".as_ptr() as *const u8,
+        ];
+        let metadata = [0, 0x04, 0, 0];
+        let language = TSLanguage {
+            symbol_count: 4,
+            token_count: 4,
+            symbol_names: names.as_ptr(),
+            symbol_metadata: metadata.as_ptr(),
+            ..FIELD_LANGUAGE
+        };
+
+        let expected = expected_symbol_names_for_diagnostic(&language, &[3, 2, 1, 3]);
+        assert_eq!(expected, vec!["number".to_string(), "plus".to_string()]);
+        assert_eq!(
+            unexpected_token_message("ERROR".to_string(), expected),
+            "ERROR; expected one of: number, plus"
+        );
     }
 
     #[test]
