@@ -857,15 +857,15 @@ fn symbol_name_for_diagnostic(
             symbol
         };
 
-        if (public_symbol as u32) >= lang.symbol_count {
-            return format!("symbol {symbol} (public {public_symbol} out of bounds)");
-        }
-
         if lang.symbol_names.is_null() {
             return format!("symbol {symbol} (public {public_symbol})");
         }
 
-        let symbol_ptr = *lang.symbol_names.add(public_symbol as usize);
+        // `symbol` is the table-column symbol reported by the parser. Generated
+        // symbol names are emitted in that same column order; the public symbol
+        // map can contain sparse Adze `SymbolId`s and must not be used as an
+        // index into the column-ordered name array.
+        let symbol_ptr = *lang.symbol_names.add(symbol as usize);
         if symbol_ptr.is_null() {
             return format!("symbol {symbol} (public {public_symbol})");
         }
@@ -1260,6 +1260,52 @@ mod tests {
             unexpected_token_message("ERROR".to_string(), expected),
             "ERROR; expected one of: number, plus"
         );
+    }
+
+    #[test]
+    fn expected_symbol_names_for_diagnostic_handles_sparse_public_map() {
+        let names = [
+            c"end".as_ptr() as *const u8,
+            c"number".as_ptr() as *const u8,
+            c"expr".as_ptr() as *const u8,
+        ];
+        let metadata = [0, 0, 0];
+        let public_symbol_map = [0, 7, 11];
+        let language = TSLanguage {
+            symbol_count: 3,
+            token_count: 2,
+            symbol_names: names.as_ptr(),
+            symbol_metadata: metadata.as_ptr(),
+            public_symbol_map: public_symbol_map.as_ptr(),
+            ..FIELD_LANGUAGE
+        };
+
+        let expected = expected_symbol_names_for_diagnostic(&language, &[1]);
+
+        assert_eq!(expected, vec!["number".to_string()]);
+    }
+
+    #[test]
+    fn expected_symbol_names_for_diagnostic_uses_column_names_with_dense_public_remap() {
+        let names = [
+            c"end".as_ptr() as *const u8,
+            c"number".as_ptr() as *const u8,
+            c"expr".as_ptr() as *const u8,
+        ];
+        let metadata = [0, 0, 0];
+        let public_symbol_map = [0, 2, 1];
+        let language = TSLanguage {
+            symbol_count: 3,
+            token_count: 2,
+            symbol_names: names.as_ptr(),
+            symbol_metadata: metadata.as_ptr(),
+            public_symbol_map: public_symbol_map.as_ptr(),
+            ..FIELD_LANGUAGE
+        };
+
+        let expected = expected_symbol_names_for_diagnostic(&language, &[1]);
+
+        assert_eq!(expected, vec!["number".to_string()]);
     }
 
     #[test]
