@@ -133,7 +133,14 @@ fn test_parse_with_parser_shows_limitations() {
         stderr.contains("not yet implemented") || stderr.contains("CURRENT LIMITATIONS"),
         "Should mention current limitations"
     );
-    assert!(stderr.contains("v0.6"), "Should mention version");
+    assert!(
+        stderr.contains(env!("CARGO_PKG_VERSION")),
+        "Should mention the current adze-tool version"
+    );
+    assert!(
+        !stderr.contains("v0.6"),
+        "Should not advertise stale v0.6 release text"
+    );
     assert!(
         stderr.contains("dynamic"),
         "Should mention dynamic loading limitation"

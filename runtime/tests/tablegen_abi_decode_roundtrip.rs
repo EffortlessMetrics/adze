@@ -73,7 +73,7 @@ static PARSE_ACTIONS: [TSParseAction; 1] = [TSParseAction {
 static LANGUAGE: TSLanguage = TSLanguage {
     version: 15,
     symbol_count: 3,
-    alias_count: 0,
+    alias_count: 1,
     token_count: 2,
     external_token_count: 0,
     state_count: 3,
@@ -143,4 +143,11 @@ fn compressed_tslanguage_decode_preserves_metadata_actions_and_fields() {
     assert_eq!(decoded.rules[0].rhs_len, 1);
     assert_eq!(decoded.field_names, vec!["value".to_string()]);
     assert_eq!(decoded.field_map.get(&(RuleId(0), 0)), Some(&0));
+}
+
+#[test]
+fn compressed_tslanguage_decode_preserves_alias_sequences() {
+    let decoded = decode_parse_table(&LANGUAGE);
+
+    assert_eq!(decoded.alias_sequences, vec![vec![Some(SymbolId(1))]]);
 }
