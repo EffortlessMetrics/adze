@@ -10,6 +10,7 @@ mod fixtures;
 mod golden;
 mod grammar_json;
 mod lint;
+mod policy;
 mod profile;
 mod test_grammars;
 mod test_local_grammars;
@@ -190,6 +191,34 @@ enum Commands {
         #[arg(short = 'd', long, default_value = "benchmarks/fixtures/arithmetic")]
         dir: String,
     },
+    /// Check the workspace for unreceipted panic-family debt.
+    ///
+    /// See docs/NO_PANIC_POLICY.md.
+    CheckNoPanicFamily {
+        /// Operating mode: advisory | blocking-allowlist | blocking-strict
+        #[arg(long, default_value = "advisory")]
+        mode: String,
+    },
+    /// Propose new no-panic allowlist entries for current findings.
+    NoPanicPropose {
+        /// Treat every finding as a new entry, ignoring existing matches.
+        #[arg(long)]
+        baseline: bool,
+    },
+    /// Verify non-Rust files against policy/non-rust-allowlist.toml.
+    CheckFilePolicy {
+        /// Operating mode: advisory | blocking-allowlist | blocking-strict
+        #[arg(long, default_value = "advisory")]
+        mode: String,
+    },
+    /// Verify Cargo / clippy.toml configuration matches policy/clippy-lints.toml.
+    CheckLintPolicy {
+        /// Operating mode: advisory | blocking-allowlist | blocking-strict
+        #[arg(long, default_value = "advisory")]
+        mode: String,
+    },
+    /// Run every policy check and emit a combined Markdown report.
+    PolicyReport,
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -370,6 +399,24 @@ fn main() -> Result<()> {
         }
         Commands::FixturesInfo { dir } => {
             fixtures::info_fixtures(&dir)?;
+        }
+        Commands::CheckNoPanicFamily { mode } => {
+            let mode = policy::Mode::parse(&mode)?;
+            policy::no_panic::run_check(mode)?;
+        }
+        Commands::NoPanicPropose { baseline } => {
+            policy::no_panic::run_propose(baseline)?;
+        }
+        Commands::CheckFilePolicy { mode } => {
+            let mode = policy::Mode::parse(&mode)?;
+            policy::file_policy::run_check(mode)?;
+        }
+        Commands::CheckLintPolicy { mode } => {
+            let mode = policy::Mode::parse(&mode)?;
+            policy::lint_policy::run_check(mode)?;
+        }
+        Commands::PolicyReport => {
+            policy::report::run()?;
         }
     }
 

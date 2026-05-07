@@ -141,3 +141,29 @@ worktree-list:
 
 worktree-prune-stale:
     ./scripts/cleanup-worktrees.sh prune-stale
+
+# ----------------------------------------------------------------------------
+# Policy stack — see docs/CLIPPY_POLICY.md, NO_PANIC_POLICY.md, FILE_POLICY.md.
+# All checks run in advisory mode by default; flip with --mode blocking-allowlist
+# (or blocking-strict) once the baseline is committed.
+# ----------------------------------------------------------------------------
+
+# Run every policy check and emit target/policy/policy-report.md
+policy:
+    cargo run -q -p xtask -- policy-report
+
+# Check unreceipted panic-family debt (advisory)
+policy-no-panic mode="advisory":
+    cargo run -q -p xtask -- check-no-panic-family --mode {{mode}}
+
+# Generate target/policy/no-panic-proposed.toml for review
+policy-no-panic-propose:
+    cargo run -q -p xtask -- no-panic-propose
+
+# Check non-Rust files against policy/non-rust-allowlist.toml (advisory)
+policy-files mode="advisory":
+    cargo run -q -p xtask -- check-file-policy --mode {{mode}}
+
+# Verify Cargo.toml / clippy.toml against policy/clippy-lints.toml (advisory)
+policy-lints mode="advisory":
+    cargo run -q -p xtask -- check-lint-policy --mode {{mode}}
