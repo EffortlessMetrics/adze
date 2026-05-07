@@ -1,11 +1,9 @@
 name: PR Plan
 
-# Triggered standalone on PR for visibility, and reused by pr-gate.yml via
-# workflow_call. The standalone run is what shows up as the `PR Plan / PR
-# Plan` check; pr-gate calls the same workflow to read its outputs.
+# Reusable workflow only. pr-gate.yml and ripr.yml call this via workflow_call
+# to compute LEM/band/docs_only. A standalone pull_request trigger would just
+# duplicate work and be cancelled by the shared concurrency group.
 on:
-  pull_request:
-    branches: [main]
   workflow_dispatch:
   workflow_call:
     outputs:
@@ -24,7 +22,9 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: pr-plan-${{ github.event.pull_request.number || github.ref }}
+  # Include github.workflow so a parent (pr-gate / ripr) gets its own group
+  # rather than cancelling the other parent's invocation.
+  group: pr-plan-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
