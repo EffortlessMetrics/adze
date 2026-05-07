@@ -586,16 +586,23 @@ pub fn decode_grammar_with_patterns(
                 std::slice::from_raw_parts(lang.external_scanner.symbol_map, external_count)
             };
 
-            for (i, &symbol_id) in external_symbol_map.iter().enumerate() {
-                // Validate symbol_id is within bounds
-                if (symbol_id as u32) < lang.symbol_count {
+            for (i, &symbol_col) in external_symbol_map.iter().enumerate() {
+                // Validate the scanner symbol map points at a table column.
+                if (symbol_col as u32) < lang.symbol_count {
                     let name = symbol_names
-                        .get(symbol_id as usize)
+                        .get(symbol_col as usize)
                         .cloned()
                         .unwrap_or_else(|| format!("external_{}", i));
+                    let public_symbol = if !lang.public_symbol_map.is_null() {
+                        // SAFETY: `symbol_col < symbol_count` is checked above, and
+                        // TSLanguage guarantees one public map entry per symbol.
+                        unsafe { *lang.public_symbol_map.add(symbol_col as usize) }
+                    } else {
+                        symbol_col
+                    };
                     externals.push(ExternalToken {
                         name,
-                        symbol_id: SymbolId(symbol_id),
+                        symbol_id: SymbolId(public_symbol),
                     });
                 }
             }

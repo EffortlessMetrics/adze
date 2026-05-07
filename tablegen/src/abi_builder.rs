@@ -387,6 +387,14 @@ impl<'a> AbiLanguageBuilder<'a> {
                 } else if let Some(rule_name) = self.grammar.rule_names.get(symbol_id) {
                     // Non-terminal with explicit name
                     rule_name.clone()
+                } else if let Some(external) = self
+                    .grammar
+                    .externals
+                    .iter()
+                    .find(|external| external.symbol_id == *symbol_id)
+                {
+                    // External token
+                    external.name.clone()
                 } else {
                     // Non-terminal without name - generate one
                     format!("rule_{}", symbol_id.0)
