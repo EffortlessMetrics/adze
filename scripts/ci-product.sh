@@ -9,6 +9,7 @@ fi
 # Canary definitions: "label|proof_type|command"
 CANARIES=(
   "adze runtime pure-rust typed extraction|behavior|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture"
+  "README arithmetic quickstart clean-room|behavior|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
   "adze-cli clean-room init smoke|behavior|cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture"
   "golden-tests javascript canary|behavior|cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture"
   "benchmarks canary|compile-only|cargo bench -p adze-benchmarks --no-run"

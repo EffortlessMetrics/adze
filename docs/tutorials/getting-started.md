@@ -23,10 +23,25 @@ Add adze to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-adze = "0.8.0-dev"
+adze = { version = "0.8.0-dev", default-features = false }
 
 [build-dependencies]
 adze-tool = "0.8.0-dev"
+
+[features]
+default = ["pure-rust"]
+pure-rust = ["adze/pure-rust"]
+```
+
+Create `build.rs`:
+
+```rust
+use std::path::PathBuf;
+
+fn main() {
+    println!("cargo::rustc-check-cfg=cfg(adze_unsafe_attrs)");
+    adze_tool::build_parsers(&PathBuf::from("src/lib.rs"));
+}
 ```
 
 ### Create a Simple Grammar

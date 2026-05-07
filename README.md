@@ -53,10 +53,14 @@ let expr = grammar::parse("1 + 2 * 3")?;
 
 ```toml
 [dependencies]
-adze = "0.8"
+adze = { version = "0.8", default-features = false }
 
 [build-dependencies]
 adze-tool = "0.8"
+
+[features]
+default = ["pure-rust"]
+pure-rust = ["adze/pure-rust"]
 ```
 
 Add a `build.rs` pointing at the file that contains your `#[adze::grammar]` module:
@@ -65,6 +69,7 @@ Add a `build.rs` pointing at the file that contains your `#[adze::grammar]` modu
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo::rustc-check-cfg=cfg(adze_unsafe_attrs)");
     // src/lib.rs for library crates, src/main.rs for binary crates
     adze_tool::build_parsers(&PathBuf::from("src/lib.rs"));
 }
