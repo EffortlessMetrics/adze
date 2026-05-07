@@ -15,7 +15,7 @@
 use anyhow::{Context, Result};
 use globset::{Glob, GlobSetBuilder};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -32,7 +32,7 @@ struct WhitelistFile {
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[allow(dead_code)]
-struct Budget {
+pub struct Budget {
     preferred_default_lem: Option<u32>,
     default_limit_lem: Option<u32>,
     elevated_limit_lem: Option<u32>,
@@ -252,10 +252,10 @@ pub fn run(args: PlanArgs) -> Result<()> {
 }
 
 fn resolve_base(args: &PlanArgs) -> Result<String> {
-    if let Some(b) = &args.base {
-        if !b.is_empty() {
-            return Ok(b.clone());
-        }
+    if let Some(b) = &args.base
+        && !b.is_empty()
+    {
+        return Ok(b.clone());
     }
     let out = Command::new("git")
         .args(["merge-base", "origin/main", "HEAD"])
@@ -337,7 +337,7 @@ fn select_lanes(
 ) -> Vec<SelectedLane> {
     let mut chosen: BTreeMap<String, SelectedLane> = BTreeMap::new();
 
-    let mut add = |id: &str, reason: String, chosen: &mut BTreeMap<String, SelectedLane>| {
+    let add = |id: &str, reason: String, chosen: &mut BTreeMap<String, SelectedLane>| {
         if chosen.contains_key(id) {
             return;
         }
@@ -510,6 +510,7 @@ fn read_toml<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
 
     fn workspace_root_for_tests() -> PathBuf {
         // Walk up from CARGO_MANIFEST_DIR (xtask/) to the workspace root.

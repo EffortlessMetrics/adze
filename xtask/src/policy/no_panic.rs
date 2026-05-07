@@ -654,7 +654,7 @@ mod tests {
         let truncated: String = one_line.chars().take(80).collect::<String>() + "…";
         assert!(truncated.chars().count() <= 81);
         // Sanity: a naive byte slice would not be a valid str boundary here.
-        assert!(s.as_bytes().len() > 80);
+        assert!(s.len() > 80);
     }
 
     #[test]

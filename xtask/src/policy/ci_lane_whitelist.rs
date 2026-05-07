@@ -16,6 +16,7 @@ use std::path::Path;
 use super::{Mode, ensure_report_dir, workspace_root};
 
 #[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
 struct WhitelistFile {
     #[serde(default)]
     schema_version: Option<String>,
