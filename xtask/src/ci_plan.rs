@@ -137,6 +137,9 @@ pub struct PlanArgs {
     pub risk_packs_path: PathBuf,
     pub json_out: PathBuf,
     pub github_summary: Option<PathBuf>,
+    /// When true, fail the command if the plan exceeds the hard ceiling
+    /// without a `full-ci` or `ci-budget-override` label.
+    pub enforce_hard_ceiling: bool,
 }
 
 pub fn run(args: PlanArgs) -> Result<()> {
@@ -167,6 +170,24 @@ pub fn run(args: PlanArgs) -> Result<()> {
     let total_lem: u32 = lanes.iter().map(|l| l.lem).sum();
     let limits = whitelist.budget.clone();
     let band = band_for(total_lem, &limits);
+
+    let has_ack = args.labels.iter().any(|l| l == "ci-budget-ack");
+    let has_override = args
+        .labels
+        .iter()
+        .any(|l| l == "ci-budget-override" || l == "full-ci");
+    match band {
+        "elevated" if !has_ack => warnings.push(format!(
+            "Plan is in the `elevated` band ({total_lem} LEM). Consider whether this PR's risk surface justifies the cost; add the `ci-budget-ack` label to acknowledge."
+        )),
+        "high" => warnings.push(format!(
+            "Plan is in the `high` band ({total_lem} LEM). Add the `ci-budget-ack` label and explain the surface in the PR body."
+        )),
+        "over-ceiling" if !has_override => warnings.push(format!(
+            "Plan is over the hard ceiling ({total_lem} LEM). Either remove deep lanes or add the `ci-budget-override` (or `full-ci`) label."
+        )),
+        _ => {}
+    }
 
     let mut plan = Plan {
         schema_version: 1,
@@ -218,6 +239,15 @@ pub fn run(args: PlanArgs) -> Result<()> {
         for w in &plan.warnings {
             eprintln!("  warning: {w}");
         }
+    }
+    if args.enforce_hard_ceiling
+        && plan.budget.band == "over-ceiling"
+        && !has_override
+    {
+        anyhow::bail!(
+            "ci plan exceeds the hard ceiling ({} LEM) without a `full-ci` or `ci-budget-override` label",
+            plan.budget.estimated_lem
+        );
     }
     // Suppress unused after fields move into plan.
     let _ = &mut plan;

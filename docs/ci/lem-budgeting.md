@@ -50,6 +50,26 @@ hard     = p95_recent_actual
 Static fallback is always available; learned estimates never raise the hard
 ceiling without an explicit policy update.
 
+## Soft enforcement
+
+`xtask ci plan` (and the PR Plan workflow) emits warnings into
+`ci-plan.json` and the GitHub step summary based on the budget band:
+
+| Band | Behavior |
+| --- | --- |
+| ordinary | no warning |
+| elevated | warning unless `ci-budget-ack` is present |
+| high | warning suggesting `ci-budget-ack` |
+| over-ceiling | warning unless `ci-budget-override` or `full-ci` is present |
+
+Hard enforcement is opt-in via `--enforce-hard-ceiling`. When that flag is
+passed, the planner exits non-zero if the plan exceeds the hard ceiling
+without `full-ci` or `ci-budget-override`. Today the workflow does **not**
+pass `--enforce-hard-ceiling`; soft warnings only.
+
+PR 17 of the rollout is the dedicated change that promotes hard enforcement
+once actuals confirm the band thresholds.
+
 ## Ack and override labels
 
 | Label | Effect |

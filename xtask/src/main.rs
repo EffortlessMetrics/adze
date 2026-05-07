@@ -257,6 +257,9 @@ enum Commands {
         /// Path to risk-packs TOML.
         #[arg(long, default_value = "policy/ci-risk-packs.toml")]
         risk_packs: String,
+        /// Fail when the plan exceeds the hard ceiling without an override label.
+        #[arg(long)]
+        enforce_hard_ceiling: bool,
     },
 }
 
@@ -469,6 +472,7 @@ fn main() -> Result<()> {
             github_summary,
             whitelist,
             risk_packs,
+            enforce_hard_ceiling,
         } => {
             let workspace_root = policy::workspace_root()?;
             let labels_vec: Vec<String> = labels
@@ -488,6 +492,7 @@ fn main() -> Result<()> {
                 risk_packs_path: workspace_root.join(risk_packs),
                 json_out: workspace_root.join(json_out),
                 github_summary,
+                enforce_hard_ceiling,
             };
             ci_plan::run(args)?;
         }
