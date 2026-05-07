@@ -7,7 +7,7 @@
 use crate::abi::*;
 use crate::compress::CompressedTables;
 use adze_glr_core::{Action, ParseTable};
-use adze_ir::{Grammar, Rule, Symbol, SymbolId, TokenPattern};
+use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::HashSet;
@@ -120,6 +120,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let production_lhs_index = self.generate_production_lhs_index();
         let ts_rules = self.generate_ts_rules();
         let variant_symbol_map = self.generate_variant_symbol_map();
+        let (alias_map, alias_sequences) = self.generate_alias_tables();
 
         // Generate external scanner data if needed
         let (external_scanner_code, external_scanner_struct) = if !self.grammar.externals.is_empty()
@@ -181,6 +182,24 @@ impl<'a> AbiLanguageBuilder<'a> {
         let production_id_count = counts.production_id_count;
         let field_count = counts.field_count;
         let max_alias_sequence_length = counts.max_alias_sequence_length;
+        let alias_tables = if alias_count > 0 && max_alias_sequence_length > 0 {
+            quote! {
+                static ALIAS_MAP: &[u16] = &[#(#alias_map),*];
+                static ALIAS_SEQUENCES: &[u16] = &[#(#alias_sequences),*];
+            }
+        } else {
+            quote! {}
+        };
+        let alias_map_ptr = if alias_count > 0 && max_alias_sequence_length > 0 {
+            quote! { ALIAS_MAP.as_ptr() }
+        } else {
+            quote! { std::ptr::null() }
+        };
+        let alias_sequences_ptr = if alias_count > 0 && max_alias_sequence_length > 0 {
+            quote! { ALIAS_SEQUENCES.as_ptr() }
+        } else {
+            quote! { std::ptr::null::<u16>() }
+        };
 
         // Generate field names array
         let field_names_array = if field_count == 0 {
@@ -275,6 +294,9 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Production LHS index (maps production IDs to LHS symbols in table index space)
             static PRODUCTION_LHS_INDEX: &[u16] = &[#(#production_lhs_index),*];
 
+            // Alias metadata
+            #alias_tables
+
             // Rule metadata for GLR parsing
             static TS_RULES: &[TSRule] = &[#(#ts_rules),*];
 
@@ -307,8 +329,8 @@ impl<'a> AbiLanguageBuilder<'a> {
                 field_map_entries: FIELD_MAP_ENTRIES.as_ptr(),
                 symbol_metadata: SYMBOL_METADATA.as_ptr(),
                 public_symbol_map: PUBLIC_SYMBOL_MAP.as_ptr(),
-                alias_map: std::ptr::null(),
-                alias_sequences: std::ptr::null::<u16>(),
+                alias_map: #alias_map_ptr,
+                alias_sequences: #alias_sequences_ptr,
                 lex_modes: LEX_MODES.as_ptr(),
                 lex_fn: Some(lexer_fn),
                 keyword_lex_fn: None,
@@ -1112,11 +1134,63 @@ impl<'a> AbiLanguageBuilder<'a> {
         ts_rules
     }
 
+    fn generate_alias_tables(&self) -> (Vec<TokenStream>, Vec<TokenStream>) {
+        let (_, max_alias_sequence_length) = self.calculate_alias_metrics();
+        let production_count = self.calculate_production_count();
+        let stride = max_alias_sequence_length as usize;
+        if production_count == 0 || stride == 0 {
+            return (Vec::new(), Vec::new());
+        }
+
+        let mut alias_map = Vec::with_capacity(production_count);
+        let mut alias_sequences = vec![quote! { 0u16 }; production_count * stride];
+
+        for production_index in 0..production_count {
+            let offset = production_index * stride;
+            alias_map.push(quote! { #offset as u16 });
+
+            let production_id = ProductionId(production_index as u16);
+            if let Some(sequence) = self.grammar.alias_sequences.get(&production_id) {
+                for (position, alias) in sequence.aliases.iter().take(stride).enumerate() {
+                    if let Some(alias_name) = alias.as_deref()
+                        && let Some(symbol_index) = self.resolve_alias_symbol(alias_name)
+                    {
+                        alias_sequences[offset + position] = quote! { #symbol_index as u16 };
+                    }
+                }
+            }
+        }
+
+        (alias_map, alias_sequences)
+    }
+
+    fn resolve_alias_symbol(&self, alias: &str) -> Option<u16> {
+        let symbol_id = self
+            .grammar
+            .tokens
+            .iter()
+            .find_map(|(id, token)| (token.name == alias).then_some(*id))
+            .or_else(|| {
+                self.grammar
+                    .rule_names
+                    .iter()
+                    .find_map(|(id, name)| (name == alias).then_some(*id))
+            })?;
+
+        self.parse_table
+            .symbol_to_index
+            .get(&symbol_id)
+            .copied()
+            .map(|index| index as u16)
+            .or(Some(symbol_id.0))
+    }
+
     /// Calculate counts for the language structure
     fn calculate_counts(&self) -> LanguageCounts {
+        let (alias_count, max_alias_sequence_length) = self.calculate_alias_metrics();
         LanguageCounts {
             symbol_count: self.calculate_symbol_count() as u32,
-            alias_count: 0, // TODO: Implement aliases
+            alias_count,
             // token_count comes from the parse table which knows about all terminals (including EOF)
             token_count: self.parse_table.token_count as u32,
             external_token_count: self.parse_table.external_token_count as u32,
@@ -1124,8 +1198,25 @@ impl<'a> AbiLanguageBuilder<'a> {
             large_state_count: 0, // TODO: Calculate large states
             production_id_count: self.calculate_production_count() as u32,
             field_count: self.grammar.fields.len() as u32,
-            max_alias_sequence_length: 0,
+            max_alias_sequence_length,
         }
+    }
+
+    fn calculate_alias_metrics(&self) -> (u32, u16) {
+        let mut aliases = HashSet::new();
+        let mut max_len = self.grammar.max_alias_sequence_length;
+
+        for sequence in self.grammar.alias_sequences.values() {
+            max_len = max_len.max(sequence.aliases.len());
+            for alias in sequence.aliases.iter().flatten() {
+                aliases.insert(alias.as_str());
+            }
+        }
+
+        (
+            aliases.len() as u32,
+            u16::try_from(max_len).unwrap_or(u16::MAX),
+        )
     }
 
     fn calculate_symbol_count(&self) -> usize {
