@@ -114,6 +114,59 @@ fn test_ambiguous_grammar_conflict_generation() {
     eprintln!("\n✅ SCENARIO 1 PASSED: Conflict generation validated\n");
 }
 
+#[test]
+fn tablegen_abi_decode_preserves_generated_conflict_cells() {
+    eprintln!("\n=== E2E TEST: Tablegen ABI Conflict Decode Preservation ===\n");
+
+    use adze_example::ambiguous_expr::grammar;
+
+    let lang = grammar::language();
+    assert!(
+        !lang.small_parse_table.is_null(),
+        "generated language must expose compressed small parse-table rows"
+    );
+
+    let parse_table = decoder::decode_parse_table(lang);
+    let mut conflict_cells = 0usize;
+    let mut direct_multi_action_cells = 0usize;
+    let mut shift_reduce_cells = 0usize;
+
+    for (state_idx, state_actions) in parse_table.action_table.iter().enumerate() {
+        for (symbol_idx, cell) in state_actions.iter().enumerate() {
+            if cell_has_conflict(cell) {
+                conflict_cells += 1;
+                if cell.len() > 1 {
+                    direct_multi_action_cells += 1;
+                }
+                if contains_shift_reduce(cell) {
+                    shift_reduce_cells += 1;
+                    eprintln!(
+                        "  conflict cell state={state_idx} symbol={symbol_idx} actions={cell:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    assert!(
+        conflict_cells > 0,
+        "compressed TSLanguage decode must preserve generated GLR conflict cells"
+    );
+    assert!(
+        direct_multi_action_cells > 0,
+        "compressed TSLanguage decode must retain duplicate symbol entries as multi-action cells, not first-action fallback"
+    );
+    assert!(
+        shift_reduce_cells > 0,
+        "decoded ambiguous_expr table must preserve at least one shift/reduce conflict"
+    );
+
+    eprintln!(
+        "  decoded conflicts: {conflict_cells}, direct multi-action cells: {direct_multi_action_cells}, shift/reduce cells: {shift_reduce_cells}"
+    );
+    eprintln!("\n✅ Tablegen ABI conflict decode preservation validated\n");
+}
+
 //==============================================================================
 // Scenario 2: GLR Parsing Behavior
 //==============================================================================
