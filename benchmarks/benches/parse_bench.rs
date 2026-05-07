@@ -1,14 +1,38 @@
-//! Placeholder benchmark while parser API stabilization is in progress.
+//! Baseline parser benchmark for valid arithmetic fixtures.
 //!
-//! This does **not** measure parser performance. Keep this bench only so CI and
-//! local `cargo bench -p adze-benchmarks --no-run` continue to validate bench
-//! wiring until a real parser workload replaces it.
+//! This bench measures real parser work: each iteration parses a valid
+//! arithmetic expression through the generated arithmetic grammar.
 
-use criterion::{criterion_group, criterion_main};
+use adze_example::arithmetic::grammar::parse;
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
-fn dummy_bench(c: &mut criterion::Criterion) {
-    c.bench_function("placeholder_no_parser_workload", |b| b.iter(|| 1 + 1));
+const ARITH_SMALL: &str = include_str!("../fixtures/arithmetic/small.expr");
+const ARITH_MEDIUM: &str = include_str!("../fixtures/arithmetic/medium.expr");
+const ARITH_LARGE: &str = include_str!("../fixtures/arithmetic/large.expr");
+
+fn benchmark_arithmetic_parsing(c: &mut Criterion) {
+    let mut group = c.benchmark_group("parse_bench_arithmetic");
+
+    for (label, source) in [
+        ("small", ARITH_SMALL),
+        ("medium", ARITH_MEDIUM),
+        ("large", ARITH_LARGE),
+    ] {
+        assert!(
+            parse(source).is_ok(),
+            "fixture {label} must parse before benchmarking"
+        );
+
+        group.bench_with_input(BenchmarkId::new("parse", label), source, |b, source| {
+            b.iter(|| {
+                black_box(parse(black_box(source)).expect("fixture must parse"));
+            });
+        });
+    }
+
+    group.finish();
 }
 
-criterion_group!(benches, dummy_bench);
+criterion_group!(benches, benchmark_arithmetic_parsing);
 criterion_main!(benches);
