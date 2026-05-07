@@ -104,6 +104,27 @@ fn test_init_generates_buildable_project() {
 }
 
 #[test]
+fn test_check_rejects_file_without_adze_grammar() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let not_a_grammar = temp.path().join("not_a_grammar.rs");
+    std::fs::write(
+        &not_a_grammar,
+        "pub struct PlainRust;\nimpl PlainRust { pub fn value(&self) -> usize { 1 } }\n",
+    )
+    .expect("write non-grammar rust file");
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("check")
+        .arg(&not_a_grammar)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "No adze grammar definitions found",
+        ))
+        .stdout(predicate::str::contains("Grammar syntax is valid").not());
+}
+
+#[test]
 fn test_parse_static_mode_is_explicitly_unimplemented() {
     let temp = tempfile::tempdir().expect("tempdir");
     let grammar = temp.path().join("grammar.rs");
