@@ -1,10 +1,16 @@
 name: Microcrate CI
 
+# Crate-group test jobs are routed by changed paths. fmt/docs/wasm/strict
+# stay default-on; the heavy test-* jobs gate on the `changes` setup.
+# Push to main and 'ci:microcrate' / 'full-ci' labels run everything.
+# See docs/ci/adze-rollout-plan.md (PR 14).
+
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    types: [opened, synchronize, reopened, labeled]
 
 concurrency:
   group: microcrate-ci-${{ github.ref }}
@@ -17,6 +23,58 @@ env:
   RAYON_NUM_THREADS: 4
 
 jobs:
+  changes:
+    name: Detect Changed Crate Groups
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      run_all: ${{ steps.detect.outputs.run_all }}
+      concurrency: ${{ steps.detect.outputs.concurrency }}
+      governance: ${{ steps.detect.outputs.governance }}
+      bdd: ${{ steps.detect.outputs.bdd }}
+      parser: ${{ steps.detect.outputs.parser }}
+      core: ${{ steps.detect.outputs.core }}
+      runtime: ${{ steps.detect.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+      - id: detect
+        env:
+          PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          set -euo pipefail
+          run_all=false
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            run_all=true
+          elif echo "$PR_LABELS_JSON" | grep -qE '"(full-ci|ci:microcrate)"'; then
+            run_all=true
+          fi
+          if [ "$run_all" = "true" ]; then
+            for k in concurrency governance bdd parser core runtime; do
+              echo "$k=true" >> "$GITHUB_OUTPUT"
+            done
+            echo "run_all=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" || true)
+          match() { echo "$changed" | grep -qE "$1"; }
+          for k in concurrency governance bdd parser core runtime; do
+            v=false
+            case "$k" in
+              concurrency) match '^crates/concurrency' && v=true ;;
+              governance) match '^(crates/governance|crates/bdd|tests/governance|crates/feature-policy|crates/runtime-governance)' && v=true ;;
+              bdd) match '^crates/bdd' && v=true ;;
+              parser) match '^(crates/parser-|crates/common-syntax-core|crates/ts-format-core|crates/linecol-core|crates/stack-pool-core|crates/parsetable-metadata|crates/glr-versioning|glr-core/|tablegen/)' && v=true ;;
+              core) match '^(ir/|glr-core/|tablegen/|common/)' && v=true ;;
+              runtime) match '^(runtime/|runtime2/|macro/|tool/|cli/)' && v=true ;;
+            esac
+            echo "$k=$v" >> "$GITHUB_OUTPUT"
+          done
+          echo "run_all=false" >> "$GITHUB_OUTPUT"
+
   # ── Formatting & doc checks (fast, run on every PR) ─────────────────
   fmt-check:
     name: Formatting
@@ -172,6 +230,8 @@ jobs:
   # ── Crate-group parallel test jobs ──────────────────────────────────
   test-concurrency:
     name: Test Concurrency Crates
+    needs: changes
+    if: needs.changes.outputs.concurrency == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -200,6 +260,8 @@ jobs:
 
   test-governance:
     name: Test Governance Crates
+    needs: changes
+    if: needs.changes.outputs.governance == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -227,6 +289,8 @@ jobs:
 
   test-bdd:
     name: Test BDD Crates
+    needs: changes
+    if: needs.changes.outputs.bdd == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -250,6 +314,8 @@ jobs:
 
   test-parser:
     name: Test Parser Crates
+    needs: changes
+    if: needs.changes.outputs.parser == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -274,6 +340,8 @@ jobs:
 
   test-core:
     name: Test Core Crates (ir, glr-core, tablegen)
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -292,6 +360,8 @@ jobs:
 
   test-runtime:
     name: Test Runtime Crates
+    needs: changes
+    if: needs.changes.outputs.runtime == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
