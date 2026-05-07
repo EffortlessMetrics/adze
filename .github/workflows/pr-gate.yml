@@ -98,3 +98,30 @@ jobs:
             echo "- supported: ${{ needs.supported.result }}";
             echo "- docs-gate: ${{ needs.docs-gate.result }}";
           } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v6.0.2
+        if: always()
+      - uses: actions/setup-python@v6
+        if: always()
+        with:
+          python-version: "3.12"
+      - name: Download ci-plan artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-plan
+          path: target/ci/
+      - name: Emit ci-actuals.json
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: python3 scripts/ci/emit-ci-actuals.py
+      - name: Upload ci-actuals
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-actuals
+          path: target/ci/ci-actuals.json
+          if-no-files-found: warn
