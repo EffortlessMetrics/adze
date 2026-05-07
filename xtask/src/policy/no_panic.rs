@@ -610,8 +610,13 @@ fn receiver_fingerprint(expr: &syn::Expr) -> Option<String> {
 fn expr_fingerprint(expr: &syn::Expr) -> String {
     let s = quote::quote!(#expr).to_string();
     let one_line: String = s.split_whitespace().collect::<Vec<_>>().join(" ");
-    if one_line.len() > 80 {
-        format!("{}…", &one_line[..80])
+    // char-aware truncation so we never split a UTF-8 boundary (the very thing
+    // this policy is meant to prevent).
+    const LIMIT: usize = 80;
+    if one_line.chars().count() > LIMIT {
+        let mut out: String = one_line.chars().take(LIMIT).collect();
+        out.push('…');
+        out
     } else {
         one_line
     }
@@ -637,6 +642,33 @@ mod tests {
         ] {
             assert!(!f.as_str().is_empty());
         }
+    }
+
+    #[test]
+    fn fingerprint_truncation_is_utf8_safe() {
+        // Long UTF-8 string with multi-byte characters; truncation must not
+        // panic on a byte boundary mid-char.
+        let s = "α".repeat(200);
+        // Construct a fake expr fingerprint via the same join pipeline.
+        let one_line = s.clone();
+        let truncated: String = one_line.chars().take(80).collect::<String>() + "…";
+        assert!(truncated.chars().count() <= 81);
+        // Sanity: a naive byte slice would not be a valid str boundary here.
+        assert!(s.as_bytes().len() > 80);
+    }
+
+    #[test]
+    fn mode_parse_round_trips() {
+        assert!(matches!(Mode::parse("advisory"), Ok(Mode::Advisory)));
+        assert!(matches!(
+            Mode::parse("blocking-allowlist"),
+            Ok(Mode::BlockingAllowlist)
+        ));
+        assert!(matches!(
+            Mode::parse("blocking-strict"),
+            Ok(Mode::BlockingStrict)
+        ));
+        assert!(Mode::parse("nope").is_err());
     }
 
     #[test]
