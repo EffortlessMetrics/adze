@@ -45,10 +45,20 @@ static SMALL_PARSE_TABLE: [u16; 8] = [
 ];
 
 static SMALL_PARSE_TABLE_MAP: [u32; 4] = [0, 4, 6, 8];
-static LEX_MODES: [TSLexState; 3] = [TSLexState {
-    lex_state: 0,
-    external_lex_state: 0,
-}; 3];
+static LEX_MODES: [TSLexState; 3] = [
+    TSLexState {
+        lex_state: 0,
+        external_lex_state: 0,
+    },
+    TSLexState {
+        lex_state: 7,
+        external_lex_state: 0,
+    },
+    TSLexState {
+        lex_state: 3,
+        external_lex_state: 0,
+    },
+];
 static PUBLIC_SYMBOL_MAP: [u16; 3] = [0, 5, 9];
 static PRIMARY_STATE_IDS: [u16; 3] = [0, 1, 2];
 static PRODUCTION_ID_MAP: [u16; 1] = [0];
@@ -95,10 +105,16 @@ static EXTERNAL_SYMBOL_METADATA: [u8; 4] = [
 static EXTERNAL_PUBLIC_SYMBOL_MAP: [u16; 4] = [0, 5, 8, 9];
 static EXTERNAL_SMALL_PARSE_TABLE: [u16; 1] = [0];
 static EXTERNAL_SMALL_PARSE_TABLE_MAP: [u32; 3] = [0, 0, 0];
-static EXTERNAL_LEX_MODES: [TSLexState; 2] = [TSLexState {
-    lex_state: 0,
-    external_lex_state: 0,
-}; 2];
+static EXTERNAL_LEX_MODES: [TSLexState; 2] = [
+    TSLexState {
+        lex_state: 4,
+        external_lex_state: 0,
+    },
+    TSLexState {
+        lex_state: 7,
+        external_lex_state: 1,
+    },
+];
 static EXTERNAL_PRIMARY_STATE_IDS: [u16; 2] = [0, 1];
 static EXTERNAL_SCANNER_STATES: [bool; 2] = [true, false];
 static EXTERNAL_SCANNER_SYMBOL_MAP: [u16; 1] = [2];
@@ -247,6 +263,17 @@ fn compressed_tslanguage_decode_preserves_alias_sequences() {
 }
 
 #[test]
+fn compressed_tslanguage_decode_preserves_lex_modes() {
+    let decoded = decode_parse_table(&LANGUAGE);
+
+    assert_eq!(decoded.lex_modes.len(), 3);
+    assert_eq!(decoded.lex_modes[0].lex_state, 0);
+    assert_eq!(decoded.lex_modes[1].lex_state, 7);
+    assert_eq!(decoded.lex_modes[2].lex_state, 3);
+    assert_eq!(decoded.lex_modes[1].external_lex_state, 0);
+}
+
+#[test]
 fn compressed_tslanguage_decode_preserves_external_token_metadata() {
     let decoded = decode_parse_table(&LANGUAGE_WITH_EXTERNAL);
 
@@ -266,4 +293,8 @@ fn compressed_tslanguage_decode_preserves_external_token_metadata() {
     assert_eq!(decoded.grammar.externals.len(), 1);
     assert_eq!(decoded.grammar.externals[0].name, "indent");
     assert_eq!(decoded.grammar.externals[0].symbol_id, SymbolId(8));
+    assert_eq!(decoded.lex_modes.len(), 2);
+    assert_eq!(decoded.lex_modes[0].lex_state, 4);
+    assert_eq!(decoded.lex_modes[1].lex_state, 7);
+    assert_eq!(decoded.lex_modes[1].external_lex_state, 1);
 }

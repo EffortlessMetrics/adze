@@ -740,15 +740,22 @@ fn many_fields_serialization() {
 }
 
 #[test]
-fn many_states_lex_modes_match() {
+fn many_states_lex_modes_preserve_parse_table_values() {
     let grammar = Grammar::new("st".to_string());
-    let pt = make_empty_table(1000, 0, 0, 0);
+    let mut pt = make_empty_table(1000, 0, 0, 0);
+    for (i, mode) in pt.lex_modes.iter_mut().enumerate() {
+        *mode = LexMode {
+            lex_state: (i % 17) as u16,
+            external_lex_state: (i % 5) as u16,
+        };
+    }
     let json = serialize_language(&grammar, &pt, None).unwrap();
     let deser: SerializableLanguage = serde_json::from_str(&json).unwrap();
     assert_eq!(deser.state_count, 1000);
     assert_eq!(deser.lex_modes.len(), 1000);
     for (i, mode) in deser.lex_modes.iter().enumerate() {
-        assert_eq!(mode.lex_state, i as u16);
+        assert_eq!(mode.lex_state, pt.lex_modes[i].lex_state);
+        assert_eq!(mode.external_lex_state, pt.lex_modes[i].external_lex_state);
     }
 }
 

@@ -191,9 +191,20 @@ fn generate_parse_table_data(compressed: Option<&CompressedTables>) -> (Vec<u16>
 
 fn generate_lex_modes(parse_table: &ParseTable) -> Vec<SerializableLexState> {
     (0..parse_table.state_count)
-        .map(|i| SerializableLexState {
-            lex_state: i as u16,
-            external_lex_state: 0,
+        .map(|state_index| {
+            let mode =
+                parse_table
+                    .lex_modes
+                    .get(state_index)
+                    .copied()
+                    .unwrap_or(adze_glr_core::LexMode {
+                        lex_state: 0,
+                        external_lex_state: 0,
+                    });
+            SerializableLexState {
+                lex_state: mode.lex_state,
+                external_lex_state: mode.external_lex_state,
+            }
         })
         .collect()
 }
