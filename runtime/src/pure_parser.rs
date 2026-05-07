@@ -1495,7 +1495,7 @@ impl Parser {
 
             // Reverse children to correct order
             children.reverse();
-            self.assign_field_ids_for_production(language, production_id, &mut children);
+            self.assign_field_ids_for_production(language, production_index, &mut children);
 
             // Handle empty reduction
             if children.is_empty() && child_count == 0 {
@@ -1613,7 +1613,7 @@ impl Parser {
     fn assign_field_ids_for_production(
         &self,
         language: &TSLanguage,
-        production_id: u16,
+        production_index: u16,
         children: &mut [Subtree],
     ) {
         if children.is_empty()
@@ -1628,7 +1628,7 @@ impl Parser {
         // SAFETY: `field_map_slices` is non-null and points to static language data.
         let field_map_slices =
             unsafe { std::slice::from_raw_parts(language.field_map_slices, slices_len) };
-        let slice_offset = production_id as usize * 2;
+        let slice_offset = production_index as usize * 2;
         if slice_offset + 1 >= field_map_slices.len() {
             return;
         }
@@ -2429,5 +2429,64 @@ mod tests {
         Parser::new().assign_field_ids_for_production(&language, 1, &mut children);
         assert_eq!(children[0].field_id, Some(1));
         assert_eq!(children[1].field_id, Some(2));
+    }
+
+    #[test]
+    fn test_assign_field_ids_for_production_accepts_zero_based_production_index() {
+        let entry = pack_field_map_entry(1, 0, 0);
+        let field_map_entries = [entry[0], entry[1]];
+        let field_map_slices = [0u16, 1u16, 0u16, 0u16];
+        let language = TSLanguage {
+            version: TREE_SITTER_LANGUAGE_VERSION,
+            symbol_count: 2,
+            alias_count: 0,
+            token_count: 1,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 1,
+            production_id_count: 2,
+            field_count: 2,
+            max_alias_sequence_length: 0,
+            production_id_map: std::ptr::null(),
+            parse_table: std::ptr::null(),
+            small_parse_table: std::ptr::null(),
+            small_parse_table_map: std::ptr::null(),
+            parse_actions: std::ptr::null(),
+            symbol_names: std::ptr::null(),
+            field_names: std::ptr::null(),
+            field_map_slices: field_map_slices.as_ptr(),
+            field_map_entries: field_map_entries.as_ptr(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: std::ptr::null(),
+            production_count: 0,
+            eof_symbol: 0,
+            rules: std::ptr::null(),
+            rule_count: 0,
+        };
+        let mut children = vec![Subtree {
+            symbol: 1,
+            children: vec![],
+            start_byte: 0,
+            end_byte: 1,
+            start_point: Point { row: 0, column: 0 },
+            end_point: Point { row: 0, column: 1 },
+            is_extra: false,
+            is_error: false,
+            is_missing: false,
+            production_id: 0,
+            field_id: None,
+        }];
+
+        Parser::new().assign_field_ids_for_production(&language, 0, &mut children);
+        assert_eq!(children[0].field_id, Some(1));
     }
 }

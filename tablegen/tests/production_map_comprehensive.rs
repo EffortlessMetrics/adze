@@ -522,13 +522,14 @@ fn production_count_matches_total_rules() {
 // ===========================================================================
 
 #[test]
-fn production_id_map_sorted_by_production_id() {
+fn production_id_map_preserves_rule_id_order() {
     let t = SymbolId(1);
     let table = make_empty_table(1, 1, 1, 0);
     let start = table.start_symbol;
-    // Intentionally add rules in reverse order of production IDs
+    // Intentionally add rules out of production-ID order. Parse actions encode
+    // GLR rule IDs, so this map must preserve insertion/rule-ID order.
     let grammar = build_grammar(
-        "sorted",
+        "rule_id_order",
         &table,
         vec![(t, string_token("t", "x"))],
         vec![
@@ -540,9 +541,37 @@ fn production_id_map_sorted_by_production_id() {
     let code = gen_code(&grammar, &table);
     let map = extract_production_id_map(&code);
     assert_eq!(map.len(), 3);
-    for i in 0..3 {
-        assert_eq!(map[i], i as u16);
-    }
+    assert_eq!(map, vec![2, 0, 1]);
+}
+
+#[test]
+fn ts_rules_are_dense_for_sparse_production_ids() {
+    let t = SymbolId(1);
+    let table = make_empty_table(1, 1, 2, 0);
+    let nt1 = table.start_symbol;
+    let nt2 = SymbolId(nt1.0 + 1);
+    let grammar = build_grammar(
+        "sparse_ts_rules",
+        &table,
+        vec![(t, string_token("t", "x"))],
+        vec![
+            simple_rule(nt1, vec![Symbol::Terminal(t)], 7),
+            simple_rule(nt2, vec![Symbol::Terminal(t), Symbol::Terminal(t)], 0),
+        ],
+    );
+
+    let code = gen_code(&grammar, &table);
+    let lens = extract_rhs_lens(&code);
+    let lhs = extract_production_lhs_index(&code);
+
+    assert_eq!(lens.len(), 8);
+    assert_eq!(lhs.len(), 8);
+    assert_eq!(lens[0], 2);
+    assert_eq!(lens[7], 1);
+    assert!(
+        lens[1..7].iter().all(|len| *len == 0),
+        "gapped TS_RULES slots should be explicit zero sentinels"
+    );
 }
 
 #[test]

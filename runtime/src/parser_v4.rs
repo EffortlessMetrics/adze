@@ -742,6 +742,7 @@ impl Parser {
                         }
                     }
                     children.reverse(); // Children were popped in reverse order
+                    self.assign_field_names_for_production(rule_id, &mut children);
 
                     // Create a parent node
                     let start_byte = children
@@ -979,6 +980,26 @@ impl Parser {
                     self.parse_table.rules.len()
                 )
             })
+    }
+
+    fn assign_field_names_for_production(&self, rule_id: RuleId, children: &mut [ParseNode]) {
+        if children.is_empty() || self.parse_table.field_names.is_empty() {
+            return;
+        }
+
+        for (child_index, child) in children.iter_mut().enumerate() {
+            let Some(field_id) = self
+                .parse_table
+                .field_map
+                .get(&(rule_id, child_index as u16))
+            else {
+                continue;
+            };
+
+            if let Some(field_name) = self.parse_table.field_names.get(*field_id as usize) {
+                child.field_name = Some(field_name.clone());
+            }
+        }
     }
 
     /// Get the goto state for a non-terminal after a reduce
@@ -1681,6 +1702,46 @@ mod tests {
             let language_ptr = language.as_ref() as *const TSLanguage;
             unsafe { &*language_ptr }
         })
+    }
+
+    #[test]
+    fn test_assign_field_names_for_production_preserves_named_children() {
+        let mut field_map = std::collections::BTreeMap::new();
+        field_map.insert((RuleId(2), 0), 1);
+        let parse_table = ParseTable {
+            field_names: vec!["_".to_string(), "value".to_string()],
+            field_map,
+            ..Default::default()
+        };
+
+        let parser = Parser::new(
+            Grammar::new("field_name_test".to_string()),
+            parse_table,
+            "field_name_test".to_string(),
+        );
+        let mut children = vec![
+            ParseNode {
+                symbol: SymbolId(4),
+                symbol_id: SymbolId(4),
+                start_byte: 0,
+                end_byte: 1,
+                field_name: None,
+                children: vec![],
+            },
+            ParseNode {
+                symbol: SymbolId(5),
+                symbol_id: SymbolId(5),
+                start_byte: 1,
+                end_byte: 2,
+                field_name: None,
+                children: vec![],
+            },
+        ];
+
+        parser.assign_field_names_for_production(RuleId(2), &mut children);
+
+        assert_eq!(children[0].field_name.as_deref(), Some("value"));
+        assert_eq!(children[1].field_name, None);
     }
 
     #[test]

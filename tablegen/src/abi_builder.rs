@@ -288,7 +288,7 @@ impl<'a> AbiLanguageBuilder<'a> {
             // Primary state IDs
             static PRIMARY_STATE_IDS: &[u16] = &[#(#primary_state_ids),*];
 
-            // Production ID map (maps production IDs to rule IDs)
+            // Production ID map (maps encoded rule IDs to production IDs)
             static PRODUCTION_ID_MAP: &[u16] = &[#(#production_id_map),*];
 
             // Production LHS index (maps production IDs to LHS symbols in table index space)
@@ -439,6 +439,16 @@ impl<'a> AbiLanguageBuilder<'a> {
             .collect();
 
         (names, ptrs)
+    }
+
+    fn field_name_indices_by_field_id(&self) -> std::collections::BTreeMap<u16, u16> {
+        let mut fields: Vec<_> = self.grammar.fields.iter().collect();
+        fields.sort_by_key(|(_, name)| name.as_str());
+        fields
+            .into_iter()
+            .enumerate()
+            .map(|(index, (field_id, _))| (field_id.0, index as u16))
+            .collect()
     }
 
     /// Generate symbol metadata
@@ -819,12 +829,12 @@ impl<'a> AbiLanguageBuilder<'a> {
             .collect();
         rules.sort_by_key(|rule| rule.production_id.0);
 
-        for (rule_id, rule) in rules.iter().enumerate() {
+        for rule in rules {
             let index = rule.production_id.0 as usize;
             let child_count = rule.rhs.len() as u8;
 
-            // Store the sequential rule ID directly in the symbol field
-            let symbol = rule_id as u16;
+            // Store the production ID because PARSE_ACTIONS is production-indexed.
+            let symbol = rule.production_id.0;
 
             if index < actions.len() {
                 actions[index] = quote! {
@@ -863,6 +873,7 @@ impl<'a> AbiLanguageBuilder<'a> {
         let production_id_count = self.calculate_counts().production_id_count as usize;
         let mut field_map_slices = vec![quote! { 0u16 }; production_id_count * 2];
         let mut field_map_entries = Vec::new();
+        let field_name_indices = self.field_name_indices_by_field_id();
 
         // Group rules by production ID
         let mut rules_by_production: std::collections::BTreeMap<u16, Vec<&Rule>> =
@@ -885,7 +896,10 @@ impl<'a> AbiLanguageBuilder<'a> {
             for rule in rules {
                 // Add entries for each field in this rule
                 for (field_id, position) in &rule.fields {
-                    let field_id_val = field_id.0;
+                    let field_id_val = field_name_indices
+                        .get(&field_id.0)
+                        .copied()
+                        .unwrap_or(field_id.0);
                     let child_index = *position as u8;
                     let inherited = 0u8; // false - TODO: implement inheritance detection
 
@@ -1018,24 +1032,13 @@ impl<'a> AbiLanguageBuilder<'a> {
         // After decoding to zero-based, runtime indexes this map by RULE ID from parse actions.
         // Therefore this map must be: rule_id -> production_id.
         // PARSE_ACTIONS / TS_RULES are indexed by production_id.
-        let mut rules: Vec<_> = self
-            .grammar
-            .rules
-            .iter()
-            .flat_map(|(_, rules)| rules.iter())
-            .collect();
-        rules.sort_by_key(|rule| rule.production_id.0);
-
-        // Find the maximum production ID to size the map.
-        // Production IDs are encoded directly and can start at 0.
-        let max_production_id = rules.iter().map(|r| r.production_id.0).max().unwrap_or(0);
-        let map_size = max_production_id as usize + 1;
+        let map_size = self.calculate_counts().production_id_count as usize;
 
         // Initialize map with a sentinel value (u16::MAX)
         let mut rule_to_production = vec![u16::MAX; map_size];
 
-        // Fill the map: rule_id (sequential, zero-based) -> production_id
-        for (rule_id, rule) in rules.iter().enumerate() {
+        // Fill the map in the same rule-id order used by GLR action generation.
+        for (rule_id, rule) in self.grammar.all_rules().enumerate() {
             if rule_id < map_size {
                 rule_to_production[rule_id] = rule.production_id.0;
             }
@@ -1099,8 +1102,22 @@ impl<'a> AbiLanguageBuilder<'a> {
     }
 
     fn generate_ts_rules(&self) -> Vec<TokenStream> {
-        // Generate TSRule structs for each production
-        let mut ts_rules = Vec::new();
+        let production_id_count = self.calculate_counts().production_id_count as usize;
+        if self.grammar.all_rules().next().is_none() {
+            return Vec::new();
+        }
+
+        // Generate TSRule structs indexed by production ID.
+        let mut ts_rules = vec![
+            quote! {
+                TSRule {
+                    lhs: 0,
+                    rhs_len: 0,
+                    _pad: 0,
+                }
+            };
+            production_id_count
+        ];
 
         // Get all rules sorted by production ID
         let mut rules: Vec<_> = self
@@ -1113,6 +1130,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // For each production, create a TSRule
         for rule in &rules {
+            let production_index = rule.production_id.0 as usize;
             let symbol_id = rule.lhs;
             let lhs = self
                 .parse_table
@@ -1128,13 +1146,15 @@ impl<'a> AbiLanguageBuilder<'a> {
                     symbol_id.0 as usize
                 }) as u16;
             let rhs_len = rule.rhs.len() as u8;
-            ts_rules.push(quote! {
-                TSRule {
-                    lhs: #lhs,
-                    rhs_len: #rhs_len,
-                    _pad: 0,
-                }
-            });
+            if production_index < ts_rules.len() {
+                ts_rules[production_index] = quote! {
+                    TSRule {
+                        lhs: #lhs,
+                        rhs_len: #rhs_len,
+                        _pad: 0,
+                    }
+                };
+            }
         }
 
         ts_rules
@@ -1869,6 +1889,47 @@ mod tests {
             entries.len(),
             4,
             "two field-map entries should emit two u16 words each"
+        );
+    }
+
+    #[test]
+    fn test_field_map_entries_use_abi_field_name_indices() {
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        let mut grammar = Grammar::new("field_map_name_indices".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar
+            .fields
+            .insert(FieldId(0), "TestModule_statements_vec_element".to_string());
+        grammar.fields.insert(FieldId(1), "value".to_string());
+        grammar.fields.insert(FieldId(2), "statements".to_string());
+        grammar.fields.insert(FieldId(3), "_whitespace".to_string());
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(1), 0)],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (_, entries) = builder.generate_field_maps();
+        let entries: Vec<String> = entries.iter().map(ToString::to_string).collect();
+
+        assert_eq!(
+            entries[0], "3u32 as u16",
+            "field map entries must use the FIELD_NAME_PTRS ABI index for value"
         );
     }
 
