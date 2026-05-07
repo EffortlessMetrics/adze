@@ -1,4 +1,3 @@
-#![cfg(feature = "with-grammars")]
 //! Diagnostic test for dangling-else grammar conflict detection
 //!
 //! This test verifies that the dangling-else grammar DOES generate shift/reduce conflicts
@@ -126,17 +125,68 @@ fn inspect_dangling_else_conflicts() {
 #[cfg(all(feature = "pure-rust", feature = "glr"))]
 #[test]
 fn verify_conflict_preservation_behavior() {
-    // This test documents the EXPECTED behavior once GLR conflict preservation is working
-    //
-    // Expected: Multi-action cells in the parse table for the dangling-else grammar
-    //
-    // Conflict should occur in state after "if Expr then Statement" on lookahead "else":
-    //   Action 0: Shift(N)   - Continue outer if, shift else token
-    //   Action 1: Reduce(M)  - Complete inner if-then, reduce to Statement
-    //
-    // If this conflict is NOT present, the GLR conflict preservation fix
-    // is not working correctly in glr-core/src/lib.rs
+    use adze_glr_core::Action;
+    use adze_glr_core::conflict_inspection::{cell_has_conflict, count_conflicts};
 
-    // For now, just run the inspection test
-    // Once conflicts are detected, we can add more specific assertions
+    let lang = &adze_example::dangling_else::generated::LANGUAGE;
+    let parse_table = adze::decoder::decode_parse_table(lang);
+
+    let direct_conflict_cells = parse_table
+        .action_table
+        .iter()
+        .flat_map(|state| state.iter())
+        .filter(|cell| cell_has_conflict(cell))
+        .count();
+
+    assert!(
+        direct_conflict_cells > 0,
+        "dangling-else grammar must decode with preserved multi-action GLR conflict cells"
+    );
+
+    let summary = count_conflicts(&parse_table);
+    assert!(
+        summary.shift_reduce > 0,
+        "dangling-else grammar must preserve at least one shift/reduce conflict"
+    );
+
+    let else_shift_reduce =
+        parse_table
+            .action_table
+            .iter()
+            .enumerate()
+            .find_map(|(state_idx, state)| {
+                state.iter().enumerate().find_map(|(symbol_idx, cell)| {
+                    let symbol_name = parse_table
+                        .symbol_metadata
+                        .get(symbol_idx)
+                        .map(|metadata| metadata.name.as_str());
+                    let has_shift = cell.iter().any(|action| matches!(action, Action::Shift(_)));
+                    let has_reduce = cell
+                        .iter()
+                        .any(|action| matches!(action, Action::Reduce(_)));
+
+                    (symbol_name == Some("else")
+                        && cell_has_conflict(cell)
+                        && has_shift
+                        && has_reduce)
+                        .then_some((state_idx, symbol_idx, cell))
+                })
+            });
+
+    assert!(
+        else_shift_reduce.is_some(),
+        "dangling-else grammar must preserve a shift/reduce conflict on the 'else' symbol; summary details: {:?}",
+        summary.conflict_details
+    );
+
+    let (state_idx, symbol_idx, actions) = else_shift_reduce.expect("checked above");
+    assert!(
+        actions.len() >= 2,
+        "else shift/reduce conflict must retain both parse actions"
+    );
+
+    eprintln!(
+        "validated dangling-else conflict: state={} symbol={} actions={:?}",
+        state_idx, symbol_idx, actions
+    );
 }

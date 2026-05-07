@@ -11,6 +11,7 @@ CANARIES=(
   "adze runtime pure-rust typed extraction|behavior|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture"
   "adze GLR ambiguous typed extraction|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture"
   "adze GLR generated conflict preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_conflict_generation -- --exact --nocapture"
+  "adze GLR dangling-else conflict preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_dangling_else_conflicts verify_conflict_preservation_behavior -- --exact --nocapture"
   "adze structured parse diagnostics|behavior|cargo test -p adze --test error_display_tests reporting_parse_with_errors_includes_source_excerpt_after_bad_input --features \"pure-rust,glr\" -- --exact --nocapture"
   "adze multiline parse diagnostic location|behavior|cargo test -p adze --test error_display_tests reporting_parse_with_errors_tracks_multiline_bad_input_location_and_excerpt --features \"pure-rust,glr\" -- --exact --nocapture"
   "adze parse diagnostic byte spans|behavior|cargo test -p adze --test error_display_tests reporting_parse_diagnostics_include_byte_span_for_multiline_bad_input --features \"pure-rust,glr\" -- --exact --nocapture"
