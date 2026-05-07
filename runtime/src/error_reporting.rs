@@ -138,8 +138,15 @@ impl ErrorReportingExt for GLRParser {
         let mut reporter = ErrorReporter::new(String::new());
 
         for (symbol_id, token_text) in tokens {
-            reporter.record_token(&token_text, 0);
             let expected_before_token = expected_token_names(self);
+            if !expected_before_token.is_empty() && !self.expected_symbols().contains(&symbol_id) {
+                let mut error = reporter.error_at_current(self, Some(token_text));
+                if error.expected.is_empty() {
+                    error.expected = expected_before_token;
+                }
+                errors.push(error);
+                return Err(errors);
+            }
 
             // Try to process the token
             let initial_stack_count = self.stack_count();
@@ -154,6 +161,8 @@ impl ErrorReportingExt for GLRParser {
                 errors.push(error);
                 return Err(errors);
             }
+
+            reporter.record_token(&token_text, 0);
         }
 
         let expected_before_eof = expected_token_names(self);

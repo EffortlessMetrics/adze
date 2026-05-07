@@ -1267,6 +1267,9 @@ fn reporting_parse_with_errors_preserves_expected_tokens_after_bad_input() {
         .expect_err("invalid token should fail to parse");
 
     assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].line, 1);
+    assert_eq!(errors[0].column, 1);
+    assert_eq!(errors[0].unexpected_token.as_deref(), Some("@"));
     assert!(
         errors[0].expected.iter().any(|token| token == "num"),
         "expected token set should survive parse failure: {:?}",
