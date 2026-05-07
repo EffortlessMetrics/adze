@@ -706,20 +706,6 @@ impl<'a> AbiLanguageBuilder<'a> {
                     }
                 }
 
-                // Add nonterminal gotos
-                let token_cols = self.parse_table.token_count;
-                let symbol_cols = self.parse_table.symbol_count;
-                for col in token_cols..symbol_cols {
-                    if state_idx < self.parse_table.goto_table.len()
-                        && col < self.parse_table.goto_table[state_idx].len()
-                    {
-                        let to = self.parse_table.goto_table[state_idx][col].0;
-                        if to != 0 {
-                            entries.push((col as u16, to));
-                        }
-                    }
-                }
-
                 for (sym, val) in entries {
                     table_data.push(quote! { #sym });
                     table_data.push(quote! { #val });
@@ -1637,6 +1623,52 @@ mod tests {
         assert_eq!(
             values[3],
             builder.encode_action(&Action::Reduce(RuleId(0))).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_fallback_parse_table_emits_goto_once() {
+        let mut table = crate::empty_table!(states: 2, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        for row in &mut table.goto_table {
+            row.fill(StateId(0));
+        }
+        table.goto_table[0][start.0 as usize] = StateId(1);
+
+        let mut grammar = Grammar::new("fallback_goto".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (table_data, table_map) = builder.generate_parse_tables();
+        let values: Vec<u16> = table_data.iter().map(token_stream_u16).collect();
+        let offsets: Vec<u32> = table_map
+            .iter()
+            .map(|token| token.to_string().trim_end_matches("u32").parse().unwrap())
+            .collect();
+
+        assert_eq!(offsets, vec![0, 2, 2]);
+        assert_eq!(
+            values,
+            vec![start.0, 1],
+            "state 0 should contain exactly one direct goto pair"
         );
     }
 
