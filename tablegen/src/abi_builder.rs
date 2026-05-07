@@ -1051,8 +1051,11 @@ impl<'a> AbiLanguageBuilder<'a> {
     }
 
     fn generate_production_lhs_index(&self) -> Vec<TokenStream> {
-        // Generate array of LHS symbols in table index space, indexed by production ID
-        let mut lhs_indices = Vec::new();
+        // Generate a dense array of LHS symbols in table index space, indexed by
+        // production ID. Runtime reductions map encoded rule IDs through
+        // PRODUCTION_ID_MAP and then index this array by that production ID.
+        let production_id_count = self.calculate_counts().production_id_count as usize;
+        let mut lhs_indices = vec![quote! { 0u16 }; production_id_count];
 
         // Get all rules sorted by production ID
         let mut rules: Vec<_> = self
@@ -1086,7 +1089,10 @@ impl<'a> AbiLanguageBuilder<'a> {
             );
 
             let lhs_index = lhs_idx as u16;
-            lhs_indices.push(quote! { #lhs_index });
+            let production_index = rule.production_id.0 as usize;
+            if production_index < lhs_indices.len() {
+                lhs_indices[production_index] = quote! { #lhs_index };
+            }
         }
 
         lhs_indices
