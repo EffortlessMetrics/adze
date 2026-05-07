@@ -708,6 +708,43 @@ fn edge_sparse_production_ids_emit_dense_production_lhs_index() {
     );
 }
 
+/// Production ID map preserves GLR rule-id order even when production IDs are sparse.
+#[test]
+fn edge_sparse_production_ids_preserve_rule_id_order_in_map() {
+    let table = empty_table(1, 1, 2, 0);
+    let (mut g, start, t) = base_grammar("sparse_rule_id_map", &table);
+    let other = SymbolId(start.0 + 1);
+    g.rule_names.insert(other, "other".to_string());
+
+    // GLR action generation assigns rule IDs from grammar insertion order.
+    // These production IDs intentionally do not match that order.
+    g.add_rule(rule(start, vec![Symbol::Terminal(t)], 7));
+    g.add_rule(rule(other, vec![Symbol::Terminal(t)], 0));
+
+    let code = gen_code(&g, &table);
+    let count = extract_production_id_count(&code).unwrap();
+    let map = extract_production_id_map(&code);
+    let lhs_index = extract_production_lhs_index(&code);
+
+    assert_eq!(count, 8);
+    assert_eq!(map.len(), count as usize);
+    assert_eq!(
+        map[0], 7,
+        "rule ID 0 should map to the first inserted rule's production ID"
+    );
+    assert_eq!(
+        map[1], 0,
+        "rule ID 1 should map to the second inserted rule's production ID"
+    );
+    assert!(
+        map[2..].iter().all(|id| *id == u16::MAX),
+        "unused rule-id slots should be explicit sentinels"
+    );
+    assert_eq!(lhs_index.len(), count as usize);
+    assert_eq!(lhs_index[7], table.symbol_to_index[&start] as u16);
+    assert_eq!(lhs_index[0], table.symbol_to_index[&other] as u16);
+}
+
 /// production_id_count accounts for gaps in production IDs.
 #[test]
 fn edge_gap_in_production_ids() {

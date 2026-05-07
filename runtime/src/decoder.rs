@@ -962,10 +962,12 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                     let action = if action_index == 0xFFFF {
                         Action::Accept
                     } else if action_index & 0x8000 != 0 {
-                        // Reduce action - for pure-rust backend, bits 14-0 contain sequential rule ID (1-based)
-                        let rule_id = (action_index & 0x7FFF) - 1;
-                        if rule_id < rules.len() {
-                            Action::Reduce(RuleId(rule_id as u16))
+                        // Reduce action - bits 14-0 contain encoded GLR rule ID (1-based).
+                        let encoded_rule_id = (action_index & 0x7FFF) - 1;
+                        if let Some(production_id) =
+                            mapped_production_id(lang, encoded_rule_id, rules.len())
+                        {
+                            Action::Reduce(RuleId(production_id))
                         } else {
                             Action::Error
                         }
@@ -1184,6 +1186,28 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     table.detect_goto_indexing();
 
     table
+}
+
+fn mapped_production_id(
+    lang: &TSLanguage,
+    encoded_rule_id: usize,
+    production_count: usize,
+) -> Option<u16> {
+    let production_id = if !lang.production_id_map.is_null()
+        && encoded_rule_id < lang.production_id_count as usize
+    {
+        // SAFETY: `encoded_rule_id` is bounded by `production_id_count`, and
+        // TSLanguage production_id_map contains one entry per production slot.
+        unsafe { *lang.production_id_map.add(encoded_rule_id) }
+    } else {
+        u16::try_from(encoded_rule_id).ok()?
+    };
+
+    if production_id == u16::MAX || production_id as usize >= production_count {
+        None
+    } else {
+        Some(production_id)
+    }
 }
 
 /// Determine if a symbol is a terminal based on metadata and name
@@ -1440,6 +1464,78 @@ mod tests {
             decode_action(&recover_action, &empty_rules, &empty_map),
             Action::Error
         ));
+    }
+
+    #[test]
+    fn small_table_reduce_actions_map_rule_id_to_production_id() {
+        static PRODUCTION_ID_MAP: [u16; 2] = [1, 0];
+        static PRODUCTION_LHS_INDEX: [u16; 2] = [2, 2];
+        static SMALL_PARSE_TABLE: [u16; 2] = [1, 0x8001];
+        static SMALL_PARSE_TABLE_MAP: [u32; 2] = [0, 2];
+        static NAME_ERROR: &[u8] = b"end\0";
+        static NAME_TOKEN: &[u8] = b"token\0";
+        static NAME_NODE: &[u8] = b"node\0";
+        static RULES: [crate::pure_parser::TSRule; 2] = [
+            crate::pure_parser::TSRule {
+                lhs: 2,
+                rhs_len: 1,
+                _pad: 0,
+            },
+            crate::pure_parser::TSRule {
+                lhs: 2,
+                rhs_len: 1,
+                _pad: 0,
+            },
+        ];
+        let symbol_names = Box::leak(Box::new([
+            NAME_ERROR.as_ptr(),
+            NAME_TOKEN.as_ptr(),
+            NAME_NODE.as_ptr(),
+        ]));
+
+        let language = Box::leak(Box::new(TSLanguage {
+            version: crate::pure_parser::TREE_SITTER_LANGUAGE_VERSION,
+            symbol_count: 3,
+            alias_count: 0,
+            token_count: 2,
+            external_token_count: 0,
+            state_count: 1,
+            large_state_count: 0,
+            production_id_count: 2,
+            field_count: 0,
+            max_alias_sequence_length: 0,
+            production_id_map: PRODUCTION_ID_MAP.as_ptr(),
+            parse_table: std::ptr::null(),
+            small_parse_table: SMALL_PARSE_TABLE.as_ptr(),
+            small_parse_table_map: SMALL_PARSE_TABLE_MAP.as_ptr(),
+            parse_actions: std::ptr::null(),
+            symbol_names: symbol_names.as_ptr(),
+            field_names: std::ptr::null(),
+            field_map_slices: std::ptr::null(),
+            field_map_entries: std::ptr::null(),
+            symbol_metadata: std::ptr::null(),
+            public_symbol_map: std::ptr::null(),
+            alias_map: std::ptr::null(),
+            alias_sequences: std::ptr::null(),
+            lex_modes: std::ptr::null(),
+            lex_fn: None,
+            keyword_lex_fn: None,
+            keyword_capture_token: 0,
+            external_scanner: crate::pure_parser::ExternalScanner::default(),
+            primary_state_ids: std::ptr::null(),
+            production_lhs_index: PRODUCTION_LHS_INDEX.as_ptr(),
+            production_count: 2,
+            eof_symbol: 0,
+            rules: RULES.as_ptr(),
+            rule_count: 2,
+        }));
+
+        let table = decode_parse_table(language);
+
+        match table.action_table[0][1][0] {
+            Action::Reduce(RuleId(rule_id)) => assert_eq!(rule_id, 1),
+            ref action => panic!("expected mapped reduce action, got {action:?}"),
+        }
     }
 
     #[test]
