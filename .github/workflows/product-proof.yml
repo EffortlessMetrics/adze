@@ -31,5 +31,11 @@ jobs:
       - name: Show canary plan (dry-run)
         run: scripts/ci-product.sh --dry-run
 
+      - name: Show stable canary plan (dry-run)
+        run: scripts/ci-product-stable.sh --dry-run
+
+      - name: Run stable product lane
+        run: scripts/ci-product-stable.sh
+
       - name: Run ci-product advisory lane
         run: scripts/ci-product.sh

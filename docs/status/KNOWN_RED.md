@@ -74,7 +74,7 @@ These may run as optional signal (nightly/manual/canary), but are not required f
 
 A broad-surface advisory lane now exists as `.github/workflows/product-proof.yml` and runs `scripts/ci-product.sh` on schedule/manual dispatch.
 
-This lane is **not** part of required merge gates. It provides bounded canary proof across product surfaces that are outside `ci-supported`.
+This lane is **not** part of required merge gates. It provides bounded canary proof across product surfaces that are outside `ci-supported`. A narrower `just ci-product-stable` lane exists for README Stable claims only, but it is also advisory until branch protection explicitly promotes it.
 
 Current canaries:
 
@@ -97,7 +97,7 @@ Current canaries:
 Notes:
 - This lane intentionally does not provide full product proof; it is bounded canary signal only.
 - Compile-only canaries remain only where the current truthful claim is compile/no-run signal, notably benchmarks and WASM.
-- The next promotion step is a required `ci-product-stable` lane for README-stable claims only, after the advisory canaries are consistently green and any missing stable-product behavior canaries are added.
+- The next promotion step is making `ci-product-stable` required for README-stable claims only, after the advisory canaries are consistently green.
 - If one canary is red, the advisory job can fail while remaining non-blocking due to workflow `continue-on-error: true`.
 
 ## Known warnings (non-blocking)
