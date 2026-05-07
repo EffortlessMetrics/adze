@@ -15,6 +15,7 @@ const JS_LARGE: &str = include_str!("../fixtures/javascript/large.js");
 const ARITH_SMALL: &str = include_str!("../fixtures/arithmetic/small.expr");
 const ARITH_MEDIUM: &str = include_str!("../fixtures/arithmetic/medium.expr");
 const ARITH_LARGE: &str = include_str!("../fixtures/arithmetic/large.expr");
+const PARSE_BENCH_SOURCE: &str = include_str!("../benches/parse_bench.rs");
 
 #[test]
 fn verify_python_fixtures_do_not_parse_with_arithmetic_grammar() {
@@ -81,6 +82,26 @@ fn verify_arithmetic_benchmark_fixtures_parse_with_arithmetic_grammar() {
             result
         );
     }
+}
+
+#[test]
+fn verify_parse_bench_uses_real_parser_workload() {
+    assert!(
+        PARSE_BENCH_SOURCE.contains("adze_example::arithmetic::grammar::parse"),
+        "parse_bench must call the generated arithmetic parser"
+    );
+    assert!(
+        PARSE_BENCH_SOURCE.contains("bench_with_input"),
+        "parse_bench must benchmark fixture-backed parser input"
+    );
+    assert!(
+        !PARSE_BENCH_SOURCE.contains("placeholder_no_parser_workload"),
+        "parse_bench must not advertise a placeholder/no-parser workload"
+    );
+    assert!(
+        !PARSE_BENCH_SOURCE.contains("1 + 1"),
+        "parse_bench must not benchmark a dummy arithmetic expression"
+    );
 }
 
 #[test]
