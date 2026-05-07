@@ -299,6 +299,28 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    /// Get the field name attached to this node's edge from its parent.
+    pub fn field_name(&self) -> Option<&str> {
+        self.node.field_name.as_deref()
+    }
+
+    /// Get the field name for a child edge by child index.
+    pub fn field_name_for_child(&self, index: usize) -> Option<&str> {
+        self.node
+            .children
+            .get(index)
+            .and_then(|child| child.field_name.as_deref())
+    }
+
+    /// Get the first child attached through the given field name.
+    pub fn child_by_field_name(&self, field_name: &str) -> Option<Node<'a>> {
+        self.node
+            .children
+            .iter()
+            .find(|child| child.field_name.as_deref() == Some(field_name))
+            .map(|child| Node::new(self.tree, child))
+    }
+
     /// Check if this node is an error node.
     pub fn is_error(&self) -> bool {
         (self.node.symbol.0 == 0 && self.node.children.is_empty()) || self.tree.error_count() > 0
