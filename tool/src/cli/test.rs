@@ -109,7 +109,11 @@ pub fn run_tests(
         println!("No test files found in corpus.");
         println!();
         println!("Expected .txt files with Tree-sitter test format.");
-        return Ok(());
+        println!();
+        println!("Actual parsing tests are not yet implemented.");
+        println!("This command cannot report parser test success without an integrated parser.");
+        println!("Use integration tests in your parser crate instead.");
+        std::process::exit(64); // EX_USAGE
     }
 
     println!("Found {} test files", test_files.len());
@@ -145,7 +149,7 @@ pub fn run_tests(
     println!("      Actual parsing tests are not yet implemented.");
     println!("      Use integration tests in your parser crate instead.");
 
-    Ok(())
+    std::process::exit(64) // EX_USAGE
 }
 
 /// Parse Tree-sitter test format

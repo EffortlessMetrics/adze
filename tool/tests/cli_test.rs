@@ -140,12 +140,17 @@ fn test_parse_with_parser_shows_limitations() {
     );
 }
 
-/// Test the test command shows honest limitations
+/// Test the test command fails honestly when no parser can run the corpus
 #[test]
-fn test_test_command_shows_limitations() {
+fn test_test_command_rejects_corpus_without_parser() {
     let temp_dir = TempDir::new().unwrap();
-    // Create a basic corpus directory
-    fs::create_dir_all(temp_dir.path().join("corpus")).unwrap();
+    let corpus_dir = temp_dir.path().join("corpus");
+    fs::create_dir_all(&corpus_dir).unwrap();
+    fs::write(
+        corpus_dir.join("basic.txt"),
+        "=== simple\nx\n---\n(source_file)\n",
+    )
+    .unwrap();
 
     let output = Command::new("cargo")
         .args([
@@ -154,19 +159,28 @@ fn test_test_command_shows_limitations() {
             "adze-gen",
             "--",
             "test",
-            temp_dir.path().join("corpus").to_str().unwrap(),
+            corpus_dir.to_str().unwrap(),
         ])
         .output()
         .expect("Failed to run CLI");
 
-    // The test command should work for validation but note limitations
+    assert_eq!(
+        output.status.code(),
+        Some(64),
+        "test command should fail when it only validates corpus format"
+    );
+
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{}{}", stdout, stderr);
 
     assert!(
-        combined.contains("Validating corpus format") || combined.contains("No test files found"),
-        "Should validate corpus or report no files"
+        combined.contains("Validating corpus format"),
+        "Should still report corpus validation context"
+    );
+    assert!(
+        combined.contains("Actual parsing tests are not yet implemented"),
+        "Should clearly state parser execution is unavailable"
     );
 }
 
