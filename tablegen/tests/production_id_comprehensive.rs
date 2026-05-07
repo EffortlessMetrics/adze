@@ -158,6 +158,10 @@ fn extract_production_id_map(code: &str) -> Vec<u16> {
     extract_u16_array(code, "PRODUCTION_ID_MAP")
 }
 
+fn extract_production_lhs_index(code: &str) -> Vec<u16> {
+    extract_u16_array(code, "PRODUCTION_LHS_INDEX")
+}
+
 /// Extract `production_id_count` from generated code.
 /// Format: `production_id_count : 1u32`
 fn extract_production_id_count(code: &str) -> Option<u32> {
@@ -670,6 +674,38 @@ fn edge_nonzero_start_id() {
     assert!(map.len() >= 6, "map must cover up to production ID 5");
     // The entry at position 0 (the only rule) maps to production 5
     assert_eq!(map[0], 5);
+}
+
+/// Sparse production IDs emit a dense LHS index table for runtime indexing.
+#[test]
+fn edge_sparse_production_ids_emit_dense_production_lhs_index() {
+    let table = empty_table(1, 1, 2, 0);
+    let (mut g, start, t) = base_grammar("sparse_lhs", &table);
+    let other = SymbolId(start.0 + 1);
+    g.rule_names.insert(other, "other".to_string());
+    g.add_rule(rule(start, vec![Symbol::Terminal(t)], 0));
+    g.add_rule(rule(other, vec![Symbol::Terminal(t)], 7));
+
+    let code = gen_code(&g, &table);
+    let count = extract_production_id_count(&code).unwrap();
+    let map = extract_production_id_map(&code);
+    let lhs_index = extract_production_lhs_index(&code);
+
+    assert_eq!(count, 8);
+    assert_eq!(map.len(), count as usize);
+    assert_eq!(map[0], 0);
+    assert_eq!(map[1], 7);
+    assert!(
+        map[2..].iter().all(|id| *id == u16::MAX),
+        "unused rule-id slots should be explicit sentinels"
+    );
+    assert_eq!(lhs_index.len(), count as usize);
+    assert_eq!(lhs_index[0], table.symbol_to_index[&start] as u16);
+    assert_eq!(lhs_index[7], table.symbol_to_index[&other] as u16);
+    assert!(
+        lhs_index[1..7].iter().all(|lhs| *lhs == 0),
+        "gapped production slots should be explicit zero sentinels"
+    );
 }
 
 /// production_id_count accounts for gaps in production IDs.

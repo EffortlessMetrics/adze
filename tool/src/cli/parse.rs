@@ -28,7 +28,7 @@ pub fn parse_file(
     // Check if a crate path was provided
     if let Some(crate_path) = parser_path {
         // MVP: Provide honest feedback about the current limitations
-        eprintln!("adze CLI v0.6.0 - Parse Command");
+        eprintln!("adze CLI {} - Parse Command", env!("CARGO_PKG_VERSION"));
         eprintln!("========================================");
         eprintln!();
         eprintln!("STATUS: The dynamic parser loading feature is not yet implemented.");
@@ -70,7 +70,7 @@ pub fn parse_file(
         );
         eprintln!("   ```");
         eprintln!();
-        eprintln!("COMING SOON (v0.6.x):");
+        eprintln!("PLANNED:");
         eprintln!("  - Dynamic parser loading via --parser flag");
         eprintln!("  - Tree-sitter compatible CLI functionality");
         eprintln!();
@@ -104,7 +104,7 @@ pub fn parse_file(
     eprintln!("  ```");
     eprintln!();
     eprintln!("Note: Full CLI functionality including dynamic parser loading");
-    eprintln!("      is planned for v0.6.x releases.");
+    eprintln!("      is planned but not available in this release.");
 
     // Return error to indicate no parser was specified
     std::process::exit(64) // EX_USAGE - command line usage error
