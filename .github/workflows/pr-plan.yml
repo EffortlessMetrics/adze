@@ -40,6 +40,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: adze-xtask-${{ hashFiles('Cargo.lock') }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Resolve base/head SHAs
         id: shas
         run: |
@@ -53,20 +58,33 @@ jobs:
           fi
           echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
-      - name: Compute PR Plan
+      - name: Compute PR Plan (xtask, canonical)
         id: classify
         env:
           BASE_SHA: ${{ steps.shas.outputs.base }}
           HEAD_SHA: ${{ steps.shas.outputs.head }}
           PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
         run: |
           set -euo pipefail
           mkdir -p target/ci
-          python3 scripts/ci/pr-plan.py \
-            --base "$BASE_SHA" \
-            --head "$HEAD_SHA" \
-            --json-out target/ci/ci-plan.json \
-            --summary "$GITHUB_STEP_SUMMARY"
+          # Convert JSON label array into comma-separated list for xtask.
+          LABELS_CSV=$(python3 -c "import json,os,sys; print(','.join(json.loads(os.environ.get('PR_LABELS_JSON','[]') or '[]')))")
+          if cargo run -q -p xtask -- ci-plan \
+              --base "$BASE_SHA" \
+              --head "$HEAD_SHA" \
+              --labels "$LABELS_CSV" \
+              --json-out target/ci/ci-plan.json \
+              --github-summary "$GITHUB_STEP_SUMMARY"; then
+            echo "xtask-ci-plan ok"
+          else
+            echo "xtask-ci-plan failed; falling back to scripts/ci/pr-plan.py"
+            python3 scripts/ci/pr-plan.py \
+              --base "$BASE_SHA" \
+              --head "$HEAD_SHA" \
+              --json-out target/ci/ci-plan.json \
+              --summary "$GITHUB_STEP_SUMMARY"
+          fi
           DOCS_ONLY=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); a=set(p['changed']['areas']); print('true' if a and a <= {'docs'} else 'false')")
           LEM=$(python3 -c "import json; print(json.load(open('target/ci/ci-plan.json'))['budget']['estimated_lem'])")
           BAND=$(python3 -c "import json; print(json.load(open('target/ci/ci-plan.json'))['budget']['band'])")

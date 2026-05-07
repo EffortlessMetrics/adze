@@ -4,6 +4,7 @@ use xshell::Shell;
 
 mod baseline;
 mod bench;
+mod ci_plan;
 mod corpus;
 mod dashboard;
 mod fixtures;
@@ -229,6 +230,34 @@ enum Commands {
         #[arg(long, default_value = "advisory")]
         mode: String,
     },
+    /// Compute the CI plan for the current PR (LEM + lane selection).
+    ///
+    /// Reads policy/ci-lane-whitelist.toml and policy/ci-risk-packs.toml,
+    /// classifies the changed file set, picks lanes, and emits
+    /// target/ci/ci-plan.json plus an optional GitHub step summary.
+    CiPlan {
+        /// Base SHA (defaults to merge-base with origin/main).
+        #[arg(long)]
+        base: Option<String>,
+        /// Head SHA (defaults to HEAD).
+        #[arg(long)]
+        head: Option<String>,
+        /// Comma-separated label names.
+        #[arg(long, default_value = "")]
+        labels: String,
+        /// Output JSON path.
+        #[arg(long, default_value = "target/ci/ci-plan.json")]
+        json_out: String,
+        /// Path to append a Markdown step summary (typically $GITHUB_STEP_SUMMARY).
+        #[arg(long)]
+        github_summary: Option<String>,
+        /// Path to whitelist TOML.
+        #[arg(long, default_value = "policy/ci-lane-whitelist.toml")]
+        whitelist: String,
+        /// Path to risk-packs TOML.
+        #[arg(long, default_value = "policy/ci-risk-packs.toml")]
+        risk_packs: String,
+    },
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -431,6 +460,36 @@ fn main() -> Result<()> {
         Commands::CheckCiLaneWhitelist { mode } => {
             let mode = policy::Mode::parse(&mode)?;
             policy::ci_lane_whitelist::run_check(mode)?;
+        }
+        Commands::CiPlan {
+            base,
+            head,
+            labels,
+            json_out,
+            github_summary,
+            whitelist,
+            risk_packs,
+        } => {
+            let workspace_root = policy::workspace_root()?;
+            let labels_vec: Vec<String> = labels
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            let github_summary = github_summary
+                .map(std::path::PathBuf::from)
+                .or_else(|| std::env::var("GITHUB_STEP_SUMMARY").ok().map(Into::into));
+            let args = ci_plan::PlanArgs {
+                workspace_root: workspace_root.clone(),
+                base,
+                head,
+                labels: labels_vec,
+                whitelist_path: workspace_root.join(whitelist),
+                risk_packs_path: workspace_root.join(risk_packs),
+                json_out: workspace_root.join(json_out),
+                github_summary,
+            };
+            ci_plan::run(args)?;
         }
     }
 
