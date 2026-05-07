@@ -1359,6 +1359,32 @@ fn reporting_parse_diagnostics_include_byte_span_for_multiline_bad_input() {
     );
 }
 
+#[test]
+fn reporting_parse_diagnostics_display_includes_multiline_excerpt() {
+    let mut parser = make_dummy_parser();
+
+    let errors = parser
+        .parse_with_diagnostics(vec![
+            (adze_ir::SymbolId(1), "1\n".to_string()),
+            (adze_ir::SymbolId(2), "@".to_string()),
+        ])
+        .expect_err("invalid token after newline should produce a structured diagnostic");
+
+    let display = format!("{}", errors[0]);
+    assert!(
+        display.contains("Parse error at 2:1"),
+        "diagnostic display should include line/column: {display}"
+    );
+    assert!(
+        display.contains("bytes 2..3"),
+        "diagnostic display should include byte span: {display}"
+    );
+    assert!(
+        display.contains("@\n^"),
+        "diagnostic display should include the source excerpt and caret: {display}"
+    );
+}
+
 // ============================================================================
 // Helper: create a minimal GLRParser for ErrorReporter tests
 // ============================================================================
