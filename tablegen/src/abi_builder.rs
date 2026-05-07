@@ -932,9 +932,18 @@ impl<'a> AbiLanguageBuilder<'a> {
     /// Generate public symbol map
     fn generate_public_symbol_map(&self) -> Vec<TokenStream> {
         let symbol_count = self.calculate_symbol_count();
+        let mut index_to_symbol = vec![None; symbol_count];
+        for (&symbol_id, &index) in &self.parse_table.symbol_to_index {
+            if index < symbol_count {
+                index_to_symbol[index] = Some(symbol_id);
+            }
+        }
+
         (0..symbol_count)
-            .map(|i| {
-                quote! { #i as u16 }
+            .map(|index| {
+                let public_symbol =
+                    index_to_symbol[index].unwrap_or(SymbolId(index as u16)).0 as usize;
+                quote! { #public_symbol as u16 }
             })
             .collect()
     }

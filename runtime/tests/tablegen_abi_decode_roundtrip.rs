@@ -49,7 +49,7 @@ static LEX_MODES: [TSLexState; 3] = [TSLexState {
     lex_state: 0,
     external_lex_state: 0,
 }; 3];
-static PUBLIC_SYMBOL_MAP: [u16; 3] = [0, 1, 2];
+static PUBLIC_SYMBOL_MAP: [u16; 3] = [0, 5, 9];
 static PRIMARY_STATE_IDS: [u16; 3] = [0, 1, 2];
 static PRODUCTION_ID_MAP: [u16; 1] = [0];
 static PRODUCTION_LHS_INDEX: [u16; 1] = [2];
@@ -129,9 +129,9 @@ fn compressed_tslanguage_decode_preserves_metadata_actions_and_fields() {
     assert_eq!(decoded.eof_symbol, SymbolId(0));
     assert_eq!(
         decoded.index_to_symbol,
-        vec![SymbolId(0), SymbolId(1), SymbolId(2)]
+        vec![SymbolId(0), SymbolId(5), SymbolId(9)]
     );
-    assert_eq!(decoded.symbol_to_index.get(&SymbolId(2)), Some(&2));
+    assert_eq!(decoded.symbol_to_index.get(&SymbolId(9)), Some(&2));
 
     assert_eq!(decoded.goto_table[0][2], StateId(2));
     assert_eq!(decoded.action_table[0][1], vec![Action::Shift(StateId(1))]);
@@ -139,15 +139,31 @@ fn compressed_tslanguage_decode_preserves_metadata_actions_and_fields() {
     assert_eq!(decoded.action_table[2][0], vec![Action::Accept]);
 
     assert_eq!(decoded.rules.len(), 1);
-    assert_eq!(decoded.rules[0].lhs, SymbolId(2));
+    assert_eq!(decoded.rules[0].lhs, SymbolId(9));
     assert_eq!(decoded.rules[0].rhs_len, 1);
     assert_eq!(decoded.field_names, vec!["value".to_string()]);
     assert_eq!(decoded.field_map.get(&(RuleId(0), 0)), Some(&0));
 }
 
 #[test]
+fn compressed_tslanguage_decode_preserves_public_symbol_map() {
+    let decoded = decode_parse_table(&LANGUAGE);
+
+    assert_eq!(
+        decoded.index_to_symbol,
+        vec![SymbolId(0), SymbolId(5), SymbolId(9)]
+    );
+    assert_eq!(decoded.symbol_to_index.get(&SymbolId(0)), Some(&0));
+    assert_eq!(decoded.symbol_to_index.get(&SymbolId(5)), Some(&1));
+    assert_eq!(decoded.symbol_to_index.get(&SymbolId(9)), Some(&2));
+    assert_eq!(decoded.symbol_metadata[1].symbol_id, SymbolId(5));
+    assert_eq!(decoded.symbol_metadata[2].symbol_id, SymbolId(9));
+    assert_eq!(decoded.nonterminal_to_index.get(&SymbolId(9)), Some(&2));
+}
+
+#[test]
 fn compressed_tslanguage_decode_preserves_alias_sequences() {
     let decoded = decode_parse_table(&LANGUAGE);
 
-    assert_eq!(decoded.alias_sequences, vec![vec![Some(SymbolId(1))]]);
+    assert_eq!(decoded.alias_sequences, vec![vec![Some(SymbolId(5))]]);
 }
