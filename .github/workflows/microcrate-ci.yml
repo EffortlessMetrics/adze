@@ -36,6 +36,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Build docs (deny warnings)
         env:
           RUSTDOCFLAGS: -D warnings
@@ -53,6 +55,8 @@ jobs:
       - name: Ensure wasm32 target is installed
         run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Check adze-ir compiles for WASM
         run: cargo check --target wasm32-unknown-unknown -p adze-ir
       - name: Check adze-glr-core compiles for WASM
@@ -74,6 +78,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Check compilation (${{ matrix.features || 'default' }})
         run: |
           set -euxo pipefail
@@ -171,6 +177,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Test concurrency crates
         run: |
           cargo test \
@@ -197,6 +205,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Test governance crates
         run: |
           cargo test \
@@ -222,6 +232,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Test BDD crates
         run: |
           cargo test \
@@ -243,6 +255,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Test parser crates
         run: |
           cargo test \
@@ -265,6 +279,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Test adze-ir
         run: cargo test -p adze-ir -- --test-threads=$RUST_TEST_THREADS
       - name: Test adze-glr-core
@@ -281,6 +297,8 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Test adze (runtime)
         run: cargo test -p adze --lib --tests -- --test-threads=$RUST_TEST_THREADS
       - name: Test adze-runtime

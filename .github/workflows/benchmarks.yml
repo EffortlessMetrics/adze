@@ -26,6 +26,8 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     
     - uses: Swatinem/rust-cache@v2
+      with:
+        save-if: ${{ github.ref == 'refs/heads/main' }}
     
     # Run benchmarks and save results
     - name: Run benchmarks
