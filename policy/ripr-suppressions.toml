@@ -1,0 +1,23 @@
+# ripr suppressions for adze.
+#
+# Each suppression must have:
+#   - path-glob: where the suppression applies
+#   - finding: the ripr finding kind being suppressed
+#   - owner: team handle
+#   - reason: human-readable justification
+#   - expires: ISO date after which the entry is stale
+#
+# Empty by default; new entries land alongside the change that needs them.
+
+schema_version = "1.0"
+policy = "ripr-suppressions"
+status = "active"
+updated = "2026-05-07"
+
+# Example (commented):
+# [[suppression]]
+# path-glob = "ir/src/some_module.rs"
+# finding = "weakly_exposed"
+# owner = "core/ir"
+# reason = "Behavior is intentionally observed via integration tests in tests/it/."
+# expires = "2026-08-07"

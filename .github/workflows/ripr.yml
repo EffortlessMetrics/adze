@@ -1,0 +1,108 @@
+name: ripr advisory
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ripr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: PR Plan
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/pr-plan.yml
+
+  ripr:
+    name: ripr advisory
+    needs: plan
+    # Skip on docs-only PRs and on workflow_dispatch with no diff context.
+    if: |
+      always() &&
+      (needs.plan.result == 'skipped' || needs.plan.outputs.docs_only != 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Resolve base/head SHAs
+        id: shas
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="$(git rev-parse origin/main 2>/dev/null || git rev-parse HEAD~1)"
+            HEAD_SHA="$(git rev-parse HEAD)"
+          fi
+          echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+      - name: Locate ripr binary (graceful skip)
+        id: ripr
+        run: |
+          set -euo pipefail
+          # MSRV note: adze pins rust-toolchain to 1.92, but ripr requires
+          # 1.93+. We do not bump MSRV for this advisory check. The job
+          # gracefully reports "no ripr" until a pinned binary or isolated
+          # toolchain is provisioned.
+          if command -v ripr >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            ripr --version || true
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run ripr (advisory)
+        if: steps.ripr.outputs.available == 'true'
+        env:
+          BASE_SHA: ${{ steps.shas.outputs.base }}
+          HEAD_SHA: ${{ steps.shas.outputs.head }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/ripr
+          ripr analyze \
+            --config ripr.toml \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --json target/ripr/ripr-report.json \
+            --sarif target/ripr/ripr-report.sarif \
+            || echo "ripr exited non-zero (advisory)."
+      - name: Stub report (no ripr available)
+        if: steps.ripr.outputs.available != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p target/ripr
+          cat > target/ripr/ripr-report.json <<'JSON'
+          {
+            "schema_version": 1,
+            "status": "skipped",
+            "reason": "ripr binary not provisioned; see docs/ci/ripr.md for the MSRV-isolated install plan."
+          }
+          JSON
+      - name: Upload ripr report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ripr-report
+          path: target/ripr/
+          if-no-files-found: warn
+      - name: Append summary
+        if: always()
+        run: |
+          {
+            echo "## ripr advisory";
+            echo "";
+            if [ "${{ steps.ripr.outputs.available }}" = "true" ]; then
+              echo "- ripr binary detected, analysis run on \`${{ steps.shas.outputs.base }}..${{ steps.shas.outputs.head }}\`."
+            else
+              echo "- ripr binary not provisioned; advisory step is a no-op (MSRV gap; see docs/ci/ripr.md)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
