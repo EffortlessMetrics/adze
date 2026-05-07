@@ -1,0 +1,691 @@
+schema_version = "1.0"
+
+# Allowlist for non-Rust files that legitimately live in this repository.
+# Rust + xtask is the default implementation surface. Every other language or
+# config surface must be registered here with owner, surface, classification,
+# and a `covered_by` list (the checks/tools that exercise it).
+#
+# Required fields per entry:
+#   * `glob`           — globset pattern, repo-relative
+#   * `kind`           — categorical identifier (see below)
+#   * `owner`          — team or code area
+#   * `surface`        — ci | docs | fixtures | editor | grammar | release | …
+#   * `classification` — config | docs | fixtures | test | tooling | generated | production
+#   * `reason`         — why a non-Rust artifact is required here
+#   * `covered_by`     — list of commands or workflows that exercise it
+#
+# Optional:
+#   * `expires`     — ISO date; entry must be revisited
+#   * `retired`     — true if the entry exists only for migration audit
+#   * `generated_by` — for `classification = "generated"` entries
+
+# CI / GitHub configuration
+[[allow]]
+glob = ".github/**/*.yml"
+kind = "ci_declarative"
+owner = "release/ci"
+surface = "ci"
+classification = "config"
+reason = "GitHub Actions workflow definitions are platform-required YAML."
+covered_by = ["just ci-supported"]
+
+[[allow]]
+glob = ".github/**/*.md"
+kind = "ci_docs"
+owner = "release/ci"
+surface = "ci"
+classification = "docs"
+reason = "Issue/PR templates and CODEOWNERS-adjacent docs."
+covered_by = ["manual review"]
+
+# Top-level repo configuration
+[[allow]]
+glob = "*.toml"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "Cargo, rustfmt, deny, mutants, and policy TOML manifests."
+covered_by = ["cargo build", "cargo test"]
+
+[[allow]]
+glob = "**/Cargo.toml"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "Per-crate manifests for the Cargo workspace."
+covered_by = ["cargo build", "cargo test"]
+
+[[allow]]
+glob = "**/Cargo.lock"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "Workspace lockfile."
+covered_by = ["cargo build"]
+
+[[allow]]
+glob = "rust-toolchain.toml"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "Pin the Rust toolchain channel for reproducibility."
+covered_by = ["cargo build"]
+
+[[allow]]
+glob = "rustfmt.toml"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "Workspace formatting rules."
+covered_by = ["cargo fmt --check"]
+
+[[allow]]
+glob = "deny.toml"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "cargo-deny dependency policy."
+covered_by = ["cargo deny"]
+
+[[allow]]
+glob = ".cargo/**/*"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "Workspace cargo configuration and aliases."
+covered_by = ["cargo build"]
+
+[[allow]]
+glob = ".config/**/*"
+kind = "tooling_config"
+owner = "core/build"
+surface = "tooling"
+classification = "config"
+reason = "Project-wide tool configuration (nextest, etc.)."
+covered_by = ["cargo nextest run"]
+
+[[allow]]
+glob = "Makefile"
+kind = "build_orchestrator"
+owner = "core/build"
+surface = "build"
+classification = "tooling"
+reason = "Wrapper around just/cargo for hosts without `just`."
+covered_by = ["make help"]
+
+[[allow]]
+glob = "justfile"
+kind = "build_orchestrator"
+owner = "core/build"
+surface = "build"
+classification = "tooling"
+reason = "Project task runner."
+covered_by = ["just ci-supported"]
+
+[[allow]]
+glob = ".editorconfig"
+kind = "editor_config"
+owner = "core/build"
+surface = "tooling"
+classification = "config"
+reason = "Cross-editor formatting baseline."
+covered_by = ["editor integration"]
+
+[[allow]]
+glob = ".gitignore"
+kind = "vcs_config"
+owner = "core/build"
+surface = "tooling"
+classification = "config"
+reason = "Top-level git ignore rules."
+covered_by = ["git status"]
+
+[[allow]]
+glob = ".gitmodules"
+kind = "vcs_config"
+owner = "core/build"
+surface = "tooling"
+classification = "config"
+reason = "Git submodule registry."
+covered_by = ["git submodule"]
+
+[[allow]]
+glob = "**/.gitignore"
+kind = "vcs_config"
+owner = "core/build"
+surface = "tooling"
+classification = "config"
+reason = "Per-directory git ignore rules."
+covered_by = ["git operations"]
+
+# Hooks / scripts
+[[allow]]
+glob = ".githooks/**"
+kind = "git_hook"
+owner = "core/build"
+surface = "tooling"
+classification = "tooling"
+reason = "Pre-commit/pre-push hooks installed via .githooks/install.sh."
+covered_by = [".githooks/install.sh", "just pre"]
+
+[[allow]]
+glob = "hooks/**"
+kind = "git_hook"
+owner = "core/build"
+surface = "tooling"
+classification = "tooling"
+reason = "Auxiliary hook scripts."
+covered_by = ["manual installation"]
+
+[[allow]]
+glob = "scripts/**"
+kind = "shell_tooling"
+owner = "core/build"
+surface = "tooling"
+classification = "tooling"
+reason = "Auxiliary shell scripts (test runners, capacity probes)."
+covered_by = ["just ci-supported", "manual invocation"]
+
+[[allow]]
+glob = ".pre-commit-config.yaml"
+kind = "pre_commit_config"
+owner = "core/build"
+surface = "tooling"
+classification = "config"
+reason = "pre-commit framework configuration for optional users."
+covered_by = ["pre-commit run --all-files"]
+
+# Docker / infra
+[[allow]]
+glob = ".docker/**"
+kind = "container_config"
+owner = "core/build"
+surface = "infra"
+classification = "config"
+reason = "Container build/test configuration."
+covered_by = ["docker build"]
+
+[[allow]]
+glob = "docker-compose.test.yml"
+kind = "container_config"
+owner = "core/build"
+surface = "infra"
+classification = "config"
+reason = "Reproducible test environment for cross-platform validation."
+covered_by = ["docker compose -f docker-compose.test.yml"]
+
+# Editor / IDE
+[[allow]]
+glob = ".vscode/**"
+kind = "editor_extension"
+owner = "core/build"
+surface = "editor"
+classification = "config"
+reason = "Recommended VS Code settings; not required for builds."
+covered_by = ["editor integration"]
+
+[[allow]]
+glob = ".kiro/**"
+kind = "editor_extension"
+owner = "core/build"
+surface = "editor"
+classification = "config"
+reason = "Kiro/Spec-driven design metadata."
+covered_by = ["editor integration"]
+
+[[allow]]
+glob = ".claude/**"
+kind = "agent_config"
+owner = "core/build"
+surface = "tooling"
+classification = "config"
+reason = "Claude agent configuration and skills."
+covered_by = ["agent runtime"]
+
+# Documentation surfaces
+[[allow]]
+glob = "*.md"
+kind = "repo_docs"
+owner = "core/docs"
+surface = "docs"
+classification = "docs"
+reason = "Top-level README/CHANGELOG/CONTRIBUTING/etc."
+covered_by = ["manual review", "mdbook.yml"]
+
+[[allow]]
+glob = "docs/**"
+kind = "repo_docs"
+owner = "core/docs"
+surface = "docs"
+classification = "docs"
+reason = "Project documentation tree (Diataxis)."
+covered_by = ["manual review", "mdbook.yml"]
+
+[[allow]]
+glob = "book/**"
+kind = "repo_docs"
+owner = "core/docs"
+surface = "docs"
+classification = "docs"
+reason = "mdBook source for the published documentation site."
+covered_by = ["mdbook build"]
+
+[[allow]]
+glob = "plans/**"
+kind = "repo_docs"
+owner = "core/docs"
+surface = "docs"
+classification = "docs"
+reason = "Engineering plans and rollout notes."
+covered_by = ["manual review"]
+
+[[allow]]
+glob = "baselines/**"
+kind = "performance_baseline"
+owner = "core/perf"
+surface = "tooling"
+classification = "test"
+reason = "Criterion baselines for performance regression detection."
+covered_by = ["cargo bench", "cargo xtask compare-baseline"]
+
+[[allow]]
+glob = "clippy-report/**"
+kind = "tooling_artifact"
+owner = "core/build"
+surface = "tooling"
+classification = "generated"
+reason = "Clippy quarantine reports surfaced in CI."
+covered_by = ["clippy-quarantine-report.yml"]
+generated_by = "cargo clippy"
+
+[[allow]]
+glob = "dashboard-template/**"
+kind = "dashboard_assets"
+owner = "core/perf"
+surface = "tooling"
+classification = "tooling"
+reason = "Static template files for the test result dashboard."
+covered_by = ["cargo xtask init-dashboard"]
+
+# Fixtures and corpora
+[[allow]]
+glob = "corpus/**"
+kind = "fixture_input"
+owner = "grammar/fixtures"
+surface = "fixtures"
+classification = "test"
+reason = "Tree-sitter grammar corpora for parity validation."
+covered_by = ["cargo xtask test-corpus", "cargo test -p adze-golden-tests"]
+
+[[allow]]
+glob = "benchmarks/fixtures/**"
+kind = "fixture_input"
+owner = "core/perf"
+surface = "fixtures"
+classification = "test"
+reason = "Benchmark inputs (arithmetic, javascript, python, etc.)."
+covered_by = ["cargo bench", "cargo xtask validate-fixtures"]
+
+[[allow]]
+glob = "**/fixtures/**"
+kind = "fixture_input"
+owner = "grammar/fixtures"
+surface = "fixtures"
+classification = "test"
+reason = "Per-crate test fixtures (golden, snapshot, grammar inputs)."
+covered_by = ["cargo test", "cargo xtask test-grammars"]
+
+[[allow]]
+glob = "**/snapshots/**"
+kind = "snapshot"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "insta snapshots used by snapshot tests."
+covered_by = ["cargo test", "cargo insta review"]
+
+[[allow]]
+glob = "**/*.snap"
+kind = "snapshot"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "insta snapshot files."
+covered_by = ["cargo test", "cargo insta review"]
+
+[[allow]]
+glob = "**/*.proptest-regressions"
+kind = "proptest_regression"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "proptest minimised counterexample seeds."
+covered_by = ["cargo test"]
+
+[[allow]]
+glob = "tests/governance/**"
+kind = "governance_fixture"
+owner = "core/governance"
+surface = "fixtures"
+classification = "test"
+reason = "Governance integration test workspace."
+covered_by = ["cargo test"]
+
+[[allow]]
+glob = "examples/**"
+kind = "documentation_example"
+owner = "core/docs"
+surface = "docs"
+classification = "docs"
+reason = "Compileable example crates."
+covered_by = ["cargo build --examples"]
+
+[[allow]]
+glob = "example/**"
+kind = "documentation_example"
+owner = "core/docs"
+surface = "docs"
+classification = "docs"
+reason = "Example crate (excluded from default workspace)."
+covered_by = ["cargo build -p example"]
+
+[[allow]]
+glob = "test-cli/**"
+kind = "fixture_input"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "Test-only CLI harness."
+covered_by = ["cargo test"]
+
+[[allow]]
+glob = "test-example/**"
+kind = "fixture_input"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "Test-only example crate."
+covered_by = ["cargo test"]
+
+[[allow]]
+glob = "test-mini/**"
+kind = "fixture_input"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "Minimal repro and debug captures."
+covered_by = ["cargo test"]
+
+[[allow]]
+glob = "repro-issue-74/**"
+kind = "fixture_input"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "Repro fixture for tracked issue #74."
+covered_by = ["cargo test"]
+
+# Grammars and language inputs
+[[allow]]
+glob = "grammars/**"
+kind = "grammar_input"
+owner = "grammar/library"
+surface = "grammar"
+classification = "production"
+reason = "Grammar definitions and accompanying source examples."
+covered_by = ["cargo build", "cargo test", "cargo xtask test-grammars"]
+
+[[allow]]
+glob = "**/*.js"
+kind = "language_fixture"
+owner = "grammar/fixtures"
+surface = "fixtures"
+classification = "test"
+reason = "JavaScript fixture inputs for parser parity tests."
+covered_by = ["cargo test", "cargo xtask test-grammars"]
+
+[[allow]]
+glob = "**/*.ts"
+kind = "language_fixture"
+owner = "grammar/fixtures"
+surface = "fixtures"
+classification = "test"
+retired = true
+reason = "TypeScript fixture inputs (no committed fixtures yet; entry kept ready for forthcoming grammar work)."
+covered_by = ["cargo test", "cargo xtask test-grammars"]
+
+[[allow]]
+glob = "**/*.py"
+kind = "language_fixture"
+owner = "grammar/fixtures"
+surface = "fixtures"
+classification = "test"
+reason = "Python fixture inputs for parser parity tests."
+covered_by = ["cargo test", "cargo xtask test-grammars"]
+
+[[allow]]
+glob = "**/*.go"
+kind = "language_fixture"
+owner = "grammar/fixtures"
+surface = "fixtures"
+classification = "test"
+retired = true
+reason = "Go fixture inputs (grammars/go is registered; entry kept ready for committed fixtures)."
+covered_by = ["cargo test", "cargo xtask test-grammars"]
+
+[[allow]]
+glob = "**/*.json"
+kind = "language_fixture_or_config"
+owner = "grammar/fixtures"
+surface = "fixtures"
+classification = "test"
+reason = "Tree-sitter grammar.json, golden test data, and similar."
+covered_by = ["cargo test", "cargo xtask test-golden"]
+
+[[allow]]
+glob = "**/*.c"
+kind = "generated_grammar_source"
+owner = "grammar/library"
+surface = "grammar"
+classification = "generated"
+reason = "Tree-sitter generated C parsers."
+covered_by = ["cargo build"]
+generated_by = "tree-sitter generate"
+
+[[allow]]
+glob = "**/*.h"
+kind = "generated_grammar_source"
+owner = "grammar/library"
+surface = "grammar"
+classification = "generated"
+reason = "Tree-sitter generated headers."
+covered_by = ["cargo build"]
+generated_by = "tree-sitter generate"
+
+# Golden test artefacts.
+[[allow]]
+glob = "golden-tests/**/*.sexp"
+kind = "golden_artifact"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "S-expression captures of Tree-sitter parse trees for parity tests."
+covered_by = ["cargo test -p adze-golden-tests", "cargo xtask test-golden"]
+
+[[allow]]
+glob = "golden-tests/**/*.sha256"
+kind = "golden_artifact"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "SHA-256 hashes pinning golden parse-tree captures."
+covered_by = ["cargo test -p adze-golden-tests", "cargo xtask test-golden"]
+
+[[allow]]
+glob = "golden-tests/**/*.sh"
+kind = "shell_tooling"
+owner = "core/test"
+surface = "tooling"
+classification = "tooling"
+reason = "Tree-sitter reference generation scripts for golden tests."
+covered_by = ["cargo test -p adze-golden-tests"]
+
+# Per-crate dual licence files (Apache-2.0 OR MIT).
+[[allow]]
+glob = "**/LICENSE-APACHE"
+kind = "license"
+owner = "core/build"
+surface = "compliance"
+classification = "config"
+reason = "Per-crate Apache-2.0 licence."
+covered_by = ["manual review"]
+
+[[allow]]
+glob = "**/LICENSE-MIT"
+kind = "license"
+owner = "core/build"
+surface = "compliance"
+classification = "config"
+reason = "Per-crate MIT licence."
+covered_by = ["manual review"]
+
+# Trybuild stderr captures for `adze-macro` UI tests.
+[[allow]]
+glob = "macro/tests/ui/*.stderr"
+kind = "trybuild_stderr"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "trybuild snapshots of macro compile-error messages."
+covered_by = ["cargo test -p adze-macro"]
+
+# WASM demo and shell helpers
+[[allow]]
+glob = "runtime/build-wasm*.sh"
+kind = "shell_tooling"
+owner = "core/playground"
+surface = "tooling"
+classification = "tooling"
+reason = "WASM demo build scripts for the runtime crate."
+covered_by = ["wasm-pack build"]
+
+[[allow]]
+glob = "runtime/wasm-demo/**/*.html"
+kind = "web_demo"
+owner = "core/playground"
+surface = "demo"
+classification = "production"
+reason = "WASM demo HTML harness."
+covered_by = ["wasm-pack build", "manual review"]
+
+# Cucumber / BDD specs
+[[allow]]
+glob = "tests/features/**/*.feature"
+kind = "bdd_spec"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "Cucumber feature files for BDD scenarios."
+covered_by = ["cargo test"]
+
+# Sample-source files used as illustrative test inputs.
+[[allow]]
+glob = "**/*.example"
+kind = "sample_source"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "Example-only files (e.g. proptest seed examples)."
+covered_by = ["manual reference"]
+
+# WASM / playground / web demos
+[[allow]]
+glob = "wasm-demo/**"
+kind = "web_demo"
+owner = "core/playground"
+surface = "demo"
+classification = "production"
+reason = "WebAssembly demo with HTML/JS/CSS assets."
+covered_by = ["wasm-pack build", "manual review"]
+
+[[allow]]
+glob = "playground/**"
+kind = "web_demo"
+owner = "core/playground"
+surface = "demo"
+classification = "production"
+reason = "Interactive grammar playground."
+covered_by = ["cargo build -p playground"]
+
+# Misc
+[[allow]]
+glob = "LICENSE-*"
+kind = "license"
+owner = "core/build"
+surface = "compliance"
+classification = "config"
+reason = "Dual-licensed (Apache-2.0 OR MIT)."
+covered_by = ["manual review"]
+
+[[allow]]
+glob = "*.lock"
+kind = "rust_config"
+owner = "core/build"
+surface = "build"
+classification = "config"
+reason = "Lockfiles."
+covered_by = ["cargo build"]
+
+[[allow]]
+glob = "fuzz/**"
+kind = "fuzz_target"
+owner = "core/test"
+surface = "fixtures"
+classification = "test"
+reason = "Fuzz targets and fuzz-only configuration."
+covered_by = ["cargo fuzz"]
+
+[[allow]]
+glob = "tools/**"
+kind = "tooling"
+owner = "core/build"
+surface = "tooling"
+classification = "tooling"
+reason = "Auxiliary build/codegen tools (ts-bridge etc.)."
+covered_by = ["cargo build -p ts-bridge"]
+
+# Repo-level configuration / metadata files that don't fit other globs.
+[[allow]]
+glob = "codecov.yml"
+kind = "ci_declarative"
+owner = "release/ci"
+surface = "ci"
+classification = "config"
+reason = "Codecov coverage upload configuration."
+covered_by = ["release/ci pipelines"]
+
+[[allow]]
+glob = ".clippy-quarantine"
+kind = "tooling_artifact"
+owner = "core/build"
+surface = "tooling"
+classification = "tooling"
+reason = "Clippy quarantine list consumed by clippy-quarantine-report.yml."
+covered_by = ["clippy-quarantine-report.yml"]
+
+[[allow]]
+glob = "*.md.ISSUES_DOCUMENTED"
+kind = "repo_docs"
+owner = "core/docs"
+surface = "docs"
+classification = "docs"
+retired = true
+reason = "Legacy migration audit; preserved verbatim for historical record."
+covered_by = ["manual review"]

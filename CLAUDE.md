@@ -14,6 +14,7 @@ just clippy                # Lint core crates
 cargo fmt --all --check    # Check formatting
 cargo insta review         # Review snapshot changes (or: just snap)
 just pre                   # Run pre-commit checks locally
+just policy                # Run all policy-stack checks (advisory)
 ```
 
 ## Requirements
@@ -269,6 +270,23 @@ Multiple layers prevent tests from being silently disconnected:
 - **CI `test-connectivity` job**: Blocks `.rs.disabled` files, enforces non-zero test counts
 - **Pre-commit hook** (`.githooks/pre-commit`): Prevents committing disabled test files
 - **Local verification**: `./scripts/check-test-connectivity.sh`
+
+### Policy stack
+
+Three governance checks live under `policy/` and `xtask`:
+
+| Check | Source | Command | Mode |
+|-------|--------|---------|------|
+| No-panic ledger | `policy/no-panic-allowlist.toml`, `docs/NO_PANIC_POLICY.md` | `just policy-no-panic` | advisory |
+| Non-Rust file ledger | `policy/non-rust-allowlist.toml`, `docs/FILE_POLICY.md` | `just policy-files` | advisory |
+| Lint policy manifest | `policy/clippy-lints.toml`, `docs/CLIPPY_POLICY.md` | `just policy-lints` | advisory |
+
+Run all three via `just policy`. Reports land in `target/policy/`. The checks
+are advisory until the no-panic baseline is committed; flip them to
+`--mode blocking-allowlist` once the debt is receipted. Identity for
+panic-family entries is `(path, family, selector)`; line/column drift never
+invalidates an entry. New exceptions must be proposed via
+`just policy-no-panic-propose` and reviewed before merging.
 
 ### Completed Milestones
 

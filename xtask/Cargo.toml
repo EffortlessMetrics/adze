@@ -18,3 +18,8 @@ chrono = "0.4.44"
 serde.workspace = true
 adze-tool = { version = "0.8.0-dev", path = "../tool" }
 tempfile.workspace = true
+syn = { workspace = true, features = ["visit"] }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+toml = "0.8"
+globset = "0.4"
