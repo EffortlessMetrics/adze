@@ -15,13 +15,16 @@
 //! - ✅ Measures actual parsing, not error recovery
 //! - ✅ Exercises GLR fork/merge logic on valid input
 //! - ✅ Provides realistic tree construction costs
-//! - ✅ Benchmarks scale with input size (LOC)
+//! - ✅ Benchmarks scale with expression size
 //!
 //! ## Fixture Sizes
 //!
-//! - Small: ~100 LOC, ~88 expressions
-//! - Medium: ~2,000 LOC, ~1,914 expressions
-//! - Large: ~10,000 LOC, ~9,606 expressions
+//! Each fixture is one valid arithmetic expression. The size label controls
+//! expression length, not line count.
+//!
+//! - Small: 50 operations, ~250 bytes
+//! - Medium: 200 operations, ~1.1 KB
+//! - Large: 500 operations, ~3 KB
 //!
 //! ## Regenerating Fixtures
 //!
@@ -53,13 +56,13 @@ const ARITH_LARGE: &str = include_str!("../fixtures/arithmetic/large.expr");
 /// Benchmark real parsing with arithmetic grammar on valid fixtures
 ///
 /// This benchmarks actual `Parser::parse()` calls on valid arithmetic expressions.
-/// Parse times should scale with input size (LOC) in the µs-ms range.
+/// Parse times should scale with expression size in the µs-ms range.
 ///
 /// ## Expected Performance Characteristics
 ///
-/// - Small (~100 LOC): 10-100 µs
-/// - Medium (~2k LOC): 200 µs - 2 ms
-/// - Large (~10k LOC): 1-10 ms
+/// - Small: 10-100 µs
+/// - Medium: 200 µs - 2 ms
+/// - Large: 1-10 ms
 ///
 /// Times depend on grammar complexity, GLR conflicts, and tree construction.
 fn benchmark_real_parsing(c: &mut Criterion) {

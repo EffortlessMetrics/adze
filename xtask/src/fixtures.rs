@@ -8,10 +8,10 @@ use std::fs;
 use std::path::Path;
 use xshell::Shell;
 
-/// Target lines of code for each fixture size
-const SMALL_TARGET_LOC: usize = 100;
-const MEDIUM_TARGET_LOC: usize = 2_000;
-const LARGE_TARGET_LOC: usize = 10_000;
+/// Nominal fixture size selectors used by the generator.
+const SMALL_SIZE_HINT: usize = 100;
+const MEDIUM_SIZE_HINT: usize = 2_000;
+const LARGE_SIZE_HINT: usize = 10_000;
 
 /// Generate arithmetic expression fixtures
 pub fn generate_fixtures(sh: &Shell, output_dir: &str, force: bool) -> Result<()> {
@@ -25,9 +25,9 @@ pub fn generate_fixtures(sh: &Shell, output_dir: &str, force: bool) -> Result<()
     }
 
     // Generate each fixture size
-    generate_fixture(output_path, "small.expr", SMALL_TARGET_LOC, force)?;
-    generate_fixture(output_path, "medium.expr", MEDIUM_TARGET_LOC, force)?;
-    generate_fixture(output_path, "large.expr", LARGE_TARGET_LOC, force)?;
+    generate_fixture(output_path, "small.expr", SMALL_SIZE_HINT, force)?;
+    generate_fixture(output_path, "medium.expr", MEDIUM_SIZE_HINT, force)?;
+    generate_fixture(output_path, "large.expr", LARGE_SIZE_HINT, force)?;
 
     println!("\n✅ Fixture generation complete!");
     println!("   Location: {}", output_dir);
@@ -44,7 +44,7 @@ pub fn generate_fixtures(sh: &Shell, output_dir: &str, force: bool) -> Result<()
 fn generate_fixture(
     output_dir: &Path,
     filename: &str,
-    target_loc: usize,
+    size_hint: usize,
     force: bool,
 ) -> Result<()> {
     let file_path = output_dir.join(filename);
@@ -58,7 +58,7 @@ fn generate_fixture(
         return Ok(());
     }
 
-    println!("📝 Generating {} (~{} LOC)...", filename, target_loc);
+    println!("📝 Generating {} (size hint {})...", filename, size_hint);
 
     let mut content = String::new();
 
@@ -75,11 +75,11 @@ fn generate_fixture(
     // Calculate how many operations we need
     // IMPORTANT: Parser may have limits on expression depth/length
     // Keep expressions reasonable to avoid hitting parser limits
-    let target_ops = match target_loc {
-        100 => 50,                 // Small: 50 operations (~250 bytes)
-        2000 => 200,               // Medium: 200 operations (~1.5 KB)
-        10000 => 1000,             // Large: 1000 operations (~6-7 KB)
-        _ => target_loc.min(1000), // Cap at 1000 ops for any other size
+    let target_ops = match size_hint {
+        100 => 50,               // Small: 50 operations (~250 bytes)
+        2000 => 200,             // Medium: 200 operations (~1.5 KB)
+        10000 => 500,            // Large: 500 operations (~3 KB)
+        _ => size_hint.min(500), // Cap at 500 ops for any other size
     };
 
     // Alternate between operators to create interesting parsing
@@ -96,15 +96,15 @@ fn generate_fixture(
     content.push('\n');
 
     let line_count = 1; // Single line (plus newline)
-    let expr_count = target_ops;
+    let op_count = target_ops;
 
     // Write to file
     fs::write(&file_path, content)
         .with_context(|| format!("Failed to write fixture: {}", file_path.display()))?;
 
     println!(
-        "   ✅ Generated {} ({} lines, {} expressions)",
-        filename, line_count, expr_count
+        "   ✅ Generated {} ({} line, {} operations)",
+        filename, line_count, op_count
     );
 
     Ok(())
@@ -117,7 +117,7 @@ fn validate_fixtures(sh: &Shell, _fixtures_dir: &Path) -> Result<()> {
     println!("   Running validation tests...");
 
     // Run the verification test
-    xshell::cmd!(sh, "cargo test -p adze-benchmarks --test verify_fixture_parsing verify_valid_arithmetic_expressions_do_parse -- --nocapture")
+    xshell::cmd!(sh, "cargo test -p adze-benchmarks --test verify_fixture_parsing verify_arithmetic_benchmark_fixtures_parse_with_arithmetic_grammar -- --exact --nocapture")
         .run()
         .context("Fixture validation failed")?;
 
