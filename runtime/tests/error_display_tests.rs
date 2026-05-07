@@ -1277,6 +1277,26 @@ fn reporting_parse_with_errors_preserves_expected_tokens_after_bad_input() {
     );
 }
 
+#[test]
+fn reporting_parse_with_errors_includes_source_excerpt_after_bad_input() {
+    let mut parser = make_dummy_parser();
+
+    let errors = parser
+        .parse_with_errors(vec![(adze_ir::SymbolId(2), "@".to_string())])
+        .expect_err("invalid token should fail to parse");
+
+    assert!(
+        errors[0].context.contains("@"),
+        "source excerpt should include the unexpected input: {:?}",
+        errors[0].context
+    );
+    assert!(
+        errors[0].context.contains("^"),
+        "source excerpt should include a caret marker: {:?}",
+        errors[0].context
+    );
+}
+
 // ============================================================================
 // Helper: create a minimal GLRParser for ErrorReporter tests
 // ============================================================================
