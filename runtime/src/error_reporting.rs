@@ -135,7 +135,11 @@ impl ErrorReportingExt for GLRParser {
         tokens: Vec<(SymbolId, String)>,
     ) -> Result<Subtree, Vec<ParseError>> {
         let mut errors = Vec::new();
-        let mut reporter = ErrorReporter::new(String::new());
+        let source = tokens
+            .iter()
+            .map(|(_, token_text)| token_text.as_str())
+            .collect::<String>();
+        let mut reporter = ErrorReporter::new(source);
 
         for (symbol_id, token_text) in tokens {
             let expected_before_token = expected_token_names(self);
