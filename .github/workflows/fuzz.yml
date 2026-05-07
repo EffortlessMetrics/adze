@@ -37,7 +37,7 @@ jobs:
       uses: dtolnay/rust-toolchain@nightly
     
     - name: Install cargo-fuzz
-      run: cargo +nightly install cargo-fuzz
+      run: cargo install cargo-fuzz --locked
     
     - name: Cache cargo registry
       uses: actions/cache@v5.0.3
@@ -81,7 +81,7 @@ jobs:
       uses: dtolnay/rust-toolchain@nightly
     
     - name: Install cargo-fuzz
-      run: cargo +nightly install cargo-fuzz
+      run: cargo install cargo-fuzz --locked
     
     - name: Cache cargo registry
       uses: actions/cache@v5.0.3
@@ -142,7 +142,7 @@ jobs:
           fi
       - name: Install cargo-fuzz
         if: steps.risk.outputs.needs_smoke == 'true'
-        run: cargo +nightly install cargo-fuzz --locked
+        run: cargo install cargo-fuzz --locked
       - name: Build fuzz harness (smoke)
         if: steps.risk.outputs.needs_smoke == 'true'
         run: |
