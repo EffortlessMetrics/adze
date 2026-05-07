@@ -19,6 +19,7 @@ CANARIES=(
   "adze core parse-table serialization roundtrip|behavior|cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture"
   "adze tablegen ABI compressed decode roundtrip|behavior|cargo test -p adze --features \"pure-rust,glr,ts-compat\" --test tablegen_abi_decode_roundtrip compressed_tslanguage_decode_preserves_metadata_actions_and_fields -- --exact --nocapture"
   "adze tablegen ABI conflict decode preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e,ts-compat\" --test test_e2e_ambiguous_grammar_glr tablegen_abi_decode_preserves_generated_conflict_cells -- --exact --nocapture"
+  "adze-tablegen alias ABI pointer/data preservation|behavior|cargo test -p adze-tablegen --test alias_handling_comprehensive alias_abi_emits_non_null_pointers_when_counters_nonzero -- --exact --nocapture"
   "README arithmetic quickstart clean-room|behavior|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
   "adze-cli clean-room init/check smoke|behavior|cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture"
   "adze-cli check rejects non-grammar rust file|behavior|cargo test -p adze-cli test_check_rejects_file_without_adze_grammar -- --exact --nocapture"

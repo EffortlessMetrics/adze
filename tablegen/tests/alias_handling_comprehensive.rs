@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 use adze_glr_core::{GotoIndexing, LexMode, ParseTable};
 use adze_ir::builder::GrammarBuilder;
 use adze_ir::{AliasSequence, Grammar, ProductionId, SymbolId};
+use adze_tablegen::abi_builder::AbiLanguageBuilder;
 use adze_tablegen::generate::LanguageBuilder;
 use adze_tablegen::serializer::{SerializableLanguage, serialize_language};
 
@@ -313,6 +314,51 @@ fn language_builder_alias_pointers_null() {
 
     assert!(lang.alias_map.is_null());
     assert!(lang.alias_sequences.is_null());
+}
+
+/// Alias ABI data is emitted when alias counters are nonzero.
+#[test]
+fn alias_abi_emits_non_null_pointers_when_counters_nonzero() {
+    let mut grammar = GrammarBuilder::new("alias_ptr")
+        .token("x", "x")
+        .rule("start", vec!["x"])
+        .start("start")
+        .build();
+
+    grammar.alias_sequences.insert(
+        ProductionId(0),
+        AliasSequence {
+            aliases: vec![Some("x".to_string())],
+        },
+    );
+    grammar.max_alias_sequence_length = 1;
+
+    let table = make_empty_table(1, 1, 1, 0);
+    let builder = LanguageBuilder::new(grammar.clone(), table.clone());
+    let lang = builder
+        .generate_language()
+        .expect("generate_language failed");
+
+    assert_eq!(lang.production_id_count, 1);
+    assert_eq!(lang.alias_count, 1);
+    assert_eq!(lang.max_alias_sequence_length, 1);
+    assert!(!lang.alias_map.is_null());
+    assert!(!lang.alias_sequences.is_null());
+
+    // SAFETY: generate_language leaked these arrays for the returned language.
+    let alias_map = unsafe { std::slice::from_raw_parts(lang.alias_map, 1) };
+    // SAFETY: production_id_count * max_alias_sequence_length == 1 here.
+    let alias_sequences = unsafe { std::slice::from_raw_parts(lang.alias_sequences, 1) };
+    assert_eq!(alias_map, &[0]);
+    assert_eq!(alias_sequences, &[1]);
+
+    let generated = AbiLanguageBuilder::new(&grammar, &table)
+        .generate()
+        .to_string();
+    assert!(generated.contains("static ALIAS_MAP"));
+    assert!(generated.contains("static ALIAS_SEQUENCES"));
+    assert!(generated.contains("alias_map : ALIAS_MAP . as_ptr ()"));
+    assert!(generated.contains("alias_sequences : ALIAS_SEQUENCES . as_ptr ()"));
 }
 
 /// LanguageBuilder preserves alias_count=0 with multiple tokens.

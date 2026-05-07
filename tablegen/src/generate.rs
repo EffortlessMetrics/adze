@@ -61,7 +61,7 @@ impl LanguageBuilder {
 
         let (alias_count, max_alias_sequence_length) = self.calculate_alias_metrics();
         let large_state_count = 0;
-        let production_id_count = self.grammar.alias_sequences.len() as u32;
+        let production_id_count = self.calculate_alias_production_count() as u32;
 
         // Build symbol names array
         let symbol_names = self.build_symbol_names();
@@ -76,6 +76,16 @@ impl LanguageBuilder {
         // For now, create dummy tables - in real implementation these would be
         // generated from the compressed parse table data
         let small_parse_table = self.build_small_parse_table(compressed);
+        let alias_tables = self.build_alias_tables(max_alias_sequence_length);
+        let (alias_map_ptr, alias_sequences_ptr) =
+            if let Some((alias_map, alias_sequences)) = alias_tables {
+                (
+                    Box::leak(alias_map.into_boxed_slice()).as_ptr(),
+                    Box::leak(alias_sequences.into_boxed_slice()).as_ptr(),
+                )
+            } else {
+                (std::ptr::null(), std::ptr::null())
+            };
 
         Ok(TSLanguage {
             version: 15,
@@ -102,8 +112,8 @@ impl LanguageBuilder {
             field_map_entries: std::ptr::null(),
             symbol_metadata: Box::leak(Box::new(symbol_metadata)).as_ptr(),
             public_symbol_map: std::ptr::null(),
-            alias_map: std::ptr::null(),
-            alias_sequences: std::ptr::null(),
+            alias_map: alias_map_ptr,
+            alias_sequences: alias_sequences_ptr,
             lex_modes: std::ptr::null(),
             lex_fn: None,
             keyword_lex_fn: None,
@@ -163,6 +173,68 @@ impl LanguageBuilder {
         let alias_count = aliases.len() as u32;
         let max_alias_sequence_length = u16::try_from(max_len).unwrap_or(u16::MAX);
         (alias_count, max_alias_sequence_length)
+    }
+
+    fn calculate_alias_production_count(&self) -> usize {
+        self.grammar
+            .alias_sequences
+            .keys()
+            .map(|production_id| production_id.0 as usize + 1)
+            .max()
+            .unwrap_or(0)
+    }
+
+    fn build_alias_tables(
+        &self,
+        max_alias_sequence_length: u16,
+    ) -> Option<(Vec<u16>, Vec<crate::validation::TSSymbol>)> {
+        let production_count = self.calculate_alias_production_count();
+        let stride = max_alias_sequence_length as usize;
+        if production_count == 0 || stride == 0 {
+            return None;
+        }
+
+        let mut alias_map = Vec::with_capacity(production_count);
+        let mut alias_sequences = vec![0; production_count * stride];
+
+        for production_index in 0..production_count {
+            let offset = production_index * stride;
+            alias_map.push(u16::try_from(offset).unwrap_or(u16::MAX));
+
+            let production_id = adze_ir::ProductionId(production_index as u16);
+            if let Some(sequence) = self.grammar.alias_sequences.get(&production_id) {
+                for (position, alias) in sequence.aliases.iter().take(stride).enumerate() {
+                    if let Some(alias_name) = alias.as_deref()
+                        && let Some(symbol_index) = self.resolve_alias_symbol(alias_name)
+                    {
+                        alias_sequences[offset + position] = symbol_index;
+                    }
+                }
+            }
+        }
+
+        Some((alias_map, alias_sequences))
+    }
+
+    fn resolve_alias_symbol(&self, alias: &str) -> Option<crate::validation::TSSymbol> {
+        let symbol_id = self
+            .grammar
+            .tokens
+            .iter()
+            .find_map(|(id, token)| (token.name == alias).then_some(*id))
+            .or_else(|| {
+                self.grammar
+                    .rule_names
+                    .iter()
+                    .find_map(|(id, name)| (name == alias).then_some(*id))
+            })?;
+
+        self.parse_table
+            .symbol_to_index
+            .get(&symbol_id)
+            .copied()
+            .map(|index| index as u16)
+            .or(Some(symbol_id.0))
     }
 
     fn build_field_names(&self) -> Vec<*const c_char> {
