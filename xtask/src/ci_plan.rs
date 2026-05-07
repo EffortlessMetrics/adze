@@ -240,10 +240,7 @@ pub fn run(args: PlanArgs) -> Result<()> {
             eprintln!("  warning: {w}");
         }
     }
-    if args.enforce_hard_ceiling
-        && plan.budget.band == "over-ceiling"
-        && !has_override
-    {
+    if args.enforce_hard_ceiling && plan.budget.band == "over-ceiling" && !has_override {
         anyhow::bail!(
             "ci plan exceeds the hard ceiling ({} LEM) without a `full-ci` or `ci-budget-override` label",
             plan.budget.estimated_lem
@@ -425,10 +422,7 @@ fn select_lanes(
 }
 
 fn scaled_lem(lane: &Lane, runner_multipliers: &BTreeMap<String, f64>) -> u32 {
-    let mult = runner_multipliers
-        .get(&lane.runner)
-        .copied()
-        .unwrap_or(1.0);
+    let mult = runner_multipliers.get(&lane.runner).copied().unwrap_or(1.0);
     ((lane.base_lem as f64) * mult).round() as u32
 }
 
@@ -509,8 +503,7 @@ fn write_summary(path: &Path, plan: &Plan) -> Result<()> {
 }
 
 fn read_toml<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T> {
-    let body = fs::read_to_string(path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let body = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     Ok(toml::from_str(&body)?)
 }
 

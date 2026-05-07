@@ -41,6 +41,10 @@ jobs:
         with:
           python-version: "3.12"
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: adze-xtask-${{ hashFiles('Cargo.lock') }}

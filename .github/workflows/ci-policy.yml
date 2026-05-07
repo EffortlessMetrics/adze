@@ -22,12 +22,25 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: adze-xtask-${{ hashFiles('Cargo.lock') }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build xtask
+        run: cargo build -p xtask --bin xtask
       - name: Run CI lane whitelist lint (advisory)
-        run: cargo run -p xtask -- check-ci-lane-whitelist --mode advisory | tee target/ci-lane-whitelist.log
+        run: |
+          mkdir -p target
+          set +e
+          cargo run -q -p xtask -- check-ci-lane-whitelist --mode advisory > target/ci-lane-whitelist.log 2>&1
+          status=$?
+          set -e
+          cat target/ci-lane-whitelist.log
+          exit $status
       - name: Upload whitelist receipt
         if: always()
         uses: actions/upload-artifact@v4

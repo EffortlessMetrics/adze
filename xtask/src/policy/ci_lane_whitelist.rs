@@ -136,8 +136,7 @@ pub fn run_check(mode: Mode) -> Result<()> {
     };
 
     let lane_ids: BTreeSet<String> = whitelist.lanes.iter().map(|l| l.id.clone()).collect();
-    let exception_ids: BTreeSet<String> =
-        exceptions.entries.iter().map(|e| e.id.clone()).collect();
+    let exception_ids: BTreeSet<String> = exceptions.entries.iter().map(|e| e.id.clone()).collect();
 
     // Internal consistency.
     for lane in &whitelist.lanes {
@@ -159,7 +158,13 @@ pub fn run_check(mode: Mode) -> Result<()> {
                 "lane has no failure_mode",
             ));
         }
-        if lane.proof_obligation.as_deref().unwrap_or("").trim().is_empty() {
+        if lane
+            .proof_obligation
+            .as_deref()
+            .unwrap_or("")
+            .trim()
+            .is_empty()
+        {
             report.findings.push(finding(
                 "warning",
                 "missing-proof-obligation",
@@ -177,9 +182,7 @@ pub fn run_check(mode: Mode) -> Result<()> {
                 "lane is missing review_after or expires",
             ));
         }
-        if lane.runner != "mixed"
-            && !whitelist.runner_multipliers.contains_key(&lane.runner)
-        {
+        if lane.runner != "mixed" && !whitelist.runner_multipliers.contains_key(&lane.runner) {
             report.findings.push(finding(
                 "warning",
                 "unknown-runner",
@@ -292,7 +295,10 @@ pub fn run_check(mode: Mode) -> Result<()> {
     for f in &report.findings {
         let lane = f.lane.as_deref().unwrap_or("-");
         let wf = f.workflow.as_deref().unwrap_or("-");
-        println!("  [{}] {} ({}, {}): {}", f.severity, f.code, lane, wf, f.message);
+        println!(
+            "  [{}] {} ({}, {}): {}",
+            f.severity, f.code, lane, wf, f.message
+        );
     }
 
     let json_path = report_dir.join("ci-lane-whitelist.json");
@@ -330,8 +336,8 @@ fn finding(
 }
 
 fn read_toml<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T> {
-    let body = std::fs::read_to_string(path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let body =
+        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     Ok(toml::from_str(&body)?)
 }
 
@@ -373,7 +379,11 @@ fn scan_jobs(body: &str) -> Vec<String> {
         }
         if let Some((key, _)) = trimmed.split_once(':') {
             let key = key.trim();
-            if !key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+            if !key.is_empty()
+                && key
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+            {
                 out.push(key.to_string());
             }
         }
