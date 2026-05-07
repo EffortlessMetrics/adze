@@ -14,6 +14,7 @@ CANARIES=(
   "adze structured parse diagnostics|behavior|cargo test -p adze --test error_display_tests reporting_parse_with_errors_includes_source_excerpt_after_bad_input --features \"pure-rust,glr\" -- --exact --nocapture"
   "adze multiline parse diagnostic location|behavior|cargo test -p adze --test error_display_tests reporting_parse_with_errors_tracks_multiline_bad_input_location_and_excerpt --features \"pure-rust,glr\" -- --exact --nocapture"
   "adze parse diagnostic byte spans|behavior|cargo test -p adze --test error_display_tests reporting_parse_diagnostics_include_byte_span_for_multiline_bad_input --features \"pure-rust,glr\" -- --exact --nocapture"
+  "adze generated typed parser parse diagnostics|behavior|cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors generated_typed_parser_bad_token_reports_source_span -- --exact --nocapture"
   "adze core parse-table serialization roundtrip|behavior|cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture"
   "adze tablegen ABI compressed decode roundtrip|behavior|cargo test -p adze --features \"pure-rust,glr,ts-compat\" --test tablegen_abi_decode_roundtrip compressed_tslanguage_decode_preserves_metadata_actions_and_fields -- --exact --nocapture"
   "adze tablegen ABI conflict decode preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e,ts-compat\" --test test_e2e_ambiguous_grammar_glr tablegen_abi_decode_preserves_generated_conflict_cells -- --exact --nocapture"
