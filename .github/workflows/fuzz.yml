@@ -120,6 +120,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6.0.2
+        with:
+          # Need both base and head reachable for the diff below.
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
         with:
@@ -132,7 +135,7 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" || true)
-          if echo "$changed" | grep -E '^(glr-core/|runtime/|runtime/fuzz/|crates/parser-)'; then
+          if echo "$changed" | grep -qE '^(glr-core/|runtime/|runtime/fuzz/|crates/parser-)'; then
             echo "needs_smoke=true" >> "$GITHUB_OUTPUT"
           else
             echo "needs_smoke=false" >> "$GITHUB_OUTPUT"
