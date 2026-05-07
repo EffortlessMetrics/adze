@@ -1,7 +1,7 @@
 # Now / Next / Later
 
-**Last updated:** 2026-05-06
-**Status:** **Correctness push in progress** — `adze` 0.8.0 is live on crates.io and the supported gate remains bounded, but the live GitHub PR queue must be treated as the execution baseline before any merge. The current push is tracked in [`CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
+**Last updated:** 2026-05-07
+**Status:** **Post-queue correctness proof** — `adze` 0.8.0 is live on crates.io, the supported gate remains bounded, and the live GitHub PR queue is empty as of the latest refresh. Remaining work is tracked as focused proof issues rather than a broad merge queue. The current push is tracked in [`CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
 
 Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For support-tier proof commands, see [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
 
@@ -28,16 +28,17 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 
 ## Now
 
-### Correctness merge queue
-- [ ] Refresh live PR state before each merge with `gh pr list --state open --limit 50 --json number,title,mergeable,isDraft,headRefName,baseRefName,updatedAt,url`.
-- [ ] Land mergeable parser/tablegen/runtime/CLI correctness PRs in the order documented in [`CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
-- [ ] Manually resolve conflict PRs instead of taking either side wholesale.
-- [ ] Report proof commands, open PR count, red checks, and the next blocker after each merge.
+### Correctness queue baseline
+- [x] Refresh live PR state with `gh pr list --state open --limit 20 --json number,title,isDraft,headRefName,updatedAt,url`.
+- [x] Confirm the live PR queue is empty after the tablegen/runtime correctness fixes landed.
+- [x] Keep the historical queue closed; do not revive stale PR numbers from handoffs unless GitHub shows them open again.
+- [ ] For any new correctness PR, keep the one-PR loop: rebase on current `main`, run focused proof, require hosted `CI / ci-supported`, and report red checks before merge.
 
 ### Product proof alignment
 - [ ] Keep `just ci-supported` as the fast required gate.
 - [x] Convert `scripts/ci-product.sh` from compile-only advisory smoke to bounded behavior canaries where behavior is currently truthful; benchmarks and WASM remain explicit compile/no-run canaries.
-- [x] Open focused follow-up issues after the queue is empty for GLR product proof, tablegen ABI completeness, parse diagnostics, CLI clean-room quickstart, and support-tier reconciliation.
+- [x] Track GLR product proof in [#460](https://github.com/EffortlessMetrics/adze/issues/460), tablegen ABI completeness in [#461](https://github.com/EffortlessMetrics/adze/issues/461), and parse diagnostics in [#463](https://github.com/EffortlessMetrics/adze/issues/463).
+- [x] Close out CLI clean-room quickstart/truthfulness and README/support-tier reconciliation as landed proof work ([#464](https://github.com/EffortlessMetrics/adze/issues/464), [#465](https://github.com/EffortlessMetrics/adze/issues/465)).
 - [ ] Keep README feature claims aligned with [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md): no Stable claim without a named proof command.
 
 ### Operational tail
