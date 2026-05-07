@@ -1,10 +1,16 @@
 name: Pure Rust Implementation CI
 
+# Default PR runs Ubuntu/stable only. The full OS × toolchain matrix runs
+# on push to main, on workflow_dispatch, and on PRs labeled
+# 'platform-matrix' or 'full-ci'. See docs/ci/adze-rollout-plan.md (PR 13).
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
 
 env:
   RUST_BACKTRACE: 1
@@ -20,14 +26,41 @@ env:
   NUMEXPR_NUM_THREADS: 1
 
 jobs:
+  matrix-setup:
+    name: Matrix Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      os: ${{ steps.compute.outputs.os }}
+      rust: ${{ steps.compute.outputs.rust }}
+    steps:
+      - id: compute
+        run: |
+          set -euo pipefail
+          full=false
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            full=true
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}" == "true" ]] \
+            || [[ "${{ contains(github.event.pull_request.labels.*.name, 'platform-matrix') }}" == "true" ]]; then
+            full=true
+          fi
+          if [ "$full" = "true" ]; then
+            echo 'os=["ubuntu-latest","macos-latest","windows-latest"]' >> "$GITHUB_OUTPUT"
+            echo 'rust=["stable","nightly"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'os=["ubuntu-latest"]' >> "$GITHUB_OUTPUT"
+            echo 'rust=["stable"]' >> "$GITHUB_OUTPUT"
+          fi
+
   test-pure-rust:
     name: Test Pure Rust Implementation
+    needs: matrix-setup
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, nightly]
+        os: ${{ fromJson(needs.matrix-setup.outputs.os) }}
+        rust: ${{ fromJson(needs.matrix-setup.outputs.rust) }}
 
     defaults:
       run:
@@ -89,6 +122,10 @@ jobs:
   
   test-wasm:
     name: Test WASM Build
+    if: |
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'wasm') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
     
     steps:
@@ -118,6 +155,12 @@ jobs:
   
   golden-tests:
     name: Golden Tests
+    # The dedicated golden-tests.yml workflow is the PR-default; this job
+    # runs on push/full-ci to keep the integrated path covered.
+    if: |
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'ci:golden') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
     
     steps:
@@ -159,6 +202,11 @@ jobs:
   
   performance:
     name: Performance Regression Tests
+    # Owned by performance.yml on PR; this job runs on push/full-ci.
+    if: |
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'ci:perf') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
     
     steps:
@@ -188,6 +236,10 @@ jobs:
   
   coverage:
     name: Code Coverage
+    if: |
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'coverage') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
     
     steps:
