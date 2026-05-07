@@ -1,6 +1,7 @@
 # Adze
 
 [![CI](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml/badge.svg)](https://github.com/EffortlessMetrics/adze/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/EffortlessMetrics/adze/graph/badge.svg?branch=main)](https://codecov.io/gh/EffortlessMetrics/adze)
 [![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
 [![docs.rs](https://img.shields.io/docsrs/adze)](https://docs.rs/adze)
 [![MSRV](https://img.shields.io/badge/MSRV-1.92-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
