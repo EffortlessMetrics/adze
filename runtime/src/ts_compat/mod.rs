@@ -299,6 +299,11 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    /// Create a cursor rooted at this node.
+    pub fn walk(&self) -> TreeCursor<'a> {
+        TreeCursor::new(self.tree, self.node)
+    }
+
     /// Get the field name attached to this node's edge from its parent.
     pub fn field_name(&self) -> Option<&str> {
         self.node.field_name.as_deref()
@@ -346,6 +351,80 @@ impl<'a> Node<'a> {
     /// Get the text content of this node as a string.
     pub fn text(&self, source: &[u8]) -> String {
         self.utf8_text(source).unwrap_or("").to_string()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct CursorFrame<'a> {
+    node: &'a ParseNode,
+    child_index: usize,
+}
+
+/// A cursor for walking a syntax tree without allocating child vectors.
+#[derive(Debug, Clone)]
+pub struct TreeCursor<'a> {
+    tree: &'a Tree,
+    current: &'a ParseNode,
+    parents: Vec<CursorFrame<'a>>,
+}
+
+impl<'a> TreeCursor<'a> {
+    fn new(tree: &'a Tree, current: &'a ParseNode) -> Self {
+        Self {
+            tree,
+            current,
+            parents: Vec::new(),
+        }
+    }
+
+    /// Get the cursor's current node.
+    pub fn node(&self) -> Node<'a> {
+        Node::new(self.tree, self.current)
+    }
+
+    /// Move to the first child of the current node.
+    pub fn goto_first_child(&mut self) -> bool {
+        let Some(child) = self.current.children.first() else {
+            return false;
+        };
+
+        self.parents.push(CursorFrame {
+            node: self.current,
+            child_index: 0,
+        });
+        self.current = child;
+        true
+    }
+
+    /// Move to the next sibling of the current node.
+    pub fn goto_next_sibling(&mut self) -> bool {
+        let Some(parent) = self.parents.last_mut() else {
+            return false;
+        };
+
+        let next_index = parent.child_index + 1;
+        let Some(next) = parent.node.children.get(next_index) else {
+            return false;
+        };
+
+        parent.child_index = next_index;
+        self.current = next;
+        true
+    }
+
+    /// Move to the parent of the current node.
+    pub fn goto_parent(&mut self) -> bool {
+        let Some(parent) = self.parents.pop() else {
+            return false;
+        };
+
+        self.current = parent.node;
+        true
+    }
+
+    /// Get the field name attached to the current node's parent edge.
+    pub fn field_name(&self) -> Option<&str> {
+        self.current.field_name.as_deref()
     }
 }
 
