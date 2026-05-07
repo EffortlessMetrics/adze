@@ -50,8 +50,8 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 ## Next
 
 ### Behavior-proof product lane
-- [ ] Add a stable product lane only after advisory behavior smokes pass consistently.
-- [ ] Promote only README-stable claims into `ci-product-stable`.
+- [x] Add an advisory stable product lane for README-stable claims.
+- [ ] Promote `ci-product-stable` to required only after advisory behavior smokes pass consistently.
 - [ ] Keep broad workspace, fuzzing, Miri, sanitizers, browser WASM, grammar corpus, runtime2, and benchmarks scheduled/manual unless explicitly promoted.
 
 ---

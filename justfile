@@ -77,6 +77,16 @@ ci-supported:
     cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
     cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"
 
+# Candidate product lane for README Stable claims. This is advisory until
+# branch protection explicitly promotes it.
+ci-product-stable:
+    ./scripts/ci-product-stable.sh
+
+# Broad non-blocking product canaries for Stable, Stabilizing, Advisory, and
+# intentionally excluded surfaces. See docs/status/KNOWN_RED.md.
+ci-product-advisory:
+    ./scripts/ci-product.sh
+
 # Run mutation testing on adze-ir (quick check)
 mutate crate="adze-ir":
     cargo mutants -p {{crate}} --timeout-multiplier 2 -- --lib

@@ -152,6 +152,7 @@ Contributions are welcome. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidel
 
 ```bash
 just ci-supported      # required PR gate — fmt + clippy + tests on core crates
+just ci-product-stable # optional Stable README product canaries
 just test              # core lib tests
 just clippy            # lint core crates
 cargo fmt --all --check

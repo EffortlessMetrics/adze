@@ -78,14 +78,14 @@ just ci-supported
 
 Rung 1 is advisory product behavior. Convert `scripts/ci-product.sh` from compile-only smoke to bounded behavior smokes, but keep it non-blocking until stable.
 
-Rung 2 is a stable product lane. Promote only README-stable claims:
+Rung 2 is a stable product lane. A candidate `just ci-product-stable` lane now exists for README-stable claims, but it remains advisory until branch protection promotes it:
 
 ```bash
 just ci-supported
 just ci-product-stable
 ```
 
-The stable product lane should cover a clean-room README quickstart, typed extraction exact-value test, operator precedence test, GLR ambiguity canary, serialization canary, and one structured parse-error diagnostic test.
+The stable product lane covers a clean-room README quickstart, typed extraction exact-value test, operator precedence test, and serialization canary. GLR ambiguity and structured parse-error diagnostics remain in the broader advisory lane until those surfaces graduate from Stabilizing.
 
 Rung 3 remains scheduled/manual: full workspace all-features, fuzzing, Miri, sanitizers, benchmarks, grammar corpus, runtime2, and browser WASM execution.
 
