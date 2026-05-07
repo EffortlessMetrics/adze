@@ -1,9 +1,9 @@
 # Correctness Push Plan
 
-**Last updated:** 2026-05-06
+**Last updated:** 2026-05-07
 **Scope:** current parser/runtime, GLR, tablegen ABI, CLI, and product-proof convergence.
 
-This is the execution playbook for moving Adze from "bounded core lane is green" to "the product claims are behavior-proven." It is intentionally narrower than a roadmap: finish the active correctness queue first, then open focused follow-up work for gaps that should not be hidden inside broad implementation PRs.
+This is the execution playbook for moving Adze from "bounded core lane is green" to "the product claims are behavior-proven." It is intentionally narrower than a roadmap: keep the required lane bounded, land focused correctness work only when it has receipts, and track remaining product gaps without hiding them inside broad policy or infrastructure PRs.
 
 ## Baseline
 
@@ -12,6 +12,7 @@ This is the execution playbook for moving Adze from "bounded core lane is green"
 - The broader product lane is advisory until each canary proves real behavior instead of only compile/no-run smoke.
 - README-stable claims must map to a proof command in `docs/status/SUPPORT_TIERS.md`.
 - Runtime2 remains an experimental proving ground unless a later promotion plan gives it required behavior tests and a public support contract.
+- Live GitHub state is the execution baseline. As of 2026-05-07, the correctness PR queue is empty after refreshing with `gh pr list --state open --limit 20 --json number,title,isDraft,headRefName,updatedAt,url`.
 
 ## Live-State Refresh
 
@@ -24,25 +25,11 @@ gh pr list --state open --limit 50 \
 
 If GitHub API access is rate-limited, do not guess mergeability. Continue with local rebases and tests, but report that live PR count could not be refreshed.
 
-## Merge Queue
+## Current Queue State
 
-Use the queue below as the current seed order. Re-check live state before each merge because PRs may have landed, closed, or changed base.
+The historical correctness merge queue is closed. Do not resurrect old PR numbers from handoff notes unless `gh pr view <PR>` shows that the PR is still open and relevant.
 
-| Order | PR | Direction | Required proof beyond `just ci-supported` |
-|---:|---|---|---|
-| 1 | #300 | Rebase, test, merge | `cargo test -p adze-tablegen language_gen::tests::test_count_symbols_uses_parse_table_count_with_externals -- --exact`; `cargo clippy -p adze-tablegen -- -D warnings` |
-| 2 | #306 | Rebase after #300, test, merge | `cargo test -p adze-tablegen --test primary_state_comprehensive lang_gen_primary_state_count_equals_state_count -- --exact`; `cargo test -p adze-tablegen --test primary_state_comprehensive` |
-| 3 | #303 | Rebase, test, merge | `cargo check -p adze-tool`; clean downstream/repro build if available |
-| 4 | #332 | Merge after ABI tests | `cargo test -p adze-glr-core --lib test_ts_lexer_layout_matches_tree_sitter_abi -- --nocapture`; `cargo test -p adze-glr-core --lib test_grammar_lexer_uses_tree_sitter_callback_abi -- --nocapture` |
-| 5 | #335 | Merge after timeout tests | `cargo test -p adze --lib unified_parser::tests:: -- --nocapture` |
-| 6 | #348 | Merge after CLI tests | `cargo test -p adze-cli -- --nocapture` |
-| 7 | #386 | Manually resolve conflicts, then merge | `cargo test -p adze-tablegen compression -- --nocapture`; `cargo test -p adze-tablegen validation -- --nocapture`; `cargo test -p adze-tablegen --all-features --no-run` |
-| 8 | #387 | Manually resolve conflicts, then merge | `cargo test -p adze-glr-core conflict -- --nocapture`; `cargo test -p adze-glr-core ambiguity -- --nocapture`; `cargo test -p adze-glr-core --all-features --no-run` |
-| 9 | #376 | Merge only if strict canary proves real parser output | `cargo test -p adze-golden-tests -- --nocapture`; `cargo test -p adze-golden-tests --features javascript-grammar javascript_canary_expression_golden -- --nocapture` |
-| 10 | #398 | Merge after correctness PRs | `cargo metadata --format-version 1`; `cargo tree -i criterion`; `cargo tree -i bincode`; benchmark no-run checks; `cargo test -p adze-ir serde -- --nocapture` |
-| Last | #321 | Rebase or close if superseded | Keep separate from correctness merges |
-
-For every PR:
+For any new correctness PR:
 
 ```bash
 git checkout main
@@ -54,19 +41,24 @@ cargo fmt --all -- --check
 just ci-supported
 ```
 
-Do not merge #386 or #387 without resolving conflicts manually. Do not weaken #376's canary to make it pass. Do not let #398 change production parse-table format semantics; postcard should remain dev/test-only unless a separate format migration is explicitly designed.
+Apply the same rules that worked for the closed queue:
+
+- Keep each PR narrow and parser/tablegen/runtime focused.
+- Rebase on current `main` and use hosted `CI / ci-supported` as the required merge gate.
+- Add a focused behavior canary before claiming a product surface is proven.
+- Do not weaken strict canaries to make a dashboard green. The closed #501 JavaScript canary-ignore PR is the example to avoid.
+- Do not let broad policy, coverage, or governance work consume the parser-correctness lane.
 
 ## Post-Queue Issues
 
-After the PR queue is empty, open focused issues instead of broad catch-all implementation PRs:
+The post-queue work is tracked as focused issues instead of broad catch-all implementation PRs:
 
-- GLR product proof: conflict-preserving end-to-end typed extraction.
-- Tablegen ABI completeness: conflict encoding/routing, field maps, symbol/state invariants.
-- Product-proof behavior lane: replace compile-only canaries with one real behavior per major surface.
-- Parse diagnostics: spans, expected token sets, line/column mapping, excerpts.
-- CLI clean-room quickstart and parse command truthfulness.
-- README/support-tier reconciliation: no Stable claim without a named proof command.
-- Benchmark truthfulness: real parser work vs infrastructure-only measurements.
+- [#460](https://github.com/EffortlessMetrics/adze/issues/460) GLR product proof: conflict-preserving end-to-end typed extraction.
+- [#461](https://github.com/EffortlessMetrics/adze/issues/461) Tablegen ABI completeness: conflict encoding/routing, field maps, symbol/state invariants.
+- [#463](https://github.com/EffortlessMetrics/adze/issues/463) Parse diagnostics: spans, expected token sets, line/column mapping, excerpts, no panic.
+- [#464](https://github.com/EffortlessMetrics/adze/issues/464) CLI clean-room quickstart and parse command truthfulness — closed after behavior canaries landed; reopen or replace only for new CLI parser behavior work.
+- [#465](https://github.com/EffortlessMetrics/adze/issues/465) README/support-tier reconciliation — closed after the proof map and stable product lane landed; keep the invariant in future docs edits.
+- [#73](https://github.com/EffortlessMetrics/adze/issues/73) and [#75](https://github.com/EffortlessMetrics/adze/issues/75) Benchmark truthfulness: real parser work vs infrastructure-only measurements.
 
 ## Green Ladder
 

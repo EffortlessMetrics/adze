@@ -11,7 +11,7 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 - why
 - how it becomes supported (or why it won't)
 
-Support tiers and proof commands for major surfaces are tracked in [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md). The active correctness merge/proof sequence is tracked in [`docs/status/CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
+Support tiers and proof commands for major surfaces are tracked in [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md). The post-queue correctness proof plan is tracked in [`docs/status/CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
 
 ---
 
