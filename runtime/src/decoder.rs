@@ -679,6 +679,69 @@ fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
     rules
 }
 
+fn decode_alias_sequences(
+    lang: &TSLanguage,
+    index_to_symbol: &[SymbolId],
+) -> Vec<Vec<Option<SymbolId>>> {
+    let production_count = if lang.production_id_count > 0 {
+        lang.production_id_count as usize
+    } else if lang.production_count > 0 {
+        lang.production_count as usize
+    } else {
+        lang.rule_count as usize
+    };
+    let stride = lang.max_alias_sequence_length as usize;
+
+    if lang.alias_count == 0
+        || production_count == 0
+        || stride == 0
+        || lang.alias_map.is_null()
+        || lang.alias_sequences.is_null()
+    {
+        return Vec::new();
+    }
+
+    let safe_production_count = production_count.min(100_000);
+    let Some(alias_cell_count) = safe_production_count.checked_mul(stride) else {
+        return Vec::new();
+    };
+    if alias_cell_count > 10_000_000 {
+        return Vec::new();
+    }
+
+    // SAFETY: non-null pointers are checked above, and the TSLanguage ABI stores one
+    // alias-map entry per production plus a dense alias sequence table.
+    let alias_map = unsafe { std::slice::from_raw_parts(lang.alias_map, safe_production_count) };
+    // SAFETY: see above; `alias_cell_count` is checked for overflow and capped.
+    let alias_cells = unsafe { std::slice::from_raw_parts(lang.alias_sequences, alias_cell_count) };
+
+    alias_map
+        .iter()
+        .map(|offset| {
+            let offset = *offset as usize;
+            (0..stride)
+                .map(|position| {
+                    let raw_symbol = offset
+                        .checked_add(position)
+                        .and_then(|index| alias_cells.get(index))
+                        .copied()
+                        .unwrap_or(0);
+                    if raw_symbol == 0 {
+                        None
+                    } else {
+                        Some(
+                            index_to_symbol
+                                .get(raw_symbol as usize)
+                                .copied()
+                                .unwrap_or(SymbolId(raw_symbol)),
+                        )
+                    }
+                })
+                .collect()
+        })
+        .collect()
+}
+
 /// Decode a ParseTable from a TSLanguage struct
 pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     let mut action_table = Vec::new();
@@ -1025,6 +1088,8 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             symbol_to_index.entry(sym).or_insert(col);
         }
     }
+    let alias_sequences = decode_alias_sequences(lang, &index_to_symbol);
+
     let mut table = ParseTable {
         action_table,
         goto_table,
@@ -1110,7 +1175,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         extras: extras.clone(),
         dynamic_prec_by_rule: Vec::new(), // TODO: Decode from language
         rule_assoc_by_rule: Vec::new(),   // TODO: Decode from language
-        alias_sequences: Vec::new(),      // TODO: Decode from language
+        alias_sequences,
         field_names,
         field_map,
     };
