@@ -1297,6 +1297,38 @@ fn reporting_parse_with_errors_includes_source_excerpt_after_bad_input() {
     );
 }
 
+#[test]
+fn reporting_parse_with_errors_tracks_multiline_bad_input_location_and_excerpt() {
+    let mut parser = make_dummy_parser();
+
+    let errors = parser
+        .parse_with_errors(vec![
+            (adze_ir::SymbolId(1), "1\n".to_string()),
+            (adze_ir::SymbolId(2), "@".to_string()),
+        ])
+        .expect_err("invalid token after newline should fail to parse without panicking");
+
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].line, 2);
+    assert_eq!(errors[0].column, 1);
+    assert_eq!(errors[0].unexpected_token.as_deref(), Some("@"));
+    assert!(
+        !errors[0].expected.is_empty(),
+        "expected token set should survive multiline parse failure: {:?}",
+        errors[0].expected
+    );
+    assert!(
+        errors[0].context.contains("@"),
+        "source excerpt should include the unexpected line: {:?}",
+        errors[0].context
+    );
+    assert!(
+        errors[0].context.contains("^"),
+        "source excerpt should include a caret marker: {:?}",
+        errors[0].context
+    );
+}
+
 // ============================================================================
 // Helper: create a minimal GLRParser for ErrorReporter tests
 // ============================================================================
