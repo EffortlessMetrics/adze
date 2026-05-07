@@ -15,7 +15,7 @@ pub fn run_tests(
     let corpus = corpus_path.unwrap_or(Path::new("corpus"));
 
     if parser_path.is_some() {
-        eprintln!("adze CLI v0.6.0 - Test Command");
+        eprintln!("adze CLI {} - Test Command", env!("CARGO_PKG_VERSION"));
         eprintln!("=====================================");
         eprintln!();
         eprintln!("STATUS: Corpus testing with external parsers is not yet implemented.");
@@ -48,7 +48,7 @@ pub fn run_tests(
         eprintln!("   cargo insta review  # to update snapshots");
         eprintln!("   ```");
         eprintln!();
-        eprintln!("COMING SOON (v0.6.x):");
+        eprintln!("PLANNED:");
         eprintln!("  - Tree-sitter compatible corpus testing");
         eprintln!("  - Automatic test generation from corpus files");
         eprintln!();
