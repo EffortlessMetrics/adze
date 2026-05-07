@@ -91,3 +91,49 @@ fn generated_tree_exposes_fielded_children() {
     assert_eq!(right.text(source.as_bytes()), "2");
     assert!(expression.child_by_field_name("missing").is_none());
 }
+
+#[test]
+fn generated_tree_exposes_named_children() {
+    let mut parser = Parser::new();
+    let lang = adze_example::ts_langs::arithmetic();
+
+    parser.set_language(lang).expect("Failed to set language");
+
+    let source = "1-2";
+    let tree = parser.parse(source, None).expect("Parse failed");
+    let root = tree.root_node();
+    let expression = root.child(0).expect("root should expose expression child");
+
+    assert!(root.is_named());
+    assert_eq!(root.named_child_count(), 1);
+    assert_eq!(
+        root.named_child(0)
+            .expect("root should expose named expression child")
+            .kind(),
+        "expression"
+    );
+    assert!(root.named_child(1).is_none());
+
+    assert!(expression.is_named());
+    assert_eq!(expression.child_count(), 3);
+    assert_eq!(expression.named_child_count(), 2);
+
+    let left = expression
+        .named_child(0)
+        .expect("expression should expose left named child");
+    let right = expression
+        .named_child(1)
+        .expect("expression should expose right named child");
+
+    assert_eq!(left.kind(), "expression");
+    assert_eq!(left.text(source.as_bytes()), "1");
+    assert_eq!(right.kind(), "expression");
+    assert_eq!(right.text(source.as_bytes()), "2");
+    assert!(
+        !expression
+            .child(1)
+            .expect("operator child should exist")
+            .is_named()
+    );
+    assert!(expression.named_child(2).is_none());
+}
