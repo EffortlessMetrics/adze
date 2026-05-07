@@ -145,3 +145,36 @@ fn generated_typed_parser_unexpected_eof_lists_expected_tokens() {
         "rendered diagnostic should include the expected token name: {rendered}"
     );
 }
+
+#[test]
+fn generated_typed_parser_multiline_bad_token_reports_line_column_and_excerpt() {
+    let source = "1 +\n@";
+    let errors = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("multiline invalid token must fail through the generated typed parser");
+
+    let first = errors
+        .first()
+        .expect("generated parser should return at least one parse error");
+
+    assert_eq!(
+        first.byte_span(),
+        4..5,
+        "bad token span should point at the invalid token on the second line"
+    );
+
+    let span = first.source_span(source.as_bytes());
+    assert_eq!(span.start.line, 2);
+    assert_eq!(span.start.column, 1);
+    assert_eq!(span.end.line, 2);
+    assert_eq!(span.end.column, 2);
+
+    let rendered = first.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("at 2:1 (bytes 4..5)"),
+        "rendered diagnostic should include second-line location and byte span: {rendered}"
+    );
+    assert!(
+        rendered.contains("@\n^"),
+        "rendered diagnostic should include the second source line and caret: {rendered}"
+    );
+}
