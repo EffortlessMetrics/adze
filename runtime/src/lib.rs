@@ -1181,6 +1181,158 @@ pub mod errors {
         pub end: usize,
     }
 
+    /// One-indexed source position for a parse diagnostic.
+    ///
+    /// The column is byte-oriented so it matches the parser's byte offsets.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct SourcePosition {
+        /// Byte offset in the original source.
+        pub byte: usize,
+        /// One-indexed line number.
+        pub line: usize,
+        /// One-indexed byte column within the line.
+        pub column: usize,
+    }
+
+    impl SourcePosition {
+        /// Compute a source position from a byte offset.
+        #[must_use]
+        pub fn from_byte_offset(source: &[u8], byte: usize) -> Self {
+            let byte = byte.min(source.len());
+            let line_col = crate::linecol::LineCol::at_position(source, byte);
+            Self {
+                byte,
+                line: line_col.line + 1,
+                column: line_col.column(byte) + 1,
+            }
+        }
+    }
+
+    impl std::fmt::Display for SourcePosition {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}:{}", self.line, self.column)
+        }
+    }
+
+    /// One-indexed source range for a parse diagnostic.
+    ///
+    /// The end position is exclusive, matching [`ParseError::end`].
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct SourceSpan {
+        /// Inclusive start position.
+        pub start: SourcePosition,
+        /// Exclusive end position.
+        pub end: SourcePosition,
+    }
+
+    impl ParseError {
+        /// Return the byte span covered by this parse error.
+        #[must_use]
+        pub fn byte_span(&self) -> std::ops::Range<usize> {
+            self.start..self.end
+        }
+
+        /// Compute a line/column span for this error in `source`.
+        ///
+        /// Out-of-range byte offsets are clamped to the end of `source` so
+        /// diagnostics remain printable for malformed parser output.
+        #[must_use]
+        pub fn source_span(&self, source: &[u8]) -> SourceSpan {
+            SourceSpan {
+                start: SourcePosition::from_byte_offset(source, self.start),
+                end: SourcePosition::from_byte_offset(source, self.end),
+            }
+        }
+
+        /// Return a formatter that includes line/column and source context.
+        #[must_use]
+        pub fn display_with_source<'a>(&'a self, source: &'a str) -> ParseErrorWithSource<'a> {
+            ParseErrorWithSource {
+                error: self,
+                source,
+            }
+        }
+    }
+
+    impl std::fmt::Display for ParseErrorReason {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ParseErrorReason::UnexpectedToken(token) => {
+                    write!(f, "unexpected token {token:?}")
+                }
+                ParseErrorReason::FailedNode(errors) if errors.is_empty() => {
+                    write!(f, "failed to parse node")
+                }
+                ParseErrorReason::FailedNode(errors) => {
+                    write!(
+                        f,
+                        "failed to parse node with {} nested errors",
+                        errors.len()
+                    )
+                }
+                ParseErrorReason::MissingToken(token) => write!(f, "missing token {token:?}"),
+            }
+        }
+    }
+
+    impl std::fmt::Display for ParseError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{} at bytes {}..{}", self.reason, self.start, self.end)
+        }
+    }
+
+    impl std::error::Error for ParseError {}
+
+    /// Display helper returned by [`ParseError::display_with_source`].
+    pub struct ParseErrorWithSource<'a> {
+        error: &'a ParseError,
+        source: &'a str,
+    }
+
+    impl std::fmt::Display for ParseErrorWithSource<'_> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let span = self.error.source_span(self.source.as_bytes());
+            write!(
+                f,
+                "{} at {} (bytes {}..{})",
+                self.error.reason, span.start, self.error.start, self.error.end
+            )?;
+
+            if let Some(line) = source_line(self.source, span.start.byte) {
+                let marker_width = if span.start.line == span.end.line {
+                    span.end.column.saturating_sub(span.start.column).max(1)
+                } else {
+                    1
+                };
+                let marker =
+                    " ".repeat(span.start.column.saturating_sub(1)) + &"^".repeat(marker_width);
+                write!(f, "\n{line}\n{marker}")?;
+            }
+
+            Ok(())
+        }
+    }
+
+    fn source_line(source: &str, byte_offset: usize) -> Option<&str> {
+        if source.is_empty() {
+            return None;
+        }
+
+        let bytes = source.as_bytes();
+        let offset = byte_offset.min(bytes.len());
+        let mut start = offset;
+        while start > 0 && bytes[start - 1] != b'\n' && bytes[start - 1] != b'\r' {
+            start -= 1;
+        }
+
+        let mut end = offset;
+        while end < bytes.len() && bytes[end] != b'\n' && bytes[end] != b'\r' {
+            end += 1;
+        }
+
+        source.get(start..end)
+    }
+
     /// Given the root node of a Tree Sitter parsing result, accumulates all
     /// errors that were emitted.
     #[cfg(not(feature = "pure-rust"))]

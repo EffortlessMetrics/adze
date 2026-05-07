@@ -320,11 +320,15 @@ fn test_python_parsing() {
 
 S-expressions provide readable tree inspection:
 
+> **CLI status:** `adze parse --sexp` is not implemented in the current CLI.
+> Use runtime/golden-test helpers for S-expression proof until CLI parse output
+> is promoted.
+
 ```bash
-# Debug parsing issues
+# Future CLI shape for debugging parsing issues
 echo "problematic_code" | adze parse --sexp
 
-# Compare implementations
+# Future CLI shape for comparing implementations
 echo "test_input" | tree-sitter parse --quiet > expected.sexp
 echo "test_input" | adze parse --sexp > actual.sexp
 diff expected.sexp actual.sexp

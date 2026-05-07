@@ -45,7 +45,7 @@ fn matrix_standard_is_core_phase() {
 fn matrix_report_contains_summary_header() {
     let matrix = BddGovernanceMatrix::standard(ParserFeatureProfile::current());
     let report = matrix.report("Core");
-    assert!(report.contains("BDD GLR Conflict Preservation Test Summary"));
+    assert!(report.contains("BDD Scenario Progress Summary"));
 }
 
 #[test]

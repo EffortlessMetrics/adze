@@ -8,7 +8,7 @@ use predicates::prelude::*;
 use std::process::Command;
 
 // ---------------------------------------------------------------------------
-// End-to-end smoke tests (lightweight — no grammar compilation)
+// End-to-end smoke tests.
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -86,11 +86,14 @@ fn test_init_generates_buildable_project() {
     assert!(project_dir.join("tests/basic.rs").exists());
 
     let status = Command::new("cargo")
-        .arg("check")
+        .arg("test")
         .current_dir(&project_dir)
         .status()
-        .expect("run cargo check for generated project");
-    assert!(status.success(), "generated project should build");
+        .expect("run cargo test for generated project");
+    assert!(
+        status.success(),
+        "generated project should build and pass typed parser tests"
+    );
 
     let mut check = cargo_bin_cmd!("adze");
     check

@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-04-29
+**Last updated:** 2026-05-06
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -11,7 +11,7 @@ Rule: if something is excluded from the supported lane, it must be listed here w
 - why
 - how it becomes supported (or why it won't)
 
-Support tiers and proof commands for major surfaces are tracked in [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
+Support tiers and proof commands for major surfaces are tracked in [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md). The active correctness merge/proof sequence is tracked in [`docs/status/CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
 
 ---
 
@@ -38,7 +38,7 @@ Support tiers and proof commands for major surfaces are tracked in [`docs/status
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
-**Current status:** GREEN — all supported crates compile, lint clean, and tests pass. **2,460+ tests across feature combinations, 0 failures in supported lane.** Feature-combination matrix: 12/12 pass (all green). `cargo-audit` clean (0 vulnerabilities). WASM: all core crates compile for `wasm32-unknown-unknown`; `wasm-demo` additionally has a parser-facing compile smoke (`cargo check` + `cargo test --no-run` on `wasm32-unknown-unknown`).
+**Current required status:** GREEN when `just ci-supported` / `CI / ci-supported` passes. Broader feature matrices, audit, WASM, and product-proof checks are useful optional signal, but they are not part of the supported merge gate unless explicitly promoted here and in [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
 
 ---
 
@@ -74,21 +74,26 @@ These may run as optional signal (nightly/manual/canary), but are not required f
 
 A broad-surface advisory lane now exists as `.github/workflows/product-proof.yml` and runs `scripts/ci-product.sh` on schedule/manual dispatch.
 
-This lane is **not** part of required merge gates. It provides bounded smoke proof across product surfaces that are outside `ci-supported`.
+This lane is **not** part of required merge gates. It provides bounded canary proof across product surfaces that are outside `ci-supported`.
 
 Current canaries:
 
-- `adze` runtime pure-rust smoke — **compile-only** (`cargo check -p adze --features pure-rust`)
-- `adze-cli` smoke — **compile-only** (`cargo check -p adze-cli`)
-- `adze-golden-tests` smoke — **compile-only** (`cargo test -p adze-golden-tests --features python-grammar --no-run`)
+- `adze` runtime pure-rust typed extraction — **behavior** (`cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture`)
+- `adze` GLR ambiguous typed extraction — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture`)
+- `adze` structured parse diagnostics — **behavior** (`cargo test -p adze --test error_display_tests reporting_parse_with_errors_includes_source_excerpt_after_bad_input --features "pure-rust,glr" -- --exact --nocapture`)
+- README arithmetic quickstart clean-room — **behavior** (`cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`)
+- `adze-cli` clean-room init smoke — **behavior** (`cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture`)
+- `adze-golden-tests` JavaScript canary — **behavior** (`cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture`)
 - `adze-benchmarks` canary — **compile-only** (`cargo bench -p adze-benchmarks --no-run`)
 - `wasm-demo` canary — **compile-only** (`cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown`)
-- grammar smoke (`adze-python`) — **compile-only** (`cargo check -p adze-python`)
-- `runtime2` canary — **compile-only** (`cargo test --manifest-path runtime2/Cargo.toml --no-run`)
-- governance/BDD microcrate smoke (`adze-bdd-grid-core`) — **compile-only** (`cargo test -p adze-bdd-grid-core --lib --no-run`)
+- grammar metadata smoke (`adze-python`) — **behavior** (`cargo test -p adze-python test_python_language_exists -- --exact --nocapture`)
+- `runtime2` metadata canary — **behavior** (`cargo test --manifest-path runtime2/Cargo.toml --features test-utils --test basic language_smoke_exposes_metadata_queries -- --exact --nocapture`)
+- governance/BDD microcrate smoke (`adze-bdd-grid-core`) — **behavior** (`cargo test -p adze-bdd-grid-core --lib tests::progress_summary_reports_counts -- --exact --nocapture`)
 
 Notes:
-- This lane intentionally does not provide full behavior proof; it is bounded canary signal only.
+- This lane intentionally does not provide full product proof; it is bounded canary signal only.
+- Compile-only canaries remain only where the current truthful claim is compile/no-run signal, notably benchmarks and WASM.
+- The next promotion step is a required `ci-product-stable` lane for README-stable claims only, after the advisory canaries are consistently green and any missing stable-product behavior canaries are added.
 - If one canary is red, the advisory job can fail while remaining non-blocking due to workflow `continue-on-error: true`.
 
 ## Known warnings (non-blocking)
@@ -104,6 +109,7 @@ To add a crate/workflow to the supported lane, it must be:
 - reproducible on a normal dev machine
 - stable across the supported toolchain/MSRV
 - bounded in time/resources
+- behavior-proven, not just compile-proven
 - documented (how to run it locally; common failure modes)
 
 When you add something to `ci-supported`, update this file in the same PR.

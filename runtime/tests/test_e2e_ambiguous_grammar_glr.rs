@@ -18,6 +18,7 @@
 use adze::decoder;
 use adze::pure_parser::TSLanguage;
 use adze_glr_core::Action;
+use adze_glr_core::conflict_inspection::cell_has_conflict;
 
 /// Helper: Count multi-action cells (GLR conflicts) in a parse table
 fn count_multi_action_cells(lang: &'static TSLanguage) -> usize {
@@ -26,7 +27,7 @@ fn count_multi_action_cells(lang: &'static TSLanguage) -> usize {
     let mut conflict_count = 0;
     for state_actions in &parse_table.action_table {
         for action_cell in state_actions {
-            if action_cell.len() > 1 {
+            if cell_has_conflict(action_cell) {
                 conflict_count += 1;
             }
         }
@@ -47,7 +48,6 @@ fn contains_shift_reduce(cell: &[Action]) -> bool {
 //==============================================================================
 
 #[test]
-#[ignore = "KNOWN BUG: GLR conflict generation - enum variant inlining not generating conflicts yet"]
 fn test_ambiguous_grammar_conflict_generation() {
     eprintln!("\n=== E2E TEST: Ambiguous Grammar Conflict Generation ===\n");
 
@@ -83,7 +83,7 @@ fn test_ambiguous_grammar_conflict_generation() {
     let mut has_binary_conflict = false;
     for (state_idx, state_actions) in parse_table.action_table.iter().enumerate() {
         for (symbol_idx, cell) in state_actions.iter().enumerate() {
-            if cell.len() > 1 && contains_shift_reduce(cell) {
+            if cell_has_conflict(cell) && contains_shift_reduce(cell) {
                 has_binary_conflict = true;
 
                 let symbol_name = if symbol_idx < parse_table.symbol_metadata.len() {
@@ -119,7 +119,6 @@ fn test_ambiguous_grammar_conflict_generation() {
 //==============================================================================
 
 #[test]
-#[ignore = "KNOWN BUG: GLR conflict generation - depends on conflict generation which is not yet working"]
 fn test_ambiguous_grammar_glr_parsing() {
     eprintln!("\n=== E2E TEST: Ambiguous Grammar GLR Parsing ===\n");
 
@@ -147,6 +146,26 @@ fn test_ambiguous_grammar_glr_parsing() {
 
     let expr = result.unwrap();
     eprintln!("  Parsed AST: {:?}", expr);
+
+    let repeated = grammar::parse(input).expect("second parse should succeed");
+    assert_eq!(
+        expr, repeated,
+        "ambiguous typed extraction must be deterministic"
+    );
+    assert_eq!(
+        expr,
+        Expr::Binary(
+            Box::new(Expr::Number(1)),
+            "+".to_string(),
+            Box::new(Expr::Binary(
+                Box::new(Expr::Number(2)),
+                "+".to_string(),
+                Box::new(Expr::Number(3)),
+            )),
+        ),
+        "current deterministic selection should remain stable"
+    );
+    eprintln!("  ✅ Deterministic typed extraction validated");
 
     // Contract Assertion 2: Valid AST structure
     assert!(
@@ -256,7 +275,6 @@ fn test_glr_backward_compatibility() {
 //==============================================================================
 
 #[test]
-#[ignore = "KNOWN BUG: GLR conflict generation - ambiguous grammar not generating conflicts yet"]
 fn test_ambiguous_vs_arithmetic_comparison() {
     eprintln!("\n=== E2E TEST: Ambiguous vs Arithmetic Comparison ===\n");
 
@@ -316,7 +334,9 @@ fn test_contract_documentation() {
     eprintln!("  4. ✓ Backward compatibility with precedence grammars");
     eprintln!();
     eprintln!("To run validation:");
-    eprintln!("  cargo test -p adze --features glr --test test_e2e_ambiguous_grammar_glr");
+    eprintln!(
+        "  cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr"
+    );
     eprintln!();
     eprintln!("Expected Results:");
     eprintln!("  - test_ambiguous_grammar_conflict_generation: PASS");
@@ -324,5 +344,5 @@ fn test_contract_documentation() {
     eprintln!("  - test_glr_backward_compatibility: PASS");
     eprintln!("  - test_ambiguous_vs_arithmetic_comparison: PASS");
     eprintln!();
-    eprintln!("See: docs/specs/E2E_AMBIGUOUS_GRAMMAR_GLR_VALIDATION.md");
+    eprintln!("See: docs/status/SUPPORT_TIERS.md");
 }

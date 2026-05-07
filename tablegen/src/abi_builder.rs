@@ -652,9 +652,6 @@ impl<'a> AbiLanguageBuilder<'a> {
                 // We need to know the count before we start pushing
                 let mut entries = Vec::new();
 
-                // Check if this state has a default reduce action
-                let mut default_reduce = None;
-                let mut has_non_reduce = false;
                 let mut non_error_actions = Vec::new();
 
                 for symbol_idx in 0..self.parse_table.symbol_count {
@@ -677,83 +674,37 @@ impl<'a> AbiLanguageBuilder<'a> {
                             .any(|e| e.symbol_id == symbol_id)
                         || symbol_id == self.parse_table.eof_symbol;
 
-                    let action = if is_terminal {
+                    let mut record_action = |symbol_idx: usize, action: &Action| match action {
+                        Action::Error => {}
+                        _ => {
+                            non_error_actions.push((symbol_idx, action.clone()));
+                        }
+                    };
+
+                    if is_terminal {
                         if state_idx < self.parse_table.action_table.len()
                             && symbol_idx < self.parse_table.action_table[state_idx].len()
                         {
                             let actions = &self.parse_table.action_table[state_idx][symbol_idx];
-                            if actions.is_empty() {
-                                Action::Error
-                            } else {
-                                actions[0].clone()
+                            for action in actions {
+                                record_action(symbol_idx, action);
                             }
-                        } else {
-                            Action::Error
                         }
                     } else if state_idx < self.parse_table.goto_table.len()
                         && symbol_idx < self.parse_table.goto_table[state_idx].len()
                     {
                         let goto_state = self.parse_table.goto_table[state_idx][symbol_idx];
                         if goto_state.0 > 0 {
-                            Action::Shift(goto_state)
-                        } else {
-                            Action::Error
-                        }
-                    } else {
-                        Action::Error
-                    };
-
-                    match action {
-                        Action::Error => continue,
-                        Action::Reduce(prod_id) => {
-                            non_error_actions.push((symbol_idx, action.clone()));
-                            if let Some(default_prod) = &default_reduce {
-                                if default_prod != &prod_id {
-                                    has_non_reduce = true;
-                                }
-                            } else {
-                                default_reduce = Some(prod_id);
-                            }
-                        }
-                        _ => {
-                            has_non_reduce = true;
-                            non_error_actions.push((symbol_idx, action.clone()));
+                            record_action(symbol_idx, &Action::Shift(goto_state));
                         }
                     }
                 }
 
-                if let Some(prod_id) = default_reduce
-                    && !has_non_reduce
-                    && !non_error_actions.is_empty()
-                {
-                    let reduce_action = 0x8000u16 | (prod_id.0 + 1);
-                    entries.push((0x8000u16, reduce_action));
-                } else {
-                    for (symbol_idx, action) in non_error_actions {
-                        if let Ok(encoded) = self.encode_action(&action) {
-                            entries.push((symbol_idx as u16, encoded));
-                        }
+                for (symbol_idx, action) in non_error_actions {
+                    if let Ok(encoded) = self.encode_action(&action) {
+                        entries.push((symbol_idx as u16, encoded));
                     }
                 }
-
-                // Add nonterminal gotos
-                let token_cols = self.parse_table.token_count;
-                let symbol_cols = self.parse_table.symbol_count;
-                for col in token_cols..symbol_cols {
-                    if state_idx < self.parse_table.goto_table.len()
-                        && col < self.parse_table.goto_table[state_idx].len()
-                    {
-                        let to = self.parse_table.goto_table[state_idx][col].0;
-                        if to != 0 {
-                            entries.push((col as u16, to));
-                        }
-                    }
-                }
-
-                // Push field_count then entries
-                let field_count = entries.len() as u16;
-                table_data.push(quote! { #field_count });
-                current_offset += 1;
 
                 for (sym, val) in entries {
                     table_data.push(quote! { #sym });
@@ -887,7 +838,8 @@ impl<'a> AbiLanguageBuilder<'a> {
 
     /// Generate field maps
     fn generate_field_maps(&self) -> (Vec<TokenStream>, Vec<TokenStream>) {
-        let mut field_map_slices = Vec::new();
+        let production_id_count = self.calculate_counts().production_id_count as usize;
+        let mut field_map_slices = vec![quote! { 0u16 }; production_id_count * 2];
         let mut field_map_entries = Vec::new();
 
         // Group rules by production ID
@@ -904,11 +856,7 @@ impl<'a> AbiLanguageBuilder<'a> {
 
         // Build field map entries for each production
         for (production_id, rules) in rules_by_production {
-            if production_id == 0 {
-                continue; // Skip production ID 0
-            }
-
-            let start_index = field_map_entries.len() as u16;
+            let start_index = (field_map_entries.len() / 2) as u16;
             let mut entry_count = 0u16;
 
             // Process each rule with this production ID
@@ -931,21 +879,12 @@ impl<'a> AbiLanguageBuilder<'a> {
 
             // Add slice for this production ID if it has fields
             if entry_count > 0 {
-                // Ensure we have slices for all production IDs up to this one
-                while field_map_slices.len() < production_id as usize {
-                    field_map_slices.push(quote! { 0u16 }); // start
-                    field_map_slices.push(quote! { 0u16 }); // length
+                let slice_offset = production_id as usize * 2;
+                if slice_offset + 1 < field_map_slices.len() {
+                    field_map_slices[slice_offset] = quote! { #start_index };
+                    field_map_slices[slice_offset + 1] = quote! { #entry_count };
                 }
-
-                // Add this production's slice
-                field_map_slices.push(quote! { #start_index });
-                field_map_slices.push(quote! { #entry_count });
             }
-        }
-
-        // If no field maps were generated, provide minimal data
-        if field_map_slices.is_empty() {
-            field_map_slices.push(quote! { 0u16 });
         }
         if field_map_entries.is_empty() {
             field_map_entries.push(quote! { 0u16 });
@@ -1308,6 +1247,10 @@ mod tests {
     use super::*;
     use adze_ir::*;
 
+    fn token_stream_u16(token: &TokenStream) -> u16 {
+        token.to_string().trim_end_matches("u16").parse().unwrap()
+    }
+
     #[test]
     fn test_deterministic_symbol_ordering() {
         let mut grammar = Grammar::new("test".to_string());
@@ -1626,6 +1569,109 @@ mod tests {
         assert_eq!(enc, 0, "Error → 0");
     }
 
+    #[test]
+    fn test_fallback_parse_table_preserves_multi_action_cell() {
+        let mut table = crate::empty_table!(states: 2, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        for row in &mut table.goto_table {
+            row.fill(StateId(0));
+        }
+        table.action_table[0][1] = vec![
+            Action::Error,
+            Action::Shift(StateId(1)),
+            Action::Reduce(RuleId(0)),
+        ];
+
+        let mut grammar = Grammar::new("fallback_conflict".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (table_data, table_map) = builder.generate_parse_tables();
+        let values: Vec<u16> = table_data.iter().map(token_stream_u16).collect();
+        let offsets: Vec<u32> = table_map
+            .iter()
+            .map(|token| token.to_string().trim_end_matches("u32").parse().unwrap())
+            .collect();
+
+        assert_eq!(offsets[0], 0, "state 0 starts at the first pair");
+        assert_eq!(offsets[1], 4, "state 1 starts after both state 0 pairs");
+        assert_eq!(values.len(), 4, "state 0 must emit two direct pairs");
+        assert_eq!(values[0], 1, "first entry symbol");
+        assert_eq!(
+            values[1],
+            builder.encode_action(&Action::Shift(StateId(1))).unwrap()
+        );
+        assert_eq!(values[2], 1, "second entry symbol");
+        assert_eq!(
+            values[3],
+            builder.encode_action(&Action::Reduce(RuleId(0))).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_fallback_parse_table_emits_goto_once() {
+        let mut table = crate::empty_table!(states: 2, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        for row in &mut table.goto_table {
+            row.fill(StateId(0));
+        }
+        table.goto_table[0][start.0 as usize] = StateId(1);
+
+        let mut grammar = Grammar::new("fallback_goto".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (table_data, table_map) = builder.generate_parse_tables();
+        let values: Vec<u16> = table_data.iter().map(token_stream_u16).collect();
+        let offsets: Vec<u32> = table_map
+            .iter()
+            .map(|token| token.to_string().trim_end_matches("u32").parse().unwrap())
+            .collect();
+
+        assert_eq!(offsets, vec![0, 2, 2]);
+        assert_eq!(
+            values,
+            vec![start.0, 1],
+            "state 0 should contain exactly one direct goto pair"
+        );
+    }
+
     /// Production LHS index entries must all reference non-terminal columns.
     #[test]
     fn test_production_lhs_index_nonterminal_columns() {
@@ -1667,5 +1713,99 @@ mod tests {
                 table.token_count
             );
         }
+    }
+
+    #[test]
+    fn test_field_map_slices_are_dense_and_include_production_zero() {
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        let mut grammar = Grammar::new("field_maps".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.fields.insert(FieldId(0), "first".to_string());
+        grammar.fields.insert(FieldId(1), "third".to_string());
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 0)],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(1), 0)],
+            production_id: ProductionId(2),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (slices, entries) = builder.generate_field_maps();
+        let slices: Vec<String> = slices.iter().map(ToString::to_string).collect();
+
+        assert_eq!(
+            slices.len(),
+            6,
+            "field_map_slices must have two words per production ID"
+        );
+        assert_eq!(slices[0], "0u16", "production 0 start");
+        assert_eq!(slices[1], "1u16", "production 0 length");
+        assert_eq!(slices[2], "0u16", "production 1 gap start");
+        assert_eq!(slices[3], "0u16", "production 1 gap length");
+        assert_eq!(
+            slices[4], "1u16",
+            "production 2 start is entry index, not word offset"
+        );
+        assert_eq!(slices[5], "1u16", "production 2 length");
+        assert_eq!(
+            entries.len(),
+            4,
+            "two field-map entries should emit two u16 words each"
+        );
+    }
+
+    #[test]
+    fn test_empty_field_maps_keep_dense_slices_and_non_null_entry_placeholder() {
+        let table = crate::empty_table!(states: 1, terms: 1, nonterms: 1);
+        let start = table.start_symbol;
+        let t = SymbolId(1);
+
+        let mut grammar = Grammar::new("empty_field_maps".to_string());
+        grammar.rule_names.insert(start, "start".to_string());
+        grammar.tokens.insert(
+            t,
+            Token {
+                name: "t".to_string(),
+                pattern: TokenPattern::String("t".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.add_rule(Rule {
+            lhs: start,
+            rhs: vec![Symbol::Terminal(t)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+
+        let builder = AbiLanguageBuilder::new(&grammar, &table);
+        let (slices, entries) = builder.generate_field_maps();
+        let slices: Vec<String> = slices.iter().map(ToString::to_string).collect();
+        let entries: Vec<String> = entries.iter().map(ToString::to_string).collect();
+
+        assert_eq!(slices, vec!["0u16", "0u16"]);
+        assert_eq!(entries, vec!["0u16"]);
     }
 }

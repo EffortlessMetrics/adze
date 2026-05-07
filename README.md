@@ -53,10 +53,14 @@ let expr = grammar::parse("1 + 2 * 3")?;
 
 ```toml
 [dependencies]
-adze = "0.8"
+adze = { version = "0.8", default-features = false }
 
 [build-dependencies]
 adze-tool = "0.8"
+
+[features]
+default = ["pure-rust"]
+pure-rust = ["adze/pure-rust"]
 ```
 
 Add a `build.rs` pointing at the file that contains your `#[adze::grammar]` module:
@@ -65,6 +69,7 @@ Add a `build.rs` pointing at the file that contains your `#[adze::grammar]` modu
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo::rustc-check-cfg=cfg(adze_unsafe_attrs)");
     // src/lib.rs for library crates, src/main.rs for binary crates
     adze_tool::build_parsers(&PathBuf::from("src/lib.rs"));
 }
@@ -82,13 +87,13 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 
 | Feature | Tier | Description |
 |---------|--------|-------------|
-| **Typed extraction** | ✅ Stable | Grammar *is* your AST — parse directly into your Rust types |
+| **Typed extraction** | ✅ Stable | Grammar *is* your AST for proven shapes — parse directly into your Rust types |
 | **Pure Rust** | ✅ Stable | Default backend is 100% Rust; no C toolchain needed |
-| **GLR parsing** | ✅ Stable | Handles ambiguous grammars (C++, JavaScript, etc.) |
-| **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for disambiguation |
+| **GLR conflict routing** | 🚧 Stabilizing | Core GLR routing exists; full ambiguous typed extraction proof is still being expanded |
+| **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for proven expression grammar shapes |
 | **WASM support** | 📎 Advisory | Compile parsers to WebAssembly with `features = ["wasm"]` |
 | **Tree-sitter interop** | 📎 Advisory | Import existing Tree-sitter grammars via `ts-bridge` |
-| **Serialization** | ✅ Stable | JSON and S-expression output with `features = ["serialization"]` |
+| **Serialization** | ✅ Stable (core tables) | Parse-table serialization is core-gated; broader tree JSON/S-expression output is still a product-proof surface |
 | **External scanners** | 🧪 Experimental | Custom tokenization via `ExternalScanner` trait |
 | **Incremental parsing** | 🧪 Experimental | Re-parse only edited regions (falls back to fresh parse) |
 
@@ -98,6 +103,7 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 | Typed AST extraction        | Supported for proven shapes | Exact-value tests define the contract.                                                           |
 | Operator precedence         | Supported / hardening       | Used for expression grammars.                                                                    |
 | GLR routing                 | Stabilizing                 | True GLR conflict routing is in place; broader ambiguity behavior is still being expanded.       |
+| Serialization               | Supported for core tables   | Core parse-table serialization is required; broader runtime tree formats need product proof.      |
 | Structured parse errors     | Stabilizing                 | Covered by focused runtime tests.                                                                |
 | External scanners           | Experimental                | Useful, but not yet a broad support claim.                                                       |
 | Incremental parsing         | Experimental                | Exists, but should be treated as a developing surface.                                           |
@@ -105,6 +111,8 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 | WASM                        | Advisory                    | Compile/proof surface is being expanded; runtime/browser execution is not yet the main contract. |
 | Grammar crates              | Advisory                    | Valuable smoke coverage; not all grammar crates are production-ready.                            |
 | Benchmarks                  | Advisory                    | Benchmarks are signal, not support proof.                                                        |
+
+Rule for documentation and CI promotion: no Stable feature claim without a named proof command in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
 
 Adze is a good fit if you are building a parser or DSL in Rust, you control the grammar, and you want the result as plain Rust types integrated into a normal Cargo build. It is not yet a drop-in replacement for mature parser generators, and surfaces outside the core lane should be treated as developing.
 

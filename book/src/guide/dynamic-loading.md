@@ -1,6 +1,13 @@
-# Dynamic Loading How-To Guide
+# Dynamic Loading Design Sketch
 
-This guide covers practical scenarios for using adze's dynamic loading feature to parse files with pre-compiled Tree-sitter grammars.
+This guide records practical scenarios intended for adze's dynamic loading
+feature.
+
+> **Current status:** dynamic loading is not a supported parse-output path in
+> the current CLI. `adze parse --dynamic ...` can be compiled behind the
+> `dynamic` feature and can attempt to load a symbol, but it still exits with
+> `dynamic parse mode is currently unimplemented`. Treat the examples below as
+> design sketches until this surface is promoted with behavior tests.
 
 ## Prerequisites
 

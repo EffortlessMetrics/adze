@@ -682,10 +682,11 @@ fn decode_rules(lang: &TSLanguage) -> Vec<ParseRule> {
 /// Decode a ParseTable from a TSLanguage struct
 pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     let mut action_table = Vec::new();
-    let goto_table = Vec::new();
     let mut symbol_metadata = Vec::new();
     let mut symbol_to_index = BTreeMap::new();
     let symbol_count = lang.symbol_count as usize;
+    let tcols = (lang.token_count + lang.external_token_count) as usize;
+    let mut goto_table = vec![vec![StateId(0); symbol_count]; lang.state_count as usize];
     let mut extras_set: BTreeSet<SymbolId> = BTreeSet::new();
 
     // Build the column -> symbol mapping first. If `public_symbol_map` is present, it
@@ -821,7 +822,7 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     for state in 0..lang.large_state_count as usize {
         let mut state_actions = Vec::new();
 
-        for symbol in 0..lang.symbol_count as usize {
+        for symbol in 0..symbol_count {
             let table_offset = state * lang.symbol_count as usize + symbol;
             // SAFETY: `lang.parse_table` is a flat 2D array of size
             // `state_count * symbol_count`. `table_offset = state * symbol_count + symbol`
@@ -829,11 +830,16 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
             // `symbol < symbol_count`. `lang.parse_actions` is indexed by `action_idx`
             // which is read from the parse table (trusted TSLanguage data).
             // TODO(safety): No bounds check on `action_idx` against parse_actions array size.
-            let action = unsafe {
-                let action_idx = *lang.parse_table.add(table_offset);
+            let table_value = unsafe { *lang.parse_table.add(table_offset) };
 
-                if action_idx != 0 {
-                    let raw = &*lang.parse_actions.add(action_idx as usize);
+            let action_cell = if symbol >= tcols {
+                if table_value != 0 {
+                    goto_table[state][symbol] = StateId(table_value);
+                }
+                vec![]
+            } else if table_value != 0 {
+                let action = unsafe {
+                    let raw = &*lang.parse_actions.add(table_value as usize);
                     if raw.extra != 0
                         && raw.action_type == TSActionTag::Shift as u8
                         && let Some(&sym) = index_to_symbol.get(symbol)
@@ -841,14 +847,14 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
                         extras_set.insert(sym);
                     }
                     decode_action(raw, &rules, &rid_by_pair)
+                };
+                if matches!(action, Action::Error) {
+                    vec![]
                 } else {
-                    Action::Error
+                    vec![action]
                 }
-            };
-            let action_cell = if matches!(action, Action::Error) {
-                vec![]
             } else {
-                vec![action]
+                vec![]
             };
             state_actions.push(action_cell);
         }
@@ -861,41 +867,35 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
         for state in lang.large_state_count as usize..lang.state_count as usize {
             let mut state_actions = vec![vec![]; lang.symbol_count as usize];
 
-            // Get the offset into small_parse_table from the map
+            // Get this state's direct-pair range from the map.
             let map_index = state - lang.large_state_count as usize;
             // SAFETY: `lang.small_parse_table_map` is non-null (branch guard).
             // `map_index = state - large_state_count` where `state` ranges from
             // `large_state_count..state_count`, so `map_index < state_count - large_state_count`.
             // TSLanguage contract guarantees the map array covers all small states.
-            let offset = unsafe { *lang.small_parse_table_map.add(map_index) } as usize;
+            // The map has a sentinel final offset after the last small state.
+            let start_offset = unsafe { *lang.small_parse_table_map.add(map_index) } as usize;
+            let end_offset = unsafe { *lang.small_parse_table_map.add(map_index + 1) } as usize;
 
-            // SAFETY: `lang.small_parse_table` is non-null (branch guard).
-            // `offset` comes from `small_parse_table_map` which is trusted TSLanguage data.
-            // TODO(safety): No independent validation that `offset` is within the
-            // small_parse_table allocation. Corrupted TSLanguage data could cause OOB reads.
-            let mut ptr = unsafe { lang.small_parse_table.add(offset) };
+            // Read direct (symbol, action_index) pairs. This matches the pure parser
+            // and parser_v4 small-table readers and preserves duplicate symbols for
+            // GLR multi-action cells.
+            let mut offset = start_offset;
+            while offset + 1 < end_offset {
+                // SAFETY: `offset` is bounded by the trusted start/end offsets from
+                // `small_parse_table_map`. Malformed TSLanguage data could still point
+                // outside the allocation; callers should validate generated ABI data.
+                let symbol = unsafe { *lang.small_parse_table.add(offset) } as usize;
+                let action_index = unsafe { *lang.small_parse_table.add(offset + 1) } as usize;
+                offset += 2;
 
-            // SAFETY: `ptr` points within the small_parse_table array (see above).
-            // Each subsequent `ptr.add(1)` advances to the next entry. The total number
-            // of reads is `1 + 2 * field_count`, which must fit within the allocation.
-            // TODO(safety): `field_count` is read from the table itself with no upper-bound
-            // validation against the total allocation size.
-            let field_count = unsafe { *ptr } as usize;
-            ptr = unsafe { ptr.add(1) };
+                if symbol >= symbol_count || action_index == 0 {
+                    continue;
+                }
 
-            // Read field_count pairs of (symbol, action_index)
-            for _ in 0..field_count {
-                // SAFETY: `ptr` is advanced sequentially within small_parse_table.
-                // Each iteration reads two entries. Validity depends on `field_count`
-                // being correct per TSLanguage contract (see TODO above).
-                let symbol = unsafe { *ptr } as usize;
-                ptr = unsafe { ptr.add(1) };
-
-                let action_index = unsafe { *ptr } as usize;
-                ptr = unsafe { ptr.add(1) };
-
-                // Decode the action
-                if action_index != 0 && symbol < lang.symbol_count as usize {
+                if symbol >= tcols {
+                    goto_table[state][symbol] = StateId(action_index as u16);
+                } else {
                     let action = if action_index == 0xFFFF {
                         Action::Accept
                     } else if action_index & 0x8000 != 0 {
@@ -957,7 +957,6 @@ pub fn decode_parse_table(lang: &'static TSLanguage) -> ParseTable {
     // No separate map needed
 
     // Build nonterminal_to_index for goto lookups
-    let tcols = (lang.token_count + lang.external_token_count) as usize;
     let mut nonterminal_to_index = BTreeMap::new();
     for (col, sym) in index_to_symbol.iter().enumerate() {
         if col >= tcols {

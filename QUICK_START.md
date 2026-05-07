@@ -21,10 +21,14 @@ cd my-parser
 cat >> Cargo.toml <<'EOF'
 
 [dependencies]
-adze = "0.8.0-dev"
+adze = { version = "0.8.0-dev", default-features = false }
 
 [build-dependencies]
 adze-tool = "0.8.0-dev"
+
+[features]
+default = ["pure-rust"]
+pure-rust = ["adze/pure-rust"]
 EOF
 ```
 
@@ -38,6 +42,7 @@ Create `build.rs`:
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo::rustc-check-cfg=cfg(adze_unsafe_attrs)");
     adze_tool::build_parsers(&PathBuf::from("src/main.rs"));
 }
 ```

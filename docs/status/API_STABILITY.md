@@ -4,6 +4,8 @@
 **Workspace version:** 0.8.0
 
 This document catalogs the stability status of every public API surface in the adze workspace.
+It is an API-semver inventory, not the product support-tier proof map.
+For feature support tiers and repeatable proof commands, use [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
 
 ## Stability Levels
 
@@ -14,6 +16,8 @@ This document catalogs the stability status of every public API surface in the a
 | **Experimental** | Works in limited cases. May be removed or radically redesigned. |
 | **Deprecated** | Scheduled for removal. Use the noted replacement instead. |
 | **Internal** | Exposed for macro/codegen use only. Not part of the public contract. |
+
+Stable rows here identify API compatibility guarantees. They do not by themselves promote a feature to the README-stable product contract; product promotion requires a named proof command in [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
 
 ## Summary
 

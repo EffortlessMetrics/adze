@@ -7,7 +7,7 @@ use adze::error_recovery::{
     ErrorNode, ErrorRecoveryConfig, ErrorRecoveryConfigBuilder, ErrorRecoveryState,
     RecoveryStrategy,
 };
-use adze::error_reporting::{ErrorReporter, ParseError as ReportingParseError};
+use adze::error_reporting::{ErrorReporter, ErrorReportingExt, ParseError as ReportingParseError};
 use adze::errors::{ParseError, ParseErrorReason};
 use adze::glr_validation::{ErrorKind, ErrorLocation, RelatedInfo, ValidationError};
 use adze::{SpanError, SpanErrorReason};
@@ -26,6 +26,91 @@ fn parse_error_includes_byte_positions() {
     let dbg = format!("{:?}", err);
     assert!(dbg.contains("10"), "Debug should include start byte: {dbg}");
     assert!(dbg.contains("11"), "Debug should include end byte: {dbg}");
+}
+
+#[test]
+fn parse_error_display_includes_reason_and_byte_span() {
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("@".to_string()),
+        start: 10,
+        end: 11,
+    };
+    let display = format!("{err}");
+    assert!(
+        display.contains("unexpected token \"@\""),
+        "Display should include reason: {display}"
+    );
+    assert!(
+        display.contains("bytes 10..11"),
+        "Display should include byte span: {display}"
+    );
+}
+
+#[test]
+fn parse_error_source_span_is_one_indexed() {
+    let source = "let x\n  @bad";
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("@".to_string()),
+        start: 8,
+        end: 9,
+    };
+
+    let span = err.source_span(source.as_bytes());
+
+    assert_eq!(span.start.line, 2);
+    assert_eq!(span.start.column, 3);
+    assert_eq!(span.end.line, 2);
+    assert_eq!(span.end.column, 4);
+}
+
+#[test]
+fn parse_error_display_with_source_includes_line_column_and_excerpt() {
+    let source = "let x\n  @bad";
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("@".to_string()),
+        start: 8,
+        end: 9,
+    };
+
+    let display = format!("{}", err.display_with_source(source));
+
+    assert!(
+        display.contains("at 2:3"),
+        "Display should include line:column: {display}"
+    );
+    assert!(
+        display.contains("bytes 8..9"),
+        "Display should include byte span: {display}"
+    );
+    assert!(
+        display.contains("  @bad"),
+        "Display should include source excerpt: {display}"
+    );
+    assert!(
+        display.contains("  ^"),
+        "Display should include caret marker: {display}"
+    );
+}
+
+#[test]
+fn parse_error_display_with_source_marks_zero_width_spans() {
+    let source = "abc";
+    let err = ParseError {
+        reason: ParseErrorReason::MissingToken(";".to_string()),
+        start: 3,
+        end: 3,
+    };
+
+    let display = format!("{}", err.display_with_source(source));
+
+    assert!(
+        display.contains("missing token \";\""),
+        "Display should include missing token reason: {display}"
+    );
+    assert!(
+        display.contains("   ^"),
+        "Display should mark the insertion point: {display}"
+    );
 }
 
 #[test]
@@ -1155,6 +1240,60 @@ fn error_recovery_config_builder_produces_informative_config() {
     assert!(
         dbg.contains("5"),
         "Debug should show max_consecutive_errors"
+    );
+}
+
+#[test]
+fn reporting_error_reporter_populates_expected_tokens() {
+    let parser = make_dummy_parser();
+    let reporter = ErrorReporter::new(String::new());
+
+    let error = reporter.error_at_current(&parser, Some("@".to_string()));
+
+    assert_eq!(error.unexpected_token.as_deref(), Some("@"));
+    assert!(
+        error.expected.iter().any(|token| token == "num"),
+        "expected token set should include the one-token grammar's token name: {:?}",
+        error.expected
+    );
+}
+
+#[test]
+fn reporting_parse_with_errors_preserves_expected_tokens_after_bad_input() {
+    let mut parser = make_dummy_parser();
+
+    let errors = parser
+        .parse_with_errors(vec![(adze_ir::SymbolId(2), "@".to_string())])
+        .expect_err("invalid token should fail to parse");
+
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].line, 1);
+    assert_eq!(errors[0].column, 1);
+    assert_eq!(errors[0].unexpected_token.as_deref(), Some("@"));
+    assert!(
+        errors[0].expected.iter().any(|token| token == "num"),
+        "expected token set should survive parse failure: {:?}",
+        errors[0].expected
+    );
+}
+
+#[test]
+fn reporting_parse_with_errors_includes_source_excerpt_after_bad_input() {
+    let mut parser = make_dummy_parser();
+
+    let errors = parser
+        .parse_with_errors(vec![(adze_ir::SymbolId(2), "@".to_string())])
+        .expect_err("invalid token should fail to parse");
+
+    assert!(
+        errors[0].context.contains("@"),
+        "source excerpt should include the unexpected input: {:?}",
+        errors[0].context
+    );
+    assert!(
+        errors[0].context.contains("^"),
+        "source excerpt should include a caret marker: {:?}",
+        errors[0].context
     );
 }
 

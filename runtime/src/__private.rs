@@ -490,30 +490,36 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     let source = input.as_bytes();
     let grammar = crate::decoder::decode_grammar(language);
-    let mut lexer = match crate::glr_lexer::GLRLexer::new(&grammar, input.to_string()) {
-        Ok(lexer) => lexer,
-        Err(message) => {
+    let mut parser = crate::glr_parser::GLRParser::new(parse_table, grammar.clone());
+
+    if let Some(lex_fn) = language.lex_fn {
+        for token in lex_with_language_fn(language, lex_fn, source)? {
+            parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+        }
+    } else {
+        let mut lexer = match crate::glr_lexer::GLRLexer::new(&grammar, input.to_string()) {
+            Ok(lexer) => lexer,
+            Err(message) => {
+                return Err(vec![crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                    start: 0,
+                    end: source.len(),
+                }]);
+            }
+        };
+
+        while let Some(token) = lexer.next_token() {
+            parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+        }
+        if let Some((start, end)) = lexer.invalid_span() {
             return Err(vec![crate::errors::ParseError {
-                reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
-                start: 0,
-                end: source.len(),
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                    "unexpected token while lexing".to_string(),
+                ),
+                start,
+                end,
             }]);
         }
-    };
-
-    let mut parser = crate::glr_parser::GLRParser::new(parse_table, grammar);
-
-    while let Some(token) = lexer.next_token() {
-        parser.process_token(token.symbol_id, &token.text, token.byte_offset);
-    }
-    if let Some((start, end)) = lexer.invalid_span() {
-        return Err(vec![crate::errors::ParseError {
-            reason: crate::errors::ParseErrorReason::UnexpectedToken(
-                "unexpected token while lexing".to_string(),
-            ),
-            start,
-            end,
-        }]);
     }
 
     parser.process_eof(source.len());
@@ -555,6 +561,144 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
         0,
         None,
     ))
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn lex_with_language_fn(
+    language: &'static crate::pure_parser::TSLanguage,
+    lex_fn: unsafe extern "C" fn(*mut core::ffi::c_void, crate::pure_parser::TSLexState) -> bool,
+    source: &[u8],
+) -> core::result::Result<Vec<crate::glr_lexer::TokenWithPosition>, Vec<crate::errors::ParseError>>
+{
+    use crate::lex::TsLexer;
+    use adze_ir::SymbolId;
+    use core::ffi::c_void;
+
+    #[repr(C)]
+    struct Backing<'a> {
+        input: &'a [u8],
+        pos: usize,
+        mark: usize,
+    }
+
+    unsafe extern "C" fn lookahead(lex: *mut TsLexer) -> u32 {
+        unsafe {
+            if lex.is_null() || (*lex).data.is_null() {
+                return 0;
+            }
+            let backing = &*((*lex).data as *const Backing);
+            if backing.pos < backing.input.len() {
+                backing.input[backing.pos] as u32
+            } else {
+                0
+            }
+        }
+    }
+
+    unsafe extern "C" fn advance(lex: *mut TsLexer, _skip: bool) {
+        unsafe {
+            if lex.is_null() || (*lex).data.is_null() {
+                return;
+            }
+            let backing = &mut *((*lex).data as *mut Backing);
+            if backing.pos < backing.input.len() {
+                backing.pos += 1;
+            }
+        }
+    }
+
+    unsafe extern "C" fn mark_end(lex: *mut TsLexer) {
+        unsafe {
+            if lex.is_null() || (*lex).data.is_null() {
+                return;
+            }
+            let backing = &mut *((*lex).data as *mut Backing);
+            backing.mark = backing.pos;
+        }
+    }
+
+    fn is_extra_symbol(language: &crate::pure_parser::TSLanguage, symbol: u16) -> bool {
+        if symbol >= language.symbol_count as u16 || language.symbol_metadata.is_null() {
+            return false;
+        }
+        // SAFETY: `symbol < symbol_count` and generated languages expose a
+        // `symbol_metadata` array with `symbol_count` entries.
+        unsafe { (*language.symbol_metadata.add(symbol as usize) & 0x04) != 0 }
+    }
+
+    let mut tokens = Vec::new();
+    let mut position = 0usize;
+    let lex_mode = if !language.lex_modes.is_null() {
+        // SAFETY: generated languages provide one lex mode per state. State 0 is
+        // the conservative default for the current generated lexers.
+        unsafe { *language.lex_modes }
+    } else {
+        crate::pure_parser::TSLexState {
+            lex_state: 0,
+            external_lex_state: 0,
+        }
+    };
+
+    while position < source.len() {
+        while position < source.len() && matches!(source[position], b' ' | b'\t' | b'\n' | b'\r') {
+            position += 1;
+        }
+        if position >= source.len() {
+            break;
+        }
+
+        let start = position;
+        let mut backing = Backing {
+            input: source,
+            pos: position,
+            mark: position,
+        };
+        let mut ts_lexer = TsLexer {
+            lookahead,
+            advance,
+            mark_end,
+            result_symbol: u16::MAX,
+            data: &mut backing as *mut _ as *mut c_void,
+        };
+
+        // SAFETY: `lex_fn` is the generated language lexer. `ts_lexer` uses the
+        // same `TsLexer` ABI layout that generated lexers expect.
+        let ok = unsafe { lex_fn(&mut ts_lexer as *mut _ as *mut c_void, lex_mode) };
+        let end = if backing.mark > start {
+            backing.mark
+        } else {
+            backing.pos
+        };
+
+        if !ok || ts_lexer.result_symbol == u16::MAX || end <= start {
+            let invalid_end = source[start..]
+                .iter()
+                .position(|byte| byte.is_ascii_whitespace())
+                .map(|offset| start + offset.max(1))
+                .unwrap_or_else(|| (start + 1).min(source.len()));
+            return Err(vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                    "unexpected token while lexing".to_string(),
+                ),
+                start,
+                end: invalid_end,
+            }]);
+        }
+
+        if !is_extra_symbol(language, ts_lexer.result_symbol) {
+            let text = String::from_utf8_lossy(&source[start..end]).into_owned();
+            tokens.push(crate::glr_lexer::TokenWithPosition {
+                symbol_id: SymbolId(ts_lexer.result_symbol),
+                text,
+                byte_offset: start,
+                byte_length: end - start,
+            });
+        }
+
+        position = end;
+    }
+
+    Ok(tokens)
 }
 
 #[cfg(all(feature = "glr", feature = "pure-rust"))]

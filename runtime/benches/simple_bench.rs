@@ -3,7 +3,8 @@
 
 use adze::lexer::{self, GrammarLexer};
 use adze_ir::{SymbolId, TokenPattern};
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 fn configured_lexer(
     token_patterns: &[(SymbolId, TokenPattern, i32)],

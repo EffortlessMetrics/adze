@@ -2,6 +2,11 @@
 
 Complete reference for the adze command-line interface.
 
+> **Current support note:** `adze init`, `adze check`, `adze stats`, `adze build`,
+> `adze test`, and `adze doc` are implemented. `adze parse` is present in the
+> CLI shape, but static parsing and dynamic parse output are not implemented yet;
+> both modes fail with explicit errors.
+
 ## Installation
 
 Install the CLI tool:
@@ -111,6 +116,13 @@ Automatically rebuilds when `.rs` files change. Useful during grammar developmen
 
 Parse input files using adze grammars.
 
+**Status:** experimental command shape only. The current CLI accepts these
+arguments so scripts can detect the intended interface, but it does not yet
+produce parse trees. Static mode returns `static parse mode is currently
+unimplemented`. Dynamic mode can attempt to load a library symbol when compiled
+with `--features dynamic`, then returns `dynamic parse mode is currently
+unimplemented`.
+
 **Usage:**
 ```bash
 adze parse <GRAMMAR> <INPUT> [OPTIONS]
@@ -125,60 +137,23 @@ adze parse <GRAMMAR> <INPUT> [OPTIONS]
 - `--dynamic` - Use dynamic loading from shared library
 - `--symbol <SYMBOL>` - Symbol name for dynamic loading (default: "language")
 
-**Static Parsing Examples:**
+**Static Parsing Example:**
 ```bash
-# Parse with tree output (default)
 adze parse grammar.rs input.txt
-
-# Parse with JSON output
-adze parse grammar.rs input.txt --format json
-
-# Parse with S-expression output  
-adze parse grammar.rs input.txt --format sexp
 ```
 
-**Dynamic Loading Examples:**
+Expected result today: a non-zero exit with a message that static parse mode is
+not implemented. Use `adze check` to validate a grammar, `adze build` to
+generate parsers, and call `grammar::parse(input)` from Rust code.
+
+**Dynamic Loading Example:**
 ```bash
-# Parse JSON file with tree-sitter-json
 adze parse --dynamic libtree-sitter-json.so input.json
-
-# Use custom symbol name
-adze parse --dynamic libmy-lang.so input.txt --symbol tree_sitter_mylang
-
-# JSON output for tooling
-adze parse --dynamic libpython.so script.py --format json
 ```
 
-**Output Formats:**
-
-**Tree Format** (human-readable):
-```
-Parsed successfully. Root symbol: document, nodes: 127
-Input size: 1024 bytes
-```
-
-**JSON Format** (machine-readable):
-```json
-{
-  "status": "ok",
-  "root_symbol": "document", 
-  "nodes": 127
-}
-```
-
-**S-Expression Format** (Lisp-style):
-```lisp
-(document (statement (expression (number "42"))))
-```
-
-**Error Output:**
-```json
-{
-  "status": "error",
-  "errors": 3,
-  "message": "Parse tree contains errors"
-}
-```
+Expected result today: a non-zero exit unless dynamic support is unavailable
+even earlier. Dynamic loading is a developing surface and is not a supported
+parse-output path.
 
 ### `test`
 
@@ -288,7 +263,8 @@ Useful for tracking grammar complexity and growth.
 
 ### Supported Formats
 
-Dynamic loading supports standard Tree-sitter library formats:
+Dynamic loading support is developing. The CLI currently accepts standard
+Tree-sitter library paths, but parse output is not implemented.
 
 **Linux:**
 - `.so` files (shared objects)
@@ -393,7 +369,7 @@ RUST_LOG=warn adze build
 Enable performance monitoring for GLR parsing:
 
 ```bash
-ADZE_LOG_PERFORMANCE=true adze parse grammar.rs input.txt
+ADZE_LOG_PERFORMANCE=true cargo test
 ```
 
 Output example:
@@ -457,7 +433,7 @@ node-types.json
 # Check available symbols
 nm -D library.so | grep tree_sitter
 
-# Try common symbol names
+# Try common symbol names once dynamic parse output is implemented
 adze parse --dynamic lib.so input.txt --symbol language
 adze parse --dynamic lib.so input.txt --symbol get_language
 ```
@@ -505,15 +481,13 @@ adze --verbose parse --dynamic lib.so input.txt
 Shows:
 - Library loading steps
 - Symbol resolution details  
-- Parser creation process
-- Memory usage information
-- Performance timing
+- Failure point for currently unsupported parse modes
 
 ### Performance Tips
 
-1. **Use Dynamic Loading** for quick experimentation
+1. **Use Rust `grammar::parse`** for current parser execution
 2. **Enable Performance Monitoring** to identify bottlenecks
-3. **Use JSON Format** for machine processing
+3. **Treat CLI parse output formats as future work**
 4. **Limit Text Length** in serialization for large trees
 5. **Use GLR Runtime** for best performance and features
 
@@ -523,7 +497,7 @@ Shows:
 
 ```bash
 #!/bin/bash
-# Parse all Python files in a directory
+# Future sketch: parse all Python files in a directory once CLI parse output exists
 
 for file in *.py; do
     result=$(adze parse --dynamic libtree-sitter-python.so "$file" --format json)
@@ -547,11 +521,8 @@ done
 - name: Test Grammar  
   run: adze test --update=no
 
-- name: Parse Test Files
-  run: |
-    for test_file in tests/fixtures/*.txt; do
-      adze parse grammar.rs "$test_file" --format json
-    done
+- name: Run Parser Tests
+  run: cargo test
 ```
 
 ### Editor Integration
@@ -559,16 +530,12 @@ done
 ```json
 // VS Code task
 {
-    "label": "Parse Current File",
+    "label": "Check Current Grammar",
     "type": "shell", 
     "command": "adze",
     "args": [
-        "parse", 
-        "--dynamic",
-        "libtree-sitter-${fileExtname}.so",
-        "${file}",
-        "--format", 
-        "json"
+        "check",
+        "src/grammar.rs"
     ]
 }
 ```
