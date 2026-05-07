@@ -1,14 +1,38 @@
 name: Golden-Master Tests
 
+# Routed by grammar/golden risk pack: PR runs only when grammar surfaces are
+# touched, or when 'ci:golden' / 'full-ci' is set. See
+# docs/ci/adze-rollout-plan.md (PR 12) and policy/ci-risk-packs.toml.
+
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'golden-tests/**'
+      - 'grammars/**'
+      - 'corpus/**'
+      - 'crates/grammar-analysis-core/**'
+      - 'crates/common-syntax-core/**'
+      - 'glr-core/**'
+      - 'tablegen/**'
+      - 'runtime/**'
+      - 'runtime2/**'
+      - '.github/workflows/golden-tests.yml'
 
 jobs:
   golden-tests:
     name: Golden Tests - ${{ matrix.language }}
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+        (
+          contains(github.event.pull_request.labels.*.name, 'ci:golden') ||
+          contains(github.event.pull_request.labels.*.name, 'full-ci') ||
+          !contains(github.event.pull_request.labels.*.name, 'skip-golden')
+        ))
     runs-on: ubuntu-latest
     strategy:
       matrix:
