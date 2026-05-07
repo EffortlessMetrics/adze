@@ -50,7 +50,12 @@ struct Budget {
 pub struct Lane {
     pub id: String,
     pub workflow: String,
+    /// YAML job id from the workflow file, or `"multiple"` to whitelist every
+    /// job in the workflow without enumerating each one.
     pub job: String,
+    /// Optional human-readable label.
+    #[serde(default)]
+    pub display_name: Option<String>,
     pub kind: String,
     pub tier: String,
     pub default_pr: bool,

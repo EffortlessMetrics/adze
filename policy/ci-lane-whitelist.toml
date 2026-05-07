@@ -4,6 +4,13 @@
 # Each lane carries its purpose, owner, cost, evidence artifact, duplicate
 # map, and review/expiry dates. See docs/ci/cost-and-verification-policy.md.
 #
+# Field semantics:
+#   `job`  : YAML job id as it appears in the workflow file (e.g. `supported`).
+#            Use `"multiple"` to whitelist every job in a workflow without
+#            enumerating each one.
+#   `id`   : stable lane id used by risk packs and exceptions. Decoupled
+#            from `job` so we can rename workflow jobs without churn.
+#
 # This file is advisory until `cargo xtask check-ci-lane-whitelist` is run
 # in blocking mode in CI; until then the whitelist lint reports findings to
 # `target/policy/ci-lane-whitelist.json` without failing the build.
@@ -37,7 +44,8 @@ external_ai_review = 4.0
 [[lane]]
 id = "pr-plan"
 workflow = ".github/workflows/pr-plan.yml"
-job = "PR Plan"
+job = "plan"
+display_name = "PR Plan"
 kind = "control"
 tier = "frontdoor"
 default_pr = true
@@ -57,7 +65,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "ci-supported"
 workflow = ".github/workflows/pr-gate.yml"
-job = "Supported Rust Gate"
+job = "supported"
+display_name = "Supported Rust Gate"
 kind = "rust"
 tier = "frontdoor"
 default_pr = true
@@ -77,7 +86,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "pr-gate-success"
 workflow = ".github/workflows/pr-gate.yml"
-job = "PR Gate Success"
+job = "success"
+display_name = "PR Gate Success"
 kind = "control"
 tier = "frontdoor"
 default_pr = true
@@ -97,7 +107,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "ci-lane-whitelist-lint"
 workflow = ".github/workflows/ci-policy.yml"
-job = "CI Lane Whitelist"
+job = "ci-lane-whitelist"
+display_name = "CI Lane Whitelist"
 kind = "policy"
 tier = "frontdoor"
 default_pr = true
@@ -117,7 +128,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "ripr-advisory"
 workflow = ".github/workflows/ripr.yml"
-job = "ripr advisory"
+job = "ripr"
+display_name = "ripr advisory"
 kind = "static-exposure"
 tier = "frontdoor"
 default_pr = true
@@ -137,7 +149,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "test-policy"
 workflow = ".github/workflows/test-policy.yml"
-job = "Enforce Test Policy"
+job = "test-policy"
+display_name = "Enforce Test Policy"
 kind = "policy"
 tier = "frontdoor"
 default_pr = true
@@ -161,7 +174,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "pure-rust-os-matrix"
 workflow = ".github/workflows/pure-rust-ci.yml"
-job = "Test Pure Rust Implementation"
+job = "multiple"
+display_name = "Test Pure Rust Implementation"
 kind = "platform"
 tier = "compatibility"
 default_pr = true
@@ -198,14 +212,15 @@ evidence = ["job logs"]
 allowed_triggers = ["pull_request", "push"]
 expensive = true
 default_pr_exception = "ci-exception-microcrate-ci-default-pr"
-duplicate_of = ["ci-supported", "core-tests-nightly"]
+duplicate_of = ["ci-supported", "core-tests"]
 review_after = "2026-06-07"
 expires = "2026-08-07"
 
 [[lane]]
 id = "fuzz-pr"
 workflow = ".github/workflows/fuzz.yml"
-job = "fuzz"
+job = "multiple"
+display_name = "Fuzz Testing (PR)"
 kind = "fuzz"
 tier = "deep"
 default_pr = true
@@ -220,14 +235,15 @@ evidence = ["fuzz artifacts on failure"]
 allowed_triggers = ["pull_request", "push", "schedule", "workflow_dispatch"]
 expensive = true
 default_pr_exception = "ci-exception-fuzz-default-pr"
-duplicate_of = ["nightly-fuzz", "parser-risk-property-tests"]
+duplicate_of = ["fuzz-build-smoke"]
 review_after = "2026-06-07"
 expires = "2026-08-07"
 
 [[lane]]
 id = "performance-regression"
 workflow = ".github/workflows/performance.yml"
-job = "Performance Regression Check"
+job = "multiple"
+display_name = "Performance Regression Check"
 kind = "performance"
 tier = "advisory"
 default_pr = true
@@ -249,7 +265,8 @@ expires = "2026-08-07"
 [[lane]]
 id = "benchmarks-pr"
 workflow = ".github/workflows/benchmarks.yml"
-job = "Performance Benchmarks"
+job = "multiple"
+display_name = "Performance Benchmarks"
 kind = "performance"
 tier = "advisory"
 default_pr = true
@@ -271,7 +288,8 @@ expires = "2026-08-07"
 [[lane]]
 id = "golden-tests"
 workflow = ".github/workflows/golden-tests.yml"
-job = "Golden Tests"
+job = "golden-tests"
+display_name = "Golden Tests"
 kind = "golden"
 tier = "compatibility"
 default_pr = true
@@ -293,7 +311,8 @@ expires = "2026-08-07"
 [[lane]]
 id = "core-tests"
 workflow = ".github/workflows/core-tests.yml"
-job = "Core Tests"
+job = "core"
+display_name = "Core Tests"
 kind = "rust"
 tier = "frontdoor"
 default_pr = true
@@ -313,7 +332,8 @@ expires = "2026-09-07"
 [[lane]]
 id = "criterion-smoke"
 workflow = ".github/workflows/criterion-smoke.yml"
-job = "Criterion Smoke"
+job = "benchmark"
+display_name = "Criterion Smoke"
 kind = "performance"
 tier = "frontdoor"
 default_pr = true
@@ -333,7 +353,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "smoke-ts-bridge"
 workflow = ".github/workflows/smoke-ts-bridge.yml"
-job = "ts-bridge smoke"
+job = "smoke"
+display_name = "ts-bridge smoke"
 kind = "ffi"
 tier = "frontdoor"
 default_pr = true
@@ -353,7 +374,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "ts-bridge-smoke"
 workflow = ".github/workflows/ts-bridge-smoke.yml"
-job = "ts-bridge smoke (workflow)"
+job = "smoke"
+display_name = "ts-bridge smoke (workflow)"
 kind = "ffi"
 tier = "frontdoor"
 default_pr = true
@@ -373,7 +395,8 @@ expires = "2026-09-07"
 [[lane]]
 id = "ts-bridge-parity"
 workflow = ".github/workflows/ts-bridge-parity.yml"
-job = "ts-bridge parity"
+job = "parity"
+display_name = "ts-bridge parity"
 kind = "ffi"
 tier = "compatibility"
 default_pr = true
@@ -393,7 +416,8 @@ expires = "2026-09-07"
 [[lane]]
 id = "clippy-quarantine-report"
 workflow = ".github/workflows/clippy-quarantine-report.yml"
-job = "Clippy Quarantine Report"
+job = "quarantine-report"
+display_name = "Clippy Quarantine Report"
 kind = "policy"
 tier = "advisory"
 default_pr = true
@@ -413,7 +437,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "ci-main"
 workflow = ".github/workflows/ci.yml"
-job = "ci-supported (workflow)"
+job = "multiple"
+display_name = "ci.yml (umbrella; legacy)"
 kind = "rust"
 tier = "frontdoor"
 default_pr = true
@@ -437,7 +462,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "product-proof-advisory"
 workflow = ".github/workflows/product-proof.yml"
-job = "ci-product advisory canaries"
+job = "ci-product"
+display_name = "ci-product advisory canaries"
 kind = "product-proof"
 tier = "deep"
 default_pr = false
@@ -457,7 +483,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "release"
 workflow = ".github/workflows/release.yml"
-job = "release"
+job = "multiple"
+display_name = "release"
 kind = "release"
 tier = "release"
 default_pr = false
@@ -477,7 +504,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "mdbook"
 workflow = ".github/workflows/mdbook.yml"
-job = "mdbook"
+job = "multiple"
+display_name = "mdbook"
 kind = "docs"
 tier = "release"
 default_pr = false
@@ -497,7 +525,8 @@ expires = "2026-11-07"
 [[lane]]
 id = "droid-review"
 workflow = ".github/workflows/droid-review.yml"
-job = "droid review"
+job = "droid-review"
+display_name = "droid review"
 kind = "external"
 tier = "advisory"
 default_pr = false
@@ -531,5 +560,93 @@ proof_obligation = "Invoke external droid integration."
 evidence = ["service-side artifacts"]
 allowed_triggers = ["workflow_dispatch"]
 duplicate_of = ["droid-review"]
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+# ---------------------------------------------------------------------------
+# Sub-jobs surfaced by the new rollout workflows
+# ---------------------------------------------------------------------------
+
+[[lane]]
+id = "pr-gate-plan"
+workflow = ".github/workflows/pr-gate.yml"
+job = "plan"
+display_name = "PR Gate / PR Plan (workflow_call)"
+kind = "control"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 1
+owner = "release/ci"
+intent = "Reuses pr-plan.yml via workflow_call to feed PR Gate Success."
+failure_mode = "Without the plan, PR Gate Success cannot decide which lane is required."
+proof_obligation = "Run pr-plan.yml as a reusable workflow under pr-gate."
+evidence = ["pr-plan.yml outputs"]
+allowed_triggers = ["pull_request", "merge_group", "workflow_dispatch"]
+duplicate_of = ["pr-plan"]
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
+id = "pr-gate-docs"
+workflow = ".github/workflows/pr-gate.yml"
+job = "docs-gate"
+display_name = "Docs Gate"
+kind = "control"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 2
+owner = "release/ci"
+intent = "Cheap fmt-only gate for docs-only PRs so they bypass the supported lane."
+failure_mode = "Docs-only PRs incur full ci-supported cost."
+proof_obligation = "cargo fmt --check on docs-only PRs."
+evidence = ["job logs"]
+allowed_triggers = ["pull_request", "merge_group", "workflow_dispatch"]
+duplicate_of = []
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
+id = "ripr-plan"
+workflow = ".github/workflows/ripr.yml"
+job = "plan"
+display_name = "ripr advisory / PR Plan (workflow_call)"
+kind = "control"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 1
+owner = "release/ci"
+intent = "Reuses pr-plan.yml under ripr.yml to skip docs-only PRs."
+failure_mode = "Without the plan, ripr would run on docs-only PRs unnecessarily."
+proof_obligation = "Run pr-plan.yml as a reusable workflow under ripr."
+evidence = ["pr-plan.yml outputs"]
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+duplicate_of = ["pr-plan"]
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
+id = "fuzz-build-smoke"
+workflow = ".github/workflows/fuzz.yml"
+job = "fuzz-build-smoke"
+display_name = "Fuzz Build Smoke"
+kind = "fuzz"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 3
+owner = "core/parser"
+intent = "Compile-only smoke check on parser/glr PRs to catch fuzz harness rot without paying the runtime cost."
+failure_mode = "Fuzz harness silently breaks; nightly fuzz becomes the first signal."
+proof_obligation = "cargo +nightly fuzz build fuzz_glr_parser when parser/glr risk pack matches."
+evidence = ["job logs"]
+allowed_triggers = ["pull_request"]
+duplicate_of = ["fuzz-pr"]
 review_after = "2026-06-07"
 expires = "2026-11-07"
