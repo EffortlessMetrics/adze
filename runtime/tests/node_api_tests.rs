@@ -236,7 +236,7 @@ mod position_tests {
             num,
             Token {
                 name: "number".to_string(),
-                pattern: TokenPattern::String(r"\d+".to_string()),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
                 fragile: false,
             },
         );
@@ -589,7 +589,7 @@ fn test_utf8_text_ts_compat_node() {
         num,
         Token {
             name: "number".to_string(),
-            pattern: TokenPattern::String(r"\d+".to_string()),
+            pattern: TokenPattern::Regex(r"\d+".to_string()),
             fragile: false,
         },
     );

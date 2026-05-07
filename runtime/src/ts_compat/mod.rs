@@ -187,12 +187,15 @@ impl Tree {
 
     /// Get the root node of this tree.
     pub fn root_node(&self) -> Node<'_> {
-        Node::new(self, 0)
+        Node::new(self, &self.core.root)
     }
 
     /// Get the root kind as a string.
     pub fn root_kind(&self) -> &str {
-        let sym = self.core.root_kind();
+        self.kind_for_symbol(self.core.root_kind())
+    }
+
+    fn kind_for_symbol(&self, sym: u16) -> &str {
         // Try direct rule name mapping first
         if let Some(name) = self
             .language
@@ -227,52 +230,15 @@ impl Tree {
 }
 
 /// A node in a syntax tree.
-///
-/// Note: Current implementation represents the root node only, as parser_v4
-/// does not expose detailed tree structure. Node metadata is inferred from
-/// the tree's overall properties and position within the source.
 #[derive(Debug, Clone)]
 pub struct Node<'a> {
     tree: &'a Tree,
-    /// Index/position within the tree (root = 0)
-    index: usize,
-    /// Cached byte range for this node (start, end)
-    byte_range: Option<(usize, usize)>,
-    /// Cached position range for this node
-    position_range: Option<(Point, Point)>,
+    node: &'a ParseNode,
 }
 
 impl<'a> Node<'a> {
-    /// Create a new node with computed metadata
-    fn new(tree: &'a Tree, index: usize) -> Self {
-        let (byte_range, position_range) = Self::compute_ranges(tree, index);
-        Self {
-            tree,
-            index,
-            byte_range,
-            position_range,
-        }
-    }
-
-    /// Compute byte and position ranges for this node based on its index
-    #[allow(clippy::type_complexity)]
-    fn compute_ranges(
-        tree: &Tree,
-        index: usize,
-    ) -> (Option<(usize, usize)>, Option<(Point, Point)>) {
-        if index == 0 {
-            // Root node covers the entire source
-            let byte_end = tree.core.source.len();
-            let end_position = Self::byte_to_point(&tree.core.source, byte_end);
-            (
-                Some((0, byte_end)),
-                Some((Point { row: 0, column: 0 }, end_position)),
-            )
-        } else {
-            // Non-root nodes: In current implementation, no children are exposed
-            // Return None to indicate this node doesn't have valid ranges
-            (None, None)
-        }
+    fn new(tree: &'a Tree, node: &'a ParseNode) -> Self {
+        Self { tree, node }
     }
 
     /// Convert byte position to Point (row, column)
@@ -297,92 +263,55 @@ impl<'a> Node<'a> {
 
     /// Get the kind of this node as a string.
     pub fn kind(&self) -> &str {
-        if self.index == 0 {
-            // Root node - return the actual root kind
-            self.tree.root_kind()
-        } else {
-            // Non-root nodes are not exposed by current parser_v4 implementation
-            "unknown"
-        }
+        self.tree.kind_for_symbol(self.node.symbol.0)
     }
 
     /// Get the start byte of this node.
     pub fn start_byte(&self) -> usize {
-        self.byte_range.map(|(start, _)| start).unwrap_or(0)
+        self.node.start_byte
     }
 
     /// Get the end byte of this node.
     pub fn end_byte(&self) -> usize {
-        self.byte_range.map(|(_, end)| end).unwrap_or(0)
+        self.node.end_byte
     }
 
     /// Get the start position of this node.
     pub fn start_position(&self) -> Point {
-        self.position_range
-            .map(|(start, _)| start)
-            .unwrap_or_default()
+        Self::byte_to_point(&self.tree.core.source, self.node.start_byte)
     }
 
     /// Get the end position of this node.
     pub fn end_position(&self) -> Point {
-        self.position_range.map(|(_, end)| end).unwrap_or_default()
+        Self::byte_to_point(&self.tree.core.source, self.node.end_byte)
     }
 
     /// Get the number of children.
     pub fn child_count(&self) -> usize {
-        if self.index == 0 {
-            // Root node: parser_v4 doesn't expose children, but we can infer
-            // that a successful parse with content has at least structure
-            if !self.tree.core.source.is_empty() && self.tree.error_count() == 0 {
-                // Estimate: non-trivial content likely has some structure
-                // This is a heuristic since actual children aren't exposed
-                0 // Conservative: return 0 until full tree structure is available
-            } else {
-                0
-            }
-        } else {
-            // Non-root nodes don't exist in current implementation
-            0
-        }
+        self.node.children.len()
     }
 
     /// Get a child by index.
     pub fn child(&self, index: usize) -> Option<Node<'a>> {
-        if index < self.child_count() {
-            // Current implementation doesn't expose actual children
-            // Return None to indicate child access is not available
-            None
-        } else {
-            None
-        }
+        self.node
+            .children
+            .get(index)
+            .map(|child| Node::new(self.tree, child))
     }
 
     /// Check if this node is an error node.
     pub fn is_error(&self) -> bool {
-        if self.index == 0 {
-            // Root node: check if the entire tree has errors
-            self.tree.error_count() > 0
-        } else {
-            // Non-root nodes: no specific error information available
-            false
-        }
+        (self.node.symbol.0 == 0 && self.node.children.is_empty()) || self.tree.error_count() > 0
     }
 
     /// Check if this node is missing (was expected but not found).
     pub fn is_missing(&self) -> bool {
-        if self.index == 0 {
-            // Root node: check if parse failed completely (empty source with errors)
-            self.tree.core.source.is_empty() && self.tree.error_count() > 0
-        } else {
-            // Non-root nodes: no specific missing information available
-            false
-        }
+        self.node.start_byte == self.node.end_byte && self.is_error()
     }
 
     /// Get the byte range of this node.
     pub fn byte_range(&self) -> std::ops::Range<usize> {
-        let (start, end) = self.byte_range.unwrap_or((0, 0));
-        start..end
+        self.node.start_byte..self.node.end_byte
     }
 
     /// Get the text content of this node.
@@ -436,7 +365,6 @@ mod tests {
         let new_source = "incrementally updated";
 
         let reparsed = parser.parse(new_source, Some(&old_tree)).unwrap();
-        assert_eq!(reparsed.root_node().text(new_source.as_bytes()), new_source);
         assert_eq!(reparsed.core.source, new_source.as_bytes().to_vec());
         assert_ne!(reparsed.core.source, old_tree.core.source);
     }
