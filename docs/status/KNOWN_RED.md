@@ -79,6 +79,7 @@ This lane is **not** part of required merge gates. It provides bounded canary pr
 Current canaries:
 
 - `adze` runtime pure-rust typed extraction — **behavior** (`cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture`)
+- `adze` GLR ambiguous typed extraction — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture`)
 - README arithmetic quickstart clean-room — **behavior** (`cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`)
 - `adze-cli` clean-room init smoke — **behavior** (`cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture`)
 - `adze-golden-tests` JavaScript canary — **behavior** (`cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture`)
