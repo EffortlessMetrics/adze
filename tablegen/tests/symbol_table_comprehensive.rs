@@ -547,9 +547,6 @@ fn hidden_mix_of_visible_and_hidden_tokens_abi() {
 
 #[test]
 fn external_single_external_token_has_symbol_entry() {
-    // External tokens get a symbol table slot; the ABI builder generates
-    // "rule_{id}" for symbols not in tokens/rule_names, so SymbolId(50)
-    // maps to "rule_50" in the name table.
     let mut grammar = make_grammar("ext", vec![], vec![], vec![]);
     grammar.externals.push(ExternalToken {
         name: "heredoc".to_string(),
@@ -563,6 +560,10 @@ fn external_single_external_token_has_symbol_entry() {
     assert!(
         output.contains("SYMBOL_NAME_1"),
         "external token must have a symbol name entry"
+    );
+    assert!(
+        abi_has_symbol_name(&output, "heredoc"),
+        "external token name bytes must be preserved"
     );
 }
 

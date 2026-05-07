@@ -69,7 +69,13 @@ impl ExternalScannerGenerator {
         let mut map = vec![0u16; self.external_tokens.len()];
 
         for (token_index, token) in self.external_tokens.iter().enumerate() {
-            map[token_index] = token.symbol_id.0;
+            let symbol_col = self
+                .parse_table
+                .symbol_to_index
+                .get(&token.symbol_id)
+                .copied()
+                .unwrap_or(token.symbol_id.0 as usize);
+            map[token_index] = symbol_col as u16;
         }
 
         map
@@ -286,10 +292,57 @@ mod tests {
 
         let first_follow = FirstFollowSets::compute(&grammar).unwrap();
         let parse_table = build_lr1_automaton(&grammar, &first_follow).unwrap();
+        let expected_symbol_map = grammar
+            .externals
+            .iter()
+            .map(|token| {
+                parse_table
+                    .symbol_to_index
+                    .get(&token.symbol_id)
+                    .copied()
+                    .unwrap_or(token.symbol_id.0 as usize) as u16
+            })
+            .collect::<Vec<_>>();
         let generator = ExternalScannerGenerator::new(grammar, parse_table);
 
         let symbol_map = generator.generate_symbol_map();
-        assert_eq!(symbol_map, vec![200, 201]);
+        assert_eq!(symbol_map, expected_symbol_map);
+    }
+
+    #[test]
+    fn test_symbol_map_generation_uses_table_columns_for_sparse_external_ids() {
+        let mut grammar = Grammar::new("test".to_string());
+        grammar.externals.push(ExternalToken {
+            name: "INDENT".to_string(),
+            symbol_id: SymbolId(200),
+        });
+        grammar.externals.push(ExternalToken {
+            name: "DEDENT".to_string(),
+            symbol_id: SymbolId(201),
+        });
+
+        let mut parse_table = crate::test_helpers::test::make_minimal_table(
+            vec![vec![vec![Action::Error]; 5]; 1],
+            vec![vec![crate::test_helpers::test::INVALID; 5]; 1],
+            vec![],
+            SymbolId(4),
+            SymbolId(3),
+            2,
+        );
+        parse_table.symbol_to_index.insert(SymbolId(200), 1);
+        parse_table.symbol_to_index.insert(SymbolId(201), 2);
+        parse_table.index_to_symbol = vec![
+            SymbolId(0),
+            SymbolId(200),
+            SymbolId(201),
+            SymbolId(3),
+            SymbolId(4),
+        ];
+        parse_table.symbol_count = 5;
+
+        let generator = ExternalScannerGenerator::new(grammar, parse_table);
+
+        assert_eq!(generator.generate_symbol_map(), vec![1, 2]);
     }
 
     #[test]
