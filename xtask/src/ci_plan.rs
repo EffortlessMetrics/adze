@@ -96,6 +96,7 @@ pub struct Plan {
 pub struct Changed {
     pub files: Vec<String>,
     pub crates: Vec<String>,
+    pub areas: Vec<String>,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -126,6 +127,88 @@ const FRONTDOOR_DEFAULTS: &[&str] = &[
     "test-policy",
     "ci-lane-whitelist-lint",
 ];
+
+/// Map an adze area to a list of path-prefix patterns that imply it.
+/// Mirrors the top-level area classifier in scripts/ci/pr-plan.py so the
+/// canonical Rust planner emits `changed.areas` with the same vocabulary.
+const AREAS: &[(&str, &[&str])] = &[
+    ("docs", &["docs/", "book/", "README", "CHANGELOG"]),
+    (
+        "workflow",
+        &[
+            ".github/workflows/",
+            "policy/",
+            "scripts/",
+            "justfile",
+            ".githooks/",
+            "xtask/",
+        ],
+    ),
+    (
+        "core_runtime",
+        &[
+            "runtime/",
+            "runtime2/",
+            "common/",
+            "ir/",
+            "glr-core/",
+            "tablegen/",
+            "macro/",
+            "tool/",
+            "cli/",
+        ],
+    ),
+    ("microcrate", &["crates/"]),
+    (
+        "parser",
+        &[
+            "glr-core/",
+            "crates/parser-",
+            "crates/grammar-",
+            "crates/common-syntax-core/",
+            "crates/parsetable-metadata/",
+            "crates/linecol-core/",
+            "crates/error-location-core/",
+        ],
+    ),
+    ("grammar", &["grammars/", "golden-tests/", "corpus/"]),
+    ("tablegen", &["tablegen/", "crates/parsetable-metadata/"]),
+    (
+        "governance",
+        &["crates/governance", "crates/bdd", "tests/governance/"],
+    ),
+    ("concurrency", &["crates/concurrency"]),
+    ("wasm", &["wasm-demo/", "runtime/wasm", "playground/"]),
+    ("performance", &["benchmarks/", "baselines/"]),
+    (
+        "manifest",
+        &[
+            "Cargo.toml",
+            "Cargo.lock",
+            "rust-toolchain.toml",
+            "deny.toml",
+        ],
+    ),
+];
+
+fn classify_areas(files: &[String]) -> Vec<String> {
+    let mut hits: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for f in files {
+        // Suffix-based docs match (any *.md or README/CHANGELOG anywhere).
+        if f.ends_with(".md") || f.contains("README") || f.contains("CHANGELOG") {
+            hits.insert("docs".to_string());
+        }
+        for (area, patterns) in AREAS {
+            for p in *patterns {
+                if f.starts_with(p) || f == *p {
+                    hits.insert((*area).to_string());
+                    break;
+                }
+            }
+        }
+    }
+    hits.into_iter().collect()
+}
 
 #[derive(Debug)]
 pub struct PlanArgs {
@@ -197,6 +280,7 @@ pub fn run(args: PlanArgs) -> Result<()> {
         head,
         labels: args.labels.clone(),
         changed: Changed {
+            areas: classify_areas(&files),
             files,
             crates: Vec::new(),
         },
@@ -584,6 +668,23 @@ mod tests {
         let ids: BTreeSet<String> = lanes.iter().map(|l| l.id.clone()).collect();
         assert!(ids.contains("pure-rust-os-matrix"));
         assert!(ids.contains("fuzz-pr"));
+    }
+
+    #[test]
+    fn classify_areas_includes_docs_for_md() {
+        let files = vec!["docs/ci/ripr.md".to_string(), "README.md".to_string()];
+        let areas = classify_areas(&files);
+        assert!(areas.contains(&"docs".to_string()), "got: {areas:?}");
+    }
+
+    #[test]
+    fn classify_areas_includes_core_runtime_for_runtime_change() {
+        let files = vec!["runtime/src/lib.rs".to_string()];
+        let areas = classify_areas(&files);
+        assert!(
+            areas.contains(&"core_runtime".to_string()),
+            "got: {areas:?}"
+        );
     }
 
     #[test]

@@ -92,9 +92,9 @@ jobs:
               --json-out target/ci/ci-plan.json \
               --summary "$GITHUB_STEP_SUMMARY"
           fi
-          DOCS_ONLY=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); a=set(p['changed']['areas']); print('true' if a and a <= {'docs'} else 'false')")
-          LEM=$(python3 -c "import json; print(json.load(open('target/ci/ci-plan.json'))['budget']['estimated_lem'])")
-          BAND=$(python3 -c "import json; print(json.load(open('target/ci/ci-plan.json'))['budget']['band'])")
+          DOCS_ONLY=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); a=set((p.get('changed') or {}).get('areas') or []); print('true' if a and a <= {'docs'} else 'false')")
+          LEM=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); print((p.get('budget') or {}).get('estimated_lem', 0))")
+          BAND=$(python3 -c "import json; p=json.load(open('target/ci/ci-plan.json')); print((p.get('budget') or {}).get('band', 'ordinary'))")
           echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
           echo "estimated_lem=$LEM" >> "$GITHUB_OUTPUT"
           echo "band=$BAND" >> "$GITHUB_OUTPUT"
