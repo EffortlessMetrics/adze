@@ -373,11 +373,7 @@ fn parse_with_pure_parser<T: Extract<T>>(
                 crate::errors::ParseError {
                     reason: crate::errors::ParseErrorReason::UnexpectedToken(symbol_name),
                     start: e.position,
-                    end: if e.position < input.len() {
-                        e.position + 1
-                    } else {
-                        e.position
-                    },
+                    end: diagnostic_end_for_byte(input.as_bytes(), e.position),
                 }
             })
             .collect();
@@ -671,11 +667,7 @@ fn lex_with_language_fn(
         };
 
         if !ok || ts_lexer.result_symbol == u16::MAX || end <= start {
-            let invalid_end = source[start..]
-                .iter()
-                .position(|byte| byte.is_ascii_whitespace())
-                .map(|offset| start + offset.max(1))
-                .unwrap_or_else(|| (start + 1).min(source.len()));
+            let invalid_end = diagnostic_end_for_byte(source, start);
             return Err(vec![crate::errors::ParseError {
                 reason: crate::errors::ParseErrorReason::UnexpectedToken(
                     "unexpected token while lexing".to_string(),
@@ -859,6 +851,19 @@ fn byte_to_point(source: &[u8], byte_pos: usize) -> crate::pure_parser::Point {
     }
 
     crate::pure_parser::Point { row, column }
+}
+
+#[cfg(feature = "pure-rust")]
+fn diagnostic_end_for_byte(source: &[u8], start: usize) -> usize {
+    if start >= source.len() {
+        return source.len();
+    }
+
+    std::str::from_utf8(&source[start..])
+        .ok()
+        .and_then(|tail| tail.chars().next())
+        .map(|ch| start + ch.len_utf8())
+        .unwrap_or_else(|| (start + 1).min(source.len()))
 }
 
 /// Parse using the GLR parser (stub for when feature is not enabled)
@@ -1171,6 +1176,16 @@ mod tests {
         assert_eq!(byte_to_point(source, 4), Point { row: 1, column: 1 });
         assert_eq!(byte_to_point(source, 7), Point { row: 2, column: 0 });
         assert_eq!(byte_to_point(source, 99), Point { row: 2, column: 1 });
+    }
+
+    #[test]
+    fn diagnostic_end_for_byte_advances_by_utf8_scalar() {
+        let source = "aλ!".as_bytes();
+
+        assert_eq!(diagnostic_end_for_byte(source, 0), 1);
+        assert_eq!(diagnostic_end_for_byte(source, 1), 3);
+        assert_eq!(diagnostic_end_for_byte(source, 3), 4);
+        assert_eq!(diagnostic_end_for_byte(source, 4), 4);
     }
 
     #[test]
