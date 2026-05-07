@@ -219,6 +219,16 @@ enum Commands {
     },
     /// Run every policy check and emit a combined Markdown report.
     PolicyReport,
+    /// Lint workflows against policy/ci-lane-whitelist.toml.
+    ///
+    /// Reports undeclared workflow jobs, missing exceptions for expensive
+    /// default-PR lanes, missing fields, unknown runners, and dangling
+    /// duplicate-of references. Advisory by default.
+    CheckCiLaneWhitelist {
+        /// Operating mode: advisory | blocking-allowlist | blocking-strict
+        #[arg(long, default_value = "advisory")]
+        mode: String,
+    },
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
@@ -417,6 +427,10 @@ fn main() -> Result<()> {
         }
         Commands::PolicyReport => {
             policy::report::run()?;
+        }
+        Commands::CheckCiLaneWhitelist { mode } => {
+            let mode = policy::Mode::parse(&mode)?;
+            policy::ci_lane_whitelist::run_check(mode)?;
         }
     }
 
