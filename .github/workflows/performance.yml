@@ -1,12 +1,11 @@
 name: Performance Regression Tests
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
     types: [opened, synchronize, reopened, labeled]
     paths:
+      - '.github/workflows/performance.yml'
       - 'runtime/**'
       - 'runtime2/**'
       - 'glr-core/**'
@@ -24,10 +23,9 @@ concurrency:
 jobs:
   performance-check:
     name: Performance Regression Check
-    # Full baseline+comparison only with ci:perf/full-ci label or on push.
+    # Full baseline+comparison only with ci:perf/full-ci label.
     # Default PR touching performance paths gets quick-smoke-test only.
     if: |
-      github.event_name == 'push' ||
       contains(github.event.pull_request.labels.*.name, 'ci:perf') ||
       contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
