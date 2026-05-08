@@ -137,3 +137,42 @@ fn generated_tree_exposes_named_children() {
     );
     assert!(expression.named_child(2).is_none());
 }
+
+#[test]
+fn generated_tree_exposes_parent_nodes() {
+    let mut parser = Parser::new();
+    let lang = adze_example::ts_langs::arithmetic();
+
+    parser.set_language(lang).expect("Failed to set language");
+
+    let source = "1-2";
+    let tree = parser.parse(source, None).expect("Parse failed");
+    let root = tree.root_node();
+    let expression = root.child(0).expect("root should expose expression child");
+    let left = expression
+        .child(0)
+        .expect("expression should expose left child");
+    let number = left.child(0).expect("left expression should expose number");
+
+    assert!(root.parent().is_none());
+    assert_eq!(
+        expression
+            .parent()
+            .expect("expression should have root parent")
+            .kind(),
+        "source_file"
+    );
+    assert_eq!(
+        left.parent()
+            .expect("left expression should have expression parent")
+            .text(source.as_bytes()),
+        source
+    );
+    assert_eq!(
+        number
+            .parent()
+            .expect("number should have leaf expression parent")
+            .text(source.as_bytes()),
+        "1"
+    );
+}
