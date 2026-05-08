@@ -305,6 +305,7 @@ mod ts_compat_tests {
         let _ = root.is_extra();
         let _ = root.is_error();
         let _ = root.is_missing();
+        let _ = root.has_error();
         let _ = root.byte_range();
         let _ = root.utf8_text(b"test");
         let _ = root.text(b"test");
