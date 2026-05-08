@@ -423,6 +423,24 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    /// Get this node's first child that contains or starts after the given byte.
+    pub fn first_child_for_byte(&self, byte: usize) -> Option<Node<'a>> {
+        self.node
+            .children
+            .iter()
+            .find(|child| child.end_byte > byte)
+            .map(|child| Node::new(self.tree, child))
+    }
+
+    /// Get this node's first named child that contains or starts after the given byte.
+    pub fn first_named_child_for_byte(&self, byte: usize) -> Option<Node<'a>> {
+        self.node
+            .children
+            .iter()
+            .map(|child| Node::new(self.tree, child))
+            .find(|child| child.end_byte() > byte && child.is_named())
+    }
+
     /// Get this node's parent, if it is not the root node.
     pub fn parent(&self) -> Option<Node<'a>> {
         Self::find_parent(&self.tree.core.root, self.node)

@@ -303,6 +303,8 @@ mod ts_compat_tests {
         let _ = root.child_count();
         let _ = root.descendant_count();
         let _ = root.child(0);
+        let _ = root.first_child_for_byte(0);
+        let _ = root.first_named_child_for_byte(0);
         let _ = root.is_extra();
         let _ = root.is_error();
         let _ = root.is_missing();
