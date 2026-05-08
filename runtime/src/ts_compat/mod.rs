@@ -317,6 +317,35 @@ impl<'a> Node<'a> {
         None
     }
 
+    fn sibling_index(parent: &'a ParseNode, target: *const ParseNode) -> Option<usize> {
+        parent
+            .children
+            .iter()
+            .position(|child| std::ptr::eq(child, target))
+    }
+
+    /// Get this node's next sibling, if any.
+    pub fn next_sibling(&self) -> Option<Node<'a>> {
+        let parent = self.parent()?;
+        let next_index = Self::sibling_index(parent.node, self.node)? + 1;
+        parent
+            .node
+            .children
+            .get(next_index)
+            .map(|child| Node::new(self.tree, child))
+    }
+
+    /// Get this node's previous sibling, if any.
+    pub fn prev_sibling(&self) -> Option<Node<'a>> {
+        let parent = self.parent()?;
+        let prev_index = Self::sibling_index(parent.node, self.node)?.checked_sub(1)?;
+        parent
+            .node
+            .children
+            .get(prev_index)
+            .map(|child| Node::new(self.tree, child))
+    }
+
     /// Check if this node is a named grammar node.
     pub fn is_named(&self) -> bool {
         self.tree
@@ -352,6 +381,33 @@ impl<'a> Node<'a> {
             .filter(|child| Node::new(self.tree, child).is_named())
             .nth(index)
             .map(|child| Node::new(self.tree, child))
+    }
+
+    /// Get this node's next named sibling, skipping anonymous siblings.
+    pub fn next_named_sibling(&self) -> Option<Node<'a>> {
+        let parent = self.parent()?;
+        let next_index = Self::sibling_index(parent.node, self.node)? + 1;
+        parent
+            .node
+            .children
+            .iter()
+            .skip(next_index)
+            .map(|child| Node::new(self.tree, child))
+            .find(|child| child.is_named())
+    }
+
+    /// Get this node's previous named sibling, skipping anonymous siblings.
+    pub fn prev_named_sibling(&self) -> Option<Node<'a>> {
+        let parent = self.parent()?;
+        let prev_index = Self::sibling_index(parent.node, self.node)?;
+        parent
+            .node
+            .children
+            .iter()
+            .take(prev_index)
+            .rev()
+            .map(|child| Node::new(self.tree, child))
+            .find(|child| child.is_named())
     }
 
     /// Convert this node and its named descendants to a Tree-sitter-style S-expression.
