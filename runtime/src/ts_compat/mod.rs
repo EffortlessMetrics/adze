@@ -383,6 +383,57 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    fn contains_byte_range(&self, start_byte: usize, end_byte: usize) -> bool {
+        start_byte <= end_byte
+            && self.node.start_byte <= start_byte
+            && end_byte <= self.node.end_byte
+    }
+
+    /// Get the smallest descendant that contains the given byte range.
+    pub fn descendant_for_byte_range(
+        &self,
+        start_byte: usize,
+        end_byte: usize,
+    ) -> Option<Node<'a>> {
+        if !self.contains_byte_range(start_byte, end_byte) {
+            return None;
+        }
+
+        for child in &self.node.children {
+            let child_node = Node::new(self.tree, child);
+            if child_node.contains_byte_range(start_byte, end_byte) {
+                return child_node.descendant_for_byte_range(start_byte, end_byte);
+            }
+        }
+
+        Some(self.clone())
+    }
+
+    /// Get the smallest named descendant that contains the given byte range.
+    pub fn named_descendant_for_byte_range(
+        &self,
+        start_byte: usize,
+        end_byte: usize,
+    ) -> Option<Node<'a>> {
+        if !self.contains_byte_range(start_byte, end_byte) {
+            return None;
+        }
+
+        for child in &self.node.children {
+            let child_node = Node::new(self.tree, child);
+            if child_node.contains_byte_range(start_byte, end_byte) {
+                if let Some(named_child) =
+                    child_node.named_descendant_for_byte_range(start_byte, end_byte)
+                {
+                    return Some(named_child);
+                }
+                break;
+            }
+        }
+
+        self.is_named().then(|| self.clone())
+    }
+
     /// Get this node's next named sibling, skipping anonymous siblings.
     pub fn next_named_sibling(&self) -> Option<Node<'a>> {
         let parent = self.parent()?;
