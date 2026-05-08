@@ -481,7 +481,7 @@ proptest! {
     #[test]
     fn handle_clone(a in 0_u32..1000, b in 0_u32..1000) {
         let h = NodeHandle::new(a, b);
-        #[allow(clippy::clone_on_copy)]
+        #[expect(clippy::clone_on_copy, reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence")]
         let h2 = h.clone();
         prop_assert_eq!(h, h2);
     }

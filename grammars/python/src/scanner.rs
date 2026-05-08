@@ -38,7 +38,10 @@ pub struct PythonScanner {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[allow(clippy::enum_variant_names)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "grammar scanner enum variants share a common prefix that is part of the token naming convention"
+)]
 enum StringDelimiter {
     SingleQuote,
     DoubleQuote,

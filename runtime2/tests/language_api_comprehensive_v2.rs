@@ -466,7 +466,10 @@ fn symbol_metadata_copy_semantics() {
 #[test]
 fn symbol_metadata_clone() {
     let m = supertype_meta();
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let m2 = m.clone();
     assert!(m2.is_supertype);
 }

@@ -550,7 +550,10 @@ fn extract_all_primitives_none_return_default() {
 #[test]
 fn extract_has_conflicts_default_is_false() {
     // The default for HAS_CONFLICTS is false
-    #[allow(clippy::assertions_on_constants)]
+    #[expect(
+        clippy::assertions_on_constants,
+        reason = "compile-time assertion documents an invariant; intentional constant-folded check"
+    )]
     {
         assert!(!<String as Extract<String>>::HAS_CONFLICTS);
         assert!(!<i32 as Extract<i32>>::HAS_CONFLICTS);

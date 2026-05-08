@@ -170,7 +170,10 @@ fn unit_handle_copy_semantics() {
 fn unit_handle_clone_semantics() {
     let mut arena = TreeArena::with_capacity(4);
     let h = arena.alloc(TreeNode::leaf(99));
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let h_clone = h.clone();
     assert_eq!(h, h_clone);
     assert_eq!(arena.get(h_clone).value(), 99);
@@ -414,7 +417,10 @@ fn unit_metrics_copy_clone() {
     let arena = TreeArena::with_capacity(4);
     let m = arena.metrics();
     let m2 = m;
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let m3 = m.clone();
     assert_eq!(m, m2);
     assert_eq!(m, m3);

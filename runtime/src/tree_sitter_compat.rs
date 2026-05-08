@@ -19,7 +19,6 @@ pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 =
 
 /// Compatibility wrapper for a parsed node.
 #[derive(Copy, Clone)]
-#[allow(clippy::missing_inline_in_public_items)]
 pub struct Node {
     ptr: *const ParsedNode,
 }

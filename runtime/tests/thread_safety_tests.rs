@@ -219,7 +219,11 @@ fn test_spanned_in_mpsc_channel() {
 
     let mut count = 0;
     while let Ok(spanned) = rx.recv() {
-        #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+        #[expect(
+            clippy::absurd_extreme_comparisons,
+            unused_comparisons,
+            reason = "boundary condition tests deliberately compare against usize extremes"
+        )]
         {
             assert!(spanned.value >= 0);
         }

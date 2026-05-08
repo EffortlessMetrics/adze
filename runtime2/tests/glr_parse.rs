@@ -42,7 +42,10 @@ fn make_language(counter: Arc<AtomicUsize>) -> Language {
 
     let t_counter = counter.clone();
 
-    #[allow(clippy::type_complexity)]
+    #[expect(
+        clippy::type_complexity,
+        reason = "contract lock test uses the full concrete type to pin the API surface"
+    )]
     let tokenize_fn: Box<dyn for<'a> Fn(&'a [u8]) -> Box<dyn Iterator<Item = Token> + 'a>> =
         Box::new(
             move |input: &[u8]| -> Box<dyn Iterator<Item = Token> + '_> {

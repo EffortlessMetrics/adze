@@ -21,7 +21,10 @@ fn pt(row: u32, col: u32) -> Point {
 
 /// Construct a `ParsedNode` without naming the `pub(crate)` `language` field.
 /// Zero-initialises then overwrites every public field.
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "test helper accepts all fields as explicit parameters to avoid builder indirection"
+)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,

@@ -57,7 +57,10 @@ fn test_contract_lock_constants() {
 }
 
 /// Verify all public functions exist with expected signatures.
-#[allow(clippy::type_complexity)]
+#[expect(
+    clippy::type_complexity,
+    reason = "contract lock test uses the full concrete type to pin the API surface"
+)]
 #[test]
 fn test_contract_lock_functions() {
     // Verify bdd_progress function exists

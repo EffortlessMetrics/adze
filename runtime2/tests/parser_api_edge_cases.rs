@@ -521,7 +521,11 @@ fn test_parser_language_properties() {
 
     if let Some(lang) = parser.language() {
         // Language should have basic properties
-        #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+        #[expect(
+            clippy::absurd_extreme_comparisons,
+            unused_comparisons,
+            reason = "boundary condition tests deliberately compare against usize extremes"
+        )]
         {
             assert!(lang.version >= 0); // Accept any version
             assert!(lang.symbol_count >= 0); // Should have at least 0 symbols

@@ -117,7 +117,10 @@ fn test_field_id_copy() {
 #[test]
 fn test_field_id_clone_eq_copy() {
     let a = FieldId(7);
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let b = a.clone();
     assert_eq!(a, b);
 }

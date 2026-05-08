@@ -14,7 +14,10 @@ fn pt(row: u32, col: u32) -> Point {
 
 /// Create a `ParsedNode` using `MaybeUninit` + `write_bytes` to safely handle
 /// the `pub(crate)` `language` field (zeroed → `None`).
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "test helper accepts all fields as explicit parameters to avoid builder indirection"
+)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,

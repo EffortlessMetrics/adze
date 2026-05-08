@@ -202,7 +202,7 @@ proptest! {
     #[test]
     fn state_id_clone(val in any::<u16>()) {
         let id = StateId(val);
-        #[allow(clippy::clone_on_copy)]
+        #[expect(clippy::clone_on_copy, reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence")]
         let cloned = id.clone();
         prop_assert_eq!(id, cloned);
     }

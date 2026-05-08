@@ -416,7 +416,10 @@ fn branch_with_multiple_children() {
     let c1 = children[1];
     let c2 = children[2];
     // Explicit drop to release borrow before subsequent arena.get() calls
-    #[allow(clippy::drop_non_drop)]
+    #[expect(
+        clippy::drop_non_drop,
+        reason = "explicit drop call tests that arena release ordering is observable"
+    )]
     drop(parent_ref);
     assert_eq!(arena.get(c0).value(), 10);
     assert_eq!(arena.get(c1).value(), 20);
@@ -441,13 +444,19 @@ fn nested_branches() {
     let outer_children = outer_ref.children();
     assert_eq!(outer_children.len(), 1);
     let inner_h = outer_children[0];
-    #[allow(clippy::drop_non_drop)]
+    #[expect(
+        clippy::drop_non_drop,
+        reason = "explicit drop call tests that arena release ordering is observable"
+    )]
     drop(outer_ref);
     let inner_ref = arena.get(inner_h);
     let inner_children = inner_ref.children();
     assert_eq!(inner_children.len(), 1);
     let leaf_h = inner_children[0];
-    #[allow(clippy::drop_non_drop)]
+    #[expect(
+        clippy::drop_non_drop,
+        reason = "explicit drop call tests that arena release ordering is observable"
+    )]
     drop(inner_ref);
     assert_eq!(arena.get(leaf_h).value(), 1);
 }
@@ -476,7 +485,10 @@ fn wide_branch_many_children() {
     let parent = arena.alloc(TreeNode::branch(children.clone()));
     let parent_ref = arena.get(parent);
     let stored_children: Vec<NodeHandle> = parent_ref.children().to_vec();
-    #[allow(clippy::drop_non_drop)]
+    #[expect(
+        clippy::drop_non_drop,
+        reason = "explicit drop call tests that arena release ordering is observable"
+    )]
     drop(parent_ref);
     assert_eq!(stored_children.len(), 50);
     for (i, ch) in stored_children.iter().enumerate() {

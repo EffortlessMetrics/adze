@@ -64,7 +64,10 @@ fn build_ab_language() -> Language {
         .with_detected_goto_indexing();
     let table: &'static _ = Box::leak(Box::new(table));
 
-    #[allow(clippy::type_complexity)]
+    #[expect(
+        clippy::type_complexity,
+        reason = "contract lock test uses the full concrete type to pin the API surface"
+    )]
     let tokenize_fn: Box<dyn for<'x> Fn(&'x [u8]) -> Box<dyn Iterator<Item = Token> + 'x>> =
         Box::new(|input: &[u8]| -> Box<dyn Iterator<Item = Token> + '_> {
             let mut toks = Vec::new();
@@ -415,7 +418,10 @@ fn node_is_copy_and_clone() {
     let tree = Tree::new_stub();
     let root = tree.root_node();
     let copied = root; // Copy
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let cloned = root.clone();
     assert_eq!(root.kind_id(), copied.kind_id());
     assert_eq!(root.kind_id(), cloned.kind_id());
@@ -566,7 +572,10 @@ fn point_new_and_fields() {
 fn point_clone_and_copy() {
     let p = Point::new(3, 4);
     let p2 = p; // Copy
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let p3 = p.clone();
     assert_eq!(p, p2);
     assert_eq!(p, p3);

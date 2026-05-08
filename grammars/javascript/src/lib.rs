@@ -391,7 +391,10 @@ mod tests {
     fn test_simple_program() {
         // Grammar builds successfully - this test just ensures the grammar compiles
         // The assertion is intentionally trivial as the real test is compilation
-        #[allow(clippy::assertions_on_constants)]
+        #[expect(
+            clippy::assertions_on_constants,
+            reason = "compile-time assertion documents an invariant; intentional constant-folded check"
+        )]
         {
             assert!(true);
         }

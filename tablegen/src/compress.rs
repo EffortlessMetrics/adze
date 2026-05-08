@@ -440,7 +440,10 @@ impl TableCompressor {
 
                 // Show the actual state-0 actions
                 debug_info.push_str("State 0 actions (first 12 columns):\n");
-                #[allow(clippy::needless_range_loop)]
+                #[expect(
+                    clippy::needless_range_loop,
+                    reason = "idx is used to index into state0_actions directly; the range loop is clearer than enumerate for this debug-info path"
+                )]
                 for idx in 0..state0_actions.len().min(12) {
                     let cell = &state0_actions[idx];
 

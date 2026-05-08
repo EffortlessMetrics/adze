@@ -184,7 +184,10 @@ fn visitor_action_variants_are_distinct() {
 fn visitor_action_clone_copy() {
     let a = VisitorAction::Continue;
     let b = a; // Copy
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let c = a.clone(); // Clone
     assert_eq!(a, b);
     assert_eq!(a, c);

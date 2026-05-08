@@ -174,7 +174,10 @@ fn caps_default_values() {
 
 #[test]
 fn caps_default_constants_are_positive() {
-    #[allow(clippy::assertions_on_constants)]
+    #[expect(
+        clippy::assertions_on_constants,
+        reason = "compile-time assertion documents an invariant; intentional constant-folded check"
+    )]
     {
         assert!(DEFAULT_RAYON_NUM_THREADS >= 1);
         assert!(DEFAULT_TOKIO_WORKER_THREADS >= 1);

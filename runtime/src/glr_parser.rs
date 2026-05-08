@@ -653,7 +653,10 @@ impl GLRParser {
                         token.0,
                         action_cell.len()
                     );
-                    #[allow(clippy::unused_enumerate_index)]
+                    #[expect(
+                        clippy::unused_enumerate_index,
+                        reason = "loop body uses the iteration for side effects; _i and _act prefixes signal intentional non-use"
+                    )]
                     for (_i, _act) in action_cell.iter().enumerate() {
                         debug_glr!("  Action {}: {:?}", _i, _act);
                     }

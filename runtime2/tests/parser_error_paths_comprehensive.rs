@@ -660,7 +660,11 @@ fn language_accessor_returns_none_initially() {
 fn parse_error_with_msg_empty_string() {
     let err = ParseError::with_msg("");
     let msg = format!("{err}");
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(msg.is_empty() || msg.len() >= 0); // does not panic
     }
