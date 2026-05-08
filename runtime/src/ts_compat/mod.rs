@@ -261,6 +261,10 @@ impl<'a> Node<'a> {
         Point { row, column }
     }
 
+    fn point_le(left: Point, right: Point) -> bool {
+        left.row < right.row || (left.row == right.row && left.column <= right.column)
+    }
+
     /// Get the kind of this node as a string.
     pub fn kind(&self) -> &str {
         self.tree.kind_for_symbol(self.node.symbol.0)
@@ -424,6 +428,57 @@ impl<'a> Node<'a> {
             if child_node.contains_byte_range(start_byte, end_byte) {
                 if let Some(named_child) =
                     child_node.named_descendant_for_byte_range(start_byte, end_byte)
+                {
+                    return Some(named_child);
+                }
+                break;
+            }
+        }
+
+        self.is_named().then(|| self.clone())
+    }
+
+    fn contains_point_range(&self, start_point: Point, end_point: Point) -> bool {
+        Self::point_le(start_point, end_point)
+            && Self::point_le(self.start_position(), start_point)
+            && Self::point_le(end_point, self.end_position())
+    }
+
+    /// Get the smallest descendant that contains the given point range.
+    pub fn descendant_for_point_range(
+        &self,
+        start_point: Point,
+        end_point: Point,
+    ) -> Option<Node<'a>> {
+        if !self.contains_point_range(start_point, end_point) {
+            return None;
+        }
+
+        for child in &self.node.children {
+            let child_node = Node::new(self.tree, child);
+            if child_node.contains_point_range(start_point, end_point) {
+                return child_node.descendant_for_point_range(start_point, end_point);
+            }
+        }
+
+        Some(self.clone())
+    }
+
+    /// Get the smallest named descendant that contains the given point range.
+    pub fn named_descendant_for_point_range(
+        &self,
+        start_point: Point,
+        end_point: Point,
+    ) -> Option<Node<'a>> {
+        if !self.contains_point_range(start_point, end_point) {
+            return None;
+        }
+
+        for child in &self.node.children {
+            let child_node = Node::new(self.tree, child);
+            if child_node.contains_point_range(start_point, end_point) {
+                if let Some(named_child) =
+                    child_node.named_descendant_for_point_range(start_point, end_point)
                 {
                     return Some(named_child);
                 }
