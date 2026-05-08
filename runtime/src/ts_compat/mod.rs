@@ -56,6 +56,15 @@ impl From<Point> for (u32, u32) {
     }
 }
 
+/// A byte and point range in a parsed document.
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub struct Range {
+    pub start_byte: usize,
+    pub end_byte: usize,
+    pub start_point: Point,
+    pub end_point: Point,
+}
+
 /// An edit to a document.
 #[derive(Clone, Debug, Default)]
 pub struct InputEdit {
@@ -309,6 +318,16 @@ impl<'a> Node<'a> {
     /// Get the end position of this node.
     pub fn end_position(&self) -> Point {
         Self::byte_to_point(&self.tree.core.source, self.node.end_byte)
+    }
+
+    /// Get the full byte and point range of this node.
+    pub fn range(&self) -> Range {
+        Range {
+            start_byte: self.start_byte(),
+            end_byte: self.end_byte(),
+            start_point: self.start_position(),
+            end_point: self.end_position(),
+        }
     }
 
     /// Get the number of children.
