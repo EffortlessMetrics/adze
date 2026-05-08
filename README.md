@@ -86,32 +86,34 @@ Adze is under active development. The core parser pipeline is working and tested
 
 Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
 
-| Feature | Tier | Description |
-|---------|--------|-------------|
-| **Typed extraction** | ✅ Stable | Grammar *is* your AST for proven shapes — parse directly into your Rust types |
-| **Pure Rust** | ✅ Stable | Default backend is 100% Rust; no C toolchain needed |
-| **GLR conflict routing** | 🚧 Stabilizing | Core GLR routing exists; full ambiguous typed extraction proof is still being expanded |
-| **Operator precedence** | ✅ Stable | `#[prec_left]`, `#[prec_right]` for proven expression grammar shapes |
-| **WASM support** | 📎 Advisory | Compile parsers to WebAssembly with `features = ["wasm"]` |
-| **Tree-sitter interop** | 📎 Advisory | Import existing Tree-sitter grammars via `ts-bridge` |
-| **Serialization** | ✅ Stable (core tables) | Parse-table serialization is core-gated; broader tree JSON/S-expression output is still a product-proof surface |
-| **External scanners** | 🧪 Experimental | Custom tokenization via `ExternalScanner` trait |
-| **Incremental parsing** | 🧪 Experimental | Re-parse only edited regions (falls back to fresh parse) |
+### Tiers
 
-| Surface                     | Status                      | Notes                                                                                            |
-| --------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------ |
-| Pure-Rust parser generation | Supported / hardening       | Default path for generated parsers.                                                              |
-| Typed AST extraction        | Supported for proven shapes | Exact-value tests define the contract.                                                           |
-| Operator precedence         | Supported / hardening       | Used for expression grammars.                                                                    |
-| GLR routing                 | Stabilizing                 | True GLR conflict routing is in place; broader ambiguity behavior is still being expanded.       |
-| Serialization               | Supported for core tables   | Core parse-table serialization is required; broader runtime tree formats need product proof.      |
-| Structured parse errors     | Stabilizing                 | Covered by focused runtime tests.                                                                |
-| External scanners           | Experimental                | Useful, but not yet a broad support claim.                                                       |
-| Incremental parsing         | Experimental                | Exists, but should be treated as a developing surface.                                           |
-| Tree-sitter bridge          | Advisory                    | Useful interop path; workflow and parity coverage are being hardened.                            |
-| WASM                        | Advisory                    | Compile/proof surface is being expanded; runtime/browser execution is not yet the main contract. |
-| Grammar crates              | Advisory                    | Valuable smoke coverage; not all grammar crates are production-ready.                            |
-| Benchmarks                  | Advisory                    | Benchmarks are signal, not support proof.                                                        |
+| Tier | Meaning |
+|------|---------|
+| **Stable** | Supported product contract with named required or stable-product proof |
+| **Stabilizing** | Implemented and tested, but missing broader product proof before stable promotion |
+| **Experimental** | Implemented, but outside the supported contract; behavior may change |
+| **Advisory** | Useful non-blocking signal from optional CI, smoke tests, or examples |
+
+### Capability table
+
+| Surface | Tier | Proof |
+|---------|------|-------|
+| Typed extraction | **Stable** | `just ci-supported`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture` |
+| Pure-Rust parser | **Stable** | `just ci-supported`; `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture` |
+| Operator precedence | **Stable** | `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`; `cargo test -p adze-glr-core --test ambiguity_detection_comprehensive test_precedence_resolves_add_mul -- --exact --nocapture` |
+| Serialization (core tables) | **Stable** | `cargo test -p adze-glr-core --features serialization --doc`; `cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture` |
+| GLR conflict routing | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture` |
+| Tablegen TSLanguage ABI | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr,ts-compat" --test tablegen_abi_decode_roundtrip combined_tslanguage_decode_preserves_metadata_fields_aliases_externals_and_lex_modes -- --exact --nocapture` |
+| Structured parse errors | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr" --test generated_parse_errors generated_typed_parser_unexpected_eof_expected_field_is_populated -- --exact --nocapture` |
+| External scanners | **Experimental** | `cargo test -p adze --features external_scanners` |
+| Incremental parsing | **Experimental** | `cargo test --workspace --features incremental_glr` |
+| CLI | **Advisory** | `cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture` |
+| WASM | **Advisory** | `cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown` |
+| Tree-sitter interop | **Advisory** | `./scripts/smoke-link.sh ts-bridge` |
+| Tree-sitter compatibility API | **Advisory** | `cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_error -- --nocapture` |
+| Grammars | **Advisory** | `cargo test -p adze-python test_python_language_exists -- --exact` |
+| Benchmarks | **Advisory** | `cargo test -p adze-benchmarks --test verify_fixture_parsing verify_parse_bench_uses_real_parser_workload -- --exact --nocapture` |
 
 Rule for documentation and CI promotion: no Stable feature claim without a named proof command in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
 
