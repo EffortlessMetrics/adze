@@ -237,13 +237,14 @@ impl Parser {
         let core_parser = self.core.as_mut()?;
         let lang = self.lang.as_ref()?;
 
-        // Use parse_tree() which returns an owned ParseNode
-        match core_parser.parse_tree(source) {
-            Ok(root) => Some(Tree {
+        // Use parse_tree_with_error_count() so the compatibility tree preserves
+        // parser_v4 recovery/error metadata for node error-state queries.
+        match core_parser.parse_tree_with_error_count(source) {
+            Ok((root, error_count)) => Some(Tree {
                 core: OwnedCoreTree {
                     root,
                     source: source.as_bytes().to_vec(),
-                    error_count: 0, // TODO: track error count properly
+                    error_count,
                 },
                 last_edit: None,
                 language: lang.clone(),
@@ -761,7 +762,7 @@ impl<'a> Node<'a> {
 
     /// Check if this node is an error node.
     pub fn is_error(&self) -> bool {
-        (self.node.symbol.0 == 0 && self.node.children.is_empty()) || self.tree.error_count() > 0
+        self.node.symbol.0 == 0 && self.node.children.is_empty()
     }
 
     /// Check if this node is missing (was expected but not found).
@@ -772,6 +773,7 @@ impl<'a> Node<'a> {
     /// Check if this node or any descendant is an error node.
     pub fn has_error(&self) -> bool {
         self.is_error()
+            || (std::ptr::eq(self.node, &self.tree.core.root) && self.tree.error_count() > 0)
             || self
                 .node
                 .children

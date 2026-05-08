@@ -179,9 +179,17 @@ mod ts_compat_tests {
         let _: bool = is_error; // Ensure it's a boolean type
         let _: bool = is_missing; // Ensure it's a boolean type
 
-        // If there are errors in the tree, the node should reflect that
+        // Parser-level errors make the root report aggregate error state, but
+        // `is_error` remains local to synthetic ERROR nodes.
         if tree.error_count() > 0 {
-            assert!(root.is_error(), "Node should be error if tree has errors");
+            assert!(
+                root.has_error(),
+                "Root should report aggregate errors when the tree has errors"
+            );
+            assert!(
+                tree.has_errors(),
+                "Tree should report errors when error_count is nonzero"
+            );
         }
 
         // For root node, test that the methods work consistently
