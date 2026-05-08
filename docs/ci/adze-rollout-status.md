@@ -2,10 +2,13 @@
 
 Last review: 2026-05-08.
 
+This file is a status snapshot, not a live source of truth. Before using it for
+execution, refresh with `gh pr list` and the current workflow state.
+
 ## Status legend
 
 - ✅ landed — present on `main` and working
-- 🟡 in progress — this PR stack
+- 🟡 in progress — open PR or active follow-up
 - ⏳ planned — not yet started
 - ⏸ deferred — waiting on actuals or coordination
 
@@ -18,16 +21,16 @@ Last review: 2026-05-08.
 | F03 | PR Plan workflow (`pr-plan.yml`) | ✅ | Calls `xtask ci-plan`, emits `ci-plan.json` with outputs `docs_only`, `estimated_lem`, `band` |
 | F04 | PR Gate Success workflow (`pr-gate.yml`) | ✅ | Supported Gate + Docs Gate + `PR Gate Success` aggregator |
 | F05 | ci-actuals telemetry scaffold | ✅ | `scripts/ci/emit-ci-actuals.py` emits plan vs actual; uploaded as artifact |
-| F06 | ripr advisory stub (`ripr.yml`) | ✅ | Graceful no-op stub; real binary provisioning in PR `ci/ripr-provision` |
+| F06 | ripr advisory (`ripr.yml`) | ✅ | Advisory install attempts run on an isolated Rust 1.93 toolchain and fall back to a stub report on install failure |
 
 ## Control plane
 
 | # | Item | Status | Notes |
 | --- | --- | --- | --- |
 | C01 | CI policy workflow (`ci-policy.yml`) | ✅ | Runs `check-ci-lane-whitelist --mode advisory` on every PR |
-| C02 | Synchronize-only cancellation | 🟡 | PR: `ci/sync-cancellation` — prevents label events from killing running jobs |
-| C03 | Lane whitelist cost alignment | 🟡 | PR: `ci/whitelist-align` — corrects stale LEM for already-gated lanes |
-| C04 | Real ripr provisioning | 🟡 | PR: `ci/ripr-provision` (#565) — isolated Rust 1.93 install |
+| C02 | Synchronize-only cancellation | ✅ | PR #563 merged — prevents label events from killing running jobs |
+| C03 | Lane whitelist cost alignment | ✅ | PR #564 merged — corrects stale LEM for already-gated lanes |
+| C04 | Real ripr provisioning | ✅ | PR #565 merged — isolated Rust 1.93 install with graceful stub fallback |
 | C05 | Benchmark deduplication | ✅ | PR #566 merged — `performance-check` gated to `ci:perf` label |
 
 ## Routing
@@ -82,7 +85,7 @@ With all routing already in place, the effective default PR cost estimate:
 | Supported Rust Gate | ~20 LEM |
 | PR Gate Success | ~1 LEM |
 | CI Lane Whitelist | ~2 LEM |
-| ripr advisory | ~4 LEM (stub today; install attempted after `ci/ripr-provision`) |
+| ripr advisory | ~4 LEM (isolated install attempted; stub report on toolchain/binary failure) |
 | Test Policy | ~12 LEM |
 | Pure Rust (ubuntu/stable only) | ~18 LEM |
 | Microcrate CI (routed by risk pack) | ~5–20 LEM depending on changed surface |

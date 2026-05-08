@@ -46,23 +46,20 @@ jobs:
           fi
           echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
-      - name: Install Rust 1.93 toolchain (isolated for ripr only)
-        # ripr requires Rust 1.93+; adze MSRV stays at 1.92.0.
-        # This installs 1.93 alongside the workspace toolchain without
-        # overriding the default for subsequent cargo commands.
-        run: |
-          rustup toolchain install 1.93 --no-self-update --profile minimal --quiet
       - name: Install ripr (advisory, graceful on failure)
         id: ripr-install
+        # ripr requires Rust 1.93+; adze MSRV stays at 1.92.0. Keep both the
+        # isolated toolchain install and ripr install on the graceful path.
         run: |
           set -euo pipefail
-          if cargo +1.93 install --locked ripr 2>/dev/null; then
+          if rustup toolchain install 1.93 --no-self-update --profile minimal --quiet \
+            && cargo +1.93 install --locked ripr 2>/dev/null; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             ripr --version || true
           else
             # ripr may not yet be published to crates.io; keep graceful fallback.
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "ripr install via Rust 1.93 failed; using stub report."
+            echo "ripr or Rust 1.93 install unavailable; using stub report."
           fi
       - name: Run ripr (advisory)
         if: steps.ripr-install.outputs.available == 'true'

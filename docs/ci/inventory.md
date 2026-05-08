@@ -22,13 +22,13 @@ See `adze-rollout-status.md` for status of each item.
 | `pr-plan.yml` | Reusable; computes LEM/band/docs_only from `xtask ci-plan` | Active |
 | `pr-gate.yml` | Aggregates Supported + Docs Gate → `PR Gate Success` | Active |
 | `ci-policy.yml` | CI lane whitelist advisory lint | Active |
-| `ripr.yml` | ripr advisory (stub → real in `ci/ripr-provision`) | Stub |
+| `ripr.yml` | ripr advisory with isolated Rust 1.93 install and stub fallback | Active advisory |
 | `fuzz.yml` | Label/push/schedule-gated runtime fuzz; build smoke on parser/glr PRs | Active |
 | `pure-rust-ci.yml` | Matrix-setup: ubuntu/stable on default PR; full matrix on labels/main | Active |
 | `golden-tests.yml` | Grammar-path and `ci:golden`/`full-ci` label gated | Active |
 | `microcrate-ci.yml` | Risk-pack-routed per crate group | Active |
 | `benchmarks.yml` | Label-gated (`ci:perf`/`benchmarks`/`full-ci`) full benchmark suite | Active |
-| `performance.yml` | Path-gated performance comparison; `performance-check` to be label-gated in `ci/benchmark-dedup` | Needs cleanup |
+| `performance.yml` | Path-gated benchmark compile smoke by default; full `performance-check` only on `ci:perf`/`full-ci` PR labels | Active advisory |
 
 ## xtask commands
 
