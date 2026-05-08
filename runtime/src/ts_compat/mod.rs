@@ -642,6 +642,16 @@ impl<'a> Node<'a> {
         self.node.start_byte == self.node.end_byte && self.is_error()
     }
 
+    /// Check if this node or any descendant is an error node.
+    pub fn has_error(&self) -> bool {
+        self.is_error()
+            || self
+                .node
+                .children
+                .iter()
+                .any(|child| Node::new(self.tree, child).has_error())
+    }
+
     /// Get the byte range of this node.
     pub fn byte_range(&self) -> std::ops::Range<usize> {
         self.node.start_byte..self.node.end_byte
@@ -943,6 +953,17 @@ mod tests {
         ))
     }
 
+    fn parse_node(symbol: u16, start_byte: usize, end_byte: usize) -> ParseNode {
+        ParseNode {
+            symbol: SymbolId(symbol),
+            symbol_id: SymbolId(symbol),
+            start_byte,
+            end_byte,
+            field_name: None,
+            children: Vec::new(),
+        }
+    }
+
     #[test]
     fn parse_ignores_old_tree_source() {
         let mut parser = Parser::new();
@@ -964,5 +985,36 @@ mod tests {
         let tree = parser.parse("any input", None);
 
         assert!(tree.is_none());
+    }
+
+    #[test]
+    fn node_has_error_propagates_from_descendant_error_node() {
+        let error_child = parse_node(0, 1, 1);
+        let root = ParseNode {
+            symbol: SymbolId(1),
+            symbol_id: SymbolId(1),
+            start_byte: 0,
+            end_byte: 1,
+            field_name: None,
+            children: vec![error_child],
+        };
+        let tree = Tree {
+            core: OwnedCoreTree {
+                root,
+                source: b"x".to_vec(),
+                error_count: 0,
+            },
+            last_edit: None,
+            language: empty_parse_table_language(),
+        };
+
+        let root = tree.root_node();
+        let child = root.child(0).expect("root should expose error child");
+
+        assert!(!root.is_error());
+        assert!(root.has_error());
+        assert!(child.is_error());
+        assert!(child.is_missing());
+        assert!(child.has_error());
     }
 }
