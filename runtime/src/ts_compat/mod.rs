@@ -114,6 +114,66 @@ impl Language {
             table,
         }
     }
+
+    fn symbol_metadata_for_id(&self, id: u16) -> Option<&adze_glr_core::SymbolMetadata> {
+        let symbol = adze_ir::SymbolId(id);
+
+        self.table
+            .symbol_metadata
+            .get(id as usize)
+            .filter(|metadata| metadata.symbol_id == symbol)
+            .or_else(|| {
+                self.table
+                    .symbol_metadata
+                    .iter()
+                    .find(|metadata| metadata.symbol_id == symbol)
+            })
+    }
+
+    /// Get the number of distinct node kinds in this language.
+    pub fn node_kind_count(&self) -> usize {
+        self.table.symbol_count
+    }
+
+    /// Get the node kind name for the given numeric symbol id.
+    pub fn node_kind_for_id(&self, id: u16) -> Option<&str> {
+        self.symbol_metadata_for_id(id)
+            .map(|metadata| metadata.name.as_str())
+    }
+
+    /// Get the numeric symbol id for the given node kind and namedness.
+    ///
+    /// Returns `0` when no matching symbol exists, matching Tree-sitter's
+    /// sentinel convention.
+    pub fn id_for_node_kind(&self, kind: &str, named: bool) -> u16 {
+        self.table
+            .symbol_metadata
+            .iter()
+            .find(|metadata| metadata.name == kind && metadata.is_named == named)
+            .map(|metadata| metadata.symbol_id.0)
+            .unwrap_or(0)
+    }
+
+    /// Check whether the given node kind id is named.
+    pub fn node_kind_is_named(&self, id: u16) -> bool {
+        self.symbol_metadata_for_id(id)
+            .map(|metadata| metadata.is_named)
+            .unwrap_or(false)
+    }
+
+    /// Check whether the given node kind id is visible.
+    pub fn node_kind_is_visible(&self, id: u16) -> bool {
+        self.symbol_metadata_for_id(id)
+            .map(|metadata| metadata.is_visible)
+            .unwrap_or(false)
+    }
+
+    /// Check whether the given node kind id is a supertype.
+    pub fn node_kind_is_supertype(&self, id: u16) -> bool {
+        self.symbol_metadata_for_id(id)
+            .map(|metadata| metadata.is_supertype)
+            .unwrap_or(false)
+    }
 }
 
 /// A parser that can parse source code using a language.
