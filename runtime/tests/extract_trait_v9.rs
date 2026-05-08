@@ -427,6 +427,7 @@ fn test_parse_error_debug() {
         reason: ParseErrorReason::UnexpectedToken("!".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let dbg = format!("{err:?}");
     assert!(dbg.contains("ParseError"));
@@ -439,6 +440,7 @@ fn test_parse_error_fields_accessible() {
         reason: ParseErrorReason::MissingToken(";".to_string()),
         start: 10,
         end: 10,
+        expected: vec![],
     };
     assert_eq!(err.start, 10);
     assert_eq!(err.end, 10);

@@ -228,6 +228,7 @@ proptest! {
             reason: ParseErrorReason::UnexpectedToken(s.clone()),
             start: 0,
             end: s.len(),
+            expected: vec![],
         };
         if let ParseErrorReason::UnexpectedToken(ref tok) = err.reason {
             prop_assert_eq!(tok, &s);
@@ -250,6 +251,7 @@ proptest! {
             reason: ParseErrorReason::MissingToken(s.clone()),
             start: 0,
             end: 0,
+            expected: vec![],
         };
         if let ParseErrorReason::MissingToken(ref tok) = err.reason {
             prop_assert_eq!(tok, &s);
@@ -652,6 +654,7 @@ proptest! {
                 reason: ParseErrorReason::UnexpectedToken(s[start..end].to_string()),
                 start,
                 end,
+                expected: vec![],
             };
             prop_assert!(err.start <= err.end);
             prop_assert!(err.end <= s.len());

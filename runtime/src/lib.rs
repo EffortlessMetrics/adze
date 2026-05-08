@@ -1179,6 +1179,13 @@ pub mod errors {
         pub start: usize,
         /// Exclusive end of the error.
         pub end: usize,
+        /// Structured list of expected token names at the error position.
+        ///
+        /// This is populated by the pure-rust parsing path and contains
+        /// human-readable token names (not opaque symbol IDs). The list
+        /// is sorted and deduplicated. It may be empty when expected-token
+        /// information is not available (e.g. tree-sitter backend errors).
+        pub expected: Vec<String>,
     }
 
     /// One-indexed source position for a parse diagnostic.
@@ -1281,7 +1288,21 @@ pub mod errors {
 
     impl std::fmt::Display for ParseError {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{} at bytes {}..{}", self.reason, self.start, self.end)
+            let reason = self.reason.to_string();
+            if matches!(self.reason, ParseErrorReason::UnexpectedToken(_))
+                && !self.expected.is_empty()
+                && !reason.contains("expected one of:")
+            {
+                write!(
+                    f,
+                    "{reason}, expected one of: {} at bytes {}..{}",
+                    self.expected.join(", "),
+                    self.start,
+                    self.end
+                )
+            } else {
+                write!(f, "{reason} at bytes {}..{}", self.start, self.end)
+            }
         }
     }
 
@@ -1357,6 +1378,7 @@ pub mod errors {
                     reason: ParseErrorReason::FailedNode(inner_errors),
                     start: node.start_byte(),
                     end: node.end_byte(),
+                    expected: vec![],
                 })
             } else {
                 match node.utf8_text(source) {
@@ -1364,11 +1386,13 @@ pub mod errors {
                         reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
                         start: node.start_byte(),
                         end: node.end_byte(),
+                        expected: vec![],
                     }),
                     Ok(_) | Err(_) => errors.push(ParseError {
                         reason: ParseErrorReason::FailedNode(vec![]),
                         start: node.start_byte(),
                         end: node.end_byte(),
+                        expected: vec![],
                     }),
                 }
             }
@@ -1377,6 +1401,7 @@ pub mod errors {
                 reason: ParseErrorReason::MissingToken(node.kind().to_string()),
                 start: node.start_byte(),
                 end: node.end_byte(),
+                expected: vec![node.kind().to_string()],
             })
         } else if node.has_error() {
             let mut cursor = node.walk();
@@ -1405,6 +1430,7 @@ pub mod errors {
                     reason: ParseErrorReason::FailedNode(inner_errors),
                     start: node.start_byte(),
                     end: node.end_byte(),
+                    expected: vec![],
                 });
             } else {
                 match node.utf8_text(source) {
@@ -1412,11 +1438,13 @@ pub mod errors {
                         reason: ParseErrorReason::UnexpectedToken(contents.to_string()),
                         start: node.start_byte(),
                         end: node.end_byte(),
+                        expected: vec![],
                     }),
                     Ok(_) | Err(_) => errors.push(ParseError {
                         reason: ParseErrorReason::FailedNode(vec![]),
                         start: node.start_byte(),
                         end: node.end_byte(),
+                        expected: vec![],
                     }),
                 }
             }
@@ -1425,6 +1453,7 @@ pub mod errors {
                 reason: ParseErrorReason::MissingToken(node.kind().to_string()),
                 start: node.start_byte(),
                 end: node.end_byte(),
+                expected: vec![node.kind().to_string()],
             });
         } else if node.has_error() {
             for child in node.children() {

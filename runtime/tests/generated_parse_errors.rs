@@ -178,3 +178,112 @@ fn generated_typed_parser_multiline_bad_token_reports_line_column_and_excerpt() 
         "rendered diagnostic should include the second source line and caret: {rendered}"
     );
 }
+
+// ============================================================================
+// Structured expected-token field tests
+// ============================================================================
+
+#[test]
+fn generated_typed_parser_unexpected_eof_expected_field_is_populated() {
+    let source = "1 +";
+    let errors = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("truncated expression must fail through the generated typed parser");
+
+    let first = errors
+        .first()
+        .expect("generated parser should return at least one parse error");
+
+    // The structured `expected` field should contain meaningful token names
+    assert!(
+        !first.expected.is_empty(),
+        "expected field should be populated for unexpected EOF, got: {:?}",
+        first.expected
+    );
+
+    // Token names should be human-readable, not raw IDs
+    for name in &first.expected {
+        assert!(
+            !name.contains("SymbolId"),
+            "expected token names should not contain raw SymbolId, got: {name}"
+        );
+        assert!(
+            !name.contains("symbol "),
+            "expected token names should not contain 'symbol ' prefix, got: {name}"
+        );
+    }
+}
+
+#[test]
+fn generated_typed_parser_unexpected_eof_expected_field_sorted_and_deduped() {
+    let source = "1 +";
+    let errors = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("truncated expression must fail through the generated typed parser");
+
+    let first = errors
+        .first()
+        .expect("generated parser should return at least one parse error");
+
+    // The expected list should be sorted
+    let mut sorted = first.expected.clone();
+    sorted.sort();
+    assert_eq!(
+        first.expected, sorted,
+        "expected field should be sorted: {:?}",
+        first.expected
+    );
+
+    // The expected list should be deduplicated
+    let mut deduped = first.expected.clone();
+    deduped.dedup();
+    assert_eq!(
+        first.expected.len(),
+        deduped.len(),
+        "expected field should not contain duplicates: {:?}",
+        first.expected
+    );
+}
+
+#[test]
+fn generated_typed_parser_bad_token_expected_field_is_populated() {
+    let source = "1 + @";
+    let errors = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("invalid token must fail through the generated typed parser");
+
+    let first = errors
+        .first()
+        .expect("generated parser should return at least one parse error");
+
+    // Even for bad tokens, the expected field should be populated with what
+    // the parser expected at that position.
+    assert!(
+        !first.expected.is_empty(),
+        "expected field should be populated for bad token, got: {:?}",
+        first.expected
+    );
+
+    // Token names should be human-readable
+    for name in &first.expected {
+        assert!(
+            !name.contains("SymbolId"),
+            "expected token names should not contain raw SymbolId, got: {name}"
+        );
+    }
+}
+
+#[test]
+fn generated_typed_parser_expected_field_contains_digit_pattern() {
+    let source = "1 +";
+    let errors = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("truncated expression must fail through the generated typed parser");
+
+    let first = errors
+        .first()
+        .expect("generated parser should return at least one parse error");
+
+    // For the arithmetic grammar, EOF at this position should expect a number.
+    assert!(
+        first.expected.iter().any(|t| t == r"/\d+/"),
+        "expected tokens should include a digit pattern for arithmetic expression: {:?}",
+        first.expected
+    );
+}

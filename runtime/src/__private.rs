@@ -240,6 +240,7 @@ pub fn parse<T: Extract<T>>(
             ),
             start: 0,
             end: 0,
+            expected: vec![],
         }]
     })?;
 
@@ -250,6 +251,7 @@ pub fn parse<T: Extract<T>>(
             ),
             start: 0,
             end: 0,
+            expected: vec![],
         }]
     })?;
 
@@ -296,6 +298,7 @@ pub fn parse<T: Extract<T>>(
                 ),
                 start: 0,
                 end: 0,
+                expected: vec![],
             }];
             Err(errors)
         }
@@ -315,6 +318,7 @@ fn parse_with_pure_parser<T: Extract<T>>(
             reason: crate::errors::ParseErrorReason::UnexpectedToken(e),
             start: 0,
             end: 0,
+            expected: vec![],
         }]
     })?;
 
@@ -343,10 +347,11 @@ fn parse_with_pure_parser<T: Extract<T>>(
                 let expected = expected_symbol_names_for_diagnostic(lang, &e.expected);
                 crate::errors::ParseError {
                     reason: crate::errors::ParseErrorReason::UnexpectedToken(
-                        unexpected_token_message(symbol_name, expected),
+                        unexpected_token_message(symbol_name, expected.clone()),
                     ),
                     start: e.position,
                     end: diagnostic_end_for_byte(input.as_bytes(), e.position),
+                    expected,
                 }
             })
             .collect();
@@ -362,6 +367,7 @@ fn parse_with_pure_parser<T: Extract<T>>(
                 ),
                 start: 0,
                 end: 0,
+                expected: vec![],
             }]);
         }
     };
@@ -417,6 +423,7 @@ fn parse_with_glr<T: Extract<T>>(
             reason: crate::errors::ParseErrorReason::UnexpectedToken(e.to_string()),
             start: 0,
             end: 0,
+            expected: vec![],
         }]
     })?;
 
@@ -473,6 +480,7 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
                     reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
                     start: 0,
                     end: source.len(),
+                    expected: vec![],
                 }]);
             }
         };
@@ -487,6 +495,7 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
                 ),
                 start,
                 end,
+                expected: vec![],
             }]);
         }
     }
@@ -499,6 +508,7 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
                 reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
                 start: 0,
                 end: source.len(),
+                expected: vec![],
             }]);
         }
     };
@@ -647,6 +657,7 @@ fn lex_with_language_fn(
                 ),
                 start,
                 end: invalid_end,
+                expected: vec![],
             }]);
         }
 
@@ -927,6 +938,7 @@ fn parse_with_glr<T: Extract<T>>(
         ),
         start: 0,
         end: 0,
+        expected: vec![],
     }])
 }
 

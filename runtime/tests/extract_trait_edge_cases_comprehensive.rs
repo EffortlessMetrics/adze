@@ -374,6 +374,7 @@ fn parse_error_unexpected_token_debug() {
         reason: ParseErrorReason::UnexpectedToken("@".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let debug = format!("{:?}", err);
     assert!(debug.contains("UnexpectedToken"));
@@ -386,6 +387,7 @@ fn parse_error_missing_token_debug() {
         reason: ParseErrorReason::MissingToken("identifier".to_string()),
         start: 5,
         end: 5,
+        expected: vec![],
     };
     let debug = format!("{:?}", err);
     assert!(debug.contains("MissingToken"));
@@ -398,11 +400,13 @@ fn parse_error_failed_node_with_children() {
         reason: ParseErrorReason::UnexpectedToken("!".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let outer = ParseError {
         reason: ParseErrorReason::FailedNode(vec![inner]),
         start: 0,
         end: 5,
+        expected: vec![],
     };
     let debug = format!("{:?}", outer);
     assert!(debug.contains("FailedNode"));
@@ -415,6 +419,7 @@ fn parse_error_failed_node_empty_children() {
         reason: ParseErrorReason::FailedNode(vec![]),
         start: 0,
         end: 0,
+        expected: vec![],
     };
     let debug = format!("{:?}", err);
     assert!(debug.contains("FailedNode"));

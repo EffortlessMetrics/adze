@@ -33,6 +33,7 @@ fn test_failed_node_variant_constructable_with_children() {
         reason: ParseErrorReason::UnexpectedToken("x".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let reason = ParseErrorReason::FailedNode(vec![child]);
     assert!(matches!(reason, ParseErrorReason::FailedNode(ref v) if v.len() == 1));
@@ -374,6 +375,7 @@ fn test_parse_error_debug_contains_reason() {
         reason: ParseErrorReason::UnexpectedToken("abc".to_string()),
         start: 0,
         end: 3,
+        expected: vec![],
     };
     let debug = format!("{err:?}");
     assert!(debug.contains("UnexpectedToken"));
@@ -386,6 +388,7 @@ fn test_parse_error_debug_contains_span() {
         reason: ParseErrorReason::MissingToken("if".to_string()),
         start: 10,
         end: 12,
+        expected: vec![],
     };
     let debug = format!("{err:?}");
     assert!(debug.contains("10"));
@@ -461,6 +464,7 @@ fn test_parse_error_with_unexpected_token() {
         reason: ParseErrorReason::UnexpectedToken("@#$".to_string()),
         start: 5,
         end: 8,
+        expected: vec![],
     };
     assert_eq!(err.start, 5);
     assert_eq!(err.end, 8);
@@ -473,6 +477,7 @@ fn test_parse_error_with_missing_token() {
         reason: ParseErrorReason::MissingToken("}".to_string()),
         start: 20,
         end: 20,
+        expected: vec![],
     };
     // Missing tokens can have zero-length spans
     assert_eq!(err.start, err.end);
@@ -484,16 +489,19 @@ fn test_parse_error_with_nested_failures() {
         reason: ParseErrorReason::UnexpectedToken("a".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let inner2 = ParseError {
         reason: ParseErrorReason::MissingToken("b".to_string()),
         start: 1,
         end: 1,
+        expected: vec![],
     };
     let outer = ParseError {
         reason: ParseErrorReason::FailedNode(vec![inner1, inner2]),
         start: 0,
         end: 5,
+        expected: vec![],
     };
     if let ParseErrorReason::FailedNode(ref children) = outer.reason {
         assert_eq!(children.len(), 2);
@@ -581,6 +589,7 @@ fn test_parse_error_empty_unexpected_token() {
         reason: ParseErrorReason::UnexpectedToken(String::new()),
         start: 0,
         end: 0,
+        expected: vec![],
     };
     assert!(matches!(err.reason, ParseErrorReason::UnexpectedToken(ref s) if s.is_empty()));
 }
@@ -591,6 +600,7 @@ fn test_parse_error_zero_length_span() {
         reason: ParseErrorReason::MissingToken("x".to_string()),
         start: 42,
         end: 42,
+        expected: vec![],
     };
     assert_eq!(err.start, err.end);
 }
@@ -612,16 +622,19 @@ fn test_failed_node_deeply_nested() {
         reason: ParseErrorReason::UnexpectedToken("!".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let mid = ParseError {
         reason: ParseErrorReason::FailedNode(vec![leaf]),
         start: 0,
         end: 5,
+        expected: vec![],
     };
     let outer = ParseError {
         reason: ParseErrorReason::FailedNode(vec![mid]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     // Verify 3 levels of nesting
     if let ParseErrorReason::FailedNode(ref level1) = outer.reason {
