@@ -190,6 +190,7 @@ fn parse_error_reason_failed_node_with_children() {
         reason: ParseErrorReason::UnexpectedToken("bar".into()),
         start: 1,
         end: 4,
+        expected: vec![],
     };
     let reason = ParseErrorReason::FailedNode(vec![inner]);
     match &reason {
@@ -283,16 +284,19 @@ fn errors_parse_error_nested_propagation() {
         reason: ParseErrorReason::UnexpectedToken("+".into()),
         start: 3,
         end: 4,
+        expected: vec![],
     };
     let mid = ErrorsParseError {
         reason: ParseErrorReason::FailedNode(vec![leaf_err]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     let root = ErrorsParseError {
         reason: ParseErrorReason::FailedNode(vec![mid]),
         start: 0,
         end: 20,
+        expected: vec![],
     };
     match &root.reason {
         ParseErrorReason::FailedNode(level1) => {
@@ -340,16 +344,19 @@ fn errors_parse_error_sibling_propagation() {
         reason: ParseErrorReason::UnexpectedToken("x".into()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let b = ErrorsParseError {
         reason: ParseErrorReason::MissingToken(";".into()),
         start: 5,
         end: 5,
+        expected: vec![],
     };
     let parent = ErrorsParseError {
         reason: ParseErrorReason::FailedNode(vec![a, b]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     match &parent.reason {
         ParseErrorReason::FailedNode(children) => assert_eq!(children.len(), 2),
@@ -424,6 +431,7 @@ fn errors_parse_error_debug_shows_reason() {
         reason: ParseErrorReason::MissingToken("EOF".into()),
         start: 0,
         end: 0,
+        expected: vec![],
     };
     let dbg = format!("{err:?}");
     assert!(dbg.contains("MissingToken"));
@@ -500,16 +508,19 @@ fn multiple_errors_parse_errors_different_reasons() {
             reason: ParseErrorReason::UnexpectedToken("x".into()),
             start: 0,
             end: 1,
+            expected: vec![],
         },
         ErrorsParseError {
             reason: ParseErrorReason::MissingToken(";".into()),
             start: 5,
             end: 5,
+            expected: vec![],
         },
         ErrorsParseError {
             reason: ParseErrorReason::FailedNode(vec![]),
             start: 10,
             end: 15,
+            expected: vec![],
         },
     ];
     assert_eq!(errors.len(), 3);
@@ -546,11 +557,13 @@ fn errors_collect_into_vec() {
             reason: ParseErrorReason::UnexpectedToken("a".into()),
             start: 0,
             end: 1,
+            expected: vec![],
         },
         ErrorsParseError {
             reason: ParseErrorReason::UnexpectedToken("b".into()),
             start: 2,
             end: 3,
+            expected: vec![],
         },
     ];
     assert_eq!(all_errors.len(), 2);

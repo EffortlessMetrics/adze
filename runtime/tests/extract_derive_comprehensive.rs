@@ -303,6 +303,7 @@ fn parse_error_unexpected_token_fields() {
         reason: ParseErrorReason::UnexpectedToken("@".to_string()),
         start: 5,
         end: 6,
+        expected: vec![],
     };
     assert_eq!(err.start, 5);
     assert_eq!(err.end, 6);
@@ -318,6 +319,7 @@ fn parse_error_missing_token_fields() {
         reason: ParseErrorReason::MissingToken("identifier".to_string()),
         start: 0,
         end: 0,
+        expected: vec![],
     };
     match &err.reason {
         ParseErrorReason::MissingToken(tok) => assert_eq!(tok, "identifier"),
@@ -331,6 +333,7 @@ fn parse_error_failed_node_empty() {
         reason: ParseErrorReason::FailedNode(vec![]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     match &err.reason {
         ParseErrorReason::FailedNode(inner) => assert!(inner.is_empty()),
@@ -344,6 +347,7 @@ fn parse_error_debug_format() {
         reason: ParseErrorReason::UnexpectedToken("!!".to_string()),
         start: 3,
         end: 5,
+        expected: vec![],
     };
     let dbg = format!("{:?}", err);
     assert!(dbg.contains("UnexpectedToken"));

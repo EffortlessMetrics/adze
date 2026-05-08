@@ -570,6 +570,7 @@ fn parse_error_unexpected_token_debug() {
         reason: ParseErrorReason::UnexpectedToken("foo".into()),
         start: 0,
         end: 3,
+        expected: vec![],
     };
     let debug = format!("{:?}", err);
     assert!(debug.contains("UnexpectedToken"));
@@ -583,6 +584,7 @@ fn parse_error_missing_token_debug() {
         reason: ParseErrorReason::MissingToken(";".into()),
         start: 5,
         end: 5,
+        expected: vec![],
     };
     let debug = format!("{:?}", err);
     assert!(debug.contains("MissingToken"));
@@ -595,11 +597,13 @@ fn parse_error_failed_node_nested() {
         reason: ParseErrorReason::UnexpectedToken("x".into()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let outer = ParseError {
         reason: ParseErrorReason::FailedNode(vec![inner]),
         start: 0,
         end: 5,
+        expected: vec![],
     };
     match &outer.reason {
         ParseErrorReason::FailedNode(v) => assert_eq!(v.len(), 1),
