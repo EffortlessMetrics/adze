@@ -641,6 +641,43 @@ impl<'a> TreeCursor<'a> {
         true
     }
 
+    /// Move to the first child that contains or starts after the given byte.
+    pub fn goto_first_child_for_byte(&mut self, byte: usize) -> Option<usize> {
+        let child_index = self
+            .current
+            .children
+            .iter()
+            .position(|child| child.end_byte > byte)?;
+        let child = self.current.children.get(child_index)?;
+
+        self.parents.push(CursorFrame {
+            node: self.current,
+            child_index,
+        });
+        self.current = child;
+        Some(child_index)
+    }
+
+    fn point_gt(left: Point, right: Point) -> bool {
+        left.row > right.row || (left.row == right.row && left.column > right.column)
+    }
+
+    /// Move to the first child that contains or starts after the given point.
+    pub fn goto_first_child_for_point(&mut self, point: Point) -> Option<usize> {
+        let child_index = self.current.children.iter().position(|child| {
+            let child_node = Node::new(self.tree, child);
+            Self::point_gt(child_node.end_position(), point)
+        })?;
+        let child = self.current.children.get(child_index)?;
+
+        self.parents.push(CursorFrame {
+            node: self.current,
+            child_index,
+        });
+        self.current = child;
+        Some(child_index)
+    }
+
     /// Move to the next sibling of the current node.
     pub fn goto_next_sibling(&mut self) -> bool {
         let Some(parent) = self.parents.last_mut() else {
