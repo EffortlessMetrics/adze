@@ -32,11 +32,15 @@ fn tree_cursor_walks_generated_arithmetic_tree() {
     assert!(cursor.goto_first_child());
     assert_eq!(cursor.node().kind(), "expression");
     assert_eq!(cursor.field_name(), None);
+    assert_eq!(cursor.field_id(), None);
 
     assert!(cursor.goto_first_child());
     assert_eq!(cursor.field_name(), Some("left"));
+    assert_eq!(cursor.field_id().map(|id| id.get()), Some(1));
     assert_eq!(cursor.node().text(source.as_bytes()), "1");
     assert!(cursor.goto_first_child());
+    assert_eq!(cursor.field_name(), None);
+    assert_eq!(cursor.field_id(), None);
     assert_eq!(cursor.node().text(source.as_bytes()), "1");
     assert!(!cursor.goto_first_child());
     assert_eq!(cursor.node().text(source.as_bytes()), "1");
@@ -44,19 +48,23 @@ fn tree_cursor_walks_generated_arithmetic_tree() {
 
     assert!(cursor.goto_next_sibling());
     assert_eq!(cursor.field_name(), Some("operator"));
+    assert_eq!(cursor.field_id().map(|id| id.get()), Some(2));
     assert_eq!(cursor.node().text(source.as_bytes()), "-");
 
     assert!(cursor.goto_next_sibling());
     assert_eq!(cursor.field_name(), Some("right"));
+    assert_eq!(cursor.field_id().map(|id| id.get()), Some(3));
     assert_eq!(cursor.node().text(source.as_bytes()), "2");
     assert!(!cursor.goto_next_sibling());
     assert_eq!(cursor.node().text(source.as_bytes()), "2");
 
     assert!(cursor.goto_parent());
     assert_eq!(cursor.node().kind(), "expression");
+    assert_eq!(cursor.field_id(), None);
     assert_eq!(cursor.node().text(source.as_bytes()), source);
 
     assert!(cursor.goto_parent());
     assert_eq!(cursor.node().kind(), "source_file");
+    assert_eq!(cursor.field_id(), None);
     assert!(!cursor.goto_parent());
 }
