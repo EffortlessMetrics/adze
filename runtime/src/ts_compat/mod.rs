@@ -753,6 +753,12 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    /// Get the first child attached through the given Tree-sitter-style field id.
+    pub fn child_by_field_id(&self, field_id: u16) -> Option<Node<'a>> {
+        let field_name = self.language().field_name_for_id(field_id)?;
+        self.child_by_field_name(field_name)
+    }
+
     /// Check if this node is an error node.
     pub fn is_error(&self) -> bool {
         (self.node.symbol.0 == 0 && self.node.children.is_empty()) || self.tree.error_count() > 0
