@@ -1,3 +1,13 @@
+//! Classification: real_parser
+//! Status: active
+//! CI coverage: ci.yml Benchmark Compilation (compile-only incremental_bench),
+//!   performance.yml Quick Performance Smoke Test (compile-only),
+//!   pure-rust-ci.yml benchmark compile check (compile-only)
+//!
+//! Incremental GLR parser benchmark. Measures full-reparse vs incremental
+//! reparse across different edit patterns and file sizes, plus fork
+//! preservation and subtree reuse efficiency.
+
 use adze::glr_incremental::{GLREdit, GLRToken, IncrementalGLRParser};
 use adze::glr_parser::GLRParser;
 use adze_benchmarks::test_grammars::{load_arithmetic_grammar, tokenize_arithmetic};

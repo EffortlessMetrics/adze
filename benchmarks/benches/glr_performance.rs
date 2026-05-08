@@ -1,3 +1,12 @@
+//! Classification: real_parser
+//! Status: active
+//! CI coverage: performance.yml Quick Performance Smoke Test (compile-only),
+//!   pure-rust-ci.yml benchmark compile check (compile-only)
+//!
+//! NOTE: This bench substantially duplicates `parse_bench.rs`. Both benchmark
+//! arithmetic expression parsing using the same fixtures (small/medium/large).
+//! Consider consolidating or differentiating the two in a future cleanup pass.
+
 use adze_example::arithmetic::grammar::parse;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use std::hint::black_box;

@@ -1,3 +1,13 @@
+//! Classification: infrastructure
+//! Status: legacy
+//! CI coverage: performance.yml Quick Performance Smoke Test (compile-only),
+//!   pure-rust-ci.yml benchmark compile check (compile-only)
+//!
+//! Legacy auxiliary benchmark. Superseded by `arena_vs_box_allocation` and
+//! `stack_optimization` which provide more focused micro-benches. The
+//! Cargo.toml [[bench]] entry already carries a legacy note. Retain for
+//! historical comparison but prefer the newer benches for perf gating.
+
 use adze::arena_allocator::{TreeArena, TreeNode};
 use adze::stack_pool::StackPool;
 use criterion::{Criterion, criterion_group, criterion_main};
