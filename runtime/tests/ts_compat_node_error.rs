@@ -28,6 +28,34 @@ fn assert_node_error_free(node: Node<'_>) {
 }
 
 #[test]
+fn generated_tree_reports_error_metadata_when_parser_recovers() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(adze_example::ts_langs::arithmetic())
+        .expect("Failed to set language");
+
+    let source = "1-@";
+    let tree = parser
+        .parse(source, None)
+        .expect("parser should return an inspectable error tree");
+    let root = tree.root_node();
+
+    assert!(
+        tree.error_count() > 0,
+        "parser recovery errors should be preserved on the compatibility tree"
+    );
+    assert!(tree.has_errors());
+    assert!(
+        !root.is_error(),
+        "partial roots with parser recoveries should report has_error, not is_error"
+    );
+    assert!(root.has_error());
+    assert!(!root.is_missing());
+    assert!(root.start_byte() <= root.end_byte());
+    assert!(root.end_byte() <= source.len());
+}
+
+#[test]
 fn generated_tree_reports_error_free_node_metadata_for_valid_input() {
     let mut parser = Parser::new();
     parser
