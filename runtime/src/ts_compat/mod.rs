@@ -632,6 +632,92 @@ impl<'a> TreeCursor<'a> {
         self.parents.len()
     }
 
+    fn cursor_root(&self) -> &'a ParseNode {
+        self.parents
+            .first()
+            .map(|frame| frame.node)
+            .unwrap_or(self.current)
+    }
+
+    fn descendant_index_for(
+        node: &'a ParseNode,
+        target: *const ParseNode,
+        next_index: &mut usize,
+    ) -> Option<usize> {
+        if std::ptr::eq(node, target) {
+            return Some(*next_index);
+        }
+
+        for child in &node.children {
+            *next_index += 1;
+            if let Some(index) = Self::descendant_index_for(child, target, next_index) {
+                return Some(index);
+            }
+        }
+
+        None
+    }
+
+    fn path_for_descendant_index(
+        node: &'a ParseNode,
+        target_index: usize,
+        next_index: &mut usize,
+        path: &mut Vec<usize>,
+    ) -> bool {
+        if *next_index == target_index {
+            return true;
+        }
+
+        for (child_index, child) in node.children.iter().enumerate() {
+            *next_index += 1;
+            path.push(child_index);
+            if Self::path_for_descendant_index(child, target_index, next_index, path) {
+                return true;
+            }
+            path.pop();
+        }
+
+        false
+    }
+
+    /// Get the current node's preorder descendant index relative to the cursor root.
+    pub fn descendant_index(&self) -> usize {
+        let mut next_index = 0;
+        Self::descendant_index_for(
+            self.cursor_root(),
+            self.current as *const ParseNode,
+            &mut next_index,
+        )
+        .unwrap_or(0)
+    }
+
+    /// Move to the node at the given preorder descendant index, if it exists.
+    pub fn goto_descendant(&mut self, descendant_index: usize) {
+        let root = self.cursor_root();
+        let mut next_index = 0;
+        let mut path = Vec::new();
+
+        if !Self::path_for_descendant_index(root, descendant_index, &mut next_index, &mut path) {
+            return;
+        }
+
+        let mut current = root;
+        let mut parents = Vec::with_capacity(path.len());
+        for child_index in path {
+            let Some(child) = current.children.get(child_index) else {
+                return;
+            };
+            parents.push(CursorFrame {
+                node: current,
+                child_index,
+            });
+            current = child;
+        }
+
+        self.current = current;
+        self.parents = parents;
+    }
+
     /// Move to the first child of the current node.
     pub fn goto_first_child(&mut self) -> bool {
         let Some(child) = self.current.children.first() else {
