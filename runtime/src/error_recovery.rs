@@ -214,7 +214,10 @@ impl ErrorRecoveryState {
     }
 
     /// Record an error node
-    #[expect(clippy::too_many_arguments, reason = "error state capture requires all fields in a single call; a builder would obscure the recording contract")]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "error state capture requires all fields in a single call; a builder would obscure the recording contract"
+    )]
     pub fn record_error(
         &mut self,
         start_byte: usize,

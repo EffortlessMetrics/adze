@@ -718,7 +718,10 @@ impl GrammarValidator {
         }
     }
 
-    #[expect(clippy::only_used_in_recursion, reason = "receiver carries validation context; removing &self would require restructuring the recursive cycle-detection walk")]
+    #[expect(
+        clippy::only_used_in_recursion,
+        reason = "receiver carries validation context; removing &self would require restructuring the recursive cycle-detection walk"
+    )]
     fn has_cycle(
         &self,
         symbol: SymbolId,

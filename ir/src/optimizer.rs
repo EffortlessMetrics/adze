@@ -453,7 +453,10 @@ impl GrammarOptimizer {
     }
 
     /// Recursively check if symbols contain a target symbol
-    #[expect(clippy::only_used_in_recursion, reason = "receiver carries optimizer context for the recursive traversal; removing &self would require restructuring the pass")]
+    #[expect(
+        clippy::only_used_in_recursion,
+        reason = "receiver carries optimizer context for the recursive traversal; removing &self would require restructuring the pass"
+    )]
     fn contains_symbol_recursive(
         &self,
         symbols: &[Symbol],
@@ -627,7 +630,10 @@ impl GrammarOptimizer {
     }
 
     /// Helper to renumber a symbol recursively
-    #[expect(clippy::only_used_in_recursion, reason = "receiver carries optimizer context; removing &self would require restructuring the recursive symbol walk")]
+    #[expect(
+        clippy::only_used_in_recursion,
+        reason = "receiver carries optimizer context; removing &self would require restructuring the recursive symbol walk"
+    )]
     fn collect_symbol_ids(&self, symbol: &Symbol, ids: &mut HashSet<SymbolId>) {
         match symbol {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
@@ -650,7 +656,10 @@ impl GrammarOptimizer {
         }
     }
 
-    #[expect(clippy::only_used_in_recursion, reason = "receiver carries optimizer context; removing &self would require restructuring the recursive symbol renumbering")]
+    #[expect(
+        clippy::only_used_in_recursion,
+        reason = "receiver carries optimizer context; removing &self would require restructuring the recursive symbol renumbering"
+    )]
     fn renumber_symbol(&self, symbol: &mut Symbol, old_to_new: &HashMap<SymbolId, SymbolId>) {
         match symbol {
             Symbol::Terminal(id) | Symbol::NonTerminal(id) | Symbol::External(id) => {
