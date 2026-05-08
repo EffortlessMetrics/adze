@@ -176,3 +176,118 @@ fn generated_tree_exposes_parent_nodes() {
         "1"
     );
 }
+
+#[test]
+fn generated_tree_exposes_sibling_nodes() {
+    let mut parser = Parser::new();
+    let lang = adze_example::ts_langs::arithmetic();
+
+    parser.set_language(lang).expect("Failed to set language");
+
+    let source = "1-2";
+    let tree = parser.parse(source, None).expect("Parse failed");
+    let root = tree.root_node();
+    let expression = root.child(0).expect("root should expose expression child");
+    let left = expression
+        .child(0)
+        .expect("expression should expose left child");
+    let operator = expression
+        .child(1)
+        .expect("expression should expose operator child");
+    let right = expression
+        .child(2)
+        .expect("expression should expose right child");
+
+    assert!(root.next_sibling().is_none());
+    assert!(root.prev_sibling().is_none());
+    assert!(expression.next_sibling().is_none());
+    assert!(expression.prev_sibling().is_none());
+
+    assert_eq!(
+        left.next_sibling()
+            .expect("left should have operator sibling")
+            .text(source.as_bytes()),
+        "-"
+    );
+    assert!(left.prev_sibling().is_none());
+
+    assert_eq!(
+        operator
+            .prev_sibling()
+            .expect("operator should have left sibling")
+            .text(source.as_bytes()),
+        "1"
+    );
+    assert_eq!(
+        operator
+            .next_sibling()
+            .expect("operator should have right sibling")
+            .text(source.as_bytes()),
+        "2"
+    );
+
+    assert_eq!(
+        right
+            .prev_sibling()
+            .expect("right should have operator sibling")
+            .text(source.as_bytes()),
+        "-"
+    );
+    assert!(right.next_sibling().is_none());
+}
+
+#[test]
+fn generated_tree_exposes_named_sibling_nodes() {
+    let mut parser = Parser::new();
+    let lang = adze_example::ts_langs::arithmetic();
+
+    parser.set_language(lang).expect("Failed to set language");
+
+    let source = "1-2";
+    let tree = parser.parse(source, None).expect("Parse failed");
+    let expression = tree
+        .root_node()
+        .child(0)
+        .expect("root should expose expression child");
+    let left = expression
+        .child(0)
+        .expect("expression should expose left child");
+    let operator = expression
+        .child(1)
+        .expect("expression should expose operator child");
+    let right = expression
+        .child(2)
+        .expect("expression should expose right child");
+
+    assert_eq!(
+        left.next_named_sibling()
+            .expect("left should skip operator to right named sibling")
+            .text(source.as_bytes()),
+        "2"
+    );
+    assert!(left.prev_named_sibling().is_none());
+
+    assert_eq!(
+        operator
+            .prev_named_sibling()
+            .expect("operator should find left named sibling")
+            .text(source.as_bytes()),
+        "1"
+    );
+    assert_eq!(
+        operator
+            .next_named_sibling()
+            .expect("operator should find right named sibling")
+            .text(source.as_bytes()),
+        "2"
+    );
+
+    assert_eq!(
+        right
+            .prev_named_sibling()
+            .expect("right should skip operator to left named sibling")
+            .text(source.as_bytes()),
+        "1"
+    );
+    assert!(right.next_named_sibling().is_none());
+}
