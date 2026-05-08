@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: ripr-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
   plan:
@@ -27,7 +27,7 @@ jobs:
       always() &&
       (needs.plan.result == 'skipped' || needs.plan.outputs.docs_only != 'true')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     continue-on-error: true
     steps:
       - uses: actions/checkout@v6.0.2
@@ -46,22 +46,26 @@ jobs:
           fi
           echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
-      - name: Locate ripr binary (graceful skip)
-        id: ripr
+      - name: Install Rust 1.93 toolchain (isolated for ripr only)
+        # ripr requires Rust 1.93+; adze MSRV stays at 1.92.0.
+        # This installs 1.93 alongside the workspace toolchain without
+        # overriding the default for subsequent cargo commands.
+        run: |
+          rustup toolchain install 1.93 --no-self-update --profile minimal --quiet
+      - name: Install ripr (advisory, graceful on failure)
+        id: ripr-install
         run: |
           set -euo pipefail
-          # MSRV note: adze pins rust-toolchain to 1.92, but ripr requires
-          # 1.93+. We do not bump MSRV for this advisory check. The job
-          # gracefully reports "no ripr" until a pinned binary or isolated
-          # toolchain is provisioned.
-          if command -v ripr >/dev/null 2>&1; then
+          if cargo +1.93 install --locked ripr 2>/dev/null; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             ripr --version || true
           else
+            # ripr may not yet be published to crates.io; keep graceful fallback.
             echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "ripr install via Rust 1.93 failed; using stub report."
           fi
       - name: Run ripr (advisory)
-        if: steps.ripr.outputs.available == 'true'
+        if: steps.ripr-install.outputs.available == 'true'
         env:
           BASE_SHA: ${{ steps.shas.outputs.base }}
           HEAD_SHA: ${{ steps.shas.outputs.head }}
@@ -75,8 +79,8 @@ jobs:
             --json target/ripr/ripr-report.json \
             --sarif target/ripr/ripr-report.sarif \
             || echo "ripr exited non-zero (advisory)."
-      - name: Stub report (no ripr available)
-        if: steps.ripr.outputs.available != 'true'
+      - name: Stub report (ripr not available)
+        if: steps.ripr-install.outputs.available != 'true'
         run: |
           set -euo pipefail
           mkdir -p target/ripr
@@ -84,7 +88,7 @@ jobs:
           {
             "schema_version": 1,
             "status": "skipped",
-            "reason": "ripr binary not provisioned; see docs/ci/ripr.md for the MSRV-isolated install plan."
+            "reason": "ripr binary not available via cargo install; will activate when published to crates.io."
           }
           JSON
       - name: Upload ripr report
@@ -100,9 +104,9 @@ jobs:
           {
             echo "## ripr advisory";
             echo "";
-            if [ "${{ steps.ripr.outputs.available }}" = "true" ]; then
-              echo "- ripr binary detected, analysis run on \`${{ steps.shas.outputs.base }}..${{ steps.shas.outputs.head }}\`."
+            if [ "${{ steps.ripr-install.outputs.available }}" = "true" ]; then
+              echo "- ripr installed via Rust 1.93 toolchain; analysis ran on \`${{ steps.shas.outputs.base }}..${{ steps.shas.outputs.head }}\`."
             else
-              echo "- ripr binary not provisioned; advisory step is a no-op (MSRV gap; see docs/ci/ripr.md)."
+              echo "- ripr install attempted (Rust 1.93, cargo install --locked ripr) but not available yet; stub report uploaded."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
