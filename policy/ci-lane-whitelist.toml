@@ -19,7 +19,7 @@ schema_version = "1.0"
 policy = "ci-lane-whitelist"
 owner = "release/ci"
 status = "advisory"
-updated = "2026-05-07"
+updated = "2026-05-08"
 
 [budget]
 # All values in LEM (Linux-equivalent minutes).
@@ -143,6 +143,7 @@ proof_obligation = "Run ripr in diff mode and emit JSON/SARIF report."
 evidence = ["target/ripr/ripr-report.json"]
 allowed_triggers = ["pull_request", "workflow_dispatch"]
 duplicate_of = []
+provisioning_note = "Stub (no-op) until ripr binary provisioned via isolated Rust 1.93 toolchain. See PR ci/ripr-provision and docs/ci/ripr.md."
 review_after = "2026-06-07"
 expires = "2026-11-07"
 
@@ -168,7 +169,7 @@ review_after = "2026-06-07"
 expires = "2026-11-07"
 
 # ---------------------------------------------------------------------------
-# Tier 2/3 — broader PR-default lanes (currently expensive, need exceptions)
+# Tier 2/3 — lanes with routing (cost below reflects routed default PR scope)
 # ---------------------------------------------------------------------------
 
 [[lane]]
@@ -181,13 +182,14 @@ tier = "compatibility"
 default_pr = true
 blocking = true
 runner = "mixed"
-base_lem = 180
+base_lem = 18
 owner = "core/runtime"
 intent = "Validate pure-Rust implementation across OS/toolchain matrix."
 failure_mode = "Pure-Rust parser path passes Linux but fails on Windows, macOS, stable, or nightly."
 proof_obligation = "Run clippy, build, tests, and bench compile checks across OS/toolchain matrix."
 evidence = ["job logs"]
 allowed_triggers = ["pull_request", "push"]
+routing_note = "matrix-setup job limits default PR to ubuntu/stable (~18 LEM). Full OS*toolchain matrix (was 180 LEM) gated to 'platform-matrix'/'full-ci' labels and main/push."
 expensive = true
 default_pr_exception = "ci-exception-pure-rust-os-matrix-default-pr"
 duplicate_of = ["ci-supported", "microcrate-ci"]
@@ -210,6 +212,7 @@ failure_mode = "Microcrate split surfaces drift independently from supported run
 proof_obligation = "Run crate-group tests, docs, WASM check, strict feature checks, and formatting."
 evidence = ["job logs"]
 allowed_triggers = ["pull_request", "push"]
+routing_note = "changes setup job routes each PR to the matching crate groups only (concurrency/governance/bdd/parser/core/runtime). Full run on 'ci:microcrate'/'full-ci' labels and main."
 expensive = true
 default_pr_exception = "ci-exception-microcrate-ci-default-pr"
 duplicate_of = ["ci-supported", "core-tests"]
@@ -223,8 +226,8 @@ job = "multiple"
 display_name = "Fuzz Testing (PR)"
 kind = "fuzz"
 tier = "deep"
-default_pr = true
-blocking = true
+default_pr = false
+blocking = false
 runner = "ubuntu_latest"
 base_lem = 45
 owner = "core/parser"
@@ -232,9 +235,8 @@ intent = "Run bounded fuzz targets for lexer, GLR parser, and incremental edits.
 failure_mode = "Parser crash or robustness defect not caught by unit/oracle tests."
 proof_obligation = "Run cargo-fuzz targets for 300 seconds each."
 evidence = ["fuzz artifacts on failure"]
-allowed_triggers = ["pull_request", "push", "schedule", "workflow_dispatch"]
-expensive = true
-default_pr_exception = "ci-exception-fuzz-default-pr"
+allowed_triggers = ["push", "schedule", "workflow_dispatch", "pull_request"]
+routing_note = "Runtime fuzz gated to 'fuzz'/'full-ci' labels, push, and schedule since rollout PR 10. Default PR uses fuzz-build-smoke lane only (3 LEM). base_lem=45 reflects cost when the lane actually runs."
 duplicate_of = ["fuzz-build-smoke"]
 review_after = "2026-06-07"
 expires = "2026-08-07"
@@ -256,6 +258,7 @@ failure_mode = "Runtime/GLR/tablegen performance regresses silently."
 proof_obligation = "Run baseline and PR Criterion benchmarks and report >5% deltas."
 evidence = ["performance_report.txt", "PR comment"]
 allowed_triggers = ["pull_request"]
+routing_note = "performance-check job uses path filter on PR. ci/benchmark-dedup will gate baseline comparison to 'ci:perf'/'full-ci' labels; quick-smoke-test remains default."
 expensive = true
 default_pr_exception = "ci-exception-performance-default-pr"
 duplicate_of = ["benchmarks-pr"]
@@ -269,7 +272,7 @@ job = "multiple"
 display_name = "Performance Benchmarks"
 kind = "performance"
 tier = "advisory"
-default_pr = true
+default_pr = false
 blocking = false
 runner = "ubuntu_latest"
 base_lem = 35
@@ -279,8 +282,7 @@ failure_mode = "Benchmark drift not visible to reviewers."
 proof_obligation = "Run adze benchmark suites and compare to cached baseline when available."
 evidence = ["bench-results/", "benchmark-report.md", "PR comment"]
 allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
-expensive = true
-default_pr_exception = "ci-exception-benchmarks-default-pr"
+routing_note = "Full benchmark suite gated to 'ci:perf'/'benchmarks'/'full-ci' labels and main/push since rollout PR 11. Does not run on unlabeled PR. base_lem=35 reflects cost when it runs."
 duplicate_of = ["performance-regression"]
 review_after = "2026-06-07"
 expires = "2026-08-07"
@@ -302,6 +304,7 @@ failure_mode = "Grammar parity / golden output drifts."
 proof_obligation = "Run golden tests for python and javascript grammar surfaces."
 evidence = ["golden-test-failures-* artifacts on failure"]
 allowed_triggers = ["pull_request", "push"]
+routing_note = "paths job detects grammar/golden/corpus/glr-core changes; job skips on non-matching PRs unless 'ci:golden'/'full-ci' label present."
 expensive = true
 default_pr_exception = "ci-exception-golden-tests-default-pr"
 duplicate_of = ["product-proof-advisory"]
