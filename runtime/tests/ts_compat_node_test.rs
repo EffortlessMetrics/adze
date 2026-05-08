@@ -291,6 +291,7 @@ mod ts_compat_tests {
 
         // All methods should be callable without panicking
         let _ = root.kind();
+        let _ = root.kind_id();
         let _ = root.start_byte();
         let _ = root.end_byte();
         let _ = root.start_position();

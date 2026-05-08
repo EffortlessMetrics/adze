@@ -8,19 +8,56 @@ use adze::{
 };
 use std::sync::Arc;
 
-fn minus_symbol(lang: &Language) -> SymbolId {
+fn symbol_named(lang: &Language, name: &str) -> SymbolId {
     let index = lang
         .table
         .symbol_metadata
         .iter()
-        .position(|metadata| metadata.name == "-")
-        .expect("arithmetic fixture should expose '-' symbol metadata");
+        .position(|metadata| metadata.name == name)
+        .unwrap_or_else(|| panic!("arithmetic fixture should expose '{name}' symbol metadata"));
     let symbol = lang.table.symbol_metadata[index].symbol_id;
     assert_eq!(
         symbol.0 as usize, index,
         "arithmetic fixture metadata should be indexed by symbol id"
     );
     symbol
+}
+
+fn minus_symbol(lang: &Language) -> SymbolId {
+    symbol_named(lang, "-")
+}
+
+#[test]
+fn generated_tree_exposes_node_kind_ids() {
+    let lang = adze_example::ts_langs::arithmetic();
+    let source_file_symbol = symbol_named(&lang, "source_file");
+    let expression_symbol = symbol_named(&lang, "expression");
+    let minus_symbol = symbol_named(&lang, "-");
+    let number_symbol = symbol_named(&lang, "number");
+
+    let mut parser = Parser::new();
+    parser.set_language(lang).expect("Failed to set language");
+
+    let source = "1-2";
+    let tree = parser.parse(source, None).expect("Parse failed");
+    let root = tree.root_node();
+    let expression = root.child(0).expect("root should expose expression child");
+    let left = expression
+        .child(0)
+        .expect("expression should expose left child");
+    let operator = expression
+        .child(1)
+        .expect("expression should expose operator child");
+    let number = left.child(0).expect("left expression should expose number");
+
+    assert_eq!(root.kind(), "source_file");
+    assert_eq!(root.kind_id(), source_file_symbol.0);
+    assert_eq!(expression.kind(), "expression");
+    assert_eq!(expression.kind_id(), expression_symbol.0);
+    assert_eq!(operator.kind(), "-");
+    assert_eq!(operator.kind_id(), minus_symbol.0);
+    assert_eq!(number.kind(), "number");
+    assert_eq!(number.kind_id(), number_symbol.0);
 }
 
 #[test]
