@@ -270,6 +270,11 @@ impl<'a> Node<'a> {
         self.tree.kind_for_symbol(self.node.symbol.0)
     }
 
+    /// Get this node's kind as a numerical symbol id.
+    pub fn kind_id(&self) -> u16 {
+        self.node.symbol.0
+    }
+
     /// Get the start byte of this node.
     pub fn start_byte(&self) -> usize {
         self.node.start_byte
