@@ -405,6 +405,16 @@ impl<'a> Node<'a> {
         self.node.children.len()
     }
 
+    /// Get this node's descendant count, including the node itself.
+    pub fn descendant_count(&self) -> usize {
+        1 + self
+            .node
+            .children
+            .iter()
+            .map(|child| Node::new(self.tree, child).descendant_count())
+            .sum::<usize>()
+    }
+
     /// Get a child by index.
     pub fn child(&self, index: usize) -> Option<Node<'a>> {
         self.node
