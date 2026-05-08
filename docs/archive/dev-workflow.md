@@ -49,12 +49,12 @@ The codebase uses a custom debug block checker to prevent accidentally committed
 
 ### Check specific files
 ```bash
-python3 tools/check_debug_blocks.py path/to/file.rs
+cargo xtask check-debug-blocks path/to/file.rs
 ```
 
 ### Fix specific files
 ```bash
-python3 tools/check_debug_blocks.py --fix path/to/file.rs
+cargo xtask check-debug-blocks --fix path/to/file.rs
 ```
 
 ## Pre-commit Setup
