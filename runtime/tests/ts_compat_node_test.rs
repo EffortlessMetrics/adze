@@ -297,6 +297,7 @@ mod ts_compat_tests {
         let _ = root.end_position();
         let _ = root.child_count();
         let _ = root.child(0);
+        let _ = root.is_extra();
         let _ = root.is_error();
         let _ = root.is_missing();
         let _ = root.byte_range();
