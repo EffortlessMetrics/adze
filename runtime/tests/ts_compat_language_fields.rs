@@ -76,11 +76,62 @@ fn language_field_ids_are_metadata_ids_not_internal_field_map_indexes() {
     assert_eq!(expression.field_name_for_child(0), Some("left"));
     assert_eq!(expression.field_name_for_child(1), Some("operator"));
     assert_eq!(expression.field_name_for_child(2), Some("right"));
+    assert_eq!(expression.field_id_for_child(0).map(|id| id.get()), Some(1));
+    assert_eq!(expression.field_id_for_child(1).map(|id| id.get()), Some(2));
+    assert_eq!(expression.field_id_for_child(2).map(|id| id.get()), Some(3));
+    assert_eq!(expression.field_id_for_child(3), None);
     assert_eq!(
         expression
             .child_by_field_name("operator")
             .expect("operator field should resolve")
             .text(source.as_bytes()),
         "-"
+    );
+
+    let left_id = tree
+        .language()
+        .field_id_for_name("left")
+        .expect("left field should have a public field id");
+    let operator_id = expression
+        .field_id_for_child(1)
+        .expect("operator field should have a public field id");
+    let right_id = tree
+        .language()
+        .field_id_for_name("right")
+        .expect("right field should have a public field id");
+
+    assert_eq!(
+        expression
+            .child_by_field_id(left_id.get())
+            .expect("left field id should resolve")
+            .text(source.as_bytes()),
+        "1"
+    );
+    assert_eq!(
+        expression
+            .child_by_field_id(operator_id.get())
+            .expect("operator field id should resolve")
+            .text(source.as_bytes()),
+        "-"
+    );
+    assert_eq!(
+        expression
+            .child_by_field_id(right_id.get())
+            .expect("right field id should resolve")
+            .text(source.as_bytes()),
+        "2"
+    );
+    assert!(
+        expression.child_by_field_id(0).is_none(),
+        "zero field id should not resolve to a child"
+    );
+    assert!(
+        expression.child_by_field_id(99).is_none(),
+        "out-of-range public field ids should not resolve to a child"
+    );
+
+    assert_eq!(
+        tree.language().field_name_for_id(operator_id.get()),
+        Some("operator")
     );
 }
