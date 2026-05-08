@@ -15,7 +15,7 @@ Last review: 2026-05-08.
 | --- | --- | --- | --- |
 | F01 | CI lane whitelist (`policy/ci-lane-whitelist.toml`) | ✅ | All workflows mapped with owner, LEM, triggers |
 | F02 | CI risk packs (`policy/ci-risk-packs.toml`) | ✅ | 10 risk packs: core_runtime, macro_tool, glr_core, tablegen, grammar_golden, microcrate_governance, concurrency, wasm, performance, manifest_release |
-| F03 | PR Plan workflow (`pr-plan.yml`) | ✅ | Calls `xtask ci-plan`, emits `ci-plan.json`, docs_only/estimated_lem/band outputs |
+| F03 | PR Plan workflow (`pr-plan.yml`) | ✅ | Calls `xtask ci-plan`, emits `ci-plan.json` with outputs `docs_only`, `estimated_lem`, `band` |
 | F04 | PR Gate Success workflow (`pr-gate.yml`) | ✅ | Supported Gate + Docs Gate + `PR Gate Success` aggregator |
 | F05 | ci-actuals telemetry scaffold | ✅ | `scripts/ci/emit-ci-actuals.py` emits plan vs actual; uploaded as artifact |
 | F06 | ripr advisory stub (`ripr.yml`) | ✅ | Graceful no-op stub; real binary provisioning in PR `ci/ripr-provision` |
@@ -27,8 +27,8 @@ Last review: 2026-05-08.
 | C01 | CI policy workflow (`ci-policy.yml`) | ✅ | Runs `check-ci-lane-whitelist --mode advisory` on every PR |
 | C02 | Synchronize-only cancellation | 🟡 | PR: `ci/sync-cancellation` — prevents label events from killing running jobs |
 | C03 | Lane whitelist cost alignment | 🟡 | PR: `ci/whitelist-align` — corrects stale LEM for already-gated lanes |
-| C04 | Real ripr provisioning | 🟡 | PR: `ci/ripr-provision` — isolated Rust 1.93 install |
-| C05 | Benchmark deduplication | 🟡 | PR: `ci/benchmark-dedup` — gate performance-check to ci:perf label |
+| C04 | Real ripr provisioning | 🟡 | PR: `ci/ripr-provision` (#565) — isolated Rust 1.93 install |
+| C05 | Benchmark deduplication | ✅ | PR #566 merged — `performance-check` gated to `ci:perf` label |
 
 ## Routing
 
@@ -38,7 +38,7 @@ Last review: 2026-05-08.
 | R02 | Pure-Rust PR matrix reduction | ✅ | `pure-rust-ci.yml` — ubuntu/stable default; full matrix on `platform-matrix`/`full-ci`/main |
 | R03 | Golden tests grammar routing | ✅ | `golden-tests.yml` — paths + `ci:golden`/`full-ci` label gates |
 | R04 | Microcrate CI risk-pack routing | ✅ | `microcrate-ci.yml` — per-group path detection (concurrency/governance/bdd/parser/core/runtime) |
-| R05 | Benchmark PR ownership cleanup | 🟡 | PR: `ci/benchmark-dedup` — removes duplicate baseline+comparison from default PR path |
+| R05 | Benchmark PR ownership cleanup | ✅ | PR #566 merged — removes duplicate baseline+comparison from default PR path |
 
 ## Policy ledgers
 
@@ -49,7 +49,7 @@ Last review: 2026-05-08.
 | P03 | Non-Rust file policy (`policy/non-rust-allowlist.toml`) | ✅ | All non-Rust surfaces registered |
 | P04 | ripr suppressions (`policy/ripr-suppressions.toml`) | ✅ | Schema in place; empty baseline |
 | P05 | Workspace rust lints (`[workspace.lints.rust]`) | ✅ | `unsafe_op_in_unsafe_fn`, `unused_must_use`, `missing_docs`, `unused_extern_crates` |
-| P06 | Strict Clippy Stage A (`[workspace.lints.clippy]`) | ⏳ | PR: `policy/clippy-stage-a` — add `allow_attributes_without_reason` and stage-A rust lints |
+| P06 | Strict Clippy Stage A (`[workspace.lints.clippy]`) | 🟡 | PR #567: `policy/clippy-stage-a` — `allow_attributes_without_reason` + stage-A rust lints |
 
 ## MSRV and toolchain
 
