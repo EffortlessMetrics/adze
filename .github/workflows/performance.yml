@@ -1,8 +1,11 @@
 name: Performance Regression Tests
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'runtime/**'
       - 'runtime2/**'
@@ -13,14 +16,20 @@ on:
       - 'Cargo.lock'
       - 'docs/PERFORMANCE_BASELINE.md'
 
-# Only run one performance test at a time per PR
+# Only run one performance comparison at a time per PR.
 concurrency:
-  group: performance-${{ github.head_ref }}
-  cancel-in-progress: true
+  group: performance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
   performance-check:
     name: Performance Regression Check
+    # Full baseline+comparison only with ci:perf/full-ci label or on push.
+    # Default PR touching performance paths gets quick-smoke-test only.
+    if: |
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.labels.*.name, 'ci:perf') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,7 +65,6 @@ jobs:
           for bench in glr_parser_bench; do
             cargo bench -p adze --bench "$bench" -- --save-baseline pr-base
           done
-          # The adze-benchmarks Criterion targets are compiled in the smoke lane below.
           echo "::endgroup::"
         env:
           BENCH_QUICK: 1  # Use quick mode for CI
@@ -160,7 +168,7 @@ jobs:
               '</details>',
               '',
               '---',
-              '*Benchmarks run with quick mode for CI. For detailed analysis, run `cargo bench` locally.*',
+              '*Add the `ci:perf` label to request a full baseline comparison on this PR.*',
             ].join('\n');
 
             try {
@@ -185,6 +193,8 @@ jobs:
 
   quick-smoke-test:
     name: Quick Performance Smoke Test
+    # Compile-only smoke check; runs on every PR that touches performance paths.
+    # Ensures benchmarks stay compilable without paying the full comparison cost.
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
 
