@@ -61,6 +61,37 @@ fn generated_tree_exposes_node_kind_ids() {
 }
 
 #[test]
+fn generated_tree_exposes_node_grammar_metadata() {
+    let lang = adze_example::ts_langs::arithmetic();
+
+    let mut parser = Parser::new();
+    parser.set_language(lang).expect("Failed to set language");
+
+    let source = "1-2";
+    let tree = parser.parse(source, None).expect("Parse failed");
+    let root = tree.root_node();
+    let expression = root.child(0).expect("root should expose expression child");
+    let left = expression
+        .child(0)
+        .expect("expression should expose left child");
+    let operator = expression
+        .child(1)
+        .expect("expression should expose operator child");
+    let number = left.child(0).expect("left expression should expose number");
+
+    for (node, expected_kind) in [
+        (root, "source_file"),
+        (expression, "expression"),
+        (operator, "-"),
+        (number, "number"),
+    ] {
+        assert_eq!(node.grammar_id(), node.kind_id());
+        assert_eq!(node.grammar_name(), node.kind());
+        assert_eq!(node.grammar_name(), expected_kind);
+    }
+}
+
+#[test]
 fn generated_tree_exposes_extra_node_metadata() {
     let mut lang = (*adze_example::ts_langs::arithmetic()).clone();
     let operator_symbol = minus_symbol(&lang);
