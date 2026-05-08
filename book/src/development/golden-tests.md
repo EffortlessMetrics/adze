@@ -128,6 +128,10 @@ Golden tests use S-expression format for parse trees, matching Tree-sitter's out
 - **Field mapping**: Not shown in basic S-expressions
 - **Source text**: Leaf nodes include quoted source text
 
+The runtime `ts_compat::Node::to_sexp()` API has a narrower named-node
+contract and includes field labels for named fielded children; these golden
+fixtures describe the broader corpus comparison format.
+
 ## Working with Test Fixtures
 
 ### Adding New Test Cases
