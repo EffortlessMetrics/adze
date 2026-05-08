@@ -10,10 +10,6 @@ use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 #[path = "support/json_grammar.rs"]
 mod json_grammar;
-#[expect(
-    clippy::duplicate_mod,
-    reason = "language_builder is also used by other test modules; re-importing under this module name is intentional"
-)]
 #[path = "support/language_builder.rs"]
 mod language_builder;
 
