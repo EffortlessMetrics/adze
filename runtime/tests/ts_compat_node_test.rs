@@ -290,6 +290,7 @@ mod ts_compat_tests {
         let root = tree.root_node();
 
         // All methods should be callable without panicking
+        let _ = root.language();
         let _ = root.kind();
         let _ = root.kind_id();
         let _ = root.grammar_id();

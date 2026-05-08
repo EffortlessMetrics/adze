@@ -186,6 +186,11 @@ pub struct Tree {
 }
 
 impl Tree {
+    /// Get the language that was used to parse this tree.
+    pub fn language(&self) -> &Language {
+        self.language.as_ref()
+    }
+
     /// Apply an edit to this tree.
     pub fn edit(&mut self, edit: &InputEdit) {
         let core_edit = CoreEdit::from(edit.clone());
@@ -272,6 +277,11 @@ impl<'a> Node<'a> {
 
     fn point_le(left: Point, right: Point) -> bool {
         left.row < right.row || (left.row == right.row && left.column <= right.column)
+    }
+
+    /// Get the language that was used to parse this node's tree.
+    pub fn language(&self) -> &Language {
+        self.tree.language()
     }
 
     /// Get the kind of this node as a string.
