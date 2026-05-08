@@ -745,7 +745,25 @@ impl<'a> TreeCursor<'a> {
 
     /// Get the field name attached to the current node's parent edge.
     pub fn field_name(&self) -> Option<&str> {
+        if self.parents.is_empty() {
+            return None;
+        }
+
         self.current.field_name.as_deref()
+    }
+
+    /// Reset this cursor to the given node and clear parent traversal state.
+    pub fn reset(&mut self, node: Node<'a>) {
+        self.tree = node.tree;
+        self.current = node.node;
+        self.parents.clear();
+    }
+
+    /// Reset this cursor to another cursor's node and parent traversal state.
+    pub fn reset_to(&mut self, cursor: &Self) {
+        self.tree = cursor.tree;
+        self.current = cursor.current;
+        self.parents.clone_from(&cursor.parents);
     }
 }
 
