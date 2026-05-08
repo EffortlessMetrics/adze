@@ -37,6 +37,7 @@ CANARIES=(
   "adze ts_compat point-range descendants|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_point_range -- --nocapture"
   "adze ts_compat cursor position lookup|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_cursor_position -- --nocapture"
   "adze ts_compat cursor reverse navigation|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_cursor_reverse -- --nocapture"
+  "adze ts_compat cursor depth|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_cursor_depth -- --nocapture"
   "adze ts_compat S-expression output|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_to_sexp -- --nocapture"
   "README arithmetic quickstart clean-room|behavior|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
   "adze-cli clean-room init/check smoke|behavior|cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture"

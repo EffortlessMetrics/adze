@@ -627,6 +627,11 @@ impl<'a> TreeCursor<'a> {
         Node::new(self.tree, self.current)
     }
 
+    /// Get the cursor depth relative to the node used to create it.
+    pub fn depth(&self) -> usize {
+        self.parents.len()
+    }
+
     /// Move to the first child of the current node.
     pub fn goto_first_child(&mut self) -> bool {
         let Some(child) = self.current.children.first() else {
