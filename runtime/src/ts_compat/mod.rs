@@ -299,6 +299,43 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    /// Check if this node is a named grammar node.
+    pub fn is_named(&self) -> bool {
+        self.tree
+            .language
+            .table
+            .symbol_metadata
+            .get(self.node.symbol.0 as usize)
+            .map(|metadata| metadata.is_named)
+            .unwrap_or_else(|| {
+                !self
+                    .tree
+                    .language
+                    .grammar
+                    .tokens
+                    .contains_key(&self.node.symbol)
+            })
+    }
+
+    /// Get the number of named children.
+    pub fn named_child_count(&self) -> usize {
+        self.node
+            .children
+            .iter()
+            .filter(|child| Node::new(self.tree, child).is_named())
+            .count()
+    }
+
+    /// Get a named child by named-child index.
+    pub fn named_child(&self, index: usize) -> Option<Node<'a>> {
+        self.node
+            .children
+            .iter()
+            .filter(|child| Node::new(self.tree, child).is_named())
+            .nth(index)
+            .map(|child| Node::new(self.tree, child))
+    }
+
     /// Create a cursor rooted at this node.
     pub fn walk(&self) -> TreeCursor<'a> {
         TreeCursor::new(self.tree, self.node)
