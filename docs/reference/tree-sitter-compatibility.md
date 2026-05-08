@@ -64,3 +64,20 @@ This document defines the exact binary format and invariants that must be mainta
 
 ## ABI Stability
 The GLR implementation maintains bit-for-bit compatibility with Tree-sitter's C runtime for all table formats and action encodings.
+
+## Runtime Node Identity
+
+This file covers generated `TSLanguage` table format and decode invariants.
+The `ts_compat::Node` runtime identity APIs have a separate contract in
+[`ts-compat-node-identity.md`](ts-compat-node-identity.md).
+
+Current `ts_compat` nodes expose raw parsed-symbol identity:
+
+- `kind()` and `kind_id()` come from the parsed node symbol,
+- `grammar_name()` currently matches `kind()`,
+- `grammar_id()` currently matches `kind_id()`,
+- alias metadata is preserved in generated tables and decode output, but is
+  not yet projected into alias-visible node identity.
+
+Do not change alias-visible node identity, S-expression alias behavior, or
+node-types alias behavior without updating that contract and its canaries.
