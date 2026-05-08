@@ -641,6 +641,23 @@ impl<'a> TreeCursor<'a> {
         true
     }
 
+    /// Move to the last child of the current node.
+    pub fn goto_last_child(&mut self) -> bool {
+        let Some(child_index) = self.current.children.len().checked_sub(1) else {
+            return false;
+        };
+        let Some(child) = self.current.children.get(child_index) else {
+            return false;
+        };
+
+        self.parents.push(CursorFrame {
+            node: self.current,
+            child_index,
+        });
+        self.current = child;
+        true
+    }
+
     /// Move to the first child that contains or starts after the given byte.
     pub fn goto_first_child_for_byte(&mut self, byte: usize) -> Option<usize> {
         let child_index = self
@@ -691,6 +708,23 @@ impl<'a> TreeCursor<'a> {
 
         parent.child_index = next_index;
         self.current = next;
+        true
+    }
+
+    /// Move to the previous sibling of the current node.
+    pub fn goto_previous_sibling(&mut self) -> bool {
+        let Some(parent) = self.parents.last_mut() else {
+            return false;
+        };
+        let Some(previous_index) = parent.child_index.checked_sub(1) else {
+            return false;
+        };
+        let Some(previous) = parent.node.children.get(previous_index) else {
+            return false;
+        };
+
+        parent.child_index = previous_index;
+        self.current = previous;
         true
     }
 
