@@ -368,6 +368,17 @@ impl<'a> Node<'a> {
             })
     }
 
+    /// Check if this node is an extra grammar node, such as trivia.
+    pub fn is_extra(&self) -> bool {
+        self.tree
+            .language
+            .table
+            .symbol_metadata
+            .get(self.node.symbol.0 as usize)
+            .map(|metadata| metadata.is_extra)
+            .unwrap_or_else(|| self.tree.language.table.extras.contains(&self.node.symbol))
+    }
+
     /// Get the number of named children.
     pub fn named_child_count(&self) -> usize {
         self.node
