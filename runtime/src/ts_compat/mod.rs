@@ -738,6 +738,12 @@ impl<'a> Node<'a> {
             .and_then(|child| child.field_name.as_deref())
     }
 
+    /// Get the nonzero Tree-sitter-style field id for a child edge by child index.
+    pub fn field_id_for_child(&self, index: usize) -> Option<FieldId> {
+        let field_name = self.field_name_for_child(index)?;
+        self.language().field_id_for_name(field_name)
+    }
+
     /// Get the first child attached through the given field name.
     pub fn child_by_field_name(&self, field_name: &str) -> Option<Node<'a>> {
         self.node
@@ -1022,6 +1028,12 @@ impl<'a> TreeCursor<'a> {
         }
 
         self.current.field_name.as_deref()
+    }
+
+    /// Get the nonzero Tree-sitter-style field id for the current parent edge.
+    pub fn field_id(&self) -> Option<FieldId> {
+        let field_name = self.field_name()?;
+        self.tree.language().field_id_for_name(field_name)
     }
 
     /// Reset this cursor to the given node and clear parent traversal state.
