@@ -32,6 +32,7 @@ CANARIES=(
   "adze tablegen ABI alias decode preservation|behavior|cargo test -p adze --features \"pure-rust,glr,ts-compat\" --test tablegen_abi_decode_roundtrip compressed_tslanguage_decode_preserves_alias_sequences -- --exact --nocapture"
   "adze-tablegen alias ABI pointer/data preservation|behavior|cargo test -p adze-tablegen --test alias_handling_comprehensive alias_abi_emits_non_null_pointers_when_counters_nonzero -- --exact --nocapture"
   "adze-tablegen sparse production LHS ABI preservation|behavior|cargo test -p adze-tablegen --test production_id_comprehensive edge_sparse_production_ids_emit_dense_production_lhs_index -- --exact --nocapture"
+  "adze ts_compat S-expression output|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_to_sexp -- --nocapture"
   "README arithmetic quickstart clean-room|behavior|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
   "adze-cli clean-room init/check smoke|behavior|cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture"
   "adze-cli check rejects non-grammar rust file|behavior|cargo test -p adze-cli test_check_rejects_file_without_adze_grammar -- --exact --nocapture"
