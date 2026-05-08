@@ -11,6 +11,7 @@ use crate::pure_incremental::Edit as CoreEdit;
 use crate::pure_parser;
 use adze_glr_core::ParseTable;
 use adze_ir::Grammar;
+use std::num::NonZeroU16;
 use std::sync::Arc;
 
 /// An owned tree representation for ts_compat layer.
@@ -64,6 +65,9 @@ pub struct Range {
     pub start_point: Point,
     pub end_point: Point,
 }
+
+/// A nonzero Tree-sitter-compatible field identifier.
+pub type FieldId = NonZeroU16;
 
 /// An edit to a document.
 #[derive(Clone, Debug, Default)]
@@ -173,6 +177,29 @@ impl Language {
         self.symbol_metadata_for_id(id)
             .map(|metadata| metadata.is_supertype)
             .unwrap_or(false)
+    }
+
+    /// Get the number of distinct field names in this language.
+    pub fn field_count(&self) -> usize {
+        self.table.field_names.len()
+    }
+
+    /// Get the field name for a nonzero Tree-sitter-style field id.
+    pub fn field_name_for_id(&self, field_id: u16) -> Option<&str> {
+        let index = usize::from(field_id.checked_sub(1)?);
+        self.table.field_names.get(index).map(String::as_str)
+    }
+
+    /// Get the nonzero Tree-sitter-style field id for the given field name.
+    pub fn field_id_for_name(&self, field_name: impl AsRef<[u8]>) -> Option<FieldId> {
+        let field_name = field_name.as_ref();
+        self.table
+            .field_names
+            .iter()
+            .position(|name| name.as_bytes() == field_name)
+            .and_then(|index| index.checked_add(1))
+            .and_then(|id| u16::try_from(id).ok())
+            .and_then(FieldId::new)
     }
 }
 
