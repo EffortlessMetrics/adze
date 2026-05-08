@@ -41,6 +41,7 @@ CANARIES=(
   "adze ts_compat cursor reset|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_cursor_reset -- --nocapture"
   "adze ts_compat cursor descendant index|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_cursor_descendant -- --nocapture"
   "adze ts_compat language node metadata|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_language_metadata -- --nocapture"
+  "adze ts_compat node descendant counts|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_descendant_count -- --nocapture"
   "adze ts_compat node metadata|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_metadata -- --nocapture"
   "adze ts_compat node ranges|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_range -- --nocapture"
   "adze ts_compat node error-state guardrails|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_error -- --nocapture"

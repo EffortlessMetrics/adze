@@ -301,6 +301,7 @@ mod ts_compat_tests {
         let _ = root.end_position();
         let _ = root.range();
         let _ = root.child_count();
+        let _ = root.descendant_count();
         let _ = root.child(0);
         let _ = root.is_extra();
         let _ = root.is_error();
