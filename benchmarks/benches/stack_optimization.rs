@@ -1,3 +1,12 @@
+//! Classification: infrastructure
+//! Status: active
+//! CI coverage: performance.yml Quick Performance Smoke Test (compile-only),
+//!   pure-rust-ci.yml benchmark compile check (compile-only)
+//!
+//! Stack implementation and memory pooling micro-benchmarks. Compares
+//! Vec-based stacks vs persistent stacks with structural sharing, plus
+//! fork/merge patterns at varying depths.
+
 use adze::pool::NodePool;
 use adze_glr_core::stack::StackNode;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};

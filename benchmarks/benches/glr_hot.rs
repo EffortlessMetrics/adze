@@ -1,3 +1,10 @@
+//! Classification: real_parser
+//! Status: active
+//! CI coverage: performance.yml Quick Performance Smoke Test (compile-only),
+//!   pure-rust-ci.yml benchmark compile check (compile-only)
+//!
+//! Hot-path GLR parser benchmark for medium/large arithmetic fixtures.
+
 use adze_example::arithmetic::grammar::parse;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
