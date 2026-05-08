@@ -275,6 +275,22 @@ impl<'a> Node<'a> {
         self.node.symbol.0
     }
 
+    /// Get this node's grammar symbol id, ignoring aliases.
+    ///
+    /// Current `ts_compat` parse nodes do not carry alias-specific node
+    /// identity, so grammar id matches kind id.
+    pub fn grammar_id(&self) -> u16 {
+        self.kind_id()
+    }
+
+    /// Get this node's grammar symbol name, ignoring aliases.
+    ///
+    /// Current `ts_compat` parse nodes do not carry alias-specific node
+    /// identity, so grammar name matches kind.
+    pub fn grammar_name(&self) -> &str {
+        self.kind()
+    }
+
     /// Get the start byte of this node.
     pub fn start_byte(&self) -> usize {
         self.node.start_byte
