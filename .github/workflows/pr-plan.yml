@@ -25,7 +25,7 @@ concurrency:
   # Include github.workflow so a parent (pr-gate / ripr) gets its own group
   # rather than cancelling the other parent's invocation.
   group: pr-plan-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
   plan:
