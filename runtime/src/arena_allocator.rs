@@ -323,10 +323,6 @@ impl<'arena> TreeNodeRef<'arena> {
 
     /// Get the underlying node reference (backwards-compatible alias)
     #[expect(
-        clippy::wrong_self_convention,
-        reason = "as_ref is a backwards-compatible alias for get_ref; renaming would break existing callers"
-    )]
-    #[expect(
         clippy::should_implement_trait,
         reason = "as_ref is intentionally not the std::convert::AsRef impl; it returns a lifetime-bound arena reference"
     )]

@@ -332,10 +332,6 @@ impl<'a> LanguageValidator<'a> {
         }
     }
 
-    #[expect(
-        clippy::ptr_arg,
-        reason = "parameter type is part of the validate_table_dimensions contract shared across implementations; changing to a slice would break the interface"
-    )]
     fn validate_table_dimensions(&self, _errors: &mut Vec<ValidationError>) {
         // Validate based on whether we have small or large tables
         if !self.language.small_parse_table.is_null() {

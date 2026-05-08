@@ -103,10 +103,6 @@ impl Tree {
         nodes
     }
 
-    #[expect(
-        clippy::only_used_in_recursion,
-        reason = "receiver carries traversal state; removing &self would require restructuring the recursive node walk"
-    )]
     fn collect_reusable_nodes(&self, node: &ParsedNode, nodes: &mut Vec<ReusableNode>) {
         // Add this node as reusable
         nodes.push(ReusableNode {

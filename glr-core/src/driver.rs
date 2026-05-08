@@ -732,10 +732,6 @@ impl<'t> Driver<'t> {
                         let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
 
                         // Check if reduction produced start symbol
-                        #[expect(
-                            clippy::collapsible_if,
-                            reason = "separating the reduction-result check from the root-symbol check aids readability of the GLR driver control flow"
-                        )]
                         if let Some(&root_id) = s2.nodes.last()
                             && let Some(root) = state.forest.nodes.get(&root_id)
                         {
