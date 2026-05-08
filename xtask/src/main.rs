@@ -7,6 +7,7 @@ mod bench;
 mod ci_plan;
 mod corpus;
 mod dashboard;
+mod debug_blocks;
 mod fixtures;
 mod golden;
 mod grammar_json;
@@ -146,6 +147,20 @@ enum Commands {
         /// Regression threshold percentage (default: 5.0)
         #[arg(long, default_value = "5.0")]
         threshold: f64,
+    },
+    /// Check commented-out debug blocks for missing `// );` closers.
+    CheckDebugBlocks {
+        /// Auto-insert missing `// );` after commented debug blocks
+        #[arg(long)]
+        fix: bool,
+        /// Only check staged .rs files in the index
+        #[arg(long)]
+        changed_only: bool,
+        /// Only check files changed since a Git revision
+        #[arg(long, value_name = "REV")]
+        since: Option<String>,
+        /// Rust files to check (defaults to Git-tracked .rs files)
+        files: Vec<std::path::PathBuf>,
     },
     /// Run all lint checks (fmt -> no-mangle -> debug-block validator -> clippy)
     ///
@@ -423,6 +438,19 @@ fn main() -> Result<()> {
             threshold,
         } => {
             baseline::compare_baseline(&sh, &baseline_version, threshold)?;
+        }
+        Commands::CheckDebugBlocks {
+            fix,
+            changed_only,
+            since,
+            files,
+        } => {
+            debug_blocks::run(debug_blocks::CheckOptions {
+                fix,
+                changed_only,
+                since,
+                files,
+            })?;
         }
         Commands::Lint {
             fix,
