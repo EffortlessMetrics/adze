@@ -389,14 +389,20 @@ fn parse_file(
         input_content.len()
     );
     println!(
-        "{} Static parse mode is experimental and not implemented yet in adze-cli.",
+        "{} Static parse mode is not yet available in adze-cli.",
         "⚠️ ".yellow()
     );
     println!(
-        "   Use `adze check` to validate a grammar, `adze build` to generate parsers, and parse from Rust code."
+        "   To parse files from Rust code, use `adze build` + `cargo test` in your grammar project."
+    );
+    println!("   To validate a grammar without parsing, use `adze check <grammar.rs>`.");
+    println!(
+        "   To load a compiled grammar at runtime, pass --dynamic (experimental; requires --features dynamic)."
     );
 
-    anyhow::bail!("static parse mode is currently unimplemented")
+    anyhow::bail!(
+        "static parse mode is currently unimplemented — use `adze build` + `cargo test` instead"
+    )
 }
 
 #[cfg(feature = "dynamic")]

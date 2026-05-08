@@ -104,7 +104,7 @@ Current canaries:
 - `adze-tablegen` alias ABI pointer/data preservation — **behavior** (`cargo test -p adze-tablegen --test alias_handling_comprehensive alias_abi_emits_non_null_pointers_when_counters_nonzero -- --exact --nocapture`)
 - `adze-tablegen` sparse production LHS ABI preservation — **behavior** (`cargo test -p adze-tablegen --test production_id_comprehensive edge_sparse_production_ids_emit_dense_production_lhs_index -- --exact --nocapture`)
 - README arithmetic quickstart clean-room — **behavior** (`cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`)
-- `adze-cli` clean-room init/check smoke — **behavior** (`cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture`)
+- `adze-cli` default-cwd init/check smoke — **behavior** (`cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture`)
 - `adze-cli` check rejects non-grammar Rust files — **behavior** (`cargo test -p adze-cli test_check_rejects_file_without_adze_grammar -- --exact --nocapture`)
 - `adze-cli` stats rejects non-grammar Rust files — **behavior** (`cargo test -p adze-cli test_stats_rejects_file_without_adze_grammar -- --exact --nocapture`)
 - `adze-cli` parse unsupported-mode truthfulness — **behavior** (`cargo test -p adze-cli test_parse_static_mode_is_explicitly_unimplemented -- --exact --nocapture`)
