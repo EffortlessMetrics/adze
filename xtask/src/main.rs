@@ -7,6 +7,7 @@ mod bench;
 mod ci_plan;
 mod corpus;
 mod dashboard;
+mod debug_blocks;
 mod fixtures;
 mod golden;
 mod grammar_json;
@@ -191,6 +192,20 @@ enum Commands {
         /// Fixtures directory
         #[arg(short = 'd', long, default_value = "benchmarks/fixtures/arithmetic")]
         dir: String,
+    },
+    /// Check commented debug blocks in Rust files.
+    CheckDebugBlocks {
+        /// Auto-insert missing `// );` after commented debug blocks.
+        #[arg(long)]
+        fix: bool,
+        /// Only check staged .rs files in the index.
+        #[arg(long)]
+        changed_only: bool,
+        /// Only check files changed since REV.
+        #[arg(long, value_name = "REV")]
+        since: Option<String>,
+        /// Files to check (defaults to Git-tracked .rs files).
+        files: Vec<String>,
     },
     /// Check the workspace for unreceipted panic-family debt.
     ///
@@ -435,6 +450,19 @@ fn main() -> Result<()> {
         }
         Commands::GenerateFixtures { output, force } => {
             fixtures::generate_fixtures(&sh, &output, force)?;
+        }
+        Commands::CheckDebugBlocks {
+            fix,
+            changed_only,
+            since,
+            files,
+        } => {
+            debug_blocks::run(debug_blocks::DebugBlockOptions {
+                fix,
+                changed_only,
+                since,
+                files: files.into_iter().map(Into::into).collect(),
+            })?;
         }
         Commands::ValidateFixtures { dir } => {
             fixtures::validate_only(&sh, &dir)?;
