@@ -287,3 +287,31 @@ fn generated_typed_parser_expected_field_contains_digit_pattern() {
         first.expected
     );
 }
+
+#[test]
+fn generated_typed_parser_bad_inputs_return_errors_without_panicking() {
+    let cases = [
+        ("empty input", ""),
+        ("whitespace only", "   "),
+        ("trailing operator", "1 +"),
+        ("invalid ascii token", "1 + @"),
+        ("invalid utf8 scalar", "1 + λ"),
+        ("multiline invalid token", "1 +\n@"),
+    ];
+
+    for (label, source) in cases {
+        let parsed =
+            std::panic::catch_unwind(|| adze_example::typed_ast_contract::grammar::parse(source));
+
+        let errors = match parsed {
+            Ok(Err(errors)) => errors,
+            Ok(Ok(ast)) => panic!("generated parser unexpectedly accepted {label}: {ast:?}"),
+            Err(_) => panic!("generated parser panicked for {label}"),
+        };
+
+        assert!(
+            !errors.is_empty(),
+            "generated parser should return at least one structured error for {label}"
+        );
+    }
+}
