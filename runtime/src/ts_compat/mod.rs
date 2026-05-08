@@ -336,6 +336,34 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    /// Convert this node and its named descendants to a Tree-sitter-style S-expression.
+    pub fn to_sexp(&self) -> String {
+        let mut result = String::new();
+        self.write_sexp(&mut result);
+        result
+    }
+
+    fn write_sexp(&self, result: &mut String) {
+        result.push('(');
+        result.push_str(self.kind());
+
+        for child in &self.node.children {
+            let child_node = Node::new(self.tree, child);
+            if !child_node.is_named() {
+                continue;
+            }
+
+            result.push(' ');
+            if let Some(field_name) = child.field_name.as_deref() {
+                result.push_str(field_name);
+                result.push_str(": ");
+            }
+            child_node.write_sexp(result);
+        }
+
+        result.push(')');
+    }
+
     /// Create a cursor rooted at this node.
     pub fn walk(&self) -> TreeCursor<'a> {
         TreeCursor::new(self.tree, self.node)
