@@ -1152,4 +1152,42 @@ mod tests {
         assert!(child.is_missing());
         assert!(child.has_error());
     }
+
+    #[test]
+    fn node_is_missing_reports_only_zero_width_error_nodes() {
+        let zero_width_error = parse_node(0, 1, 1);
+        let spanning_error = parse_node(0, 2, 3);
+        let zero_width_non_error = parse_node(2, 3, 3);
+        let root = ParseNode {
+            symbol: SymbolId(1),
+            symbol_id: SymbolId(1),
+            start_byte: 0,
+            end_byte: 3,
+            field_name: None,
+            children: vec![zero_width_error, spanning_error, zero_width_non_error],
+        };
+        let tree = Tree {
+            core: OwnedCoreTree {
+                root,
+                source: b"abc".to_vec(),
+                error_count: 0,
+            },
+            last_edit: None,
+            language: empty_parse_table_language(),
+        };
+
+        let root = tree.root_node();
+        let missing = root.child(0).expect("missing child should exist");
+        let error = root.child(1).expect("spanning error child should exist");
+        let empty_regular = root
+            .child(2)
+            .expect("zero-width regular child should exist");
+
+        assert!(missing.is_error());
+        assert!(missing.is_missing());
+        assert!(error.is_error());
+        assert!(!error.is_missing());
+        assert!(!empty_regular.is_error());
+        assert!(!empty_regular.is_missing());
+    }
 }

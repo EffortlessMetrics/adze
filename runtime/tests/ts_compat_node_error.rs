@@ -56,6 +56,26 @@ fn generated_tree_reports_error_metadata_when_parser_recovers() {
 }
 
 #[test]
+fn generated_tree_reports_zero_width_error_root_as_missing() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(adze_example::ts_langs::arithmetic())
+        .expect("Failed to set language");
+
+    let tree = parser
+        .parse("", None)
+        .expect("parser should return an inspectable empty-input error tree");
+    let root = tree.root_node();
+
+    assert!(tree.error_count() > 0);
+    assert!(tree.has_errors());
+    assert!(root.is_error());
+    assert!(root.is_missing());
+    assert_eq!(root.byte_range(), 0..0);
+    assert!(root.has_error());
+}
+
+#[test]
 fn generated_tree_reports_error_free_node_metadata_for_valid_input() {
     let mut parser = Parser::new();
     parser

@@ -48,6 +48,7 @@ CANARIES=(
   "adze ts_compat node metadata|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_metadata -- --nocapture"
   "adze ts_compat node ranges|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_range -- --nocapture"
   "adze ts_compat node error-state guardrails|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_error -- --nocapture"
+  "adze ts_compat missing-node guardrail|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_error generated_tree_reports_zero_width_error_root_as_missing -- --exact --nocapture"
   "adze ts_compat S-expression output|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_to_sexp -- --nocapture"
   "README arithmetic quickstart clean-room|behavior|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
   "adze-cli clean-room init/check smoke|behavior|cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture"
