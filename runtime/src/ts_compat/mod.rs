@@ -299,6 +299,24 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
+    /// Get this node's parent, if it is not the root node.
+    pub fn parent(&self) -> Option<Node<'a>> {
+        Self::find_parent(&self.tree.core.root, self.node)
+            .map(|parent| Node::new(self.tree, parent))
+    }
+
+    fn find_parent(current: &'a ParseNode, target: *const ParseNode) -> Option<&'a ParseNode> {
+        for child in &current.children {
+            if std::ptr::eq(child, target) {
+                return Some(current);
+            }
+            if let Some(parent) = Self::find_parent(child, target) {
+                return Some(parent);
+            }
+        }
+        None
+    }
+
     /// Check if this node is a named grammar node.
     pub fn is_named(&self) -> bool {
         self.tree
