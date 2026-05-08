@@ -78,6 +78,34 @@ column = 17
 `legacy` entries must expire within 6 months. `placeholder` entries must
 expire within 3 months.
 
+## Baseline status
+
+The initial baseline for the **7 core pipeline crates** has been generated
+and committed to `policy/no-panic-allowlist.toml`:
+
+| Crate | Directory |
+|-------|-----------|
+| `adze` | `runtime/` |
+| `adze-macro` | `macro/` |
+| `adze-tool` | `tool/` |
+| `adze-common` | `common/` |
+| `adze-ir` | `ir/` |
+| `adze-glr-core` | `glr-core/` |
+| `adze-tablegen` | `tablegen/` |
+
+As of 2026-05-08 the baseline contains ~16,931 entries. Breakdown:
+- ~16,506 `test_helper` (test/bench code)
+- ~418 `invariant` (production code with documented invariants)
+- 7 `fixture` (example/demo code)
+
+The remaining workspace crates (governance micro-crates, grammars, CLI, etc.)
+are not yet in scope. They will be added in a follow-up once the core
+baseline is stabilized.
+
+**Note:** The `no-panic-propose` command requires `--release` mode on Windows
+due to a stack overflow in debug builds when parsing the full workspace with
+`syn`.
+
 ## What the checker does
 
 `cargo xtask check-no-panic-family` walks the workspace, parses Rust source
