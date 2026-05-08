@@ -11,7 +11,7 @@ use std::sync::Arc;
 thread_local! {
     // Keep per-thread bridge arenas rooted until thread exit so the returned
     // parser_v4 trees can borrow stable storage without leaking intentionally.
-    #[allow(clippy::vec_box)]
+    #[expect(clippy::vec_box, reason = "Box<TreeArena> provides stable pointer identity required by the borrow contract documented above")]
     static TREE_BRIDGE_ARENAS: RefCell<Vec<Box<TreeArena>>> = const { RefCell::new(Vec::new()) };
 }
 
