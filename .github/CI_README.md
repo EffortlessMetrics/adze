@@ -2,9 +2,15 @@
 
 This document describes the comprehensive CI setup for adze.
 
+For the full lane classification (required vs advisory vs push-only), see [CI_LANES.md](./CI_LANES.md).
+
 ## Overview
 
-The CI pipeline ensures code quality, API stability, and security through multiple automated checks:
+The CI pipeline ensures code quality, API stability, and security through multiple automated checks. Jobs are classified into three visibility tiers:
+
+- **Required** (`ci-supported`): The single merge gate. Must be green before merge.
+- **Push / scheduled**: Runs on `main` pushes or schedules. Not PR-blocking.
+- **Advisory** (prefixed `Advisory / `): Uses nightly/unstable toolchains. May be red due to toolchain drift. Inspect, don't block.
 
 ### Jobs
 

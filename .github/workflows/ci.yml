@@ -323,7 +323,7 @@ jobs:
 
   miri:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
-    name: Miri (UB Detection)
+    name: Advisory / Miri
     runs-on: ubuntu-latest
     continue-on-error: true   # advisory — nightly miri component can be unavailable
     steps:
@@ -379,7 +379,7 @@ jobs:
 
   sanitizers:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
-    name: Sanitizers (ASAN/UBSAN)
+    name: Advisory / Sanitizers
     runs-on: ubuntu-latest
     continue-on-error: true   # advisory — nightly + -Zbuild-std can break
     steps:
@@ -409,7 +409,7 @@ jobs:
 
   minimal-versions:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
-    name: Minimal Versions
+    name: Advisory / Minimal Versions
     runs-on: ubuntu-latest
     continue-on-error: true   # advisory — minimal-versions resolution can lag behind
     steps:
@@ -760,7 +760,7 @@ jobs:
 
   cross-compile:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
-    name: Cross Compilation (${{ matrix.target }})
+    name: Advisory / Cross Compilation (${{ matrix.target }})
     runs-on: ubuntu-latest
     continue-on-error: true   # advisory — cross toolchains can drift
     defaults:
@@ -876,7 +876,7 @@ jobs:
 
   unsafe-audit:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)
-    name: Unsafe Code Audit
+    name: Advisory / Unsafe Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -1113,7 +1113,7 @@ jobs:
         run: just ci-supported
 
   wasm-check:
-    name: WASM Build Verification
+    name: Advisory / WASM Build
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
