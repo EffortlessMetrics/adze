@@ -3,9 +3,9 @@
 //! Tests Parser construction, arena metrics, ParseNode, ParseError, ParserState.
 
 use adze::parser_v4::*;
-use adze_glr_core::{FirstFollowSets, StateId, build_lr1_automaton};
-use adze_ir::SymbolId;
+use adze_glr_core::{Action, FirstFollowSets, StateId, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;
+use adze_ir::{RuleId, SymbolId};
 
 fn make_parser() -> Parser {
     let mut grammar = GrammarBuilder::new("test")
@@ -31,6 +31,34 @@ fn make_simple_parser() -> Parser {
     let ff = FirstFollowSets::compute_normalized(&mut grammar).expect("ff");
     let pt = build_lr1_automaton(&grammar, &ff).expect("lr1");
     Parser::new(grammar, pt, "simple".to_string())
+}
+
+fn make_parser_with_single_fork_conflict_cell() -> Parser {
+    let mut grammar = GrammarBuilder::new("single_fork_conflict")
+        .token("a", "a")
+        .rule("start", vec!["a"])
+        .start("start")
+        .build();
+    grammar.normalize();
+
+    let token_symbol = grammar
+        .tokens
+        .keys()
+        .copied()
+        .find(|symbol| *symbol != SymbolId(0))
+        .expect("test grammar should have one concrete token");
+    let ff = FirstFollowSets::compute_normalized(&mut grammar).expect("ff");
+    let mut pt = build_lr1_automaton(&grammar, &ff).expect("lr1");
+    let token_column = *pt
+        .symbol_to_index
+        .get(&token_symbol)
+        .expect("parse table should index the concrete token");
+    pt.action_table[0][token_column] = vec![Action::Fork(vec![
+        Action::Shift(StateId(1)),
+        Action::Reduce(RuleId(0)),
+    ])];
+
+    Parser::new(grammar, pt, "single_fork_conflict".to_string())
 }
 
 // ── 1. Parser construction ──────────────────────────────────────
@@ -59,6 +87,21 @@ fn test_parser_parse_table_accessible() {
     let p = make_parser();
     let pt = p.parse_table();
     assert!(pt.state_count > 0);
+}
+
+#[test]
+fn test_parser_v4_rejects_single_action_fork_conflict_before_parsing() {
+    let mut p = make_parser_with_single_fork_conflict_cell();
+
+    let error = p
+        .parse_tree("")
+        .expect_err("single Action::Fork conflict cells require true GLR routing");
+    let message = error.to_string();
+
+    assert!(
+        message.contains("GLR conflict encountered in parser_v4"),
+        "parser_v4 should use the canonical recursive conflict predicate, got: {message}"
+    );
 }
 
 // ── 2. Arena metrics ────────────────────────────────────────────

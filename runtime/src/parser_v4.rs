@@ -9,7 +9,7 @@ use crate::external_scanner::ExternalScannerRuntime;
 use crate::glr_forest::{ForestNode, GLRParserState, PackedNode};
 use crate::lexer::{GrammarLexer, Token as LexerToken};
 use crate::scanner_registry::{DynExternalScanner, get_global_registry};
-use adze_glr_core::{Action, ParseRule, ParseTable};
+use adze_glr_core::{Action, ParseRule, ParseTable, conflict_inspection::state_has_conflicts};
 use adze_ir::{Grammar, Rule, RuleId, StateId, SymbolId, TokenPattern};
 use anyhow::{Result, anyhow, bail};
 use std::collections::HashSet;
@@ -138,11 +138,8 @@ pub struct Parser {
 impl Parser {
     #[inline]
     fn has_conflicted_actions(&self) -> bool {
-        self.parse_table
-            .action_table
-            .iter()
-            .flat_map(|row| row.iter())
-            .any(|cell| cell.len() > 1)
+        (0..self.parse_table.state_count)
+            .any(|state| state_has_conflicts(&self.parse_table, StateId(state as u16)))
     }
 
     /// Get the grammar used by this parser

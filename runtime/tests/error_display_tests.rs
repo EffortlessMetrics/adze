@@ -22,6 +22,7 @@ fn parse_error_includes_byte_positions() {
         reason: ParseErrorReason::UnexpectedToken("@".to_string()),
         start: 10,
         end: 11,
+        expected: vec![],
     };
     let dbg = format!("{:?}", err);
     assert!(dbg.contains("10"), "Debug should include start byte: {dbg}");
@@ -34,6 +35,7 @@ fn parse_error_display_includes_reason_and_byte_span() {
         reason: ParseErrorReason::UnexpectedToken("@".to_string()),
         start: 10,
         end: 11,
+        expected: vec![],
     };
     let display = format!("{err}");
     assert!(
@@ -53,6 +55,7 @@ fn parse_error_source_span_is_one_indexed() {
         reason: ParseErrorReason::UnexpectedToken("@".to_string()),
         start: 8,
         end: 9,
+        expected: vec![],
     };
 
     let span = err.source_span(source.as_bytes());
@@ -70,6 +73,7 @@ fn parse_error_display_with_source_includes_line_column_and_excerpt() {
         reason: ParseErrorReason::UnexpectedToken("@".to_string()),
         start: 8,
         end: 9,
+        expected: vec![],
     };
 
     let display = format!("{}", err.display_with_source(source));
@@ -99,6 +103,7 @@ fn parse_error_display_with_source_marks_zero_width_spans() {
         reason: ParseErrorReason::MissingToken(";".to_string()),
         start: 3,
         end: 3,
+        expected: vec![],
     };
 
     let display = format!("{}", err.display_with_source(source));
@@ -155,6 +160,7 @@ fn unexpected_token_error_includes_token_text() {
         reason: ParseErrorReason::UnexpectedToken("foobar".to_string()),
         start: 0,
         end: 6,
+        expected: vec![],
     };
     let dbg = format!("{:?}", err);
     assert!(
@@ -253,6 +259,7 @@ fn missing_token_error_names_the_token() {
         reason: ParseErrorReason::MissingToken("semicolon".to_string()),
         start: 5,
         end: 5,
+        expected: vec![],
     };
     let dbg = format!("{:?}", err);
     assert!(
@@ -443,6 +450,7 @@ fn parse_error_debug_includes_reason_and_range() {
         reason: ParseErrorReason::UnexpectedToken("xyz".to_string()),
         start: 42,
         end: 45,
+        expected: vec![],
     };
     let dbg = format!("{:?}", err);
     assert!(
@@ -480,11 +488,13 @@ fn failed_node_debug_includes_inner_errors() {
         reason: ParseErrorReason::UnexpectedToken("bad".to_string()),
         start: 2,
         end: 5,
+        expected: vec![],
     };
     let outer = ParseError {
         reason: ParseErrorReason::FailedNode(vec![inner]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     let dbg = format!("{:?}", outer);
     assert!(
@@ -632,6 +642,7 @@ fn parse_error_byte_positions_for_unicode() {
         reason: ParseErrorReason::UnexpectedToken("ñ".to_string()),
         start: 5,
         end: 7, // 2-byte character
+        expected: vec![],
     };
     let dbg = format!("{:?}", err);
     assert!(dbg.contains("5"), "Start byte position present: {dbg}");
@@ -699,16 +710,19 @@ fn multiple_parse_errors_are_distinct() {
             reason: ParseErrorReason::UnexpectedToken("@".to_string()),
             start: 0,
             end: 1,
+            expected: vec![],
         },
         ParseError {
             reason: ParseErrorReason::MissingToken(";".to_string()),
             start: 5,
             end: 5,
+            expected: vec![],
         },
         ParseError {
             reason: ParseErrorReason::UnexpectedToken("#".to_string()),
             start: 10,
             end: 11,
+            expected: vec![],
         },
     ];
 
@@ -961,11 +975,13 @@ fn failed_node_wraps_inner_errors() {
         reason: ParseErrorReason::UnexpectedToken("x".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     let outer = ParseError {
         reason: ParseErrorReason::FailedNode(vec![inner]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     // FailedNode contains child errors accessible via the reason
     match &outer.reason {
@@ -1359,6 +1375,32 @@ fn reporting_parse_diagnostics_include_byte_span_for_multiline_bad_input() {
     );
 }
 
+#[test]
+fn reporting_parse_diagnostics_display_includes_multiline_excerpt() {
+    let mut parser = make_dummy_parser();
+
+    let errors = parser
+        .parse_with_diagnostics(vec![
+            (adze_ir::SymbolId(1), "1\n".to_string()),
+            (adze_ir::SymbolId(2), "@".to_string()),
+        ])
+        .expect_err("invalid token after newline should produce a structured diagnostic");
+
+    let display = format!("{}", errors[0]);
+    assert!(
+        display.contains("Parse error at 2:1"),
+        "diagnostic display should include line/column: {display}"
+    );
+    assert!(
+        display.contains("bytes 2..3"),
+        "diagnostic display should include byte span: {display}"
+    );
+    assert!(
+        display.contains("@\n^"),
+        "diagnostic display should include the source excerpt and caret: {display}"
+    );
+}
+
 // ============================================================================
 // Helper: create a minimal GLRParser for ErrorReporter tests
 // ============================================================================
@@ -1392,4 +1434,96 @@ fn make_dummy_parser() -> adze::glr_parser::GLRParser {
     let table = build_lr1_automaton(&g, &ff).unwrap();
 
     adze::glr_parser::GLRParser::new(table, g)
+}
+
+// ============================================================================
+// 18. Structured expected-tokens field on errors::ParseError
+// ============================================================================
+
+#[test]
+fn parse_error_expected_field_default_is_empty_vec() {
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("x".to_string()),
+        start: 0,
+        end: 1,
+        expected: vec![],
+    };
+    assert!(
+        err.expected.is_empty(),
+        "expected field should default to empty vec"
+    );
+}
+
+#[test]
+fn parse_error_expected_field_holds_token_names() {
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("x".to_string()),
+        start: 0,
+        end: 1,
+        expected: vec!["number".to_string(), "string".to_string()],
+    };
+    assert_eq!(err.expected, vec!["number", "string"]);
+}
+
+#[test]
+fn parse_error_expected_field_backward_compatible_display() {
+    // When expected is empty, Display should not mention "expected one of:"
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("@".to_string()),
+        start: 10,
+        end: 11,
+        expected: vec![],
+    };
+    let display = format!("{err}");
+    assert!(
+        !display.contains("expected one of:"),
+        "empty expected should not produce 'expected one of:' in Display: {display}"
+    );
+
+    // When expected is populated but the reason string already contains
+    // expected info, Display should remain backward compatible
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken(
+            "unexpected; expected one of: number, string".to_string(),
+        ),
+        start: 0,
+        end: 1,
+        expected: vec!["number".to_string(), "string".to_string()],
+    };
+    let display = format!("{err}");
+    assert!(
+        display.contains("expected one of: number, string"),
+        "Display should include expected tokens from reason: {display}"
+    );
+}
+
+#[test]
+fn parse_error_display_uses_structured_expected_when_reason_has_no_expected() {
+    let err = ParseError {
+        reason: ParseErrorReason::UnexpectedToken("@".to_string()),
+        start: 0,
+        end: 1,
+        expected: vec!["number".to_string(), "string".to_string()],
+    };
+    let display = format!("{err}");
+    assert!(
+        display.contains("expected one of: number, string"),
+        "Display should render structured expected tokens when reason has none: {display}"
+    );
+}
+
+#[test]
+fn missing_token_expected_field_contains_token_name() {
+    let err = ParseError {
+        reason: ParseErrorReason::MissingToken(";".to_string()),
+        start: 5,
+        end: 5,
+        expected: vec![";".to_string()],
+    };
+    assert_eq!(err.expected, vec![";"]);
+    let display = format!("{err}");
+    assert!(
+        display.contains("missing token \";\""),
+        "Display should include missing token: {display}"
+    );
 }

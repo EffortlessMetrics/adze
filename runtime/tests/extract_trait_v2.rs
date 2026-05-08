@@ -412,6 +412,7 @@ fn test_parse_error_reason_unexpected_token() {
         reason: ParseErrorReason::UnexpectedToken("$".to_string()),
         start: 0,
         end: 1,
+        expected: vec![],
     };
     assert_eq!(err.start, 0);
     assert_eq!(err.end, 1);
@@ -427,6 +428,7 @@ fn test_parse_error_reason_missing_token() {
         reason: ParseErrorReason::MissingToken("semicolon".to_string()),
         start: 5,
         end: 5,
+        expected: vec![],
     };
     match &err.reason {
         ParseErrorReason::MissingToken(tok) => assert_eq!(tok, "semicolon"),
@@ -440,6 +442,7 @@ fn test_parse_error_reason_failed_node_empty() {
         reason: ParseErrorReason::FailedNode(vec![]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     match &err.reason {
         ParseErrorReason::FailedNode(inner) => assert!(inner.is_empty()),
@@ -453,11 +456,13 @@ fn test_parse_error_reason_failed_node_nested() {
         reason: ParseErrorReason::UnexpectedToken("x".to_string()),
         start: 3,
         end: 4,
+        expected: vec![],
     };
     let outer = ParseError {
         reason: ParseErrorReason::FailedNode(vec![inner]),
         start: 0,
         end: 10,
+        expected: vec![],
     };
     match &outer.reason {
         ParseErrorReason::FailedNode(v) => assert_eq!(v.len(), 1),

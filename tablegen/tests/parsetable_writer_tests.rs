@@ -497,17 +497,23 @@ fn test_serializer_includes_external_tokens_in_symbol_names() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_serializer_lex_modes_match_state_count() {
+fn test_serializer_lex_modes_preserve_parse_table_values() {
     let grammar = Grammar::new("lex_modes_test".to_string());
-    let pt = make_empty_table(7, 1, 1, 0);
+    let mut pt = make_empty_table(7, 1, 1, 0);
+    for (i, mode) in pt.lex_modes.iter_mut().enumerate() {
+        *mode = LexMode {
+            lex_state: (i * 2) as u16,
+            external_lex_state: (i % 3) as u16,
+        };
+    }
 
     let json = serialize_language(&grammar, &pt, None).expect("serialize");
     let parsed: SerializableLanguage = serde_json::from_str(&json).expect("deserialize");
 
     assert_eq!(parsed.lex_modes.len(), 7);
     for (i, mode) in parsed.lex_modes.iter().enumerate() {
-        assert_eq!(mode.lex_state, i as u16);
-        assert_eq!(mode.external_lex_state, 0);
+        assert_eq!(mode.lex_state, pt.lex_modes[i].lex_state);
+        assert_eq!(mode.external_lex_state, pt.lex_modes[i].external_lex_state);
     }
 }
 

@@ -14,7 +14,7 @@ schema_version = "1.0"
 policy = "ci-whitelist-exceptions"
 owner = "release/ci"
 status = "active"
-updated = "2026-05-07"
+updated = "2026-05-08"
 
 [[exception]]
 id = "ci-exception-pure-rust-os-matrix-default-pr"
@@ -23,7 +23,7 @@ lane = "pure-rust-os-matrix"
 allowed = true
 owner = "core/runtime"
 issue = "TODO"
-reason = "Current PR workflow runs broad OS/toolchain proof. Keep temporarily until PR Plan and actual LEM data support routing to main/nightly/labels (PR 13 in docs/ci/adze-rollout-plan.md)."
+reason = "Default PR matrix is now ubuntu/stable only (~18 LEM) via matrix-setup job. Full OS/toolchain matrix (was 180 LEM) gated to labels/main. Exception kept for whitelist audit; update base_lem in lane entry reflects routed reality."
 created = "2026-05-07"
 review_after = "2026-06-07"
 expires = "2026-08-07"
@@ -35,7 +35,7 @@ lane = "microcrate-ci"
 allowed = true
 owner = "core/build"
 issue = "TODO"
-reason = "Microcrate split is under active hardening. Keep default until risk packs distinguish core, governance, BDD, parser, concurrency, and docs surfaces (PR 14)."
+reason = "Microcrate routing by risk pack is active; changes setup job routes each PR to matching groups only. Exception kept while routing is validated across real PRs."
 created = "2026-05-07"
 review_after = "2026-06-07"
 expires = "2026-08-07"
@@ -44,13 +44,14 @@ expires = "2026-08-07"
 id = "ci-exception-fuzz-default-pr"
 kind = "expensive_default_pr_lane"
 lane = "fuzz-pr"
-allowed = true
+allowed = false
+resolved = true
+resolution = "Lane now default_pr=false. Runtime fuzz gated to labels/push/schedule. Default PR uses fuzz-build-smoke only."
 owner = "core/parser"
 issue = "TODO"
-reason = "Fuzzing is currently PR-visible. Move to nightly/label after parser risk-pack property/oracle coverage is confirmed (PR 10)."
+reason = "Resolved: fuzz.yml runtime fuzz already gated to fuzz/full-ci labels and push/schedule."
 created = "2026-05-07"
-review_after = "2026-06-07"
-expires = "2026-08-07"
+resolved_date = "2026-05-08"
 
 [[exception]]
 id = "ci-exception-performance-default-pr"
@@ -59,7 +60,7 @@ lane = "performance-regression"
 allowed = true
 owner = "core/perf"
 issue = "TODO"
-reason = "Performance workflows overlap. Keep visible until benchmark ownership is unified and perf-risk routing exists (PR 11)."
+reason = "performance-check job uses path filter on PR. ci/benchmark-dedup will gate baseline comparison to ci:perf/full-ci labels."
 created = "2026-05-07"
 review_after = "2026-06-07"
 expires = "2026-08-07"
@@ -68,13 +69,14 @@ expires = "2026-08-07"
 id = "ci-exception-benchmarks-default-pr"
 kind = "expensive_default_pr_lane"
 lane = "benchmarks-pr"
-allowed = true
+allowed = false
+resolved = true
+resolution = "Lane now default_pr=false. Full benchmark suite gated to ci:perf/benchmarks/full-ci labels and main/push."
 owner = "core/perf"
 issue = "TODO"
-reason = "Benchmark workflow overlaps with performance-regression workflow. Keep until whitelist inventory selects one PR owner (PR 11)."
+reason = "Resolved: benchmarks.yml already gated to labels/main. Lane is no longer default_pr."
 created = "2026-05-07"
-review_after = "2026-06-07"
-expires = "2026-08-07"
+resolved_date = "2026-05-08"
 
 [[exception]]
 id = "ci-exception-golden-tests-default-pr"
@@ -83,7 +85,7 @@ lane = "golden-tests"
 allowed = true
 owner = "grammar/fixtures"
 issue = "TODO"
-reason = "Golden grammar parity is high-value but should become grammar/golden-risk routed after PR Plan lands (PR 12)."
+reason = "Golden tests run via paths detection; skip on non-grammar PRs unless ci:golden/full-ci label. Exception kept while routing is validated across real PRs."
 created = "2026-05-07"
 review_after = "2026-06-07"
 expires = "2026-08-07"

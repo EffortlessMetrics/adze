@@ -1,3 +1,8 @@
+//! Classification: real_parser
+//! Status: active
+//! CI coverage: performance.yml Quick Performance Smoke Test (compile-only),
+//!   pure-rust-ci.yml benchmark compile check (compile-only)
+//!
 //! Baseline parser benchmark for valid arithmetic fixtures.
 //!
 //! This bench measures real parser work: each iteration parses a valid

@@ -257,6 +257,7 @@ proptest! {
                 reason: ParseErrorReason::UnexpectedToken(format!("tok{i}")),
                 start: i,
                 end: i + 1,
+                expected: vec![],
             })
             .collect();
         let reason = ParseErrorReason::FailedNode(inner);
@@ -281,6 +282,7 @@ proptest! {
             reason: ParseErrorReason::UnexpectedToken(token),
             start,
             end,
+            expected: vec![],
         };
         let dbg = format!("{err:?}");
         prop_assert!(dbg.contains(&start.to_string()));
@@ -304,6 +306,7 @@ proptest! {
             reason: ParseErrorReason::UnexpectedToken(token),
             start,
             end,
+            expected: vec![],
         };
         let _ = format!("{err:?}");
     }
@@ -558,6 +561,7 @@ proptest! {
                 reason: ParseErrorReason::UnexpectedToken(format!("tok_{i}")),
                 start: base_start + i * 10,
                 end: base_start + i * 10 + 5,
+                expected: vec![],
             })
             .collect();
 
@@ -586,11 +590,13 @@ proptest! {
             reason: ParseErrorReason::UnexpectedToken(inner_token.clone()),
             start: 0,
             end: 1,
+            expected: vec![],
         };
         let outer = ParseError {
             reason: ParseErrorReason::FailedNode(vec![inner]),
             start: outer_start,
             end: outer_end,
+            expected: vec![],
         };
         let dbg = format!("{outer:?}");
         prop_assert!(dbg.contains(&inner_token),
@@ -714,6 +720,7 @@ proptest! {
             reason: ParseErrorReason::MissingToken(token.clone()),
             start,
             end,
+            expected: vec![],
         };
         let dbg = format!("{err:?}");
         prop_assert!(dbg.contains(&token));

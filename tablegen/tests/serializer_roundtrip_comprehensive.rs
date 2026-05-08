@@ -615,16 +615,22 @@ fn no_compressed_tables_yields_empty_parse_table() {
 }
 
 #[test]
-fn lex_modes_roundtrip_count() {
+fn lex_modes_roundtrip_preserves_parse_table_values() {
     let grammar = Grammar::new("lex_modes".to_string());
-    let pt = make_empty_table(5, 1, 0, 0);
+    let mut pt = make_empty_table(5, 1, 0, 0);
+    for (i, mode) in pt.lex_modes.iter_mut().enumerate() {
+        *mode = LexMode {
+            lex_state: (i * 3) as u16,
+            external_lex_state: (i % 2) as u16,
+        };
+    }
     let json = serialize_language(&grammar, &pt, None).unwrap();
     let deser: SerializableLanguage = serde_json::from_str(&json).unwrap();
 
     assert_eq!(deser.lex_modes.len(), 5);
     for (i, mode) in deser.lex_modes.iter().enumerate() {
-        assert_eq!(mode.lex_state, i as u16);
-        assert_eq!(mode.external_lex_state, 0);
+        assert_eq!(mode.lex_state, pt.lex_modes[i].lex_state);
+        assert_eq!(mode.external_lex_state, pt.lex_modes[i].external_lex_state);
     }
 }
 

@@ -59,6 +59,7 @@ impl<'a> LanguageGenerator<'a> {
         let symbol_name_indices: Vec<usize> = (0..symbol_names.len()).collect();
         let field_name_indices: Vec<usize> = (0..field_names.len()).collect();
         let state_indices: Vec<usize> = (0..self.parse_table.state_count).collect();
+        let public_symbol_map = self.generate_public_symbol_map();
 
         // Count various elements
         let symbol_count = self.count_symbols();
@@ -105,9 +106,9 @@ impl<'a> LanguageGenerator<'a> {
             static FIELD_MAP_SLICES: &[u16] = &[];
             static FIELD_MAP_ENTRIES: &[u16] = &[];
 
-            // Public symbol map (identity for now)
+            // Public symbol map from table columns to public SymbolIds
             static PUBLIC_SYMBOL_MAP: &[TSSymbol] = &[
-                #(TSSymbol(#symbol_name_indices as u16)),*
+                #(TSSymbol(#public_symbol_map as u16)),*
             ];
 
             // Primary state IDs
@@ -248,11 +249,22 @@ impl<'a> LanguageGenerator<'a> {
         let state_count = self.parse_table.state_count;
         let mut modes = vec![];
 
-        for i in 0..state_count {
+        for state_index in 0..state_count {
+            let mode = self
+                .parse_table
+                .lex_modes
+                .get(state_index)
+                .copied()
+                .unwrap_or(adze_glr_core::LexMode {
+                    lex_state: 0,
+                    external_lex_state: 0,
+                });
+            let lex_state = mode.lex_state;
+            let external_lex_state = mode.external_lex_state;
             modes.push(quote! {
                 TSLexState {
-                    lex_state: #i as u16,
-                    external_lex_state: 0,
+                    lex_state: #lex_state,
+                    external_lex_state: #external_lex_state,
                 }
             });
         }
@@ -361,6 +373,31 @@ impl<'a> LanguageGenerator<'a> {
         // Deriving this from grammar token/rule lengths can drift for grammars
         // with external tokens or transformed symbol sets.
         self.parse_table.symbol_count
+    }
+
+    fn generate_public_symbol_map(&self) -> Vec<usize> {
+        let symbol_count = self.count_symbols();
+        let mut public_symbols: Vec<usize> = (0..symbol_count).collect();
+
+        for (index, symbol_id) in self
+            .parse_table
+            .index_to_symbol
+            .iter()
+            .take(symbol_count)
+            .enumerate()
+        {
+            public_symbols[index] = symbol_id.0 as usize;
+        }
+
+        if self.parse_table.index_to_symbol.len() < symbol_count {
+            for (&symbol_id, &index) in &self.parse_table.symbol_to_index {
+                if index < symbol_count {
+                    public_symbols[index] = symbol_id.0 as usize;
+                }
+            }
+        }
+
+        public_symbols
     }
 
     fn count_production_ids(&self) -> usize {

@@ -435,6 +435,14 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
 
     let _field_names_c = Box::leak(Box::new(field_names_c));
     let field_names_ptrs = Box::leak(Box::new(field_names_ptrs));
+    let public_symbol_map = Box::leak(
+        parse_table
+            .index_to_symbol
+            .iter()
+            .map(|symbol| symbol.0)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
 
     // Build symbol metadata
     let mut symbol_metadata = Vec::new();
@@ -564,7 +572,7 @@ pub fn build_ts_language(grammar: &Grammar, parse_table: &ParseTable) -> TSLangu
         field_map_slices: std::ptr::null(),
         field_map_entries: std::ptr::null(),
         symbol_metadata: symbol_metadata.as_ptr(),
-        public_symbol_map: std::ptr::null(),
+        public_symbol_map: public_symbol_map.as_ptr(),
         alias_map: alias_map.as_ptr(),
         alias_sequences: alias_sequences.as_ptr(),
         lex_modes: lex_modes.as_ptr(),

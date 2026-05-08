@@ -186,6 +186,22 @@ fn abi_output(grammar: &Grammar, s2i: BTreeMap<SymbolId, usize>, eof: SymbolId) 
     AbiLanguageBuilder::new(grammar, &pt).generate().to_string()
 }
 
+fn abi_output_has_symbol_name(output: &str, name: &str) -> bool {
+    let byte_strings = format!("{name}\0")
+        .into_bytes()
+        .into_iter()
+        .map(|byte| format!("{byte}u8"))
+        .collect::<Vec<_>>();
+
+    if let Some(start) = output.find(&byte_strings[0]) {
+        byte_strings
+            .iter()
+            .all(|byte_string| output[start..].contains(byte_string))
+    } else {
+        false
+    }
+}
+
 /// Read N leaked C-string pointers from a raw array.
 unsafe fn read_symbol_names(ptr: *const *const i8, count: usize) -> Vec<String> {
     let mut out = Vec::with_capacity(count);
@@ -539,8 +555,7 @@ fn abi_many_symbols() {
 }
 
 #[test]
-fn abi_external_token_fallback() {
-    // ABI builder doesn't resolve externals by name — falls back to rule_{id}.
+fn abi_external_token_preserves_name() {
     let mut grammar = make_grammar("g", vec![], vec![], vec![]);
     grammar.externals.push(ExternalToken {
         name: "tmpl".to_string(),
@@ -550,8 +565,7 @@ fn abi_external_token_fallback() {
     s2i.insert(SymbolId(0), 0);
     s2i.insert(SymbolId(1), 1);
     let output = abi_output(&grammar, s2i, SymbolId(0));
-    // Falls back to "rule_1" → 'r'=114
-    assert!(output.contains("114u8"));
+    assert!(abi_output_has_symbol_name(&output, "tmpl"));
 }
 
 #[test]

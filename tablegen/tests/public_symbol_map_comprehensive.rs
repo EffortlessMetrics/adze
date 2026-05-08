@@ -258,6 +258,21 @@ fn count_public_symbol_map_entries(code: &str) -> usize {
     }
 }
 
+fn public_symbol_map_entry_values(code: &str) -> Vec<usize> {
+    extract_public_symbol_map_body(code)
+        .unwrap_or_default()
+        .split(',')
+        .filter_map(|entry| {
+            let digits: String = entry
+                .chars()
+                .skip_while(|c| !c.is_ascii_digit())
+                .take_while(|c| c.is_ascii_digit())
+                .collect();
+            digits.parse().ok()
+        })
+        .collect()
+}
+
 // ===========================================================================
 // 1. Named symbols are included
 // ===========================================================================
@@ -456,6 +471,44 @@ fn map_is_contiguous_identity() {
     let code = abi_code(&g, &t);
     let count = count_public_symbol_map_entries(&code);
     assert_eq!(count, t.symbol_count, "map size must match symbol_count");
+}
+
+#[test]
+fn abi_builder_map_preserves_sparse_symbol_ids_by_column() {
+    let grammar = make_grammar(
+        "sparse_public",
+        vec![(SymbolId(7), string_token("plus", "+"))],
+        vec![simple_rule(11, vec![Symbol::Terminal(SymbolId(7))], 0)],
+        vec![(SymbolId(11), "expr".to_string())],
+    );
+    let mut s2i = BTreeMap::new();
+    s2i.insert(SymbolId(0), 0);
+    s2i.insert(SymbolId(7), 1);
+    s2i.insert(SymbolId(11), 2);
+    let table = make_table(&grammar, s2i, SymbolId(0));
+
+    let values = public_symbol_map_entry_values(&abi_code(&grammar, &table));
+
+    assert_eq!(values, vec![0, 7, 11]);
+}
+
+#[test]
+fn language_gen_map_preserves_sparse_symbol_ids_by_column() {
+    let grammar = make_grammar(
+        "sparse_public_lang",
+        vec![(SymbolId(5), string_token("number", "1"))],
+        vec![simple_rule(13, vec![Symbol::Terminal(SymbolId(5))], 0)],
+        vec![(SymbolId(13), "program".to_string())],
+    );
+    let mut s2i = BTreeMap::new();
+    s2i.insert(SymbolId(0), 0);
+    s2i.insert(SymbolId(5), 1);
+    s2i.insert(SymbolId(13), 2);
+    let table = make_table(&grammar, s2i, SymbolId(0));
+
+    let values = public_symbol_map_entry_values(&lang_gen_code(&grammar, &table));
+
+    assert_eq!(values, vec![0, 5, 13]);
 }
 
 // ===========================================================================

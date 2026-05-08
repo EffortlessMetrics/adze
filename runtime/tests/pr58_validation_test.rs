@@ -19,7 +19,7 @@ mod pr58_validation {
             number,
             Token {
                 name: "number".to_string(),
-                pattern: TokenPattern::String(r"\d+".to_string()),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
                 fragile: false,
             },
         );
@@ -61,10 +61,7 @@ mod pr58_validation {
         // 1. kind() should return actual node type, not static "node"
         let kind = root.kind();
         assert_ne!(kind, "node", "kind() should not return static 'node'");
-        assert!(
-            kind == "expression" || kind == "unknown",
-            "kind should be meaningful"
-        );
+        assert_eq!(kind, "number");
 
         // 2. start_byte() and end_byte() should return proper positions
         assert_eq!(root.start_byte(), 0, "start_byte should be 0 for root");
@@ -85,16 +82,12 @@ mod pr58_validation {
             "end position should match source"
         );
 
-        // 4. child_count() should work (even if returns 0 due to parser_v4 limitations)
-        let _child_count = root.child_count();
-        // Note: child_count is usize, so it's always >= 0
+        // 4. child_count() should expose the real parse-node child count.
+        assert_eq!(root.child_count(), 0);
 
         // 5. child() should handle indices gracefully
         let child = root.child(0);
-        assert!(
-            child.is_none(),
-            "child access should return None for parser_v4"
-        );
+        assert!(child.is_none(), "leaf child access should return None");
 
         // 6. is_error() and is_missing() should work properly
         let is_error = root.is_error();

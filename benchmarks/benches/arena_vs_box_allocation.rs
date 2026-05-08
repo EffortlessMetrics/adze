@@ -1,3 +1,8 @@
+//! Classification: infrastructure
+//! Status: active
+//! CI coverage: performance.yml Quick Performance Smoke Test (compile-only),
+//!   pure-rust-ci.yml benchmark compile check (compile-only)
+//!
 //! Arena vs Box Allocation Benchmark
 //!
 //! This benchmark compares the performance of arena allocation vs individual Box allocations
