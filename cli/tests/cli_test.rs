@@ -159,7 +159,161 @@ fn test_parse_static_mode_is_explicitly_unimplemented() {
         .arg(&input)
         .assert()
         .failure()
-        .stderr(predicate::str::contains("unimplemented"));
+        .stderr(predicate::str::contains("unimplemented"))
+        .stdout(predicate::str::contains("adze build"))
+        .stdout(predicate::str::contains("cargo test"));
+}
+
+#[test]
+fn test_init_generated_cargo_toml_is_valid() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "validcargotoml";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let project_dir = temp.path().join(project_name);
+    let cargo_toml_path = project_dir.join("Cargo.toml");
+    assert!(cargo_toml_path.exists(), "Cargo.toml should exist");
+
+    let cargo_toml = std::fs::read_to_string(&cargo_toml_path).expect("read Cargo.toml");
+
+    // Must declare the runtime and build-time dependencies
+    assert!(
+        cargo_toml.contains("adze"),
+        "Cargo.toml must reference the adze runtime crate"
+    );
+    assert!(
+        cargo_toml.contains("adze-tool"),
+        "Cargo.toml must reference adze-tool as a build dependency"
+    );
+    assert!(
+        cargo_toml.contains("[build-dependencies]"),
+        "Cargo.toml must have a [build-dependencies] section"
+    );
+    assert!(
+        cargo_toml.contains("edition = \"2024\""),
+        "Cargo.toml must specify edition 2024"
+    );
+    assert!(
+        cargo_toml.contains(&format!("name = \"{}\"", project_name)),
+        "Cargo.toml package name must match project name"
+    );
+    assert!(
+        cargo_toml.contains("[features]"),
+        "Cargo.toml must define features"
+    );
+    assert!(
+        cargo_toml.contains("pure-rust"),
+        "Cargo.toml must include pure-rust feature"
+    );
+}
+
+#[test]
+fn test_init_generated_grammar_uses_adze_macros() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "macrocheck";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let project_dir = temp.path().join(project_name);
+    let grammar_path = project_dir.join("src/grammar.rs");
+    assert!(grammar_path.exists(), "grammar.rs should exist");
+
+    let grammar = std::fs::read_to_string(&grammar_path).expect("read grammar.rs");
+
+    assert!(
+        grammar.contains("#[adze::grammar("),
+        "grammar.rs must use #[adze::grammar] macro"
+    );
+    assert!(
+        grammar.contains("#[adze::language]"),
+        "grammar.rs must declare a language entry point with #[adze::language]"
+    );
+    assert!(
+        grammar.contains("#[adze::leaf("),
+        "grammar.rs must use #[adze::leaf] for tokens"
+    );
+    assert!(
+        grammar.contains("#[adze::extra]"),
+        "grammar.rs must define whitespace handling with #[adze::extra]"
+    );
+}
+
+#[test]
+fn test_init_generated_project_passes_check() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "checklang";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let project_dir = temp.path().join(project_name);
+
+    let status = Command::new("cargo")
+        .arg("check")
+        .current_dir(&project_dir)
+        .status()
+        .expect("run cargo check for generated project");
+    assert!(
+        status.success(),
+        "generated project should pass cargo check"
+    );
+}
+
+#[test]
+fn test_init_default_cwd_generates_buildable_project() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "defaultcwdlang";
+    let mut init = cargo_bin_cmd!("adze");
+    init.current_dir(temp.path())
+        .arg("init")
+        .arg(project_name)
+        .assert()
+        .success();
+
+    let project_dir = temp.path().join(project_name);
+    assert!(project_dir.join("Cargo.toml").exists());
+    assert!(project_dir.join("src/grammar.rs").exists());
+    assert!(project_dir.join("tests/basic.rs").exists());
+
+    let status = Command::new("cargo")
+        .arg("check")
+        .current_dir(&project_dir)
+        .status()
+        .expect("run cargo check for generated project");
+    assert!(
+        status.success(),
+        "default-cwd generated project should pass cargo check"
+    );
+}
+
+#[test]
+fn test_parse_reports_available_modes() {
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("parse")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--dynamic"))
+        .stdout(predicate::str::contains("--format"))
+        .stdout(predicate::str::contains("tree"))
+        .stdout(predicate::str::contains("json"))
+        .stdout(predicate::str::contains("sexp"))
+        .stdout(predicate::str::contains("dot"));
 }
 
 // ---------------------------------------------------------------------------
