@@ -28,6 +28,35 @@ fn minus_symbol(lang: &Language) -> SymbolId {
 }
 
 #[test]
+fn generated_tree_exposes_tree_and_node_language_metadata() {
+    let mut lang = (*adze_example::ts_langs::arithmetic()).clone();
+    lang.name = "arithmetic_language_probe".to_string();
+
+    let mut parser = Parser::new();
+    parser
+        .set_language(Arc::new(lang))
+        .expect("Failed to set language");
+
+    let source = "1-2";
+    let tree = parser.parse(source, None).expect("Parse failed");
+    let root = tree.root_node();
+    let expression = root.child(0).expect("root should expose expression child");
+    let operator = expression
+        .child(1)
+        .expect("expression should expose operator child");
+
+    assert_eq!(tree.language().name, "arithmetic_language_probe");
+    assert!(std::ptr::eq(tree.language(), root.language()));
+    assert!(std::ptr::eq(tree.language(), expression.language()));
+    assert!(std::ptr::eq(tree.language(), operator.language()));
+
+    let source_file_symbol = symbol_named(tree.language(), "source_file");
+    let minus_symbol = symbol_named(operator.language(), "-");
+    assert_eq!(root.kind_id(), source_file_symbol.0);
+    assert_eq!(operator.kind_id(), minus_symbol.0);
+}
+
+#[test]
 fn generated_tree_exposes_node_kind_ids() {
     let lang = adze_example::ts_langs::arithmetic();
     let source_file_symbol = symbol_named(&lang, "source_file");
