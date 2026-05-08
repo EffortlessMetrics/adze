@@ -237,13 +237,14 @@ impl Parser {
         let core_parser = self.core.as_mut()?;
         let lang = self.lang.as_ref()?;
 
-        // Use parse_tree() which returns an owned ParseNode
-        match core_parser.parse_tree(source) {
-            Ok(root) => Some(Tree {
+        // Use parse_tree_with_error_count() so the compatibility tree preserves
+        // parser_v4 recovery/error metadata for node error-state queries.
+        match core_parser.parse_tree_with_error_count(source) {
+            Ok((root, error_count)) => Some(Tree {
                 core: OwnedCoreTree {
                     root,
                     source: source.as_bytes().to_vec(),
-                    error_count: 0, // TODO: track error count properly
+                    error_count,
                 },
                 last_edit: None,
                 language: lang.clone(),
@@ -761,7 +762,7 @@ impl<'a> Node<'a> {
 
     /// Check if this node is an error node.
     pub fn is_error(&self) -> bool {
-        (self.node.symbol.0 == 0 && self.node.children.is_empty()) || self.tree.error_count() > 0
+        self.node.symbol.0 == 0 && self.node.children.is_empty()
     }
 
     /// Check if this node is missing (was expected but not found).
@@ -772,6 +773,7 @@ impl<'a> Node<'a> {
     /// Check if this node or any descendant is an error node.
     pub fn has_error(&self) -> bool {
         self.is_error()
+            || (std::ptr::eq(self.node, &self.tree.core.root) && self.tree.error_count() > 0)
             || self
                 .node
                 .children
@@ -1149,5 +1151,43 @@ mod tests {
         assert!(child.is_error());
         assert!(child.is_missing());
         assert!(child.has_error());
+    }
+
+    #[test]
+    fn node_is_missing_reports_only_zero_width_error_nodes() {
+        let zero_width_error = parse_node(0, 1, 1);
+        let spanning_error = parse_node(0, 2, 3);
+        let zero_width_non_error = parse_node(2, 3, 3);
+        let root = ParseNode {
+            symbol: SymbolId(1),
+            symbol_id: SymbolId(1),
+            start_byte: 0,
+            end_byte: 3,
+            field_name: None,
+            children: vec![zero_width_error, spanning_error, zero_width_non_error],
+        };
+        let tree = Tree {
+            core: OwnedCoreTree {
+                root,
+                source: b"abc".to_vec(),
+                error_count: 0,
+            },
+            last_edit: None,
+            language: empty_parse_table_language(),
+        };
+
+        let root = tree.root_node();
+        let missing = root.child(0).expect("missing child should exist");
+        let error = root.child(1).expect("spanning error child should exist");
+        let empty_regular = root
+            .child(2)
+            .expect("zero-width regular child should exist");
+
+        assert!(missing.is_error());
+        assert!(missing.is_missing());
+        assert!(error.is_error());
+        assert!(!error.is_missing());
+        assert!(!empty_regular.is_error());
+        assert!(!empty_regular.is_missing());
     }
 }

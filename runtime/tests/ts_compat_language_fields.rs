@@ -135,3 +135,117 @@ fn language_field_ids_are_metadata_ids_not_internal_field_map_indexes() {
         Some("operator")
     );
 }
+
+/// Field name → field ID → field name roundtrip must be lossless for every
+/// registered field.
+#[test]
+fn field_name_to_id_roundtrip_is_lossless() {
+    let lang = arithmetic_with_fields();
+
+    let expected_fields = &["left", "operator", "right"];
+
+    for &name in expected_fields {
+        let id = lang
+            .field_id_for_name(name)
+            .unwrap_or_else(|| panic!("field_id_for_name({name:?}) should return Some"));
+        let roundtrip_name = lang
+            .field_name_for_id(id.get())
+            .unwrap_or_else(|| panic!("field_name_for_id({}) should return Some", id.get()));
+        assert_eq!(
+            roundtrip_name,
+            name,
+            "field name roundtrip failed: {name:?} → id={} → {roundtrip_name:?}",
+            id.get()
+        );
+    }
+}
+
+/// Field ID → field name → field ID roundtrip must be lossless for every
+/// valid 1-based field ID.
+#[test]
+fn field_id_to_name_roundtrip_is_lossless() {
+    let lang = arithmetic_with_fields();
+    let count = lang.field_count();
+
+    for raw_id in 1..=count {
+        let name = lang
+            .field_name_for_id(raw_id as u16)
+            .unwrap_or_else(|| panic!("field_name_for_id({raw_id}) should return Some"));
+        let roundtrip_id = lang
+            .field_id_for_name(name)
+            .unwrap_or_else(|| panic!("field_id_for_name({name:?}) should return Some"));
+        assert_eq!(
+            roundtrip_id.get(),
+            raw_id as u16,
+            "field id roundtrip failed: id={raw_id} → name={name:?} → id={}",
+            roundtrip_id.get()
+        );
+    }
+}
+
+/// Unknown or out-of-range field IDs must return `None` (not panic).
+#[test]
+fn unknown_field_ids_return_none() {
+    let lang = arithmetic_with_fields();
+
+    // ID 0 is the Tree-sitter sentinel and must not resolve
+    assert_eq!(lang.field_name_for_id(0), None);
+
+    // IDs beyond the field count must not resolve
+    let count = lang.field_count() as u16;
+    assert_eq!(lang.field_name_for_id(count + 1), None);
+    assert_eq!(lang.field_name_for_id(u16::MAX), None);
+}
+
+/// Unknown field names must return `None` (not panic).
+#[test]
+fn unknown_field_names_return_none() {
+    let lang = arithmetic_with_fields();
+
+    assert!(lang.field_id_for_name("").is_none());
+    assert!(lang.field_id_for_name("nonexistent").is_none());
+    assert!(
+        lang.field_id_for_name("LEFT").is_none(),
+        "field lookup is case-sensitive"
+    );
+    assert!(
+        lang.field_id_for_name("left ").is_none(),
+        "field lookup must not trim whitespace"
+    );
+}
+
+/// Field lookups through the parsed tree (via node methods) use the same
+/// ID space as the Language-level methods, ensuring no mapping divergence.
+#[test]
+fn node_field_ids_match_language_field_ids() {
+    let lang = Arc::new(arithmetic_with_fields());
+    let mut parser = Parser::new();
+    parser
+        .set_language(Arc::clone(&lang))
+        .expect("Failed to set language");
+
+    let tree = parser.parse("1-2", None).expect("Parse failed");
+    let expression = tree
+        .root_node()
+        .child(0)
+        .expect("root should expose expression child");
+
+    // For each child with a field name, verify the field id from the node
+    // matches the field id from the language
+    for i in 0..expression.child_count() {
+        if let Some(field_name) = expression.field_name_for_child(i) {
+            let node_field_id = expression
+                .field_id_for_child(i)
+                .expect("child with field_name should have a field_id");
+            let lang_field_id = lang
+                .field_id_for_name(field_name)
+                .expect("field_name from node should resolve via language");
+
+            assert_eq!(
+                node_field_id, lang_field_id,
+                "node field_id ({node_field_id}) must match language field_id ({lang_field_id}) \
+                 for field {field_name:?} at child index {i}"
+            );
+        }
+    }
+}
