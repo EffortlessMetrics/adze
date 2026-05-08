@@ -261,6 +261,35 @@ fn test_ambiguous_grammar_glr_parsing() {
     eprintln!("\n✅ SCENARIO 2 PASSED: GLR parsing produces valid ASTs\n");
 }
 
+#[test]
+fn generated_glr_parser_bad_inputs_return_errors_without_panicking() {
+    use adze_example::ambiguous_expr::grammar;
+
+    let cases = [
+        ("empty input", ""),
+        ("whitespace only", "   "),
+        ("trailing operator", "1 +"),
+        ("invalid ascii token", "1 + @"),
+        ("invalid utf8 scalar", "1 + λ"),
+        ("multiline invalid token", "1 +\n@"),
+    ];
+
+    for (label, source) in cases {
+        let parsed = std::panic::catch_unwind(|| grammar::parse(source));
+
+        let errors = match parsed {
+            Ok(Err(errors)) => errors,
+            Ok(Ok(ast)) => panic!("generated GLR parser unexpectedly accepted {label}: {ast:?}"),
+            Err(_) => panic!("generated GLR parser panicked for {label}"),
+        };
+
+        assert!(
+            !errors.is_empty(),
+            "generated GLR parser should return at least one structured error for {label}"
+        );
+    }
+}
+
 //==============================================================================
 // Scenario 3: Backward Compatibility
 //==============================================================================
