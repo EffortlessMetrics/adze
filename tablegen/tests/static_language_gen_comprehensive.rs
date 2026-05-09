@@ -254,6 +254,33 @@ fn generate_node_types_array_has_entries() {
 }
 
 #[test]
+fn generate_node_types_preserves_rule_names() {
+    let grammar = GrammarBuilder::new("named_node_types")
+        .token("number", r"\d+")
+        .rule("source_file", vec!["expression"])
+        .rule("expression", vec!["number"])
+        .start("source_file")
+        .build();
+    let generator = StaticLanguageGenerator::new(grammar, ParseTable::default());
+    let json_str = generator.generate_node_types();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&json_str).expect("node types must be valid JSON");
+    let types: Vec<&str> = parsed
+        .as_array()
+        .expect("node types should be an array")
+        .iter()
+        .filter_map(|entry| entry.get("type").and_then(|value| value.as_str()))
+        .collect();
+
+    assert!(types.contains(&"source_file"));
+    assert!(types.contains(&"expression"));
+    assert!(
+        !types.iter().any(|type_name| type_name.starts_with("rule_")),
+        "named rules should not be emitted through fallback rule_<id> names"
+    );
+}
+
+#[test]
 fn generate_node_types_entries_have_type_field() {
     let (grammar, table) = minimal_grammar_and_table();
     let generator = StaticLanguageGenerator::new(grammar, table);
@@ -294,6 +321,10 @@ fn generate_node_types_excludes_hidden_tokens() {
     assert!(
         !json_str.contains("\"_internal\""),
         "hidden rules (prefixed _) must not appear in node types"
+    );
+    assert!(
+        !json_str.contains("rule_"),
+        "hidden rules must not leak through generated fallback rule names"
     );
 }
 

@@ -1,10 +1,11 @@
 ---
 source: tablegen/tests/snapshot_codegen.rs
+assertion_line: 940
 expression: json
 ---
 [
   {
-    "type": "rule_6",
+    "type": "block",
     "named": true,
     "children": {
       "multiple": false,

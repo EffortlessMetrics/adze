@@ -376,11 +376,14 @@ fn abi_builder_preserves_grammar_name_in_fn() {
 fn static_gen_preserves_rule_name_in_node_types() {
     let (grammar, table) = build_pipeline(statement_grammar);
     let json_str = StaticLanguageGenerator::new(grammar, table).generate_node_types();
-    // StaticLanguageGenerator uses "rule_{id}" format for rule names
-    let has_rule_ref = json_str.contains("rule_");
+    let has_rule_ref = json_str.contains("\"stmt\"") || json_str.contains("\"expr\"");
     assert!(
         has_rule_ref,
-        "rule references should be in node types output"
+        "grammar rule names should be in node types output"
+    );
+    assert!(
+        !json_str.contains("rule_"),
+        "named rules should not fall back to generated rule_<id> names"
     );
 }
 

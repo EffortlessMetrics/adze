@@ -1,10 +1,11 @@
 ---
 source: tablegen/tests/snapshot_codegen.rs
+assertion_line: 977
 expression: json
 ---
 [
   {
-    "type": "rule_7",
+    "type": "nt_a",
     "named": true,
     "children": {
       "multiple": false,
@@ -13,7 +14,7 @@ expression: json
     }
   },
   {
-    "type": "rule_8",
+    "type": "nt_b",
     "named": true,
     "children": {
       "multiple": false,
@@ -22,7 +23,7 @@ expression: json
     }
   },
   {
-    "type": "rule_9",
+    "type": "nt_c",
     "named": true,
     "children": {
       "multiple": false,
@@ -31,7 +32,7 @@ expression: json
     }
   },
   {
-    "type": "rule_10",
+    "type": "nt_d",
     "named": true,
     "children": {
       "multiple": false,
@@ -40,7 +41,7 @@ expression: json
     }
   },
   {
-    "type": "rule_6",
+    "type": "start",
     "named": true,
     "children": {
       "multiple": false,

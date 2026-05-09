@@ -1152,9 +1152,9 @@ fn test_node_types_different_grammars_differ() {
         GrammarBuilder::new("sga_v9_ntdiff_b")
             .token("a", "a")
             .token("b", "b")
-            .rule("start", vec!["a"])
-            .rule("start", vec!["b"])
-            .start("start"),
+            .rule("program", vec!["a"])
+            .rule("program", vec!["b"])
+            .start("program"),
     );
     assert_ne!(gen_node_types(g1, t1), gen_node_types(g2, t2));
 }
