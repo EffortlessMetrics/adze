@@ -315,3 +315,40 @@ fn generated_typed_parser_bad_inputs_return_errors_without_panicking() {
         );
     }
 }
+
+/// Canary: prove that generated parser errors expose structured expected-token
+/// names (not opaque IDs) end-to-end.
+#[test]
+fn expected_token_sets_are_reported() {
+    // Use a bare operator — the grammar expects a number first.
+    let source = "+";
+    let errors = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("bare operator must fail");
+
+    let first = errors
+        .first()
+        .expect("should produce at least one parse error");
+
+    // The `expected` vec must be non-empty and contain human-readable names.
+    assert!(
+        !first.expected.is_empty(),
+        "expected field must be populated, got: {:?}",
+        first.expected
+    );
+
+    // Every entry must be a readable token name, not an opaque internal ID.
+    for name in &first.expected {
+        assert!(
+            !name.contains("SymbolId") && !name.contains('_'),
+            "expected token should be a human-readable name, not an opaque ID: {name}"
+        );
+    }
+
+    // For the arithmetic grammar, at least one expected token must reference
+    // the digit pattern — the only terminal that can start an expression.
+    assert!(
+        first.expected.iter().any(|t| t.contains("d")),
+        "expected tokens should include the digit pattern for the arithmetic grammar: {:?}",
+        first.expected
+    );
+}
