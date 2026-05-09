@@ -462,9 +462,10 @@ fn parse_with_glr<T: Extract<T>>(
 fn parse_with_true_glr_runtime<T: Extract<T>>(
     input: &str,
     language: &'static crate::pure_parser::TSLanguage,
-    parse_table: adze_glr_core::ParseTable,
+    mut parse_table: adze_glr_core::ParseTable,
 ) -> core::result::Result<T, Vec<crate::errors::ParseError>> {
     let source = input.as_bytes();
+    align_true_glr_parse_table_to_language_symbols(language, &mut parse_table);
     let grammar = crate::decoder::decode_grammar(language);
     let mut parser = crate::glr_parser::GLRParser::new(parse_table, grammar.clone());
 
@@ -540,6 +541,83 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
         0,
         None,
     ))
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn align_true_glr_parse_table_to_language_symbols(
+    language: &'static crate::pure_parser::TSLanguage,
+    parse_table: &mut adze_glr_core::ParseTable,
+) {
+    use adze_glr_core::GotoIndexing;
+    use adze_ir::SymbolId;
+    use std::collections::BTreeMap;
+
+    if language.public_symbol_map.is_null() {
+        return;
+    }
+
+    let symbol_count = language.symbol_count as usize;
+    if symbol_count == 0
+        || symbol_count > u16::MAX as usize
+        || parse_table.index_to_symbol.len() != symbol_count
+    {
+        return;
+    }
+
+    // The generated lexer emits table-column symbols. The public symbol map is
+    // still useful for ABI decode callers, but the true-GLR runtime must execute
+    // against the same dense symbols used by the generated language tables.
+    let public_to_column = parse_table.symbol_to_index.clone();
+    let raw_symbol = |symbol: SymbolId| {
+        public_to_column
+            .get(&symbol)
+            .and_then(|&column| u16::try_from(column).ok())
+            .map(SymbolId)
+            .unwrap_or(symbol)
+    };
+
+    for rule in &mut parse_table.rules {
+        rule.lhs = raw_symbol(rule.lhs);
+    }
+
+    parse_table.start_symbol = raw_symbol(parse_table.start_symbol);
+    parse_table.eof_symbol = SymbolId(language.eof_symbol);
+    parse_table.extras = parse_table.extras.iter().copied().map(raw_symbol).collect();
+    for aliases in &mut parse_table.alias_sequences {
+        for alias in aliases {
+            *alias = alias.map(raw_symbol);
+        }
+    }
+
+    parse_table.index_to_symbol = (0..symbol_count)
+        .filter_map(|column| u16::try_from(column).ok())
+        .map(SymbolId)
+        .collect();
+    parse_table.symbol_to_index = parse_table
+        .index_to_symbol
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(column, symbol)| (symbol, column))
+        .collect::<BTreeMap<_, _>>();
+
+    let nonterminal_start = parse_table
+        .token_count
+        .saturating_add(parse_table.external_token_count);
+    parse_table.nonterminal_to_index = (nonterminal_start..symbol_count)
+        .filter_map(|column| {
+            u16::try_from(column)
+                .ok()
+                .map(|raw| (SymbolId(raw), column))
+        })
+        .collect();
+    parse_table.goto_indexing = GotoIndexing::NonterminalMap;
+
+    for (column, metadata) in parse_table.symbol_metadata.iter_mut().enumerate() {
+        if let Ok(raw) = u16::try_from(column) {
+            metadata.symbol_id = SymbolId(raw);
+        }
+    }
 }
 
 #[cfg(all(feature = "glr", feature = "pure-rust"))]
