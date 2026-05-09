@@ -10,6 +10,7 @@ fi
 CANARIES=(
   "adze runtime pure-rust typed extraction|behavior|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture"
   "adze GLR ambiguous typed extraction|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture"
+  "adze GLR generated parser bad-input no-panic guardrail|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_glr_parser_bad_inputs_return_errors_without_panicking -- --exact --nocapture"
   "adze GLR generated conflict preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_conflict_generation -- --exact --nocapture"
   "adze GLR parser_v4 canonical conflict routing|behavior|cargo test -p adze --features \"pure-rust,glr\" --test parser_v4_comprehensive test_parser_v4_rejects_single_action_fork_conflict_before_parsing -- --exact --nocapture"
   "adze GLR dangling-else conflict preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_dangling_else_conflicts verify_conflict_preservation_behavior -- --exact --nocapture"
@@ -22,6 +23,7 @@ CANARIES=(
   "adze generated typed parser EOF parse diagnostics|behavior|cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors generated_typed_parser_unexpected_eof_reports_zero_width_source_span -- --exact --nocapture"
   "adze generated typed parser expected-token diagnostics|behavior|cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors generated_typed_parser_unexpected_eof_lists_expected_tokens -- --exact --nocapture"
   "adze generated typed parser structured expected-token field|behavior|cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors generated_typed_parser_unexpected_eof_expected_field_is_populated -- --exact --nocapture"
+  "adze generated typed parser bad-input no-panic guardrail|behavior|cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors generated_typed_parser_bad_inputs_return_errors_without_panicking -- --exact --nocapture"
   "adze generated typed parser multiline parse diagnostics|behavior|cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors generated_typed_parser_multiline_bad_token_reports_line_column_and_excerpt -- --exact --nocapture"
   "adze core parse-table serialization roundtrip|behavior|cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture"
   "adze tablegen ABI compressed decode roundtrip|behavior|cargo test -p adze --features \"pure-rust,glr,ts-compat\" --test tablegen_abi_decode_roundtrip compressed_tslanguage_decode_preserves_metadata_actions_and_fields -- --exact --nocapture"
