@@ -105,10 +105,10 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 | Serialization (core tables) | **Stable** | `cargo test -p adze-glr-core --features serialization --doc`; `cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture` |
 | GLR conflict routing | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture` |
 | Tablegen TSLanguage ABI | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr,ts-compat" --test tablegen_abi_decode_roundtrip combined_tslanguage_decode_preserves_metadata_fields_aliases_externals_and_lex_modes -- --exact --nocapture` |
-| Structured parse errors | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr" --test generated_parse_errors generated_typed_parser_unexpected_eof_expected_field_is_populated -- --exact --nocapture` |
+| Structured parse errors | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr" --test generated_parse_errors generated_typed_parser_unexpected_eof_expected_field_is_populated -- --exact --nocapture`; `cargo test -p adze --features pure-rust --test generated_parse_errors expected_token_sets_are_reported -- --exact --nocapture` |
 | External scanners | **Experimental** | `cargo test -p adze --features external_scanners` |
 | Incremental parsing | **Experimental** | `cargo test --workspace --features incremental_glr` |
-| CLI | **Advisory** | `cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture` |
+| CLI | **Advisory** | `cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture`; `cargo test -p adze-cli test_init_cargo_toml_references_adze_dependency -- --exact --nocapture` |
 | WASM | **Advisory** | `cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown` |
 | Tree-sitter interop | **Advisory** | `./scripts/smoke-link.sh ts-bridge` |
 | Tree-sitter compatibility API | **Advisory** | `cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_error -- --nocapture` |
