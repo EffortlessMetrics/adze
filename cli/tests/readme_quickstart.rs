@@ -97,6 +97,44 @@ fn readme_expression_respects_precedence() {
         )
     );
 }
+
+#[test]
+fn readme_bad_input_reports_useful_diagnostic() {
+    let source = "1 + @";
+    let errors = grammar::parse(source).expect_err("bad README input should fail clearly");
+    let first = errors
+        .first()
+        .expect("bad README input should produce at least one parse error");
+
+    assert_eq!(
+        first.byte_span(),
+        4..5,
+        "diagnostic should point at the invalid token"
+    );
+    assert!(
+        !first.expected.is_empty(),
+        "diagnostic should report expected tokens"
+    );
+    assert!(
+        first.expected.iter().any(|name| name == r"/\d+/"),
+        "diagnostic should name the expected number token, got {:?}",
+        first.expected
+    );
+
+    let rendered = first.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("bytes 4..5"),
+        "rendered diagnostic should include the byte span: {rendered}"
+    );
+    assert!(
+        rendered.contains("expected one of:"),
+        "rendered diagnostic should include expected-token context: {rendered}"
+    );
+    assert!(
+        rendered.contains("    ^"),
+        "rendered diagnostic should place a caret under the invalid token: {rendered}"
+    );
+}
 "#,
     )
     .expect("write quickstart test");
