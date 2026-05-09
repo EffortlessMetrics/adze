@@ -99,7 +99,7 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 
 | Surface | Tier | Proof |
 |---------|------|-------|
-| Typed extraction | **Stable** | `just ci-supported`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture` |
+| Typed extraction | **Stable** | `just ci-supported`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture` |
 | Pure-Rust parser | **Stable** | `just ci-supported`; `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture` |
 | Operator precedence | **Stable** | `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`; `cargo test -p adze-glr-core --test ambiguity_detection_comprehensive test_precedence_resolves_add_mul -- --exact --nocapture` |
 | Serialization (core tables) | **Stable** | `cargo test -p adze-glr-core --features serialization --doc`; `cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture` |
