@@ -299,8 +299,16 @@ fn codegen_node_types_contains_rule_entries() {
     let (g, t) = multi_rule_grammar();
     let json = StaticLanguageGenerator::new(g, t).generate_node_types();
     assert!(
-        json.contains("rule_"),
-        "Node types must include rule entries"
+        json.contains("\"s\""),
+        "Node types must include start rule name"
+    );
+    assert!(
+        json.contains("\"m\""),
+        "Node types must include nested rule name"
+    );
+    assert!(
+        !json.contains("rule_"),
+        "Named rules should not use fallback rule_<id> names"
     );
 }
 

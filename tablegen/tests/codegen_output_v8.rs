@@ -300,7 +300,12 @@ fn node_types_includes_regex_token() {
 fn node_types_contains_rule_entries() {
     let (g, t) = multi_rule_grammar();
     let json = StaticLanguageGenerator::new(g, t).generate_node_types();
-    assert!(json.contains("rule_"), "must include rule entries");
+    assert!(json.contains("\"s\""), "must include the start rule name");
+    assert!(json.contains("\"m\""), "must include nested rule names");
+    assert!(
+        !json.contains("rule_"),
+        "named rules should not fall back to generated rule_<id> names"
+    );
 }
 
 // =====================================================================

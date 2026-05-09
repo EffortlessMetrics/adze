@@ -339,7 +339,7 @@ fn test_node_types_json_large() {
 // =====================================================================
 // 4. Node types contain grammar info (7 tests)
 //
-// Note: generate_node_types() emits rules as "rule_N" and only includes
+// Note: generate_node_types() emits grammar rule names and only includes
 // tokens with regex patterns (TokenPattern::Regex), not string literals.
 // =====================================================================
 
@@ -348,8 +348,12 @@ fn test_node_types_contain_rule_entries() {
     let (grammar, table) = single_token_grammar();
     let json = StaticLanguageGenerator::new(grammar, table).generate_node_types();
     assert!(
-        json.contains("rule_"),
-        "Expected rule entries in node types JSON"
+        json.contains("\"s\""),
+        "Expected grammar rule name in node types JSON"
+    );
+    assert!(
+        !json.contains("rule_"),
+        "Named rules should not use fallback rule_<id> names"
     );
 }
 
@@ -378,8 +382,12 @@ fn test_node_types_chain_has_rule_entries() {
     let (grammar, table) = chain_grammar();
     let json = StaticLanguageGenerator::new(grammar, table).generate_node_types();
     assert!(
-        json.contains("rule_"),
-        "Expected rule entries in chain grammar node types"
+        json.contains("\"s\""),
+        "Expected chain grammar rule name in node types"
+    );
+    assert!(
+        !json.contains("rule_"),
+        "Named rules should not use fallback rule_<id> names"
     );
 }
 

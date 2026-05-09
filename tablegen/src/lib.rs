@@ -136,9 +136,12 @@ impl StaticLanguageGenerator {
 
         // Generate node types for non-terminal rules
         for (symbol_id, rules) in &self.grammar.rules {
-            // For now, use generated rule names
-            // TODO: Add proper symbol name mapping to Grammar
-            let rule_name = format!("rule_{}", symbol_id.0);
+            let rule_name = self
+                .grammar
+                .rule_names
+                .get(symbol_id)
+                .cloned()
+                .unwrap_or_else(|| format!("rule_{}", symbol_id.0));
 
             // Skip hidden rules (those starting with underscore)
             if rule_name.starts_with('_') {
