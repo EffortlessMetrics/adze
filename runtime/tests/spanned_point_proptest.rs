@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Property-based tests for `Spanned`, `Point`, `ParsedNode`, and `ChildWalker`
 //! from the adze runtime public API.

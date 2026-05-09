@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive edge-case tests for table compression in adze-tablegen.
 //!
 //! Covers empty tables, single-state tables, all-identical/all-unique rows,

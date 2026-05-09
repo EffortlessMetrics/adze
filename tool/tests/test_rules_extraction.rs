@@ -1,4 +1,7 @@
-#![allow(clippy::manual_strip)]
+#![allow(
+    clippy::manual_strip,
+    reason = "regex context fixture keeps prefix handling aligned with the test input shape"
+)]
 
 use std::fs;
 use tempfile::TempDir;

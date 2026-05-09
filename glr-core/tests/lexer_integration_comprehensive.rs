@@ -11,7 +11,11 @@
 //! the `strict-invariants` feature is disabled.
 
 #![cfg(not(feature = "strict-invariants"))]
-#![allow(clippy::needless_range_loop, unused_imports)]
+#![allow(
+    clippy::needless_range_loop,
+    unused_imports,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::ts_lexer::NextToken;

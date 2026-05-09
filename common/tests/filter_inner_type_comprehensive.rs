@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive tests for `filter_inner_type` (and its relationship with
 //! `try_extract_inner_type`) in adze-common.

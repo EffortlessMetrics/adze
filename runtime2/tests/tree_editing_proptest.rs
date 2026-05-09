@@ -5,7 +5,10 @@
 //! clone independence, and error handling.
 
 #![cfg(feature = "incremental_glr")]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_runtime::tree::{EditError, Tree, TreeCursor};
 use adze_runtime::{InputEdit, Point};

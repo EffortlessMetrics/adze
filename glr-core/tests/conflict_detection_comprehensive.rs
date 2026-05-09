@@ -1,4 +1,9 @@
-#![allow(clippy::needless_range_loop, unused_imports, clippy::clone_on_copy)]
+#![allow(
+    clippy::needless_range_loop,
+    unused_imports,
+    clippy::clone_on_copy,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive conflict detection and resolution tests for GLR core.
 //!

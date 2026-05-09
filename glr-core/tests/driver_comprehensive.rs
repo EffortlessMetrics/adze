@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for the GLR driver module.
 //!
 //! Covers: Driver::new, parse_tokens, GlrError variants, ForestView traversal,

@@ -1,6 +1,10 @@
 //! Debug test for JSON parsing issues
 #![cfg(feature = "json-parity")]
-#![allow(unused_variables, clippy::print_literal)]
+#![allow(
+    unused_variables,
+    clippy::print_literal,
+    reason = "debug regression keeps literal output shape visible in test logs"
+)]
 
 use adze_ir::SymbolId;
 use std::fs;

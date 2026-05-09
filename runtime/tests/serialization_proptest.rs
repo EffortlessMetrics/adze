@@ -4,7 +4,10 @@
 //! `SerializedNode`, and `CompactNode` with random inputs.
 
 #![cfg(feature = "serialization")]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze::serialization::{
     BinaryFormat, BinarySerializer, CompactNode, SExpr, SerializedNode, parse_sexpr,

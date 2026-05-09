@@ -440,13 +440,7 @@ impl TableCompressor {
 
                 // Show the actual state-0 actions
                 debug_info.push_str("State 0 actions (first 12 columns):\n");
-                #[expect(
-                    clippy::needless_range_loop,
-                    reason = "idx is used to index into state0_actions directly; the range loop is clearer than enumerate for this debug-info path"
-                )]
-                for idx in 0..state0_actions.len().min(12) {
-                    let cell = &state0_actions[idx];
-
+                for (idx, cell) in state0_actions.iter().enumerate().take(12) {
                     // Prefer labeling by EOF column equality rather than symbol id
                     let symbol_info = if idx == eof_idx {
                         "EOF".to_string()

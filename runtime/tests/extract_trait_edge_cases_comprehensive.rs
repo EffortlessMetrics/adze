@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Edge-case tests for the `Extract` trait and its built-in implementations.
 //!
 //! Covers: empty input, None nodes, nested generics (`Vec<Option<T>>`,

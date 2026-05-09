@@ -2,7 +2,10 @@
 //! construction, actions, initial state, accept state, reduce, shift, fork (GLR), deterministic.
 
 #![cfg(feature = "test-api")]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_glr_core::{
     Action, FirstFollowSets, ParseTable, build_lr1_automaton, sanity_check_tables,

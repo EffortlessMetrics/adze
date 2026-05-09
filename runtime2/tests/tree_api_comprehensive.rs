@@ -5,7 +5,10 @@
 //! clone/deep copy independence, kind/named/visible properties, debug
 //! formatting, edge cases (empty tree, single node), and node equality/comparison.
 
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 #[cfg(feature = "glr")]
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};

@@ -5,7 +5,10 @@
 //! (empty input, single token, repeated tokens).
 //!
 //! Run with: cargo test -p adze-glr-core --test driver_property_tests
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 #![cfg(feature = "test-api")]
 
 use adze_glr_core::forest_view::ForestView;

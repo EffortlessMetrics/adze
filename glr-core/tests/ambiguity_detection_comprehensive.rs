@@ -1,4 +1,9 @@
-#![allow(clippy::needless_range_loop, clippy::redundant_closure, unused_imports)]
+#![allow(
+    clippy::needless_range_loop,
+    clippy::redundant_closure,
+    unused_imports,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive tests for ambiguity detection and GLR multi-path handling.
 //!

@@ -1,7 +1,10 @@
 // JavaScript grammar for adze
 // Simplified version for v0.5.0-beta
 
-#![allow(clippy::manual_non_exhaustive)]
+#![allow(
+    clippy::manual_non_exhaustive,
+    reason = "grammar enum shape is intentionally kept compatible with generated parser metadata"
+)]
 
 #[adze::grammar("javascript")]
 pub mod grammar {
@@ -390,13 +393,6 @@ mod tests {
     #[test]
     fn test_simple_program() {
         // Grammar builds successfully - this test just ensures the grammar compiles
-        // The assertion is intentionally trivial as the real test is compilation
-        #[expect(
-            clippy::assertions_on_constants,
-            reason = "compile-time assertion documents an invariant; intentional constant-folded check"
-        )]
-        {
-            assert!(true);
-        }
+        let _language = super::grammar::language();
     }
 }

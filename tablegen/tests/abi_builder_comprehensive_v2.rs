@@ -4,7 +4,10 @@
 //!
 //! All tests exercise the public API surface of `adze_tablegen`.
 
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_glr_core::{
     Action, FirstFollowSets, GotoIndexing, LexMode, ParseTable, build_lr1_automaton,

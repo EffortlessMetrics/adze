@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based tests for FIRST/FOLLOW set computation in adze-glr-core.
 //!
 //! Run with: `cargo test -p adze-glr-core --test first_follow_proptest`

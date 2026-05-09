@@ -4,7 +4,10 @@
 //! files to verify pipeline properties like correctness, determinism, and
 //! error handling.
 
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_tool::generate_grammars;
 use proptest::prelude::*;

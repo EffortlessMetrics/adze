@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for NODE_TYPES JSON generation in adze-tablegen.
 //!
 //! Covers: schema validation, roundtrip serialization, edge cases,

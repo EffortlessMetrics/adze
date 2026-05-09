@@ -1,7 +1,10 @@
 // Python grammar for adze
 // Simplified version for v0.5.0-beta (without indentation handling)
 
-#![allow(clippy::manual_non_exhaustive)]
+#![allow(
+    clippy::manual_non_exhaustive,
+    reason = "grammar enum shape is intentionally kept compatible with generated parser metadata"
+)]
 
 pub mod scanner;
 

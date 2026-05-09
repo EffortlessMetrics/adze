@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! 40+ proptest properties for `adze-tablegen` compression.
 //!
 //! Covers: action/goto roundtrip, size reduction, dedup correctness,

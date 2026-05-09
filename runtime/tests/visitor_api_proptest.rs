@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based tests for the Visitor API in the adze runtime.
 //!
 //! Covers: visit-all-nodes, enter/leave callbacks, traversal order, empty tree,

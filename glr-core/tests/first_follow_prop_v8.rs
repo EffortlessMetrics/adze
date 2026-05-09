@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property and invariant tests for `FirstFollowSets` in adze-glr-core (v8).
 //!
 //! 80+ tests across 20 categories:

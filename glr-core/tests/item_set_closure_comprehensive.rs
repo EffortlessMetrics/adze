@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for LR(1) item set closure computation.
 //!
 //! Run with: `cargo test -p adze-glr-core --test item_set_closure_comprehensive`

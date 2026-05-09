@@ -1,7 +1,11 @@
 //! Test that JSON empty object {} parses correctly
 //! This tests the critical fix for Tree-sitter table extraction
 #![cfg(feature = "json-parity")]
-#![allow(unused_imports, clippy::needless_range_loop)]
+#![allow(
+    unused_imports,
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_glr_core::{Action, ActionCell, Driver, LexMode, ParseRule, ParseTable, SymbolMetadata};
 use adze_ir::{RuleId, StateId, SymbolId};

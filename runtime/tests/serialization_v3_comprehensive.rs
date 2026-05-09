@@ -1,5 +1,8 @@
 #![cfg(feature = "serialization")]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive tests for `adze::serialization` module (v3).
 //!

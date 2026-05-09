@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive error handling tests for adze-runtime (runtime2 crate).
 //! Tests cover ParseError, ParseErrorKind, and ErrorLocation types with 25+ test cases.

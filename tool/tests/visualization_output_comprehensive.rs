@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for grammar and tree visualization output in adze-tool.
 //!
 //! Tests DOT graph output, text-based tree rendering, SVG railroad diagrams,

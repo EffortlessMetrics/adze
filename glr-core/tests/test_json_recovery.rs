@@ -1,5 +1,9 @@
 //! Test JSON parsing with error recovery to verify our EOF and error stats fixes
-#![allow(clippy::unwrap_or_default, clippy::unnecessary_get_then_check)]
+#![allow(
+    clippy::unwrap_or_default,
+    clippy::unnecessary_get_then_check,
+    reason = "JSON recovery regression keeps assertions close to the original failure shape"
+)]
 
 #[allow(unused_imports)]
 use adze_glr_core::{Driver, FirstFollowSets, build_lr1_automaton};

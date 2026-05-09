@@ -1381,7 +1381,11 @@ impl Parser {
     }
 
     /// Internal recursive function with depth tracking
-    #[allow(dead_code, clippy::too_many_arguments)]
+    #[allow(
+        dead_code,
+        clippy::too_many_arguments,
+        reason = "legacy Clippy suppression is kept explicit while staged cleanup narrows this surface"
+    )]
     fn perform_glr_reduce_with_depth(
         &mut self,
         current_gss: usize,

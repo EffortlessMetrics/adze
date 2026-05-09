@@ -3,7 +3,10 @@
 // feature is enabled.
 #![allow(dead_code)]
 #![allow(unreachable_pub)]
-#![allow(clippy::redundant_closure)]
+#![allow(
+    clippy::redundant_closure,
+    reason = "compatibility shim keeps closure shape stable across feature configurations"
+)]
 
 use std::ffi::{CStr, c_char};
 

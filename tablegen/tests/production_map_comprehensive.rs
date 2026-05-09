@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for production mapping (PRODUCTION_ID_MAP, PRODUCTION_LHS_INDEX,
 //! TS_RULES, production_id_count) in the tablegen crate.
 //!

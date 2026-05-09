@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based tests for state management in adze-glr-core.
 //!
 //! Tests StateId creation, comparison, ordering, hashing, and how states

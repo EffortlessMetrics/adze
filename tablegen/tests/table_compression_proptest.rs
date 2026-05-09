@@ -9,7 +9,10 @@
 //! 6. Edge cases in compression (empty tables, large tables)
 //! 7. Symbol metadata encoding
 
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseRule, ParseTable};
 use adze_ir::{ExternalToken, Grammar, RuleId, StateId, SymbolId, Token, TokenPattern};

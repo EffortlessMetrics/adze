@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Edge-case and property-based tests for LR(1) automaton construction.
 //!
 //! Covers: linear chains, recursive grammars, ambiguous grammars,

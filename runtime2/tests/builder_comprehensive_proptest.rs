@@ -1,5 +1,8 @@
 #![cfg(feature = "glr")]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive property-based and unit tests for the builder module
 //! (forest-to-tree conversion).

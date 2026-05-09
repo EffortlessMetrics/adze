@@ -3,7 +3,10 @@
 //! Covers: construction, token parsing, error handling, multi-path (ambiguity),
 //! forest output structure, large input handling, and empty input parsing.
 #![cfg(feature = "test-api")]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::{

@@ -1,4 +1,9 @@
-#![allow(clippy::needless_range_loop, unused_imports, unused_variables)]
+#![allow(
+    clippy::needless_range_loop,
+    unused_imports,
+    unused_variables,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based tests for the arena-allocated GSS implementation.
 //!
 //! Run with: cargo test -p adze-glr-core --test gss_arena_proptest
