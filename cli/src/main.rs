@@ -51,7 +51,7 @@ pub(crate) enum Commands {
         /// Output format
         #[arg(short, long, default_value = "tree")]
         format: OutputFormat,
-        /// Use dynamic loader to load compiled grammar from shared library
+        /// Use dynamic loader to load compiled grammar from shared library (experimental; requires --features dynamic)
         #[arg(long)]
         dynamic: bool,
         /// Optional exported symbol (default: "language")

@@ -316,6 +316,51 @@ fn test_parse_reports_available_modes() {
         .stdout(predicate::str::contains("dot"));
 }
 
+#[test]
+fn test_init_cargo_toml_references_adze_dependency() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "deptest";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let cargo_toml = std::fs::read_to_string(temp.path().join(project_name).join("Cargo.toml"))
+        .expect("read Cargo.toml");
+
+    // In dev builds deps use path=; in releases they use version=. Either is fine.
+    let has_path_or_version = cargo_toml.contains("path =") || cargo_toml.contains("version =");
+    assert!(
+        cargo_toml.contains("adze = {") && has_path_or_version,
+        "Cargo.toml must declare adze with a path or version dependency"
+    );
+    assert!(
+        cargo_toml.contains("adze-tool = {"),
+        "Cargo.toml must declare adze-tool as a build dependency"
+    );
+    assert!(
+        cargo_toml.contains("pure-rust = [\"adze/pure-rust\"]"),
+        "Cargo.toml must forward the pure-rust feature to the adze dependency"
+    );
+}
+
+#[test]
+fn test_parse_help_documents_available_modes() {
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("parse")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("tree"))
+        .stdout(predicate::str::contains("json"))
+        .stdout(predicate::str::contains("sexp"))
+        .stdout(predicate::str::contains("dot"))
+        .stdout(predicate::str::contains("experimental"));
+}
+
 // ---------------------------------------------------------------------------
 // Unit tests for CLI argument parsing (no binary execution)
 // ---------------------------------------------------------------------------
