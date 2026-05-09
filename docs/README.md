@@ -47,6 +47,7 @@ Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-nativ
 *Understanding-oriented: conceptual background and architectural theory.*
 
 - [**Architecture Overview**](./explanations/architecture.md) - How the Macro, Tool, and Runtime fit together.
+- [**AdzeDocument Design Contract**](./design/adze-document.md) - Draft native parse-product contract for future CST, typed AST, diagnostics, and compatibility projections.
 - [**GLR Internals**](./explanations/glr-internals.md) - Deep dive into the Generalized LR engine.
 - [**Incremental Theory**](./explanations/incremental-parsing-theory.md) - The Direct Forest Splicing algorithm.
 - [**Test Strategy**](./explanations/test-strategy.md) - Why and how we test Adze.
