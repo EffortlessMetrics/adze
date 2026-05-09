@@ -64,10 +64,10 @@ These jobs run on push to `main`, on schedules, or via `workflow_dispatch` with 
 | `ci.yml` | `adze-python (Optimized Build)` | Push only | Push | Python grammar build + test |
 | `ci.yml` | `Test Connectivity (Tripwires)` | Push only | Push | Enforces no disabled tests, non-zero discovery |
 | `ci.yml` | `Code Coverage` | Push only | Push | `cargo llvm-cov` with threshold check |
-| `ci.yml` | `Unsafe Code Audit` | Push only | Push | `cargo geiger` report; `continue-on-error` |
-| `ci.yml` | `Cross Compilation` | Push only | Advisory | 32-bit / ARM64 / WASM cross builds; `continue-on-error` |
+| `ci.yml` | `Advisory / Unsafe Audit` | Push only | Advisory | `cargo geiger` report; `continue-on-error` |
+| `ci.yml` | `Advisory / Cross Compilation (${{ matrix.target }})` | Push only | Advisory | 32-bit / ARM64 / WASM cross builds; `continue-on-error` |
 | `ci.yml` | `Cross-platform` | Push only | Push | macOS + Windows cargo check + lib tests |
-| `ci.yml` | `WASM Build Verification` | Push only | Advisory | WASM target check; `continue-on-error` |
+| `ci.yml` | `Advisory / WASM Build` | Push only | Advisory | WASM target check; `continue-on-error` |
 | `ci.yml` | `Benches (unstable, opt-in)` | Dispatch only | Advisory | `unstable-benches` feature; only with `run_full_ci` |
 | `pure-rust-ci.yml` | `Test Pure Rust Implementation` | Push + labeled PR | Push | OS x toolchain matrix for pure-rust path |
 | `pure-rust-ci.yml` | `Test WASM Build` | Push + labeled PR | Advisory | WASM build + size check |
@@ -95,12 +95,12 @@ These jobs use nightly toolchains, unstable features, or are explicitly marked
 
 | Workflow | Job name | Trigger | Why advisory |
 |----------|----------|---------|-------------|
-| `ci.yml` | `Miri (UB Detection)` | Push only | Nightly miri; `continue-on-error` |
-| `ci.yml` | `Sanitizers (ASAN/UBSAN)` | Push only | Nightly + `-Zbuild-std`; `continue-on-error` |
-| `ci.yml` | `Minimal Versions` | Push only | Nightly + `-Z minimal-versions`; `continue-on-error` |
-| `ci.yml` | `Cross Compilation` | Push only | Cross toolchain drift; `continue-on-error` |
-| `ci.yml` | `WASM Build Verification` | Push only | Compile-check only; `continue-on-error` |
-| `ci.yml` | `Unsafe Code Audit` | Push only | `cargo-geiger` may lag toolchain; `continue-on-error` |
+| `ci.yml` | `Advisory / Miri` | Push only | Nightly miri; `continue-on-error` |
+| `ci.yml` | `Advisory / Sanitizers` | Push only | Nightly + `-Zbuild-std`; `continue-on-error` |
+| `ci.yml` | `Advisory / Minimal Versions` | Push only | Nightly + `-Z minimal-versions`; `continue-on-error` |
+| `ci.yml` | `Advisory / Cross Compilation (${{ matrix.target }})` | Push only | Cross toolchain drift; `continue-on-error` |
+| `ci.yml` | `Advisory / WASM Build` | Push only | Compile-check only; `continue-on-error` |
+| `ci.yml` | `Advisory / Unsafe Audit` | Push only | `cargo-geiger` may lag toolchain; `continue-on-error` |
 | `product-proof.yml` | `ci-product advisory canaries` | Scheduled (weekly) + dispatch | Intentionally advisory; `continue-on-error` |
 | `criterion-smoke.yml` | `benchmark` | Scheduled (weekly) + dispatch | Non-blocking; `continue-on-error` |
 | `ts-bridge-parity.yml` | `parity` | Scheduled (nightly) + dispatch | Non-blocking; `continue-on-error` |
@@ -112,19 +112,20 @@ These jobs use nightly toolchains, unstable features, or are explicitly marked
 
 ---
 
-## Recommended job name prefixes
+## Advisory job name convention
 
-To make the GitHub Checks UI self-documenting, the following advisory jobs in
-`ci.yml` should be renamed with an `Advisory / ` prefix:
+Advisory jobs in `ci.yml` carry the `Advisory / ` prefix so the GitHub Checks
+UI makes their non-blocking nature immediately visible. The following renames
+have already been applied:
 
-| Current name | Proposed name |
-|-------------|---------------|
-| `Miri (UB Detection)` | `Advisory / Miri` |
-| `Sanitizers (ASAN/UBSAN)` | `Advisory / Sanitizers` |
-| `Minimal Versions` | `Advisory / Minimal Versions` |
-| `Cross Compilation (...)` | `Advisory / Cross Compilation (...)` |
-| `WASM Build Verification` | `Advisory / WASM Build` |
-| `Unsafe Code Audit` | `Advisory / Unsafe Audit` |
+| New name (current) | Previous name |
+|--------------------|---------------|
+| `Advisory / Miri` | `Miri (UB Detection)` |
+| `Advisory / Sanitizers` | `Sanitizers (ASAN/UBSAN)` |
+| `Advisory / Minimal Versions` | `Minimal Versions` |
+| `Advisory / Cross Compilation (${{ matrix.target }})` | `Cross Compilation (...)` |
+| `Advisory / WASM Build` | `WASM Build Verification` |
+| `Advisory / Unsafe Audit` | `Unsafe Code Audit` |
 
 Jobs in other workflows already carry clear names or are inherently advisory
 (scheduled/dispatch-only).
