@@ -1,5 +1,10 @@
 //! Test that EOF column matches TS end column
-#![allow(unused_imports, clippy::ptr_arg, clippy::useless_vec)]
+#![allow(
+    unused_imports,
+    clippy::ptr_arg,
+    clippy::useless_vec,
+    reason = "recovery fixtures use Vec syntax to mirror generated parser inputs"
+)]
 
 #[test]
 #[cfg(feature = "test_helpers")]

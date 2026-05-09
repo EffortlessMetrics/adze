@@ -42,7 +42,10 @@ fn arb_scope_delimiters() -> impl Strategy<Value = Vec<(u16, u16)>> {
 }
 
 /// Helper: record one error and return the collected nodes.
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "test helper accepts all fields as explicit parameters to avoid builder indirection"
+)]
 fn record_one(
     state: &mut ErrorRecoveryState,
     start_byte: usize,

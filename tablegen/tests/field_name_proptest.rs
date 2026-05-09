@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based and unit tests for field name generation in adze-tablegen.
 //!
 //! Covers: field names from grammar fields, ordering, count, presence in

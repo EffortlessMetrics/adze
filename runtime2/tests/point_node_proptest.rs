@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use proptest::prelude::*;
 
@@ -57,7 +60,7 @@ proptest! {
     #[test]
     fn point_clone_equals_original(row in any::<usize>(), col in any::<usize>()) {
         let p = Point::new(row, col);
-        #[allow(clippy::clone_on_copy)]
+        #[expect(clippy::clone_on_copy, reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence")]
         let cloned = p.clone();
         prop_assert_eq!(p, cloned);
     }

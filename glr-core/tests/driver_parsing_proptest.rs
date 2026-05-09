@@ -7,7 +7,10 @@
 //! the `strict-invariants` feature is disabled.
 
 #![cfg(not(feature = "strict-invariants"))]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::{Action, Driver, GotoIndexing, LexMode, ParseRule, ParseTable};

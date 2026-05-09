@@ -732,7 +732,6 @@ impl<'t> Driver<'t> {
                         let s2 = self.reduce_once(&mut state, stk.clone(), rid)?;
 
                         // Check if reduction produced start symbol
-                        #[allow(clippy::collapsible_if)]
                         if let Some(&root_id) = s2.nodes.last()
                             && let Some(root) = state.forest.nodes.get(&root_id)
                         {

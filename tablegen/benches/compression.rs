@@ -1,5 +1,8 @@
 //! Benchmarks for table compression performance
-#![allow(clippy::let_and_return)]
+#![allow(
+    clippy::let_and_return,
+    reason = "benchmark setup keeps the measured expression explicit for readability"
+)]
 
 use adze_glr_core::{FirstFollowSets, build_lr1_automaton};
 use adze_ir::builder::GrammarBuilder;

@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Property-based tests for `Spanned`, `Point`, `ParsedNode`, and `ChildWalker`
 //! from the adze runtime public API.
@@ -22,7 +25,10 @@ fn spanned<T>(value: T, start: usize, end: usize) -> Spanned<T> {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "test helper accepts all fields as explicit parameters to avoid builder indirection"
+)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,

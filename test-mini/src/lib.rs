@@ -1,4 +1,8 @@
-#![allow(clippy::empty_line_after_outer_attr, clippy::unnecessary_cast)]
+#![allow(
+    clippy::empty_line_after_outer_attr,
+    clippy::unnecessary_cast,
+    reason = "fixture preserves generated output shape under macro expansion"
+)]
 
 #[adze::grammar("mini")]
 pub mod grammar {

@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive v4 ABI-layout tests for `AbiLanguageBuilder` covering
 //! construction, output properties, determinism, grammar topologies,

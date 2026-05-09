@@ -455,7 +455,10 @@ fn ut05_handle_copy() {
 #[test]
 fn ut06_handle_clone() {
     let h = NodeHandle::new(2, 5);
-    #[allow(clippy::clone_on_copy)]
+    #[expect(
+        clippy::clone_on_copy,
+        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
+    )]
     let h2 = h.clone();
     assert_eq!(h, h2);
 }

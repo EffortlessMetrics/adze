@@ -107,6 +107,11 @@ unsafe_op_in_unsafe_fn = "deny"
 unused_must_use = "deny"
 missing_docs = "warn"
 unused_extern_crates = "deny"
+unexpected_cfgs = "warn"
+const_item_interior_mutations = "deny"
+
+[workspace.lints.clippy]
+allow_attributes_without_reason = "deny"
 
 [workspace.dependencies]
 tree-sitter = "=0.26.7"

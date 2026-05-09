@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for error handling boundaries in the adze runtime.
 //!
 //! Covers: errors at start/end/middle of input, multiple errors at one position,

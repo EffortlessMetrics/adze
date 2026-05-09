@@ -5,9 +5,18 @@
 #![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
-#![allow(clippy::missing_safety_doc)] // Many FFI functions - safety documented at module level
-#![allow(clippy::needless_range_loop)] // Sometimes clearer than iterators
-#![allow(clippy::only_used_in_recursion)] // Recursive algorithms in parsers
+#![allow(
+    clippy::missing_safety_doc,
+    reason = "FFI safety invariants are documented at the module boundary for generated/runtime entry points"
+)] // Many FFI functions - safety documented at module level
+#![allow(
+    clippy::needless_range_loop,
+    reason = "parser and table code uses index-based loops where positions are part of the checked behavior"
+)] // Sometimes clearer than iterators
+#![allow(
+    clippy::only_used_in_recursion,
+    reason = "recursive parser helpers keep method receivers for cohesive state-oriented implementation"
+)] // Recursive algorithms in parsers
 
 //! Adze runtime library — GLR-capable parsing with typed extraction.
 //!

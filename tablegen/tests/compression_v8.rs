@@ -1,4 +1,8 @@
-#![allow(clippy::needless_range_loop, clippy::bool_assert_comparison)]
+#![allow(
+    clippy::needless_range_loop,
+    clippy::bool_assert_comparison,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive test suite for LR(1) parse table compression algorithms.
 //!
 //! This test file covers 64 tests across 8 categories:

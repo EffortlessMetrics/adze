@@ -762,7 +762,6 @@ impl<'a> AbiLanguageBuilder<'a> {
     }
 
     /// Encode an action as u16
-    #[allow(clippy::only_used_in_recursion)]
     fn encode_action(&self, action: &Action) -> Result<u16, String> {
         match action {
             Action::Shift(state) => Ok(state.0),

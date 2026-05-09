@@ -191,7 +191,11 @@ fn arena_clear() {
 #[test]
 fn arena_num_chunks() {
     let arena = TreeArena::new();
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(arena.num_chunks() >= 0);
     }

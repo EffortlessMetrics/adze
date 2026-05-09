@@ -138,7 +138,11 @@ fn walker_empty_source_walk_leaf() {
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
     // Leaf with empty text still gets visited
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(stats.total_nodes >= 0);
     }
@@ -150,7 +154,11 @@ fn bfw_empty_source_walk_leaf() {
     let node = leaf(1, 0, 0);
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(stats.total_nodes >= 0);
     }
@@ -191,7 +199,11 @@ fn walker_unicode_walk_with_stats() {
     let node = leaf(1, 0, src.len());
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(stats.total_nodes >= 0);
     }
@@ -514,7 +526,11 @@ fn stats_visitor_single_leaf() {
     let node = leaf(1, 0, 1);
     let mut stats = StatsVisitor::default();
     w.walk(&node, &mut stats);
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(stats.leaf_nodes >= 0);
     }

@@ -6,7 +6,10 @@
 //! and error paths, ParseError display/debug, ParseErrorKind variants, utf8_text,
 //! and incremental editing (feature-gated behind `incremental_glr`).
 
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 use adze_runtime::tree::TreeCursor;
 use adze_runtime::{ParseError, ParseErrorKind, Parser, Point, Tree};

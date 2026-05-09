@@ -292,7 +292,7 @@ proptest! {
     fn handle_clone_eq(val in symbol_strategy()) {
         let mut arena = TreeArena::new();
         let h1 = arena.alloc(TreeNode::leaf(val));
-        #[allow(clippy::clone_on_copy)]
+        #[expect(clippy::clone_on_copy, reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence")]
         let h2 = h1.clone();
         prop_assert_eq!(h1, h2);
     }

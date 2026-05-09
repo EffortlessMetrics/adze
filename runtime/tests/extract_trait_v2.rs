@@ -19,7 +19,10 @@ use adze::{Extract, SpanError, SpanErrorReason, Spanned, WithLeaf};
 ///
 /// All public fields are written; the private `language` field is zeroed,
 /// which is equivalent to `None` for `Option<*const _>`.
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "test helper accepts all fields as explicit parameters to avoid builder indirection"
+)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,

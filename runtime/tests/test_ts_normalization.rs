@@ -1,7 +1,10 @@
 //! Test suite for Tree-sitter table normalization and round-trip verification
 
 #![cfg(all(feature = "pure-rust", not(feature = "incremental_glr")))]
-#![allow(clippy::duplicate_mod)]
+#![allow(
+    clippy::duplicate_mod,
+    reason = "normalization regression intentionally includes duplicate module declarations"
+)]
 
 use adze::decoder::decode_parse_table;
 use adze::ts_format::choose_action;
@@ -10,7 +13,6 @@ use adze_ir::{Grammar, RuleId, StateId, SymbolId};
 
 #[path = "support/json_grammar.rs"]
 mod json_grammar;
-#[allow(clippy::duplicate_mod)]
 #[path = "support/language_builder.rs"]
 mod language_builder;
 

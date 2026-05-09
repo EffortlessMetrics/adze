@@ -653,9 +653,9 @@ impl GLRParser {
                         token.0,
                         action_cell.len()
                     );
-                    #[allow(clippy::unused_enumerate_index)]
-                    for (_i, _act) in action_cell.iter().enumerate() {
-                        debug_glr!("  Action {}: {:?}", _i, _act);
+                    #[cfg(feature = "debug_glr")]
+                    for (i, act) in action_cell.iter().enumerate() {
+                        debug_glr!("  Action {}: {:?}", i, act);
                     }
                 }
 

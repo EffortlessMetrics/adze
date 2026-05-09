@@ -3,7 +3,10 @@
 // feature is enabled.
 #![allow(dead_code)]
 #![allow(unreachable_pub)]
-#![allow(clippy::redundant_closure)]
+#![allow(
+    clippy::redundant_closure,
+    reason = "compatibility shim keeps closure shape stable across feature configurations"
+)]
 
 use std::ffi::{CStr, c_char};
 
@@ -19,7 +22,6 @@ pub const MIN_COMPATIBLE_LANGUAGE_VERSION: u32 =
 
 /// Compatibility wrapper for a parsed node.
 #[derive(Copy, Clone)]
-#[allow(clippy::missing_inline_in_public_items)]
 pub struct Node {
     ptr: *const ParsedNode,
 }

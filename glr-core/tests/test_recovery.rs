@@ -5,7 +5,12 @@
 //! the `strict-invariants` feature is disabled.
 
 #![cfg(not(feature = "strict-invariants"))]
-#![allow(unused_variables, dead_code, clippy::useless_vec)]
+#![allow(
+    unused_variables,
+    dead_code,
+    clippy::useless_vec,
+    reason = "recovery fixtures use Vec syntax to mirror generated parser inputs"
+)]
 
 use glr_test_support::*;
 

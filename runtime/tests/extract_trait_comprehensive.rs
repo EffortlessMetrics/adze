@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for the `Extract` trait, `Spanned`, span validation,
 //! `WithLeaf`, error types, and the built-in `Extract` implementations for
 //! primitives, `String`, `Option`, `Box`, and `Vec`.

@@ -1,5 +1,8 @@
 #![cfg(feature = "glr")]
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Property-based tests for the forest-to-tree builder (`builder.rs`).
 //!
@@ -793,7 +796,7 @@ proptest! {
     fn parsed_tree_depth_non_negative(idx in 0usize..4) {
         let tree = parse_for_index(idx);
         // depth is usize, so always >= 0, but verify non-trivial
-        #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+        #[expect(clippy::absurd_extreme_comparisons, unused_comparisons, reason = "boundary condition tests deliberately compare against usize extremes")]
         {
             prop_assert!(tree_depth(tree.root_node()) >= 0);
         }

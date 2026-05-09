@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based tests for `Production` and related types in adze-glr-core.
 //!
 //! Covers `ParseRule` (lhs, rhs_len), production identity, Clone/Debug,

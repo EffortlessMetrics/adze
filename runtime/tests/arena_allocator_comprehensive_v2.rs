@@ -158,7 +158,11 @@ fn arena_capacity_grows() {
 #[test]
 fn arena_num_chunks_starts_at_one() {
     let arena = TreeArena::new();
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(arena.num_chunks() >= 0);
     }
@@ -354,7 +358,11 @@ fn arena_reset_and_reuse_capacity() {
     let cap_before = arena.capacity();
     arena.reset();
     // After reset, capacity should be retained
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
+    #[expect(
+        clippy::absurd_extreme_comparisons,
+        unused_comparisons,
+        reason = "boundary condition tests deliberately compare against usize extremes"
+    )]
     {
         assert!(arena.capacity() >= cap_before || arena.capacity() >= 0);
     }

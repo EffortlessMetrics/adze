@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based and unit tests for CompressedParseTable in adze-tablegen.
 //!
 //! Covers: compression from ParseTable, lookup correctness, size invariants,

@@ -89,7 +89,6 @@ fn test_action_table_compression_round_trip() {
     let compressed = compress_action_table(&parse_table.action_table);
 
     // Decompress and verify each action matches
-    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original_actions = &parse_table.action_table[state][symbol];
@@ -178,8 +177,10 @@ fn test_goto_table_compression_round_trip() {
 
     // Extract goto table (transitions on nonterminals)
     let mut goto_table = vec![vec![None; parse_table.symbol_count]; parse_table.state_count];
-
-    #[allow(clippy::needless_range_loop)]
+    #[expect(
+        clippy::needless_range_loop,
+        reason = "state index used in multi-level access into action_table and goto_table; enumerate requires destructuring both"
+    )]
     for state in 0..parse_table.state_count {
         for (symbol_id, &index) in &parse_table.symbol_to_index {
             // Check if this symbol is a nonterminal
@@ -200,8 +201,15 @@ fn test_goto_table_compression_round_trip() {
     let compressed = compress_goto_table(&goto_table);
 
     // Decompress and verify each goto matches
-    #[allow(clippy::needless_range_loop)]
+    #[expect(
+        clippy::needless_range_loop,
+        reason = "state and symbol indices passed directly to decompress_goto; enumerate would require tuple destructuring"
+    )]
     for state in 0..parse_table.state_count {
+        #[expect(
+            clippy::needless_range_loop,
+            reason = "symbol index used to access goto_table and passed to decompress_goto"
+        )]
         for symbol in 0..parse_table.symbol_count {
             let original = goto_table[state][symbol];
             let decompressed = decompress_goto(&compressed, state, symbol);
@@ -323,8 +331,6 @@ fn test_compression_with_fork_actions() {
     // Debug output: Print all actions to see what was generated
     println!("\n=== All Actions in Parse Table ===");
     let mut action_counts = HashMap::new();
-
-    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         println!("\nState {}:", state);
         for symbol in 0..parse_table.symbol_count {
@@ -386,7 +392,6 @@ fn test_compression_with_fork_actions() {
     println!("\n=== Checking for Shift-Reduce Conflicts ===");
     // Look for states where we have both shift and reduce actions on the same symbol
     let _conflict_count = 0;
-    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let actions = &parse_table.action_table[state][symbol];
@@ -413,7 +418,6 @@ fn test_compression_with_fork_actions() {
     // Count Fork actions and multi-action cells
     let mut fork_count = 0;
     let mut multi_action_count = 0;
-    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let actions = &parse_table.action_table[state][symbol];
@@ -531,7 +535,6 @@ fn test_compression_with_fork_actions() {
     let compressed = compress_action_table(&parse_table.action_table);
 
     // Verify Fork actions and multi-action cells are preserved
-    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original_actions = &parse_table.action_table[state][symbol];
@@ -662,8 +665,15 @@ fn test_bit_packed_round_trip() {
     let mut fork_count = 0;
 
     // Verify every cell matches after decompression
-    #[allow(clippy::needless_range_loop)]
+    #[expect(
+        clippy::needless_range_loop,
+        reason = "state and symbol indices used to access both legacy_action_table and bit_packed.decompress; enumerate would require tuple destructuring"
+    )]
     for state in 0..parse_table.state_count {
+        #[expect(
+            clippy::needless_range_loop,
+            reason = "symbol index used to access legacy_action_table and passed to bit_packed.decompress"
+        )]
         for symbol in 0..parse_table.symbol_count {
             let original_legacy = &legacy_action_table[state][symbol];
             let decompressed = bit_packed.decompress(state, symbol);
@@ -722,7 +732,6 @@ fn test_large_grammar_compression() {
     // println!("  Compression ratio: {:.2}%", compression_ratio * 100.0);
 
     // Verify compression maintains correctness
-    #[allow(clippy::needless_range_loop)]
     for state in 0..parse_table.state_count {
         for symbol in 0..parse_table.symbol_count {
             let original_actions = &parse_table.action_table[state][symbol];
@@ -799,7 +808,6 @@ fn test_compression_performance() {
 
         // Time decompression of all cells
         let start = Instant::now();
-        #[allow(clippy::needless_range_loop)]
         for state in 0..parse_table.state_count {
             for symbol in 0..parse_table.symbol_count {
                 let _ = decompress_action(&compressed, state, symbol);

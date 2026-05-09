@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 
 //! Comprehensive tests for the `ParsedNode` API and related types
 //! (`ChildWalker`, `Point`, `ParseResult`).
@@ -17,7 +20,10 @@ fn pt(row: u32, col: u32) -> Point {
 /// Create a `ParsedNode` without naming the `pub(crate)` `language` field.
 /// Zero-init sets `language: Option<*const TSLanguage>` to `None`, then we
 /// overwrite every public field.
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "test helper accepts all fields as explicit parameters to avoid builder indirection"
+)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,

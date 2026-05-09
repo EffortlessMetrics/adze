@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive end-to-end tests exercising the full parsing pipeline:
 //! Grammar → Language → Parser → Tree → Node → TreeCursor.
 

@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Comprehensive tests for GOTO table generation and compression in adze-tablegen.
 //!
 //! The GOTO table maps (state, nonterminal) → next_state.

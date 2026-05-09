@@ -1,4 +1,7 @@
-#![allow(clippy::needless_range_loop)]
+#![allow(
+    clippy::needless_range_loop,
+    reason = "property and comprehensive tests use index-based loops to exercise table positions and boundary cases"
+)]
 //! Property-based tests for state management in adze-glr-core.
 //!
 //! Tests StateId creation, comparison, ordering, hashing, and how states
@@ -202,7 +205,7 @@ proptest! {
     #[test]
     fn state_id_clone(val in any::<u16>()) {
         let id = StateId(val);
-        #[allow(clippy::clone_on_copy)]
+        #[expect(clippy::clone_on_copy, reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence")]
         let cloned = id.clone();
         prop_assert_eq!(id, cloned);
     }
