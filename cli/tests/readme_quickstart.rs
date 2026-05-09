@@ -12,67 +12,29 @@ fn readme_arithmetic_quickstart_builds_and_runs() {
     let repo_root = repo_root();
     let runtime_path = toml_path(repo_root.join("runtime"));
     let tool_path = toml_path(repo_root.join("tool"));
+    let readme = include_str!("../../README.md");
+    let manifest_snippet = fenced_block_after(readme, "## Install", "toml")
+        .expect("README install section should include a TOML dependency block");
+    let build_rs = fenced_block_after(readme, "Add a `build.rs`", "rust")
+        .expect("README install section should include a build.rs block");
+    let grammar_snippet = fenced_block_starting_with(readme, "rust", "#[adze::grammar")
+        .expect("README should include the arithmetic grammar quickstart block");
+    assert!(
+        grammar_snippet.contains(r#"let expr = grammar::parse("1 + 2 * 3")?;"#),
+        "README grammar block should show the documented parser call"
+    );
 
     fs::write(
         project_dir.join("Cargo.toml"),
-        format!(
-            r#"[package]
-name = "adze_readme_quickstart"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-adze = {{ path = "{runtime_path}", default-features = false }}
-
-[build-dependencies]
-adze-tool = {{ path = "{tool_path}" }}
-
-[features]
-default = ["pure-rust"]
-pure-rust = ["adze/pure-rust"]
-"#
-        ),
+        downstream_manifest(manifest_snippet, &runtime_path, &tool_path),
     )
     .expect("write Cargo.toml");
 
-    fs::write(
-        project_dir.join("build.rs"),
-        r#"use std::path::PathBuf;
-
-fn main() {
-    println!("cargo::rustc-check-cfg=cfg(adze_unsafe_attrs)");
-    adze_tool::build_parsers(&PathBuf::from("src/lib.rs"));
-}
-"#,
-    )
-    .expect("write build.rs");
+    fs::write(project_dir.join("build.rs"), build_rs).expect("write build.rs");
 
     fs::write(
         project_dir.join("src/lib.rs"),
-        r#"#[adze::grammar("arithmetic")]
-pub mod grammar {
-    #[adze::language]
-    #[derive(Debug, PartialEq, Eq)]
-    pub enum Expr {
-        Number(
-            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse::<i32>().unwrap())]
-            i32,
-        ),
-
-        #[adze::prec_left(1)]
-        Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
-
-        #[adze::prec_left(2)]
-        Mul(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>),
-    }
-
-    #[adze::extra]
-    struct Whitespace {
-        #[adze::leaf(pattern = r"\s+")]
-        _ws: (),
-    }
-}
-"#,
+        grammar_module_from_readme(grammar_snippet),
     )
     .expect("write lib.rs");
 
@@ -152,6 +114,81 @@ fn readme_bad_input_reports_useful_diagnostic() {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+fn downstream_manifest(readme_toml: &str, runtime_path: &str, tool_path: &str) -> String {
+    assert!(
+        readme_toml.contains(r#"adze = { version = "0.8", default-features = false }"#),
+        "README install block should document the adze runtime dependency"
+    );
+    assert!(
+        readme_toml.contains(r#"adze-tool = "0.8""#),
+        "README install block should document the adze-tool build dependency"
+    );
+
+    let dependencies = readme_toml
+        .replace(
+            r#"adze = { version = "0.8", default-features = false }"#,
+            &format!(r#"adze = {{ path = "{runtime_path}", default-features = false }}"#),
+        )
+        .replace(
+            r#"adze-tool = "0.8""#,
+            &format!(r#"adze-tool = {{ path = "{tool_path}" }}"#),
+        );
+
+    format!(
+        r#"[package]
+name = "adze_readme_quickstart"
+version = "0.1.0"
+edition = "2024"
+
+{dependencies}
+"#
+    )
+}
+
+fn grammar_module_from_readme(snippet: &str) -> String {
+    let parser_call = "\nlet expr = grammar::parse";
+    let grammar = snippet
+        .split(parser_call)
+        .next()
+        .expect("README grammar snippet should have a grammar module before the parser call")
+        .trim_end();
+
+    format!("{grammar}\n")
+}
+
+fn fenced_block_after<'a>(text: &'a str, marker: &str, language: &str) -> Option<&'a str> {
+    let start = text.find(marker)?;
+    fenced_blocks(&text[start..], language).into_iter().next()
+}
+
+fn fenced_block_starting_with<'a>(text: &'a str, language: &str, prefix: &str) -> Option<&'a str> {
+    fenced_blocks(text, language)
+        .into_iter()
+        .find(|block| block.trim_start().starts_with(prefix))
+}
+
+fn fenced_blocks<'a>(text: &'a str, language: &str) -> Vec<&'a str> {
+    let fence = format!("```{language}");
+    let mut blocks = Vec::new();
+    let mut rest = text;
+
+    while let Some(idx) = rest.find(&fence) {
+        let after_fence = &rest[idx + fence.len()..];
+        let Some(line_end) = after_fence.find('\n') else {
+            break;
+        };
+        let body_start = idx + fence.len() + line_end + 1;
+        let body = &rest[body_start..];
+        let Some(body_end) = body.find("\n```") else {
+            break;
+        };
+        blocks.push(body[..body_end].trim_end_matches('\r'));
+        rest = &body[body_end + "\n```".len()..];
+    }
+
+    blocks
 }
 
 fn repo_root() -> PathBuf {
