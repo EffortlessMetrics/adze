@@ -48,6 +48,34 @@ let ts_tree = doc.as_tree_sitter();
 
 They are not fields on the document and must not define separate parse truths.
 
+## Document Versus Failure Semantics
+
+`parse_document` should distinguish parse facts from infrastructure failures.
+
+Syntax errors, recovery, and ambiguity should generally produce an
+`AdzeDocument` with diagnostics, node flags, and metadata:
+
+```rust
+let doc = grammar::parse_document("1 +")?;
+assert!(!doc.diagnostics().is_empty());
+```
+
+Hard failures are reserved for cases where no trustworthy document can be
+produced:
+
+```rust
+pub enum ParseFailure {
+    NoLanguage,
+    Cancelled,
+    InternalInvariant,
+}
+```
+
+This keeps native parsing useful for editors, LSPs, formatters, and agents that
+must inspect incomplete source text. Tree-sitter-compatible projections can
+render the same state as `is_error()`, `has_error()`, and `is_missing()`, while
+native APIs expose the structured diagnostics that explain what happened.
+
 ## Native Tree Model
 
 The generic native CST should be lossless enough to support formatting,
