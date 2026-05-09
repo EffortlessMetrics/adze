@@ -190,3 +190,33 @@ fn verify_conflict_preservation_behavior() {
         state_idx, symbol_idx, actions
     );
 }
+
+#[cfg(all(feature = "pure-rust", feature = "glr"))]
+#[test]
+fn generated_dangling_else_selection_gap_returns_error_without_panicking() {
+    use adze_example::dangling_else::grammar;
+
+    let input = "if a then if b then other else other";
+    let parsed = std::panic::catch_unwind(|| grammar::parse(input));
+
+    let errors = match parsed {
+        Ok(Err(errors)) => errors,
+        Ok(Ok(ast)) => panic!(
+            "dangling-else selection is not yet a supported product contract; update this canary and docs before accepting selected AST {ast:?}"
+        ),
+        Err(_) => panic!("dangling-else ambiguous input must return an error instead of panicking"),
+    };
+
+    let first = errors
+        .first()
+        .expect("dangling-else selection gap should return at least one structured error");
+    assert_eq!(
+        first.byte_span(),
+        3..4,
+        "current selection gap should point at the first expression variable"
+    );
+    assert!(
+        first.display_with_source(input).to_string().contains(input),
+        "rendered diagnostic should include the source excerpt"
+    );
+}
