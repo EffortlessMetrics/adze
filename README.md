@@ -82,7 +82,7 @@ See the [Getting Started tutorial](./docs/tutorials/getting-started.md) for a fu
 
 ## Current status
 
-Adze is under active development. The core parser pipeline is working and tested. Some broader surfaces — WASM, grammar crates, golden tests, benchmarks, Tree-sitter bridge — are still being hardened.
+Adze is under active development. The core parser pipeline is working and tested. Some broader surfaces — CLI tooling, WASM, runtime2, grammar crates, golden tests, benchmarks, and Tree-sitter bridge/compatibility — are still being hardened.
 
 Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
 
@@ -112,7 +112,9 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 | WASM | **Advisory** | `cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown` |
 | Tree-sitter interop | **Advisory** | `./scripts/smoke-link.sh ts-bridge` |
 | Tree-sitter compatibility API | **Advisory** | `cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_error -- --nocapture` |
+| runtime2 | **Advisory** | `cargo test --manifest-path runtime2/Cargo.toml --features test-utils --test basic language_smoke_exposes_metadata_queries -- --exact --nocapture` |
 | Grammars | **Advisory** | `cargo test -p adze-python test_python_language_exists -- --exact` |
+| Golden tests | **Advisory** | `cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture` |
 | Benchmarks | **Advisory** | `cargo test -p adze-benchmarks --test verify_fixture_parsing verify_parse_bench_uses_real_parser_workload -- --exact --nocapture` |
 
 Rule for documentation and CI promotion: no Stable feature claim without a named proof command in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
