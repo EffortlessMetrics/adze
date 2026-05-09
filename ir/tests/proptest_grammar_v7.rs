@@ -1069,7 +1069,6 @@ proptest! {
     #[test]
     fn clone_reflexive(n in 1usize..6) {
         let g = build_tok_grammar(&format!("cr_{}", n), n);
-        #[expect(clippy::redundant_clone, reason = "proptest shrink path exercises the clone even when the original is not used again")]
         let c = g.clone();
         prop_assert_eq!(&g, &c);
     }

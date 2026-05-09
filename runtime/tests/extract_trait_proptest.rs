@@ -1,5 +1,3 @@
-#![allow(clippy::needless_range_loop)]
-
 //! Property-based tests for the `Extract` trait in the adze runtime.
 //!
 //! Uses proptest to verify extraction invariants over randomly generated
@@ -20,10 +18,6 @@ fn pt(row: u32, col: u32) -> Point {
 
 /// Build a `ParsedNode` via field-level pointer writes to avoid depending on
 /// private fields that may not have a public constructor.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "test helper accepts all fields as explicit parameters to avoid builder indirection"
-)]
 fn make_node(
     symbol: u16,
     children: Vec<ParsedNode>,
