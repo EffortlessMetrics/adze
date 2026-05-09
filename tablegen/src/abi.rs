@@ -191,11 +191,7 @@ mod tests {
     #[test]
     fn test_language_version() {
         assert_eq!(TREE_SITTER_LANGUAGE_VERSION, 15);
-        // This assertion is always true at compile time, but documents the ABI contract
-        #[expect(
-            clippy::assertions_on_constants,
-            reason = "compile-time assertion documents the ABI version contract; the constant check is intentional and serves as a regression guard"
-        )]
+        // const assertion documents the ABI version contract
         const _: () =
             assert!(TREE_SITTER_LANGUAGE_VERSION >= TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION);
     }

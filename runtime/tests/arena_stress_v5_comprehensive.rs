@@ -551,10 +551,6 @@ fn test_tree_node_branch_with_symbol_value() {
 #[test]
 fn test_tree_node_clone_eq() {
     let node = TreeNode::leaf(123);
-    #[expect(
-        clippy::clone_on_copy,
-        reason = "proptest strategies exercise explicit clone paths even for Copy types to verify value independence"
-    )]
     let cloned = node.clone();
     assert_eq!(node, cloned);
 }
