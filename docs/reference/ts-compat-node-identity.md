@@ -46,6 +46,9 @@ canary set must define all of these explicitly:
 - how aliases appear in node-types metadata,
 - how anonymous aliases affect named-child filtering.
 
+The draft target contract is
+[`ts-compat-alias-semantics.md`](ts-compat-alias-semantics.md).
+
 Until that work lands, code that needs alias-aware Tree-sitter display behavior
 should treat the `ts_compat` alias surface as advisory.
 

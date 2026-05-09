@@ -70,6 +70,8 @@ The GLR implementation maintains bit-for-bit compatibility with Tree-sitter's C 
 This file covers generated `TSLanguage` table format and decode invariants.
 The `ts_compat::Node` runtime identity APIs have a separate contract in
 [`ts-compat-node-identity.md`](ts-compat-node-identity.md).
+The future alias-aware target semantics are drafted in
+[`ts-compat-alias-semantics.md`](ts-compat-alias-semantics.md).
 
 Current `ts_compat` nodes expose raw parsed-symbol identity:
 
