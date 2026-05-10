@@ -800,3 +800,126 @@ fn generated_csv_list_parser_error_contract_is_feature_stable() {
         );
     }
 }
+
+/// Canary: generated-parser diagnostic contracts should hold for an object-like
+/// grammar with braces, delimited entries, colon separators, and typed values.
+///
+/// This keeps structured parse errors honest for a common record/object shape
+/// before promoting generated parse diagnostics beyond Stabilizing. The
+/// product-proof lane runs this exact test under both `pure-rust` and
+/// `pure-rust,glr`.
+#[test]
+fn generated_object_like_parser_error_contract_is_feature_stable() {
+    adze_example::object_like_contract::grammar::parse("{ name: 42 }")
+        .expect("object-like contract fixture should accept a valid object");
+
+    struct Case {
+        label: &'static str,
+        source: &'static str,
+        byte_span: Range<usize>,
+        start_line: usize,
+        start_column: usize,
+        end_line: usize,
+        end_column: usize,
+        expected: &'static [&'static str],
+    }
+
+    let cases = [
+        Case {
+            label: "unexpected EOF before object opener",
+            source: "",
+            byte_span: 0..0,
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 1,
+            expected: &["{"],
+        },
+        Case {
+            label: "missing object opener before entry",
+            source: "name: 1",
+            byte_span: 0..1,
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 2,
+            expected: &["{"],
+        },
+        Case {
+            label: "missing colon before value",
+            source: "{ name 1 }",
+            byte_span: 7..8,
+            start_line: 1,
+            start_column: 8,
+            end_line: 1,
+            end_column: 9,
+            expected: &[":"],
+        },
+        Case {
+            label: "invalid value after colon",
+            source: "{ name: nope }",
+            byte_span: 8..9,
+            start_line: 1,
+            start_column: 9,
+            end_line: 1,
+            end_column: 10,
+            expected: &[r"/\d+/"],
+        },
+    ];
+
+    for case in cases {
+        let errors = match adze_example::object_like_contract::grammar::parse(case.source) {
+            Ok(ast) => panic!("{} unexpectedly parsed as {ast:?}", case.label),
+            Err(errors) => errors,
+        };
+
+        let first = errors
+            .first()
+            .unwrap_or_else(|| panic!("{} should produce at least one parse error", case.label));
+
+        assert_eq!(
+            first.byte_span(),
+            case.byte_span,
+            "{} should keep its public byte-span contract",
+            case.label
+        );
+
+        let span = first.source_span(case.source.as_bytes());
+        assert_eq!(span.start.line, case.start_line, "{}", case.label);
+        assert_eq!(span.start.column, case.start_column, "{}", case.label);
+        assert_eq!(span.end.line, case.end_line, "{}", case.label);
+        assert_eq!(span.end.column, case.end_column, "{}", case.label);
+
+        assert_eq!(
+            first.expected,
+            case.expected
+                .iter()
+                .map(|token| (*token).to_string())
+                .collect::<Vec<_>>(),
+            "{} should expose human-readable expectations by name",
+            case.label
+        );
+        for token in &first.expected {
+            assert!(
+                !token.contains("SymbolId")
+                    && !token.contains("symbol ")
+                    && !token.starts_with('_'),
+                "{} should expose human-readable expected names, got {token}",
+                case.label
+            );
+        }
+
+        let rendered = first.display_with_source(case.source).to_string();
+        let expected_byte_range = format!("bytes {}..{}", case.byte_span.start, case.byte_span.end);
+        assert!(
+            rendered.contains(&expected_byte_range),
+            "{} should render byte range {expected_byte_range}: {rendered}",
+            case.label
+        );
+        assert!(
+            rendered.contains(&format!("expected one of: {}", case.expected.join(", "))),
+            "{} should render the expected-token set: {rendered}",
+            case.label
+        );
+    }
+}
