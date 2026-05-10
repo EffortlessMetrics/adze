@@ -272,6 +272,7 @@ The first useful slice is:
 ```text
 AdzeDocument
   -> tree()
+  -> source_slice()
   -> NodeId lookup
   -> edge and parent lookup
   -> language()
