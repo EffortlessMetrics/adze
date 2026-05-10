@@ -4,6 +4,7 @@
 
 use adze::{
     adze_ir::{RuleId, SymbolId},
+    document::NodeId,
     parser_v4::Parser as CoreParser,
     ts_compat::{Language, Tree},
 };
@@ -52,8 +53,20 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(tree.language().name(), lang.name.as_str());
     assert!(!tree.has_errors());
     assert_eq!(tree.error_count(), 0);
+    assert!(
+        tree.node_count() >= 5,
+        "tree should index root, expression, and fielded arithmetic children"
+    );
 
     let root = tree.root();
+    assert_eq!(tree.root_id(), root.node_id());
+    assert_eq!(
+        tree.node(root.node_id())
+            .expect("root id should resolve")
+            .kind_name(),
+        root.kind_name()
+    );
+    assert!(tree.node(NodeId::new(tree.node_count())).is_none());
     assert_eq!(root.kind_id(), symbol_named(&lang, "source_file"));
     assert_eq!(root.kind_name(), Some("source_file"));
     assert_eq!(root.grammar_name(), Some("source_file"));
@@ -66,6 +79,12 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(root.utf8_text().expect("root text should be UTF-8"), source);
 
     let expression = root.child(0).expect("root should expose expression child");
+    assert_eq!(
+        tree.node(expression.node_id())
+            .expect("expression id should resolve")
+            .byte_range(),
+        expression.byte_range()
+    );
     assert_eq!(expression.kind_name(), Some("expression"));
     assert_eq!(expression.grammar_name(), Some("expression"));
     assert!(expression.is_named());
@@ -81,6 +100,15 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     let operator = expression.child(1).expect("operator child should exist");
     let right = expression.child(2).expect("right child should exist");
 
+    assert_ne!(left.node_id(), operator.node_id());
+    assert_ne!(operator.node_id(), right.node_id());
+    assert_eq!(
+        tree.node(left.node_id())
+            .expect("left id should resolve")
+            .utf8_text()
+            .expect("left text should be UTF-8"),
+        "1"
+    );
     assert_eq!(left.field_name(), Some("left"));
     assert_eq!(left.utf8_text().expect("left text should be UTF-8"), "1");
     assert_eq!(operator.field_name(), Some("operator"));

@@ -272,6 +272,7 @@ The first useful slice is:
 ```text
 AdzeDocument
   -> tree()
+  -> NodeId lookup
   -> language()
   -> diagnostics()
   -> metadata()
