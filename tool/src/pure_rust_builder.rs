@@ -661,15 +661,25 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         abi_builder.generate()
     };
 
-    // Step 4: Add alpha typed CST wrapper generation.
+    // Step 4: Add alpha native document and typed CST wrapper generation.
     //
-    // The generated wrappers are a projection over AdzeDocument node IDs and
-    // native edge metadata. They are intentionally emitted as a separate
-    // syntax module and are not yet paired with a generated parse_document
-    // helper.
+    // The generated document helper uses the pure-Rust parser path and builds
+    // the native document alpha from the selected tree. The generated wrappers
+    // are a projection over AdzeDocument node IDs and native edge metadata. They
+    // are intentionally emitted as a separate syntax module and are not yet
+    // paired with visitors, rewriters, typed queries, or JSON output.
+    let parse_document_code = quote::quote! {
+        /// Parse source into the native Adze document alpha.
+        pub fn parse_document(
+            input: &str,
+        ) -> core::result::Result<::adze::document::AdzeDocument, Vec<::adze::errors::ParseError>> {
+            ::adze::__private::parse_document(input, || &LANGUAGE, GRAMMAR_NAME)
+        }
+    };
     let typed_cst_code = TypedCstGenerator::new(&grammar).generate();
     let language_code = quote::quote! {
         #language_code
+        #parse_document_code
         #typed_cst_code
     };
 
@@ -900,6 +910,17 @@ module.exports = grammar({
             .expect("generated parser code should remain valid Rust syntax");
 
         assert!(result.parser_code.contains("pub mod syntax"));
+        assert!(result.parser_code.contains("pub fn parse_document"));
+        assert!(
+            result
+                .parser_code
+                .contains(":: adze :: __private :: parse_document")
+        );
+        assert!(
+            result
+                .parser_code
+                .contains(":: adze :: document :: AdzeDocument")
+        );
         assert!(result.parser_code.contains("pub struct SourceFile"));
         assert!(result.parser_code.contains("pub struct Expression"));
         assert!(result.parser_code.contains("pub struct MinusToken"));
@@ -920,6 +941,7 @@ module.exports = grammar({
 
         let written = fs::read_to_string(&result.parser_path).unwrap();
         assert!(written.contains("pub mod syntax"));
+        assert!(written.contains("pub fn parse_document"));
         assert!(written.contains("edge_by_field_name(\"left\")"));
     }
 

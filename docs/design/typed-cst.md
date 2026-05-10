@@ -306,7 +306,8 @@ arithmetic fixture: wrapper structs over `AdzeDocument` and `NodeId`, fallible
 `cast` constructors, `SyntaxNode` impls, a `source_file()` root constructor,
 token wrappers, and field accessors that call `edge_by_field_name(...)`.
 
-Pure-Rust generated parser modules now append that alpha `syntax` module:
+Pure-Rust generated parser modules now append that alpha `syntax` module and
+an alpha `parse_document()` helper:
 
 ```bash
 cargo test -p adze-tool --lib \
@@ -318,10 +319,19 @@ The generator also uniquifies normalized wrapper names by symbol ID when public
 syntax tokens collide after Rust identifier normalization. This keeps imported
 or punctuation-heavy grammars from emitting duplicate wrapper structs.
 
-This is parser-module wiring only. Generated parser modules do not yet expose a
-generated `parse_document()` helper, typed CST parity canary, visitor/rewriter
-surface, typed query API, or typed CST JSON output, and this is not a public
-typed CST support claim.
+The generated document helper is covered by a runtime canary:
+
+```bash
+cargo test -p adze --features pure-rust \
+  --test typed_cst_generated_document -- --nocapture
+```
+
+It proves a generated parser module can parse source into `AdzeDocument` through
+the pure-Rust parser path and feed the generated `syntax::source_file(...)`
+wrapper from the same document root. This remains an alpha bridge only:
+generated parser modules do not yet have typed CST/generic CST parity canaries,
+visitor/rewriter surfaces, typed query APIs, or typed CST JSON output, and this
+is not a public typed CST support claim.
 
 ## Support Status
 
