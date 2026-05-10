@@ -272,6 +272,7 @@ The first useful slice is:
 ```text
 AdzeDocument
   -> tree()
+  -> language()
   -> diagnostics()
   -> metadata()
   -> as_tree_sitter()
