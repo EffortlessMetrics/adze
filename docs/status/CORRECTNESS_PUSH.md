@@ -76,8 +76,9 @@ pin the intended shape:
 
 Keep implementation slices small:
 
-1. Minimal `AdzeDocument` alpha: `tree()`, `diagnostics()`, `metadata()`, and
-   `as_tree_sitter()` over the same parse data.
+1. Minimal `AdzeDocument` alpha now exists for `tree()`, `diagnostics()`,
+   `metadata()`, and `ts_compat::Tree::from_document()` over the same parse
+   data. Keep expanding it in small proof-backed slices.
 2. Typed CST arithmetic spike: generated wrappers, typed field accessors,
    spans, and text over document node IDs.
 3. Alias-visible compatibility canaries only after native node identity exposes
