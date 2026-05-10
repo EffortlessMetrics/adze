@@ -959,9 +959,19 @@ fn symbol_name_for_diagnostic(
             return format!("symbol {symbol} (public {public_symbol})");
         }
 
-        CStr::from_ptr(symbol_ptr as *const c_char)
+        let raw_name = CStr::from_ptr(symbol_ptr as *const c_char)
             .to_string_lossy()
-            .to_string()
+            .to_string();
+        diagnostic_symbol_name(raw_name)
+    }
+}
+
+#[cfg(feature = "pure-rust")]
+fn diagnostic_symbol_name(raw_name: String) -> String {
+    if raw_name.starts_with("_/") && raw_name.ends_with('/') {
+        raw_name[1..].to_string()
+    } else {
+        raw_name
     }
 }
 
@@ -1396,6 +1406,26 @@ mod tests {
         let expected = expected_symbol_names_for_diagnostic(&language, &[1]);
 
         assert_eq!(expected, vec!["number".to_string()]);
+    }
+
+    #[test]
+    fn expected_symbol_names_for_diagnostic_normalize_hidden_pattern_names() {
+        let names = [
+            c"end".as_ptr() as *const u8,
+            c"_/[a-z_]+/".as_ptr() as *const u8,
+        ];
+        let metadata = [0, 0];
+        let language = TSLanguage {
+            symbol_count: 2,
+            token_count: 2,
+            symbol_names: names.as_ptr(),
+            symbol_metadata: metadata.as_ptr(),
+            ..FIELD_LANGUAGE
+        };
+
+        let expected = expected_symbol_names_for_diagnostic(&language, &[1]);
+
+        assert_eq!(expected, vec![r"/[a-z_]+/".to_string()]);
     }
 
     #[test]

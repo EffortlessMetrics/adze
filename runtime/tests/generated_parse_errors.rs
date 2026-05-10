@@ -265,7 +265,9 @@ fn generated_typed_parser_error_contract_is_feature_stable() {
         );
         for token in &first.expected {
             assert!(
-                !token.contains("SymbolId") && !token.contains("symbol ") && !token.contains('_'),
+                !token.contains("SymbolId")
+                    && !token.contains("symbol ")
+                    && !token.starts_with('_'),
                 "{} should expose human-readable expected names, got {token}",
                 case.label
             );
@@ -366,7 +368,9 @@ fn generated_precedence_arithmetic_parser_error_contract_is_feature_stable() {
         );
         for token in &first.expected {
             assert!(
-                !token.contains("SymbolId") && !token.contains("symbol ") && !token.contains('_'),
+                !token.contains("SymbolId")
+                    && !token.contains("symbol ")
+                    && !token.starts_with('_'),
                 "{} should expose human-readable expected names, got {token}",
                 case.label
             );
@@ -572,6 +576,7 @@ fn generated_words_parser_error_contract_is_feature_stable() {
         start_column: usize,
         end_line: usize,
         end_column: usize,
+        expected: &'static [&'static str],
     }
 
     let cases = [
@@ -583,6 +588,7 @@ fn generated_words_parser_error_contract_is_feature_stable() {
             start_column: 1,
             end_line: 1,
             end_column: 1,
+            expected: &["if"],
         },
         Case {
             label: "invalid ASCII token before keyword",
@@ -592,6 +598,7 @@ fn generated_words_parser_error_contract_is_feature_stable() {
             start_column: 1,
             end_line: 1,
             end_column: 2,
+            expected: &["if"],
         },
         Case {
             label: "invalid UTF-8 scalar before keyword",
@@ -601,6 +608,17 @@ fn generated_words_parser_error_contract_is_feature_stable() {
             start_column: 1,
             end_line: 1,
             end_column: 3,
+            expected: &["if"],
+        },
+        Case {
+            label: "invalid uppercase word continuation",
+            source: "if HELLO",
+            byte_span: 3..4,
+            start_line: 1,
+            start_column: 4,
+            end_line: 1,
+            end_column: 5,
+            expected: &[r"/[a-z_]+/"],
         },
     ];
 
@@ -629,13 +647,18 @@ fn generated_words_parser_error_contract_is_feature_stable() {
 
         assert_eq!(
             first.expected,
-            vec!["if".to_string()],
-            "{} should expose the keyword expectation by name",
+            case.expected
+                .iter()
+                .map(|token| (*token).to_string())
+                .collect::<Vec<_>>(),
+            "{} should expose human-readable expectations by name",
             case.label
         );
         for token in &first.expected {
             assert!(
-                !token.contains("SymbolId") && !token.contains("symbol ") && !token.contains('_'),
+                !token.contains("SymbolId")
+                    && !token.contains("symbol ")
+                    && !token.starts_with('_'),
                 "{} should expose human-readable expected names, got {token}",
                 case.label
             );
@@ -649,8 +672,8 @@ fn generated_words_parser_error_contract_is_feature_stable() {
             case.label
         );
         assert!(
-            rendered.contains("expected one of: if"),
-            "{} should render the keyword expectation: {rendered}",
+            rendered.contains(&format!("expected one of: {}", case.expected.join(", "))),
+            "{} should render the expected-token set: {rendered}",
             case.label
         );
     }
