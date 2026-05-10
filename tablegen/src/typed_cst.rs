@@ -119,6 +119,7 @@ impl<'a> TypedCstGenerator<'a> {
 
     fn wrapper_specs(&self) -> BTreeMap<SymbolId, WrapperSpec> {
         let mut specs = BTreeMap::new();
+        let mut used_idents = BTreeSet::new();
 
         for (symbol_id, name) in &self.grammar.rule_names {
             if name.starts_with('_') {
@@ -128,7 +129,7 @@ impl<'a> TypedCstGenerator<'a> {
             specs.insert(
                 *symbol_id,
                 WrapperSpec {
-                    ident: type_ident(name, "SyntaxNode"),
+                    ident: unique_type_ident(name, "SyntaxNode", *symbol_id, &mut used_idents),
                     kind_name: name.clone(),
                 },
             );
@@ -147,7 +148,12 @@ impl<'a> TypedCstGenerator<'a> {
             specs.insert(
                 *symbol_id,
                 WrapperSpec {
-                    ident: type_ident(&format!("{}_token", token.name), "Token"),
+                    ident: unique_type_ident(
+                        &format!("{}_token", token.name),
+                        "Token",
+                        *symbol_id,
+                        &mut used_idents,
+                    ),
                     kind_name,
                 },
             );
@@ -213,8 +219,24 @@ fn symbol_wrapper_ident(symbol: &Symbol, specs: &BTreeMap<SymbolId, WrapperSpec>
     }
 }
 
-fn type_ident(name: &str, fallback: &str) -> Ident {
-    Ident::new(&pascal_case_ident(name, fallback), Span::call_site())
+fn unique_type_ident(
+    name: &str,
+    fallback: &str,
+    symbol_id: SymbolId,
+    used: &mut BTreeSet<String>,
+) -> Ident {
+    let base = pascal_case_ident(name, fallback);
+    let mut candidate = base.clone();
+    if !used.insert(candidate.clone()) {
+        candidate = format!("{base}Symbol{}", symbol_id.0);
+        let mut collision = 1usize;
+        while !used.insert(candidate.clone()) {
+            candidate = format!("{base}Symbol{}_{collision}", symbol_id.0);
+            collision += 1;
+        }
+    }
+
+    Ident::new(&candidate, Span::call_site())
 }
 
 fn method_ident(name: &str, fallback: &str) -> Ident {
@@ -362,6 +384,21 @@ mod tests {
     }
 
     #[test]
+    fn typed_cst_generator_uniquifies_colliding_wrapper_names() {
+        let grammar = duplicate_punctuation_token_grammar();
+        let generated = TypedCstGenerator::new(&grammar).generate();
+
+        syn::parse2::<syn::File>(generated.clone())
+            .expect("duplicate token wrapper names should still emit valid Rust syntax");
+
+        let code = generated.to_string();
+        assert_eq!(code.matches("pub struct Token <").count(), 1);
+        assert!(code.contains("pub struct TokenSymbol1"));
+        assert!(code.contains("node_has_kind (document , id , \"+\")"));
+        assert!(code.contains("node_has_kind (document , id , \"-\")"));
+    }
+
+    #[test]
     fn typed_cst_generator_projects_fields_through_native_edges() {
         let grammar = arithmetic_grammar();
         let generated = TypedCstGenerator::new(&grammar).generate().to_string();
@@ -439,6 +476,45 @@ mod tests {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(2),
+        });
+
+        grammar
+    }
+
+    fn duplicate_punctuation_token_grammar() -> Grammar {
+        let mut grammar = Grammar::new("duplicate_punctuation_tokens".to_string());
+
+        let plus = SymbolId(0);
+        let minus = SymbolId(1);
+        let source_file = SymbolId(2);
+
+        grammar.tokens.insert(
+            plus,
+            Token {
+                name: "+".to_string(),
+                pattern: TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            minus,
+            Token {
+                name: "-".to_string(),
+                pattern: TokenPattern::String("-".to_string()),
+                fragile: false,
+            },
+        );
+        grammar
+            .rule_names
+            .insert(source_file, "source_file".to_string());
+
+        grammar.add_rule(Rule {
+            lhs: source_file,
+            rhs: vec![Symbol::Terminal(plus)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
         });
 
         grammar
