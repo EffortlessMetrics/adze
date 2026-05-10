@@ -310,7 +310,8 @@ API direction so implementation PRs can stay small and reviewable:
 1. contract first,
 2. minimal document alpha,
 3. Tree-sitter projection over the document,
-4. typed CST spike and generated-style wrapper scaffold,
-5. typed AST provenance,
-6. GLR ambiguity summaries,
-7. schema-versioned CLI/WASM outputs.
+4. typed CST spike, generated-style wrapper scaffold, and tablegen generator target,
+5. generated typed CST wiring for one grammar fixture,
+6. typed AST provenance,
+7. GLR ambiguity summaries,
+8. schema-versioned CLI/WASM outputs.
