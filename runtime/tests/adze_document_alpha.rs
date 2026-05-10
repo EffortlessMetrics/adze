@@ -44,19 +44,33 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
 
     assert_eq!(document.source_text(), source);
     assert_eq!(document.source_bytes(), source.as_bytes());
+    assert_eq!(document.language().name(), lang.name.as_str());
     assert_eq!(document.metadata().error_count, 0);
     assert!(document.diagnostics().is_empty());
 
     let tree = document.tree();
+    assert_eq!(tree.language().name(), lang.name.as_str());
     assert!(!tree.has_errors());
     assert_eq!(tree.error_count(), 0);
 
     let root = tree.root();
+    assert_eq!(root.kind_id(), symbol_named(&lang, "source_file"));
+    assert_eq!(root.kind_name(), Some("source_file"));
+    assert_eq!(root.grammar_name(), Some("source_file"));
+    assert!(root.is_named());
+    assert!(root.is_visible());
+    assert!(!root.is_terminal());
+    assert!(!root.is_extra());
     assert_eq!(root.symbol_id(), symbol_named(&lang, "source_file"));
     assert_eq!(root.child_count(), 1);
     assert_eq!(root.utf8_text().expect("root text should be UTF-8"), source);
 
     let expression = root.child(0).expect("root should expose expression child");
+    assert_eq!(expression.kind_name(), Some("expression"));
+    assert_eq!(expression.grammar_name(), Some("expression"));
+    assert!(expression.is_named());
+    assert!(expression.is_visible());
+    assert!(!expression.is_terminal());
     assert_eq!(expression.symbol_id(), symbol_named(&lang, "expression"));
     assert_eq!(expression.child_count(), 3);
     assert_eq!(expression.field_name_for_child(0), Some("left"));
@@ -84,6 +98,11 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
         .expect("Tree-sitter projection should expose expression child");
 
     assert_eq!(ts_tree.error_count(), document.metadata().error_count);
+    assert_eq!(ts_expression.kind(), expression.kind_name().unwrap());
+    assert_eq!(
+        ts_expression.grammar_name(),
+        expression.grammar_name().unwrap()
+    );
     assert_eq!(ts_expression.field_name_for_child(0), Some("left"));
     assert_eq!(ts_expression.field_name_for_child(1), Some("operator"));
     assert_eq!(ts_expression.field_name_for_child(2), Some("right"));

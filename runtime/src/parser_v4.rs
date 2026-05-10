@@ -500,6 +500,9 @@ impl Parser {
             input,
             root,
             error_count,
+            &self.language,
+            &self.grammar,
+            &self.parse_table,
         ))
     }
 

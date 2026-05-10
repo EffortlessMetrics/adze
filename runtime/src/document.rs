@@ -6,7 +6,8 @@
 //! typed AST provenance, and GLR forest summaries are future slices.
 
 use crate::parser_v4::ParseNode;
-use adze_ir::SymbolId;
+use adze_glr_core::{ParseTable, SymbolMetadata as TableSymbolMetadata};
+use adze_ir::{Grammar, SymbolId};
 use std::ops::Range;
 
 /// A native parse-product document.
@@ -18,16 +19,25 @@ use std::ops::Range;
 pub struct AdzeDocument {
     source: String,
     root: ParseNode,
+    language: LanguageMetadata,
     diagnostics: Vec<ParseDiagnostic>,
     metadata: ParseMetadata,
 }
 
 impl AdzeDocument {
-    pub(crate) fn from_parse_result(source: &str, root: ParseNode, error_count: usize) -> Self {
+    pub(crate) fn from_parse_result(
+        source: &str,
+        root: ParseNode,
+        error_count: usize,
+        language_name: &str,
+        grammar: &Grammar,
+        parse_table: &ParseTable,
+    ) -> Self {
         let diagnostics = build_diagnostics(&root, error_count, source.len());
         Self {
             source: source.to_string(),
             root,
+            language: LanguageMetadata::from_runtime(language_name, grammar, parse_table),
             diagnostics,
             metadata: ParseMetadata { error_count },
         }
@@ -36,6 +46,11 @@ impl AdzeDocument {
     /// Return the generic native CST view.
     pub fn tree(&self) -> AdzeTree<'_> {
         AdzeTree { document: self }
+    }
+
+    /// Return language metadata recorded for this document.
+    pub fn language(&self) -> &LanguageMetadata {
+        &self.language
     }
 
     /// Return structured diagnostics recorded for this parse.
@@ -60,6 +75,152 @@ impl AdzeDocument {
 
     pub(crate) fn root_parse_node(&self) -> &ParseNode {
         &self.root
+    }
+}
+
+/// Native language metadata attached to a parse document.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LanguageMetadata {
+    name: String,
+    symbols: Vec<NodeKind>,
+}
+
+impl LanguageMetadata {
+    pub(crate) fn from_runtime(
+        language_name: &str,
+        grammar: &Grammar,
+        parse_table: &ParseTable,
+    ) -> Self {
+        let mut symbols = Vec::new();
+
+        for metadata in &parse_table.symbol_metadata {
+            insert_symbol(&mut symbols, NodeKind::from_table_metadata(metadata));
+        }
+
+        for (symbol_id, name) in &grammar.rule_names {
+            if !symbols.iter().any(|symbol| symbol.symbol_id == *symbol_id) {
+                let is_terminal = grammar.tokens.contains_key(symbol_id);
+                insert_symbol(
+                    &mut symbols,
+                    NodeKind {
+                        symbol_id: *symbol_id,
+                        name: name.clone(),
+                        is_visible: !name.starts_with('_'),
+                        is_named: !is_terminal,
+                        is_supertype: grammar.supertypes.contains(symbol_id),
+                        is_terminal,
+                        is_extra: grammar.extras.contains(symbol_id),
+                    },
+                );
+            }
+        }
+
+        for (symbol_id, token) in &grammar.tokens {
+            if !symbols.iter().any(|symbol| symbol.symbol_id == *symbol_id) {
+                insert_symbol(
+                    &mut symbols,
+                    NodeKind {
+                        symbol_id: *symbol_id,
+                        name: token.name.clone(),
+                        is_visible: !token.name.starts_with('_'),
+                        is_named: false,
+                        is_supertype: grammar.supertypes.contains(symbol_id),
+                        is_terminal: true,
+                        is_extra: grammar.extras.contains(symbol_id),
+                    },
+                );
+            }
+        }
+
+        symbols.sort_by_key(|symbol| symbol.symbol_id.0);
+
+        Self {
+            name: language_name.to_string(),
+            symbols,
+        }
+    }
+
+    /// Return the language name used to create this document.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Return all known node kinds for this language.
+    pub fn symbols(&self) -> &[NodeKind] {
+        &self.symbols
+    }
+
+    /// Return metadata for a symbol id.
+    pub fn symbol(&self, symbol_id: SymbolId) -> Option<&NodeKind> {
+        self.symbols
+            .iter()
+            .find(|symbol| symbol.symbol_id == symbol_id)
+    }
+
+    /// Return the display name for a symbol id.
+    pub fn symbol_name(&self, symbol_id: SymbolId) -> Option<&str> {
+        self.symbol(symbol_id).map(NodeKind::name)
+    }
+}
+
+/// Native metadata for one grammar symbol.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NodeKind {
+    symbol_id: SymbolId,
+    name: String,
+    is_visible: bool,
+    is_named: bool,
+    is_supertype: bool,
+    is_terminal: bool,
+    is_extra: bool,
+}
+
+impl NodeKind {
+    fn from_table_metadata(metadata: &TableSymbolMetadata) -> Self {
+        Self {
+            symbol_id: metadata.symbol_id,
+            name: metadata.name.clone(),
+            is_visible: metadata.is_visible,
+            is_named: metadata.is_named,
+            is_supertype: metadata.is_supertype,
+            is_terminal: metadata.is_terminal,
+            is_extra: metadata.is_extra,
+        }
+    }
+
+    /// Return the symbol id for this node kind.
+    pub fn symbol_id(&self) -> SymbolId {
+        self.symbol_id
+    }
+
+    /// Return the display name for this node kind.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Return whether this node kind is visible in syntax output.
+    pub fn is_visible(&self) -> bool {
+        self.is_visible
+    }
+
+    /// Return whether this node kind is named.
+    pub fn is_named(&self) -> bool {
+        self.is_named
+    }
+
+    /// Return whether this node kind is a supertype.
+    pub fn is_supertype(&self) -> bool {
+        self.is_supertype
+    }
+
+    /// Return whether this node kind is a terminal token.
+    pub fn is_terminal(&self) -> bool {
+        self.is_terminal
+    }
+
+    /// Return whether this node kind is extra syntax such as trivia.
+    pub fn is_extra(&self) -> bool {
+        self.is_extra
     }
 }
 
@@ -88,6 +249,11 @@ pub struct AdzeTree<'doc> {
 }
 
 impl<'doc> AdzeTree<'doc> {
+    /// Return language metadata for this tree.
+    pub fn language(&self) -> &'doc LanguageMetadata {
+        self.document.language()
+    }
+
     /// Return the root node.
     pub fn root(&self) -> AdzeNode<'doc> {
         AdzeNode {
@@ -115,6 +281,32 @@ pub struct AdzeNode<'doc> {
 }
 
 impl<'doc> AdzeNode<'doc> {
+    /// Return metadata for this node's kind, when known.
+    pub fn kind(&self) -> Option<&'doc NodeKind> {
+        self.document.language.symbol(self.symbol_id())
+    }
+
+    /// Return this node's display kind name, when known.
+    pub fn kind_name(&self) -> Option<&'doc str> {
+        self.kind().map(NodeKind::name)
+    }
+
+    /// Return this node's grammar symbol name, ignoring aliases.
+    ///
+    /// Current native parse nodes do not carry alias-specific identity, so the
+    /// grammar name matches the visible kind name when metadata is available.
+    pub fn grammar_name(&self) -> Option<&'doc str> {
+        self.kind_name()
+    }
+
+    /// Return this node's visible kind id.
+    ///
+    /// Current native parse nodes do not carry alias-specific identity, so the
+    /// visible kind id matches the grammar symbol id.
+    pub fn kind_id(&self) -> SymbolId {
+        self.symbol_id()
+    }
+
     /// Return the node's grammar symbol id.
     pub fn symbol_id(&self) -> SymbolId {
         self.node.symbol_id
@@ -171,6 +363,31 @@ impl<'doc> AdzeNode<'doc> {
             .and_then(|child| child.field_name.as_deref())
     }
 
+    /// Return whether this node is named according to language metadata.
+    pub fn is_named(&self) -> bool {
+        self.kind().map(NodeKind::is_named).unwrap_or(false)
+    }
+
+    /// Return whether this node is visible according to language metadata.
+    pub fn is_visible(&self) -> bool {
+        self.kind().map(NodeKind::is_visible).unwrap_or(false)
+    }
+
+    /// Return whether this node is an extra syntax node according to metadata.
+    pub fn is_extra(&self) -> bool {
+        self.kind().map(NodeKind::is_extra).unwrap_or(false)
+    }
+
+    /// Return whether this node is a terminal token according to metadata.
+    pub fn is_terminal(&self) -> bool {
+        self.kind().map(NodeKind::is_terminal).unwrap_or(false)
+    }
+
+    /// Return whether this node is a supertype according to metadata.
+    pub fn is_supertype(&self) -> bool {
+        self.kind().map(NodeKind::is_supertype).unwrap_or(false)
+    }
+
     /// Return whether this node is a local synthetic error node.
     pub fn is_error(&self) -> bool {
         self.node.symbol.0 == 0 && self.node.children.is_empty()
@@ -222,4 +439,15 @@ fn first_error_span(node: &ParseNode) -> Option<Range<usize>> {
     }
 
     node.children.iter().find_map(first_error_span)
+}
+
+fn insert_symbol(symbols: &mut Vec<NodeKind>, symbol: NodeKind) {
+    if let Some(existing) = symbols
+        .iter_mut()
+        .find(|existing| existing.symbol_id == symbol.symbol_id)
+    {
+        *existing = symbol;
+    } else {
+        symbols.push(symbol);
+    }
 }
