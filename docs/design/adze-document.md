@@ -273,6 +273,7 @@ The first useful slice is:
 AdzeDocument
   -> tree()
   -> NodeId lookup
+  -> edge and parent lookup
   -> language()
   -> diagnostics()
   -> metadata()

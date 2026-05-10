@@ -98,6 +98,10 @@ impl AdzeDocument {
             .get(child_index)
             .copied()
     }
+
+    fn parent_id(&self, node_id: NodeId) -> Option<NodeId> {
+        self.node_index.get(node_id.as_usize())?.parent_id
+    }
 }
 
 /// Stable node identifier within one [`AdzeDocument`].
@@ -122,6 +126,7 @@ impl NodeId {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct NodeIndex {
     path: Vec<usize>,
+    parent_id: Option<NodeId>,
     child_ids: Vec<NodeId>,
 }
 
@@ -354,6 +359,17 @@ impl<'doc> AdzeNode<'doc> {
         self.id
     }
 
+    /// Return this node's parent id, if it is not the root.
+    pub fn parent_id(&self) -> Option<NodeId> {
+        self.document.parent_id(self.id)
+    }
+
+    /// Return this node's parent, if it is not the root.
+    pub fn parent(&self) -> Option<AdzeNode<'doc>> {
+        self.parent_id()
+            .and_then(|parent_id| self.document.tree().node(parent_id))
+    }
+
     /// Return metadata for this node's kind, when known.
     pub fn kind(&self) -> Option<&'doc NodeKind> {
         self.document.language.symbol(self.symbol_id())
@@ -422,21 +438,41 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return a child by index.
     pub fn child(&self, index: usize) -> Option<AdzeNode<'doc>> {
+        self.child_edge(index)?.child()
+    }
+
+    /// Return a child edge by index.
+    pub fn child_edge(&self, index: usize) -> Option<AdzeEdge<'doc>> {
         let child = self.node.children.get(index)?;
-        let id = self.document.child_id(self.id, index)?;
-        Some(AdzeNode {
+        let child_id = self.document.child_id(self.id, index)?;
+        Some(AdzeEdge {
             document: self.document,
-            node: child,
-            id,
+            parent_id: self.id,
+            child_index: index,
+            child_id,
+            field_name: child.field_name.as_deref(),
         })
+    }
+
+    /// Return direct child edges in source order.
+    pub fn child_edges(&self) -> impl Iterator<Item = AdzeEdge<'doc>> + '_ {
+        (0..self.child_count()).filter_map(|index| self.child_edge(index))
     }
 
     /// Return the field name for a child edge by index.
     pub fn field_name_for_child(&self, index: usize) -> Option<&'doc str> {
-        self.node
-            .children
-            .get(index)
-            .and_then(|child| child.field_name.as_deref())
+        self.child_edge(index).and_then(|edge| edge.field_name())
+    }
+
+    /// Return the first child edge attached through the given field name.
+    pub fn edge_by_field_name(&self, field_name: &str) -> Option<AdzeEdge<'doc>> {
+        self.child_edges()
+            .find(|edge| edge.field_name() == Some(field_name))
+    }
+
+    /// Return the first child attached through the given field name.
+    pub fn child_by_field_name(&self, field_name: &str) -> Option<AdzeNode<'doc>> {
+        self.edge_by_field_name(field_name)?.child()
     }
 
     /// Return whether this node is named according to language metadata.
@@ -487,6 +523,47 @@ impl<'doc> AdzeNode<'doc> {
     }
 }
 
+/// Borrowed parent-to-child CST edge view.
+///
+/// Field labels belong to edges, not globally to child nodes. `AdzeEdge`
+/// makes that relationship explicit for native syntax tooling and future
+/// generated typed CST accessors.
+#[derive(Clone, Copy, Debug)]
+pub struct AdzeEdge<'doc> {
+    document: &'doc AdzeDocument,
+    parent_id: NodeId,
+    child_index: usize,
+    child_id: NodeId,
+    field_name: Option<&'doc str>,
+}
+
+impl<'doc> AdzeEdge<'doc> {
+    /// Return the parent node id for this edge.
+    pub fn parent_id(&self) -> NodeId {
+        self.parent_id
+    }
+
+    /// Return this edge's child index within its parent.
+    pub fn child_index(&self) -> usize {
+        self.child_index
+    }
+
+    /// Return the child node id for this edge.
+    pub fn child_id(&self) -> NodeId {
+        self.child_id
+    }
+
+    /// Return the child node for this edge.
+    pub fn child(&self) -> Option<AdzeNode<'doc>> {
+        self.document.tree().node(self.child_id)
+    }
+
+    /// Return the field name attached to this edge, if any.
+    pub fn field_name(&self) -> Option<&'doc str> {
+        self.field_name
+    }
+}
+
 fn build_diagnostics(
     root: &ParseNode,
     error_count: usize,
@@ -527,16 +604,26 @@ fn collect_node_index(
     path: &mut Vec<usize>,
     index: &mut Vec<NodeIndex>,
 ) -> NodeId {
+    collect_node_index_with_parent(node, path, index, None)
+}
+
+fn collect_node_index_with_parent(
+    node: &ParseNode,
+    path: &mut Vec<usize>,
+    index: &mut Vec<NodeIndex>,
+    parent_id: Option<NodeId>,
+) -> NodeId {
     let id = NodeId::new(index.len());
     index.push(NodeIndex {
         path: path.clone(),
+        parent_id,
         child_ids: Vec::with_capacity(node.children.len()),
     });
 
     let mut child_ids = Vec::with_capacity(node.children.len());
     for (child_index, child) in node.children.iter().enumerate() {
         path.push(child_index);
-        child_ids.push(collect_node_index(child, path, index));
+        child_ids.push(collect_node_index_with_parent(child, path, index, Some(id)));
         path.pop();
     }
     index[id.as_usize()].child_ids = child_ids;

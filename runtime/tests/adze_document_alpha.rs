@@ -60,6 +60,8 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
 
     let root = tree.root();
     assert_eq!(tree.root_id(), root.node_id());
+    assert_eq!(root.parent_id(), None);
+    assert!(root.parent().is_none());
     assert_eq!(
         tree.node(root.node_id())
             .expect("root id should resolve")
@@ -78,7 +80,30 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(root.child_count(), 1);
     assert_eq!(root.utf8_text().expect("root text should be UTF-8"), source);
 
+    let root_expression_edge = root
+        .child_edge(0)
+        .expect("root should expose expression edge");
+    assert_eq!(root_expression_edge.parent_id(), root.node_id());
+    assert_eq!(root_expression_edge.child_index(), 0);
+    assert_eq!(root_expression_edge.field_name(), None);
+
     let expression = root.child(0).expect("root should expose expression child");
+    assert_eq!(root_expression_edge.child_id(), expression.node_id());
+    assert_eq!(
+        root_expression_edge
+            .child()
+            .expect("root expression edge should resolve child")
+            .node_id(),
+        expression.node_id()
+    );
+    assert_eq!(expression.parent_id(), Some(root.node_id()));
+    assert_eq!(
+        expression
+            .parent()
+            .expect("expression should resolve parent")
+            .node_id(),
+        root.node_id()
+    );
     assert_eq!(
         tree.node(expression.node_id())
             .expect("expression id should resolve")
@@ -95,13 +120,39 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(expression.field_name_for_child(0), Some("left"));
     assert_eq!(expression.field_name_for_child(1), Some("operator"));
     assert_eq!(expression.field_name_for_child(2), Some("right"));
+    assert!(expression.child_edge(3).is_none());
+    assert!(expression.edge_by_field_name("missing").is_none());
+    assert!(expression.child_by_field_name("missing").is_none());
 
     let left = expression.child(0).expect("left child should exist");
     let operator = expression.child(1).expect("operator child should exist");
     let right = expression.child(2).expect("right child should exist");
+    let edges: Vec<_> = expression.child_edges().collect();
 
+    assert_eq!(edges.len(), 3);
+    assert_eq!(edges[0].parent_id(), expression.node_id());
+    assert_eq!(edges[0].child_index(), 0);
+    assert_eq!(edges[0].child_id(), left.node_id());
+    assert_eq!(edges[0].field_name(), Some("left"));
+    assert_eq!(
+        expression
+            .edge_by_field_name("left")
+            .expect("left edge should resolve")
+            .child_id(),
+        left.node_id()
+    );
+    assert_eq!(
+        expression
+            .child_by_field_name("operator")
+            .expect("operator field should resolve")
+            .node_id(),
+        operator.node_id()
+    );
     assert_ne!(left.node_id(), operator.node_id());
     assert_ne!(operator.node_id(), right.node_id());
+    assert_eq!(left.parent_id(), Some(expression.node_id()));
+    assert_eq!(operator.parent_id(), Some(expression.node_id()));
+    assert_eq!(right.parent_id(), Some(expression.node_id()));
     assert_eq!(
         tree.node(left.node_id())
             .expect("left id should resolve")
