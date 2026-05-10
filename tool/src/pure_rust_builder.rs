@@ -6,7 +6,7 @@
 use crate::grammar_js::{GrammarJsConverter, parse_grammar_js_v2};
 use adze_glr_core::{Action, FirstFollowSets, build_lr1_automaton};
 use adze_ir::{Grammar, ProductionId, Rule, Symbol, SymbolId, TokenPattern};
-use adze_tablegen::{AbiLanguageBuilder, NodeTypesGenerator};
+use adze_tablegen::{AbiLanguageBuilder, NodeTypesGenerator, TypedCstGenerator};
 use anyhow::{Context, Result};
 use serde_json::Value;
 use std::fs;
@@ -661,13 +661,25 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
         abi_builder.generate()
     };
 
-    // Step 4: Generate NODE_TYPES.json
+    // Step 4: Add alpha typed CST wrapper generation.
+    //
+    // The generated wrappers are a projection over AdzeDocument node IDs and
+    // native edge metadata. They are intentionally emitted as a separate
+    // syntax module and are not yet paired with a generated parse_document
+    // helper.
+    let typed_cst_code = TypedCstGenerator::new(&grammar).generate();
+    let language_code = quote::quote! {
+        #language_code
+        #typed_cst_code
+    };
+
+    // Step 5: Generate NODE_TYPES.json
     let node_types_gen = NodeTypesGenerator::new(&grammar);
     let node_types_json = node_types_gen
         .generate()
         .map_err(|e| anyhow::anyhow!("Failed to generate NODE_TYPES: {}", e))?;
 
-    // Step 5: Write output files
+    // Step 6: Write output files
     let grammar_dir = Path::new(&options.out_dir).join(format!("grammar_{}", grammar_name));
 
     if options.emit_artifacts {
@@ -770,7 +782,7 @@ pub fn build_parser(mut grammar: Grammar, options: BuildOptions) -> Result<Build
 #[cfg(test)]
 mod tests {
     use super::*;
-    use adze_ir::{Grammar, Symbol, SymbolId, Token, TokenPattern};
+    use adze_ir::{FieldId, Grammar, Symbol, SymbolId, Token, TokenPattern};
     use tempfile::TempDir;
 
     #[test]
@@ -806,6 +818,109 @@ module.exports = grammar({
         // Check NODE_TYPES content
         let node_types: Value = serde_json::from_str(&result.node_types_json).unwrap();
         assert!(node_types.is_array());
+    }
+
+    #[test]
+    fn build_parser_emits_typed_cst_syntax_module() {
+        let mut grammar = Grammar::new("typed_cst_arithmetic".to_string());
+
+        let number = SymbolId(0);
+        let minus = SymbolId(1);
+        let source_file = SymbolId(2);
+        let expression = SymbolId(3);
+
+        grammar.tokens.insert(
+            number,
+            Token {
+                name: "number".to_string(),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
+                fragile: false,
+            },
+        );
+        grammar.tokens.insert(
+            minus,
+            Token {
+                name: "minus".to_string(),
+                pattern: TokenPattern::String("-".to_string()),
+                fragile: false,
+            },
+        );
+
+        grammar
+            .rule_names
+            .insert(source_file, "source_file".to_string());
+        grammar
+            .rule_names
+            .insert(expression, "expression".to_string());
+        grammar.fields.insert(FieldId(0), "left".to_string());
+        grammar.fields.insert(FieldId(1), "operator".to_string());
+        grammar.fields.insert(FieldId(2), "right".to_string());
+
+        grammar.add_rule(Rule {
+            lhs: source_file,
+            rhs: vec![Symbol::NonTerminal(expression)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: expression,
+            rhs: vec![Symbol::Terminal(number)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(1),
+        });
+        grammar.add_rule(Rule {
+            lhs: expression,
+            rhs: vec![
+                Symbol::Terminal(number),
+                Symbol::Terminal(minus),
+                Symbol::Terminal(number),
+            ],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 0), (FieldId(1), 1), (FieldId(2), 2)],
+            production_id: ProductionId(2),
+        });
+
+        let temp_dir = TempDir::new().unwrap();
+        let result = build_parser(
+            grammar,
+            BuildOptions {
+                out_dir: temp_dir.path().to_string_lossy().to_string(),
+                emit_artifacts: false,
+                compress_tables: false,
+            },
+        )
+        .unwrap();
+
+        syn::parse_str::<syn::File>(&result.parser_code)
+            .expect("generated parser code should remain valid Rust syntax");
+
+        assert!(result.parser_code.contains("pub mod syntax"));
+        assert!(result.parser_code.contains("pub struct SourceFile"));
+        assert!(result.parser_code.contains("pub struct Expression"));
+        assert!(result.parser_code.contains("pub struct MinusToken"));
+        assert!(result.parser_code.contains("pub struct NumberToken"));
+        assert!(result.parser_code.contains("edge_by_field_name (\"left\")"));
+        assert!(
+            result
+                .parser_code
+                .contains("edge_by_field_name (\"operator\")")
+        );
+        assert!(
+            result
+                .parser_code
+                .contains("edge_by_field_name (\"right\")")
+        );
+        assert!(result.parser_code.contains("NumberToken :: cast"));
+        assert!(result.parser_code.contains("MinusToken :: cast"));
+
+        let written = fs::read_to_string(&result.parser_path).unwrap();
+        assert!(written.contains("pub mod syntax"));
+        assert!(written.contains("edge_by_field_name(\"left\")"));
     }
 
     #[test]

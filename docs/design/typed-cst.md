@@ -306,8 +306,22 @@ arithmetic fixture: wrapper structs over `AdzeDocument` and `NodeId`, fallible
 `cast` constructors, `SyntaxNode` impls, a `source_file()` root constructor,
 token wrappers, and field accessors that call `edge_by_field_name(...)`.
 
-This is not yet wired into generated grammar crates and is not a public typed
-CST support claim.
+Pure-Rust generated parser modules now append that alpha `syntax` module:
+
+```bash
+cargo test -p adze-tool --lib \
+  pure_rust_builder::tests::build_parser_emits_typed_cst_syntax_module \
+  -- --exact --nocapture
+```
+
+The generator also uniquifies normalized wrapper names by symbol ID when public
+syntax tokens collide after Rust identifier normalization. This keeps imported
+or punctuation-heavy grammars from emitting duplicate wrapper structs.
+
+This is parser-module wiring only. Generated parser modules do not yet expose a
+generated `parse_document()` helper, typed CST parity canary, visitor/rewriter
+surface, typed query API, or typed CST JSON output, and this is not a public
+typed CST support claim.
 
 ## Support Status
 
@@ -322,6 +336,7 @@ Expected sequence:
 4. generated-style arithmetic fixture wrappers and field accessors,
 5. tablegen typed-CST generator target for wrappers and field accessors,
 6. wire generated wrappers into one generated grammar fixture,
-7. typed CST and generic CST parity canaries,
-8. typed AST extraction through typed CST,
-9. typed CST JSON, if needed.
+7. generated `parse_document()` helper and runtime canary,
+8. typed CST and generic CST parity canaries,
+9. typed AST extraction through typed CST,
+10. typed CST JSON, if needed.

@@ -311,7 +311,8 @@ API direction so implementation PRs can stay small and reviewable:
 2. minimal document alpha,
 3. Tree-sitter projection over the document,
 4. typed CST spike, generated-style wrapper scaffold, and tablegen generator target,
-5. generated typed CST wiring for one grammar fixture,
-6. typed AST provenance,
-7. GLR ambiguity summaries,
-8. schema-versioned CLI/WASM outputs.
+5. generated parser-module typed CST wiring,
+6. generated `parse_document()` helper and typed CST runtime canary,
+7. typed AST provenance,
+8. GLR ambiguity summaries,
+9. schema-versioned CLI/WASM outputs.
