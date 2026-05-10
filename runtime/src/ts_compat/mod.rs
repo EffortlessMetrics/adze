@@ -6,6 +6,7 @@
 //! This module provides a compatibility layer that mimics the Tree-sitter API,
 //! allowing existing Tree-sitter code to work with adze with minimal changes.
 
+use crate::document::AdzeDocument;
 use crate::parser_v4::{ParseNode, Parser as CoreParser};
 use crate::pure_incremental::Edit as CoreEdit;
 use crate::pure_parser;
@@ -237,18 +238,8 @@ impl Parser {
         let core_parser = self.core.as_mut()?;
         let lang = self.lang.as_ref()?;
 
-        // Use parse_tree_with_error_count() so the compatibility tree preserves
-        // parser_v4 recovery/error metadata for node error-state queries.
-        match core_parser.parse_tree_with_error_count(source) {
-            Ok((root, error_count)) => Some(Tree {
-                core: OwnedCoreTree {
-                    root,
-                    source: source.as_bytes().to_vec(),
-                    error_count,
-                },
-                last_edit: None,
-                language: lang.clone(),
-            }),
+        match core_parser.parse_document(source) {
+            Ok(document) => Some(Tree::from_document(Arc::clone(lang), &document)),
             Err(_) => None,
         }
     }
@@ -274,6 +265,19 @@ pub struct Tree {
 }
 
 impl Tree {
+    /// Build a Tree-sitter-compatible tree from a native parse document.
+    pub fn from_document(language: Arc<Language>, document: &AdzeDocument) -> Self {
+        Self {
+            core: OwnedCoreTree {
+                root: document.root_parse_node().clone(),
+                source: document.source_bytes().to_vec(),
+                error_count: document.metadata().error_count,
+            },
+            last_edit: None,
+            language,
+        }
+    }
+
     /// Get the language that was used to parse this tree.
     pub fn language(&self) -> &Language {
         self.language.as_ref()

@@ -160,6 +160,9 @@ pub mod tree_bridge;
 /// Decoder for compressed parse tables.
 #[cfg(feature = "pure-rust")]
 pub mod decoder;
+/// Native parse document alpha.
+#[cfg(feature = "pure-rust")]
+pub mod document;
 /// JSON grammar format support.
 #[cfg(feature = "pure-rust")]
 pub mod grammar_json;

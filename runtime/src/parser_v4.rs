@@ -493,6 +493,16 @@ impl Parser {
         self.parse_internal(input, true)
     }
 
+    /// Parse the input string and return a native parse document.
+    pub fn parse_document(&mut self, input: &str) -> Result<crate::document::AdzeDocument> {
+        let (root, error_count) = self.parse_internal(input, true)?;
+        Ok(crate::document::AdzeDocument::from_parse_result(
+            input,
+            root,
+            error_count,
+        ))
+    }
+
     /// Parse the input string and return minimal tree metadata
     ///
     /// Parse input and return arena-allocated tree

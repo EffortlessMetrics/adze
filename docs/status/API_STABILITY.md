@@ -1,6 +1,6 @@
 # API Stability Matrix
 
-**Last updated:** 2025-07-18
+**Last updated:** 2026-05-10
 **Workspace version:** 0.8.0
 
 This document catalogs the stability status of every public API surface in the adze workspace.
@@ -23,7 +23,7 @@ Stable rows here identify API compatibility guarantees. They do not by themselve
 
 | Crate | Stable | Unstable | Experimental | Deprecated | Internal | Total |
 |-------|--------|----------|-------------|------------|----------|-------|
-| `adze` (runtime) | 8 | 18 | 11 | 5 | 5 | 47 |
+| `adze` (runtime) | 8 | 18 | 12 | 5 | 5 | 48 |
 | `adze-macro` | 10 | 1 | 0 | 0 | 0 | 11 |
 | `adze-tool` | 3 | 5 | 2 | 0 | 0 | 10 |
 | `adze-common` | 3 | 2 | 0 | 0 | 0 | 5 |
@@ -82,6 +82,7 @@ The main user-facing crate. Re-exports `adze-macro` proc-macros at the top level
 | `glr_validation` | Unstable | — | ✅ | ✅ |
 | `tree_bridge` | Experimental | `pure-rust` | ✅ | ✅ |
 | `decoder` | Experimental | `pure-rust` | ✅ | ✅ |
+| `document` | Experimental | `pure-rust` | ✅ | ✅ |
 | `grammar_json` | Experimental | `pure-rust` | ✅ | ✅ |
 | `parser_v4` | Experimental | `pure-rust` | ✅ | ✅ |
 | `unified_parser` | Experimental | `pure-rust` | ✅ | — |
