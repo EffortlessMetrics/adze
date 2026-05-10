@@ -555,3 +555,103 @@ fn expected_token_sets_are_reported() {
         first.expected
     );
 }
+
+/// Canary: generated-parser diagnostic contracts should hold for at least one
+/// non-arithmetic grammar shape before structured parse errors can graduate.
+///
+/// The `words` grammar gives us a small keyword/word grammar that is independent
+/// of the arithmetic expression canaries above. The product-proof lane runs this
+/// exact test under both `pure-rust` and `pure-rust,glr`.
+#[test]
+fn generated_words_parser_error_contract_is_feature_stable() {
+    struct Case {
+        label: &'static str,
+        source: &'static str,
+        byte_span: Range<usize>,
+        start_line: usize,
+        start_column: usize,
+        end_line: usize,
+        end_column: usize,
+    }
+
+    let cases = [
+        Case {
+            label: "unexpected EOF before keyword",
+            source: "",
+            byte_span: 0..0,
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 1,
+        },
+        Case {
+            label: "invalid ASCII token before keyword",
+            source: "123",
+            byte_span: 0..1,
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 2,
+        },
+        Case {
+            label: "invalid UTF-8 scalar before keyword",
+            source: "λ",
+            byte_span: 0..2,
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 3,
+        },
+    ];
+
+    for case in cases {
+        let errors = match adze_example::words::grammar::parse(case.source) {
+            Ok(ast) => panic!("{} unexpectedly parsed as {ast:?}", case.label),
+            Err(errors) => errors,
+        };
+
+        let first = errors
+            .first()
+            .unwrap_or_else(|| panic!("{} should produce at least one parse error", case.label));
+
+        assert_eq!(
+            first.byte_span(),
+            case.byte_span,
+            "{} should keep its public byte-span contract",
+            case.label
+        );
+
+        let span = first.source_span(case.source.as_bytes());
+        assert_eq!(span.start.line, case.start_line, "{}", case.label);
+        assert_eq!(span.start.column, case.start_column, "{}", case.label);
+        assert_eq!(span.end.line, case.end_line, "{}", case.label);
+        assert_eq!(span.end.column, case.end_column, "{}", case.label);
+
+        assert_eq!(
+            first.expected,
+            vec!["if".to_string()],
+            "{} should expose the keyword expectation by name",
+            case.label
+        );
+        for token in &first.expected {
+            assert!(
+                !token.contains("SymbolId") && !token.contains("symbol ") && !token.contains('_'),
+                "{} should expose human-readable expected names, got {token}",
+                case.label
+            );
+        }
+
+        let rendered = first.display_with_source(case.source).to_string();
+        let expected_byte_range = format!("bytes {}..{}", case.byte_span.start, case.byte_span.end);
+        assert!(
+            rendered.contains(&expected_byte_range),
+            "{} should render byte range {expected_byte_range}: {rendered}",
+            case.label
+        );
+        assert!(
+            rendered.contains("expected one of: if"),
+            "{} should render the keyword expectation: {rendered}",
+            case.label
+        );
+    }
+}
