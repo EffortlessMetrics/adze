@@ -315,7 +315,7 @@ impl GrammarJsConverter {
 
             JsRule::Pattern { value } => {
                 // Create a regex token rule
-                let token_name = format!("_{}", lhs.0); // Generate token name
+                let token_name = hidden_pattern_token_name(value);
                 let token_id = self.get_or_create_token(
                     grammar,
                     &token_name,
@@ -870,7 +870,7 @@ impl GrammarJsConverter {
                 self.get_or_create_token(grammar, &value, TokenPattern::String(value.clone()))
             }
             JsRule::Pattern { value } => {
-                let token_name = format!("_{}", id.0);
+                let token_name = hidden_pattern_token_name(&value);
                 self.get_or_create_token(grammar, &token_name, TokenPattern::Regex(value.clone()))
             }
             _ => return None,
@@ -1011,6 +1011,10 @@ impl GrammarJsConverter {
     }
 }
 
+fn hidden_pattern_token_name(pattern: &str) -> String {
+    format!("_/{pattern}/")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1101,6 +1105,38 @@ mod tests {
         assert!(
             !source_rule.rhs.contains(&Symbol::NonTerminal(keyword_if)),
             "string leaf wrappers must not hide token lookahead behind nonterminals"
+        );
+    }
+
+    #[test]
+    fn pattern_wrapper_tokens_keep_human_readable_hidden_names() {
+        let mut grammar_js = GrammarJs::new("pattern_wrapper".to_string());
+
+        grammar_js.rules.insert(
+            "source_file".to_string(),
+            JsRule::Seq {
+                members: vec![JsRule::Symbol {
+                    name: "identifier".to_string(),
+                }],
+            },
+        );
+        grammar_js.rules.insert(
+            "identifier".to_string(),
+            JsRule::Pattern {
+                value: r"[a-z]+".to_string(),
+            },
+        );
+
+        let grammar = GrammarJsConverter::new(grammar_js).convert().unwrap();
+        let token = grammar
+            .tokens
+            .values()
+            .find(|token| matches!(&token.pattern, TokenPattern::Regex(pattern) if pattern == r"[a-z]+"))
+            .expect("wrapped pattern token should exist");
+
+        assert_eq!(
+            token.name, "_/[a-z]+/",
+            "wrapped pattern tokens should remain hidden while preserving a diagnostic name"
         );
     }
 }
