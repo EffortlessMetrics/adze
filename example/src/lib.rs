@@ -13,6 +13,7 @@ pub mod external_word_example;
 pub mod ini_file;
 pub mod json_like;
 pub mod lambda_calculus;
+pub mod object_like_contract;
 pub mod optionals;
 pub mod performance_test;
 pub mod regex_grammar;
