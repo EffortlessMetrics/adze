@@ -875,6 +875,16 @@ fn generated_object_like_parser_error_contract_is_feature_stable() {
             end_column: 10,
             expected: &[r"/\d+/"],
         },
+        Case {
+            label: "multiline invalid value after colon",
+            source: "{\n name: nope\n}",
+            byte_span: 9..10,
+            start_line: 2,
+            start_column: 8,
+            end_line: 2,
+            end_column: 9,
+            expected: &[r"/\d+/"],
+        },
     ];
 
     for case in cases {
