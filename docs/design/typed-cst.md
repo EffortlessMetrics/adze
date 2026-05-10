@@ -275,7 +275,7 @@ The proof must show:
 
 ## Current Alpha Proof
 
-The current alpha proof uses a generated-style arithmetic fixture module:
+The runtime alpha proof uses a generated-style arithmetic fixture module:
 
 ```bash
 cargo test -p adze --features "pure-rust,ts-compat" \
@@ -294,7 +294,20 @@ the runtime `SyntaxNode` handle contract, resolve field accessors through native
 edge metadata, read spans and text from the document source, and surface
 recovery/error flags without panicking.
 
-This is not yet an actual generator or public typed CST wrapper API.
+The tablegen alpha proof now adds an actual generator target:
+
+```bash
+cargo test -p adze-tablegen typed_cst_generator -- --nocapture
+```
+
+`adze_tablegen::TypedCstGenerator` emits a `syntax` module from `Grammar`
+metadata. The generator currently targets the same alpha wrapper shape as the
+arithmetic fixture: wrapper structs over `AdzeDocument` and `NodeId`, fallible
+`cast` constructors, `SyntaxNode` impls, a `source_file()` root constructor,
+token wrappers, and field accessors that call `edge_by_field_name(...)`.
+
+This is not yet wired into generated grammar crates and is not a public typed
+CST support claim.
 
 ## Support Status
 
@@ -307,7 +320,8 @@ Expected sequence:
 2. test-local typed CST arithmetic spike,
 3. runtime `SyntaxNode` handle helpers,
 4. generated-style arithmetic fixture wrappers and field accessors,
-5. actual generated wrappers and field accessors,
-6. typed CST and generic CST parity canaries,
-7. typed AST extraction through typed CST,
-8. typed CST JSON, if needed.
+5. tablegen typed-CST generator target for wrappers and field accessors,
+6. wire generated wrappers into one generated grammar fixture,
+7. typed CST and generic CST parity canaries,
+8. typed AST extraction through typed CST,
+9. typed CST JSON, if needed.

@@ -50,6 +50,8 @@ pub mod parsetable_writer;
 pub mod schema;
 /// Parse table serialization to various output formats.
 pub mod serializer;
+/// Typed CST wrapper code generation.
+pub mod typed_cst;
 /// Parse table and language struct validation.
 pub mod validation;
 
@@ -81,6 +83,8 @@ pub use parsetable_writer::{
     METADATA_SCHEMA_VERSION, ParserFeatureProfileSnapshot, ParsetableError, ParsetableMetadata,
     ParsetableWriter, TableStatistics,
 };
+/// Typed CST wrapper code generator.
+pub use typed_cst::TypedCstGenerator;
 /// ABI language validator and validation error types.
 pub use validation::{LanguageValidator, ValidationError};
 
