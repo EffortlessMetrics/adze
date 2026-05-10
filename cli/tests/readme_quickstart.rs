@@ -116,6 +116,35 @@ fn readme_bad_input_reports_useful_diagnostic() {
     );
 }
 
+#[test]
+fn readme_stable_claims_are_in_stable_product_lane() {
+    let readme = include_str!("../../README.md");
+    let support_tiers = include_str!("../../docs/status/SUPPORT_TIERS.md");
+    let stable_lane = include_str!("../../scripts/ci-product-stable.sh");
+    let proof_commands = readme_stable_proof_commands(readme);
+
+    assert!(
+        !proof_commands.is_empty(),
+        "README capability table should include Stable proof commands"
+    );
+
+    for command in proof_commands {
+        assert!(
+            support_tiers.contains(&command),
+            "README Stable proof command must be documented in docs/status/SUPPORT_TIERS.md:\n{command}"
+        );
+
+        if is_required_gate(&command) {
+            continue;
+        }
+
+        assert!(
+            stable_lane.contains(&command),
+            "README Stable proof command must be present in scripts/ci-product-stable.sh:\n{command}"
+        );
+    }
+}
+
 fn downstream_manifest(readme_toml: &str, runtime_path: &str, tool_path: &str) -> String {
     assert!(
         readme_toml.contains(r#"adze = { version = "0.8", default-features = false }"#),
@@ -145,6 +174,70 @@ edition = "2024"
 {dependencies}
 "#
     )
+}
+
+fn readme_stable_proof_commands(readme: &str) -> Vec<String> {
+    let mut commands = Vec::new();
+    let mut in_capability_table = false;
+
+    for line in readme.lines() {
+        if line == "### Capability table" {
+            in_capability_table = true;
+            continue;
+        }
+
+        if in_capability_table && line.starts_with("##") {
+            break;
+        }
+
+        if !in_capability_table {
+            continue;
+        }
+
+        if !line.starts_with('|') || !line.contains("| **Stable** |") {
+            continue;
+        }
+
+        let columns: Vec<&str> = line.split('|').collect();
+        assert!(
+            columns.len() >= 4,
+            "README Stable capability row should have a proof column: {line}"
+        );
+
+        let proof = columns[3];
+        let row_commands = inline_code_spans(proof);
+        assert!(
+            !row_commands.is_empty(),
+            "README Stable capability row should name at least one proof command: {line}"
+        );
+
+        commands.extend(row_commands);
+    }
+
+    commands.sort();
+    commands.dedup();
+    commands
+}
+
+fn inline_code_spans(text: &str) -> Vec<String> {
+    let mut spans = Vec::new();
+    let mut rest = text;
+
+    while let Some(start) = rest.find('`') {
+        let after_start = &rest[start + 1..];
+        let Some(end) = after_start.find('`') else {
+            break;
+        };
+
+        spans.push(after_start[..end].to_string());
+        rest = &after_start[end + 1..];
+    }
+
+    spans
+}
+
+fn is_required_gate(command: &str) -> bool {
+    matches!(command, "just ci-supported" | "CI / ci-supported")
 }
 
 fn grammar_module_from_readme(snippet: &str) -> String {
