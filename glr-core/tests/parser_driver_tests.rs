@@ -9,6 +9,7 @@
 
 #![cfg(not(feature = "strict-invariants"))]
 
+use adze_glr_core::conflict_inspection::{ConflictType, cell_has_conflict, classify_conflict};
 use adze_glr_core::driver::GlrError;
 use adze_glr_core::{
     Action, Driver, Forest, GLRError, LexMode, ParseRule, ParseTable, SymbolMetadata,
@@ -459,6 +460,11 @@ fn reduce_reduce_table() -> ParseTable {
 #[test]
 fn reduce_reduce_parses_despite_conflict() {
     let table = reduce_reduce_table();
+    let conflict_cell = &table.action_table[1][0];
+
+    assert!(cell_has_conflict(conflict_cell));
+    assert_eq!(classify_conflict(conflict_cell), ConflictType::ReduceReduce);
+
     let forest = parse_with(&table, &[(1, 0, 1)])
         .expect("reduce-reduce conflict should still produce a parse");
     assert!(!forest.view().roots().is_empty());
