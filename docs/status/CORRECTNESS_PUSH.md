@@ -77,7 +77,7 @@ just ci-supported
 just ci-product-stable
 ```
 
-The stable product lane covers a clean-room README quickstart, typed extraction exact-value test, operator precedence test, and serialization canary. GLR ambiguity and structured parse-error diagnostics remain in the broader advisory lane until those surfaces graduate from Stabilizing.
+The stable product lane covers README stable proof-map alignment, a clean-room README quickstart, typed extraction exact-value and repeated-parse determinism tests, operator precedence, serialization doctests, and serialization roundtrip canaries. GLR ambiguity and structured parse-error diagnostics remain in the broader advisory lane until those surfaces graduate from Stabilizing.
 
 Rung 3 remains scheduled/manual: full workspace all-features, fuzzing, Miri, sanitizers, benchmarks, grammar corpus, runtime2, and browser WASM execution.
 
