@@ -1,6 +1,6 @@
 # Correctness Push Plan
 
-**Last updated:** 2026-05-07
+**Last updated:** 2026-05-10
 **Scope:** current parser/runtime, GLR, tablegen ABI, CLI, and product-proof convergence.
 
 This is the execution playbook for moving Adze from "bounded core lane is green" to "the product claims are behavior-proven." It is intentionally narrower than a roadmap: keep the required lane bounded, land focused correctness work only when it has receipts, and track remaining product gaps without hiding them inside broad policy or infrastructure PRs.
@@ -12,7 +12,7 @@ This is the execution playbook for moving Adze from "bounded core lane is green"
 - The broader product lane is advisory until each canary proves real behavior instead of only compile/no-run smoke.
 - README-stable claims must map to a proof command in `docs/status/SUPPORT_TIERS.md`.
 - Runtime2 remains an experimental proving ground unless a later promotion plan gives it required behavior tests and a public support contract.
-- Live GitHub state is the execution baseline. As of 2026-05-07, the correctness PR queue is empty after refreshing with `gh pr list --state open --limit 20 --json number,title,isDraft,headRefName,updatedAt,url`.
+- Live GitHub state is the execution baseline. As of 2026-05-10, the correctness PR queue is empty after refreshing with `gh pr list --state open --limit 20 --json number,title,isDraft,headRefName,updatedAt,url`.
 
 ## Live-State Refresh
 
@@ -59,6 +59,32 @@ The post-queue work is tracked as focused issues instead of broad catch-all impl
 - [#464](https://github.com/EffortlessMetrics/adze/issues/464) CLI clean-room quickstart and parse command truthfulness — closed after behavior canaries landed; reopen or replace only for new CLI parser behavior work.
 - [#465](https://github.com/EffortlessMetrics/adze/issues/465) README/support-tier reconciliation — closed after the proof map and stable product lane landed; keep the invariant in future docs edits.
 - [#73](https://github.com/EffortlessMetrics/adze/issues/73) and [#75](https://github.com/EffortlessMetrics/adze/issues/75) Benchmark truthfulness: real parser work vs infrastructure-only measurements.
+
+## Native Product Contract Lane
+
+The next product work should keep Tree-sitter compatibility as a conformance
+adapter and Adze-native output as the parse-product API. Contract docs already
+pin the intended shape:
+
+- [`docs/design/adze-document.md`](../design/adze-document.md): monomorphic
+  `AdzeDocument`, generic CST, diagnostics, metadata, ambiguity summaries, and
+  lazy projections.
+- [`docs/design/typed-cst.md`](../design/typed-cst.md): generated typed CST
+  handles over `AdzeDocument`, not a second parse tree.
+- [`docs/reference/ts-compat-alias-semantics.md`](../reference/ts-compat-alias-semantics.md):
+  target alias-visible identity behavior for the future compatibility adapter.
+
+Keep implementation slices small:
+
+1. Minimal `AdzeDocument` alpha: `tree()`, `diagnostics()`, `metadata()`, and
+   `as_tree_sitter()` over the same parse data.
+2. Typed CST arithmetic spike: generated wrappers, typed field accessors,
+   spans, and text over document node IDs.
+3. Alias-visible compatibility canaries only after native node identity exposes
+   visible and grammar identity separately.
+
+Do not promote any native document, typed CST, alias-visible compatibility, or
+JSON output surface without an exact proof command and support-tier entry.
 
 ## Green Ladder
 
