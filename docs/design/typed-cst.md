@@ -280,7 +280,7 @@ remains future work until implementation canaries and support-tier entries land.
 
 Expected sequence:
 
-1. `AdzeDocument` minimal alpha with document-local `NodeId` lookup,
+1. `AdzeDocument` minimal alpha with document-local `NodeId` and edge lookup,
 2. typed CST arithmetic spike,
 3. generated wrappers and field accessors,
 4. typed CST and generic CST parity canaries,
