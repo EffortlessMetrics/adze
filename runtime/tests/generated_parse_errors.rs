@@ -281,6 +281,107 @@ fn generated_typed_parser_error_contract_is_feature_stable() {
     }
 }
 
+/// Canary: the public diagnostic contract should also hold for the generated
+/// precedence arithmetic example, not only the smaller `typed_ast_contract`
+/// grammar used by the stable README canary.
+///
+/// The product-proof lane runs this exact test under both `pure-rust` and
+/// `pure-rust,glr`, giving us a second generated arithmetic grammar shape before
+/// promoting structured parse errors beyond Stabilizing.
+#[test]
+fn generated_precedence_arithmetic_parser_error_contract_is_feature_stable() {
+    struct Case {
+        label: &'static str,
+        source: &'static str,
+        byte_span: Range<usize>,
+        start_line: usize,
+        start_column: usize,
+        end_line: usize,
+        end_column: usize,
+    }
+
+    let cases = [
+        Case {
+            label: "unexpected EOF after precedence operator",
+            source: "1 -",
+            byte_span: 3..3,
+            start_line: 1,
+            start_column: 4,
+            end_line: 1,
+            end_column: 4,
+        },
+        Case {
+            label: "invalid ASCII token after precedence operator",
+            source: "1 - @",
+            byte_span: 4..5,
+            start_line: 1,
+            start_column: 5,
+            end_line: 1,
+            end_column: 6,
+        },
+        Case {
+            label: "invalid UTF-8 scalar after precedence operator",
+            source: "1 - λ",
+            byte_span: 4..6,
+            start_line: 1,
+            start_column: 5,
+            end_line: 1,
+            end_column: 7,
+        },
+    ];
+
+    for case in cases {
+        let errors = match adze_example::arithmetic::grammar::parse(case.source) {
+            Ok(ast) => panic!("{} unexpectedly parsed as {ast:?}", case.label),
+            Err(errors) => errors,
+        };
+
+        let first = errors
+            .first()
+            .unwrap_or_else(|| panic!("{} should produce at least one parse error", case.label));
+
+        assert_eq!(
+            first.byte_span(),
+            case.byte_span,
+            "{} should keep its public byte-span contract",
+            case.label
+        );
+
+        let span = first.source_span(case.source.as_bytes());
+        assert_eq!(span.start.line, case.start_line, "{}", case.label);
+        assert_eq!(span.start.column, case.start_column, "{}", case.label);
+        assert_eq!(span.end.line, case.end_line, "{}", case.label);
+        assert_eq!(span.end.column, case.end_column, "{}", case.label);
+
+        assert!(
+            !first.expected.is_empty(),
+            "{} should expose structured expected-token names",
+            case.label
+        );
+        assert!(
+            first.expected.iter().any(|token| token == r"/\d+/"),
+            "{} should keep the arithmetic digit token in expected names: {:?}",
+            case.label,
+            first.expected
+        );
+        for token in &first.expected {
+            assert!(
+                !token.contains("SymbolId") && !token.contains("symbol ") && !token.contains('_'),
+                "{} should expose human-readable expected names, got {token}",
+                case.label
+            );
+        }
+
+        let rendered = first.display_with_source(case.source).to_string();
+        let expected_byte_range = format!("bytes {}..{}", case.byte_span.start, case.byte_span.end);
+        assert!(
+            rendered.contains(&expected_byte_range),
+            "{} should render byte range {expected_byte_range}: {rendered}",
+            case.label
+        );
+    }
+}
+
 // ============================================================================
 // Structured expected-token field tests
 // ============================================================================
