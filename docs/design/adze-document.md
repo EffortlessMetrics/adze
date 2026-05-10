@@ -275,6 +275,7 @@ AdzeDocument
   -> source_slice()
   -> NodeId lookup
   -> edge and parent lookup
+  -> SyntaxNode handle helpers
   -> language()
   -> diagnostics()
   -> metadata()
