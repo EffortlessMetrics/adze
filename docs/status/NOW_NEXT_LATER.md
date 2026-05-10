@@ -1,6 +1,6 @@
 # Now / Next / Later
 
-**Last updated:** 2026-05-07
+**Last updated:** 2026-05-10
 **Status:** **Post-queue correctness proof** — `adze` 0.8.0 is live on crates.io, the supported gate remains bounded, and the live GitHub PR queue is empty as of the latest refresh. Remaining work is tracked as focused proof issues rather than a broad merge queue. The current push is tracked in [`CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
 
 Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For support-tier proof commands, see [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
@@ -39,7 +39,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [x] Convert `scripts/ci-product.sh` from compile-only advisory smoke to bounded behavior canaries where behavior is currently truthful; benchmarks and WASM remain explicit compile/no-run canaries.
 - [x] Track GLR product proof in [#460](https://github.com/EffortlessMetrics/adze/issues/460), tablegen ABI completeness in [#461](https://github.com/EffortlessMetrics/adze/issues/461), and parse diagnostics in [#463](https://github.com/EffortlessMetrics/adze/issues/463).
 - [x] Close out CLI clean-room quickstart/truthfulness and README/support-tier reconciliation as landed proof work ([#464](https://github.com/EffortlessMetrics/adze/issues/464), [#465](https://github.com/EffortlessMetrics/adze/issues/465)).
-- [ ] Keep README feature claims aligned with [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md): no Stable claim without a named proof command.
+- [x] Keep README feature claims aligned with [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md): no Stable claim without a named proof command; guarded by `readme_stable_claims_are_in_stable_product_lane`.
 
 ### Operational tail
 - [ ] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): Windows pure-rust benchmark-compilation tail is gated but still open; decide whether to trim further or close as acceptable.
