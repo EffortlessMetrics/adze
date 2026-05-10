@@ -19,6 +19,7 @@ use std::ops::Range;
 pub struct AdzeDocument {
     source: String,
     root: ParseNode,
+    node_index: Vec<NodeIndex>,
     language: LanguageMetadata,
     diagnostics: Vec<ParseDiagnostic>,
     metadata: ParseMetadata,
@@ -34,9 +35,11 @@ impl AdzeDocument {
         parse_table: &ParseTable,
     ) -> Self {
         let diagnostics = build_diagnostics(&root, error_count, source.len());
+        let node_index = build_node_index(&root);
         Self {
             source: source.to_string(),
             root,
+            node_index,
             language: LanguageMetadata::from_runtime(language_name, grammar, parse_table),
             diagnostics,
             metadata: ParseMetadata { error_count },
@@ -76,6 +79,50 @@ impl AdzeDocument {
     pub(crate) fn root_parse_node(&self) -> &ParseNode {
         &self.root
     }
+
+    fn node_by_id(&self, node_id: NodeId) -> Option<&ParseNode> {
+        let index = self.node_index.get(node_id.as_usize())?;
+        let mut node = &self.root;
+
+        for &child_index in &index.path {
+            node = node.children.get(child_index)?;
+        }
+
+        Some(node)
+    }
+
+    fn child_id(&self, node_id: NodeId, child_index: usize) -> Option<NodeId> {
+        self.node_index
+            .get(node_id.as_usize())?
+            .child_ids
+            .get(child_index)
+            .copied()
+    }
+}
+
+/// Stable node identifier within one [`AdzeDocument`].
+///
+/// Node IDs are assigned in preorder over the selected parse tree. They are
+/// stable for the lifetime of a document but are not meaningful across parses.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct NodeId(usize);
+
+impl NodeId {
+    /// Construct a node id from its raw preorder index.
+    pub fn new(index: usize) -> Self {
+        Self(index)
+    }
+
+    /// Return this node id as a raw preorder index.
+    pub fn as_usize(self) -> usize {
+        self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NodeIndex {
+    path: Vec<usize>,
+    child_ids: Vec<NodeId>,
 }
 
 /// Native language metadata attached to a parse document.
@@ -254,11 +301,31 @@ impl<'doc> AdzeTree<'doc> {
         self.document.language()
     }
 
+    /// Return the root node id.
+    pub fn root_id(&self) -> NodeId {
+        NodeId::new(0)
+    }
+
+    /// Return the number of indexed nodes in this tree.
+    pub fn node_count(&self) -> usize {
+        self.document.node_index.len()
+    }
+
+    /// Return a node by document-local id.
+    pub fn node(&self, node_id: NodeId) -> Option<AdzeNode<'doc>> {
+        self.document.node_by_id(node_id).map(|node| AdzeNode {
+            document: self.document,
+            node,
+            id: node_id,
+        })
+    }
+
     /// Return the root node.
     pub fn root(&self) -> AdzeNode<'doc> {
         AdzeNode {
             document: self.document,
             node: &self.document.root,
+            id: self.root_id(),
         }
     }
 
@@ -278,9 +345,15 @@ impl<'doc> AdzeTree<'doc> {
 pub struct AdzeNode<'doc> {
     document: &'doc AdzeDocument,
     node: &'doc ParseNode,
+    id: NodeId,
 }
 
 impl<'doc> AdzeNode<'doc> {
+    /// Return this node's document-local id.
+    pub fn node_id(&self) -> NodeId {
+        self.id
+    }
+
     /// Return metadata for this node's kind, when known.
     pub fn kind(&self) -> Option<&'doc NodeKind> {
         self.document.language.symbol(self.symbol_id())
@@ -349,9 +422,12 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return a child by index.
     pub fn child(&self, index: usize) -> Option<AdzeNode<'doc>> {
-        self.node.children.get(index).map(|child| AdzeNode {
+        let child = self.node.children.get(index)?;
+        let id = self.document.child_id(self.id, index)?;
+        Some(AdzeNode {
             document: self.document,
             node: child,
+            id,
         })
     }
 
@@ -403,12 +479,10 @@ impl<'doc> AdzeNode<'doc> {
         self.is_error()
             || (std::ptr::eq(self.node, &self.document.root)
                 && self.document.metadata.error_count > 0)
-            || self.node.children.iter().any(|child| {
-                AdzeNode {
-                    document: self.document,
-                    node: child,
-                }
-                .has_error()
+            || (0..self.child_count()).any(|index| {
+                self.child(index)
+                    .map(|child| child.has_error())
+                    .unwrap_or(false)
             })
     }
 }
@@ -439,6 +513,35 @@ fn first_error_span(node: &ParseNode) -> Option<Range<usize>> {
     }
 
     node.children.iter().find_map(first_error_span)
+}
+
+fn build_node_index(root: &ParseNode) -> Vec<NodeIndex> {
+    let mut index = Vec::new();
+    let mut path = Vec::new();
+    collect_node_index(root, &mut path, &mut index);
+    index
+}
+
+fn collect_node_index(
+    node: &ParseNode,
+    path: &mut Vec<usize>,
+    index: &mut Vec<NodeIndex>,
+) -> NodeId {
+    let id = NodeId::new(index.len());
+    index.push(NodeIndex {
+        path: path.clone(),
+        child_ids: Vec::with_capacity(node.children.len()),
+    });
+
+    let mut child_ids = Vec::with_capacity(node.children.len());
+    for (child_index, child) in node.children.iter().enumerate() {
+        path.push(child_index);
+        child_ids.push(collect_node_index(child, path, index));
+        path.pop();
+    }
+    index[id.as_usize()].child_ids = child_ids;
+
+    id
 }
 
 fn insert_symbol(symbols: &mut Vec<NodeKind>, symbol: NodeKind) {

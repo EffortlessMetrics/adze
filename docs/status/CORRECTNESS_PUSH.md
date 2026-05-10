@@ -76,8 +76,8 @@ pin the intended shape:
 
 Keep implementation slices small:
 
-1. Minimal `AdzeDocument` alpha now exists for `tree()`, language/node-kind
-   metadata, `diagnostics()`, `metadata()`, and
+1. Minimal `AdzeDocument` alpha now exists for `tree()`, document-local node
+   IDs/lookups, language/node-kind metadata, `diagnostics()`, `metadata()`, and
    `ts_compat::Tree::from_document()` over the same parse data. Keep expanding
    it in small proof-backed slices.
 2. Typed CST arithmetic spike: generated wrappers, typed field accessors,
