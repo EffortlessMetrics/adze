@@ -329,16 +329,6 @@ fn parse_with_pure_parser<T: Extract<T>>(
         errors: parser_errors,
     } = parse_result;
 
-    if let Some(ref root_node) = root
-        && root_node.has_error()
-    {
-        let mut errors = vec![];
-        crate::errors::collect_parsing_errors(root_node, input.as_bytes(), &mut errors);
-        if !errors.is_empty() {
-            return Err(errors);
-        }
-    }
-
     if !parser_errors.is_empty() {
         let errors = parser_errors
             .into_iter()
@@ -356,6 +346,16 @@ fn parse_with_pure_parser<T: Extract<T>>(
             })
             .collect();
         return Err(errors);
+    }
+
+    if let Some(ref root_node) = root
+        && root_node.has_error()
+    {
+        let mut errors = vec![];
+        crate::errors::collect_parsing_errors(root_node, input.as_bytes(), &mut errors);
+        if !errors.is_empty() {
+            return Err(errors);
+        }
     }
 
     let root_node = match root {
