@@ -275,19 +275,26 @@ The proof must show:
 
 ## Current Alpha Proof
 
-The current alpha proof is intentionally test-local:
+The current alpha proof uses a generated-style arithmetic fixture module:
 
 ```bash
 cargo test -p adze --features "pure-rust,ts-compat" \
   --test typed_cst_arithmetic_spike -- --nocapture
 ```
 
-It proves arithmetic typed CST handles can reference `AdzeDocument` node IDs,
-implement the runtime `SyntaxNode` handle contract, resolve field accessors
-through native edge metadata, read spans and text from the document source, and
-surface recovery/error flags without panicking.
+The fixture keeps the wrapper definitions separate from the canary assertions:
 
-This is not yet a generated public typed CST wrapper API.
+```text
+runtime/tests/support/typed_cst_arithmetic.rs
+```
+
+It proves arithmetic typed CST handles can be scaffolded in the shape a future
+generator should emit: wrappers reference `AdzeDocument` node IDs, implement
+the runtime `SyntaxNode` handle contract, resolve field accessors through native
+edge metadata, read spans and text from the document source, and surface
+recovery/error flags without panicking.
+
+This is not yet an actual generator or public typed CST wrapper API.
 
 ## Support Status
 
@@ -299,7 +306,8 @@ Expected sequence:
 1. `AdzeDocument` minimal alpha with document-local `NodeId` and edge lookup,
 2. test-local typed CST arithmetic spike,
 3. runtime `SyntaxNode` handle helpers,
-4. generated wrappers and field accessors,
-5. typed CST and generic CST parity canaries,
-6. typed AST extraction through typed CST,
-7. typed CST JSON, if needed.
+4. generated-style arithmetic fixture wrappers and field accessors,
+5. actual generated wrappers and field accessors,
+6. typed CST and generic CST parity canaries,
+7. typed AST extraction through typed CST,
+8. typed CST JSON, if needed.
