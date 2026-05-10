@@ -11,6 +11,7 @@ CANARIES=(
   "adze runtime pure-rust typed extraction|behavior|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture"
   "adze typed AST repeated-parse determinism|behavior|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture"
   "adze GLR ambiguous typed extraction|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture"
+  "adze GLR multi-conflict selection determinism|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_multi_conflict_selection_is_deterministic -- --exact --nocapture"
   "adze GLR generated parser bad-input no-panic guardrail|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_glr_parser_bad_inputs_return_errors_without_panicking -- --exact --nocapture"
   "adze GLR generated conflict preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_conflict_generation -- --exact --nocapture"
   "adze GLR parser_v4 canonical conflict routing|behavior|cargo test -p adze --features \"pure-rust,glr\" --test parser_v4_comprehensive test_parser_v4_rejects_single_action_fork_conflict_before_parsing -- --exact --nocapture"

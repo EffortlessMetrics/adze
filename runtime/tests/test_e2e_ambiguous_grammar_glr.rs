@@ -262,6 +262,38 @@ fn test_ambiguous_grammar_glr_parsing() {
 }
 
 #[test]
+fn generated_ambiguous_expr_multi_conflict_selection_is_deterministic() {
+    use adze_example::ambiguous_expr::grammar;
+    use adze_example::ambiguous_expr::grammar::Expr;
+
+    let input = "1 + 2 + 3 + 4";
+    let expr = grammar::parse(input).expect("multi-conflict ambiguous input should parse");
+    let repeated = grammar::parse(input).expect("repeated multi-conflict parse should succeed");
+
+    assert_eq!(
+        expr, repeated,
+        "multi-conflict ambiguous typed extraction must be deterministic"
+    );
+    assert_eq!(
+        expr,
+        Expr::Binary(
+            Box::new(Expr::Number(1)),
+            "+".to_string(),
+            Box::new(Expr::Binary(
+                Box::new(Expr::Number(2)),
+                "+".to_string(),
+                Box::new(Expr::Binary(
+                    Box::new(Expr::Number(3)),
+                    "+".to_string(),
+                    Box::new(Expr::Number(4)),
+                )),
+            )),
+        ),
+        "current deterministic selection should remain right-nested across multiple conflict sites"
+    );
+}
+
+#[test]
 fn generated_glr_parser_bad_inputs_return_errors_without_panicking() {
     use adze_example::ambiguous_expr::grammar;
 
