@@ -4,11 +4,11 @@
 
 use adze::{
     adze_ir::RuleId,
-    document::{AdzeDocument, AdzeNode, NodeId},
+    document::{AdzeDocument, NodeId, SyntaxNode},
     parser_v4::Parser as CoreParser,
     ts_compat::Language,
 };
-use std::{ops::Range, sync::Arc};
+use std::sync::Arc;
 
 fn fielded_arithmetic_language() -> Arc<Language> {
     let mut lang = (*adze_example::ts_langs::arithmetic()).clone();
@@ -31,40 +31,6 @@ fn parse_fielded_document(source: &str) -> AdzeDocument {
         .expect("document parse should succeed")
 }
 
-trait SyntaxNode<'doc>: Copy {
-    fn document(&self) -> &'doc AdzeDocument;
-    fn node_id(&self) -> NodeId;
-
-    fn node(&self) -> AdzeNode<'doc> {
-        self.document()
-            .tree()
-            .node(self.node_id())
-            .expect("typed CST handle should point at a document node")
-    }
-
-    fn byte_range(&self) -> Range<usize> {
-        self.node().byte_range()
-    }
-
-    fn text(&self) -> &'doc str {
-        self.document()
-            .source_slice(self.byte_range())
-            .expect("typed CST node range should slice document source")
-    }
-
-    fn is_error(&self) -> bool {
-        self.node().is_error()
-    }
-
-    fn is_missing(&self) -> bool {
-        self.node().is_missing()
-    }
-
-    fn has_error(&self) -> bool {
-        self.node().has_error()
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 struct SourceFile<'doc> {
     document: &'doc AdzeDocument,
@@ -77,7 +43,7 @@ impl<'doc> SourceFile<'doc> {
     }
 
     fn expression(&self) -> Option<Expression<'doc>> {
-        Expression::cast(self.document, self.node().child(0)?.node_id())
+        Expression::cast(self.document, self.child(0)?.node_id())
     }
 }
 
@@ -103,22 +69,22 @@ impl<'doc> Expression<'doc> {
     }
 
     fn left(&self) -> Option<Expression<'doc>> {
-        let edge = self.node().edge_by_field_name("left")?;
+        let edge = self.edge_by_field_name("left")?;
         Expression::cast(self.document, edge.child_id())
     }
 
     fn operator(&self) -> Option<MinusToken<'doc>> {
-        let edge = self.node().edge_by_field_name("operator")?;
+        let edge = self.edge_by_field_name("operator")?;
         MinusToken::cast(self.document, edge.child_id())
     }
 
     fn right(&self) -> Option<Expression<'doc>> {
-        let edge = self.node().edge_by_field_name("right")?;
+        let edge = self.edge_by_field_name("right")?;
         Expression::cast(self.document, edge.child_id())
     }
 
     fn number(&self) -> Option<NumberToken<'doc>> {
-        NumberToken::cast(self.document, self.node().child(0)?.node_id())
+        NumberToken::cast(self.document, self.child(0)?.node_id())
     }
 }
 
@@ -203,14 +169,13 @@ fn typed_cst_wrappers_project_from_document_node_ids_and_edges() {
         .expect("expression should expose right field");
 
     assert_eq!(syntax.node_id(), root.node_id());
-    assert_eq!(syntax.text(), source);
+    assert_eq!(syntax.text(), Some(source));
     assert_eq!(expression.node_id(), expression_node.node_id());
-    assert_eq!(expression.text(), source);
+    assert_eq!(expression.text(), Some(source));
 
     assert_eq!(
         left.node_id(),
         expression
-            .node()
             .edge_by_field_name("left")
             .expect("left edge should exist")
             .child_id()
@@ -218,7 +183,6 @@ fn typed_cst_wrappers_project_from_document_node_ids_and_edges() {
     assert_eq!(
         operator.node_id(),
         expression
-            .node()
             .edge_by_field_name("operator")
             .expect("operator edge should exist")
             .child_id()
@@ -226,30 +190,29 @@ fn typed_cst_wrappers_project_from_document_node_ids_and_edges() {
     assert_eq!(
         right.node_id(),
         expression
-            .node()
             .edge_by_field_name("right")
             .expect("right edge should exist")
             .child_id()
     );
 
-    assert_eq!(left.text(), "1");
-    assert_eq!(left.byte_range(), 0..1);
+    assert_eq!(left.text(), Some("1"));
+    assert_eq!(left.byte_range(), Some(0..1));
     assert_eq!(
         left.number().expect("left should contain number").text(),
-        "1"
+        Some("1")
     );
-    assert_eq!(operator.text(), "-");
-    assert_eq!(operator.byte_range(), 1..2);
-    assert_eq!(right.text(), "2");
-    assert_eq!(right.byte_range(), 2..3);
+    assert_eq!(operator.text(), Some("-"));
+    assert_eq!(operator.byte_range(), Some(1..2));
+    assert_eq!(right.text(), Some("2"));
+    assert_eq!(right.byte_range(), Some(2..3));
     assert_eq!(
         right.number().expect("right should contain number").text(),
-        "2"
+        Some("2")
     );
 
     assert!(SourceFile::cast(&document, expression.node_id()).is_none());
     assert!(MinusToken::cast(&document, left.node_id()).is_none());
-    assert!(expression.node().edge_by_field_name("missing").is_none());
+    assert!(expression.edge_by_field_name("missing").is_none());
 }
 
 #[test]
@@ -262,14 +225,16 @@ fn typed_cst_wrappers_treat_recovered_mismatches_as_fallible_casts() {
 
     let maybe_syntax = SourceFile::cast(&document, root.node_id());
     if let Some(syntax) = maybe_syntax {
-        assert_eq!(syntax.is_error(), syntax.node().is_error());
-        assert_eq!(syntax.is_missing(), syntax.node().is_missing());
-        assert_eq!(syntax.has_error(), syntax.node().has_error());
+        let syntax_node = syntax.node().expect("source-file handle should resolve");
+        assert_eq!(syntax.is_error(), syntax_node.is_error());
+        assert_eq!(syntax.is_missing(), syntax_node.is_missing());
+        assert_eq!(syntax.has_error(), syntax_node.has_error());
 
         if let Some(expression) = syntax.expression() {
-            assert_eq!(expression.is_error(), expression.node().is_error());
-            assert_eq!(expression.is_missing(), expression.node().is_missing());
-            assert_eq!(expression.has_error(), expression.node().has_error());
+            let expression_node = expression.node().expect("expression handle should resolve");
+            assert_eq!(expression.is_error(), expression_node.is_error());
+            assert_eq!(expression.is_missing(), expression_node.is_missing());
+            assert_eq!(expression.has_error(), expression_node.has_error());
             let _ = expression.left();
             let _ = expression.operator();
             let _ = expression.right();

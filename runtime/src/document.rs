@@ -572,6 +572,77 @@ impl<'doc> AdzeEdge<'doc> {
     }
 }
 
+/// Common handle contract for generated typed CST wrappers.
+///
+/// Typed CST wrappers should be cheap views over [`AdzeDocument`] node IDs.
+/// The default helpers are fallible so a wrapper can preserve honest behavior
+/// when constructed around stale, recovered, or dynamically discovered syntax.
+/// Generated wrappers are expected to validate their kind in their own `cast`
+/// constructors before implementing typed field accessors.
+pub trait SyntaxNode<'doc>: Copy {
+    /// Return the document backing this typed CST handle.
+    fn document(&self) -> &'doc AdzeDocument;
+
+    /// Return the document-local node id represented by this handle.
+    fn node_id(&self) -> NodeId;
+
+    /// Return the generic CST node for this typed handle.
+    fn node(&self) -> Option<AdzeNode<'doc>> {
+        self.document().tree().node(self.node_id())
+    }
+
+    /// Return this handle's display kind name, when the node resolves.
+    fn kind_name(&self) -> Option<&'doc str> {
+        self.node().and_then(|node| node.kind_name())
+    }
+
+    /// Return this handle's byte range, when the node resolves.
+    fn byte_range(&self) -> Option<Range<usize>> {
+        self.node().map(|node| node.byte_range())
+    }
+
+    /// Return this handle's source text, when the range is a valid UTF-8 slice.
+    fn text(&self) -> Option<&'doc str> {
+        self.byte_range()
+            .and_then(|range| self.document().source_slice(range))
+    }
+
+    /// Return a child node by index, when the node and child resolve.
+    fn child(&self, index: usize) -> Option<AdzeNode<'doc>> {
+        self.node()?.child(index)
+    }
+
+    /// Return a child edge by index, when the node and edge resolve.
+    fn child_edge(&self, index: usize) -> Option<AdzeEdge<'doc>> {
+        self.node()?.child_edge(index)
+    }
+
+    /// Return a child edge by native field name.
+    fn edge_by_field_name(&self, field_name: &str) -> Option<AdzeEdge<'doc>> {
+        self.node()?.edge_by_field_name(field_name)
+    }
+
+    /// Return a child node by native field name.
+    fn child_by_field_name(&self, field_name: &str) -> Option<AdzeNode<'doc>> {
+        self.node()?.child_by_field_name(field_name)
+    }
+
+    /// Return whether this handle resolves to a node-local synthetic error.
+    fn is_error(&self) -> bool {
+        self.node().map(|node| node.is_error()).unwrap_or(false)
+    }
+
+    /// Return whether this handle resolves to a zero-width missing node.
+    fn is_missing(&self) -> bool {
+        self.node().map(|node| node.is_missing()).unwrap_or(false)
+    }
+
+    /// Return whether this handle resolves to syntax that carries error state.
+    fn has_error(&self) -> bool {
+        self.node().map(|node| node.has_error()).unwrap_or(false)
+    }
+}
+
 fn build_diagnostics(
     root: &ParseNode,
     error_count: usize,

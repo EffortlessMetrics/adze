@@ -74,20 +74,17 @@ the generic CST.
 
 ## Generated Wrapper Shape
 
-The first typed CST implementation should generate small handle types:
+The first typed CST implementation exposes a small shared handle trait and
+should generate wrappers that implement it:
 
 ```rust
 pub trait SyntaxNode<'doc>: Copy {
-    fn doc(&self) -> &'doc AdzeDocument;
+    fn document(&self) -> &'doc AdzeDocument;
     fn node_id(&self) -> NodeId;
 
-    fn span(&self) -> ByteRange {
-        self.doc().tree().node(self.node_id()).span()
-    }
-
-    fn text(&self) -> &'doc str {
-        self.doc().source_slice(self.span())
-    }
+    fn node(&self) -> Option<AdzeNode<'doc>>;
+    fn byte_range(&self) -> Option<Range<usize>>;
+    fn text(&self) -> Option<&'doc str>;
 }
 ```
 
@@ -100,10 +97,13 @@ pub struct FunctionDecl<'doc> {
 }
 
 impl<'doc> SyntaxNode<'doc> for FunctionDecl<'doc> {
-    fn doc(&self) -> &'doc AdzeDocument { self.doc }
+    fn document(&self) -> &'doc AdzeDocument { self.doc }
     fn node_id(&self) -> NodeId { self.id }
 }
 ```
+
+The helpers stay fallible because dynamic traversals, recovered syntax, and
+stale handles must not pretend an invalid typed view is normal syntax.
 
 ## Field Accessors
 
@@ -283,10 +283,11 @@ cargo test -p adze --features "pure-rust,ts-compat" \
 ```
 
 It proves arithmetic typed CST handles can reference `AdzeDocument` node IDs,
-resolve field accessors through native edge metadata, read spans and text from
-the document source, and surface recovery/error flags without panicking.
+implement the runtime `SyntaxNode` handle contract, resolve field accessors
+through native edge metadata, read spans and text from the document source, and
+surface recovery/error flags without panicking.
 
-This is not yet a generated public typed CST API.
+This is not yet a generated public typed CST wrapper API.
 
 ## Support Status
 
@@ -297,7 +298,8 @@ Expected sequence:
 
 1. `AdzeDocument` minimal alpha with document-local `NodeId` and edge lookup,
 2. test-local typed CST arithmetic spike,
-3. generated wrappers and field accessors,
-4. typed CST and generic CST parity canaries,
-5. typed AST extraction through typed CST,
-6. typed CST JSON, if needed.
+3. runtime `SyntaxNode` handle helpers,
+4. generated wrappers and field accessors,
+5. typed CST and generic CST parity canaries,
+6. typed AST extraction through typed CST,
+7. typed CST JSON, if needed.
