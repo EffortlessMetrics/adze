@@ -76,6 +76,14 @@ impl AdzeDocument {
         self.source.as_bytes()
     }
 
+    /// Return a UTF-8 source slice for a byte range.
+    ///
+    /// Returns `None` if the range is outside the document source or does not
+    /// align to UTF-8 character boundaries.
+    pub fn source_slice(&self, range: Range<usize>) -> Option<&str> {
+        self.source.get(range)
+    }
+
     pub(crate) fn root_parse_node(&self) -> &ParseNode {
         &self.root
     }

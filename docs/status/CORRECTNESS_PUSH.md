@@ -81,8 +81,10 @@ Keep implementation slices small:
    `diagnostics()`, `metadata()`, and
    `ts_compat::Tree::from_document()` over the same parse data. Keep expanding
    it in small proof-backed slices.
-2. Typed CST arithmetic spike: generated wrappers, typed field accessors,
-   spans, and text over document node IDs.
+2. A typed CST arithmetic spike now proves test-local wrappers, typed field
+   accessors, spans, text, and recovery flags over document node IDs. Next,
+   move this shape into generated wrappers without expanding into visitors,
+   rewriters, typed queries, or JSON output.
 3. Alias-visible compatibility canaries only after native node identity exposes
    visible and grammar identity separately.
 

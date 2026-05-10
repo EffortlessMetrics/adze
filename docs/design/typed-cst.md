@@ -273,6 +273,21 @@ The proof must show:
 - optional/repeated accessors behave deterministically,
 - missing/error syntax has an honest representation.
 
+## Current Alpha Proof
+
+The current alpha proof is intentionally test-local:
+
+```bash
+cargo test -p adze --features "pure-rust,ts-compat" \
+  --test typed_cst_arithmetic_spike -- --nocapture
+```
+
+It proves arithmetic typed CST handles can reference `AdzeDocument` node IDs,
+resolve field accessors through native edge metadata, read spans and text from
+the document source, and surface recovery/error flags without panicking.
+
+This is not yet a generated public typed CST API.
+
 ## Support Status
 
 This document does not promote typed CST to a supported surface. Typed CST
@@ -281,7 +296,7 @@ remains future work until implementation canaries and support-tier entries land.
 Expected sequence:
 
 1. `AdzeDocument` minimal alpha with document-local `NodeId` and edge lookup,
-2. typed CST arithmetic spike,
+2. test-local typed CST arithmetic spike,
 3. generated wrappers and field accessors,
 4. typed CST and generic CST parity canaries,
 5. typed AST extraction through typed CST,
