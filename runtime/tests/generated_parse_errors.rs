@@ -856,6 +856,16 @@ fn generated_object_like_parser_error_contract_is_feature_stable() {
             expected: &[":"],
         },
         Case {
+            label: "multiline missing colon before value",
+            source: "{\n name 1\n}",
+            byte_span: 8..9,
+            start_line: 2,
+            start_column: 7,
+            end_line: 2,
+            end_column: 8,
+            expected: &[":"],
+        },
+        Case {
             label: "invalid identifier continuation before colon",
             source: "{ name$: 1 }",
             byte_span: 6..7,
@@ -884,6 +894,16 @@ fn generated_object_like_parser_error_contract_is_feature_stable() {
             end_line: 2,
             end_column: 9,
             expected: &[r"/\d+/"],
+        },
+        Case {
+            label: "multiline unexpected EOF after entry",
+            source: "{\n name: 1\n",
+            byte_span: 11..11,
+            start_line: 3,
+            start_column: 1,
+            end_line: 3,
+            end_column: 1,
+            expected: &["}"],
         },
     ];
 
