@@ -8,8 +8,9 @@
 //! - Edge cases: no conflicts, all conflicts, out-of-bounds states
 
 use adze_glr_core::conflict_inspection::{
-    ConflictDetail, ConflictSummary, ConflictType, classify_conflict, count_conflicts,
-    find_conflicts_for_symbol, get_state_conflicts, state_has_conflicts,
+    ConflictDetail, ConflictSummary, ConflictType, action_branch_count, cell_has_conflict,
+    classify_conflict, count_conflicts, find_conflicts_for_symbol, get_state_conflicts,
+    state_has_conflicts,
 };
 use adze_glr_core::{Action, GotoIndexing, ParseTable, StateId};
 use adze_ir::{Grammar, RuleId, SymbolId};
@@ -279,6 +280,33 @@ fn count_conflicts_multiple_symbols_one_state() {
     // Only one state has conflicts, even though two symbols conflict
     assert_eq!(summary.states_with_conflicts.len(), 1);
     assert_eq!(summary.conflict_details.len(), 2);
+}
+
+#[test]
+fn nested_fork_conflict_cells_are_detected() {
+    let nested_conflict = Action::Fork(vec![Action::Fork(vec![
+        Action::Shift(StateId(7)),
+        Action::Reduce(RuleId(4)),
+    ])]);
+    let clean_nested_fork = Action::Fork(vec![Action::Fork(vec![Action::Shift(StateId(8))])]);
+
+    assert_eq!(action_branch_count(&nested_conflict), 2);
+    assert_eq!(action_branch_count(&clean_nested_fork), 1);
+    assert!(cell_has_conflict(std::slice::from_ref(&nested_conflict)));
+    assert!(!cell_has_conflict(&[clean_nested_fork]));
+
+    let table = make_table(vec![vec![vec![nested_conflict]]]);
+    let summary = count_conflicts(&table);
+
+    assert_eq!(summary.shift_reduce, 1);
+    assert_eq!(summary.reduce_reduce, 0);
+    assert_eq!(summary.states_with_conflicts, vec![StateId(0)]);
+    assert_eq!(summary.conflict_details.len(), 1);
+    assert_eq!(
+        summary.conflict_details[0].conflict_type,
+        ConflictType::ShiftReduce
+    );
+    assert!(state_has_conflicts(&table, StateId(0)));
 }
 
 // ===========================================================================
