@@ -328,10 +328,13 @@ cargo test -p adze --features pure-rust \
 
 It proves a generated parser module can parse source into `AdzeDocument` through
 the pure-Rust parser path and feed the generated `syntax::source_file(...)`
-wrapper from the same document root. This remains an alpha bridge only:
-generated parser modules do not yet have typed CST/generic CST parity canaries,
-visitor/rewriter surfaces, typed query APIs, or typed CST JSON output, and this
-is not a public typed CST support claim.
+wrapper from the same document root. The same canary also checks that generated
+wrappers for retained generic CST nodes share the same document-local node IDs,
+kind names, byte ranges, and source text as the generic CST view. This remains
+an alpha bridge only: generated parser modules do not yet have a broad
+typed CST/generic CST parity matrix, visitor/rewriter surfaces, typed query
+APIs, or typed CST JSON output, and this is not a public typed CST support
+claim.
 
 ## Support Status
 

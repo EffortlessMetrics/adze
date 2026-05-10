@@ -87,9 +87,11 @@ Keep implementation slices small:
    typed-CST generator target that emits the same wrapper/accessor shape from
    `Grammar` metadata, and Pure-Rust generated parser modules now append that
    alpha `syntax` module plus a generated `parse_document()` helper. The runtime
-   canary now proves that helper feeds the generated root wrapper from the same
-   `AdzeDocument`. Next, add typed CST/generic CST parity canaries without
-   expanding into visitors, rewriters, typed queries, or JSON output.
+   canary now proves that helper feeds generated wrappers from the same
+   `AdzeDocument` and that retained typed wrappers agree with the generic CST on
+   node IDs, kind names, byte ranges, and text. Next, broaden typed CST/generic
+   CST parity across fielded generated shapes without expanding into visitors,
+   rewriters, typed queries, or JSON output.
 3. Alias-visible compatibility canaries only after native node identity exposes
    visible and grammar identity separately.
 
