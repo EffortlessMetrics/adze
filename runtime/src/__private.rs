@@ -305,6 +305,62 @@ pub fn parse<T: Extract<T>>(
     }
 }
 
+/// Parses an input string into the native parse document alpha.
+#[cfg(feature = "pure-rust")]
+pub fn parse_document(
+    input: &str,
+    language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
+    grammar_name: &str,
+) -> core::result::Result<crate::document::AdzeDocument, Vec<crate::errors::ParseError>> {
+    let mut parser = crate::pure_parser::Parser::new();
+    let lang = language();
+    parser.set_language(lang).map_err(|e| {
+        vec![crate::errors::ParseError {
+            reason: crate::errors::ParseErrorReason::UnexpectedToken(e),
+            start: 0,
+            end: 0,
+            expected: vec![],
+        }]
+    })?;
+
+    let crate::pure_parser::ParseResult {
+        root,
+        errors: parser_errors,
+    } = parser.parse_string(input);
+
+    let Some(root_node) = root else {
+        return Err(parser_errors
+            .into_iter()
+            .map(|e| {
+                let symbol_name = symbol_name_for_diagnostic(lang, e.found);
+                let expected = expected_symbol_names_for_diagnostic(lang, &e.expected);
+                crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                        unexpected_token_message(symbol_name, expected.clone()),
+                    ),
+                    start: e.position,
+                    end: diagnostic_end_for_byte(input.as_bytes(), e.position),
+                    expected,
+                }
+            })
+            .collect());
+    };
+
+    let grammar = crate::decoder::decode_grammar(lang);
+    let parse_table = crate::decoder::decode_parse_table(lang);
+    let error_count = parser_errors.len();
+    let root = convert_parsed_node_to_document_node(&root_node, lang);
+
+    Ok(crate::document::AdzeDocument::from_parse_result(
+        input,
+        root,
+        error_count,
+        grammar_name,
+        &grammar,
+        &parse_table,
+    ))
+}
+
 /// Parse using the simple LR parser (pure_parser)
 #[cfg(feature = "pure-rust")]
 fn parse_with_pure_parser<T: Extract<T>>(
@@ -897,6 +953,70 @@ fn convert_parse_node_v4_to_pure(
     }
 }
 
+#[cfg(feature = "pure-rust")]
+fn convert_parsed_node_to_document_node(
+    node: &crate::pure_parser::ParsedNode,
+    lang: &crate::pure_parser::TSLanguage,
+) -> crate::parser_v4::ParseNode {
+    let children = node
+        .children
+        .iter()
+        .map(|child| convert_parsed_node_to_document_node(child, lang))
+        .collect();
+
+    let symbol_id = public_symbol_id_for_index(lang, node.symbol);
+    crate::parser_v4::ParseNode {
+        symbol: symbol_id,
+        symbol_id,
+        start_byte: node.start_byte,
+        end_byte: node.end_byte,
+        field_name: node
+            .field_id
+            .and_then(|field_id| field_name_by_id(lang, field_id)),
+        children,
+    }
+}
+
+#[cfg(feature = "pure-rust")]
+fn public_symbol_id_for_index(
+    lang: &crate::pure_parser::TSLanguage,
+    symbol: crate::pure_parser::TSSymbol,
+) -> adze_ir::SymbolId {
+    let public_symbol =
+        if !lang.public_symbol_map.is_null() && usize::from(symbol) < lang.symbol_count as usize {
+            // SAFETY: `symbol` is checked against `symbol_count`, and
+            // `public_symbol_map` has one entry per generated table column.
+            unsafe { *lang.public_symbol_map.add(usize::from(symbol)) }
+        } else {
+            symbol
+        };
+
+    adze_ir::SymbolId(public_symbol)
+}
+
+#[cfg(feature = "pure-rust")]
+fn field_name_by_id(lang: &crate::pure_parser::TSLanguage, field_id: u16) -> Option<String> {
+    if field_id >= lang.field_count as u16 || lang.field_names.is_null() {
+        return None;
+    }
+
+    // SAFETY: `field_names` points to a static array of `field_count` pointers,
+    // and `field_id` was bounds-checked above.
+    let field_names =
+        unsafe { std::slice::from_raw_parts(lang.field_names, lang.field_count as usize) };
+    let name_ptr = field_names[field_id as usize];
+    if name_ptr.is_null() {
+        return None;
+    }
+
+    // SAFETY: `name_ptr` is non-null and points to a NUL-terminated static
+    // string emitted in the generated language tables.
+    unsafe { CStr::from_ptr(name_ptr as *const c_char) }
+        .to_str()
+        .ok()
+        .map(str::to_string)
+}
+
 #[allow(dead_code)]
 fn byte_to_point(source: &[u8], byte_pos: usize) -> crate::pure_parser::Point {
     let mut row = 0u32;
@@ -1266,6 +1386,28 @@ mod tests {
 
         // When / Then
         assert_eq!(cursor.field_name(), Some("name"));
+    }
+
+    #[test]
+    fn given_public_symbol_map_when_converting_pure_node_then_uses_public_symbol_ids() {
+        // Given
+        let public_symbol_map = [0, 42, 7];
+        let language = TSLanguage {
+            symbol_count: 3,
+            public_symbol_map: public_symbol_map.as_ptr(),
+            ..FIELD_LANGUAGE
+        };
+        let child = node(2, 1, 2, None, vec![]);
+        let root = node(1, 0, 3, Some(1), vec![child]);
+
+        // When
+        let converted = convert_parsed_node_to_document_node(&root, &language);
+
+        // Then
+        assert_eq!(converted.symbol, adze_ir::SymbolId(42));
+        assert_eq!(converted.symbol_id, adze_ir::SymbolId(42));
+        assert_eq!(converted.field_name.as_deref(), Some("name"));
+        assert_eq!(converted.children[0].symbol_id, adze_ir::SymbolId(7));
     }
 
     #[test]

@@ -86,9 +86,10 @@ Keep implementation slices small:
    text, and recovery flags over document node IDs. Tablegen also has an alpha
    typed-CST generator target that emits the same wrapper/accessor shape from
    `Grammar` metadata, and Pure-Rust generated parser modules now append that
-   alpha `syntax` module. Next, add a generated `parse_document()` helper and
-   runtime canary without expanding into visitors, rewriters, typed queries, or
-   JSON output.
+   alpha `syntax` module plus a generated `parse_document()` helper. The runtime
+   canary now proves that helper feeds the generated root wrapper from the same
+   `AdzeDocument`. Next, add typed CST/generic CST parity canaries without
+   expanding into visitors, rewriters, typed queries, or JSON output.
 3. Alias-visible compatibility canaries only after native node identity exposes
    visible and grammar identity separately.
 
