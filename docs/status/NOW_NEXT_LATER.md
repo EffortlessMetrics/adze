@@ -45,7 +45,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 ### Operational tail
 - [x] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): pure-rust benchmark-compilation tail is removed from routine PRs; benchmark compile/performance signal remains in explicit performance and benchmark lanes.
 - [x] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): Worktree cleanup script exists (`scripts/cleanup-worktrees.sh`), `just` exposes list/prune helpers, and contributor guidance documents linked-worktree vs standalone-clone cleanup.
-- [ ] Investigate the current rustdoc-only `Documentation` lane failure separately from reader-facing markdown/status drift.
+- [x] The prior rustdoc-only `Documentation` lane failure note was stale; the latest completed `Documentation` job observed on `main` succeeded on 2026-05-11.
 
 ---
 
