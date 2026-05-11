@@ -602,6 +602,11 @@ impl<'doc> AdzeNode<'doc> {
         self.start_byte()..self.end_byte()
     }
 
+    /// Return this node's zero-based point range.
+    pub fn point_range(&self) -> PointRange {
+        PointRange::from_byte_range(self.document.source_text(), self.byte_range())
+    }
+
     /// Return this node's source text if the byte range is valid UTF-8.
     pub fn utf8_text(&self) -> Result<&'doc str, std::str::Utf8Error> {
         let slice = self
@@ -805,6 +810,11 @@ pub trait SyntaxNode<'doc>: Copy {
     /// Return this handle's byte range, when the node resolves.
     fn byte_range(&self) -> Option<Range<usize>> {
         self.node().map(|node| node.byte_range())
+    }
+
+    /// Return this handle's zero-based point range, when the node resolves.
+    fn point_range(&self) -> Option<PointRange> {
+        self.node().map(|node| node.point_range())
     }
 
     /// Return this handle's source text, when the range is a valid UTF-8 slice.
