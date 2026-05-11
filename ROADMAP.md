@@ -29,7 +29,7 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Fuzzing Targets**: 22 fuzz targets covering parser, lexer, external scanners, stack pool, and concurrency.
 - ✅ **CI Feature Matrix**: Crate × feature-flag test combinations with concurrency caps. Cross-platform advisory jobs for macOS/Windows.
 - ✅ **Cargo.toml Metadata**: Publish-ready metadata across workspace. Publish order documented. `check-publish-ready.sh` script.
-- ✅ **Workspace Structure**: 47 microcrates in `crates/`, benchmarks, fuzzing, golden-tests, and book scaffolding.
+- ✅ **Workspace Structure**: governance/support crates under `crates/`, benchmarks, fuzzing, golden-tests, and book scaffolding.
 - ✅ **Table Compression**: Optimized parse tables using Tree-sitter format (>10x reduction).
 - ✅ **Cross-Platform**: Linux verified, macOS/Windows CI advisory jobs in place.
 - ✅ **Parallel Agent Work**: 14 waves of parallel agent work, 85+ commits driving the 0.8.0 release.
@@ -41,6 +41,64 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Worktree cleanup docs**: [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) has helper-backed contributor guidance for linked worktrees, standalone clones, and stale metadata pruning.
 
 ## 🚀 Milestone 0.9.0: Ecosystem & Tooling (Current)
+
+### Prerequisite: microcrate-to-SRP collapse
+
+The `crates/` directory currently holds 56 governance/BDD/concurrency/tooling
+support crate directories. Before 0.9.0 ships, these should be audited and
+collapsed where a separate crate no longer has a current, proven boundary.
+The eventual release surface should stay tight, with implementation-only
+support code absorbed into the crates or xtask tooling that actually use it.
+
+**Why before 0.9.0:** a workspace graph this wide is a maintenance and CI
+economics commitment that is very hard to walk back. Collapsing before the MSRV
+bump and clippy lint promotions also avoids touching twice as many Cargo.toml
+files.
+
+**Target shape — two categories only:**
+
+1. **Public surfaces** — crates that ship on crates.io and have a stable API.
+2. **Internal seams** — crates kept separate only where the isolation genuinely
+   improves compile times, test isolation, or ownership boundaries between
+   existing public surfaces. Not "might be useful someday" — real, current benefit.
+
+Current supported/publishable core remains seven crates until a follow-up
+implementation PR changes Cargo metadata, release scripts, support docs, and CI
+routing together.
+
+| Crate | Role | Current status | Target review |
+|-------|------|----------------|---------------|
+| `adze` (runtime) | parsing, typed extraction, documents, diagnostics, ts-compat | publishable supported core | keep public |
+| `adze-macro` | proc-macro attributes | publishable supported core | keep public |
+| `adze-tool` | build-time code generation | publishable supported core | keep public/tooling |
+| `adze-common` | shared grammar expansion (consumed by macro + tool) | publishable supported core | evaluate internal seam after consumer audit |
+| `adze-ir` | grammar IR (consumed by glr-core + tablegen) | publishable supported core | evaluate internal seam after tablegen/glr-core boundary review |
+| `adze-glr-core` | GLR parser generation | publishable supported core | evaluate internal seam after public API/release impact review |
+| `adze-tablegen` | table compression, FFI generation | publishable supported core | evaluate internal seam after codegen/release impact review |
+
+Everything else — governance, BDD, concurrency, policy, grammar-analysis,
+linecol, stack-pool, etc. — should either be inlined into the crate that
+actually uses it or move into xtask as dev-only tooling. If it doesn't have a
+current consumer outside its own directory, it doesn't get its own crate.
+
+**Steps:**
+
+1. Audit which support crates have external dependents outside xtask.
+2. Inline single-use microcrates into their single consumer.
+3. Merge microcrate groups (governance-*, bdd-*, concurrency-*, parser-*, feature-policy-*) into one module per group under xtask or the consuming crate.
+4. Remove the now-empty microcrate directories.
+5. Update workspace members, CI routing, and `justfile`.
+6. Run `just check-msrv` and `just ci-supported`.
+
+### Release blockers
+
+- [ ] Microcrate collapse/audit complete with Cargo metadata, CI routing, and support docs updated
+- [ ] MSRV bump to 1.95 (toolchain, Cargo.toml, CI, docs, xtask doctor)
+- [ ] Clippy planned-lint activation (6 lints gated on 1.94/1.95)
+- [ ] Non-Rust file allowlist reconciled against new structure
+- [ ] CI economics update (LEM estimates reflect new workspace shape)
+
+### Other 0.9.0 work
 - **Post-release hardening**: Finish narrowing workflow-only red and restore any proof surfaces trimmed only for publication.
 - **Close remaining operational issues**: Keep routine PR gate tails bounded; move any further worktree or benchmark-policy cleanup into focused follow-up issues instead of the old post-#264 queue.
 - **CI Hardening Beyond the Supported Gate**: Reduce advisory-lane churn and make broader workflow behavior easier to interpret.
