@@ -429,6 +429,36 @@ fn generated_ambiguous_expr_parse_document_reports_ambiguity_summary() {
 }
 
 #[test]
+#[cfg(feature = "glr")]
+fn generated_ambiguous_expr_parse_document_bad_input_returns_diagnostic_document() {
+    use adze_example::ambiguous_expr::grammar;
+
+    let input = "1 + @";
+    let document = grammar::parse_document(input)
+        .expect("generated parse_document helper should return partial parse facts");
+    let diagnostic = document
+        .diagnostics()
+        .first()
+        .expect("invalid conflicted input should produce a document diagnostic");
+
+    assert!(
+        document.tree().has_errors(),
+        "diagnostic document should record parser error metadata"
+    );
+    assert_eq!(
+        document.ambiguities(),
+        [],
+        "invalid input should not claim a complete ambiguity summary"
+    );
+    assert_eq!(diagnostic.byte_span(), 4..5);
+    assert!(
+        diagnostic.message.contains("unexpected token"),
+        "diagnostic should preserve the GLR parse error message: {}",
+        diagnostic.message
+    );
+}
+
+#[test]
 fn generated_glr_parser_bad_inputs_return_errors_without_panicking() {
     use adze_example::ambiguous_expr::grammar;
 
