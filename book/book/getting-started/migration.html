@@ -192,7 +192,7 @@ adze = { version = "0.5", features = ["runtime"] }
 </code></pre>
 <p><strong>After (runtime2):</strong></p>
 <pre><code class="language-toml">[dependencies]
-adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr", "incremental_glr"] }
 </code></pre>
 <p>This change provides:</p>
 <ul>
@@ -260,8 +260,8 @@ let stmt_tree = parser.parse_utf8("def main():", None)?; // Shift statement</cod
 <p>Runtime2 uses a comprehensive feature flag system:</p>
 <pre><code class="language-toml">[dependencies]
 adze-runtime = { version = "0.1", features = [
-    "glr-core",          # GLR parsing engine (default)
-    "incremental",       # Incremental parsing support
+    "glr",               # GLR parsing engine (default)
+    "incremental_glr",   # Incremental parsing support
     "arenas",           # Arena allocators for performance
     "external-scanners", # Custom external scanner support
     "queries"           # Tree-sitter query language (future)
@@ -275,7 +275,7 @@ adze-runtime = { version = "0.1", features = [
 # adze = "0.5"
 
 # Add GLR runtime
-adze-runtime = { version = "0.1", features = ["glr-core", "incremental"] }
+adze-runtime = { version = "0.1", features = ["glr", "incremental_glr"] }
 
 [build-dependencies]
 adze-tool = "0.6"  # Ensure build tool compatibility
@@ -309,8 +309,8 @@ let language = grammar::language();  // Must have parse_table: Some(...)</code><
 <h3 id="issue-language-has-no-tokenizer"><a class="header" href="#issue-language-has-no-tokenizer">Issue: "Language has no tokenizer"</a></h3>
 <p><strong>Solution</strong>: The generated GLR language needs a tokenizer. This is automatically provided by <code>adze-tool</code>.</p>
 <h3 id="issue-glr-core-feature-not-enabled"><a class="header" href="#issue-glr-core-feature-not-enabled">Issue: "GLR core feature not enabled"</a></h3>
-<p><strong>Solution</strong>: Add the <code>glr-core</code> feature to your dependencies:</p>
-<pre><code class="language-toml">adze-runtime = { version = "0.1", features = ["glr-core"] }
+<p><strong>Solution</strong>: Add the <code>glr</code> feature to your dependencies:</p>
+<pre><code class="language-toml">adze-runtime = { version = "0.1", features = ["glr"] }
 </code></pre>
 <h3 id="issue-performance-issues-with-large-inputs"><a class="header" href="#issue-performance-issues-with-large-inputs">Issue: Performance issues with large inputs</a></h3>
 <p><strong>Solution</strong>:</p>

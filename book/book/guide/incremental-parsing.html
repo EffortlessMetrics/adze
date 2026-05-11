@@ -331,18 +331,17 @@ let tree2 = parser.reparse("let x = 43;", &amp;tree1, &amp;edit)?;
 
 // Verify parsing succeeded
 assert_eq!(tree2.error_count, 0);</code></pre>
-<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
 <h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
 <p>Incremental parsing requires specific feature flags:</p>
 <pre><code class="language-toml">[dependencies]
 # Production incremental parsing (recommended)
-adze = { version = "0.6", features = ["incremental_glr"] }
+adze = { version = "0.8", features = ["incremental_glr"] }
 
 # Alternative: basic incremental support (legacy)
-adze = { version = "0.6", features = ["incremental"] }
+adze = { version = "0.8", features = ["incremental_glr"] }
 
 # All features (comprehensive)
-adze = { version = "0.6", features = ["all-features"] }
+adze = { version = "0.8", features = ["all-features"] }
 </code></pre>
 <h2 id="performance-characteristics-validated-in-pr-62"><a class="header" href="#performance-characteristics-validated-in-pr-62">Performance Characteristics (Validated in PR #62)</a></h2>
 <h3 id="benchmark-results-direct-forest-splicing"><a class="header" href="#benchmark-results-direct-forest-splicing">Benchmark Results (Direct Forest Splicing)</a></h3>
@@ -361,46 +360,8 @@ adze = { version = "0.6", features = ["all-features"] }
 <li><strong>999/1000 subtree reuse</strong> achieved through conservative reuse strategy</li>
 <li><strong>Sub-millisecond parsing</strong> for most common edit scenarios</li>
 <li><strong>Linear scaling</strong>: Performance improves with larger files due to better reuse ratios</li>
-<li><strong>Zero overhead</strong>: No performance cost when <code>incremental_glr</code> feature disabled
-=======</li>
+<li><strong>Zero overhead</strong>: No performance cost when <code>incremental_glr</code> feature disabled</li>
 </ul>
-<h2 id="performance-characteristics-pr-58---validated"><a class="header" href="#performance-characteristics-pr-58---validated">Performance Characteristics (PR #58 - Validated)</a></h2>
-<h3 id="direct-forest-splicing-performance"><a class="header" href="#direct-forest-splicing-performance">Direct Forest Splicing Performance</a></h3>
-<pre><code class="language-rust">// Large file test: 1,000 tokens, single edit
-// Before: 3.5ms full reparse  
-// After: 215μs incremental (16.34x speedup)
-// Subtree reuse: 999/1000 subtrees reused (99.9%)</code></pre>
-<div class="table-wrapper"><table><thead><tr><th>Edit Type</th><th>Subtree Reuse</th><th>Speedup</th><th>Parse Time</th></tr></thead><tbody>
-<tr><td>Single token</td><td>99.9%</td><td>16x</td><td>~200μs</td></tr>
-<tr><td>Word replacement</td><td>98%+</td><td>12-15x</td><td>~400μs</td></tr>
-<tr><td>Line edit</td><td>95%+</td><td>8-12x</td><td>~800μs</td></tr>
-<tr><td>Function body</td><td>85%+</td><td>4-8x</td><td>~2ms</td></tr>
-<tr><td>File append</td><td>99.9%+</td><td>15x+</td><td>~300μs</td></tr>
-</tbody></table>
-</div>
-<p><em>Performance validated on production-scale files with GLR parsing</em></p>
-<h3 id="comparison-with-traditional-approaches"><a class="header" href="#comparison-with-traditional-approaches">Comparison with Traditional Approaches</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Method</th><th>State Restoration</th><th>Parse Scope</th><th>Speedup</th><th>GLR Support</th></tr></thead><tbody>
-<tr><td>Full Reparse</td><td>N/A</td><td>Entire file</td><td>1x</td><td>✅</td></tr>
-<tr><td>GSS-based</td><td>Heavy</td><td>Edit + context</td><td>3-4x</td><td>✅</td></tr>
-<tr><td><strong>Direct Splicing</strong></td><td><strong>None</strong></td><td><strong>Edit only</strong></td><td><strong>16x</strong></td><td>✅</td></tr>
-</tbody></table>
-</div>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<p>pr-58-staging</p>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <h3 id="subtree-validation"><a class="header" href="#subtree-validation">Subtree Validation</a></h3>
 <p>Reusable subtrees must satisfy:</p>
