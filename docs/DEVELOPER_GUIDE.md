@@ -37,6 +37,42 @@ To run the supported gate locally:
 just ci-supported
 ```
 
+## Temporary Worktree Cleanup
+
+Adze PR work should use linked git worktrees when a branch needs an isolated checkout. A disposable standalone clone is also valid for experiments, but cleanup differs because a linked worktree has a `.git` file while a standalone clone has a `.git/` directory.
+
+After a PR lands or is abandoned:
+
+```bash
+# Inspect registered worktrees for this checkout.
+just worktree-list
+
+# Classify a specific temporary path before removing it.
+scripts/cleanup-worktrees.sh status /tmp/adze-example-pr
+```
+
+On Windows PowerShell, prefer the `just` targets for common cleanup commands. For direct script calls, run them from Git Bash or another shell where `bash` is on `PATH`.
+
+Use the helper only for registered linked worktrees:
+
+```bash
+scripts/cleanup-worktrees.sh cleanup /tmp/adze-example-pr
+```
+
+If the status command reports `standalone-repo`, inspect the path for uncommitted work and remove it manually only after confirming it is disposable:
+
+```bash
+rm -rf /tmp/adze-example-pr
+```
+
+If a temp path was already deleted and git still lists it, prune stale metadata:
+
+```bash
+just worktree-prune-stale
+```
+
+The helper refuses to remove the main repository root and refuses standalone clones so linked-worktree cleanup does not accidentally delete an independent checkout.
+
 ## Quick Commands
 
 ### Core Development

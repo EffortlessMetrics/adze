@@ -1,6 +1,6 @@
 # Adze Friction Log
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-05-11
 
 If it happens twice, it's not "user error". It's friction we own until we remove it or document it well enough that it stops recurring.
 
@@ -28,7 +28,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-016 | Testing | Compiler ICE in feature policy contract tests | Blocks test compilation under specific macro/control-flow combinations | Resolved | - |
 | FR-017 | Testing | Backend-selection expectations drift across feature-unified test surfaces | Head-specific CI red and ad hoc panic matching | Resolved | [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267) |
 | FR-018 | CI | Pure-rust benchmark compilation tail in PRs | Routine PRs no longer block on low-signal benchmark compilation | Resolved for routine PRs | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
-| FR-019 | Tooling | Temp worktree cleanup can drift when a `/tmp` path becomes a standalone repo | Cleanup requires manual removal and prune steps | Mitigated | [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) |
+| FR-019 | Tooling | Temp worktree cleanup can drift when a `/tmp` path becomes a standalone repo | Cleanup requires manual removal and prune steps | Resolved | [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) |
 
 ---
 
@@ -232,9 +232,8 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Expected:** Temporary worktree cleanup should be predictable and safe after PR closeout.
 **Actual:** During PR #264 cleanup, `/tmp/adze-local-improvements` had a real `.git/` directory, `git worktree remove` failed validation, and cleanup required manual deletion plus `git worktree prune`.
 **Repro:** `fatal: validation failed, cannot remove working tree: '/tmp/adze-local-improvements/.git' is not a .git file, error code 2`
-**Fix:** Document one convention for temp worktrees vs standalone clones and add a safe validation/prune workflow for cleanup.
-**Status:** Mitigated
-**Fix:** Added `scripts/cleanup-worktrees.sh` with classification, safe cleanup, stale listing, and stale metadata pruning helpers. Contributor docs now document the closeout workflow.
+**Fix:** Added `scripts/cleanup-worktrees.sh` with classification, safe cleanup, stale listing, and stale metadata pruning helpers. `just worktree-list` and `just worktree-prune-stale` expose the common commands, and [`DEVELOPER_GUIDE.md`](../DEVELOPER_GUIDE.md) documents the closeout workflow for linked worktrees versus standalone clones.
+**Status:** Resolved
 **Links:** [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268), `scripts/cleanup-worktrees.sh`
 
 ---

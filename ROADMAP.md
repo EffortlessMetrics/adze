@@ -37,12 +37,12 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 - ✅ **Workflow Hardening**: PR [#280](https://github.com/EffortlessMetrics/adze/pull/280) merged on 2026-04-06 with CI lane hardening and backend-contract stabilization. Backend-selection contract ([issue #267](https://github.com/EffortlessMetrics/adze/issues/267)) resolved.
 - ✅ **Core Crates Publishable**: PR [#275](https://github.com/EffortlessMetrics/adze/pull/275) made core crates publishable with correct metadata.
 - ✅ **Crates.io Release Landed**: `adze` 0.8.0 and `adze-tool` 0.8.0 are published on crates.io as of 2026-04-08.
-- 🟡 **Windows benchmark tail**: [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) remains open; benchmark compile step on Windows is gated but still slower than ideal.
-- 🟡 **Worktree cleanup docs**: [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) remains open; `scripts/cleanup-worktrees.sh` exists but full contributor documentation is pending.
+- ✅ **Windows benchmark tail**: [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) routine PR benchmark compile tails are gated out of the required path; benchmark/performance signal lives in explicit opt-in lanes.
+- ✅ **Worktree cleanup docs**: [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) has helper-backed contributor guidance for linked worktrees, standalone clones, and stale metadata pruning.
 
 ## 🚀 Milestone 0.9.0: Ecosystem & Tooling (Current)
 - **Post-release hardening**: Finish narrowing workflow-only red and restore any proof surfaces trimmed only for publication.
-- **Close remaining operational issues**: Resolve [#269](https://github.com/EffortlessMetrics/adze/issues/269) (Windows benchmark tail) and [#268](https://github.com/EffortlessMetrics/adze/issues/268) (worktree cleanup docs).
+- **Close remaining operational issues**: Keep routine PR gate tails bounded; move any further worktree or benchmark-policy cleanup into focused follow-up issues instead of the old post-#264 queue.
 - **CI Hardening Beyond the Supported Gate**: Reduce advisory-lane churn and make broader workflow behavior easier to interpret.
 - **CLI Polish**: Improve the already-landed CLI surface (`adze check`, `adze stats`, etc.).
 - **Performance Optimization**: Arena allocator for parse forest nodes; benchmark suite with regression detection.
