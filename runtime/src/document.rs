@@ -84,6 +84,7 @@ impl AdzeDocument {
         self.source.get(range)
     }
 
+    #[cfg(feature = "ts-compat")]
     pub(crate) fn root_parse_node(&self) -> &ParseNode {
         &self.root
     }

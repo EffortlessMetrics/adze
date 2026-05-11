@@ -13,6 +13,7 @@ CANARIES=(
   "typed extraction exact value|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture"
   "typed extraction repeated-parse determinism|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture"
   "README quickstart clean-room parse and diagnostics|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
+  "checked-in downstream quickstart sample|cargo test -p downstream-demo -- --nocapture"
   "operator precedence core shape|cargo test -p adze-glr-core --test ambiguity_detection_comprehensive test_precedence_resolves_add_mul -- --exact --nocapture"
   "core parse-table serialization doctests|cargo test -p adze-glr-core --features serialization --doc"
   "core parse-table serialization roundtrip|cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture"
