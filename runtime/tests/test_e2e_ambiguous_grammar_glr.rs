@@ -430,6 +430,38 @@ fn generated_ambiguous_expr_parse_document_reports_ambiguity_summary() {
 
 #[test]
 #[cfg(feature = "glr")]
+fn generated_ambiguous_expr_parse_document_ast_matches_selected_parse() {
+    use adze::document::Provenance;
+    use adze_example::ambiguous_expr::grammar;
+    use adze_example::ambiguous_expr::grammar::Expr;
+
+    let input = "1 + 2 + 3";
+    let expected = grammar::parse(input)
+        .expect("generated ambiguous parser should return a selected typed AST");
+    let document = grammar::parse_document(input)
+        .expect("generated parse_document helper should return an AdzeDocument");
+
+    let typed_ast = document
+        .ast_with_provenance::<Expr>()
+        .expect("GLR document should extract typed AST from its selected tree");
+
+    assert_eq!(typed_ast.value(), &expected);
+    let Provenance::Node(node_id) = typed_ast.provenance() else {
+        panic!("alpha GLR document typed AST provenance should point at a document node");
+    };
+    let node = document
+        .tree()
+        .node(*node_id)
+        .expect("GLR document provenance node should resolve");
+    assert_eq!(
+        node.utf8_text()
+            .expect("provenance node should cover valid UTF-8 source"),
+        input
+    );
+}
+
+#[test]
+#[cfg(feature = "glr")]
 fn generated_ambiguous_expr_parse_document_bad_input_returns_diagnostic_document() {
     use adze_example::ambiguous_expr::grammar;
 
