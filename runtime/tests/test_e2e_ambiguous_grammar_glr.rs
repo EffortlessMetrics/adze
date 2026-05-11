@@ -322,6 +322,13 @@ fn generated_ambiguous_expr_glr_runtime_retains_multiple_complete_alternatives()
     let alternatives = parser
         .finish_all_alternatives()
         .expect("ambiguous generated grammar should finish successfully");
+    let summary = parser
+        .finish_ambiguity_summary()
+        .expect("ambiguous generated grammar should expose an ambiguity summary")
+        .expect("ambiguous generated grammar should retain multiple complete alternatives");
+    let selected = parser
+        .finish()
+        .expect("ambiguous generated grammar should select one complete alternative");
     let unique_shapes = alternatives
         .iter()
         .map(|alternative| format!("{alternative:?}"))
@@ -342,6 +349,34 @@ fn generated_ambiguous_expr_glr_runtime_retains_multiple_complete_alternatives()
             .all(|alternative| alternative.node.byte_range == (0..input.len())),
         "all complete alternatives should span the full input"
     );
+
+    assert_eq!(
+        summary.alternatives.len(),
+        alternatives.len(),
+        "ambiguity summary should report every retained complete alternative"
+    );
+    assert_eq!(summary.span, 0..input.len());
+    assert_eq!(
+        summary.selection_reason,
+        adze::glr_parser::SelectionReason::StableStructuralTieBreak,
+        "ambiguous_expr alternatives currently tie by version and use the stable structural selector"
+    );
+
+    let selected_index = summary
+        .selected
+        .expect("ambiguity summary should identify the selected alternative");
+    assert_eq!(
+        format!("{:?}", alternatives[selected_index]),
+        format!("{selected:?}"),
+        "ambiguity summary selection should match GLRParser::finish()"
+    );
+    let selected_summary = summary
+        .alternatives
+        .get(selected_index)
+        .expect("selected alternative summary should resolve");
+    assert_eq!(selected_summary.index, selected_index);
+    assert_eq!(selected_summary.span, 0..input.len());
+    assert_eq!(selected_summary.root_symbol, selected.node.symbol_id);
 }
 
 #[test]

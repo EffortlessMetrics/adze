@@ -225,6 +225,12 @@ pub struct Ambiguity {
 Default parsing should not eagerly collect expensive forest or trace data unless
 the user opts in through explicit parse options.
 
+The true-GLR runtime now has an alpha parser-level summary for retained complete
+alternatives: it reports the alternative count, selected alternative, root spans,
+and whether selection came from dynamic-precedence/error-cost version comparison
+or the stable structural tie-break. `AdzeDocument` still needs a document-level
+projection of that summary before native document ambiguity is a product claim.
+
 ## Parse Options
 
 `parse_document` should leave room for staged cost:
