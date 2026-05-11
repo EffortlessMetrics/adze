@@ -191,17 +191,17 @@
 <h2 id="adding-dependencies"><a class="header" href="#adding-dependencies">Adding Dependencies</a></h2>
 <p>Add Adze to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-adze = "0.5.0-beta"
+adze = "0.8"
 
 [build-dependencies]
-adze-tool = "0.5.0-beta"
+adze-tool = "0.8"
 </code></pre>
 <h2 id="choosing-a-backend"><a class="header" href="#choosing-a-backend">Choosing a Backend</a></h2>
 <p>Adze offers three backend options via feature flags:</p>
 <h3 id="pure-rust-backend-recommended"><a class="header" href="#pure-rust-backend-recommended">Pure-Rust Backend (Recommended)</a></h3>
 <p>The pure-Rust backend generates static parsers at compile-time without C dependencies:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { version = "0.5.0-beta", features = ["pure-rust"] }
+adze = { version = "0.8", features = ["pure-rust"] }
 </code></pre>
 <p><strong>Advantages:</strong></p>
 <ul>
@@ -213,12 +213,12 @@ adze = { version = "0.5.0-beta", features = ["pure-rust"] }
 <h3 id="c2rust-backend"><a class="header" href="#c2rust-backend">C2Rust Backend</a></h3>
 <p>Legacy backend using transpiled C code:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { version = "0.5.0-beta", features = ["tree-sitter-c2rust"] }
+adze = { version = "0.8", features = ["tree-sitter-c2rust"] }
 </code></pre>
 <h3 id="standard-tree-sitter-backend"><a class="header" href="#standard-tree-sitter-backend">Standard Tree-sitter Backend</a></h3>
 <p>Uses the standard Tree-sitter C runtime:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { version = "0.5.0-beta", features = ["tree-sitter-standard"] }
+adze = { version = "0.8", features = ["tree-sitter-standard"] }
 </code></pre>
 <h2 id="build-configuration"><a class="header" href="#build-configuration">Build Configuration</a></h2>
 <p>Create a <code>build.rs</code> file in your project root:</p>
@@ -234,8 +234,8 @@ fn main() {
 <h2 id="optional-features"><a class="header" href="#optional-features">Optional Features</a></h2>
 <p>Additional features you can enable:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { 
-    version = "0.5.0-beta", 
+adze = {
+    version = "0.8",
     features = [
         "pure-rust",      # Pure Rust backend
         "optimize",       # Enable grammar optimizer

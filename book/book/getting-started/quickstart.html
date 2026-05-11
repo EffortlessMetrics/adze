@@ -182,307 +182,114 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
-<p>This guide will walk you through creating your first Adze grammar and parser.</p>
-<h2 id="creating-a-simple-arithmetic-parser"><a class="header" href="#creating-a-simple-arithmetic-parser">Creating a Simple Arithmetic Parser</a></h2>
-<p>Let's build a parser for basic arithmetic expressions like <code>1 + 2 * 3</code>.</p>
-<h3 id="step-1-define-the-grammar"><a class="header" href="#step-1-define-the-grammar">Step 1: Define the Grammar</a></h3>
-<p>Create a new Rust project and add this to your <code>src/main.rs</code>:</p>
-<pre><code class="language-rust">#[adze::grammar("arithmetic")]
-mod grammar {
-    #[adze::language]
-    pub enum Expr {
-        Number(
-            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
-            u32,
-        ),
-        
-        #[adze::prec_left(1)]
-        Add(
-            Box&lt;Expr&gt;,
-            #[adze::leaf(text = "+")] (),
-            Box&lt;Expr&gt;,
-        ),
-        
-        #[adze::prec_left(2)]
-        Multiply(
-            Box&lt;Expr&gt;,
-            #[adze::leaf(text = "*")] (),
-            Box&lt;Expr&gt;,
-        ),
-        
-        Parenthesized(
-            #[adze::leaf(text = "(")] (),
-            Box&lt;Expr&gt;,
-            #[adze::leaf(text = ")")] (),
-        ),
-    }
-    
-    // Define whitespace as extra (automatically skipped)
-    #[adze::extra]
-    struct Whitespace {
-        #[adze::leaf(pattern = r"\s")]
-        _whitespace: (),
-    }
-}
-
-fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Create parser with GLR runtime (production ready)
-    use adze_runtime::Parser;
-    
-    let mut parser = Parser::new();
-    parser.set_language(grammar::language())?; // Generated GLR language
-    
-    // Parse some expressions
-    let expressions = vec![
-        "42",
-        "1 + 2",
-        "1 + 2 * 3",
-        "(1 + 2) * 3",
-    ];
-    
-    for expr in expressions {
-        println!("Parsing: {}", expr);
-        match parser.parse_utf8(expr, None) {
-            Ok(tree) =&gt; {
-                let ast = grammar::extract_ast(&amp;tree)?;
-                println!("  Result: {:?}\n", ast);
-            },
-            Err(e) =&gt; println!("  Error: {}\n", e),
-        }
-    }
-    
-    // Demonstrate incremental parsing
-    let initial = "1 + 2";
-    let tree1 = parser.parse_utf8(initial, None)?;
-    println!("Initial parse: {}", initial);
-    
-    let updated = "10 + 20";
-    let tree2 = parser.parse_utf8(updated, Some(&amp;tree1))?;  // Incremental!
-    println!("Incremental parse: {} (reused compatible subtrees)", updated);
-    
-    Ok(())
-}</code></pre>
-<h3 id="step-2-add-dependencies"><a class="header" href="#step-2-add-dependencies">Step 2: Add Dependencies</a></h3>
-<p>Add to your <code>Cargo.toml</code>:</p>
+<p>This walkthrough builds a small arithmetic parser in a fresh Rust crate. The
+parser is generated from Rust types and returns those typed values directly.</p>
+<h2 id="create-a-project"><a class="header" href="#create-a-project">Create a Project</a></h2>
+<pre><code class="language-bash">cargo new adze-quickstart --lib
+cd adze-quickstart
+</code></pre>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<p>Add Adze to <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { version = "0.8.0-dev", features = ["glr-core", "incremental"] }
-adze-runtime = "0.1"  # GLR runtime
+adze = { version = "0.8.0-dev", default-features = false }
 
 [build-dependencies]
 adze-tool = "0.8.0-dev"
+
+[features]
+default = ["pure-rust"]
+pure-rust = ["adze/pure-rust"]
 </code></pre>
-<p>Create <code>build.rs</code>:</p>
-<pre><code class="language-rust">fn main() {
-    adze_tool::build_parsers().unwrap();
+<p>Create <code>build.rs</code> in the project root:</p>
+<pre><code class="language-rust">use std::path::PathBuf;
+
+fn main() {
+    println!("cargo::rustc-check-cfg=cfg(adze_unsafe_attrs)");
+    adze_tool::build_parsers(&amp;PathBuf::from("src/lib.rs"));
 }</code></pre>
-<h3 id="step-3-run-your-parser"><a class="header" href="#step-3-run-your-parser">Step 3: Run Your Parser</a></h3>
-<pre><code class="language-bash">cargo run
-</code></pre>
-<p>You should see output like:</p>
-<pre><code>Parsing: 42
-  Result: Number(42)
+<h2 id="create-the-grammar"><a class="header" href="#create-the-grammar">Create the Grammar</a></h2>
+<p>Create <code>src/lib.rs</code>:</p>
+<pre><code class="language-rust">#[adze::grammar("book_quickstart_arithmetic")]
+pub mod grammar {
+    #[adze::language]
+    #[derive(Debug, PartialEq)]
+    pub enum Expr {
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32,
+        ),
 
-Parsing: 1 + 2
-  Result: Add(Number(1), (), Number(2))
+        #[adze::prec_left(1)]
+        Add(Box&lt;Expr&gt;, #[adze::leaf(text = "+")] (), Box&lt;Expr&gt;),
 
-Parsing: 1 + 2 * 3
-  Result: Add(Number(1), (), Multiply(Number(2), (), Number(3)))
+        #[adze::prec_left(2)]
+        Mul(Box&lt;Expr&gt;, #[adze::leaf(text = "*")] (), Box&lt;Expr&gt;),
+    }
 
-Parsing: (1 + 2) * 3
-  Result: Multiply(Parenthesized((), Add(Number(1), (), Number(2)), ()), (), Number(3))
-</code></pre>
-<h2 id="understanding-the-grammar"><a class="header" href="#understanding-the-grammar">Understanding the Grammar</a></h2>
-<p>Let's break down what each part does:</p>
-<h3 id="the-grammar-module"><a class="header" href="#the-grammar-module">The Grammar Module</a></h3>
-<pre><code class="language-rust">#[adze::grammar("arithmetic")]
-mod grammar { ... }</code></pre>
-<p>This creates a grammar named "arithmetic" and generates:</p>
-<ul>
-<li>A <code>language()</code> function returning a GLR-compatible <code>Language</code></li>
-<li>An <code>extract_ast()</code> function to convert parse trees to your AST types</li>
-<li>Parser integration with runtime2's <code>Parser</code> API</li>
-</ul>
-<h3 id="the-language-root"><a class="header" href="#the-language-root">The Language Root</a></h3>
-<pre><code class="language-rust">#[adze::language]
-pub enum Expr { ... }</code></pre>
-<p>This marks <code>Expr</code> as the root type that the parser will return.</p>
-<h3 id="leaf-nodes"><a class="header" href="#leaf-nodes">Leaf Nodes</a></h3>
-<pre><code class="language-rust">#[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
-u32,</code></pre>
-<ul>
-<li><code>pattern</code>: Regular expression to match</li>
-<li><code>transform</code>: Function to convert matched text to the field type</li>
-<li><code>text</code>: Exact string to match (alternative to <code>pattern</code>)</li>
-</ul>
-<h3 id="precedence"><a class="header" href="#precedence">Precedence</a></h3>
-<pre><code class="language-rust">#[adze::prec_left(1)]  // Lower precedence
-#[adze::prec_left(2)]  // Higher precedence</code></pre>
-<p>Higher numbers bind more tightly. Multiplication (2) binds tighter than addition (1).</p>
-<h3 id="extra-tokens"><a class="header" href="#extra-tokens">Extra Tokens</a></h3>
-<pre><code class="language-rust">#[adze::extra]
-struct Whitespace { ... }</code></pre>
-<p>Tokens marked as <code>extra</code> are automatically skipped between other tokens.</p>
-<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
-<h3 id="optional-fields"><a class="header" href="#optional-fields">Optional Fields</a></h3>
-<pre><code class="language-rust">pub struct Function {
-    pub name: Identifier,
-    pub params: Option&lt;Parameters&gt;,
-}</code></pre>
-<h3 id="repeated-elements"><a class="header" href="#repeated-elements">Repeated Elements</a></h3>
-<pre><code class="language-rust">pub struct Block {
-    #[adze::repeat]
-    pub statements: Vec&lt;Statement&gt;,
-}</code></pre>
-<h3 id="delimited-lists"><a class="header" href="#delimited-lists">Delimited Lists</a></h3>
-<pre><code class="language-rust">pub struct ArgList {
-    #[adze::repeat(separator = ",")]
-    pub args: Vec&lt;Expression&gt;,
-}</code></pre>
-<h3 id="string-literals"><a class="header" href="#string-literals">String Literals</a></h3>
-<pre><code class="language-rust">pub struct StringLiteral {
-    #[adze::leaf(pattern = r#""([^"\\]|\\.)*""#, transform = |s| s[1..s.len()-1].to_string())]
-    pub value: String,
-}</code></pre>
-<h2 id="glr-parser-integration-pr-56-"><a class="header" href="#glr-parser-integration-pr-56-">GLR Parser Integration (PR #56) ✨</a></h2>
-<p>The new GLR parser brings advanced capabilities for handling ambiguous grammars:</p>
-<h3 id="actioncell-support"><a class="header" href="#actioncell-support">ActionCell Support</a></h3>
-<p>The GLR parser uses <strong>ActionCells</strong> - each parser state can hold multiple conflicting actions:</p>
-<pre><code class="language-rust">use adze::glr_parser_no_error_recovery::GLRParser;
-use adze_glr_core::{build_lr1_automaton, FirstFollowSets};
-
-// Build GLR parser with ActionCell support
-let grammar = create_grammar();
-let first_follow = FirstFollowSets::compute(&amp;grammar)?;
-let parse_table = build_lr1_automaton(&amp;grammar, &amp;first_follow)?;
-let mut glr_parser = GLRParser::new(parse_table);
-
-// GLR parser returns parse forests for ambiguous grammars
-let forest = glr_parser.parse(&amp;tokens)?;
-println!("Parse alternatives: {}", forest.roots.len());
-
-// Traditional single-tree extraction
-let tree = runtime_parser.parse_utf8("1 + 2", None)?;</code></pre>
-<h3 id="parse-forest-analysis"><a class="header" href="#parse-forest-analysis">Parse Forest Analysis</a></h3>
-<p>When dealing with ambiguous grammars, analyze all interpretations:</p>
-<pre><code class="language-rust">// Example: Ambiguous expression "1+2*3"  
-// Can be parsed as ((1+2)*3) or (1+(2*3))
-let forest = glr_parser.parse(&amp;ambiguous_tokens)?;
-
-for (i, root) in forest.roots.iter().enumerate() {
-    println!("Interpretation {}: Symbol {} at {:?}", 
-             i, root.symbol.0, root.span);
-    println!("  Child alternatives: {}", root.alternatives.len());
+    #[adze::extra]
+    #[allow(dead_code)]
+    struct Whitespace {
+        #[adze::leaf(pattern = r"\s+")]
+        _ws: (),
+    }
 }
 
-// Use forest analyzer for complex ambiguity analysis
-let ambiguous_nodes = forest.nodes.values()
-    .filter(|node| node.alternatives.len() &gt; 1)
-    .count();
-println!("Ambiguous decision points: {}", ambiguous_nodes);</code></pre>
-<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
-<p>The GLR runtime provides comprehensive error information:</p>
-<pre><code class="language-rust">match parser.parse_utf8("1 + + 2", None) {
-    Ok(tree) =&gt; {
-        match grammar::extract_ast(&amp;tree) {
-            Ok(ast) =&gt; println!("Parsed: {:?}", ast),
-            Err(e) =&gt; println!("AST extraction error: {}", e),
-        }
-    },
-    Err(e) =&gt; {
-        println!("Parse error: {}", e);
-        // GLR parsing can handle some syntax errors gracefully
-        if let Some(partial_tree) = e.partial_tree() {
-            println!("Partial parse available for error recovery");
-        }
+#[cfg(test)]
+mod tests {
+    use super::grammar::{self, Expr};
+
+    #[test]
+    fn parses_typed_ast_with_precedence() {
+        let expr = grammar::parse("1 + 2 * 3").expect("expression should parse");
+
+        assert_eq!(
+            expr,
+            Expr::Add(
+                Box::new(Expr::Number(1)),
+                (),
+                Box::new(Expr::Mul(
+                    Box::new(Expr::Number(2)),
+                    (),
+                    Box::new(Expr::Number(3)),
+                )),
+            )
+        );
     }
 }</code></pre>
-<h2 id="performance-monitoring"><a class="header" href="#performance-monitoring">Performance Monitoring</a></h2>
-<p>Enable GLR performance metrics:</p>
-<pre><code class="language-bash">ADZE_LOG_PERFORMANCE=true cargo run
+<p>Run the tests:</p>
+<pre><code class="language-bash">cargo test
 </code></pre>
-<p>Outputs forest-to-tree conversion statistics:</p>
-<pre><code>🚀 Forest-&gt;Tree conversion: 247 nodes, depth 12, took 0.8ms
-</code></pre>
-<h2 id="glr-tree-structure-understanding"><a class="header" href="#glr-tree-structure-understanding">GLR Tree Structure Understanding</a></h2>
-<p>GLR parsers produce trees with different structure than traditional parsers. Following PR #64 analysis, here's how to work with GLR trees:</p>
-<h3 id="grammar-rooted-trees"><a class="header" href="#grammar-rooted-trees">Grammar-Rooted Trees</a></h3>
-<p>GLR parsers always root trees at the grammar's start symbol, not the content:</p>
-<pre><code class="language-rust">let tree = parser.parse_utf8("42", None)?;
-let root = tree.root_node();
-
-// ✅ Correct: Grammar start symbol as root
-assert_eq!(root.kind(), "expr");           // Grammar start rule
-assert_eq!(root.child_count(), 1);         // Contains content as child
-
-// Navigate to actual content  
-let content = root.child(0).unwrap();       // Get actual number
-assert_eq!(content.kind(), "number");      // Content type
-
-// ❌ Incorrect: Expecting content directly
-// assert_eq!(root.kind(), "number");      // Wrong - content-centric thinking</code></pre>
-<h3 id="tree-navigation-pattern"><a class="header" href="#tree-navigation-pattern">Tree Navigation Pattern</a></h3>
-<p>When traversing GLR trees, always navigate through the grammar hierarchy:</p>
-<pre><code class="language-rust">let mut cursor = tree.root_node().walk();
-
-// Start at grammar root
-assert_eq!(cursor.node().kind(), "expr");      // Grammar symbol
-assert!(cursor.goto_first_child());            // Navigate to content
-assert_eq!(cursor.node().kind(), "number");    // Actual content
-
-// For complex expressions:
-// expr (root)
-// └── add_expr  
-//     ├── number ("1")
-//     ├── "+"
-//     └── number ("2")</code></pre>
-<h3 id="testing-glr-trees"><a class="header" href="#testing-glr-trees">Testing GLR Trees</a></h3>
-<p>When writing tests for GLR functionality:</p>
+<p>The generated <code>grammar::parse</code> function returns <code>Result&lt;Expr, Vec&lt;ParseError&gt;&gt;</code>.
+The value is the AST type you wrote, not a generic parse tree that needs a
+second hand-written mapping layer.</p>
+<h2 id="parse-errors"><a class="header" href="#parse-errors">Parse Errors</a></h2>
+<p>Adze returns structured parse errors for invalid input. Add this test to
+<code>src/lib.rs</code> if you want to inspect the diagnostic shape:</p>
 <pre><code class="language-rust">#[test]
-fn test_glr_arithmetic() {
-    let tree = parser.parse_utf8("1 + 2", None).unwrap();
-    let root = tree.root_node();
-    
-    // Root is grammar start symbol
-    assert_eq!(root.kind(), "expr");
-    
-    // Content is child of grammar symbol
-    let add_expr = root.child(0).unwrap();
-    assert_eq!(add_expr.kind(), "add");
-    
-    // Navigate through production structure
-    let left_operand = add_expr.child(0).unwrap();
-    assert_eq!(left_operand.kind(), "number");
-    assert_eq!(left_operand.text(source), "1");
+fn reports_expected_tokens_for_bad_input() {
+    let source = "1 + @";
+    let errors = grammar::parse(source).expect_err("bad input should fail");
+    let first = errors.first().expect("at least one parse error");
+
+    assert_eq!(first.byte_span(), 4..5);
+    assert!(first.expected.iter().any(|name| name == r"/\d+/"));
+
+    let rendered = first.display_with_source(source).to_string();
+    assert!(rendered.contains("bytes 4..5"));
+    assert!(rendered.contains("expected one of:"));
+    assert!(rendered.contains("    ^"));
 }</code></pre>
-<p>This structure reflects the actual grammar productions rather than a content-centric view, which enables GLR's ambiguity handling capabilities.</p>
-<h2 id="glr-features-available"><a class="header" href="#glr-features-available">GLR Features Available</a></h2>
-<p>With runtime2, you get:</p>
-<ul>
-<li><strong>Ambiguous Grammar Support</strong>: Handle conflicts that traditional parsers reject</li>
-<li><strong>Incremental Parsing</strong>: Automatic subtree reuse for editor-like performance</li>
-<li><strong>Error Recovery</strong>: Partial parse trees available even with syntax errors</li>
-<li><strong>Tree-sitter Compatibility</strong>: Drop-in replacement for existing Tree-sitter usage</li>
-<li><strong>Performance Monitoring</strong>: Built-in metrics for optimization</li>
-</ul>
+<h2 id="what-happened"><a class="header" href="#what-happened">What Happened</a></h2>
+<p>During <code>cargo build</code>, <code>adze-tool</code> reads <code>src/lib.rs</code>, extracts the
+<code>#[adze::grammar]</code> module, builds parse tables, and writes generated Rust into
+Cargo's build output directory. The compiled crate then exposes
+<code>grammar::parse(input)</code> from the generated parser module.</p>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<p>Now that you've created your first GLR grammar:</p>
-<ol>
-<li>Read about <a href="../guide/parser-generation.html">Parser Generation</a> to understand GLR vs Pure-Rust backends</li>
-<li>Learn about <a href="../guide/incremental-parsing.html">Incremental Parsing</a> for real-time editor integration</li>
-<li>Explore <a href="../guide/glr-precedence-resolution.html">GLR precedence behavior</a> for complex grammar conflicts</li>
-<li>Check out <a href="../guide/performance.html">Performance Optimization</a> for production deployment</li>
-</ol>
-<h2 id="tips-for-success"><a class="header" href="#tips-for-success">Tips for Success</a></h2>
-<ol>
-<li><strong>Start Simple</strong>: Begin with a minimal grammar and add features incrementally</li>
-<li><strong>Test as You Go</strong>: Write tests for each grammar rule</li>
-<li><strong>Use the Playground</strong>: The interactive playground helps visualize parse trees</li>
-<li><strong>Check Examples</strong>: The repository includes many example grammars</li>
-<li><strong>Enable Debug Output</strong>: Set <code>RUST_LOG=debug</code> to see GLR parser decisions</li>
-<li><strong>Use Performance Monitoring</strong>: Enable <code>ADZE_LOG_PERFORMANCE</code> for conversion metrics</li>
-<li><strong>Start with GLR Runtime</strong>: runtime2 provides the most features and Tree-sitter compatibility</li>
-<li><strong>Test Incrementally</strong>: Use incremental parsing for responsive applications</li>
-</ol>
+<ul>
+<li><a href="../guide/grammar-definition.html">Grammar Definition</a> covers the attributes in detail.</li>
+<li><a href="../guide/glr-precedence-resolution.html">GLR Precedence Resolution</a> explains how conflicts are resolved.</li>
+<li><a href="../guide/error-recovery.html">Error Recovery</a> covers parser diagnostics and recovery behavior.</li>
+</ul>
 
                     </main>
 

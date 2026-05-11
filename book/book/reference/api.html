@@ -504,11 +504,11 @@ match tree.edit(&amp;edit) {
 <h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
 <p>Control functionality with Cargo features:</p>
 <pre><code class="language-toml">[dependencies]
-adze = { version = "0.6", features = [
-    "glr-core",      # GLR parsing engine
-    "incremental",   # Incremental parsing
+adze = { version = "0.8", features = [
+    "glr",           # GLR parsing engine
+    "incremental_glr",   # Incremental parsing
     "serialization", # Tree serialization
-    "external_scanners", # External scanner support  
+    "external_scanners", # External scanner support
     "pure-rust",     # Pure Rust implementation
     "tree-sitter-standard", # Standard Tree-sitter runtime
     "tree-sitter-c2rust",   # Pure Rust Tree-sitter runtime
@@ -517,9 +517,9 @@ adze = { version = "0.6", features = [
 </code></pre>
 <p><strong>Feature Combinations:</strong></p>
 <ul>
-<li><code>default</code> = <code>["tree-sitter-c2rust", "incremental"]</code></li>
-<li><code>pure-rust</code> = <code>["glr-core", "pure-rust", "serialization"]</code></li>
-<li><code>tree-sitter-compat</code> = <code>["tree-sitter-standard", "incremental"]</code></li>
+<li><code>default</code> = <code>["tree-sitter-c2rust", "incremental_glr"]</code></li>
+<li><code>pure-rust</code> = <code>["glr", "pure-rust", "serialization"]</code></li>
+<li><code>tree-sitter-compat</code> = <code>["tree-sitter-standard", "incremental_glr"]</code></li>
 </ul>
 <h2 id="platform-support"><a class="header" href="#platform-support">Platform Support</a></h2>
 <h3 id="rust-versions"><a class="header" href="#rust-versions">Rust Versions</a></h3>

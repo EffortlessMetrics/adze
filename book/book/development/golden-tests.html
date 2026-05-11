@@ -281,6 +281,9 @@ diff -u golden-tests/python/expected/simple_program.sexp \
 <li><strong>Field mapping</strong>: Not shown in basic S-expressions</li>
 <li><strong>Source text</strong>: Leaf nodes include quoted source text</li>
 </ul>
+<p>The runtime <code>ts_compat::Node::to_sexp()</code> API has a narrower named-node
+contract and includes field labels for named fielded children; these golden
+fixtures describe the broader corpus comparison format.</p>
 <h2 id="working-with-test-fixtures"><a class="header" href="#working-with-test-fixtures">Working with Test Fixtures</a></h2>
 <h3 id="adding-new-test-cases"><a class="header" href="#adding-new-test-cases">Adding New Test Cases</a></h3>
 <ol>
