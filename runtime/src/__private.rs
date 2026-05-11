@@ -591,7 +591,8 @@ fn parse_with_true_glr_runtime<T: Extract<T>>(
 }
 
 #[cfg(all(feature = "glr", feature = "pure-rust"))]
-fn align_true_glr_parse_table_to_language_symbols(
+/// Align a decoded parse table to the generated language's dense symbol IDs.
+pub fn align_true_glr_parse_table_to_language_symbols(
     language: &'static crate::pure_parser::TSLanguage,
     parse_table: &mut adze_glr_core::ParseTable,
 ) {
@@ -668,7 +669,8 @@ fn align_true_glr_parse_table_to_language_symbols(
 }
 
 #[cfg(all(feature = "glr", feature = "pure-rust"))]
-fn lex_with_language_fn(
+/// Tokenize source text with a generated language lexer function.
+pub fn lex_with_language_fn(
     language: &'static crate::pure_parser::TSLanguage,
     lex_fn: unsafe extern "C" fn(*mut core::ffi::c_void, crate::pure_parser::TSLexState) -> bool,
     source: &[u8],

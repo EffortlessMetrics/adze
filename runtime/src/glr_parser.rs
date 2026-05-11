@@ -1999,8 +1999,10 @@ impl GLRParser {
     ///
     /// # Note
     /// In case of ambiguous parses where multiple stacks complete successfully, this
-    /// currently returns the first valid parse found. Future enhancements could return
-    /// all valid parses or use additional criteria to select the best one.
+    /// returns one selected tree. Selection first compares GLR stack versions using
+    /// dynamic-precedence and recovery state, then applies a stable structural
+    /// tie-break. Use [`Self::finish_all_alternatives`] to inspect all complete
+    /// parse alternatives retained by the runtime.
     pub fn finish(&self) -> Result<Arc<Subtree>, String> {
         // Find a successfully parsed stack
         // Success criteria:
