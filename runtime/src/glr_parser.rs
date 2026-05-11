@@ -97,6 +97,7 @@ use adze_glr_core::{FirstFollowSets, VecWrapperResolver};
 use adze_ir::{Grammar, PrecedenceKind, Rule, Symbol};
 use adze_ir::{RuleId, StateId, SymbolId};
 use std::collections::VecDeque;
+use std::ops::Range;
 use std::sync::Arc;
 
 /// Error types specific to GLR parsing operations.
@@ -126,6 +127,51 @@ pub enum GLRError {
 
 /// Result type for GLR parsing operations.
 pub type GLRResult<T> = Result<T, GLRError>;
+
+/// Summary of retained complete alternatives for an ambiguous GLR parse.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AmbiguitySummary {
+    /// Byte span covered by the complete alternatives.
+    pub span: Range<usize>,
+    /// Retained complete alternatives in runtime order.
+    pub alternatives: Vec<AlternativeSummary>,
+    /// Index of the selected alternative within [`Self::alternatives`].
+    pub selected: Option<usize>,
+    /// Reason the selected alternative won.
+    pub selection_reason: SelectionReason,
+}
+
+/// Public metadata for one retained complete GLR parse alternative.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AlternativeSummary {
+    /// Index within the ambiguity summary.
+    pub index: usize,
+    /// Root symbol of this complete alternative.
+    pub root_symbol: SymbolId,
+    /// Byte span covered by this complete alternative.
+    pub span: Range<usize>,
+    /// Dynamic-precedence score accumulated for this parse version.
+    pub dynamic_precedence: i32,
+    /// Whether this parse version entered error recovery.
+    pub in_error: bool,
+    /// Error/recovery cost for this parse version.
+    pub cost: usize,
+    /// Error node count for this parse version.
+    pub node_count: usize,
+}
+
+/// Reason the GLR runtime selected one complete alternative.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SelectionReason {
+    /// Only one complete parse was retained.
+    SingleParse,
+    /// Parse-version comparison selected a lower-cost non-error path.
+    ErrorCost,
+    /// Parse-version comparison selected higher dynamic precedence.
+    DynamicPrecedence,
+    /// Parse versions tied and the stable structural key selected a tree.
+    StableStructuralTieBreak,
+}
 
 // Debug macro for GLR parser
 #[cfg(feature = "debug_glr")]
@@ -337,6 +383,12 @@ pub struct GLRParser {
 
 type SubtreeSelectionKey = Vec<(usize, usize, u16, u16, usize)>;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SelectedCompleteStack {
+    stack_index: usize,
+    reason: SelectionReason,
+}
+
 fn subtree_selection_key(node: &Subtree) -> SubtreeSelectionKey {
     let mut key = Vec::new();
     append_subtree_selection_key(node, &mut key);
@@ -356,6 +408,18 @@ fn append_subtree_selection_key(node: &Subtree, key: &mut SubtreeSelectionKey) {
         key.push((usize::MAX, usize::MAX, edge.field_id, 0, 0));
         append_subtree_selection_key(&edge.subtree, key);
     }
+}
+
+fn version_selection_reason(left: &ParseStack, right: &ParseStack) -> SelectionReason {
+    if left.version.in_error != right.version.in_error || left.version.cost != right.version.cost {
+        return SelectionReason::ErrorCost;
+    }
+
+    if left.version.dynamic_prec != right.version.dynamic_prec {
+        return SelectionReason::DynamicPrecedence;
+    }
+
+    SelectionReason::StableStructuralTieBreak
 }
 
 /// Dummy telemetry type when feature is disabled
@@ -1981,6 +2045,141 @@ impl GLRParser {
     /// Get number of active stacks (for debugging)
     pub fn stack_count(&self) -> usize {
         self.stacks.len()
+    }
+
+    fn complete_stack_indices(&self) -> Vec<usize> {
+        self.stacks
+            .iter()
+            .enumerate()
+            .filter_map(|(index, stack)| {
+                let node = stack.nodes.first()?;
+                (stack.nodes.len() == 1 && node.node.byte_range.end == self.input_length)
+                    .then_some(index)
+            })
+            .collect()
+    }
+
+    fn incomplete_stack_states(&self) -> Vec<(StateId, usize, Vec<SymbolId>)> {
+        self.stacks
+            .iter()
+            .map(|stack| {
+                let state = stack.states.last().copied().unwrap_or(StateId(0));
+                (
+                    state,
+                    stack.nodes.len(),
+                    stack
+                        .nodes
+                        .iter()
+                        .map(|node| node.node.symbol_id)
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect()
+    }
+
+    fn incomplete_parse_message(&self) -> String {
+        format!(
+            "Parse incomplete. Stack states: {:?}",
+            self.incomplete_stack_states()
+        )
+    }
+
+    fn select_best_complete_stack(
+        &self,
+        complete_stacks: &[usize],
+    ) -> Option<SelectedCompleteStack> {
+        let mut best_stack_idx = *complete_stacks.first()?;
+        let mut best_tree_key = subtree_selection_key(&self.stacks[best_stack_idx].nodes[0]);
+        let mut reason = if complete_stacks.len() == 1 {
+            SelectionReason::SingleParse
+        } else {
+            SelectionReason::StableStructuralTieBreak
+        };
+
+        for &stack_idx in &complete_stacks[1..] {
+            match compare_versions(
+                &self.stacks[best_stack_idx].version,
+                &self.stacks[stack_idx].version,
+            ) {
+                CompareResult::TakeRight | CompareResult::PreferRight => {
+                    reason = version_selection_reason(
+                        &self.stacks[best_stack_idx],
+                        &self.stacks[stack_idx],
+                    );
+                    best_stack_idx = stack_idx;
+                    best_tree_key = subtree_selection_key(&self.stacks[best_stack_idx].nodes[0]);
+                }
+                CompareResult::Tie => {
+                    let tree_key = subtree_selection_key(&self.stacks[stack_idx].nodes[0]);
+                    if tree_key < best_tree_key {
+                        best_stack_idx = stack_idx;
+                        best_tree_key = tree_key;
+                        reason = SelectionReason::StableStructuralTieBreak;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Some(SelectedCompleteStack {
+            stack_index: best_stack_idx,
+            reason,
+        })
+    }
+
+    /// Return an ambiguity summary for retained complete alternatives.
+    ///
+    /// This is a summary view, not a raw forest API. It is available after EOF
+    /// processing. `Ok(None)` means the runtime retained only one complete
+    /// parse; `Ok(Some(_))` means multiple complete alternatives were retained
+    /// and one was selected by the same policy used by [`Self::finish`].
+    pub fn finish_ambiguity_summary(&self) -> Result<Option<AmbiguitySummary>, String> {
+        let complete_stacks = self.complete_stack_indices();
+        if complete_stacks.is_empty() {
+            return Err(self.incomplete_parse_message());
+        }
+        if complete_stacks.len() == 1 {
+            return Ok(None);
+        }
+
+        let selected = self.select_best_complete_stack(&complete_stacks);
+        let selected_stack_index = selected.map(|selection| selection.stack_index);
+        let selected_index = selected_stack_index.and_then(|stack_index| {
+            complete_stacks
+                .iter()
+                .position(|candidate| *candidate == stack_index)
+        });
+
+        let mut span_start = usize::MAX;
+        let mut span_end = 0usize;
+        let alternatives = complete_stacks
+            .iter()
+            .enumerate()
+            .map(|(index, stack_index)| {
+                let stack = &self.stacks[*stack_index];
+                let node = &stack.nodes[0];
+                span_start = span_start.min(node.node.byte_range.start);
+                span_end = span_end.max(node.node.byte_range.end);
+                AlternativeSummary {
+                    index,
+                    root_symbol: node.node.symbol_id,
+                    span: node.node.byte_range.clone(),
+                    dynamic_precedence: stack.version.dynamic_prec,
+                    in_error: stack.version.in_error,
+                    cost: stack.version.cost,
+                    node_count: stack.version.node_count,
+                }
+            })
+            .collect();
+
+        Ok(Some(AmbiguitySummary {
+            span: span_start..span_end,
+            alternatives,
+            selected: selected_index,
+            selection_reason: selected
+                .map(|selection| selection.reason)
+                .unwrap_or(SelectionReason::StableStructuralTieBreak),
+        }))
     }
 
     /// Finish parsing and get the result
