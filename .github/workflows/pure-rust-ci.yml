@@ -95,9 +95,15 @@ jobs:
     
     - name: Run tests
       run: cargo test --verbose -- --test-threads=$RUST_TEST_THREADS
+
+    - name: Skip benchmark compile check on pull requests
+      if: matrix.os != 'windows-latest' && github.event_name == 'pull_request'
+      run: |
+        echo "::notice::Skipping all-crate benchmark compile check on pull_request events."
+        echo "::notice::Benchmark compile coverage is owned by performance.yml/benchmarks.yml and opt-in labels."
     
     - name: Run benchmark compile check (all crates)
-      if: matrix.os != 'windows-latest'
+      if: matrix.os != 'windows-latest' && github.event_name != 'pull_request'
       run: |
         start=$SECONDS
         cargo bench --no-run
