@@ -282,6 +282,12 @@ AdzeDocument
   -> as_tree_sitter()
 ```
 
+The current alpha also preserves expected/found token names for generated
+pure-Rust parser diagnostics and can return a synthetic error document for
+truncated source when the parser records diagnostics but cannot select a root.
+This is still an experimental document-diagnostic proof, not a stable native
+diagnostics schema.
+
 ## Proof Requirements
 
 Before any part of this surface is promoted beyond draft/advisory, it needs a
@@ -313,6 +319,8 @@ API direction so implementation PRs can stay small and reviewable:
 4. typed CST spike, generated-style wrapper scaffold, and tablegen generator target,
 5. generated parser-module typed CST wiring,
 6. generated `parse_document()` helper and typed CST runtime canary,
-7. typed AST provenance,
-8. GLR ambiguity summaries,
-9. schema-versioned CLI/WASM outputs.
+7. generated `parse_document()` diagnostics that preserve expected/found token
+   names and partial document facts for truncated source,
+8. typed AST provenance,
+9. GLR ambiguity summaries,
+10. schema-versioned CLI/WASM outputs.

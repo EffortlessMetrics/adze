@@ -328,37 +328,28 @@ pub fn parse_document(
         errors: parser_errors,
     } = parser.parse_string(input);
 
-    let Some(root_node) = root else {
-        return Err(parser_errors
-            .into_iter()
-            .map(|e| {
-                let symbol_name = symbol_name_for_diagnostic(lang, e.found);
-                let expected = expected_symbol_names_for_diagnostic(lang, &e.expected);
-                crate::errors::ParseError {
-                    reason: crate::errors::ParseErrorReason::UnexpectedToken(
-                        unexpected_token_message(symbol_name, expected.clone()),
-                    ),
-                    start: e.position,
-                    end: diagnostic_end_for_byte(input.as_bytes(), e.position),
-                    expected,
-                }
-            })
-            .collect());
-    };
-
     let grammar = crate::decoder::decode_grammar(lang);
     let parse_table = crate::decoder::decode_parse_table(lang);
     let error_count = parser_errors.len();
-    let root = convert_parsed_node_to_document_node(&root_node, lang);
+    let diagnostics = document_diagnostics_for_parse_errors(input, lang, &parser_errors);
+    let root = root
+        .as_ref()
+        .map(|root_node| convert_parsed_node_to_document_node(root_node, lang))
+        .unwrap_or_else(|| {
+            synthetic_document_root_for_errors(input, parse_table.start_symbol, &diagnostics)
+        });
 
-    Ok(crate::document::AdzeDocument::from_parse_result(
-        input,
-        root,
-        error_count,
-        grammar_name,
-        &grammar,
-        &parse_table,
-    ))
+    Ok(
+        crate::document::AdzeDocument::from_parse_result_with_diagnostics(
+            input,
+            root,
+            error_count,
+            grammar_name,
+            &grammar,
+            &parse_table,
+            diagnostics,
+        ),
+    )
 }
 
 /// Parse using the simple LR parser (pure_parser)
@@ -974,6 +965,57 @@ fn convert_parsed_node_to_document_node(
             .field_id
             .and_then(|field_id| field_name_by_id(lang, field_id)),
         children,
+    }
+}
+
+#[cfg(feature = "pure-rust")]
+fn document_diagnostics_for_parse_errors(
+    input: &str,
+    lang: &crate::pure_parser::TSLanguage,
+    parser_errors: &[crate::pure_parser::ParseError],
+) -> Vec<crate::document::ParseDiagnostic> {
+    parser_errors
+        .iter()
+        .map(|error| {
+            let found = symbol_name_for_diagnostic(lang, error.found);
+            let expected = expected_symbol_names_for_diagnostic(lang, &error.expected);
+            crate::document::ParseDiagnostic {
+                start_byte: error.position,
+                end_byte: diagnostic_end_for_byte(input.as_bytes(), error.position),
+                found: Some(found.clone()),
+                expected: expected.clone(),
+                message: unexpected_token_message(found, expected),
+            }
+        })
+        .collect()
+}
+
+#[cfg(feature = "pure-rust")]
+fn synthetic_document_root_for_errors(
+    input: &str,
+    start_symbol: adze_ir::SymbolId,
+    diagnostics: &[crate::document::ParseDiagnostic],
+) -> crate::parser_v4::ParseNode {
+    let error_span = diagnostics
+        .first()
+        .map(|diagnostic| diagnostic.start_byte..diagnostic.end_byte)
+        .unwrap_or(input.len()..input.len());
+    let error_node = crate::parser_v4::ParseNode {
+        symbol: adze_ir::SymbolId(0),
+        symbol_id: adze_ir::SymbolId(0),
+        start_byte: error_span.start,
+        end_byte: error_span.end,
+        field_name: None,
+        children: Vec::new(),
+    };
+
+    crate::parser_v4::ParseNode {
+        symbol: start_symbol,
+        symbol_id: start_symbol,
+        start_byte: 0,
+        end_byte: input.len(),
+        field_name: None,
+        children: vec![error_node],
     }
 }
 
