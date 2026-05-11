@@ -102,6 +102,26 @@ pub struct AdzeNode {
 }
 ```
 
+Node identity is explicit even before alias-aware projection lands:
+
+```rust
+pub struct NodeIdentity {
+    visible_id: SymbolId,
+    grammar_id: SymbolId,
+    visible_name: Option<SymbolName>,
+    grammar_name: Option<SymbolName>,
+    alias_symbol_id: Option<SymbolId>,
+    visible_is_named: bool,
+    grammar_is_named: bool,
+}
+```
+
+The current alpha populates visible and grammar identity from the same raw
+parsed symbol and leaves `alias_symbol_id` empty. That is intentional: the
+native model now has separate slots for alias-aware identity, but the
+Tree-sitter compatibility layer must not claim alias parity until parser nodes
+actually carry alias sequence entries and canaries prove the projection.
+
 Fields are edge metadata:
 
 ```rust
@@ -308,6 +328,8 @@ pure-Rust parser diagnostics, maps diagnostics back to related document-local
 nodes when the selected tree or synthetic error tree carries one, and can return
 a synthetic error document for truncated source when the parser records
 diagnostics but cannot select a root. It also exposes
+an explicit `NodeIdentity` view with separate visible and grammar identity slots
+currently populated from the same raw parsed symbol, and
 `AdzeDocument::ast_with_provenance()` as an alpha document-level typed AST
 projection that pairs the extracted value with the document node used as the
 extraction root. The same selected-tree extraction path is proven for generated

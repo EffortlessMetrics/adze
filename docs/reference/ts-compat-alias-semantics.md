@@ -11,6 +11,8 @@ Current Adze runtime state:
 
 - alias metadata is preserved at the generated `TSLanguage` ABI boundary,
 - runtime decode preserves alias sequences in native parse-table data,
+- native `AdzeDocument` nodes expose separate visible and grammar identity slots,
+  currently populated from the same raw parsed symbol,
 - parsed `ts_compat::Node` values do not yet project alias-visible identity.
 
 This document is the target contract for the future projection layer.
