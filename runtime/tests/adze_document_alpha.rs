@@ -326,6 +326,24 @@ fn parse_document_exposes_recovery_metadata_and_diagnostics() {
         "related diagnostic node should carry error state"
     );
     assert_eq!(related_node.byte_range(), diagnostic.byte_span());
+    let document_node_diagnostics: Vec<_> = document
+        .diagnostics_for_node(related_node.node_id())
+        .collect();
+    assert_eq!(document_node_diagnostics.len(), 1);
+    assert_eq!(
+        document_node_diagnostics[0].byte_span(),
+        diagnostic.byte_span()
+    );
+    let node_diagnostics: Vec<_> = related_node.diagnostics().collect();
+    assert_eq!(node_diagnostics.len(), 1);
+    assert_eq!(node_diagnostics[0].byte_span(), diagnostic.byte_span());
+    assert!(
+        document
+            .diagnostics_for_node(NodeId::new(document.tree().node_count()))
+            .next()
+            .is_none(),
+        "diagnostic lookup for an unassigned node id should be empty"
+    );
 
     let ts_tree = Tree::from_document(lang, &document);
     assert_eq!(ts_tree.error_count(), document.metadata().error_count);
