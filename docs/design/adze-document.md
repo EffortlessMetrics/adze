@@ -310,8 +310,11 @@ a synthetic error document for truncated source when the parser records
 diagnostics but cannot select a root. It also exposes
 `AdzeDocument::ast_with_provenance()` as an alpha document-level typed AST
 projection that pairs the extracted value with the document node used as the
-extraction root. This is still an experimental document proof, not a stable
-native diagnostics or per-AST-node provenance schema.
+extraction root. The same selected-tree extraction path is proven for generated
+true-GLR documents, so conflicted generated grammars can project a typed AST
+from `parse_document()` without creating a second parse truth. This is still an
+experimental document proof, not a stable native diagnostics or per-AST-node
+provenance schema.
 
 ## Proof Requirements
 
