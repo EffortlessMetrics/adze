@@ -75,6 +75,16 @@ fn generated_parse_document_diagnostics_preserve_expected_tokens() {
         source_span.end.column
     );
     assert_eq!(diagnostic.expected, parse_error.expected);
+    let related_node = diagnostic
+        .related_nodes
+        .first()
+        .and_then(|node_id| document.tree().node(*node_id))
+        .expect("document diagnostic should resolve to a related node");
+    assert!(
+        related_node.has_error(),
+        "document diagnostic related node should carry error state"
+    );
+    assert_eq!(related_node.byte_range(), diagnostic.byte_span());
     assert!(
         diagnostic.expected.iter().any(|token| token == r"/\d+/"),
         "document diagnostic should preserve generated expected token names: {:?}",

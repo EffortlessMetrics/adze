@@ -991,6 +991,7 @@ fn document_diagnostics_for_parse_errors(
                 point_range,
                 found: Some(found.clone()),
                 expected: expected.clone(),
+                related_nodes: Vec::new(),
                 message: unexpected_token_message(found, expected),
             }
         })

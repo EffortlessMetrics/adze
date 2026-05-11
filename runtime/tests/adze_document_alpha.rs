@@ -316,6 +316,16 @@ fn parse_document_exposes_recovery_metadata_and_diagnostics() {
         diagnostic.message.contains("parser recorded"),
         "diagnostic should explain the recorded parser recovery count"
     );
+    let related_node = diagnostic
+        .related_nodes
+        .first()
+        .and_then(|node_id| document.tree().node(*node_id))
+        .expect("diagnostic should resolve to a related document node");
+    assert!(
+        related_node.has_error(),
+        "related diagnostic node should carry error state"
+    );
+    assert_eq!(related_node.byte_range(), diagnostic.byte_span());
 
     let ts_tree = Tree::from_document(lang, &document);
     assert_eq!(ts_tree.error_count(), document.metadata().error_count);
