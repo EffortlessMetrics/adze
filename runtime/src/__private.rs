@@ -344,9 +344,12 @@ pub fn parse_document(
             input,
             root,
             error_count,
-            grammar_name,
-            &grammar,
-            &parse_table,
+            crate::document::DocumentRuntime {
+                language_name: grammar_name,
+                grammar: &grammar,
+                parse_table: &parse_table,
+                pure_language: Some(lang),
+            },
             diagnostics,
         ),
     )

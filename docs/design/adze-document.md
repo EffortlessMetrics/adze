@@ -127,11 +127,16 @@ semantic values:
 let ast: Module = grammar::parse(source)?;
 ```
 
-Long term, this should be equivalent to:
+Generated pure-Rust documents now expose an alpha projection for this path:
 
 ```rust
 let ast: Module = grammar::parse_document(source)?.ast()?;
 ```
+
+That projection extracts from the document's selected tree and returns document
+diagnostics as parse errors when the source recovered or failed. It is still an
+experimental native-document view, not a replacement for the stable
+`grammar::parse(...)` front door.
 
 ### Typed CST
 
@@ -331,6 +336,7 @@ API direction so implementation PRs can stay small and reviewable:
    partial document facts for truncated or multiline bad source,
 8. diagnostic related-node IDs that resolve back into the same document tree,
 9. document/node diagnostic lookup over related-node IDs,
-10. typed AST provenance,
-11. GLR ambiguity summaries,
-12. schema-versioned CLI/WASM outputs.
+10. typed AST extraction from generated pure-Rust documents,
+11. typed AST provenance,
+12. GLR ambiguity summaries,
+13. schema-versioned CLI/WASM outputs.
