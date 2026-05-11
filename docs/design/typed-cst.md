@@ -195,6 +195,11 @@ pub enum Provenance {
 
 This avoids pretending every semantic AST value maps to exactly one CST node.
 
+The current `AdzeDocument` alpha exposes only document-level typed AST
+provenance for the extraction root through `ast_with_provenance()`. Per-AST-node
+provenance remains future work and should not be inferred from that alpha
+wrapper.
+
 ## Generation Scope
 
 The alpha generator should produce:

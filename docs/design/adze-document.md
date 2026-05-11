@@ -297,8 +297,11 @@ The current alpha also preserves expected/found token names for generated
 pure-Rust parser diagnostics, maps diagnostics back to related document-local
 nodes when the selected tree or synthetic error tree carries one, and can return
 a synthetic error document for truncated source when the parser records
-diagnostics but cannot select a root. This is still an experimental
-document-diagnostic proof, not a stable native diagnostics schema.
+diagnostics but cannot select a root. It also exposes
+`AdzeDocument::ast_with_provenance()` as an alpha document-level typed AST
+projection that pairs the extracted value with the document node used as the
+extraction root. This is still an experimental document proof, not a stable
+native diagnostics or per-AST-node provenance schema.
 
 ## Proof Requirements
 
@@ -337,6 +340,6 @@ API direction so implementation PRs can stay small and reviewable:
 8. diagnostic related-node IDs that resolve back into the same document tree,
 9. document/node diagnostic lookup over related-node IDs,
 10. typed AST extraction from generated pure-Rust documents,
-11. typed AST provenance,
+11. document-level typed AST extraction provenance,
 12. GLR ambiguity summaries,
 13. schema-versioned CLI/WASM outputs.

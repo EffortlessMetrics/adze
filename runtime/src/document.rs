@@ -2,8 +2,8 @@
 //!
 //! This module is the first implementation slice of the `AdzeDocument`
 //! contract. It intentionally exposes only the current parser tree, source
-//! text, basic diagnostics, and metadata. Richer projections such as typed CST,
-//! typed AST provenance, and GLR forest summaries are future slices.
+//! text, basic diagnostics, and metadata. Richer projections such as full typed
+//! CST generation and GLR forest summaries are future slices.
 
 use crate::parser_v4::ParseNode;
 use adze_glr_core::{ParseTable, SymbolMetadata as TableSymbolMetadata};
@@ -137,6 +137,18 @@ impl AdzeDocument {
     where
         T: crate::Extract<T>,
     {
+        self.ast_with_provenance().map(TypedAst::into_value)
+    }
+
+    /// Extract a typed AST and record the document syntax it came from.
+    ///
+    /// This is an alpha document-level provenance view. It records the selected
+    /// document node used as the typed AST extraction root; it does not yet
+    /// attempt per-AST-node provenance.
+    pub fn ast_with_provenance<T>(&self) -> Result<TypedAst<T>, Vec<crate::errors::ParseError>>
+    where
+        T: crate::Extract<T>,
+    {
         if !self.diagnostics.is_empty() {
             return Err(self
                 .diagnostics
@@ -158,24 +170,19 @@ impl AdzeDocument {
         };
 
         let parsed_root = document_node_to_parsed_node(&self.root, language, self.source_bytes());
-        let non_extra_root_children: Vec<_> = parsed_root
-            .children
-            .iter()
-            .filter(|child| !child.is_extra)
-            .collect();
-        let extract_node =
-            if parsed_root.kind() == "source_file" && non_extra_root_children.len() == 1 {
-                non_extra_root_children[0]
-            } else {
-                &parsed_root
-            };
+        let extraction_target = self.typed_ast_extraction_target();
+        let extract_node = extraction_target
+            .child_index
+            .and_then(|child_index| parsed_root.children.get(child_index))
+            .unwrap_or(&parsed_root);
 
-        Ok(<T as crate::Extract<_>>::extract(
-            Some(extract_node),
-            self.source_bytes(),
-            0,
-            None,
-        ))
+        let value =
+            <T as crate::Extract<_>>::extract(Some(extract_node), self.source_bytes(), 0, None);
+
+        Ok(TypedAst {
+            value,
+            provenance: extraction_target.provenance,
+        })
     }
 
     #[cfg(feature = "ts-compat")]
@@ -205,6 +212,36 @@ impl AdzeDocument {
     fn parent_id(&self, node_id: NodeId) -> Option<NodeId> {
         self.node_index.get(node_id.as_usize())?.parent_id
     }
+
+    fn typed_ast_extraction_target(&self) -> TypedAstExtractionTarget {
+        let root = self.tree().root();
+        if root.kind_name() != Some("source_file") {
+            return TypedAstExtractionTarget {
+                child_index: None,
+                provenance: Provenance::Node(root.node_id()),
+            };
+        }
+
+        let non_extra_children: Vec<_> = root
+            .child_edges()
+            .filter_map(|edge| {
+                let child = edge.child()?;
+                (!child.is_extra()).then_some((edge.child_index(), child.node_id()))
+            })
+            .collect();
+
+        if let [(child_index, child_id)] = non_extra_children.as_slice() {
+            return TypedAstExtractionTarget {
+                child_index: Some(*child_index),
+                provenance: Provenance::Node(*child_id),
+            };
+        }
+
+        TypedAstExtractionTarget {
+            child_index: None,
+            provenance: Provenance::Node(root.node_id()),
+        }
+    }
 }
 
 pub(crate) struct DocumentRuntime<'a> {
@@ -212,6 +249,80 @@ pub(crate) struct DocumentRuntime<'a> {
     pub(crate) grammar: &'a Grammar,
     pub(crate) parse_table: &'a ParseTable,
     pub(crate) pure_language: Option<&'static crate::pure_parser::TSLanguage>,
+}
+
+/// A typed AST value paired with document-level syntax provenance.
+///
+/// The provenance describes the selected document syntax used as the extraction
+/// root. It is intentionally coarser than per-AST-node provenance, which needs
+/// a separate contract because semantic AST values may combine, omit, or
+/// synthesize concrete syntax.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TypedAst<T> {
+    value: T,
+    provenance: Provenance,
+}
+
+impl<T> TypedAst<T> {
+    /// Return the extracted typed AST value.
+    pub fn value(&self) -> &T {
+        &self.value
+    }
+
+    /// Return document-level syntax provenance for this typed AST.
+    pub fn provenance(&self) -> &Provenance {
+        &self.provenance
+    }
+
+    /// Consume this wrapper and return the typed AST value.
+    pub fn into_value(self) -> T {
+        self.value
+    }
+
+    /// Consume this wrapper and return both value and provenance.
+    pub fn into_parts(self) -> (T, Provenance) {
+        (self.value, self.provenance)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct TypedAstExtractionTarget {
+    child_index: Option<usize>,
+    provenance: Provenance,
+}
+
+/// Syntax provenance for a typed AST projection.
+///
+/// The alpha implementation currently records [`Provenance::Node`] for the
+/// extraction root. The other variants define the intended shape for future
+/// semantic AST values that are span-based, combine multiple syntax nodes, or
+/// are synthesized from recovery/defaulting.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Provenance {
+    /// The value came from one document-local node.
+    Node(NodeId),
+    /// The value came from a source byte span without a single owning node.
+    Span(Range<usize>),
+    /// The value came from multiple document-local nodes.
+    Nodes(Vec<NodeId>),
+    /// The value was synthesized by extraction or recovery.
+    Synthetic {
+        /// Source byte span associated with the synthetic value.
+        span: Range<usize>,
+        /// Reason the value was synthesized.
+        reason: SyntheticReason,
+    },
+}
+
+/// Reason a provenance entry was synthesized.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SyntheticReason {
+    /// Parser recovery supplied missing syntax.
+    MissingSyntax,
+    /// Typed extraction supplied a default value.
+    ExtractionDefault,
+    /// The value was generated by a parser or runtime fallback.
+    RuntimeFallback,
 }
 
 /// Stable node identifier within one [`AdzeDocument`].
