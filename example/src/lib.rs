@@ -10,6 +10,7 @@ pub mod boolean_expr;
 pub mod csv_list;
 pub mod dangling_else;
 pub mod external_word_example;
+pub mod fielded_precedence_typed_cst_contract;
 pub mod fielded_typed_cst_contract;
 pub mod ini_file;
 pub mod json_like;

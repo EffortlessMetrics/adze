@@ -92,9 +92,11 @@ Keep implementation slices small:
    node IDs, kind names, byte ranges, and text. A generated fielded-struct
    canary now proves FIELD metadata survives Rust expansion into terminal-backed
    converter `SEQ` productions, ABI field maps, `AdzeDocument` edge metadata,
-   and generated typed CST `left`/`right` accessors. Next, broaden across
-   precedence/enum field shapes without expanding into visitors, rewriters,
-   typed queries, or JSON output.
+   and generated typed CST `left`/`right` accessors. A follow-on generated
+   precedence enum canary now proves explicit `left`/`operator`/`right` fields
+   survive precedence operator inlining into native edge metadata and generated
+   typed CST accessors without expanding into visitors, rewriters, typed
+   queries, or JSON output.
 3. Alias-visible compatibility canaries only after native node identity exposes
    visible and grammar identity separately.
 

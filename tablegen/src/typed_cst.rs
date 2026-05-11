@@ -142,6 +142,9 @@ impl<'a> TypedCstGenerator<'a> {
             }
 
             let kind_name = match &token.pattern {
+                TokenPattern::String(text) if token.name == format!("\"{text}\"") => {
+                    token.name.clone()
+                }
                 TokenPattern::String(text) => text.clone(),
                 TokenPattern::Regex(_) => token.name.clone(),
             };
@@ -458,6 +461,17 @@ mod tests {
         assert!(generated.contains("NumberToken :: cast"));
     }
 
+    #[test]
+    fn typed_cst_generator_casts_quoted_inline_string_field_targets() {
+        let grammar = quoted_inline_string_field_grammar();
+        let generated = TypedCstGenerator::new(&grammar).generate().to_string();
+
+        assert!(generated.contains("pub fn operator"));
+        assert!(generated.contains("edge_by_field_name (\"operator\")"));
+        assert!(generated.contains("Token :: cast"));
+        assert!(generated.contains("node_has_kind (document , id , \"\\\"+\\\"\")"));
+    }
+
     fn arithmetic_grammar() -> Grammar {
         let mut grammar = Grammar::new("arithmetic".to_string());
 
@@ -598,6 +612,50 @@ mod tests {
         grammar.add_rule(Rule {
             lhs: pair,
             rhs: vec![Symbol::Terminal(number)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 0)],
+            production_id: ProductionId(1),
+        });
+
+        grammar
+    }
+
+    fn quoted_inline_string_field_grammar() -> Grammar {
+        let mut grammar = Grammar::new("quoted_inline_string_field".to_string());
+
+        let plus = SymbolId(0);
+        let source_file = SymbolId(1);
+        let expression = SymbolId(2);
+
+        grammar.tokens.insert(
+            plus,
+            Token {
+                name: "\"+\"".to_string(),
+                pattern: TokenPattern::String("+".to_string()),
+                fragile: false,
+            },
+        );
+
+        grammar
+            .rule_names
+            .insert(source_file, "source_file".to_string());
+        grammar
+            .rule_names
+            .insert(expression, "expression".to_string());
+        grammar.fields.insert(FieldId(0), "operator".to_string());
+
+        grammar.add_rule(Rule {
+            lhs: source_file,
+            rhs: vec![Symbol::NonTerminal(expression)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: expression,
+            rhs: vec![Symbol::Terminal(plus)],
             precedence: None,
             associativity: None,
             fields: vec![(FieldId(0), 0)],

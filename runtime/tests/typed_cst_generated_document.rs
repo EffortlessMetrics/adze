@@ -103,6 +103,69 @@ fn generated_typed_cst_field_accessors_project_native_edges() {
     assert_eq!(right.text(), Some("+"));
 }
 
+#[test]
+fn generated_typed_cst_field_accessors_survive_precedence_enum_variants() {
+    use adze_example::fielded_precedence_typed_cst_contract::grammar::{self, Expr};
+
+    let source = "1+2*3";
+    let parsed = grammar::parse(source).expect("fielded precedence grammar should parse");
+    assert_eq!(
+        parsed,
+        Expr::Add {
+            left: Box::new(Expr::Number(1)),
+            operator: (),
+            right: Box::new(Expr::Mul {
+                left: Box::new(Expr::Number(2)),
+                operator: (),
+                right: Box::new(Expr::Number(3)),
+            }),
+        }
+    );
+
+    let document = grammar::parse_document(source)
+        .expect("generated parse_document helper should return an AdzeDocument");
+    let root = document.tree().root();
+    let add_node =
+        find_node(root, "Expr_Add", source).expect("generic CST should contain the add node");
+    let add = grammar::syntax::ExprAdd::cast(&document, add_node.node_id())
+        .expect("generated Expr_Add wrapper should cast the matching generic node");
+
+    let generic_left = add_node
+        .edge_by_field_name("left")
+        .and_then(|edge| edge.child())
+        .expect("generic CST should expose the left field edge");
+    let generic_operator = add_node
+        .edge_by_field_name("operator")
+        .and_then(|edge| edge.child())
+        .expect("generic CST should expose the operator field edge");
+    let generic_right = add_node
+        .edge_by_field_name("right")
+        .and_then(|edge| edge.child())
+        .expect("generic CST should expose the right field edge");
+
+    let left = add
+        .left()
+        .expect("generated Expr_Add wrapper should expose the left field");
+    let operator = add
+        .operator()
+        .unwrap_or_else(|| {
+            panic!(
+                "generated Expr_Add wrapper should expose the operator field; generic edge child kind was {:?}",
+                generic_operator.kind_name()
+            )
+        });
+    let right = add
+        .right()
+        .expect("generated Expr_Add wrapper should expose the right field");
+
+    assert_same_node(left, generic_left);
+    assert_same_node(operator, generic_operator);
+    assert_same_node(right, generic_right);
+    assert_eq!(left.text(), Some("1"));
+    assert_eq!(operator.text(), Some("+"));
+    assert_eq!(right.text(), Some("2*3"));
+}
+
 fn assert_same_node<'doc>(wrapper: impl SyntaxNode<'doc>, node: adze::document::AdzeNode<'doc>) {
     assert_eq!(wrapper.node_id(), node.node_id());
     assert_eq!(wrapper.kind_name(), node.kind_name());

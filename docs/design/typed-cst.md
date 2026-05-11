@@ -352,10 +352,29 @@ hidden token wrappers when those tokens are field targets, so generated
 accessors can still cast the retained document edge child. The runtime canary
 then checks generated `Pair::left()` and `Pair::right()` accessors against the
 same generic `edge_by_field_name(...)` children from the document tree. This
-remains an alpha bridge only: generated parser modules do not yet have a broad
-typed CST/generic CST parity matrix, visitor/rewriter surfaces, typed query
-APIs, or typed CST JSON output, and this is not a public typed CST support
-claim.
+remains an alpha bridge only.
+
+A generated precedence enum canary extends the same proof to explicit
+`left`/`operator`/`right` fields on precedence variants:
+
+```bash
+cargo test -p adze-tool --lib \
+  tests::enum_prec_left_preserves_fielded_inlined_operator \
+  -- --exact --nocapture
+
+cargo test -p adze-tablegen typed_cst_generator -- --nocapture
+
+cargo test -p adze --features pure-rust \
+  --test typed_cst_generated_document -- --nocapture
+```
+
+It checks that Rust expansion keeps explicit field metadata when precedence
+operator leaves are inlined, that generated token wrappers cast against the
+native document's inline-string kind names, and that generated `Expr_Add`
+accessors agree with the generic CST edges. Generated parser modules do not yet
+have a broad typed CST/generic CST parity matrix, visitor/rewriter surfaces,
+typed query APIs, or typed CST JSON output, and this is not a public typed CST
+support claim.
 
 ## Support Status
 
@@ -372,5 +391,6 @@ Expected sequence:
 6. wire generated wrappers into one generated grammar fixture,
 7. generated `parse_document()` helper and runtime canary,
 8. generated field-access parity canary over native edge metadata,
-9. typed AST extraction through typed CST,
-10. typed CST JSON, if needed.
+9. generated precedence enum field-access parity canary,
+10. typed AST extraction through typed CST,
+11. typed CST JSON, if needed.

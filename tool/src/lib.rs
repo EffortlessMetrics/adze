@@ -527,6 +527,49 @@ mod tests {
     }
 
     #[test]
+    fn enum_prec_left_preserves_fielded_inlined_operator() {
+        let m = if let syn::Item::Mod(m) = parse_quote! {
+            #[adze::grammar("test")]
+            mod grammar {
+                #[adze::language]
+                pub enum Expression {
+                    Number(
+                        #[adze::leaf(pattern = r"\d+", transform = |v: &str| v.parse::<i32>().unwrap())]
+                        i32
+                    ),
+                    #[adze::prec_left(1)]
+                    Add {
+                        #[adze::field("left")]
+                        left: Box<Expression>,
+                        #[adze::field("operator")]
+                        #[adze::leaf(text = "+", transform = |v| ())]
+                        operator: (),
+                        #[adze::field("right")]
+                        right: Box<Expression>,
+                    },
+                }
+            }
+        } {
+            m
+        } else {
+            panic!()
+        };
+
+        let grammar = generate_grammar(&m).expect("Failed to generate grammar");
+        let add_rule = &grammar["rules"]["Expression_Add"];
+
+        assert!(
+            contains_fielded_string(add_rule, "operator", "+"),
+            "precedence operator inlining should preserve explicit FIELD metadata"
+        );
+        generate_parser_for_grammar(
+            &serde_json::to_string(&grammar).unwrap(),
+            GENERATED_SEMANTIC_VERSION,
+        )
+        .unwrap();
+    }
+
+    #[test]
     fn grammar_with_extras() {
         let m = if let syn::Item::Mod(m) = parse_quote! {
             #[adze::grammar("test")]
@@ -590,6 +633,38 @@ mod tests {
             GENERATED_SEMANTIC_VERSION,
         )
         .unwrap();
+    }
+
+    fn contains_fielded_string(value: &serde_json::Value, field_name: &str, text: &str) -> bool {
+        let Some(object) = value.as_object() else {
+            return false;
+        };
+
+        if object.get("type").and_then(serde_json::Value::as_str) == Some("FIELD")
+            && object.get("name").and_then(serde_json::Value::as_str) == Some(field_name)
+            && object
+                .get("content")
+                .and_then(|content| content.get("type"))
+                .and_then(serde_json::Value::as_str)
+                == Some("STRING")
+            && object
+                .get("content")
+                .and_then(|content| content.get("value"))
+                .and_then(serde_json::Value::as_str)
+                == Some(text)
+        {
+            return true;
+        }
+
+        object.values().any(|child| {
+            if let Some(children) = child.as_array() {
+                children
+                    .iter()
+                    .any(|item| contains_fielded_string(item, field_name, text))
+            } else {
+                contains_fielded_string(child, field_name, text)
+            }
+        })
     }
 
     #[test]
