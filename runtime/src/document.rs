@@ -660,6 +660,11 @@ impl<'doc> AdzeNode<'doc> {
         self.child_edge(index).and_then(|edge| edge.field_name())
     }
 
+    /// Return the public field id for a child edge by index.
+    pub fn field_id_for_child(&self, index: usize) -> Option<FieldId> {
+        self.child_edge(index).and_then(|edge| edge.field_id())
+    }
+
     /// Return the first child edge attached through the given field name.
     pub fn edge_by_field_name(&self, field_name: &str) -> Option<AdzeEdge<'doc>> {
         self.child_edges()
@@ -669,6 +674,13 @@ impl<'doc> AdzeNode<'doc> {
     /// Return the first child attached through the given field name.
     pub fn child_by_field_name(&self, field_name: &str) -> Option<AdzeNode<'doc>> {
         self.edge_by_field_name(field_name)?.child()
+    }
+
+    /// Return the first child attached through the given public field id.
+    pub fn child_by_field_id(&self, field_id: FieldId) -> Option<AdzeNode<'doc>> {
+        self.child_edges()
+            .find(|edge| edge.field_id() == Some(field_id))?
+            .child()
     }
 
     /// Return whether this node is named according to language metadata.
