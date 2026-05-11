@@ -8,6 +8,7 @@ mod ci_plan;
 mod corpus;
 mod dashboard;
 mod debug_blocks;
+mod doctor;
 mod fixtures;
 mod golden;
 mod grammar_json;
@@ -148,6 +149,8 @@ enum Commands {
         #[arg(long, default_value = "5.0")]
         threshold: f64,
     },
+    /// Run local environment doctor checks (toolchain, targets, workspace)
+    Doctor,
     /// Run all lint checks (fmt -> no-mangle -> debug-block validator -> clippy)
     ///
     /// Examples:
@@ -370,6 +373,9 @@ fn main() -> Result<()> {
     let sh = Shell::new()?;
 
     match cli.command {
+        Commands::Doctor => {
+            doctor::run()?;
+        }
         Commands::GenerateGolden { grammar, force } => {
             golden::generate_golden(&sh, grammar, force)?;
         }
