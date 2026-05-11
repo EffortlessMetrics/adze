@@ -30,6 +30,7 @@ pub struct AdzeDocument {
     node_index: Vec<NodeIndex>,
     language: LanguageMetadata,
     diagnostics: Vec<ParseDiagnostic>,
+    ambiguities: Vec<crate::glr_parser::AmbiguitySummary>,
     metadata: ParseMetadata,
     pure_language: Option<&'static crate::pure_parser::TSLanguage>,
 }
@@ -60,6 +61,24 @@ impl AdzeDocument {
         runtime: DocumentRuntime<'_>,
         diagnostics: Vec<ParseDiagnostic>,
     ) -> Self {
+        Self::from_parse_result_with_diagnostics_and_ambiguities(
+            source,
+            root,
+            error_count,
+            runtime,
+            diagnostics,
+            Vec::new(),
+        )
+    }
+
+    pub(crate) fn from_parse_result_with_diagnostics_and_ambiguities(
+        source: &str,
+        root: ParseNode,
+        error_count: usize,
+        runtime: DocumentRuntime<'_>,
+        diagnostics: Vec<ParseDiagnostic>,
+        ambiguities: Vec<crate::glr_parser::AmbiguitySummary>,
+    ) -> Self {
         let node_index = build_node_index(&root);
         let mut diagnostics = diagnostics;
         attach_related_nodes(&root, &mut diagnostics);
@@ -73,6 +92,7 @@ impl AdzeDocument {
                 runtime.parse_table,
             ),
             diagnostics,
+            ambiguities,
             metadata: ParseMetadata { error_count },
             pure_language: runtime.pure_language,
         }
@@ -91,6 +111,15 @@ impl AdzeDocument {
     /// Return structured diagnostics recorded for this parse.
     pub fn diagnostics(&self) -> &[ParseDiagnostic] {
         &self.diagnostics
+    }
+
+    /// Return GLR ambiguity summaries recorded for this document.
+    ///
+    /// The alpha document path records summaries only when generated
+    /// `parse_document()` routes through the true-GLR runtime. Conflict-free
+    /// documents return an empty slice.
+    pub fn ambiguities(&self) -> &[crate::glr_parser::AmbiguitySummary] {
+        &self.ambiguities
     }
 
     /// Return parse metadata recorded for this document.
