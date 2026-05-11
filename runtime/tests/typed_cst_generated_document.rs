@@ -56,10 +56,7 @@ fn generated_parse_document_diagnostics_preserve_expected_tokens() {
         .first()
         .expect("parse_document should expose a structured diagnostic");
 
-    assert_eq!(
-        diagnostic.start_byte..diagnostic.end_byte,
-        parse_error.byte_span()
-    );
+    assert_eq!(diagnostic.byte_span(), parse_error.byte_span());
     let source_span = parse_error.source_span(source.as_bytes());
     assert_eq!(
         diagnostic.point_range.start.row as usize + 1,
@@ -95,6 +92,16 @@ fn generated_parse_document_diagnostics_preserve_expected_tokens() {
         "document diagnostic should not expose raw symbol internals: {}",
         diagnostic.message
     );
+
+    let rendered = diagnostic.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("at 1:4 (bytes 3..3)"),
+        "document diagnostic display should include one-indexed location and byte span: {rendered}"
+    );
+    assert!(
+        rendered.contains("1 +\n   ^"),
+        "document diagnostic display should include source context and EOF marker: {rendered}"
+    );
 }
 
 #[test]
@@ -113,10 +120,7 @@ fn generated_parse_document_diagnostics_include_multiline_point_range() {
         .first()
         .expect("parse_document should expose a structured multiline diagnostic");
 
-    assert_eq!(
-        diagnostic.start_byte..diagnostic.end_byte,
-        parse_error.byte_span()
-    );
+    assert_eq!(diagnostic.byte_span(), parse_error.byte_span());
     assert_eq!(diagnostic.point_range.start.row, 1);
     assert_eq!(diagnostic.point_range.start.column, 0);
     assert_eq!(diagnostic.point_range.end.row, 1);
@@ -138,6 +142,16 @@ fn generated_parse_document_diagnostics_include_multiline_point_range() {
     assert_eq!(
         diagnostic.point_range.end.column as usize + 1,
         source_span.end.column
+    );
+
+    let rendered = diagnostic.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("at 2:1 (bytes 4..5)"),
+        "document diagnostic display should include multiline location and byte span: {rendered}"
+    );
+    assert!(
+        rendered.contains("@\n^"),
+        "document diagnostic display should include the offending source line and marker: {rendered}"
     );
 }
 

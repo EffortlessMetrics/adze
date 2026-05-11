@@ -194,7 +194,10 @@ pub struct ParseDiagnostic {
 }
 ```
 
-Text rendering is a view over this data, not the canonical representation.
+Text rendering is a view over this data, not the canonical representation. The
+alpha runtime exposes `ParseDiagnostic::display_with_source(source)` for
+source-context rendering while keeping byte spans, point ranges, expected
+symbols, and found symbols as the document facts.
 
 ### GLR Ambiguity
 
@@ -320,8 +323,8 @@ API direction so implementation PRs can stay small and reviewable:
 5. generated parser-module typed CST wiring,
 6. generated `parse_document()` helper and typed CST runtime canary,
 7. generated `parse_document()` diagnostics that preserve expected/found token
-   names, byte spans, zero-based point ranges, and partial document facts for
-   truncated or multiline bad source,
+   names, byte spans, zero-based point ranges, source-context display, and
+   partial document facts for truncated or multiline bad source,
 8. typed AST provenance,
 9. GLR ambiguity summaries,
 10. schema-versioned CLI/WASM outputs.
