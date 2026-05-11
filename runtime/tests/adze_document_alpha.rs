@@ -148,6 +148,22 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(expression.field_name_for_child(0), Some("left"));
     assert_eq!(expression.field_name_for_child(1), Some("operator"));
     assert_eq!(expression.field_name_for_child(2), Some("right"));
+    let left_field_id = document
+        .language()
+        .field_id_for_name("left")
+        .expect("left field should resolve");
+    let operator_field_id = document
+        .language()
+        .field_id_for_name("operator")
+        .expect("operator field should resolve");
+    let right_field_id = document
+        .language()
+        .field_id_for_name("right")
+        .expect("right field should resolve");
+    assert_eq!(expression.field_id_for_child(0), Some(left_field_id));
+    assert_eq!(expression.field_id_for_child(1), Some(operator_field_id));
+    assert_eq!(expression.field_id_for_child(2), Some(right_field_id));
+    assert_eq!(expression.field_id_for_child(3), None);
     assert!(expression.child_edge(3).is_none());
     assert!(expression.edge_by_field_name("missing").is_none());
     assert!(expression.child_by_field_name("missing").is_none());
@@ -180,6 +196,27 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
             .expect("operator field should resolve")
             .node_id(),
         operator.node_id()
+    );
+    assert_eq!(
+        expression
+            .child_by_field_id(left_field_id)
+            .expect("left field id should resolve")
+            .node_id(),
+        left.node_id()
+    );
+    assert_eq!(
+        expression
+            .child_by_field_id(operator_field_id)
+            .expect("operator field id should resolve")
+            .node_id(),
+        operator.node_id()
+    );
+    assert_eq!(
+        expression
+            .child_by_field_id(right_field_id)
+            .expect("right field id should resolve")
+            .node_id(),
+        right.node_id()
     );
     assert_ne!(left.node_id(), operator.node_id());
     assert_ne!(operator.node_id(), right.node_id());
