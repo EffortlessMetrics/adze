@@ -1,6 +1,6 @@
 # Correctness Push Plan
 
-**Last updated:** 2026-05-10
+**Last updated:** 2026-05-11
 **Scope:** current parser/runtime, GLR, tablegen ABI, CLI, and product-proof convergence.
 
 This is the execution playbook for moving Adze from "bounded core lane is green" to "the product claims are behavior-proven." It is intentionally narrower than a roadmap: keep the required lane bounded, land focused correctness work only when it has receipts, and track remaining product gaps without hiding them inside broad policy or infrastructure PRs.
@@ -12,7 +12,7 @@ This is the execution playbook for moving Adze from "bounded core lane is green"
 - The broader product lane is advisory until each canary proves real behavior instead of only compile/no-run smoke.
 - README-stable claims must map to a proof command in `docs/status/SUPPORT_TIERS.md`.
 - Runtime2 remains an experimental proving ground unless a later promotion plan gives it required behavior tests and a public support contract.
-- Live GitHub state is the execution baseline. As of 2026-05-10, the correctness PR queue is empty after refreshing with `gh pr list --state open --limit 20 --json number,title,isDraft,headRefName,updatedAt,url`.
+- Live GitHub state is the execution baseline. As of 2026-05-11, the correctness PR queue is empty after refreshing with `gh pr list --state open --limit 20 --json number,title,isDraft,headRefName,updatedAt,url`.
 
 ## Live-State Refresh
 
@@ -58,6 +58,7 @@ The post-queue work is tracked as focused issues instead of broad catch-all impl
 - [#463](https://github.com/EffortlessMetrics/adze/issues/463) Parse diagnostics: spans, expected token sets, line/column mapping, excerpts, no panic.
 - [#464](https://github.com/EffortlessMetrics/adze/issues/464) CLI clean-room quickstart and parse command truthfulness — closed after behavior canaries landed; reopen or replace only for new CLI parser behavior work.
 - [#465](https://github.com/EffortlessMetrics/adze/issues/465) README/support-tier reconciliation — closed after the proof map and stable product lane landed; keep the invariant in future docs edits.
+- [#629](https://github.com/EffortlessMetrics/adze/pull/629), [#630](https://github.com/EffortlessMetrics/adze/pull/630), and [#631](https://github.com/EffortlessMetrics/adze/pull/631) extended the stable quickstart proof to a checked-in downstream demo, the Getting Started tutorial, and tutorial bad-input diagnostics.
 - [#73](https://github.com/EffortlessMetrics/adze/issues/73) and [#75](https://github.com/EffortlessMetrics/adze/issues/75) Benchmark truthfulness: real parser work vs infrastructure-only measurements.
 
 ## Native Product Contract Lane
@@ -120,7 +121,7 @@ just ci-supported
 just ci-product-stable
 ```
 
-The stable product lane covers README stable proof-map alignment, a clean-room README quickstart, typed extraction exact-value and repeated-parse determinism tests, operator precedence, serialization doctests, and serialization roundtrip canaries. GLR ambiguity and structured parse-error diagnostics remain in the broader advisory lane until those surfaces graduate from Stabilizing.
+The stable product lane covers README stable proof-map alignment, clean-room README and Getting Started quickstarts, the checked-in downstream demo, typed extraction exact-value and repeated-parse determinism tests, operator precedence, serialization doctests, and serialization roundtrip canaries. GLR ambiguity and broad structured parse-error diagnostics remain in the wider advisory lane until those surfaces graduate from Stabilizing.
 
 Rung 3 remains scheduled/manual: full workspace all-features, fuzzing, Miri, sanitizers, benchmarks, grammar corpus, runtime2, and browser WASM execution.
 
