@@ -6,6 +6,9 @@
 # Or:  JUST_TEMPDIR=/tmp/just just <recipe>
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+# Git for Windows installs Bash here, but does not always put it on PATH for
+# PowerShell-launched tools. Keep just recipes usable from a clean Windows shell.
+set windows-shell := ["C:\\Program Files\\Git\\bin\\bash.exe", "-eu", "-o", "pipefail", "-c"]
 
 # Format all code
 fmt:
