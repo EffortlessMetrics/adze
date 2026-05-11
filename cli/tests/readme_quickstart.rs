@@ -213,6 +213,106 @@ fn getting_started_bad_input_reports_useful_diagnostic() {
 }
 
 #[test]
+fn book_quickstart_builds_parses_and_reports_diagnostics() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_dir = temp.path().join("adze_book_quickstart");
+    fs::create_dir_all(project_dir.join("src")).expect("create src");
+    fs::create_dir_all(project_dir.join("tests")).expect("create tests");
+
+    let repo_root = repo_root();
+    let runtime_path = toml_path(repo_root.join("runtime"));
+    let tool_path = toml_path(repo_root.join("tool"));
+    let quickstart = include_str!("../../book/src/getting-started/quickstart.md");
+    let manifest_snippet = fenced_block_after(quickstart, "## Installation", "toml")
+        .expect("Book quickstart should include a TOML dependency block");
+    let build_rs = fenced_block_after(quickstart, "Create `build.rs`", "rust")
+        .expect("Book quickstart should include a build.rs block");
+    let lib_rs = fenced_block_after(quickstart, "Create `src/lib.rs`", "rust")
+        .expect("Book quickstart should include a src/lib.rs block");
+
+    fs::write(
+        project_dir.join("Cargo.toml"),
+        book_downstream_manifest(manifest_snippet, &runtime_path, &tool_path),
+    )
+    .expect("write Cargo.toml");
+
+    fs::write(project_dir.join("build.rs"), build_rs).expect("write build.rs");
+    fs::write(project_dir.join("src/lib.rs"), lib_rs).expect("write lib.rs");
+    fs::write(
+        project_dir.join("tests/book_quickstart.rs"),
+        r#"use adze_book_quickstart::grammar::{self, Expr};
+
+#[test]
+fn book_expression_respects_precedence() {
+    let expr = grammar::parse("1 + 2 * 3").expect("book expression should parse");
+
+    assert_eq!(
+        expr,
+        Expr::Add(
+            Box::new(Expr::Number(1)),
+            (),
+            Box::new(Expr::Mul(
+                Box::new(Expr::Number(2)),
+                (),
+                Box::new(Expr::Number(3)),
+            )),
+        )
+    );
+}
+
+#[test]
+fn book_bad_input_reports_useful_diagnostic() {
+    let source = "1 + @";
+    let errors = grammar::parse(source).expect_err("bad book input should fail clearly");
+    let first = errors
+        .first()
+        .expect("bad book input should produce at least one parse error");
+
+    assert_eq!(
+        first.byte_span(),
+        4..5,
+        "diagnostic should point at the invalid token"
+    );
+    assert!(
+        first.expected.iter().any(|name| name == r"/\d+/"),
+        "diagnostic should name the expected number token, got {:?}",
+        first.expected
+    );
+
+    let rendered = first.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("bytes 4..5"),
+        "rendered diagnostic should include the byte span: {rendered}"
+    );
+    assert!(
+        rendered.contains("expected one of:"),
+        "rendered diagnostic should include expected-token context: {rendered}"
+    );
+    assert!(
+        rendered.contains("    ^"),
+        "rendered diagnostic should place a caret under the invalid token: {rendered}"
+    );
+}
+"#,
+    )
+    .expect("write book quickstart tests");
+
+    let output = Command::new("cargo")
+        .arg("test")
+        .arg("--quiet")
+        .current_dir(&project_dir)
+        .output()
+        .expect("run cargo test in Book quickstart crate");
+
+    assert!(
+        output.status.success(),
+        "Book quickstart crate should build, parse, and report diagnostics through the documented public API\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
 fn readme_stable_claims_are_in_stable_product_lane() {
     let readme = include_str!("../../README.md");
     let support_tiers = include_str!("../../docs/status/SUPPORT_TIERS.md");
@@ -239,6 +339,37 @@ fn readme_stable_claims_are_in_stable_product_lane() {
             "README Stable proof command must be present in scripts/ci-product-stable.sh:\n{command}"
         );
     }
+}
+
+fn book_downstream_manifest(readme_toml: &str, runtime_path: &str, tool_path: &str) -> String {
+    assert!(
+        readme_toml.contains(r#"adze = { version = "0.8.0-dev", default-features = false }"#),
+        "Book quickstart install block should document the adze runtime dependency"
+    );
+    assert!(
+        readme_toml.contains(r#"adze-tool = "0.8.0-dev""#),
+        "Book quickstart install block should document the adze-tool build dependency"
+    );
+
+    let dependencies = readme_toml
+        .replace(
+            r#"adze = { version = "0.8.0-dev", default-features = false }"#,
+            &format!(r#"adze = {{ path = "{runtime_path}", default-features = false }}"#),
+        )
+        .replace(
+            r#"adze-tool = "0.8.0-dev""#,
+            &format!(r#"adze-tool = {{ path = "{tool_path}" }}"#),
+        );
+
+    format!(
+        r#"[package]
+name = "adze_book_quickstart"
+version = "0.1.0"
+edition = "2024"
+
+{dependencies}
+"#
+    )
 }
 
 fn tutorial_downstream_manifest(readme_toml: &str, runtime_path: &str, tool_path: &str) -> String {
