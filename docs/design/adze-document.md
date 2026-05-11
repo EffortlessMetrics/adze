@@ -197,7 +197,10 @@ pub struct ParseDiagnostic {
 Text rendering is a view over this data, not the canonical representation. The
 alpha runtime exposes `ParseDiagnostic::display_with_source(source)` for
 source-context rendering while keeping byte spans, point ranges, expected
-symbols, and found symbols as the document facts.
+symbols, found symbols, and related document node IDs as the document facts.
+`AdzeDocument::diagnostics_for_node(...)` and `AdzeNode::diagnostics()` expose
+the same related-node mapping from the tree side without forcing callers to scan
+all diagnostics manually.
 
 ### GLR Ambiguity
 
@@ -327,6 +330,7 @@ API direction so implementation PRs can stay small and reviewable:
    names, byte spans, zero-based point ranges, source-context display, and
    partial document facts for truncated or multiline bad source,
 8. diagnostic related-node IDs that resolve back into the same document tree,
-9. typed AST provenance,
-10. GLR ambiguity summaries,
-11. schema-versioned CLI/WASM outputs.
+9. document/node diagnostic lookup over related-node IDs,
+10. typed AST provenance,
+11. GLR ambiguity summaries,
+12. schema-versioned CLI/WASM outputs.

@@ -113,6 +113,16 @@ impl AdzeDocument {
         self.source.get(range)
     }
 
+    /// Return diagnostics directly related to a document-local node id.
+    pub fn diagnostics_for_node(
+        &self,
+        node_id: NodeId,
+    ) -> impl Iterator<Item = &ParseDiagnostic> + '_ {
+        self.diagnostics
+            .iter()
+            .filter(move |diagnostic| diagnostic.related_nodes.contains(&node_id))
+    }
+
     #[cfg(feature = "ts-compat")]
     pub(crate) fn root_parse_node(&self) -> &ParseNode {
         &self.root
@@ -737,6 +747,15 @@ impl<'doc> AdzeNode<'doc> {
                     .map(|child| child.has_error())
                     .unwrap_or(false)
             })
+    }
+
+    /// Return diagnostics directly related to this node.
+    pub fn diagnostics(&self) -> impl Iterator<Item = &'doc ParseDiagnostic> + 'doc {
+        let node_id = self.id;
+        self.document
+            .diagnostics
+            .iter()
+            .filter(move |diagnostic| diagnostic.related_nodes.contains(&node_id))
     }
 }
 
