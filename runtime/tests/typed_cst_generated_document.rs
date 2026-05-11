@@ -60,6 +60,23 @@ fn generated_parse_document_diagnostics_preserve_expected_tokens() {
         diagnostic.start_byte..diagnostic.end_byte,
         parse_error.byte_span()
     );
+    let source_span = parse_error.source_span(source.as_bytes());
+    assert_eq!(
+        diagnostic.point_range.start.row as usize + 1,
+        source_span.start.line
+    );
+    assert_eq!(
+        diagnostic.point_range.start.column as usize + 1,
+        source_span.start.column
+    );
+    assert_eq!(
+        diagnostic.point_range.end.row as usize + 1,
+        source_span.end.line
+    );
+    assert_eq!(
+        diagnostic.point_range.end.column as usize + 1,
+        source_span.end.column
+    );
     assert_eq!(diagnostic.expected, parse_error.expected);
     assert!(
         diagnostic.expected.iter().any(|token| token == r"/\d+/"),
@@ -77,6 +94,50 @@ fn generated_parse_document_diagnostics_preserve_expected_tokens() {
             && !diagnostic.message.contains("_4"),
         "document diagnostic should not expose raw symbol internals: {}",
         diagnostic.message
+    );
+}
+
+#[test]
+fn generated_parse_document_diagnostics_include_multiline_point_range() {
+    let source = "1 +\n@";
+    let document = adze_example::typed_ast_contract::grammar::parse_document(source)
+        .expect("generated parse_document helper should return multiline partial parse facts");
+    let parse_error = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("multiline invalid token should fail through the typed AST parser")
+        .into_iter()
+        .next()
+        .expect("typed AST parser should report at least one multiline error");
+
+    let diagnostic = document
+        .diagnostics()
+        .first()
+        .expect("parse_document should expose a structured multiline diagnostic");
+
+    assert_eq!(
+        diagnostic.start_byte..diagnostic.end_byte,
+        parse_error.byte_span()
+    );
+    assert_eq!(diagnostic.point_range.start.row, 1);
+    assert_eq!(diagnostic.point_range.start.column, 0);
+    assert_eq!(diagnostic.point_range.end.row, 1);
+    assert_eq!(diagnostic.point_range.end.column, 1);
+
+    let source_span = parse_error.source_span(source.as_bytes());
+    assert_eq!(
+        diagnostic.point_range.start.row as usize + 1,
+        source_span.start.line
+    );
+    assert_eq!(
+        diagnostic.point_range.start.column as usize + 1,
+        source_span.start.column
+    );
+    assert_eq!(
+        diagnostic.point_range.end.row as usize + 1,
+        source_span.end.line
+    );
+    assert_eq!(
+        diagnostic.point_range.end.column as usize + 1,
+        source_span.end.column
     );
 }
 

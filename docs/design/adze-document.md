@@ -320,7 +320,8 @@ API direction so implementation PRs can stay small and reviewable:
 5. generated parser-module typed CST wiring,
 6. generated `parse_document()` helper and typed CST runtime canary,
 7. generated `parse_document()` diagnostics that preserve expected/found token
-   names and partial document facts for truncated source,
+   names, byte spans, zero-based point ranges, and partial document facts for
+   truncated or multiline bad source,
 8. typed AST provenance,
 9. GLR ambiguity summaries,
 10. schema-versioned CLI/WASM outputs.
