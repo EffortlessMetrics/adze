@@ -12,6 +12,7 @@ CANARIES=(
   "adze typed AST repeated-parse determinism|behavior|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture"
   "adze GLR ambiguous typed extraction|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture"
   "adze GLR multi-conflict selection determinism|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_multi_conflict_selection_is_deterministic -- --exact --nocapture"
+  "adze GLR generated alternatives retention|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_glr_runtime_retains_multiple_complete_alternatives -- --exact --nocapture"
   "adze GLR generated parser bad-input no-panic guardrail|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_glr_parser_bad_inputs_return_errors_without_panicking -- --exact --nocapture"
   "adze GLR generated conflict preservation|behavior|cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_conflict_generation -- --exact --nocapture"
   "adze GLR nested fork conflict inspection|behavior|cargo test -p adze-glr-core --test conflict_inspection_comprehensive nested_fork_conflict_cells_are_detected -- --exact --nocapture"
