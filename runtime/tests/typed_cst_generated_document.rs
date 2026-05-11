@@ -244,6 +244,40 @@ fn generated_typed_cst_wrappers_cast_generic_document_nodes() {
 }
 
 #[test]
+fn generated_typed_cst_wrappers_share_document_point_ranges() {
+    let source = "1+\n2+3";
+    let document = adze_example::typed_ast_contract::grammar::parse_document(source)
+        .expect("generated parse_document helper should return a multiline AdzeDocument");
+    let root = document.tree().root();
+    let syntax = adze_example::typed_ast_contract::grammar::syntax::source_file(&document)
+        .expect("generated source_file wrapper should cast the generic root");
+
+    assert_eq!(syntax.point_range(), Some(root.point_range()));
+    assert_eq!(root.point_range().start.row, 0);
+    assert_eq!(root.point_range().start.column, 0);
+    assert_eq!(root.point_range().end.row, 1);
+    assert_eq!(root.point_range().end.column, 3);
+
+    let second_number =
+        find_node(root, "/\\d+/", "2").expect("generic CST should contain the second-line token");
+    let wrapper = adze_example::typed_ast_contract::grammar::syntax::DToken::cast(
+        &document,
+        second_number.node_id(),
+    )
+    .expect("generated number token wrapper should cast the matching generic node");
+    let point_range = wrapper
+        .point_range()
+        .expect("typed CST wrapper should expose the generic node point range");
+
+    assert_same_node(wrapper, second_number);
+    assert_eq!(point_range, second_number.point_range());
+    assert_eq!(point_range.start.row, 1);
+    assert_eq!(point_range.start.column, 0);
+    assert_eq!(point_range.end.row, 1);
+    assert_eq!(point_range.end.column, 1);
+}
+
+#[test]
 fn generated_typed_cst_field_accessors_project_native_edges() {
     let source = "123+";
     let document = adze_example::fielded_typed_cst_contract::grammar::parse_document(source)
@@ -346,6 +380,7 @@ fn assert_same_node<'doc>(wrapper: impl SyntaxNode<'doc>, node: adze::document::
     assert_eq!(wrapper.node_id(), node.node_id());
     assert_eq!(wrapper.kind_name(), node.kind_name());
     assert_eq!(wrapper.byte_range(), Some(node.byte_range()));
+    assert_eq!(wrapper.point_range(), Some(node.point_range()));
     assert_eq!(wrapper.text(), node.utf8_text().ok());
 }
 
