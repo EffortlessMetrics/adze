@@ -126,6 +126,7 @@ Current canaries:
 - `adze-tablegen` sparse production LHS ABI preservation — **behavior** (`cargo test -p adze-tablegen --test production_id_comprehensive edge_sparse_production_ids_emit_dense_production_lhs_index -- --exact --nocapture`)
 - README arithmetic quickstart clean-room parse and diagnostics — **behavior** (`cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`)
 - Getting Started quickstart clean-room parse and diagnostics — **behavior** (`cargo test -p adze-cli getting_started_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture`)
+- Book quickstart clean-room parse and diagnostics — **behavior** (`cargo test -p adze-cli book_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture`)
 - Checked-in downstream quickstart sample — **behavior** (`cargo test -p downstream-demo -- --nocapture`)
 - `adze` typed AST repeated-parse determinism — **behavior** (`cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture`)
 - `adze-cli` default-cwd init/check smoke — **behavior** (`cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture`)

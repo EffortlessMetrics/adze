@@ -74,6 +74,7 @@ CANARIES=(
   "adze ts_compat missing-node guardrail|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_error generated_tree_reports_zero_width_error_root_as_missing -- --exact --nocapture"
   "adze ts_compat S-expression output|behavior|cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_to_sexp -- --nocapture"
   "README arithmetic quickstart clean-room parse and diagnostics|behavior|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
+  "Book quickstart clean-room parse and diagnostics|behavior|cargo test -p adze-cli book_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture"
   "adze-cli default-cwd init/check smoke|behavior|cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture"
   "adze-cli clean-room init dependency smoke|behavior|cargo test -p adze-cli test_init_cargo_toml_references_adze_dependency -- --exact --nocapture"
   "adze-cli check rejects non-grammar rust file|behavior|cargo test -p adze-cli test_check_rejects_file_without_adze_grammar -- --exact --nocapture"

@@ -14,6 +14,7 @@ CANARIES=(
   "typed extraction repeated-parse determinism|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture"
   "README quickstart clean-room parse and diagnostics|cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture"
   "Getting Started quickstart clean-room parse and diagnostics|cargo test -p adze-cli getting_started_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture"
+  "Book quickstart clean-room parse and diagnostics|cargo test -p adze-cli book_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture"
   "checked-in downstream quickstart sample|cargo test -p downstream-demo -- --nocapture"
   "operator precedence core shape|cargo test -p adze-glr-core --test ambiguity_detection_comprehensive test_precedence_resolves_add_mul -- --exact --nocapture"
   "core parse-table serialization doctests|cargo test -p adze-glr-core --features serialization --doc"
