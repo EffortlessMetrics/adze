@@ -50,6 +50,36 @@ fn typed_ast_contract_parse_document_ast_matches_parse() {
 }
 
 #[test]
+fn typed_ast_contract_parse_document_ast_records_extraction_provenance() {
+    let source = "1 + 2 + 3";
+    let expected = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect("baseline parse should succeed");
+    let document = adze_example::typed_ast_contract::grammar::parse_document(source)
+        .expect("document parse should succeed");
+
+    let typed_ast = document
+        .ast_with_provenance::<adze_example::typed_ast_contract::grammar::Expr>()
+        .expect("document should extract typed AST with provenance");
+
+    assert_eq!(typed_ast.value(), &expected);
+
+    let adze::document::Provenance::Node(node_id) = typed_ast.provenance() else {
+        panic!("alpha typed AST provenance should point at a document node");
+    };
+    let node = document
+        .tree()
+        .node(*node_id)
+        .expect("provenance node id should resolve in the same document");
+
+    assert_eq!(node.kind_name(), Some("Expr"));
+    assert_eq!(
+        node.utf8_text()
+            .expect("provenance node should cover valid UTF-8 source"),
+        source
+    );
+}
+
+#[test]
 fn typed_ast_contract_parse_document_ast_reports_document_diagnostics() {
     let source = "1 +";
     let document = adze_example::typed_ast_contract::grammar::parse_document(source)
