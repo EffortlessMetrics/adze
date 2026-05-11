@@ -329,6 +329,63 @@ pub struct ParseDiagnostic {
     pub message: String,
 }
 
+impl ParseDiagnostic {
+    /// Return the byte span covered by this diagnostic.
+    #[must_use]
+    pub fn byte_span(&self) -> Range<usize> {
+        self.start_byte..self.end_byte
+    }
+
+    /// Return a formatter that includes source location and context.
+    #[must_use]
+    pub fn display_with_source<'a>(&'a self, source: &'a str) -> ParseDiagnosticWithSource<'a> {
+        ParseDiagnosticWithSource {
+            diagnostic: self,
+            source,
+        }
+    }
+}
+
+impl std::fmt::Display for ParseDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} at {}:{} (bytes {}..{})",
+            self.message,
+            self.point_range.start.row + 1,
+            self.point_range.start.column + 1,
+            self.start_byte,
+            self.end_byte
+        )
+    }
+}
+
+/// Display helper returned by [`ParseDiagnostic::display_with_source`].
+pub struct ParseDiagnosticWithSource<'a> {
+    diagnostic: &'a ParseDiagnostic,
+    source: &'a str,
+}
+
+impl std::fmt::Display for ParseDiagnosticWithSource<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.diagnostic)?;
+
+        if let Some(line) = source_line(self.source, self.diagnostic.start_byte) {
+            let range = self.diagnostic.point_range;
+            let marker_width = if range.start.row == range.end.row {
+                range.end.column.saturating_sub(range.start.column).max(1)
+            } else {
+                1
+            };
+            let marker =
+                " ".repeat(range.start.column as usize) + &"^".repeat(marker_width as usize);
+            write!(f, "\n{line}\n{marker}")?;
+        }
+
+        Ok(())
+    }
+}
+
 /// A zero-based source point in a native parse document.
 ///
 /// Columns are byte offsets within a row, matching Tree-sitter's point model.
@@ -750,6 +807,26 @@ fn first_error_span(node: &ParseNode) -> Option<Range<usize>> {
     }
 
     node.children.iter().find_map(first_error_span)
+}
+
+fn source_line(source: &str, byte_offset: usize) -> Option<&str> {
+    if source.is_empty() {
+        return None;
+    }
+
+    let bytes = source.as_bytes();
+    let offset = byte_offset.min(bytes.len());
+    let mut start = offset;
+    while start > 0 && bytes[start - 1] != b'\n' && bytes[start - 1] != b'\r' {
+        start -= 1;
+    }
+
+    let mut end = offset;
+    while end < bytes.len() && bytes[end] != b'\n' && bytes[end] != b'\r' {
+        end += 1;
+    }
+
+    source.get(start..end)
 }
 
 fn build_node_index(root: &ParseNode) -> Vec<NodeIndex> {
