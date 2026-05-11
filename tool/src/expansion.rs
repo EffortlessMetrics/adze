@@ -658,6 +658,12 @@ fn gen_struct_or_variant(
                     }
                 });
 
+                let field_name = field
+                    .attrs
+                    .iter()
+                    .find(|attr| attr.path() == &syn::parse_quote!(adze::field))
+                    .and_then(|attr| attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value()));
+
                 // Try to inline operator fields for precedence (only if this variant has precedence)
                 let inlined_operator = if is_operator_field && has_precedence {
                     field
@@ -705,17 +711,16 @@ fn gen_struct_or_variant(
                 };
 
                 if let Some(operator) = inlined_operator {
-                    Some(operator)
+                    if let Some(field_name) = field_name {
+                        Some(json!({
+                            "type": "FIELD",
+                            "name": field_name,
+                            "content": operator
+                        }))
+                    } else {
+                        Some(operator)
+                    }
                 } else {
-                    // Check for #[adze::field("name")] attribute
-                    let field_name = field
-                        .attrs
-                        .iter()
-                        .find(|attr| attr.path() == &syn::parse_quote!(adze::field))
-                        .and_then(|attr| {
-                            attr.parse_args::<syn::LitStr>().ok().map(|lit| lit.value())
-                        });
-
                     let ident_str = field_name.unwrap_or_else(|| {
                         field
                             .ident
