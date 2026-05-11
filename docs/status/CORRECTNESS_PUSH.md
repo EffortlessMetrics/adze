@@ -79,7 +79,8 @@ Keep implementation slices small:
 
 1. Minimal `AdzeDocument` alpha now exists for `tree()`, document-local node
    IDs/lookups, explicit raw-symbol `NodeIdentity` slots for future
-   visible-vs-grammar identity projection, edge/parent lookup,
+   visible-vs-grammar identity projection, explicit `NodeFlags` for the current
+   named/visible/extra/token/error/missing/aggregate-error state, edge/parent lookup,
    language/node-kind metadata, `diagnostics()`, `metadata()`, and
    `ts_compat::Tree::from_document()` over the same parse data. Keep expanding
    it in small proof-backed slices.
