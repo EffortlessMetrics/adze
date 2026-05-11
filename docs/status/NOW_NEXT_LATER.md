@@ -16,7 +16,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 - [x] PR [#264](https://github.com/EffortlessMetrics/adze/pull/264) merged on 2026-04-03 as commit `2a88deb6e6095682051729290987a78a0565d613`.
 - [x] The temporary convergence worktrees/branches used for the PR stack were cleaned up.
 - [x] A safety archive of the pre-cleanup dirty checkout was preserved outside `/tmp`.
-- [x] Issue #268 worktree cleanup documentation and validation is now documented and backed by a helper script.
+- [x] Issue #268 worktree cleanup documentation and validation is documented in the developer guide and backed by a helper script.
 
 ### ✅ Prior close-out state
 - [x] PR `#280` (workflow hardening) merged on 2026-04-06.
@@ -44,7 +44,7 @@ Adze status and rolling execution plan. For recurring pain points, see [`docs/st
 
 ### Operational tail
 - [x] [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269): pure-rust benchmark-compilation tail is removed from routine PRs; benchmark compile/performance signal remains in explicit performance and benchmark lanes.
-- [ ] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): Worktree cleanup script exists (`scripts/cleanup-worktrees.sh`); contributor documentation still needs finishing.
+- [x] [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268): Worktree cleanup script exists (`scripts/cleanup-worktrees.sh`), `just` exposes list/prune helpers, and contributor guidance documents linked-worktree vs standalone-clone cleanup.
 - [ ] Investigate the current rustdoc-only `Documentation` lane failure separately from reader-facing markdown/status drift.
 
 ---

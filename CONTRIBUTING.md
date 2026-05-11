@@ -231,6 +231,8 @@ Example flow:
 ./scripts/cleanup-worktrees.sh prune-stale
 ```
 
+On Windows PowerShell, prefer `just worktree-list` and `just worktree-prune-stale` for the common paths. Run direct script calls from Git Bash or another shell where `bash` is on `PATH`.
+
 Use `rm -rf` only for standalone temporary clones that are no longer registered.
 
 ## Architecture Overview

@@ -29,7 +29,7 @@ fi
 resolve_path() {
   local path="$1"
   local candidate
-  if [[ "$path" = /* ]]; then
+  if [[ "$path" = /* || "$path" =~ ^[A-Za-z]:[/\\] ]]; then
     candidate="$path"
   else
     candidate="$repo_root/$path"
@@ -129,16 +129,34 @@ status_path() {
 }
 
 stale_worktrees() {
-  local line worktree_path found=0
+  local line worktree_path="" prunable_reason="" found=0
+  flush_stale_record() {
+    if [[ -z "$worktree_path" ]]; then
+      return
+    fi
+    if [[ -n "$prunable_reason" ]]; then
+      echo "  $worktree_path ($prunable_reason)"
+      found=1
+    elif [[ ! -d "$worktree_path" ]]; then
+      echo "  $worktree_path (missing on disk)"
+      found=1
+    fi
+  }
+
   while IFS= read -r line; do
     if [[ "$line" == worktree* ]]; then
+      flush_stale_record
       worktree_path="${line#worktree }"
-      if [[ ! -d "$worktree_path" ]]; then
-        echo "  $worktree_path"
-        found=1
-      fi
+      prunable_reason=""
+    elif [[ "$line" == prunable* ]]; then
+      prunable_reason="${line#prunable }"
+    elif [[ -z "$line" ]]; then
+      flush_stale_record
+      worktree_path=""
+      prunable_reason=""
     fi
   done < <(worktree_records)
+  flush_stale_record
 
   if [[ "$found" == 0 ]]; then
     echo "  none"

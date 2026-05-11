@@ -97,4 +97,4 @@ Target outcome:
 - ✅ `main` stayed green on the supported lane throughout follow-up work.
 - ✅ Backend-selection expectations stabilized via `ParserBackendSelection` in `adze-parser-backend-core` (issue #267 closed).
 - ✅ Windows pure-rust CI benchmark tail gated to `-p adze --no-run` on Windows (PRs #276/#280 merged; issue #269 open for further trimming).
-- ✅ Temporary worktree cleanup is documented and reproducible via `scripts/cleanup-worktrees.sh` (issue #268 open for contributor guide finishing).
+- ✅ Temporary worktree cleanup is documented in contributor guidance and reproducible via `scripts/cleanup-worktrees.sh` plus `just` helper targets (issue #268 ready for closeout after merge).
