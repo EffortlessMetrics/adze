@@ -1470,9 +1470,8 @@ dependencies = [
 name = "downstream-demo"
 version = "0.1.0"
 dependencies = [
- "adze-glr-core",
- "adze-ir",
- "adze-tablegen",
+ "adze",
+ "adze-tool",
 ]
 
 [[package]]
