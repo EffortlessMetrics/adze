@@ -117,10 +117,11 @@ fn readme_bad_input_reports_useful_diagnostic() {
 }
 
 #[test]
-fn getting_started_quickstart_builds_and_runs() {
+fn getting_started_quickstart_builds_parses_and_reports_diagnostics() {
     let temp = tempfile::tempdir().expect("tempdir");
     let project_dir = temp.path().join("adze_getting_started_quickstart");
     fs::create_dir_all(project_dir.join("src")).expect("create src");
+    fs::create_dir_all(project_dir.join("tests")).expect("create tests");
 
     let repo_root = repo_root();
     let runtime_path = toml_path(repo_root.join("runtime"));
@@ -141,6 +142,60 @@ fn getting_started_quickstart_builds_and_runs() {
 
     fs::write(project_dir.join("build.rs"), build_rs).expect("write build.rs");
     fs::write(project_dir.join("src/lib.rs"), lib_rs).expect("write lib.rs");
+    fs::write(
+        project_dir.join("tests/getting_started_quickstart.rs"),
+        r#"use adze_getting_started_quickstart::grammar;
+
+#[test]
+fn getting_started_expression_parses_into_typed_value() {
+    let program = grammar::parse("42").expect("documented tutorial expression should parse");
+
+    assert_eq!(program.number, "42");
+}
+
+#[test]
+fn getting_started_bad_input_reports_useful_diagnostic() {
+    let source = "@";
+    let errors = match grammar::parse(source) {
+        Ok(_) => panic!("bad tutorial input should fail clearly"),
+        Err(errors) => errors,
+    };
+    let first = errors
+        .first()
+        .expect("bad tutorial input should produce at least one parse error");
+
+    assert_eq!(
+        first.byte_span(),
+        0..1,
+        "diagnostic should point at the invalid token"
+    );
+    assert!(
+        !first.expected.is_empty(),
+        "diagnostic should report expected tokens"
+    );
+    assert!(
+        first.expected.iter().any(|name| name == r"/\d+/"),
+        "diagnostic should name the expected number token, got {:?}",
+        first.expected
+    );
+
+    let rendered = first.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("bytes 0..1"),
+        "rendered diagnostic should include the byte span: {rendered}"
+    );
+    assert!(
+        rendered.contains("expected one of:"),
+        "rendered diagnostic should include expected-token context: {rendered}"
+    );
+    assert!(
+        rendered.contains("^"),
+        "rendered diagnostic should place a caret under the invalid token: {rendered}"
+    );
+}
+"#,
+    )
+    .expect("write Getting Started quickstart tests");
 
     let output = Command::new("cargo")
         .arg("test")
@@ -151,7 +206,7 @@ fn getting_started_quickstart_builds_and_runs() {
 
     assert!(
         output.status.success(),
-        "Getting Started quickstart crate should build and parse through the documented public API\nstdout:\n{}\nstderr:\n{}",
+        "Getting Started quickstart crate should build, parse, and report diagnostics through the documented public API\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
