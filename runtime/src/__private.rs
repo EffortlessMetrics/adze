@@ -979,9 +979,14 @@ fn document_diagnostics_for_parse_errors(
         .map(|error| {
             let found = symbol_name_for_diagnostic(lang, error.found);
             let expected = expected_symbol_names_for_diagnostic(lang, &error.expected);
+            let start_byte = error.position;
+            let end_byte = diagnostic_end_for_byte(input.as_bytes(), error.position);
+            let point_range =
+                crate::document::PointRange::from_byte_range(input, start_byte..end_byte);
             crate::document::ParseDiagnostic {
-                start_byte: error.position,
-                end_byte: diagnostic_end_for_byte(input.as_bytes(), error.position),
+                start_byte,
+                end_byte,
+                point_range,
                 found: Some(found.clone()),
                 expected: expected.clone(),
                 message: unexpected_token_message(found, expected),
