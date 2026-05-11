@@ -286,10 +286,11 @@ AdzeDocument
 ```
 
 The current alpha also preserves expected/found token names for generated
-pure-Rust parser diagnostics and can return a synthetic error document for
-truncated source when the parser records diagnostics but cannot select a root.
-This is still an experimental document-diagnostic proof, not a stable native
-diagnostics schema.
+pure-Rust parser diagnostics, maps diagnostics back to related document-local
+nodes when the selected tree or synthetic error tree carries one, and can return
+a synthetic error document for truncated source when the parser records
+diagnostics but cannot select a root. This is still an experimental
+document-diagnostic proof, not a stable native diagnostics schema.
 
 ## Proof Requirements
 
@@ -325,6 +326,7 @@ API direction so implementation PRs can stay small and reviewable:
 7. generated `parse_document()` diagnostics that preserve expected/found token
    names, byte spans, zero-based point ranges, source-context display, and
    partial document facts for truncated or multiline bad source,
-8. typed AST provenance,
-9. GLR ambiguity summaries,
-10. schema-versioned CLI/WASM outputs.
+8. diagnostic related-node IDs that resolve back into the same document tree,
+9. typed AST provenance,
+10. GLR ambiguity summaries,
+11. schema-versioned CLI/WASM outputs.
