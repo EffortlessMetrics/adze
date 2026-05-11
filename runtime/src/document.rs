@@ -559,6 +559,79 @@ impl NodeKind {
     }
 }
 
+/// Native identity for one document node.
+///
+/// Tree-sitter-compatible output distinguishes visible identity from grammar
+/// identity. The current alpha document stores raw grammar-symbol nodes, so the
+/// visible and grammar identities are usually equal. Keeping the identities
+/// separate here gives the future alias-aware projection a native contract to
+/// populate instead of forcing compatibility adapters to infer aliases.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NodeIdentity<'doc> {
+    visible_id: SymbolId,
+    grammar_id: SymbolId,
+    visible_name: Option<&'doc str>,
+    grammar_name: Option<&'doc str>,
+    alias_symbol_id: Option<SymbolId>,
+    visible_is_named: bool,
+    grammar_is_named: bool,
+}
+
+impl<'doc> NodeIdentity<'doc> {
+    /// Return the alias-visible symbol id for this node.
+    ///
+    /// Until alias-aware parsing lands, this is the same as
+    /// [`grammar_id`](Self::grammar_id).
+    pub fn visible_id(&self) -> SymbolId {
+        self.visible_id
+    }
+
+    /// Return the alias-visible node name for this node.
+    ///
+    /// Until alias-aware parsing lands, this is the same as
+    /// [`grammar_name`](Self::grammar_name).
+    pub fn visible_name(&self) -> Option<&'doc str> {
+        self.visible_name
+    }
+
+    /// Return the original grammar symbol id for this node.
+    pub fn grammar_id(&self) -> SymbolId {
+        self.grammar_id
+    }
+
+    /// Return the original grammar symbol name for this node.
+    pub fn grammar_name(&self) -> Option<&'doc str> {
+        self.grammar_name
+    }
+
+    /// Return the alias symbol id applied to this node, when one is known.
+    ///
+    /// Current parsed document nodes do not carry alias entries, so this
+    /// returns `None`.
+    pub fn alias_symbol_id(&self) -> Option<SymbolId> {
+        self.alias_symbol_id
+    }
+
+    /// Return whether this node has alias-visible identity distinct from its
+    /// grammar identity.
+    pub fn has_alias(&self) -> bool {
+        self.alias_symbol_id.is_some()
+            || self.visible_id != self.grammar_id
+            || self.visible_name != self.grammar_name
+            || self.visible_is_named != self.grammar_is_named
+    }
+
+    /// Return whether the alias-visible identity is named.
+    pub fn visible_is_named(&self) -> bool {
+        self.visible_is_named
+    }
+
+    /// Return whether the original grammar identity is named.
+    pub fn grammar_is_named(&self) -> bool {
+        self.grammar_is_named
+    }
+}
+
 /// Basic parse metadata for a native document.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseMetadata {
@@ -786,9 +859,31 @@ impl<'doc> AdzeNode<'doc> {
         self.document.language.symbol(self.symbol_id())
     }
 
+    /// Return this node's native identity.
+    ///
+    /// The current document alpha preserves raw grammar-symbol identity. This
+    /// method still exposes separate visible and grammar slots so future
+    /// alias-aware parsing can populate them without changing the native tree
+    /// shape.
+    pub fn identity(&self) -> NodeIdentity<'doc> {
+        let kind = self.kind();
+        let name = kind.map(NodeKind::name);
+        let is_named = kind.map(NodeKind::is_named).unwrap_or(false);
+
+        NodeIdentity {
+            visible_id: self.symbol_id(),
+            grammar_id: self.symbol_id(),
+            visible_name: name,
+            grammar_name: name,
+            alias_symbol_id: None,
+            visible_is_named: is_named,
+            grammar_is_named: is_named,
+        }
+    }
+
     /// Return this node's display kind name, when known.
     pub fn kind_name(&self) -> Option<&'doc str> {
-        self.kind().map(NodeKind::name)
+        self.identity().visible_name()
     }
 
     /// Return this node's grammar symbol name, ignoring aliases.
@@ -796,7 +891,7 @@ impl<'doc> AdzeNode<'doc> {
     /// Current native parse nodes do not carry alias-specific identity, so the
     /// grammar name matches the visible kind name when metadata is available.
     pub fn grammar_name(&self) -> Option<&'doc str> {
-        self.kind_name()
+        self.identity().grammar_name()
     }
 
     /// Return this node's visible kind id.
@@ -804,7 +899,12 @@ impl<'doc> AdzeNode<'doc> {
     /// Current native parse nodes do not carry alias-specific identity, so the
     /// visible kind id matches the grammar symbol id.
     pub fn kind_id(&self) -> SymbolId {
-        self.symbol_id()
+        self.identity().visible_id()
+    }
+
+    /// Return this node's grammar symbol id, ignoring aliases.
+    pub fn grammar_id(&self) -> SymbolId {
+        self.identity().grammar_id()
     }
 
     /// Return the node's grammar symbol id.
@@ -915,7 +1015,7 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return whether this node is named according to language metadata.
     pub fn is_named(&self) -> bool {
-        self.kind().map(NodeKind::is_named).unwrap_or(false)
+        self.identity().visible_is_named()
     }
 
     /// Return whether this node is visible according to language metadata.

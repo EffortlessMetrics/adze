@@ -26,6 +26,8 @@ Alias data is already part of the generated ABI and runtime decode path:
 
 - generated `TSLanguage` values can expose `alias_map` and `alias_sequences`,
 - runtime decode preserves alias sequences in `ParseTable`,
+- native `AdzeDocument` nodes expose separate visible and grammar identity
+  slots that currently contain the same raw parsed symbol,
 - tablegen/runtime canaries prove the alias ABI data survives individual and
   combined metadata roundtrips.
 

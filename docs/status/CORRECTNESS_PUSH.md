@@ -78,8 +78,9 @@ pin the intended shape:
 Keep implementation slices small:
 
 1. Minimal `AdzeDocument` alpha now exists for `tree()`, document-local node
-   IDs/lookups, edge/parent lookup, language/node-kind metadata,
-   `diagnostics()`, `metadata()`, and
+   IDs/lookups, explicit raw-symbol `NodeIdentity` slots for future
+   visible-vs-grammar identity projection, edge/parent lookup,
+   language/node-kind metadata, `diagnostics()`, `metadata()`, and
    `ts_compat::Tree::from_document()` over the same parse data. Keep expanding
    it in small proof-backed slices.
 2. A typed CST arithmetic spike now proves a generated-style fixture module,
@@ -98,8 +99,9 @@ Keep implementation slices small:
    survive precedence operator inlining into native edge metadata and generated
    typed CST accessors without expanding into visitors, rewriters, typed
    queries, or JSON output.
-3. Alias-visible compatibility canaries only after native node identity exposes
-   visible and grammar identity separately.
+3. Alias-visible compatibility canaries only after native node identity is
+   populated from parser alias sequence data, not merely the current raw-symbol
+   identity slots.
 
 Do not promote any native document, typed CST, alias-visible compatibility, or
 JSON output surface without an exact proof command and support-tier entry.
