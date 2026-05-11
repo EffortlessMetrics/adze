@@ -105,6 +105,64 @@ fn generated_parse_document_diagnostics_preserve_expected_tokens() {
 }
 
 #[test]
+fn generated_parse_document_diagnostics_include_multibyte_byte_span() {
+    let source = "1 + \u{03bb}";
+    let document = adze_example::typed_ast_contract::grammar::parse_document(source)
+        .expect("generated parse_document helper should return multibyte partial parse facts");
+    let parse_error = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("multibyte invalid token should fail through the typed AST parser")
+        .into_iter()
+        .next()
+        .expect("typed AST parser should report at least one multibyte error");
+
+    let diagnostic = document
+        .diagnostics()
+        .first()
+        .expect("parse_document should expose a structured multibyte diagnostic");
+
+    assert_eq!(diagnostic.byte_span(), parse_error.byte_span());
+    assert_eq!(diagnostic.byte_span(), 4..6);
+    assert_eq!(diagnostic.point_range.start.row, 0);
+    assert_eq!(diagnostic.point_range.start.column, 4);
+    assert_eq!(diagnostic.point_range.end.row, 0);
+    assert_eq!(diagnostic.point_range.end.column, 6);
+
+    let source_span = parse_error.source_span(source.as_bytes());
+    assert_eq!(
+        diagnostic.point_range.start.row as usize + 1,
+        source_span.start.line
+    );
+    assert_eq!(
+        diagnostic.point_range.start.column as usize + 1,
+        source_span.start.column
+    );
+    assert_eq!(
+        diagnostic.point_range.end.row as usize + 1,
+        source_span.end.line
+    );
+    assert_eq!(
+        diagnostic.point_range.end.column as usize + 1,
+        source_span.end.column
+    );
+    assert_eq!(diagnostic.expected, parse_error.expected);
+    assert!(
+        diagnostic.expected.iter().any(|token| token == r"/\d+/"),
+        "document diagnostic should preserve generated expected token names: {:?}",
+        diagnostic.expected
+    );
+
+    let rendered = diagnostic.display_with_source(source).to_string();
+    assert!(
+        rendered.contains("at 1:5 (bytes 4..6)"),
+        "document diagnostic display should include byte-oriented multibyte location: {rendered}"
+    );
+    assert!(
+        rendered.contains("    ^^"),
+        "document diagnostic display should mark the full UTF-8 byte width: {rendered}"
+    );
+}
+
+#[test]
 fn generated_parse_document_diagnostics_include_multiline_point_range() {
     let source = "1 +\n@";
     let document = adze_example::typed_ast_contract::grammar::parse_document(source)
