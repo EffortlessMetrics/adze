@@ -16,9 +16,13 @@
 //!   4. Backward compatibility with precedence grammars maintained
 
 use adze::decoder;
+#[cfg(feature = "glr")]
+use adze::glr_parser::GLRParser;
 use adze::pure_parser::TSLanguage;
 use adze_glr_core::Action;
 use adze_glr_core::conflict_inspection::cell_has_conflict;
+#[cfg(feature = "glr")]
+use std::collections::BTreeSet;
 
 /// Helper: Count multi-action cells (GLR conflicts) in a parse table
 fn count_multi_action_cells(lang: &'static TSLanguage) -> usize {
@@ -294,6 +298,53 @@ fn generated_ambiguous_expr_multi_conflict_selection_is_deterministic() {
 }
 
 #[test]
+#[cfg(feature = "glr")]
+fn generated_ambiguous_expr_glr_runtime_retains_multiple_complete_alternatives() {
+    use adze_example::ambiguous_expr::grammar;
+
+    let input = "1 + 2 + 3";
+    let language = grammar::language();
+    let mut parse_table = decoder::decode_parse_table(language);
+    adze::__private::align_true_glr_parse_table_to_language_symbols(language, &mut parse_table);
+    let grammar = decoder::decode_grammar(language);
+    let mut parser = GLRParser::new(parse_table, grammar);
+
+    let lex_fn = language
+        .lex_fn
+        .expect("generated language should expose a lex_fn");
+    for token in adze::__private::lex_with_language_fn(language, lex_fn, input.as_bytes())
+        .expect("generated lexer should tokenize ambiguous expression")
+    {
+        parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+    }
+    parser.process_eof(input.len());
+
+    let alternatives = parser
+        .finish_all_alternatives()
+        .expect("ambiguous generated grammar should finish successfully");
+    let unique_shapes = alternatives
+        .iter()
+        .map(|alternative| format!("{alternative:?}"))
+        .collect::<BTreeSet<_>>();
+
+    assert!(
+        alternatives.len() >= 2,
+        "ambiguous generated grammar should retain more than one complete parse alternative, got {}",
+        alternatives.len()
+    );
+    assert!(
+        unique_shapes.len() >= 2,
+        "ambiguous generated grammar should retain structurally distinct parse alternatives"
+    );
+    assert!(
+        alternatives
+            .iter()
+            .all(|alternative| alternative.node.byte_range == (0..input.len())),
+        "all complete alternatives should span the full input"
+    );
+}
+
+#[test]
 fn generated_glr_parser_bad_inputs_return_errors_without_panicking() {
     use adze_example::ambiguous_expr::grammar;
 
@@ -445,7 +496,8 @@ fn test_contract_documentation() {
     eprintln!("  1. ✓ Enum variant inlining enables ambiguous grammars");
     eprintln!("  2. ✓ GLR conflict generation works correctly");
     eprintln!("  3. ✓ GLR runtime parses ambiguous input successfully");
-    eprintln!("  4. ✓ Backward compatibility with precedence grammars");
+    eprintln!("  4. ✓ GLR runtime retains complete alternatives for ambiguous input");
+    eprintln!("  5. ✓ Backward compatibility with precedence grammars");
     eprintln!();
     eprintln!("To run validation:");
     eprintln!(
@@ -455,6 +507,9 @@ fn test_contract_documentation() {
     eprintln!("Expected Results:");
     eprintln!("  - test_ambiguous_grammar_conflict_generation: PASS");
     eprintln!("  - test_ambiguous_grammar_glr_parsing: PASS");
+    eprintln!(
+        "  - generated_ambiguous_expr_glr_runtime_retains_multiple_complete_alternatives: PASS"
+    );
     eprintln!("  - test_glr_backward_compatibility: PASS");
     eprintln!("  - test_ambiguous_vs_arithmetic_comparison: PASS");
     eprintln!();
