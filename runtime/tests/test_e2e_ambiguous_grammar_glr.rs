@@ -380,6 +380,55 @@ fn generated_ambiguous_expr_glr_runtime_retains_multiple_complete_alternatives()
 }
 
 #[test]
+#[cfg(feature = "glr")]
+fn generated_ambiguous_expr_parse_document_reports_ambiguity_summary() {
+    use adze_example::ambiguous_expr::grammar;
+
+    let input = "1 + 2 + 3";
+    let document = grammar::parse_document(input)
+        .expect("generated parse_document helper should return an AdzeDocument");
+    let ambiguities = document.ambiguities();
+
+    assert_eq!(
+        document.diagnostics(),
+        [],
+        "valid ambiguous input should not record parser diagnostics"
+    );
+    assert_eq!(
+        document.tree().root().byte_range(),
+        0..input.len(),
+        "selected document tree should span the full input"
+    );
+    assert_eq!(
+        ambiguities.len(),
+        1,
+        "generated parse_document should preserve the parser ambiguity summary"
+    );
+
+    let summary = &ambiguities[0];
+    assert_eq!(summary.span, 0..input.len());
+    assert!(
+        summary.alternatives.len() >= 2,
+        "document ambiguity summary should retain multiple complete alternatives"
+    );
+    assert_eq!(
+        summary.selection_reason,
+        adze::glr_parser::SelectionReason::StableStructuralTieBreak,
+        "ambiguous_expr alternatives currently tie by version and use the stable structural selector"
+    );
+
+    let selected = summary
+        .selected
+        .expect("document ambiguity summary should identify the selected alternative");
+    let selected_summary = summary
+        .alternatives
+        .get(selected)
+        .expect("selected document alternative summary should resolve");
+    assert_eq!(selected_summary.index, selected);
+    assert_eq!(selected_summary.span, 0..input.len());
+}
+
+#[test]
 fn generated_glr_parser_bad_inputs_return_errors_without_panicking() {
     use adze_example::ambiguous_expr::grammar;
 

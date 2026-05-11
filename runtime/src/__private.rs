@@ -312,8 +312,22 @@ pub fn parse_document(
     language: impl Fn() -> &'static crate::pure_parser::TSLanguage,
     grammar_name: &str,
 ) -> core::result::Result<crate::document::AdzeDocument, Vec<crate::errors::ParseError>> {
-    let mut parser = crate::pure_parser::Parser::new();
     let lang = language();
+    let grammar = crate::decoder::decode_grammar(lang);
+    let parse_table = crate::decoder::decode_parse_table(lang);
+
+    #[cfg(feature = "glr")]
+    if parse_table_has_conflicts(&parse_table) {
+        return parse_document_with_true_glr_runtime(
+            input,
+            lang,
+            grammar_name,
+            grammar,
+            parse_table,
+        );
+    }
+
+    let mut parser = crate::pure_parser::Parser::new();
     parser.set_language(lang).map_err(|e| {
         vec![crate::errors::ParseError {
             reason: crate::errors::ParseErrorReason::UnexpectedToken(e),
@@ -328,8 +342,6 @@ pub fn parse_document(
         errors: parser_errors,
     } = parser.parse_string(input);
 
-    let grammar = crate::decoder::decode_grammar(lang);
-    let parse_table = crate::decoder::decode_parse_table(lang);
     let error_count = parser_errors.len();
     let diagnostics = document_diagnostics_for_parse_errors(input, lang, &parser_errors);
     let root = root
@@ -351,6 +363,97 @@ pub fn parse_document(
                 pure_language: Some(lang),
             },
             diagnostics,
+        ),
+    )
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn parse_table_has_conflicts(parse_table: &adze_glr_core::ParseTable) -> bool {
+    use adze_glr_core::conflict_inspection::state_has_conflicts;
+    use adze_ir::StateId;
+
+    (0..parse_table.state_count)
+        .any(|state| state_has_conflicts(parse_table, StateId(state as u16)))
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn parse_document_with_true_glr_runtime(
+    input: &str,
+    language: &'static crate::pure_parser::TSLanguage,
+    grammar_name: &str,
+    grammar: adze_ir::Grammar,
+    parse_table: adze_glr_core::ParseTable,
+) -> core::result::Result<crate::document::AdzeDocument, Vec<crate::errors::ParseError>> {
+    let source = input.as_bytes();
+    let mut runtime_parse_table = parse_table.clone();
+    align_true_glr_parse_table_to_language_symbols(language, &mut runtime_parse_table);
+    let mut parser = crate::glr_parser::GLRParser::new(runtime_parse_table, grammar.clone());
+
+    if let Some(lex_fn) = language.lex_fn {
+        for token in lex_with_language_fn(language, lex_fn, source)? {
+            parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+        }
+    } else {
+        let mut lexer = match crate::glr_lexer::GLRLexer::new(&grammar, input.to_string()) {
+            Ok(lexer) => lexer,
+            Err(message) => {
+                return Err(vec![crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                    start: 0,
+                    end: source.len(),
+                    expected: vec![],
+                }]);
+            }
+        };
+
+        while let Some(token) = lexer.next_token() {
+            parser.process_token(token.symbol_id, &token.text, token.byte_offset);
+        }
+        if let Some((start, end)) = lexer.invalid_span() {
+            return Err(vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                    "unexpected token while lexing".to_string(),
+                ),
+                start,
+                end,
+                expected: vec![],
+            }]);
+        }
+    }
+
+    parser.process_eof(source.len());
+    let root_node = match parser.finish() {
+        Ok(root_node) => root_node,
+        Err(message) => {
+            return Err(vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                start: 0,
+                end: source.len(),
+                expected: vec![],
+            }]);
+        }
+    };
+    let ambiguities = parser
+        .finish_ambiguity_summary()
+        .ok()
+        .flatten()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let root = convert_subtree_to_document_node(&root_node, language);
+
+    Ok(
+        crate::document::AdzeDocument::from_parse_result_with_diagnostics_and_ambiguities(
+            input,
+            root,
+            0,
+            crate::document::DocumentRuntime {
+                language_name: grammar_name,
+                grammar: &grammar,
+                parse_table: &parse_table,
+                pure_language: Some(language),
+            },
+            Vec::new(),
+            ambiguities,
         ),
     )
 }
@@ -855,6 +958,36 @@ fn convert_subtree_to_pure(
         is_named,
         field_id: None,
         language: Some(language as *const _),
+    }
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn convert_subtree_to_document_node(
+    subtree: &crate::subtree::Subtree,
+    language: &'static crate::pure_parser::TSLanguage,
+) -> crate::parser_v4::ParseNode {
+    let children = subtree
+        .children
+        .iter()
+        .map(|child| {
+            let mut parsed_child = convert_subtree_to_document_node(&child.subtree, language);
+            parsed_child.field_name = if child.field_id == crate::subtree::FIELD_NONE {
+                None
+            } else {
+                field_name_by_id(language, child.field_id)
+            };
+            parsed_child
+        })
+        .collect();
+    let symbol_id = public_symbol_id_for_index(language, subtree.node.symbol_id.0);
+
+    crate::parser_v4::ParseNode {
+        symbol: symbol_id,
+        symbol_id,
+        start_byte: subtree.node.byte_range.start,
+        end_byte: subtree.node.byte_range.end,
+        field_name: None,
+        children,
     }
 }
 

@@ -228,8 +228,10 @@ the user opts in through explicit parse options.
 The true-GLR runtime now has an alpha parser-level summary for retained complete
 alternatives: it reports the alternative count, selected alternative, root spans,
 and whether selection came from dynamic-precedence/error-cost version comparison
-or the stable structural tie-break. `AdzeDocument` still needs a document-level
-projection of that summary before native document ambiguity is a product claim.
+or the stable structural tie-break. Generated `parse_document()` now routes
+conflicted parse tables through that true-GLR runtime and records the same
+summary on `AdzeDocument::ambiguities()`. This is still a selected-tree summary,
+not raw forest export or typed extraction from alternatives.
 
 ## Parse Options
 
