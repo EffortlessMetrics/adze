@@ -8,7 +8,14 @@
 use crate::parser_v4::ParseNode;
 use adze_glr_core::{ParseTable, SymbolMetadata as TableSymbolMetadata};
 use adze_ir::{Grammar, SymbolId};
+use std::num::NonZeroU16;
 use std::ops::Range;
+
+/// Nonzero public field identifier used by native document field metadata.
+///
+/// This matches Tree-sitter's public field-id convention: ID 0 is the
+/// sentinel and real field names start at 1.
+pub type FieldId = NonZeroU16;
 
 /// A native parse-product document.
 ///
@@ -164,6 +171,7 @@ struct NodeIndex {
 pub struct LanguageMetadata {
     name: String,
     symbols: Vec<NodeKind>,
+    fields: Vec<String>,
 }
 
 impl LanguageMetadata {
@@ -218,6 +226,7 @@ impl LanguageMetadata {
         Self {
             name: language_name.to_string(),
             symbols,
+            fields: parse_table.field_names.clone(),
         }
     }
 
@@ -241,6 +250,37 @@ impl LanguageMetadata {
     /// Return the display name for a symbol id.
     pub fn symbol_name(&self, symbol_id: SymbolId) -> Option<&str> {
         self.symbol(symbol_id).map(NodeKind::name)
+    }
+
+    /// Return the number of public fields in this language.
+    pub fn field_count(&self) -> usize {
+        self.fields.len()
+    }
+
+    /// Return all public field names in their zero-based table order.
+    ///
+    /// Public field IDs are one-based, so `fields()[0]` corresponds to
+    /// [`field_name_for_id(1)`](Self::field_name_for_id).
+    pub fn fields(&self) -> &[String] {
+        &self.fields
+    }
+
+    /// Return a field name for a nonzero public field id.
+    pub fn field_name_for_id(&self, field_id: u16) -> Option<&str> {
+        let index = field_id.checked_sub(1)? as usize;
+        self.fields.get(index).map(String::as_str)
+    }
+
+    /// Return the nonzero public field id for a field name.
+    pub fn field_id_for_name(&self, field_name: impl AsRef<[u8]>) -> Option<FieldId> {
+        let field_name = field_name.as_ref();
+        self.fields
+            .iter()
+            .position(|candidate| candidate.as_bytes() == field_name)
+            .and_then(|index| {
+                let field_id = u16::try_from(index.checked_add(1)?).ok()?;
+                FieldId::new(field_id)
+            })
     }
 }
 
@@ -577,6 +617,12 @@ impl<'doc> AdzeNode<'doc> {
         self.node.field_name.as_deref()
     }
 
+    /// Return the public field id attached to this node's parent edge, if any.
+    pub fn field_id(&self) -> Option<FieldId> {
+        self.field_name()
+            .and_then(|field_name| self.document.language().field_id_for_name(field_name))
+    }
+
     /// Return the number of direct children.
     pub fn child_count(&self) -> usize {
         self.node.children.len()
@@ -597,6 +643,10 @@ impl<'doc> AdzeNode<'doc> {
             child_index: index,
             child_id,
             field_name: child.field_name.as_deref(),
+            field_id: child
+                .field_name
+                .as_deref()
+                .and_then(|field_name| self.document.language().field_id_for_name(field_name)),
         })
     }
 
@@ -681,6 +731,7 @@ pub struct AdzeEdge<'doc> {
     child_index: usize,
     child_id: NodeId,
     field_name: Option<&'doc str>,
+    field_id: Option<FieldId>,
 }
 
 impl<'doc> AdzeEdge<'doc> {
@@ -707,6 +758,11 @@ impl<'doc> AdzeEdge<'doc> {
     /// Return the field name attached to this edge, if any.
     pub fn field_name(&self) -> Option<&'doc str> {
         self.field_name
+    }
+
+    /// Return the public field id attached to this edge, if any.
+    pub fn field_id(&self) -> Option<FieldId> {
+        self.field_id
     }
 }
 
