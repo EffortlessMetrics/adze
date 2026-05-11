@@ -117,6 +117,47 @@ fn readme_bad_input_reports_useful_diagnostic() {
 }
 
 #[test]
+fn getting_started_quickstart_builds_and_runs() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_dir = temp.path().join("adze_getting_started_quickstart");
+    fs::create_dir_all(project_dir.join("src")).expect("create src");
+
+    let repo_root = repo_root();
+    let runtime_path = toml_path(repo_root.join("runtime"));
+    let tool_path = toml_path(repo_root.join("tool"));
+    let tutorial = include_str!("../../docs/tutorials/getting-started.md");
+    let manifest_snippet = fenced_block_after(tutorial, "### Installation", "toml")
+        .expect("Getting Started tutorial should include a TOML dependency block");
+    let build_rs = fenced_block_after(tutorial, "Create `build.rs`", "rust")
+        .expect("Getting Started tutorial should include a build.rs block");
+    let lib_rs = fenced_block_after(tutorial, "Create `src/lib.rs`", "rust")
+        .expect("Getting Started tutorial should include a src/lib.rs block");
+
+    fs::write(
+        project_dir.join("Cargo.toml"),
+        tutorial_downstream_manifest(manifest_snippet, &runtime_path, &tool_path),
+    )
+    .expect("write Cargo.toml");
+
+    fs::write(project_dir.join("build.rs"), build_rs).expect("write build.rs");
+    fs::write(project_dir.join("src/lib.rs"), lib_rs).expect("write lib.rs");
+
+    let output = Command::new("cargo")
+        .arg("test")
+        .arg("--quiet")
+        .current_dir(&project_dir)
+        .output()
+        .expect("run cargo test in Getting Started quickstart crate");
+
+    assert!(
+        output.status.success(),
+        "Getting Started quickstart crate should build and parse through the documented public API\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
 fn readme_stable_claims_are_in_stable_product_lane() {
     let readme = include_str!("../../README.md");
     let support_tiers = include_str!("../../docs/status/SUPPORT_TIERS.md");
@@ -143,6 +184,37 @@ fn readme_stable_claims_are_in_stable_product_lane() {
             "README Stable proof command must be present in scripts/ci-product-stable.sh:\n{command}"
         );
     }
+}
+
+fn tutorial_downstream_manifest(readme_toml: &str, runtime_path: &str, tool_path: &str) -> String {
+    assert!(
+        readme_toml.contains(r#"adze = { version = "0.8.0-dev", default-features = false }"#),
+        "Getting Started install block should document the adze runtime dependency"
+    );
+    assert!(
+        readme_toml.contains(r#"adze-tool = "0.8.0-dev""#),
+        "Getting Started install block should document the adze-tool build dependency"
+    );
+
+    let dependencies = readme_toml
+        .replace(
+            r#"adze = { version = "0.8.0-dev", default-features = false }"#,
+            &format!(r#"adze = {{ path = "{runtime_path}", default-features = false }}"#),
+        )
+        .replace(
+            r#"adze-tool = "0.8.0-dev""#,
+            &format!(r#"adze-tool = {{ path = "{tool_path}" }}"#),
+        );
+
+    format!(
+        r#"[package]
+name = "adze_getting_started_quickstart"
+version = "0.1.0"
+edition = "2024"
+
+{dependencies}
+"#
+    )
 }
 
 fn downstream_manifest(readme_toml: &str, runtime_path: &str, tool_path: &str) -> String {
