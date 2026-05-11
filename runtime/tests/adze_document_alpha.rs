@@ -46,6 +46,33 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(document.source_text(), source);
     assert_eq!(document.source_bytes(), source.as_bytes());
     assert_eq!(document.language().name(), lang.name.as_str());
+    assert_eq!(document.language().field_count(), 3);
+    assert_eq!(document.language().field_name_for_id(0), None);
+    assert_eq!(document.language().field_name_for_id(1), Some("left"));
+    assert_eq!(document.language().field_name_for_id(2), Some("operator"));
+    assert_eq!(document.language().field_name_for_id(3), Some("right"));
+    assert_eq!(
+        document
+            .language()
+            .field_id_for_name("left")
+            .map(|id| id.get()),
+        Some(1)
+    );
+    assert_eq!(
+        document
+            .language()
+            .field_id_for_name("operator")
+            .map(|id| id.get()),
+        Some(2)
+    );
+    assert_eq!(
+        document
+            .language()
+            .field_id_for_name(b"right")
+            .map(|id| id.get()),
+        Some(3)
+    );
+    assert_eq!(document.language().field_id_for_name("missing"), None);
     assert_eq!(document.metadata().error_count, 0);
     assert!(document.diagnostics().is_empty());
 
@@ -86,6 +113,7 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(root_expression_edge.parent_id(), root.node_id());
     assert_eq!(root_expression_edge.child_index(), 0);
     assert_eq!(root_expression_edge.field_name(), None);
+    assert_eq!(root_expression_edge.field_id(), None);
 
     let expression = root.child(0).expect("root should expose expression child");
     assert_eq!(root_expression_edge.child_id(), expression.node_id());
@@ -134,6 +162,11 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(edges[0].child_index(), 0);
     assert_eq!(edges[0].child_id(), left.node_id());
     assert_eq!(edges[0].field_name(), Some("left"));
+    assert_eq!(edges[0].field_id().map(|id| id.get()), Some(1));
+    assert_eq!(edges[1].field_name(), Some("operator"));
+    assert_eq!(edges[1].field_id().map(|id| id.get()), Some(2));
+    assert_eq!(edges[2].field_name(), Some("right"));
+    assert_eq!(edges[2].field_id().map(|id| id.get()), Some(3));
     assert_eq!(
         expression
             .edge_by_field_name("left")
@@ -161,13 +194,16 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
         "1"
     );
     assert_eq!(left.field_name(), Some("left"));
+    assert_eq!(left.field_id().map(|id| id.get()), Some(1));
     assert_eq!(left.utf8_text().expect("left text should be UTF-8"), "1");
     assert_eq!(operator.field_name(), Some("operator"));
+    assert_eq!(operator.field_id().map(|id| id.get()), Some(2));
     assert_eq!(
         operator.utf8_text().expect("operator text should be UTF-8"),
         "-"
     );
     assert_eq!(right.field_name(), Some("right"));
+    assert_eq!(right.field_id().map(|id| id.get()), Some(3));
     assert_eq!(right.utf8_text().expect("right text should be UTF-8"), "2");
 
     let ts_tree = Tree::from_document(Arc::clone(&lang), &document);
@@ -185,6 +221,33 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(ts_expression.field_name_for_child(0), Some("left"));
     assert_eq!(ts_expression.field_name_for_child(1), Some("operator"));
     assert_eq!(ts_expression.field_name_for_child(2), Some("right"));
+    assert_eq!(
+        ts_expression
+            .field_id_for_child(0)
+            .map(|field_id| field_id.get()),
+        expression
+            .child_edge(0)
+            .and_then(|edge| edge.field_id())
+            .map(|field_id| field_id.get())
+    );
+    assert_eq!(
+        ts_expression
+            .field_id_for_child(1)
+            .map(|field_id| field_id.get()),
+        expression
+            .child_edge(1)
+            .and_then(|edge| edge.field_id())
+            .map(|field_id| field_id.get())
+    );
+    assert_eq!(
+        ts_expression
+            .field_id_for_child(2)
+            .map(|field_id| field_id.get()),
+        expression
+            .child_edge(2)
+            .and_then(|edge| edge.field_id())
+            .map(|field_id| field_id.get())
+    );
     assert_eq!(
         ts_expression
             .child_by_field_name("left")
