@@ -390,19 +390,39 @@ fn parse_document_with_true_glr_runtime(
     let mut parser = crate::glr_parser::GLRParser::new(runtime_parse_table, grammar.clone());
 
     if let Some(lex_fn) = language.lex_fn {
-        for token in lex_with_language_fn(language, lex_fn, source)? {
+        let tokens = match lex_with_language_fn(language, lex_fn, source) {
+            Ok(tokens) => tokens,
+            Err(errors) => {
+                return Ok(parse_document_from_glr_errors(
+                    input,
+                    language,
+                    grammar_name,
+                    &grammar,
+                    &parse_table,
+                    errors,
+                ));
+            }
+        };
+        for token in tokens {
             parser.process_token(token.symbol_id, &token.text, token.byte_offset);
         }
     } else {
         let mut lexer = match crate::glr_lexer::GLRLexer::new(&grammar, input.to_string()) {
             Ok(lexer) => lexer,
             Err(message) => {
-                return Err(vec![crate::errors::ParseError {
-                    reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
-                    start: 0,
-                    end: source.len(),
-                    expected: vec![],
-                }]);
+                return Ok(parse_document_from_glr_errors(
+                    input,
+                    language,
+                    grammar_name,
+                    &grammar,
+                    &parse_table,
+                    vec![crate::errors::ParseError {
+                        reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                        start: 0,
+                        end: source.len(),
+                        expected: vec![],
+                    }],
+                ));
             }
         };
 
@@ -410,14 +430,21 @@ fn parse_document_with_true_glr_runtime(
             parser.process_token(token.symbol_id, &token.text, token.byte_offset);
         }
         if let Some((start, end)) = lexer.invalid_span() {
-            return Err(vec![crate::errors::ParseError {
-                reason: crate::errors::ParseErrorReason::UnexpectedToken(
-                    "unexpected token while lexing".to_string(),
-                ),
-                start,
-                end,
-                expected: vec![],
-            }]);
+            return Ok(parse_document_from_glr_errors(
+                input,
+                language,
+                grammar_name,
+                &grammar,
+                &parse_table,
+                vec![crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                        "unexpected token while lexing".to_string(),
+                    ),
+                    start,
+                    end,
+                    expected: vec![],
+                }],
+            ));
         }
     }
 
@@ -425,12 +452,19 @@ fn parse_document_with_true_glr_runtime(
     let root_node = match parser.finish() {
         Ok(root_node) => root_node,
         Err(message) => {
-            return Err(vec![crate::errors::ParseError {
-                reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
-                start: 0,
-                end: source.len(),
-                expected: vec![],
-            }]);
+            return Ok(parse_document_from_glr_errors(
+                input,
+                language,
+                grammar_name,
+                &grammar,
+                &parse_table,
+                vec![crate::errors::ParseError {
+                    reason: crate::errors::ParseErrorReason::UnexpectedToken(message),
+                    start: 0,
+                    end: source.len(),
+                    expected: vec![],
+                }],
+            ));
         }
     };
     let ambiguities = parser
@@ -455,6 +489,56 @@ fn parse_document_with_true_glr_runtime(
             Vec::new(),
             ambiguities,
         ),
+    )
+}
+
+#[cfg(all(feature = "glr", feature = "pure-rust"))]
+fn parse_document_from_glr_errors(
+    input: &str,
+    language: &'static crate::pure_parser::TSLanguage,
+    grammar_name: &str,
+    grammar: &adze_ir::Grammar,
+    parse_table: &adze_glr_core::ParseTable,
+    errors: Vec<crate::errors::ParseError>,
+) -> crate::document::AdzeDocument {
+    let diagnostics = errors
+        .iter()
+        .map(|error| {
+            let start_byte = error.start.min(input.len());
+            let end_byte = if error.end > start_byte {
+                error.end.min(input.len())
+            } else {
+                diagnostic_end_for_byte(input.as_bytes(), start_byte)
+            };
+            crate::document::ParseDiagnostic {
+                start_byte,
+                end_byte,
+                point_range: crate::document::PointRange::from_byte_range(
+                    input,
+                    start_byte..end_byte,
+                ),
+                found: Some(error.reason.to_string()),
+                expected: error.expected.clone(),
+                related_nodes: Vec::new(),
+                message: error.to_string(),
+            }
+        })
+        .collect::<Vec<_>>();
+    let error_count = diagnostics.len();
+    let root = synthetic_document_root_for_errors(input, parse_table.start_symbol, &diagnostics);
+
+    crate::document::AdzeDocument::from_parse_result_with_diagnostics_and_ambiguities(
+        input,
+        root,
+        error_count,
+        crate::document::DocumentRuntime {
+            language_name: grammar_name,
+            grammar,
+            parse_table,
+            pure_language: Some(language),
+        },
+        diagnostics,
+        Vec::new(),
     )
 }
 

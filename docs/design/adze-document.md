@@ -230,8 +230,10 @@ alternatives: it reports the alternative count, selected alternative, root spans
 and whether selection came from dynamic-precedence/error-cost version comparison
 or the stable structural tie-break. Generated `parse_document()` now routes
 conflicted parse tables through that true-GLR runtime and records the same
-summary on `AdzeDocument::ambiguities()`. This is still a selected-tree summary,
-not raw forest export or typed extraction from alternatives.
+summary on `AdzeDocument::ambiguities()`. GLR lexing and finish errors on this
+document route are converted into structured diagnostics with a synthetic error
+root instead of escaping as hard parse failures. This is still a selected-tree
+summary, not raw forest export or typed extraction from alternatives.
 
 ## Parse Options
 
