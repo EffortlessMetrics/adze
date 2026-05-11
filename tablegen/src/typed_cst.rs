@@ -120,6 +120,7 @@ impl<'a> TypedCstGenerator<'a> {
     fn wrapper_specs(&self) -> BTreeMap<SymbolId, WrapperSpec> {
         let mut specs = BTreeMap::new();
         let mut used_idents = BTreeSet::new();
+        let field_target_terminals = self.field_target_terminals();
 
         for (symbol_id, name) in &self.grammar.rule_names {
             if name.starts_with('_') {
@@ -136,7 +137,7 @@ impl<'a> TypedCstGenerator<'a> {
         }
 
         for (symbol_id, token) in &self.grammar.tokens {
-            if token.name.starts_with('_') {
+            if token.name.starts_with('_') && !field_target_terminals.contains(symbol_id) {
                 continue;
             }
 
@@ -160,6 +161,22 @@ impl<'a> TypedCstGenerator<'a> {
         }
 
         specs
+    }
+
+    fn field_target_terminals(&self) -> BTreeSet<SymbolId> {
+        let mut terminals = BTreeSet::new();
+
+        for rules in self.grammar.rules.values() {
+            for rule in rules {
+                for (_, position) in &rule.fields {
+                    if let Some(symbol) = rule.rhs.get(*position) {
+                        collect_terminal_symbols(symbol, &mut terminals);
+                    }
+                }
+            }
+        }
+
+        terminals
     }
 
     fn field_accessors(
@@ -201,6 +218,23 @@ impl<'a> TypedCstGenerator<'a> {
         }
 
         by_wrapper
+    }
+}
+
+fn collect_terminal_symbols(symbol: &Symbol, terminals: &mut BTreeSet<SymbolId>) {
+    match symbol {
+        Symbol::Terminal(id) => {
+            terminals.insert(*id);
+        }
+        Symbol::Optional(inner) | Symbol::Repeat(inner) | Symbol::RepeatOne(inner) => {
+            collect_terminal_symbols(inner, terminals);
+        }
+        Symbol::Choice(choices) | Symbol::Sequence(choices) => {
+            for choice in choices {
+                collect_terminal_symbols(choice, terminals);
+            }
+        }
+        Symbol::NonTerminal(_) | Symbol::External(_) | Symbol::Epsilon => {}
     }
 }
 
@@ -413,6 +447,17 @@ mod tests {
         assert!(generated.contains("MinusToken :: cast"));
     }
 
+    #[test]
+    fn typed_cst_generator_keeps_hidden_tokens_when_they_are_field_targets() {
+        let grammar = hidden_field_token_grammar();
+        let generated = TypedCstGenerator::new(&grammar).generate().to_string();
+
+        assert!(generated.contains("pub struct NumberToken"));
+        assert!(generated.contains("pub fn left"));
+        assert!(generated.contains("edge_by_field_name (\"left\")"));
+        assert!(generated.contains("NumberToken :: cast"));
+    }
+
     fn arithmetic_grammar() -> Grammar {
         let mut grammar = Grammar::new("arithmetic".to_string());
 
@@ -515,6 +560,48 @@ mod tests {
             associativity: None,
             fields: vec![],
             production_id: ProductionId(0),
+        });
+
+        grammar
+    }
+
+    fn hidden_field_token_grammar() -> Grammar {
+        let mut grammar = Grammar::new("hidden_field_token".to_string());
+
+        let number = SymbolId(0);
+        let source_file = SymbolId(1);
+        let pair = SymbolId(2);
+
+        grammar.tokens.insert(
+            number,
+            Token {
+                name: "_number".to_string(),
+                pattern: TokenPattern::Regex(r"\d+".to_string()),
+                fragile: false,
+            },
+        );
+
+        grammar
+            .rule_names
+            .insert(source_file, "source_file".to_string());
+        grammar.rule_names.insert(pair, "pair".to_string());
+        grammar.fields.insert(FieldId(0), "left".to_string());
+
+        grammar.add_rule(Rule {
+            lhs: source_file,
+            rhs: vec![Symbol::NonTerminal(pair)],
+            precedence: None,
+            associativity: None,
+            fields: vec![],
+            production_id: ProductionId(0),
+        });
+        grammar.add_rule(Rule {
+            lhs: pair,
+            rhs: vec![Symbol::Terminal(number)],
+            precedence: None,
+            associativity: None,
+            fields: vec![(FieldId(0), 0)],
+            production_id: ProductionId(1),
         });
 
         grammar

@@ -350,13 +350,8 @@ impl GrammarJsConverter {
             }
 
             JsRule::Seq { members } => {
-                let mut rhs = Vec::new();
-                for member in members {
-                    if let Some(symbol) = self.rule_to_symbol(grammar, member) {
-                        rhs.push(symbol);
-                    }
-                }
-                self.add_rule(grammar, lhs, rhs, None, None);
+                let (rhs, fields) = self.seq_to_rhs_and_fields(grammar, members);
+                self.add_rule_with_fields(grammar, lhs, rhs, None, None, fields);
             }
 
             JsRule::Choice { members } => {
@@ -377,23 +372,20 @@ impl GrammarJsConverter {
                                 members: seq_members,
                             } = content.as_ref()
                             {
-                                let mut rhs = Vec::new();
-                                for seq_member in seq_members {
-                                    if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
-                                        rhs.push(symbol);
-                                    }
-                                }
+                                let (rhs, fields) =
+                                    self.seq_to_rhs_and_fields(grammar, seq_members);
                                 if !rhs.is_empty() {
                                     eprintln!(
                                         "Debug: Adding rule {} -> {:?} with precedence {}",
                                         lhs.0, rhs, value
                                     );
-                                    self.add_rule(
+                                    self.add_rule_with_fields(
                                         grammar,
                                         lhs,
                                         rhs,
                                         Some(PrecedenceKind::Static(*value as i16)),
                                         None,
+                                        fields,
                                     );
                                     added = true;
                                 }
@@ -418,23 +410,20 @@ impl GrammarJsConverter {
                                 members: seq_members,
                             } = content.as_ref()
                             {
-                                let mut rhs = Vec::new();
-                                for seq_member in seq_members {
-                                    if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
-                                        rhs.push(symbol);
-                                    }
-                                }
+                                let (rhs, fields) =
+                                    self.seq_to_rhs_and_fields(grammar, seq_members);
                                 if !rhs.is_empty() {
                                     eprintln!(
                                         "Debug: Adding rule {} -> {:?} with left precedence {}",
                                         lhs.0, rhs, value
                                     );
-                                    self.add_rule(
+                                    self.add_rule_with_fields(
                                         grammar,
                                         lhs,
                                         rhs,
                                         Some(PrecedenceKind::Static(*value as i16)),
                                         Some(Associativity::Left),
+                                        fields,
                                     );
                                     added = true;
                                 }
@@ -459,23 +448,20 @@ impl GrammarJsConverter {
                                 members: seq_members,
                             } = content.as_ref()
                             {
-                                let mut rhs = Vec::new();
-                                for seq_member in seq_members {
-                                    if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
-                                        rhs.push(symbol);
-                                    }
-                                }
+                                let (rhs, fields) =
+                                    self.seq_to_rhs_and_fields(grammar, seq_members);
                                 if !rhs.is_empty() {
                                     eprintln!(
                                         "Debug: Adding rule {} -> {:?} with right precedence {}",
                                         lhs.0, rhs, value
                                     );
-                                    self.add_rule(
+                                    self.add_rule_with_fields(
                                         grammar,
                                         lhs,
                                         rhs,
                                         Some(PrecedenceKind::Static(*value as i16)),
                                         Some(Associativity::Right),
+                                        fields,
                                     );
                                     added = true;
                                 }
@@ -505,23 +491,13 @@ impl GrammarJsConverter {
                                 seq_members.len(),
                                 lhs.0
                             );
-                            let mut rhs = Vec::new();
-                            for seq_member in seq_members {
-                                if let Some(symbol) = self.rule_to_symbol(grammar, seq_member) {
-                                    rhs.push(symbol);
-                                } else {
-                                    eprintln!(
-                                        "Debug: Failed to convert SEQ member in CHOICE for {}",
-                                        lhs.0
-                                    );
-                                }
-                            }
+                            let (rhs, fields) = self.seq_to_rhs_and_fields(grammar, seq_members);
                             if !rhs.is_empty() {
                                 eprintln!(
                                     "Debug: Adding rule {} -> {:?} (from inlined SEQ)",
                                     lhs.0, rhs
                                 );
-                                self.add_rule(grammar, lhs, rhs, None, None);
+                                self.add_rule_with_fields(grammar, lhs, rhs, None, None, fields);
                             }
                         }
                         _ => {
@@ -854,6 +830,41 @@ impl GrammarJsConverter {
         }
     }
 
+    fn seq_to_rhs_and_fields(
+        &mut self,
+        grammar: &mut Grammar,
+        members: &[JsRule],
+    ) -> (Vec<Symbol>, Vec<(FieldId, usize)>) {
+        let mut rhs = Vec::new();
+        let mut fields = Vec::new();
+
+        for member in members {
+            match member {
+                JsRule::Field { name, content } => {
+                    let field_id = self.get_or_create_field(name);
+                    if let Some(symbol) = self.rule_to_symbol(grammar, content) {
+                        let position = rhs.len();
+                        rhs.push(symbol);
+                        if !is_generated_tuple_field_name(name) {
+                            fields.push((field_id, position));
+                        }
+                    } else {
+                        eprintln!("Debug: Failed to convert FIELD member {name}");
+                    }
+                }
+                _ => {
+                    if let Some(symbol) = self.rule_to_symbol(grammar, member) {
+                        rhs.push(symbol);
+                    } else {
+                        eprintln!("Debug: Failed to convert SEQ member");
+                    }
+                }
+            }
+        }
+
+        (rhs, fields)
+    }
+
     fn token_for_wrapped_rule(
         &mut self,
         grammar: &mut Grammar,
@@ -887,12 +898,27 @@ impl GrammarJsConverter {
         precedence: Option<PrecedenceKind>,
         associativity: Option<Associativity>,
     ) {
+        self.add_rule_with_fields(grammar, lhs, rhs, precedence, associativity, Vec::new());
+    }
+
+    fn add_rule_with_fields(
+        &mut self,
+        grammar: &mut Grammar,
+        lhs: SymbolId,
+        rhs: Vec<Symbol>,
+        precedence: Option<PrecedenceKind>,
+        associativity: Option<Associativity>,
+        fields: Vec<(FieldId, usize)>,
+    ) {
         eprintln!("Debug: Adding rule for SymbolId({}) -> {:?}", lhs.0, rhs);
 
         // Check if an identical rule already exists
         let duplicate_exists = grammar.rules.get(&lhs).is_some_and(|existing_rules| {
             existing_rules.iter().any(|r| {
-                r.rhs == rhs && r.precedence == precedence && r.associativity == associativity
+                r.rhs == rhs
+                    && r.precedence == precedence
+                    && r.associativity == associativity
+                    && r.fields == fields
             })
         });
 
@@ -909,7 +935,7 @@ impl GrammarJsConverter {
             rhs,
             precedence,
             associativity,
-            fields: vec![],
+            fields,
             production_id: ProductionId(self.next_production_id.try_into().unwrap()),
         };
         self.next_production_id += 1;
@@ -952,13 +978,8 @@ impl GrammarJsConverter {
     ) -> Result<()> {
         match content {
             JsRule::Seq { members } => {
-                let mut rhs = Vec::new();
-                for member in members {
-                    if let Some(symbol) = self.rule_to_symbol(grammar, member) {
-                        rhs.push(symbol);
-                    }
-                }
-                self.add_rule(grammar, lhs, rhs, precedence, associativity);
+                let (rhs, fields) = self.seq_to_rhs_and_fields(grammar, members);
+                self.add_rule_with_fields(grammar, lhs, rhs, precedence, associativity, fields);
             }
             _ => {
                 if let Some(symbol) = self.rule_to_symbol(grammar, content) {
@@ -1013,6 +1034,19 @@ impl GrammarJsConverter {
 
 fn hidden_pattern_token_name(pattern: &str) -> String {
     format!("_/{pattern}/")
+}
+
+fn is_generated_tuple_field_name(name: &str) -> bool {
+    let Some((prefix, suffix)) = name.rsplit_once('_') else {
+        return false;
+    };
+
+    !prefix.is_empty()
+        && prefix
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_uppercase())
+        && suffix.chars().all(|ch| ch.is_ascii_digit())
 }
 
 #[cfg(test)]
@@ -1105,6 +1139,162 @@ mod tests {
         assert!(
             !source_rule.rhs.contains(&Symbol::NonTerminal(keyword_if)),
             "string leaf wrappers must not hide token lookahead behind nonterminals"
+        );
+    }
+
+    #[test]
+    fn fielded_seq_preserves_fields_on_lowered_token_symbols() {
+        let mut grammar_js = GrammarJs::new("fielded_seq".to_string());
+
+        grammar_js.rules.insert(
+            "source_file".to_string(),
+            JsRule::Seq {
+                members: vec![JsRule::Symbol {
+                    name: "pair".to_string(),
+                }],
+            },
+        );
+        grammar_js.rules.insert(
+            "pair".to_string(),
+            JsRule::Seq {
+                members: vec![
+                    JsRule::Field {
+                        name: "left".to_string(),
+                        content: Box::new(JsRule::Symbol {
+                            name: "pair_left".to_string(),
+                        }),
+                    },
+                    JsRule::Field {
+                        name: "right".to_string(),
+                        content: Box::new(JsRule::Symbol {
+                            name: "pair_right".to_string(),
+                        }),
+                    },
+                ],
+            },
+        );
+        grammar_js.rules.insert(
+            "pair_left".to_string(),
+            JsRule::Pattern {
+                value: r"\d+".to_string(),
+            },
+        );
+        grammar_js.rules.insert(
+            "pair_right".to_string(),
+            JsRule::String {
+                value: "+".to_string(),
+            },
+        );
+
+        let grammar = GrammarJsConverter::new(grammar_js).convert().unwrap();
+        let pair = grammar
+            .rule_names
+            .iter()
+            .find_map(|(id, name)| (name == "pair").then_some(*id))
+            .expect("pair symbol should exist");
+        let pair_left = grammar
+            .rule_names
+            .iter()
+            .find_map(|(id, name)| (name == "pair_left").then_some(*id))
+            .expect("pair_left symbol should exist");
+        let pair_right = grammar
+            .rule_names
+            .iter()
+            .find_map(|(id, name)| (name == "pair_right").then_some(*id))
+            .expect("pair_right symbol should exist");
+        let left = grammar
+            .fields
+            .iter()
+            .find_map(|(id, name)| (name == "left").then_some(*id))
+            .expect("left field should exist");
+        let right = grammar
+            .fields
+            .iter()
+            .find_map(|(id, name)| (name == "right").then_some(*id))
+            .expect("right field should exist");
+
+        let pair_rule = grammar
+            .rules
+            .get(&pair)
+            .and_then(|rules| rules.first())
+            .expect("pair rule should exist");
+
+        assert!(
+            matches!(
+                pair_rule.rhs.as_slice(),
+                [Symbol::Terminal(_), Symbol::Terminal(_)]
+            ),
+            "token-backed field wrapper references should keep parser productions terminal-backed"
+        );
+        assert_eq!(pair_rule.fields, vec![(left, 0), (right, 1)]);
+
+        let left_rule = grammar
+            .rules
+            .get(&pair_left)
+            .and_then(|rules| rules.first())
+            .expect("pair_left rule should exist");
+        assert!(
+            matches!(left_rule.rhs.as_slice(), [Symbol::Terminal(_)]),
+            "field wrapper rules should still lower to terminal-backed productions"
+        );
+        let right_rule = grammar
+            .rules
+            .get(&pair_right)
+            .and_then(|rules| rules.first())
+            .expect("pair_right rule should exist");
+        assert!(
+            matches!(right_rule.rhs.as_slice(), [Symbol::Terminal(_)]),
+            "field wrapper rules should still lower to terminal-backed productions"
+        );
+    }
+
+    #[test]
+    fn fielded_seq_skips_generated_tuple_field_metadata() {
+        let mut grammar_js = GrammarJs::new("generated_tuple_fields".to_string());
+
+        grammar_js.rules.insert(
+            "source_file".to_string(),
+            JsRule::Seq {
+                members: vec![JsRule::Symbol {
+                    name: "expr".to_string(),
+                }],
+            },
+        );
+        grammar_js.rules.insert(
+            "expr".to_string(),
+            JsRule::Seq {
+                members: vec![
+                    JsRule::Field {
+                        name: "Expr_Add_0".to_string(),
+                        content: Box::new(JsRule::Pattern {
+                            value: r"\d+".to_string(),
+                        }),
+                    },
+                    JsRule::Field {
+                        name: "Expr_Add_1".to_string(),
+                        content: Box::new(JsRule::String {
+                            value: "+".to_string(),
+                        }),
+                    },
+                ],
+            },
+        );
+
+        let grammar = GrammarJsConverter::new(grammar_js).convert().unwrap();
+        let expr = grammar
+            .rule_names
+            .iter()
+            .find_map(|(id, name)| (name == "expr").then_some(*id))
+            .expect("expr symbol should exist");
+        let expr_rule = grammar
+            .rules
+            .get(&expr)
+            .and_then(|rules| rules.first())
+            .expect("expr rule should exist");
+
+        assert!(
+            expr_rule.fields.is_empty(),
+            "generated tuple field names are extraction scaffolding and should not alter existing generated AST tree shape"
         );
     }
 

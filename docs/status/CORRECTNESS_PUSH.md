@@ -89,9 +89,12 @@ Keep implementation slices small:
    alpha `syntax` module plus a generated `parse_document()` helper. The runtime
    canary now proves that helper feeds generated wrappers from the same
    `AdzeDocument` and that retained typed wrappers agree with the generic CST on
-   node IDs, kind names, byte ranges, and text. Next, broaden typed CST/generic
-   CST parity across fielded generated shapes without expanding into visitors,
-   rewriters, typed queries, or JSON output.
+   node IDs, kind names, byte ranges, and text. A generated fielded-struct
+   canary now proves FIELD metadata survives Rust expansion into terminal-backed
+   converter `SEQ` productions, ABI field maps, `AdzeDocument` edge metadata,
+   and generated typed CST `left`/`right` accessors. Next, broaden across
+   precedence/enum field shapes without expanding into visitors, rewriters,
+   typed queries, or JSON output.
 3. Alias-visible compatibility canaries only after native node identity exposes
    visible and grammar identity separately.
 

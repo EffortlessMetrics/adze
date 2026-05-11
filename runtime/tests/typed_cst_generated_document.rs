@@ -67,6 +67,42 @@ fn generated_typed_cst_wrappers_cast_generic_document_nodes() {
     assert_same_node(number, number_node);
 }
 
+#[test]
+fn generated_typed_cst_field_accessors_project_native_edges() {
+    let source = "123+";
+    let document = adze_example::fielded_typed_cst_contract::grammar::parse_document(source)
+        .expect("generated parse_document helper should return an AdzeDocument");
+    let root = document.tree().root();
+    let pair_node =
+        find_node(root, "Pair", source).expect("generic CST should contain the pair node");
+    let pair = adze_example::fielded_typed_cst_contract::grammar::syntax::Pair::cast(
+        &document,
+        pair_node.node_id(),
+    )
+    .expect("generated Pair wrapper should cast the matching generic node");
+
+    let generic_left = pair_node
+        .edge_by_field_name("left")
+        .and_then(|edge| edge.child())
+        .expect("generic CST should expose the left field edge");
+    let generic_right = pair_node
+        .edge_by_field_name("right")
+        .and_then(|edge| edge.child())
+        .expect("generic CST should expose the right field edge");
+
+    let left = pair
+        .left()
+        .expect("generated Pair wrapper should expose the left field");
+    let right = pair
+        .right()
+        .expect("generated Pair wrapper should expose the right field");
+
+    assert_same_node(left, generic_left);
+    assert_same_node(right, generic_right);
+    assert_eq!(left.text(), Some("123"));
+    assert_eq!(right.text(), Some("+"));
+}
+
 fn assert_same_node<'doc>(wrapper: impl SyntaxNode<'doc>, node: adze::document::AdzeNode<'doc>) {
     assert_eq!(wrapper.node_id(), node.node_id());
     assert_eq!(wrapper.kind_name(), node.kind_name());

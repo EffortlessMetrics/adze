@@ -330,8 +330,29 @@ It proves a generated parser module can parse source into `AdzeDocument` through
 the pure-Rust parser path and feed the generated `syntax::source_file(...)`
 wrapper from the same document root. The same canary also checks that generated
 wrappers for retained generic CST nodes share the same document-local node IDs,
-kind names, byte ranges, and source text as the generic CST view. This remains
-an alpha bridge only: generated parser modules do not yet have a broad
+kind names, byte ranges, and source text as the generic CST view.
+
+A fielded generated parser canary now proves FIELD metadata survives the
+Rust-expansion/Grammar.js conversion path into `AdzeDocument` edge metadata and
+generated typed CST accessors:
+
+```bash
+cargo test -p adze-tool --lib \
+  grammar_js::converter::tests::fielded_seq_preserves_fields_on_lowered_token_symbols \
+  -- --exact --nocapture
+
+cargo test -p adze --features pure-rust \
+  --test typed_cst_generated_document -- --nocapture
+```
+
+The converter regression checks that FIELD entries inside `SEQ` attach to the
+parent production while token-backed fields keep the parser production
+terminal-backed for stable typed AST extraction. The typed-CST generator keeps
+hidden token wrappers when those tokens are field targets, so generated
+accessors can still cast the retained document edge child. The runtime canary
+then checks generated `Pair::left()` and `Pair::right()` accessors against the
+same generic `edge_by_field_name(...)` children from the document tree. This
+remains an alpha bridge only: generated parser modules do not yet have a broad
 typed CST/generic CST parity matrix, visitor/rewriter surfaces, typed query
 APIs, or typed CST JSON output, and this is not a public typed CST support
 claim.
@@ -350,6 +371,6 @@ Expected sequence:
 5. tablegen typed-CST generator target for wrappers and field accessors,
 6. wire generated wrappers into one generated grammar fixture,
 7. generated `parse_document()` helper and runtime canary,
-8. typed CST and generic CST parity canaries,
+8. generated field-access parity canary over native edge metadata,
 9. typed AST extraction through typed CST,
 10. typed CST JSON, if needed.
