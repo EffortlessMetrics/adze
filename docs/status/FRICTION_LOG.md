@@ -27,7 +27,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 | FR-015 | Testing | Feature matrix expected failure (`feature_profile_resolve_backend`) | 11/12 pass, 1 expected failure | Resolved | - |
 | FR-016 | Testing | Compiler ICE in feature policy contract tests | Blocks test compilation under specific macro/control-flow combinations | Resolved | - |
 | FR-017 | Testing | Backend-selection expectations drift across feature-unified test surfaces | Head-specific CI red and ad hoc panic matching | Resolved | [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267) |
-| FR-018 | CI | Windows pure-rust benchmark compilation is an unusually long tail | Green runs still block on low-signal wait time | Mitigated (gated in PRs #276/#280; issue #269 open for further reduction) | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
+| FR-018 | CI | Pure-rust benchmark compilation tail in PRs | Routine PRs no longer block on low-signal benchmark compilation | Resolved for routine PRs | [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269) |
 | FR-019 | Tooling | Temp worktree cleanup can drift when a `/tmp` path becomes a standalone repo | Cleanup requires manual removal and prune steps | Mitigated | [Issue #268](https://github.com/EffortlessMetrics/adze/issues/268) |
 
 ---
@@ -219,10 +219,10 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Area:** ci
 **Symptom:** Windows pure-rust CI lanes spend a long time in benchmark-compilation after the meaningful test/build signal has already completed.
 **Expected:** Required merge-blocking jobs should either provide clear signal or finish quickly once build/test are done.
-**Actual:** The long pole on the final green path for PR #264 was the `Run benchmarks (check compilation)` step in `.github/workflows/pure-rust-ci.yml` on `windows-latest`.
-**Repro:** PR #264 merged green only after the `Test Pure Rust Implementation (windows-latest, stable)` and `(..., nightly)` jobs eventually completed their final `cargo bench --no-run` step.
-**Fix:** OS-segmented benchmark compile checks added in `.github/workflows/pure-rust-ci.yml` (PR #276). Windows path now checks only `-p adze` with `--no-run`, reducing low-signal tail risk. Elapsed timing retained. PR #280 hardened the workflow lanes further. Issue #269 remains open for potential further reduction.
-**Status:** Mitigated (PRs #276/#280 merged 2026-04-05/06; issue #269 still open)
+**Actual:** The long pole on the final green path for PR #264 was the `Run benchmarks (check compilation)` step in `.github/workflows/pure-rust-ci.yml` on `windows-latest`. Later PRs still spent about 40 minutes in the pure-rust job because the default Ubuntu/stable PR lane ran `cargo bench --no-run` across all crates after the meaningful formatting, clippy, build, and test signal had completed.
+**Repro:** PR #264 merged green only after the `Test Pure Rust Implementation (windows-latest, stable)` and `(..., nightly)` jobs eventually completed their final `cargo bench --no-run` step. PRs #631/#632 showed the same low-signal tail shape on the default Ubuntu/stable pull-request lane.
+**Fix:** OS-segmented benchmark compile checks added in `.github/workflows/pure-rust-ci.yml` (PR #276). Windows PR benchmark compile checks were later skipped. Routine pull requests now also skip the all-crate pure-rust benchmark compile check; benchmark compile/performance ownership lives in `performance.yml`, `benchmarks.yml`, and explicit `ci:perf`/`benchmarks`/`full-ci` opt-in lanes. Push and workflow-dispatch pure-rust runs still keep the all-crate compile check.
+**Status:** Resolved for routine PRs
 **Links:** [Issue #269](https://github.com/EffortlessMetrics/adze/issues/269), [PR #276](https://github.com/EffortlessMetrics/adze/pull/276), [PR #280](https://github.com/EffortlessMetrics/adze/pull/280)
 
 ### FR-019 - Worktree Metadata Drift During Cleanup
