@@ -35,6 +35,26 @@ impl AdzeDocument {
         parse_table: &ParseTable,
     ) -> Self {
         let diagnostics = build_diagnostics(&root, error_count, source.len());
+        Self::from_parse_result_with_diagnostics(
+            source,
+            root,
+            error_count,
+            language_name,
+            grammar,
+            parse_table,
+            diagnostics,
+        )
+    }
+
+    pub(crate) fn from_parse_result_with_diagnostics(
+        source: &str,
+        root: ParseNode,
+        error_count: usize,
+        language_name: &str,
+        grammar: &Grammar,
+        parse_table: &ParseTable,
+        diagnostics: Vec<ParseDiagnostic>,
+    ) -> Self {
         let node_index = build_node_index(&root);
         Self {
             source: source.to_string(),
@@ -299,6 +319,10 @@ pub struct ParseDiagnostic {
     pub start_byte: usize,
     /// Byte offset where the diagnostic ends.
     pub end_byte: usize,
+    /// Human-readable found token or symbol name, when known.
+    pub found: Option<String>,
+    /// Human-readable expected token or symbol names, when known.
+    pub expected: Vec<String>,
     /// Human-readable diagnostic summary.
     pub message: String,
 }
@@ -660,6 +684,8 @@ fn build_diagnostics(
     vec![ParseDiagnostic {
         start_byte,
         end_byte,
+        found: None,
+        expected: Vec::new(),
         message: format!("parser recorded {error_count} recovery/error event(s)"),
     }]
 }

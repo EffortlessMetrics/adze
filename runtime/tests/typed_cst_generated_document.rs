@@ -38,6 +38,49 @@ fn generated_parse_document_helper_feeds_generated_syntax_module() {
 }
 
 #[test]
+fn generated_parse_document_diagnostics_preserve_expected_tokens() {
+    let source = "1 +";
+    let document = adze_example::typed_ast_contract::grammar::parse_document(source)
+        .expect("generated parse_document helper should return partial parse facts");
+    let parse_error = adze_example::typed_ast_contract::grammar::parse(source)
+        .expect_err("truncated expression should fail through the typed AST parser")
+        .into_iter()
+        .next()
+        .expect("typed AST parser should report at least one error");
+
+    assert!(document.metadata().error_count > 0);
+    assert!(document.tree().has_errors());
+
+    let diagnostic = document
+        .diagnostics()
+        .first()
+        .expect("parse_document should expose a structured diagnostic");
+
+    assert_eq!(
+        diagnostic.start_byte..diagnostic.end_byte,
+        parse_error.byte_span()
+    );
+    assert_eq!(diagnostic.expected, parse_error.expected);
+    assert!(
+        diagnostic.expected.iter().any(|token| token == r"/\d+/"),
+        "document diagnostic should preserve generated expected token names: {:?}",
+        diagnostic.expected
+    );
+    assert!(
+        diagnostic.message.contains("expected one of:"),
+        "document diagnostic should retain expected-token context: {}",
+        diagnostic.message
+    );
+    assert!(
+        !diagnostic.message.contains("SymbolId")
+            && !diagnostic.message.contains("symbol ")
+            && !diagnostic.message.contains("_4"),
+        "document diagnostic should not expose raw symbol internals: {}",
+        diagnostic.message
+    );
+}
+
+#[test]
 fn generated_typed_cst_wrappers_cast_generic_document_nodes() {
     let source = "1+2+3";
     let document = adze_example::typed_ast_contract::grammar::parse_document(source)
