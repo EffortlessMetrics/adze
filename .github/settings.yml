@@ -81,3 +81,60 @@ labels:
   - name: good first issue
     color: "7057ff"
     description: Good for newcomers
+  - name: full-ci
+    color: "b60205"
+    description: Run the full routed CI suite for this PR
+  - name: ci-budget-ack
+    color: "fbca04"
+    description: Acknowledge elevated or high CI LEM budget
+  - name: ci-budget-override
+    color: "d93f0b"
+    description: Allow over-ceiling CI LEM budget with explicit approval
+  - name: platform-matrix
+    color: "5319e7"
+    description: Run full OS and toolchain matrix verification
+  - name: coverage
+    color: "1d76db"
+    description: Run coverage instrumentation and reporting
+  - name: ci:golden
+    color: "c5def5"
+    description: Run grammar golden/parity verification
+  - name: ci:perf
+    color: "c5def5"
+    description: Run performance comparison lanes
+  - name: ci:microcrate
+    color: "5319e7"
+    description: Run full microcrate verification
+  - name: ci:concurrency
+    color: "5319e7"
+    description: Run concurrency-focused microcrate verification
+  - name: wasm
+    color: "006b75"
+    description: Run WASM verification lanes
+  - name: fuzz
+    color: "d93f0b"
+    description: Run fuzzing lanes
+  - name: benchmarks
+    color: "c5def5"
+    description: Run full benchmark suite
+  - name: api
+    color: "0075ca"
+    description: Run public API and SemVer checks
+  - name: release-check
+    color: "006b75"
+    description: Run release readiness verification
+  - name: security-audit
+    color: "e11d21"
+    description: Run security audit verification
+  - name: mutation
+    color: "d93f0b"
+    description: Run mutation testing lanes
+  - name: property-tests
+    color: "1d76db"
+    description: Run property-test verification lanes
+  - name: skip-golden
+    color: "ededed"
+    description: Skip default golden checks when explicit opt-in is absent
+  - name: skip-perf
+    color: "ededed"
+    description: Skip default performance comparison when explicit opt-in is absent

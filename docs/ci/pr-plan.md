@@ -18,8 +18,9 @@ For each PR, the workflow:
 6. writes `target/ci/ci-plan.json`,
 7. appends a Markdown summary to the GitHub step summary.
 
-It does not change which jobs run today. The routing PRs (10–14) wire the
-plan into job conditions.
+It does not change which jobs run by itself. Routing PRs wire plan outputs,
+path filters, and labels into job conditions. Budget enforcement should use
+static `base_lem` first; learned estimates wait for actuals.
 
 ## Outputs
 
@@ -63,10 +64,22 @@ Changed areas: docs
 Risk packs: (none)
 ```
 
+## Budget enforcement plan
+
+| Band | Static LEM | Behavior |
+| --- | ---: | --- |
+| ordinary | 0–35 | pass |
+| elevated | 36–75 | warning summary |
+| high | 76–125 | warning plus explicit label recommendation |
+| over ceiling | >125 | fail unless `full-ci` or `ci-budget-override` is present |
+
+Do not use learned estimates for enforcement until the actuals criteria in
+`docs/ci/learned-estimates.md` are met.
+
 ## Limitations
 
-- Static estimates only, until learned actuals land (PR 18).
-- Does not yet enforce the budget; that comes in PR 16 with soft warnings
-  and PR 17 with the branch protection promotion.
+- Static estimates only, until learned actuals are advisory and then ratcheted.
+- Budget enforcement is a later control-plane PR and should not be combined
+  with branch-protection or workflow-pruning changes.
 - The Python script does not consult `cargo metadata`, so transitive crate
   impacts are approximate. The xtask planner adds dependency-graph closure.

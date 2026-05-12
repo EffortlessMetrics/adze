@@ -49,7 +49,7 @@ Run via:
 cargo xtask check-ci-lane-whitelist
 ```
 
-The lint warns (advisory) when:
+The lint currently warns (advisory) when:
 
 - a workflow file has jobs not listed in the whitelist,
 - a lane is `default_pr=true` and `expensive=true` without an exception id,
@@ -67,3 +67,23 @@ The lint warns (advisory) when:
    owner, an issue pointer, a `review_after`, and an `expires`.
 3. When the lane is later routed by risk pack or label, the exception is
    removed and the lane's `default_pr` is set to `false`.
+
+
+## Blocking mode rollout
+
+The blocking-mode rollout is intentionally scoped to CI-control-plane changes.
+It should fail only when files such as `.github/workflows/**`,
+`policy/ci-*.toml`, `docs/ci/**`, `scripts/ci/**`, or `xtask/**` change and
+the change introduces an undeclared or unsafe lane.
+
+Blocking-mode failure cases include:
+
+- a new PR-default job without a lane entry,
+- a new macOS or Windows default PR lane,
+- missing `owner`, `intent`, `failure_mode`, `proof_obligation`, or evidence,
+- `default_pr = true` with `base_lem > 35` and no active exception, and
+- omitted `duplicate_of` metadata when the lane intentionally duplicates an
+  existing proof.
+
+This keeps ordinary feature PRs from being blocked by policy-ledger churn while
+still preventing workflow sprawl when CI files are edited.

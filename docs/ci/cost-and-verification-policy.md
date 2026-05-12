@@ -40,45 +40,44 @@ the design center.
 
 | Tier | Trigger | Examples |
 | --- | --- | --- |
-| frontdoor | every PR, blocking | `just ci-supported`, test-policy |
-| advisory | every PR, non-blocking | PR Plan, ripr |
-| risk-routed | risk pack matches | parser fuzz build, golden, microcrate group |
+| frontdoor | every PR, blocking | `just ci-supported`, PR Gate Success after promotion |
+| advisory | every PR, non-blocking | PR Plan, ripr, CI lane whitelist |
+| risk-routed | risk pack or label matches | test-policy full, parser fuzz build, golden, microcrate group, API/SemVer |
 | deep | `main`, nightly, label | OS matrix, fuzz runtime, full benchmarks |
 | release | tag, manual | semver, MSRV, security audit |
 
-## How we get there
+## Implementation order
 
-The rollout is not "delete CI". It is, in order:
+The rollout is not "delete CI". It proceeds in this control-plane order:
 
-1. Document the policy (this doc).
-2. Inventory every existing CI lane in `policy/ci-lane-whitelist.toml`.
-3. Lint workflows against that whitelist (advisory).
-4. Forecast each PR's cost with PR Plan (advisory).
-5. Stand up `PR Gate Success` as the future required check.
-6. Normalize cache save semantics so PRs restore but only `main` saves.
-7. Add `ripr` as cheap oracle-gap detection.
-8. Encode risk packs so routing has a vocabulary.
-9. Make planning testable with `xtask ci plan`.
-10. Route the heavy lanes (fuzz, OS matrix, benchmarks, golden, microcrate) by
-    risk pack and label.
-11. Calibrate from actuals.
-12. Promote `PR Gate Success` to the required branch protection.
+1. Stabilize docs/control plane.
+2. Make PR Gate authoritative.
+3. Remove duplicate ordinary-PR execution.
+4. Route expensive lanes harder.
+5. Enforce lane metadata.
+6. Add labels and branch-protection rails.
+7. Collect actuals.
+8. Ratchet budgets from measured data.
 
-See `docs/ci/adze-rollout-plan.md` for the per-PR breakdown.
+The next implementation wave is specified in
+`docs/ci/implementation-sequence.md`. `docs/ci/adze-rollout-plan.md` is the
+current status ledger.
 
 ## What we will not do
 
 - Weaken the supported product proof lane (`just ci-supported`).
 - Make `ripr` blocking.
 - Enforce learned LEM budgets before actuals exist.
-- Combine docs, policy, and routing changes into a single PR.
-- Remove broad validation from `main`/nightly/label paths.
+- Combine docs, branch protection, and workflow pruning into a single PR.
+- Remove broad validation from `main`/nightly/manual/label/release paths.
+- Add macOS or Windows as ordinary default PR lanes.
 
 ## Related
 
 - `docs/ci/lem-budgeting.md` – how LEM is computed and budgeted
 - `docs/ci/verification-ladder.md` – tiers and what they prove
-- `docs/ci/adze-rollout-plan.md` – per-PR rollout plan and status
+- `docs/ci/adze-rollout-plan.md` – rollout status ledger
+- `docs/ci/implementation-sequence.md` – ordered implementation contract
 - `docs/ci/labels.md` – label vocabulary used by routing
 - `policy/ci-lane-whitelist.toml` – lane registry
 - `policy/ci-risk-packs.toml` – risk pack routing map

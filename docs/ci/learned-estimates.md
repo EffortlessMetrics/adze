@@ -1,57 +1,88 @@
-# Learned LEM estimates (PR 18)
+# Learned LEM estimates
 
-Static `base_lem` values in `policy/ci-lane-whitelist.toml` are the
-starting estimate. Once `ci-actuals.json` artifacts have accumulated,
-the planner can use observed durations instead.
+Static `base_lem` values in `policy/ci-lane-whitelist.toml` are the source of
+truth until enough actuals exist. Learned estimates are intentionally deferred
+and advisory-only at first; they must not make a new lane cheaper merely
+because it has too few samples.
+
+## Inputs
+
+`ci-actuals.json` receipts should converge on this schema before learned
+estimates are enabled:
+
+```json
+{
+  "schema_version": 1,
+  "pr": 123,
+  "head_sha": "...",
+  "lanes": [
+    {
+      "id": "ci-supported",
+      "workflow": "PR Gate",
+      "job": "Supported Rust Gate",
+      "runner": "ubuntu_latest",
+      "wall_minutes": 21.4,
+      "runner_multiplier": 1.0,
+      "lem": 21.4,
+      "selected_by": ["default_pr"],
+      "result": "success"
+    }
+  ],
+  "total_lem": 27.2,
+  "budget_band": "ordinary"
+}
+```
+
+Receipts should be emitted per lane, not only per workflow, so duplicate lanes
+and routed lanes can be compared against the ledger independently.
 
 ## Promotion criteria
 
-PR 18 is opened when:
+Learned estimates may be introduced only after:
 
-- `target/ci/ci-actuals.json` artifacts have been uploaded by ≥ 30 PRs,
-- the runner-multiplier × wall-clock time for each lane has a stable
-  p50 and p90 within ±15% across two consecutive weeks,
-- the band thresholds (`35` / `75` / `125`) still match the operator's
-  cost target after observing actuals (see `docs/ci/lem-budgeting.md`).
+- at least 30 days of `ci-actuals.json` artifacts, or enough samples to cover
+  the default and routed lanes with stable percentiles,
+- each learned lane has sample count, p50, p90, p95, last-seen timestamp, and
+  outlier metadata,
+- p50 and p90 are stable within ±15% across two consecutive weeks,
+- the static budget thresholds (`25` / `35` / `75` / `125`) still match the
+  operator cost target after observing actuals, and
+- every expensive default lane has owner review before lowering an estimate.
 
-## Model
+## Advisory model
 
-```
-estimate(lane) = max(static_floor(lane), p50_recent_actual(lane) × 1.15)
-warning(lane)  = p90_recent_actual(lane)
-hard(lane)     = p95_recent_actual(lane)
-```
+The first learned-estimate PR only generates advisory artifacts:
 
-`static_floor` is the `base_lem` from the whitelist. The `× 1.15` factor
-keeps the estimate slightly pessimistic, so a normal PR's actuals stay
-under the estimate.
+- `target/ci/learned-estimates.json`
+- `docs/ci/learned-estimates.md` updates or generated tables
 
-## Implementation outline
+The advisory model should track:
 
-PR 18 will:
+| Field | Meaning |
+| --- | --- |
+| `p50_lem` | Median observed LEM for the lane |
+| `p90_lem` | Conservative planning baseline candidate |
+| `p95_lem` | Hard-warning candidate |
+| `sample_count` | Number of usable receipts |
+| `last_seen` | Most recent receipt timestamp |
+| `outliers` | Runs excluded or separately reported with reason |
 
-1. Add a `learned_estimates` section to the planner that loads the
-   most recent `ci-actuals.json` artifacts (from the previous N runs on
-   `main` or any matching workflow).
-2. Replace the static `base_lem` lookup in `xtask ci plan` with
-   `max(static_floor, p50_recent × 1.15)`.
-3. Continue to fall back to `base_lem` whenever fewer than 5 actuals
-   exist for a lane.
-4. Add `--enforce-hard-ceiling` to the workflow only if the band
-   thresholds have been validated against actuals.
+Do not block PRs from learned estimates in the first metrics PR.
 
-## Why this is deferred
+## Ratchet rules
 
-Until enough actuals exist, learned estimates are noisier than static
-ones. Worse, they make PR planning depend on historical data that may
-not exist for new lanes (a new lane has zero actuals and would either
-fall back to `base_lem` or be silently underestimated). Static
-estimates are correct in the meantime.
+When enough samples exist, update `policy/ci-lane-whitelist.toml` and docs
+together. The ratchet rules are:
 
-## Privacy and stability
+1. Require enough samples for the lane and runner class.
+2. Do not lower `base_lem` below observed p90 without an explicit written
+   reason.
+3. Keep Windows (`2.0`) and macOS (`10.0`) multipliers explicit.
+4. Require owner signoff for expensive default lanes.
+5. Preserve the static ledger as the auditable source of truth.
 
-- The learned estimates only consume aggregated p50/p90/p95 numbers.
-- They are stored in the planner's working memory, not committed to
-  the repo.
-- Static `base_lem` remains the audit trail; learned estimates inform,
-  they do not replace.
+## Fallback behavior
+
+If a lane has too few samples, is new, or changed its routing recently, use the
+static `base_lem`. Learned data may explain why a future estimate should change;
+it does not replace the ledger automatically.

@@ -1,6 +1,6 @@
 # CI Lane Map
 
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-12
 **Purpose:** Classify every CI check so contributors can immediately tell
 whether a red mark means "must fix before merge" or "inspect at your leisure."
 
@@ -13,7 +13,7 @@ whether a red mark means "must fix before merge" or "inspect at your leisure."
 | **Push / scheduled** | Runs on `main` pushes or schedules. Not PR-blocking. | Inspect trend; fix in a follow-up. |
 | **Advisory** | Uses nightly / unstable toolchains, `continue-on-error`, or non-blocking labels. May be red due to toolchain drift. | Inspect if curious. Not actionable for most PRs. |
 
-Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-gate.yml`).
+Branch protection currently requires exactly one check: **`CI / ci-supported`**. The planned stable aggregate context is **`PR Gate / PR Gate Success`** after the promotion criteria in `docs/ci/branch-protection.md` are met.
 
 ---
 
@@ -27,7 +27,26 @@ Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-g
 | `pr-gate.yml` | `PR Gate Success` | PR + merge_group | Aggregate: plan + supported/docs gate must pass |
 | `pr-gate.yml` | `PR Plan` | PR | Computes docs_only, estimated LEM, budget band |
 
-Required branch protection context: `CI / ci-supported` (maps to the `ci-supported` job in `ci.yml`, also exercised via `pr-gate.yml`).
+Required branch protection context today: `CI / ci-supported`. Target required context after the dedicated promotion PR: `PR Gate / PR Gate Success`. Do not require raw matrix leaves.
+
+### Target ordinary PR shape
+
+Ordinary PRs should normally stay within 25–35 LEM and select one cheap
+required proof plus routed/advisory signal:
+
+| Lane | Blocking | Target LEM |
+| --- | ---: | ---: |
+| PR Plan | no | ~1 |
+| Supported Rust Gate | yes | ~18–22 |
+| PR Gate Success | yes, after promotion | ~1 |
+| CI Lane Whitelist | advisory | ~1–2 |
+| ripr advisory | advisory | ~3–5 |
+| test-policy smoke | advisory or blocking | ~1–3 |
+
+Docs-only PRs should run PR Plan, Docs Gate, PR Gate Success, and cheap policy
+lint only. Platform matrices, full coverage, fuzzing, benchmark comparisons,
+ts-bridge parity, full test inventory, and release/API checks are routed by
+paths, labels, schedules, `main`, manual dispatch, or release events.
 
 ### PR-only signal (non-blocking)
 
