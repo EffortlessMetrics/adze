@@ -202,6 +202,17 @@ impl Language {
             .and_then(|id| u16::try_from(id).ok())
             .and_then(FieldId::new)
     }
+
+    /// Generate advisory Tree-sitter-style `node-types.json` metadata.
+    ///
+    /// This projection is generated from the language grammar metadata attached
+    /// to this compatibility language. It is intentionally narrower than full
+    /// Tree-sitter node-types parity: alias-visible node-types and
+    /// query-compatible alias metadata remain future work.
+    pub fn node_types_json(&self) -> String {
+        adze_tablegen::StaticLanguageGenerator::new(self.grammar.clone(), self.table.clone())
+            .generate_node_types()
+    }
 }
 
 /// A parser that can parse source code using a language.
