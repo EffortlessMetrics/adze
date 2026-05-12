@@ -156,7 +156,7 @@ pub struct AlternativeSummary {
     pub in_error: bool,
     /// Error/recovery cost for this parse version.
     pub cost: usize,
-    /// Error node count for this parse version.
+    /// Structural node count for this retained alternative tree.
     pub node_count: usize,
 }
 
@@ -408,6 +408,14 @@ fn append_subtree_selection_key(node: &Subtree, key: &mut SubtreeSelectionKey) {
         key.push((usize::MAX, usize::MAX, edge.field_id, 0, 0));
         append_subtree_selection_key(&edge.subtree, key);
     }
+}
+
+fn subtree_node_count(node: &Subtree) -> usize {
+    1 + node
+        .children
+        .iter()
+        .map(|edge| subtree_node_count(&edge.subtree))
+        .sum::<usize>()
 }
 
 fn version_selection_reason(left: &ParseStack, right: &ParseStack) -> SelectionReason {
@@ -2167,7 +2175,7 @@ impl GLRParser {
                     dynamic_precedence: stack.version.dynamic_prec,
                     in_error: stack.version.in_error,
                     cost: stack.version.cost,
-                    node_count: stack.version.node_count,
+                    node_count: subtree_node_count(node),
                 }
             })
             .collect();

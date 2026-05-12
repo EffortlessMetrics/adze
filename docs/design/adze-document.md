@@ -267,8 +267,8 @@ the user opts in through explicit parse options.
 
 The true-GLR runtime now has an alpha parser-level summary for retained complete
 alternatives: it reports the alternative count, selected alternative, root spans,
-and whether selection came from dynamic-precedence/error-cost version comparison
-or the stable structural tie-break. Generated `parse_document()` now routes
+structural node counts, and whether selection came from dynamic-precedence/error-cost
+version comparison or the stable structural tie-break. Generated `parse_document()` now routes
 conflicted parse tables through that true-GLR runtime and records the same
 summary on `AdzeDocument::ambiguities()`. GLR lexing and finish errors on this
 document route are converted into structured diagnostics with a synthetic error

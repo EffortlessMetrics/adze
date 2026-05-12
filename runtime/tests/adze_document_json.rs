@@ -187,8 +187,10 @@ fn parse_document_json_serializes_glr_ambiguity_summary() {
     assert!(selected_alternative["root_symbol"].as_u64().is_some());
     assert_eq!(selected_alternative["in_error"].as_bool(), Some(false));
     assert!(
-        selected_alternative["node_count"].as_u64().is_some(),
-        "selected alternative should preserve the runtime node-count summary field: {selected_alternative:?}"
+        selected_alternative["node_count"]
+            .as_u64()
+            .is_some_and(|count| count > 0),
+        "selected alternative should preserve a structural node count: {selected_alternative:?}"
     );
 
     let mut snapshot_json = json;
