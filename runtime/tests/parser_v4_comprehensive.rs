@@ -156,6 +156,7 @@ fn test_parse_node_construction() {
         start_byte: 0,
         end_byte: 5,
         field_name: None,
+        alias_symbol_id: None,
         children: Vec::new(),
     };
     assert_eq!(node.symbol, SymbolId(1));
@@ -172,6 +173,7 @@ fn test_parse_node_with_children() {
         start_byte: 0,
         end_byte: 3,
         field_name: None,
+        alias_symbol_id: None,
         children: Vec::new(),
     };
     let parent = ParseNode {
@@ -180,6 +182,7 @@ fn test_parse_node_with_children() {
         start_byte: 0,
         end_byte: 3,
         field_name: None,
+        alias_symbol_id: None,
         children: vec![child],
     };
     assert_eq!(parent.children.len(), 1);
@@ -194,6 +197,7 @@ fn test_parse_node_with_field_name() {
         start_byte: 0,
         end_byte: 3,
         field_name: Some("value".to_string()),
+        alias_symbol_id: None,
         children: Vec::new(),
     };
     assert_eq!(node.field_name.as_deref(), Some("value"));
@@ -207,6 +211,7 @@ fn test_parse_node_clone() {
         start_byte: 10,
         end_byte: 20,
         field_name: Some("test".to_string()),
+        alias_symbol_id: None,
         children: Vec::new(),
     };
     let cloned = node.clone();
@@ -222,6 +227,7 @@ fn test_parse_node_debug() {
         start_byte: 0,
         end_byte: 1,
         field_name: None,
+        alias_symbol_id: None,
         children: Vec::new(),
     };
     let debug = format!("{:?}", node);
@@ -318,6 +324,7 @@ fn test_deep_parse_node_tree() {
         start_byte: 0,
         end_byte: 1,
         field_name: None,
+        alias_symbol_id: None,
         children: Vec::new(),
     };
     for i in (0..10u16).rev() {
@@ -327,6 +334,7 @@ fn test_deep_parse_node_tree() {
             start_byte: 0,
             end_byte: 1,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![node],
         };
     }
@@ -360,6 +368,7 @@ fn test_wide_parse_node_tree() {
             start_byte: i as usize,
             end_byte: (i + 1) as usize,
             field_name: None,
+            alias_symbol_id: None,
             children: Vec::new(),
         })
         .collect();
@@ -369,6 +378,7 @@ fn test_wide_parse_node_tree() {
         start_byte: 0,
         end_byte: 20,
         field_name: None,
+        alias_symbol_id: None,
         children,
     };
     assert_eq!(parent.children.len(), 20);

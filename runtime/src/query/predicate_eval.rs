@@ -165,6 +165,7 @@ mod tests {
             start_byte: start,
             end_byte: end,
             field_name: None,
+            alias_symbol_id: None,
         }
     }
 

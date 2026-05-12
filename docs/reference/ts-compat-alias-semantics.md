@@ -1,21 +1,27 @@
 # Tree-sitter Compatibility Alias Semantics
 
-**Status:** Draft target contract; not current runtime behavior.
+**Status:** Initial node-identity projection implemented; broader alias parity
+remains future work.
 
 This document defines the intended alias-aware `ts_compat` node identity
 contract. It complements
 [`ts-compat-node-identity.md`](ts-compat-node-identity.md), which documents the
-current raw parsed-symbol behavior.
+current parsed-node behavior.
 
 Current Adze runtime state:
 
 - alias metadata is preserved at the generated `TSLanguage` ABI boundary,
 - runtime decode preserves alias sequences in native parse-table data,
-- native `AdzeDocument` nodes expose separate visible and grammar identity slots,
-  currently populated from the same raw parsed symbol,
-- parsed `ts_compat::Node` values do not yet project alias-visible identity.
+- native `AdzeDocument` nodes expose separate visible and grammar identity
+  slots and can mark known production aliases,
+- parsed `ts_compat::Node` values project alias-visible `kind()`,
+  `kind_id()`, `is_named()`, and `to_sexp()` while keeping
+  `grammar_name()`/`grammar_id()` on the raw parsed symbol.
 
-This document is the target contract for the future projection layer.
+This document is the target contract for the projection layer. The current
+runtime implements the node-identity and S-expression portions for known
+production alias sequence entries; node-types and query-compatible alias
+metadata remain future work.
 
 ## Upstream Shape
 
@@ -134,7 +140,7 @@ current raw-symbol contract rather than inventing alias behavior locally.
 
 ## Proof Requirements
 
-Before implementing this contract, add canaries that prove the ABI, native tree,
+Before extending this contract, add canaries that prove the ABI, native tree,
 and `ts_compat` projection agree.
 
 Required proof slices:
@@ -143,6 +149,11 @@ Required proof slices:
 cargo test -p adze --features "pure-rust,glr,ts-compat" \
   --test tablegen_abi_decode_roundtrip \
   compressed_tslanguage_decode_preserves_alias_sequences \
+  -- --exact --nocapture
+
+cargo test -p adze --features "pure-rust,ts-compat" \
+  --test adze_document_alpha \
+  parse_document_projects_alias_visible_identity_from_native_node_data \
   -- --exact --nocapture
 
 cargo test -p adze --features "pure-rust,ts-compat" \
@@ -156,14 +167,15 @@ cargo test -p adze --features "pure-rust,ts-compat" \
   -- --exact --nocapture
 ```
 
-The test names above are target canaries; they are not current tests.
+The canaries above cover current node identity and S-expression projection.
+Future node-types and query alias canaries should be added beside them rather
+than inferred from these narrower tests.
 
 ## Compatibility Status
 
-Until implementation and canaries land:
+Remaining limitations:
 
-- alias metadata preservation is a tablegen/runtime ABI proof,
-- alias-visible parsed node identity is not claimed,
-- `kind()` and `grammar_name()` may remain equal in current Adze trees,
-- `kind_id()` and `grammar_id()` may remain equal in current Adze trees,
-- users should treat alias-aware Tree-sitter parity as future work.
+- node-types output does not yet claim alias-visible parity,
+- query metadata/execution does not yet claim alias-visible parity,
+- anonymous alias named-child filtering needs focused canaries,
+- imported grammar corpus parity remains future work.

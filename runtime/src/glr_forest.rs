@@ -232,6 +232,7 @@ pub fn forest_to_parse_tree(forest: &ForestNode) -> ParseNode {
             end_byte: *end,
             children: Vec::new(),
             field_name: None,
+            alias_symbol_id: None,
         },
         ForestNode::NonTerminal {
             symbol,
@@ -258,6 +259,7 @@ pub fn forest_to_parse_tree(forest: &ForestNode) -> ParseNode {
                 end_byte: *end,
                 children,
                 field_name: None,
+                alias_symbol_id: None,
             }
         }
     }
@@ -275,6 +277,7 @@ pub fn forest_to_parse_trees(forest: &ForestNode) -> Vec<ParseNode> {
             end_byte: *end,
             children: Vec::new(),
             field_name: None,
+            alias_symbol_id: None,
         }],
         ForestNode::NonTerminal {
             symbol,
@@ -290,6 +293,7 @@ pub fn forest_to_parse_trees(forest: &ForestNode) -> Vec<ParseNode> {
                     end_byte: *end,
                     children: Vec::new(),
                     field_name: None,
+                    alias_symbol_id: None,
                 }]
             } else {
                 alternatives
@@ -305,6 +309,7 @@ pub fn forest_to_parse_trees(forest: &ForestNode) -> Vec<ParseNode> {
                             .map(|child| forest_to_parse_tree(child))
                             .collect(),
                         field_name: None,
+                        alias_symbol_id: None,
                     })
                     .collect()
             }

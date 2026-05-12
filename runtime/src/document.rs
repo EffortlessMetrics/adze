@@ -644,10 +644,9 @@ impl NodeKind {
 /// Native identity for one document node.
 ///
 /// Tree-sitter-compatible output distinguishes visible identity from grammar
-/// identity. The current alpha document stores raw grammar-symbol nodes, so the
-/// visible and grammar identities are usually equal. Keeping the identities
-/// separate here gives the future alias-aware projection a native contract to
-/// populate instead of forcing compatibility adapters to infer aliases.
+/// identity. The alpha document keeps those identities separate so production
+/// aliases can populate visible identity without forcing compatibility adapters
+/// to infer aliases from grammar names.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeIdentity<'doc> {
     visible_id: SymbolId,
@@ -662,16 +661,16 @@ pub struct NodeIdentity<'doc> {
 impl<'doc> NodeIdentity<'doc> {
     /// Return the alias-visible symbol id for this node.
     ///
-    /// Until alias-aware parsing lands, this is the same as
-    /// [`grammar_id`](Self::grammar_id).
+    /// This differs from [`grammar_id`](Self::grammar_id) when production alias
+    /// metadata changes the node's visible identity.
     pub fn visible_id(&self) -> SymbolId {
         self.visible_id
     }
 
     /// Return the alias-visible node name for this node.
     ///
-    /// Until alias-aware parsing lands, this is the same as
-    /// [`grammar_name`](Self::grammar_name).
+    /// This differs from [`grammar_name`](Self::grammar_name) when production
+    /// alias metadata changes the node's visible identity.
     pub fn visible_name(&self) -> Option<&'doc str> {
         self.visible_name
     }
@@ -687,15 +686,12 @@ impl<'doc> NodeIdentity<'doc> {
     }
 
     /// Return the alias symbol id applied to this node, when one is known.
-    ///
-    /// Current parsed document nodes do not carry alias entries, so this
-    /// returns `None`.
     pub fn alias_symbol_id(&self) -> Option<SymbolId> {
         self.alias_symbol_id
     }
 
-    /// Return whether this node has alias-visible identity distinct from its
-    /// grammar identity.
+    /// Return whether this node has an alias entry or alias-visible identity
+    /// distinct from its grammar identity.
     pub fn has_alias(&self) -> bool {
         self.alias_symbol_id.is_some()
             || self.visible_id != self.grammar_id
@@ -1001,25 +997,42 @@ impl<'doc> AdzeNode<'doc> {
         self.document.language.symbol(self.symbol_id())
     }
 
+    fn visible_kind(&self) -> Option<&'doc NodeKind> {
+        let visible_id = self.identity().visible_id();
+        self.document.language.symbol(visible_id)
+    }
+
     /// Return this node's native identity.
     ///
-    /// The current document alpha preserves raw grammar-symbol identity. This
-    /// method still exposes separate visible and grammar slots so future
-    /// alias-aware parsing can populate them without changing the native tree
-    /// shape.
+    /// The document keeps raw grammar identity separate from alias-visible
+    /// identity so compatibility projections can expose Tree-sitter-style
+    /// aliases without losing the original grammar symbol.
     pub fn identity(&self) -> NodeIdentity<'doc> {
-        let kind = self.kind();
-        let name = kind.map(NodeKind::name);
-        let is_named = kind.map(NodeKind::is_named).unwrap_or(false);
+        let grammar_kind = self.kind();
+        let grammar_name = grammar_kind.map(NodeKind::name);
+        let grammar_is_named = grammar_kind.map(NodeKind::is_named).unwrap_or(false);
+        let alias_kind = self
+            .node
+            .alias_symbol_id
+            .and_then(|alias_symbol_id| self.document.language.symbol(alias_symbol_id));
+        let visible_kind = alias_kind.or(grammar_kind);
+        let visible_id = self
+            .node
+            .alias_symbol_id
+            .unwrap_or_else(|| self.symbol_id());
+        let visible_name = visible_kind.map(NodeKind::name);
+        let visible_is_named = visible_kind
+            .map(NodeKind::is_named)
+            .unwrap_or(grammar_is_named);
 
         NodeIdentity {
-            visible_id: self.symbol_id(),
+            visible_id,
             grammar_id: self.symbol_id(),
-            visible_name: name,
-            grammar_name: name,
-            alias_symbol_id: None,
-            visible_is_named: is_named,
-            grammar_is_named: is_named,
+            visible_name,
+            grammar_name,
+            alias_symbol_id: self.node.alias_symbol_id,
+            visible_is_named,
+            grammar_is_named,
         }
     }
 
@@ -1029,17 +1042,11 @@ impl<'doc> AdzeNode<'doc> {
     }
 
     /// Return this node's grammar symbol name, ignoring aliases.
-    ///
-    /// Current native parse nodes do not carry alias-specific identity, so the
-    /// grammar name matches the visible kind name when metadata is available.
     pub fn grammar_name(&self) -> Option<&'doc str> {
         self.identity().grammar_name()
     }
 
     /// Return this node's visible kind id.
-    ///
-    /// Current native parse nodes do not carry alias-specific identity, so the
-    /// visible kind id matches the grammar symbol id.
     pub fn kind_id(&self) -> SymbolId {
         self.identity().visible_id()
     }
@@ -1157,7 +1164,7 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return native structural flags for this node.
     pub fn flags(&self) -> NodeFlags {
-        let kind = self.kind();
+        let kind = self.visible_kind();
         let error = self.node_local_is_error();
         let missing = self.node_local_is_missing(error);
         let has_error = self.subtree_has_error(error);
@@ -1181,22 +1188,28 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return whether this node is visible according to language metadata.
     pub fn is_visible(&self) -> bool {
-        self.kind().map(NodeKind::is_visible).unwrap_or(false)
+        self.visible_kind()
+            .map(NodeKind::is_visible)
+            .unwrap_or(false)
     }
 
     /// Return whether this node is an extra syntax node according to metadata.
     pub fn is_extra(&self) -> bool {
-        self.kind().map(NodeKind::is_extra).unwrap_or(false)
+        self.visible_kind().map(NodeKind::is_extra).unwrap_or(false)
     }
 
     /// Return whether this node is a terminal token according to metadata.
     pub fn is_terminal(&self) -> bool {
-        self.kind().map(NodeKind::is_terminal).unwrap_or(false)
+        self.visible_kind()
+            .map(NodeKind::is_terminal)
+            .unwrap_or(false)
     }
 
     /// Return whether this node is a supertype according to metadata.
     pub fn is_supertype(&self) -> bool {
-        self.kind().map(NodeKind::is_supertype).unwrap_or(false)
+        self.visible_kind()
+            .map(NodeKind::is_supertype)
+            .unwrap_or(false)
     }
 
     /// Return whether this node is a local synthetic error node.

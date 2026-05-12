@@ -56,6 +56,7 @@ fn make_node(sym: u16, start: usize, end: usize) -> ParseNode {
         start_byte: start,
         end_byte: end,
         field_name: None,
+        alias_symbol_id: None,
         children: vec![],
     }
 }
@@ -77,6 +78,7 @@ fn parse_node_with_children() {
         start_byte: 0,
         end_byte: 5,
         field_name: None,
+        alias_symbol_id: None,
         children: vec![child1, child2],
     };
     assert_eq!(parent.children.len(), 2);
@@ -90,6 +92,7 @@ fn parse_node_with_field_name() {
         start_byte: 0,
         end_byte: 10,
         field_name: Some("value".to_string()),
+        alias_symbol_id: None,
         children: vec![],
     };
     assert_eq!(node.field_name.as_deref(), Some("value"));
@@ -145,6 +148,7 @@ proptest! {
             start_byte: 0,
             end_byte: n * 2,
             field_name: None,
+            alias_symbol_id: None,
             children,
         };
         prop_assert_eq!(parent.children.len(), n);
@@ -170,6 +174,7 @@ proptest! {
             start_byte: 0,
             end_byte: 5,
             field_name: Some(name.clone()),
+            alias_symbol_id: None,
             children: vec![],
         };
         let cloned = node.clone();
@@ -261,6 +266,7 @@ fn parse_node_deep_nesting() {
             start_byte: 0,
             end_byte: 10 - i as usize,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![current],
         };
     }
@@ -279,6 +285,7 @@ fn parse_node_wide_tree() {
         start_byte: 0,
         end_byte: 100,
         field_name: None,
+        alias_symbol_id: None,
         children,
     };
     assert_eq!(root.children.len(), 50);

@@ -3,6 +3,7 @@
 #![cfg(all(test, feature = "ts-compat", feature = "pure-rust"))]
 
 use adze::{
+    adze_glr_core::SymbolMetadata,
     adze_ir::SymbolId,
     ts_compat::{Language, Parser},
 };
@@ -25,6 +26,45 @@ fn symbol_named(lang: &Language, name: &str) -> SymbolId {
 
 fn minus_symbol(lang: &Language) -> SymbolId {
     symbol_named(lang, "-")
+}
+
+fn arithmetic_with_expression_child_alias(alias_name: &str) -> (Language, SymbolId, SymbolId) {
+    let mut lang = (*adze_example::ts_langs::arithmetic()).clone();
+    let source_file = symbol_named(&lang, "source_file");
+    let expression = symbol_named(&lang, "expression");
+    let alias_symbol = SymbolId(lang.table.symbol_metadata.len() as u16);
+
+    lang.table.symbol_metadata.push(SymbolMetadata {
+        name: alias_name.to_string(),
+        is_visible: true,
+        is_named: true,
+        is_supertype: false,
+        is_terminal: false,
+        is_extra: false,
+        is_fragile: false,
+        symbol_id: alias_symbol,
+    });
+    lang.table.symbol_count = lang
+        .table
+        .symbol_count
+        .max(lang.table.symbol_metadata.len());
+    lang.table
+        .index_to_symbol
+        .resize(lang.table.symbol_metadata.len(), SymbolId(0));
+    lang.table.index_to_symbol[alias_symbol.0 as usize] = alias_symbol;
+
+    let source_file_rule = lang
+        .table
+        .rules
+        .iter()
+        .position(|rule| rule.lhs == source_file && rule.rhs_len == 1)
+        .expect("arithmetic fixture should reduce source_file from expression");
+    lang.table
+        .alias_sequences
+        .resize_with(source_file_rule + 1, Vec::new);
+    lang.table.alias_sequences[source_file_rule] = vec![Some(alias_symbol)];
+
+    (lang, expression, alias_symbol)
 }
 
 #[test]
@@ -118,6 +158,39 @@ fn generated_tree_exposes_node_grammar_metadata() {
         assert_eq!(node.grammar_name(), node.kind());
         assert_eq!(node.grammar_name(), expected_kind);
     }
+}
+
+#[test]
+fn alias_visible_kind_and_grammar_identity_are_distinct() {
+    let (lang, expression_symbol, alias_symbol) =
+        arithmetic_with_expression_child_alias("binary_expression");
+
+    let mut parser = Parser::new();
+    parser
+        .set_language(Arc::new(lang))
+        .expect("Failed to set language");
+
+    let tree = parser.parse("1-2", None).expect("Parse failed");
+    let expression = tree
+        .root_node()
+        .child(0)
+        .expect("root should expose aliased expression child");
+
+    assert_eq!(expression.kind(), "binary_expression");
+    assert_eq!(expression.kind_id(), alias_symbol.0);
+    assert!(expression.is_named());
+    assert_eq!(expression.grammar_name(), "expression");
+    assert_eq!(expression.grammar_id(), expression_symbol.0);
+    assert_eq!(
+        tree.language().id_for_node_kind("binary_expression", true),
+        alias_symbol.0
+    );
+    assert_eq!(
+        tree.language().node_kind_for_id(expression.kind_id()),
+        Some("binary_expression")
+    );
+    assert_ne!(expression.kind_id(), expression.grammar_id());
+    assert_ne!(expression.kind(), expression.grammar_name());
 }
 
 #[test]

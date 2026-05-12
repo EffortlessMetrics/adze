@@ -3,6 +3,7 @@
 #![cfg(all(test, feature = "pure-rust", feature = "ts-compat"))]
 
 use adze::{
+    adze_glr_core::SymbolMetadata,
     adze_ir::{RuleId, SymbolId},
     document::NodeId,
     parser_v4::Parser as CoreParser,
@@ -30,6 +31,44 @@ fn fielded_arithmetic_language() -> Arc<Language> {
     lang.table.field_map.insert((RuleId(2), 0), 0);
     lang.table.field_map.insert((RuleId(2), 1), 1);
     lang.table.field_map.insert((RuleId(2), 2), 2);
+    Arc::new(lang)
+}
+
+fn arithmetic_with_expression_child_alias(alias_name: &str) -> Arc<Language> {
+    let mut lang = (*adze_example::ts_langs::arithmetic()).clone();
+    let source_file = symbol_named(&lang, "source_file");
+    let alias_symbol = SymbolId(lang.table.symbol_metadata.len() as u16);
+
+    lang.table.symbol_metadata.push(SymbolMetadata {
+        name: alias_name.to_string(),
+        is_visible: true,
+        is_named: true,
+        is_supertype: false,
+        is_terminal: false,
+        is_extra: false,
+        is_fragile: false,
+        symbol_id: alias_symbol,
+    });
+    lang.table.symbol_count = lang
+        .table
+        .symbol_count
+        .max(lang.table.symbol_metadata.len());
+    lang.table
+        .index_to_symbol
+        .resize(lang.table.symbol_metadata.len(), SymbolId(0));
+    lang.table.index_to_symbol[alias_symbol.0 as usize] = alias_symbol;
+
+    let source_file_rule = lang
+        .table
+        .rules
+        .iter()
+        .position(|rule| rule.lhs == source_file && rule.rhs_len == 1)
+        .expect("arithmetic fixture should reduce source_file from expression");
+    lang.table
+        .alias_sequences
+        .resize_with(source_file_rule + 1, Vec::new);
+    lang.table.alias_sequences[source_file_rule] = vec![Some(alias_symbol)];
+
     Arc::new(lang)
 }
 
@@ -333,6 +372,48 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
             .text(source.as_bytes()),
         "1"
     );
+}
+
+#[test]
+fn parse_document_projects_alias_visible_identity_from_native_node_data() {
+    let lang = arithmetic_with_expression_child_alias("binary_expression");
+    let expression_symbol = symbol_named(&lang, "expression");
+    let alias_symbol = symbol_named(&lang, "binary_expression");
+    let mut parser = CoreParser::new(lang.grammar.clone(), lang.table.clone(), lang.name.clone());
+
+    let document = parser
+        .parse_document("1-2")
+        .expect("document parse should succeed");
+    let root = document.tree().root();
+    let expression = root
+        .child(0)
+        .expect("root should expose aliased expression child");
+    let identity = expression.identity();
+
+    assert_eq!(identity.visible_name(), Some("binary_expression"));
+    assert_eq!(identity.visible_id(), alias_symbol);
+    assert_eq!(identity.grammar_name(), Some("expression"));
+    assert_eq!(identity.grammar_id(), expression_symbol);
+    assert_eq!(identity.alias_symbol_id(), Some(alias_symbol));
+    assert!(identity.has_alias());
+    assert!(identity.visible_is_named());
+    assert!(identity.grammar_is_named());
+    assert_eq!(expression.kind_name(), Some("binary_expression"));
+    assert_eq!(expression.kind_id(), alias_symbol);
+    assert_eq!(expression.grammar_name(), Some("expression"));
+    assert_eq!(expression.grammar_id(), expression_symbol);
+    assert_eq!(expression.symbol_id(), expression_symbol);
+    assert!(expression.flags().is_named());
+
+    let ts_tree = Tree::from_document(Arc::clone(&lang), &document);
+    let ts_expression = ts_tree
+        .root_node()
+        .child(0)
+        .expect("Tree-sitter projection should expose aliased expression child");
+    assert_eq!(ts_expression.kind(), "binary_expression");
+    assert_eq!(ts_expression.kind_id(), alias_symbol.0);
+    assert_eq!(ts_expression.grammar_name(), "expression");
+    assert_eq!(ts_expression.grammar_id(), expression_symbol.0);
 }
 
 #[test]

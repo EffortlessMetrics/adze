@@ -360,6 +360,7 @@ mod tests {
             start_byte: start,
             end_byte: end,
             field_name: None,
+            alias_symbol_id: None,
         }
     }
 
@@ -426,6 +427,7 @@ mod tests {
             start_byte: 0,
             end_byte: 15,
             field_name: None,
+            alias_symbol_id: None,
         };
 
         // Match with predicates
@@ -460,6 +462,7 @@ mod tests {
             start_byte: 0,
             end_byte: 11,
             field_name: None,
+            alias_symbol_id: None,
         };
 
         // Match without predicates - should match all identifiers
@@ -496,6 +499,7 @@ mod tests {
             start_byte: 0,
             end_byte: 15,
             field_name: None,
+            alias_symbol_id: None,
         };
 
         let metadata = test_symbol_metadata();

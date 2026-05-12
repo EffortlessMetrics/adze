@@ -215,10 +215,12 @@ fn test_highlighter_creation() {
             start_byte: 0,
             end_byte: 3,
             field_name: None,
+            alias_symbol_id: None,
         }],
         start_byte: 0,
         end_byte: 3,
         field_name: None,
+        alias_symbol_id: None,
     };
 
     let highlights = highlighter.highlight(&root);
@@ -271,10 +273,12 @@ fn test_highlight_overlap_removal() {
             start_byte: 0,
             end_byte: 5,
             field_name: None,
+            alias_symbol_id: None,
         }],
         start_byte: 0,
         end_byte: 5,
         field_name: None,
+        alias_symbol_id: None,
     };
 
     let highlights = highlighter.highlight(&root);
