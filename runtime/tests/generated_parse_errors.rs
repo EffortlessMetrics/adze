@@ -386,6 +386,131 @@ fn generated_precedence_arithmetic_parser_error_contract_is_feature_stable() {
     }
 }
 
+/// Canary: generated-parser diagnostics should stay useful for the fielded
+/// precedence grammar that backs the typed CST and native document edge
+/// canaries.
+///
+/// This catches regressions where precedence operator inlining or FIELD metadata
+/// preservation keeps the successful parse path working but loses human-readable
+/// expected-token diagnostics on bad input. The product-proof lane runs this
+/// exact test under both `pure-rust` and `pure-rust,glr`.
+#[test]
+fn generated_fielded_precedence_parser_error_contract_is_feature_stable() {
+    use adze_example::fielded_precedence_typed_cst_contract::grammar;
+
+    grammar::parse("1+2*3").expect("fielded precedence grammar should accept valid input");
+
+    struct Case {
+        label: &'static str,
+        source: &'static str,
+        byte_span: Range<usize>,
+        start_line: usize,
+        start_column: usize,
+        end_line: usize,
+        end_column: usize,
+        expected: &'static [&'static str],
+    }
+
+    let cases = [
+        Case {
+            label: "unexpected EOF after fielded add operator",
+            source: "1+",
+            byte_span: 2..2,
+            start_line: 1,
+            start_column: 3,
+            end_line: 1,
+            end_column: 3,
+            expected: &[r"/\d+/"],
+        },
+        Case {
+            label: "invalid ASCII token after fielded add operator",
+            source: "1+@",
+            byte_span: 2..3,
+            start_line: 1,
+            start_column: 3,
+            end_line: 1,
+            end_column: 4,
+            expected: &[r"/\d+/"],
+        },
+        Case {
+            label: "invalid UTF-8 scalar after fielded multiply operator",
+            source: "1*λ",
+            byte_span: 2..4,
+            start_line: 1,
+            start_column: 3,
+            end_line: 1,
+            end_column: 5,
+            expected: &[r"/\d+/"],
+        },
+        Case {
+            label: "multiline invalid token after fielded add operator",
+            source: "1+\n@",
+            byte_span: 3..4,
+            start_line: 2,
+            start_column: 1,
+            end_line: 2,
+            end_column: 2,
+            expected: &[r"/\d+/"],
+        },
+    ];
+
+    for case in cases {
+        let errors = match grammar::parse(case.source) {
+            Ok(ast) => panic!("{} unexpectedly parsed as {ast:?}", case.label),
+            Err(errors) => errors,
+        };
+
+        let first = errors
+            .first()
+            .unwrap_or_else(|| panic!("{} should produce at least one parse error", case.label));
+
+        assert_eq!(
+            first.byte_span(),
+            case.byte_span,
+            "{} should keep its public byte-span contract",
+            case.label
+        );
+
+        let span = first.source_span(case.source.as_bytes());
+        assert_eq!(span.start.line, case.start_line, "{}", case.label);
+        assert_eq!(span.start.column, case.start_column, "{}", case.label);
+        assert_eq!(span.end.line, case.end_line, "{}", case.label);
+        assert_eq!(span.end.column, case.end_column, "{}", case.label);
+
+        assert_eq!(
+            first.expected,
+            case.expected
+                .iter()
+                .map(|token| (*token).to_string())
+                .collect::<Vec<_>>(),
+            "{} should expose human-readable expectations by name",
+            case.label
+        );
+        for token in &first.expected {
+            assert!(
+                !token.contains("SymbolId")
+                    && !token.contains("symbol ")
+                    && !token.starts_with('_'),
+                "{} should expose human-readable expected names, got {token}",
+                case.label
+            );
+        }
+
+        let rendered = first.display_with_source(case.source).to_string();
+        let expected_byte_range = format!("bytes {}..{}", case.byte_span.start, case.byte_span.end);
+        assert!(
+            rendered.contains(&expected_byte_range),
+            "{} should render byte range {expected_byte_range}: {rendered}",
+            case.label
+        );
+        assert!(
+            rendered.contains(&format!("expected one of: {}", case.expected.join(", "))),
+            "{} should render the expected-token set: {rendered}",
+            case.label
+        );
+    }
+}
+
 // ============================================================================
 // Structured expected-token field tests
 // ============================================================================
