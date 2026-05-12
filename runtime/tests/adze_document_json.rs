@@ -1,0 +1,139 @@
+//! Native AdzeDocument JSON projection canaries.
+
+#![cfg(all(test, feature = "pure-rust", feature = "serialization"))]
+
+use adze::document::ADZE_DOCUMENT_JSON_SCHEMA;
+use serde_json::Value;
+
+#[test]
+fn parse_document_json_has_schema_and_tree_facts() {
+    use adze_example::fielded_precedence_typed_cst_contract::grammar;
+
+    let source = "1+2*3";
+    let document = grammar::parse_document(source)
+        .expect("generated parse_document helper should return an AdzeDocument");
+    let json = document.to_json_value();
+
+    assert_eq!(json["schema"].as_str(), Some(ADZE_DOCUMENT_JSON_SCHEMA));
+    assert_eq!(
+        json["language"]["name"].as_str(),
+        Some("fielded_precedence_typed_cst_contract")
+    );
+    assert_eq!(
+        json["source"]["byte_len"].as_u64(),
+        Some(source.len() as u64)
+    );
+    assert_eq!(json["metadata"]["error_count"].as_u64(), Some(0));
+    assert!(json["diagnostics"].as_array().is_some_and(Vec::is_empty));
+    assert!(json["ambiguities"].as_array().is_some_and(Vec::is_empty));
+
+    let root = &json["tree"]["root"];
+    assert_eq!(root["id"].as_u64(), Some(0));
+    assert_eq!(root["kind"].as_str(), Some("source_file"));
+    assert_eq!(root["grammar_kind"].as_str(), Some("source_file"));
+    assert_eq!(root["has_alias"].as_bool(), Some(false));
+    assert_eq!(root["flags"]["has_error"].as_bool(), Some(false));
+
+    let add = find_json_node(root, "Expr_Add", 0, source.len())
+        .expect("document JSON should contain the fielded add expression");
+    let children = add["children"]
+        .as_array()
+        .expect("fielded expression should serialize child edges");
+    let fields = children
+        .iter()
+        .filter_map(|edge| edge["field_name"].as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(fields, vec!["left", "operator", "right"]);
+    assert!(
+        children
+            .iter()
+            .all(|edge| edge["field_id"].as_u64().is_some()),
+        "fielded edges should serialize public field IDs: {children:?}"
+    );
+    assert!(
+        children
+            .iter()
+            .all(|edge| edge["node"]["id"].as_u64().is_some()),
+        "fielded edges should serialize nested child nodes: {children:?}"
+    );
+}
+
+#[test]
+fn parse_document_json_serializes_diagnostics_and_error_flags() {
+    use adze_example::typed_ast_contract::grammar;
+
+    let source = "1 +";
+    let document = grammar::parse_document(source)
+        .expect("generated parse_document helper should return partial parse facts");
+    let json = document.to_json_value();
+
+    assert_eq!(json["schema"].as_str(), Some(ADZE_DOCUMENT_JSON_SCHEMA));
+    assert!(
+        json["metadata"]["error_count"].as_u64().unwrap_or(0) > 0,
+        "diagnostic document JSON should preserve parser error count: {json:?}"
+    );
+    assert_eq!(
+        json["tree"]["root"]["flags"]["has_error"].as_bool(),
+        Some(true)
+    );
+
+    let diagnostics = json["diagnostics"]
+        .as_array()
+        .expect("diagnostic document should serialize diagnostics");
+    let diagnostic = diagnostics
+        .first()
+        .expect("truncated expression should produce a serialized diagnostic");
+
+    assert_eq!(diagnostic["start_byte"].as_u64(), Some(3));
+    assert_eq!(diagnostic["end_byte"].as_u64(), Some(3));
+    assert_eq!(diagnostic["point_range"]["start"]["row"].as_u64(), Some(0));
+    assert_eq!(
+        diagnostic["point_range"]["start"]["column"].as_u64(),
+        Some(3)
+    );
+    assert!(
+        diagnostic["expected"]
+            .as_array()
+            .expect("diagnostic should serialize expected tokens")
+            .iter()
+            .any(|value| value.as_str() == Some(r"/\d+/")),
+        "diagnostic JSON should preserve generated expected-token names: {diagnostic:?}"
+    );
+    assert!(
+        diagnostic["related_nodes"]
+            .as_array()
+            .expect("diagnostic should serialize related document nodes")
+            .iter()
+            .any(|value| value.as_u64().is_some()),
+        "diagnostic JSON should preserve related node IDs: {diagnostic:?}"
+    );
+    assert!(
+        diagnostic["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("expected one of:")),
+        "diagnostic JSON should preserve the diagnostic summary: {diagnostic:?}"
+    );
+}
+
+fn find_json_node<'a>(
+    node: &'a Value,
+    kind: &str,
+    start_byte: usize,
+    end_byte: usize,
+) -> Option<&'a Value> {
+    if node["kind"].as_str() == Some(kind)
+        && node["range"]["start_byte"].as_u64() == Some(start_byte as u64)
+        && node["range"]["end_byte"].as_u64() == Some(end_byte as u64)
+    {
+        return Some(node);
+    }
+
+    for edge in node["children"].as_array()? {
+        if let Some(found) = find_json_node(&edge["node"], kind, start_byte, end_byte) {
+            return Some(found);
+        }
+    }
+
+    None
+}
