@@ -33,7 +33,7 @@ expression: "serde_json::to_string_pretty(&snapshot_json).expect(\"ambiguous doc
           "dynamic_precedence": 0,
           "in_error": false,
           "cost": 0,
-          "node_count": 0
+          "node_count": 11
         },
         {
           "index": 1,
@@ -45,7 +45,7 @@ expression: "serde_json::to_string_pretty(&snapshot_json).expect(\"ambiguous doc
           "dynamic_precedence": 0,
           "in_error": false,
           "cost": 0,
-          "node_count": 0
+          "node_count": 11
         }
       ]
     }
