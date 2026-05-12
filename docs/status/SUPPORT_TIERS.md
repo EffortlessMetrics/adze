@@ -1,6 +1,6 @@
 # Support Tiers and Proof Surface
 
-**Last updated:** 2026-05-11
+**Last updated:** 2026-05-12
 **Source of truth for:** README feature claims, `docs/status/KNOWN_RED.md`, and CI expectations.
 
 This document maps major Adze surfaces to five tiers:
@@ -21,7 +21,8 @@ provenance, not per-AST-node provenance or a typed CST support promotion.
 `AdzeDocument::to_json_value()` now emits an experimental
 `adze.document.v1` envelope under the `serialization` feature for the same
 selected generic CST, diagnostics, metadata, and ambiguity summary facts, with
-snapshot fixtures for clean, diagnostic, and GLR ambiguity documents. Proof:
+snapshot fixtures for clean, EOF diagnostic, multibyte diagnostic, multiline
+diagnostic, and GLR ambiguity documents. Proof:
 `cargo test -p adze --features "pure-rust,serialization" --test adze_document_json -- --nocapture`;
 GLR ambiguity JSON proof:
 `cargo test -p adze --features "pure-rust,serialization,glr" --test adze_document_json parse_document_json_serializes_glr_ambiguity_summary -- --exact --nocapture`.

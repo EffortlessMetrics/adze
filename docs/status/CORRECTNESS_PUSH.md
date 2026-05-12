@@ -1,6 +1,6 @@
 # Correctness Push Plan
 
-**Last updated:** 2026-05-11
+**Last updated:** 2026-05-12
 **Scope:** current parser/runtime, GLR, tablegen ABI, CLI, and product-proof convergence.
 
 This is the execution playbook for moving Adze from "bounded core lane is green" to "the product claims are behavior-proven." It is intentionally narrower than a roadmap: keep the required lane bounded, land focused correctness work only when it has receipts, and track remaining product gaps without hiding them inside broad policy or infrastructure PRs.
@@ -86,9 +86,10 @@ Keep implementation slices small:
    has an experimental `AdzeDocument::to_json_value()` projection under
    `serialization` that emits schema-tagged `adze.document.v1` facts for the
    selected generic CST, diagnostics, metadata, and ambiguity summaries, with
-   representative clean, diagnostic, and ambiguous GLR document snapshots. Keep
-   expanding it in small proof-backed slices, and do not treat this as a stable
-   CLI/WASM `adze-json` contract.
+   representative clean, EOF diagnostic, multibyte diagnostic, multiline
+   diagnostic, and ambiguous GLR document snapshots. Keep expanding it in small
+   proof-backed slices, and do not treat this as a stable CLI/WASM `adze-json`
+   contract.
 2. A typed CST arithmetic spike now proves a generated-style fixture module,
    the runtime `SyntaxNode` handle contract, typed field accessors, spans,
    text, and recovery flags over document node IDs. Tablegen also has an alpha
