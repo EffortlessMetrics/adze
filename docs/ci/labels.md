@@ -1,47 +1,58 @@
 # CI labels
 
-The label vocabulary used by PR Plan to opt in to deeper verification.
+Labels are the operator interface for CI economics. They opt a PR into deeper
+verification, acknowledge budget bands, or route a specific risk pack. Labels do
+not weaken `just ci-supported`, and they must not make macOS/windows ordinary PR
+defaults.
 
-## Cost labels
+## Budget labels
 
 | Label | Meaning |
 | --- | --- |
-| `ci-budget-ack` | acknowledge elevated/high LEM (35–125) |
-| `ci-budget-override` | allow >125 LEM |
-| `full-ci` | run all heavy lanes; implies budget override |
+| `full-ci` | Opt into all heavy verification lanes that are safe for the event. Implies budget override intent. |
+| `ci-budget-override` | Allow a static PR Plan over the hard ceiling (>125 LEM). |
+| `ci-budget-ack` | Acknowledge elevated/high cost (35-125 LEM) without forcing all lanes. |
 
-## Risk-pack opt-in
-
-| Label | Adds |
-| --- | --- |
-| `ci:perf` | full benchmark comparison |
-| `ci:golden` | golden tests for grammars |
-| `ci:microcrate` | full microcrate CI matrix |
-| `ci:concurrency` | concurrency microcrate group |
-| `platform-matrix` | full OS/toolchain matrix |
-| `fuzz` | fuzz runtime |
-| `coverage` | coverage instrumentation |
-| `wasm` | wasm-check |
-
-## Release / API
+## Risk-pack opt-ins
 
 | Label | Adds |
 | --- | --- |
-| `release-check` | release-gate verification |
-| `security-audit` | dependency / RUSTSEC audit |
-| `mutation` | mutation testing on parser/glr core |
-| `property-tests` | property-test runs on parser |
+| `platform-matrix` | Full OS/toolchain platform proof. |
+| `pure-rust` | Pure-Rust implementation proof without implying unrelated heavy lanes. |
+| `coverage` | Coverage instrumentation/reporting. |
+| `ci:golden` | Grammar golden/parity lanes. |
+| `ci:perf` | Performance comparison lanes. |
+| `ci:microcrate` | Full microcrate CI matrix. |
+| `ci:concurrency` | Concurrency microcrate group. |
+| `wasm` | WASM checks. |
+| `fuzz` | Runtime fuzzing lanes. |
+| `benchmarks` | Full benchmark suite/reporting. |
+| `api` | Public API / SemVer checks. |
+| `release-check` | Release-prep verification. |
+| `security-audit` | Dependency and RUSTSEC audit lanes. |
+| `mutation` | Mutation testing on parser/GLR core. |
+| `property-tests` | Property-test runs on parser surfaces. |
+| `ts-bridge` | ts-bridge parity or non-smoke FFI validation. |
 
 ## Skip labels
 
 | Label | Effect |
 | --- | --- |
-| `skip-golden` | skip golden tests (only honored when no `ci:golden`) |
-| `skip-perf` | skip perf compare (only honored when no `ci:perf`) |
+| `skip-golden` | Skip golden tests where the workflow supports it and no explicit golden opt-in is present. |
+| `skip-perf` | Skip performance comparison where the workflow supports it and no explicit perf opt-in is present. |
+
+## Required settings labels
+
+`.github/settings.yml` should define every label that appears in this document,
+`policy/ci-risk-packs.toml`, `policy/ci-lane-whitelist.toml`, or workflow label
+conditions. Missing labels make expensive verification harder for operators and
+agents to request consistently.
 
 ## Notes
 
-- Labels are advisory until the routing PRs (10–14) land. Until then they
-  appear in the PR Plan summary but do not change which lanes run.
-- Labels never *raise* the hard ceiling. They explain a high LEM number; they
-  do not silence safety checks.
+- Labels select additional proof; they do not replace the cheap required gate.
+- Labels may explain or allow high LEM plans, but only `full-ci` and
+  `ci-budget-override` can allow over-ceiling static plans.
+- Expensive labels should be paired with a PR body explanation of LEM impact,
+  default PR effect, branch-protection impact, rollback path, and proof
+  obligation.

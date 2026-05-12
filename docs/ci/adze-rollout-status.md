@@ -1,102 +1,70 @@
 # CI Economics Rollout Status
 
-Last review: 2026-05-08.
+Last review: 2026-05-12.
 
-This file is a status snapshot, not a live source of truth. Before using it for
-execution, refresh with `gh pr list` and the current workflow state.
+This is the agent-readable status snapshot for the CI economics rollout. The
+implementation sequence and per-PR contract live in
+`docs/ci/adze-rollout-plan.md`.
 
 ## Status legend
 
-- ✅ landed — present on `main` and working
-- 🟡 in progress — open PR or active follow-up
-- ⏳ planned — not yet started
-- ⏸ deferred — waiting on actuals or coordination
+- ✅ already present — rail exists in this repository.
+- 🟨 needs hardening — rail exists but must be made authoritative or enforced.
+- 🧹 needs pruning — rail exists but is too broad or duplicative for ordinary PRs.
+- ⏸ deferred until actuals — wait for enough `ci-actuals.json` receipts.
 
-## Foundation layer
+## Already present
 
-| # | Item | Status | Notes |
-| --- | --- | --- | --- |
-| F01 | CI lane whitelist (`policy/ci-lane-whitelist.toml`) | ✅ | All workflows mapped with owner, LEM, triggers |
-| F02 | CI risk packs (`policy/ci-risk-packs.toml`) | ✅ | 10 risk packs: core_runtime, macro_tool, glr_core, tablegen, grammar_golden, microcrate_governance, concurrency, wasm, performance, manifest_release |
-| F03 | PR Plan workflow (`pr-plan.yml`) | ✅ | Calls `xtask ci-plan`, emits `ci-plan.json` with outputs `docs_only`, `estimated_lem`, `band` |
-| F04 | PR Gate Success workflow (`pr-gate.yml`) | ✅ | Supported Gate + Docs Gate + `PR Gate Success` aggregator |
-| F05 | ci-actuals telemetry scaffold | ✅ | `scripts/ci/emit-ci-actuals.py` emits plan vs actual; uploaded as artifact |
-| F06 | ripr advisory (`ripr.yml`) | ✅ | Advisory install attempts run on an isolated Rust 1.93 toolchain and fall back to a stub report on install failure |
+| Rail | Source | Notes |
+| --- | --- | --- |
+| CI cost doctrine | `docs/ci/cost-and-verification-policy.md` | LEM model, cost bands, verification ladder. |
+| Lane whitelist | `policy/ci-lane-whitelist.toml` | Owner/cost/evidence/duplicate metadata for workflow jobs. |
+| Risk packs | `policy/ci-risk-packs.toml` | Path and label vocabulary for routed lanes. |
+| PR Plan | `.github/workflows/pr-plan.yml` | Computes changed surfaces, selected lanes, estimated LEM, and budget band. |
+| PR Gate Success | `.github/workflows/pr-gate.yml` | Aggregates Supported Rust Gate or Docs Gate behind one stable check. |
+| CI policy workflow | `.github/workflows/ci-policy.yml` | Runs lane whitelist lint in advisory mode. |
+| ci-actuals scaffold | `scripts/ci/emit-ci-actuals.py` | Emits `ci-actuals.json`; schema still needs normalization. |
+| Non-default coverage | `.github/workflows/coverage.yml` | Coverage is label/main/manual, not an ordinary default. |
 
-## Control plane
+## Needs hardening
 
-| # | Item | Status | Notes |
-| --- | --- | --- | --- |
-| C01 | CI policy workflow (`ci-policy.yml`) | ✅ | Runs `check-ci-lane-whitelist --mode advisory` on every PR |
-| C02 | Synchronize-only cancellation | ✅ | PR #563 merged — prevents label events from killing running jobs |
-| C03 | Lane whitelist cost alignment | ✅ | PR #564 merged — corrects stale LEM for already-gated lanes |
-| C04 | Real ripr provisioning | ✅ | PR #565 merged — isolated Rust 1.93 install with graceful stub fallback |
-| C05 | Benchmark deduplication | ✅ | PR #566 merged — `performance-check` gated to `ci:perf` label |
+| Work | Why | Target PR |
+| --- | --- | --- |
+| Reconcile docs/control plane | Agents need one current truth table and stable sequence. | PR 1 |
+| Add routing labels to repo settings | Labels are the operator interface for expensive verification. | PR 2 |
+| Promote PR Gate Success | Branch protection should require the aggregate, not a raw legacy job. | PR 3 |
+| Make lane whitelist blocking for workflow changes | Prevent new undeclared lanes and expensive defaults from landing silently. | PR 11 |
+| Enforce static budget ceilings | Over-ceiling plans should fail unless override labels are present. | PR 12 |
+| Normalize ci-actuals receipts | Learned estimates need lane-level receipts. | PR 14 |
 
-## Routing
+## Needs pruning
 
-| # | Item | Status | Notes |
-| --- | --- | --- | --- |
-| R01 | Fuzz gating (label/push only) | ✅ | `fuzz.yml` — runtime fuzz requires `fuzz`/`full-ci` label or push/schedule |
-| R02 | Pure-Rust PR matrix reduction | ✅ | `pure-rust-ci.yml` — ubuntu/stable default; full matrix on `platform-matrix`/`full-ci`/main |
-| R03 | Golden tests grammar routing | ✅ | `golden-tests.yml` — paths + `ci:golden`/`full-ci` label gates |
-| R04 | Microcrate CI risk-pack routing | ✅ | `microcrate-ci.yml` — per-group path detection (concurrency/governance/bdd/parser/core/runtime) |
-| R05 | Benchmark PR ownership cleanup | ✅ | PR #566 merged — removes duplicate baseline+comparison from default PR path |
+| Lane family | Current issue | Target PR |
+| --- | --- | --- |
+| Legacy `ci.yml` | Still has ordinary PR trigger and duplicates supported proof. | PR 4 |
+| Test policy | Full inventory enforcement is too expensive for every PR. | PR 5 |
+| Pure Rust / OS matrix | Ubuntu/stable PR default duplicates supported proof; macOS/windows must be non-default. | PR 6 |
+| Microcrate CI | Path routing exists, but docs/WASM/strict feature checks need harder labels/main/manual routing. | PR 7 |
+| Performance comparison | Expensive comparison should not be a default PR lane. | PR 8 |
+| ts-bridge smoke/parity | Duplicate smokes and default parity should be consolidated/rerouted. | PR 9 |
+| API/SemVer | Should run on API-risk paths or API/release labels, not docs/fixture-only PRs. | PR 10 |
+| Main push deep verification | Moving everything to main would become the next cost sink. | PR 13 |
 
-## Policy ledgers
+## Deferred until actuals
 
-| # | Item | Status | Notes |
-| --- | --- | --- | --- |
-| P01 | Clippy lint policy (`policy/clippy-lints.toml`) | ✅ | Schema, active, staged, and planned lints documented |
-| P02 | No-panic allowlist (`policy/no-panic-allowlist.toml`) | ✅ | Schema in place; intentionally empty until `cargo xtask no-panic-propose --baseline` run |
-| P03 | Non-Rust file policy (`policy/non-rust-allowlist.toml`) | ✅ | All non-Rust surfaces registered |
-| P04 | ripr suppressions (`policy/ripr-suppressions.toml`) | ✅ | Schema in place; empty baseline |
-| P05 | Workspace rust lints (`[workspace.lints.rust]`) | ✅ | `unsafe_op_in_unsafe_fn`, `unused_must_use`, `missing_docs`, `unused_extern_crates` |
-| P06 | Strict Clippy Stage A (`[workspace.lints.clippy]`) | 🟡 | PR #567: `policy/clippy-stage-a` — `allow_attributes_without_reason` + stage-A rust lints |
-
-## MSRV and toolchain
-
-| # | Item | Status | Notes |
-| --- | --- | --- | --- |
-| T01 | MSRV 1.93 | ⏳ | PR: `policy/msrv-1-93` — dedicated policy PR, prerequisite for ripr simplification |
-
-## Branch protection
-
-| # | Item | Status | Notes |
-| --- | --- | --- | --- |
-| B01 | Branch protection migration docs | ✅ | `docs/ci/branch-protection.md` — criteria for promoting required check |
-| B02 | `PR Gate Success` stable run history | ⏸ | Needs ≥14 days and ≥5 distinct PRs per path before promotion |
-| B03 | Migrate required check to `PR Gate Success` | ⏸ | After B02 — see `docs/ci/branch-protection.md` |
-
-## Learned estimates
-
-| # | Item | Status | Notes |
-| --- | --- | --- | --- |
-| L01 | ci-actuals collection | ✅ | Artifact upload on every PR Gate run |
-| L02 | Learned LEM model | ⏸ | Needs ≥30 days of actuals; see `docs/ci/learned-estimates.md` |
-
-## Effective default PR lane cost (current)
-
-With all routing already in place, the effective default PR cost estimate:
-
-| Lane | Effective default PR cost |
+| Work | Criteria |
 | --- | --- |
-| PR Plan | ~1 LEM |
-| Supported Rust Gate | ~20 LEM |
-| PR Gate Success | ~1 LEM |
-| CI Lane Whitelist | ~2 LEM |
-| ripr advisory | ~4 LEM (isolated install attempted; stub report on toolchain/binary failure) |
-| Test Policy | ~12 LEM |
-| Pure Rust (ubuntu/stable only) | ~18 LEM |
-| Microcrate CI (routed by risk pack) | ~5–20 LEM depending on changed surface |
-| Fuzz build smoke (parser/glr paths only) | ~3 LEM |
-| Criterion smoke | ~6 LEM |
-| ts-bridge lanes | ~8 LEM |
-| Clippy quarantine report | ~4 LEM |
-| **Estimated total (typical runtime PR)** | **~65–80 LEM** |
+| Learned estimates | >=30 days or enough normalized per-lane receipts; advisory only. |
+| Ratchet static lane costs | Enough samples, p90-based updates, owner signoff for expensive lanes. |
 
-Target is ≤35 LEM for ordinary PRs. The gap comes from `pure-rust-ci` (18 LEM)
-and `microcrate-ci` (variable) running broadly on every PR. Active exceptions in
-`policy/ci-whitelist-exceptions.toml` track these while tightening continues.
+## Current default PR gap
 
-See `docs/ci/lem-budgeting.md` for budget bands and override labels.
+The target ordinary PR shape is <=25 LEM preferred and <=35 LEM ceiling. Current
+ordinary PR cost can still exceed that because several useful but duplicative
+lanes remain default or broad-path PR lanes: full test policy (~12 LEM),
+pure-rust ubuntu/stable (~18 LEM), microcrate CI (variable), ts-bridge lanes,
+and performance/API signals on some surfaces.
+
+The pruning PRs must preserve deep verification through routed, advisory,
+scheduled, `main`, release, and manual paths while removing those costs from the
+ordinary default.

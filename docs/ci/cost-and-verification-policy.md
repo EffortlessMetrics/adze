@@ -28,10 +28,10 @@ external services (Docker build farms, AI review) carry their own multipliers.
 
 | Band | LEM | Behavior |
 | --- | --- | --- |
-| ordinary | 0–35 | green; preferred default <25 |
-| elevated | 36–75 | warning; explicit risk surface |
-| high | 76–125 | high warning; explicit label/ack |
-| over ceiling | >125 | fails unless `full-ci` or `ci-budget-override` |
+| ordinary | 0-35 | green; preferred default <=25 |
+| elevated | 36-75 | warning summary; explicit risk surface |
+| high | 76-125 | high warning plus explicit label recommendation |
+| over ceiling | >125 | fail unless `full-ci` or `ci-budget-override` |
 
 The target is sub-`$0.50` ordinary PRs when possible. `$1` is a ceiling, not
 the design center.
@@ -40,31 +40,39 @@ the design center.
 
 | Tier | Trigger | Examples |
 | --- | --- | --- |
-| frontdoor | every PR, blocking | `just ci-supported`, test-policy |
-| advisory | every PR, non-blocking | PR Plan, ripr |
-| risk-routed | risk pack matches | parser fuzz build, golden, microcrate group |
-| deep | `main`, nightly, label | OS matrix, fuzz runtime, full benchmarks |
+| frontdoor | every PR, blocking | `PR Gate Success`, `just ci-supported` or Docs Gate |
+| advisory | every PR, non-blocking | PR Plan, ripr, lane whitelist |
+| risk-routed | risk pack matches | parser fuzz build, golden, matching microcrate group |
+| deep | `main`, nightly, label, manual | OS matrix, fuzz runtime, full benchmarks, full test-policy inventory |
 | release | tag, manual | semver, MSRV, security audit |
+
+The frontdoor target is deliberately narrow. Ordinary Rust PRs should normally
+pay for PR Plan (~1 LEM), Supported Rust Gate (~18-22 LEM), PR Gate Success
+(~1 LEM), cheap advisory policy signals, and at most a smoke-level test-policy
+lane. Docs-only PRs should pay for PR Plan, Docs Gate, PR Gate Success, and
+policy lint only. All other proof stays available, but it is selected by path,
+label, schedule, `main`, release, or manual dispatch.
 
 ## How we get there
 
-The rollout is not "delete CI". It is, in order:
+The rollout is not "delete CI". It proceeds as infrastructure product work:
 
-1. Document the policy (this doc).
-2. Inventory every existing CI lane in `policy/ci-lane-whitelist.toml`.
-3. Lint workflows against that whitelist (advisory).
-4. Forecast each PR's cost with PR Plan (advisory).
-5. Stand up `PR Gate Success` as the future required check.
-6. Normalize cache save semantics so PRs restore but only `main` saves.
-7. Add `ripr` as cheap oracle-gap detection.
-8. Encode risk packs so routing has a vocabulary.
-9. Make planning testable with `xtask ci plan`.
-10. Route the heavy lanes (fuzz, OS matrix, benchmarks, golden, microcrate) by
-    risk pack and label.
-11. Calibrate from actuals.
-12. Promote `PR Gate Success` to the required branch protection.
+```text
+stabilize docs/control plane
+-> make PR Gate authoritative
+-> remove duplicate PR execution
+-> route expensive lanes harder
+-> enforce lane metadata
+-> add labels / branch-protection rails
+-> collect actuals
+-> ratchet budgets from measured data
+```
 
-See `docs/ci/adze-rollout-plan.md` for the per-PR breakdown.
+The already-present rails are the policy docs, lane whitelist, risk packs,
+PR Plan, PR Gate Success, and ci-actuals scaffold. The next work is to harden
+those rails, prune duplicate ordinary-PR execution, and defer learned estimates
+until enough receipts exist. See `docs/ci/adze-rollout-plan.md` for the
+single-intention PR sequence.
 
 ## What we will not do
 
@@ -73,6 +81,8 @@ See `docs/ci/adze-rollout-plan.md` for the per-PR breakdown.
 - Enforce learned LEM budgets before actuals exist.
 - Combine docs, policy, and routing changes into a single PR.
 - Remove broad validation from `main`/nightly/label paths.
+- Introduce macOS or Windows as ordinary PR defaults.
+- Make a raw matrix leaf the required branch-protection context.
 
 ## Related
 

@@ -1,6 +1,6 @@
 # CI Lane Map
 
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-12
 **Purpose:** Classify every CI check so contributors can immediately tell
 whether a red mark means "must fix before merge" or "inspect at your leisure."
 
@@ -13,7 +13,7 @@ whether a red mark means "must fix before merge" or "inspect at your leisure."
 | **Push / scheduled** | Runs on `main` pushes or schedules. Not PR-blocking. | Inspect trend; fix in a follow-up. |
 | **Advisory** | Uses nightly / unstable toolchains, `continue-on-error`, or non-blocking labels. May be red due to toolchain drift. | Inspect if curious. Not actionable for most PRs. |
 
-Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-gate.yml`).
+Branch protection currently requires exactly one check: **`CI / ci-supported`**. The rollout target is **`PR Gate / PR Gate Success`** after the stability criteria in `docs/ci/branch-protection.md` pass.
 
 ---
 
@@ -27,13 +27,14 @@ Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-g
 | `pr-gate.yml` | `PR Gate Success` | PR + merge_group | Aggregate: plan + supported/docs gate must pass |
 | `pr-gate.yml` | `PR Plan` | PR | Computes docs_only, estimated LEM, budget band |
 
-Required branch protection context: `CI / ci-supported` (maps to the `ci-supported` job in `ci.yml`, also exercised via `pr-gate.yml`).
+Current required branch protection context: `CI / ci-supported`.
+Target required branch protection context: `PR Gate / PR Gate Success` after a dedicated migration PR. Do not require raw matrix leaves.
 
 ### PR-only signal (non-blocking)
 
 | Workflow | Job name | Trigger | Lane | Notes |
 |----------|----------|---------|------|-------|
-| `ci.yml` | `ci-supported` | PR + push | **Required** (via pr-gate) | The canonical green gate; runs on every event |
+| `ci.yml` | `ci-supported` | PR + push | **Required today** | Legacy required context; should stop running on ordinary PRs after PR Gate is promoted |
 | `ci.yml` | `semver-checks` | PR only | PR-only | Detects breaking API changes |
 | `ci.yml` | `api-stability` | PR only | PR-only | `cargo-public-api` diff; `continue-on-error` |
 | `ci.yml` | `package-validation` | PR only | PR-only | Validates package manifests for release surface |
@@ -142,18 +143,27 @@ required_status_checks:
     - "CI / ci-supported"
 ```
 
-This is correct and intentionally single-gated. All other checks are optional
-signal.
+Target required status check after the dedicated migration PR:
+
+```yaml
+required_status_checks:
+  contexts:
+    - "PR Gate / PR Gate Success"
+```
+
+The repository must remain single-gated. All other checks are optional, routed,
+scheduled, manual, release-only, or advisory signal. Never add macOS/windows
+matrix leaves or broad expensive lanes as required branch-protection contexts.
 
 ---
 
 ## How to read the GitHub Checks panel
 
-1. **`CI / ci-supported` red?** — Stop. Fix before merge.
-2. **`PR Gate / PR Gate Success` red?** — Same thing (aggregate gate).
+1. **Current required context red (`CI / ci-supported` today; `PR Gate / PR Gate Success` after migration)?** — Stop. Fix before merge.
+2. **`PR Gate / PR Gate Success` red before it is required?** — Treat as a release/CI follow-up; it is the future aggregate gate.
 3. **Any `Advisory / *` red?** — Inspect when convenient. May be nightly drift.
 4. **Push-only jobs red on main?** — Create a follow-up issue. Not a PR blocker.
-5. **PR-only signal red?** — Worth reviewing, but not a merge blocker.
+5. **PR-only signal red?** — Worth reviewing, but not a merge blocker unless branch protection names it.
 
 ---
 
@@ -169,7 +179,8 @@ signal.
 ## Maintenance
 
 When adding a new CI job:
-1. Add it to the appropriate table above.
+1. Add it to the appropriate table above and to `policy/ci-lane-whitelist.toml`.
 2. If advisory, use `continue-on-error: true` and the `Advisory / ` name prefix.
-3. If required, update `.github/settings.yml` branch protection contexts **and** this file.
-4. If push-only, ensure it does not trigger on PRs (use `if:` guards).
+3. If required, keep the single aggregate context (`PR Gate / PR Gate Success` after migration); do not require matrix leaves.
+4. If push-only, ensure it does not trigger on ordinary PRs (use triggers or `if:` guards).
+5. If the job uses macOS/windows, confirm it is not an ordinary PR default.

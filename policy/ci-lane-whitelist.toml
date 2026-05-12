@@ -12,14 +12,14 @@
 #            from `job` so we can rename workflow jobs without churn.
 #
 # This file is advisory until `cargo xtask check-ci-lane-whitelist` is run
-# in blocking mode in CI; until then the whitelist lint reports findings to
-# `target/policy/ci-lane-whitelist.json` without failing the build.
+# in blocking mode in CI. The rollout target is blocking enforcement only
+# for workflow/policy/control-plane changes, not every ordinary code PR.
 
 schema_version = "1.0"
 policy = "ci-lane-whitelist"
 owner = "release/ci"
 status = "advisory"
-updated = "2026-05-08"
+updated = "2026-05-12"
 
 [budget]
 # All values in LEM (Linux-equivalent minutes).
@@ -95,7 +95,7 @@ blocking = true
 runner = "ubuntu_latest"
 base_lem = 1
 owner = "release/ci"
-intent = "Single stable summary check intended to become the future required check."
+intent = "Single stable summary check that becomes the stable required check after branch-protection promotion."
 failure_mode = "Required check name churn would break branch protection during the rollout."
 proof_obligation = "Aggregate pr-plan + supported / docs gate results into a stable status."
 evidence = ["job summary"]
@@ -189,7 +189,7 @@ failure_mode = "Pure-Rust parser path passes Linux but fails on Windows, macOS, 
 proof_obligation = "Run clippy, build, tests, and bench compile checks across OS/toolchain matrix."
 evidence = ["job logs"]
 allowed_triggers = ["pull_request", "push"]
-routing_note = "matrix-setup job limits default PR to ubuntu/stable (~18 LEM). Full OS*toolchain matrix (was 180 LEM) gated to 'platform-matrix'/'full-ci' labels and main/push."
+routing_note = "Needs pruning: target behavior is no ordinary PR execution unless platform-matrix, pure-rust, or full-ci is present; main/scheduled/manual keep platform proof. Full OS*toolchain matrix remains label/main/manual only."
 expensive = true
 default_pr_exception = "ci-exception-pure-rust-os-matrix-default-pr"
 duplicate_of = ["ci-supported", "microcrate-ci"]
@@ -212,7 +212,7 @@ failure_mode = "Microcrate split surfaces drift independently from supported run
 proof_obligation = "Run crate-group tests, docs, WASM check, strict feature checks, and formatting."
 evidence = ["job logs"]
 allowed_triggers = ["pull_request", "push"]
-routing_note = "changes setup job routes each PR to the matching crate groups only (concurrency/governance/bdd/parser/core/runtime). Full run on 'ci:microcrate'/'full-ci' labels and main."
+routing_note = "Needs pruning: keep changed crate-group tests only for matching paths; move formatting, docs build, WASM, and strict features to main/manual/full-ci or specific labels."
 expensive = true
 default_pr_exception = "ci-exception-microcrate-ci-default-pr"
 duplicate_of = ["ci-supported", "core-tests"]
@@ -258,7 +258,7 @@ failure_mode = "Runtime/GLR/tablegen performance regresses silently."
 proof_obligation = "Run baseline and PR Criterion benchmarks and report >5% deltas."
 evidence = ["performance_report.txt", "PR comment"]
 allowed_triggers = ["pull_request"]
-routing_note = "performance-check job uses path filter on PR. ci/benchmark-dedup will gate baseline comparison to 'ci:perf'/'full-ci' labels; quick-smoke-test remains default."
+routing_note = "Needs pruning: keep criterion compile smoke path-routed; gate baseline/performance comparison to ci:perf, benchmarks, full-ci, main, or manual."
 expensive = true
 default_pr_exception = "ci-exception-performance-default-pr"
 duplicate_of = ["benchmarks-pr"]
@@ -412,7 +412,8 @@ failure_mode = "ABI parity drift goes unnoticed."
 proof_obligation = "Run ts-bridge parity harness on canonical grammars."
 evidence = ["job logs"]
 allowed_triggers = ["pull_request", "push"]
-duplicate_of = []
+duplicate_of = ["smoke-ts-bridge"]
+routing_note = "Needs pruning: move parity off ordinary PRs to main/scheduled/manual/ts-bridge/full-ci after smoke consolidation."
 review_after = "2026-06-07"
 expires = "2026-09-07"
 

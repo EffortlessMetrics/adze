@@ -1,57 +1,92 @@
-# Learned LEM estimates (PR 18)
+# Learned LEM estimates
 
-Static `base_lem` values in `policy/ci-lane-whitelist.toml` are the
-starting estimate. Once `ci-actuals.json` artifacts have accumulated,
-the planner can use observed durations instead.
+Static `base_lem` values in `policy/ci-lane-whitelist.toml` are the source of
+truth until enough `ci-actuals.json` receipts exist. Learned estimates are a
+future advisory calibration layer; they must not become the first enforcement
+mechanism.
 
-## Promotion criteria
+## Deferral rule
 
-PR 18 is opened when:
+Do not use learned estimates for blocking decisions until both are true:
 
-- `target/ci/ci-actuals.json` artifacts have been uploaded by ≥ 30 PRs,
-- the runner-multiplier × wall-clock time for each lane has a stable
-  p50 and p90 within ±15% across two consecutive weeks,
-- the band thresholds (`35` / `75` / `125`) still match the operator's
-  cost target after observing actuals (see `docs/ci/lem-budgeting.md`).
+1. at least 30 days of receipts, or an equivalent sample size, exists for the
+   lanes being calibrated; and
+2. the per-lane p50/p90/p95 values are stable enough that updating static
+   estimates will not hide real cost.
 
-## Model
+Static estimates and override labels (`full-ci`, `ci-budget-override`) remain
+correct during the rollout.
 
+## Receipt schema target
+
+The actuals receipt should normalize each selected lane before learned estimates
+consume it:
+
+```json
+{
+  "schema_version": 1,
+  "pr": 123,
+  "head_sha": "...",
+  "lanes": [
+    {
+      "id": "ci-supported",
+      "workflow": "PR Gate",
+      "job": "Supported Rust Gate",
+      "runner": "ubuntu_latest",
+      "wall_minutes": 21.4,
+      "runner_multiplier": 1.0,
+      "lem": 21.4,
+      "selected_by": ["default_pr"],
+      "result": "success"
+    }
+  ],
+  "total_lem": 27.2,
+  "budget_band": "ordinary"
+}
 ```
-estimate(lane) = max(static_floor(lane), p50_recent_actual(lane) × 1.15)
+
+## Metrics to compute
+
+For each lane, learned estimates should report:
+
+| Metric | Use |
+| --- | --- |
+| p50 LEM | Typical observed cost. |
+| p90 LEM | Budget baseline candidate; do not lower static `base_lem` below this without a written reason. |
+| p95 LEM | Outlier / hard-warning signal. |
+| sample count | Determines whether the estimate is mature enough to use. |
+| last seen | Detects stale lanes. |
+| outliers | Explains exceptional receipts that should not silently ratchet budgets. |
+
+## Advisory model
+
+When enough samples exist:
+
+```text
+estimate(lane) = max(static_floor(lane), p50_recent_actual(lane) * 1.15)
 warning(lane)  = p90_recent_actual(lane)
 hard(lane)     = p95_recent_actual(lane)
 ```
 
-`static_floor` is the `base_lem` from the whitelist. The `× 1.15` factor
-keeps the estimate slightly pessimistic, so a normal PR's actuals stay
-under the estimate.
+`static_floor` is the lane's `base_lem`. The 15% buffer keeps planning slightly
+pessimistic so ordinary PR actuals usually land below the forecast.
 
-## Implementation outline
+## Ratchet rules
 
-PR 18 will:
+Static ledger updates are a separate PR after learned estimates have been
+computed:
 
-1. Add a `learned_estimates` section to the planner that loads the
-   most recent `ci-actuals.json` artifacts (from the previous N runs on
-   `main` or any matching workflow).
-2. Replace the static `base_lem` lookup in `xtask ci plan` with
-   `max(static_floor, p50_recent × 1.15)`.
-3. Continue to fall back to `base_lem` whenever fewer than 5 actuals
-   exist for a lane.
-4. Add `--enforce-hard-ceiling` to the workflow only if the band
-   thresholds have been validated against actuals.
+- require enough samples for the lane,
+- do not lower estimates below p90 without a written reason,
+- require owner signoff for expensive default lanes,
+- keep Linux/windows/macOS multipliers explicit,
+- update docs and `policy/ci-lane-whitelist.toml` together,
+- keep learned estimates advisory until the updated static ledger has reviewed
+  budgets.
 
 ## Why this is deferred
 
-Until enough actuals exist, learned estimates are noisier than static
-ones. Worse, they make PR planning depend on historical data that may
-not exist for new lanes (a new lane has zero actuals and would either
-fall back to `base_lem` or be silently underestimated). Static
-estimates are correct in the meantime.
-
-## Privacy and stability
-
-- The learned estimates only consume aggregated p50/p90/p95 numbers.
-- They are stored in the planner's working memory, not committed to
-  the repo.
-- Static `base_lem` remains the audit trail; learned estimates inform,
-  they do not replace.
+New or rarely selected lanes have sparse data. If learned estimates are enforced
+too early, they either underestimate new lanes or make PR planning depend on
+history that is not available. The current rollout therefore enforces static
+bands first and uses actuals only after receipts are normalized and sampled.

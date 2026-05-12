@@ -60,6 +60,63 @@ labels:
   - name: tests
     color: "1d76db"
     description: Test suite changes
+  - name: full-ci
+    color: "0e8a16"
+    description: Run all heavy CI lanes that are safe for this event
+  - name: ci-budget-override
+    color: "b60205"
+    description: Allow CI plan over the hard LEM ceiling
+  - name: ci-budget-ack
+    color: "fbca04"
+    description: Acknowledge elevated or high CI LEM cost
+  - name: platform-matrix
+    color: "5319e7"
+    description: Run full OS and toolchain matrix verification
+  - name: coverage
+    color: "1d76db"
+    description: Run coverage instrumentation and reporting
+  - name: ci:golden
+    color: "d4c5f9"
+    description: Run grammar golden and parity verification
+  - name: ci:perf
+    color: "c5def5"
+    description: Run performance comparison lanes
+  - name: ci:microcrate
+    color: "bfd4f2"
+    description: Run full microcrate CI matrix
+  - name: ci:concurrency
+    color: "bfd4f2"
+    description: Run concurrency microcrate risk pack
+  - name: wasm
+    color: "5319e7"
+    description: Run WASM checks
+  - name: fuzz
+    color: "d93f0b"
+    description: Run fuzzing lanes
+  - name: benchmarks
+    color: "c5def5"
+    description: Run full benchmark suites
+  - name: api
+    color: "0075ca"
+    description: Run public API and SemVer checks
+  - name: release-check
+    color: "006b75"
+    description: Run release-preparation verification
+  - name: security-audit
+    color: "e11d21"
+    description: Run dependency and security audit lanes
+  - name: mutation
+    color: "fbca04"
+    description: Run mutation testing lanes
+  - name: property-tests
+    color: "fbca04"
+    description: Run property-test lanes
+  - name: pure-rust
+    color: "5319e7"
+    description: Run pure-Rust implementation proof
+  - name: ts-bridge
+    color: "5319e7"
+    description: Run ts-bridge parity or FFI validation
   - name: perf
     color: c5def5
     description: Performance improvements
