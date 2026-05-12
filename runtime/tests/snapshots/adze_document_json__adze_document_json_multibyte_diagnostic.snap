@@ -1,0 +1,34 @@
+---
+source: runtime/tests/adze_document_json.rs
+expression: "serde_json::to_string_pretty(&snapshot_json).expect(\"multibyte diagnostic JSON summary should render as pretty JSON\")"
+---
+{
+  "schema": "adze.document.v1",
+  "source": {
+    "byte_len": 6
+  },
+  "language": {
+    "name": "typed_ast_contract"
+  },
+  "root_has_error": true,
+  "first_diagnostic": {
+    "start_byte": 4,
+    "end_byte": 6,
+    "point_range": {
+      "start": {
+        "row": 0,
+        "column": 4
+      },
+      "end": {
+        "row": 0,
+        "column": 6
+      }
+    },
+    "expected": [
+      "/\\d+/"
+    ],
+    "related_nodes": [
+      1
+    ]
+  }
+}

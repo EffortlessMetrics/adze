@@ -128,6 +128,130 @@ fn parse_document_json_serializes_diagnostics_and_error_flags() {
 }
 
 #[test]
+fn parse_document_json_serializes_multibyte_diagnostic_span() {
+    use adze_example::typed_ast_contract::grammar;
+
+    let source = "1 + \u{03bb}";
+    let document = grammar::parse_document(source)
+        .expect("generated parse_document helper should return multibyte partial parse facts");
+    let json = document.to_json_value();
+
+    assert_eq!(json["schema"].as_str(), Some(ADZE_DOCUMENT_JSON_SCHEMA));
+    assert_eq!(
+        json["source"]["byte_len"].as_u64(),
+        Some(source.len() as u64)
+    );
+    assert_eq!(
+        json["tree"]["root"]["flags"]["has_error"].as_bool(),
+        Some(true)
+    );
+
+    let diagnostic = json["diagnostics"]
+        .as_array()
+        .and_then(|diagnostics| diagnostics.first())
+        .expect("multibyte bad token should serialize a diagnostic");
+    assert_eq!(diagnostic["start_byte"].as_u64(), Some(4));
+    assert_eq!(diagnostic["end_byte"].as_u64(), Some(6));
+    assert_eq!(diagnostic["point_range"]["start"]["row"].as_u64(), Some(0));
+    assert_eq!(
+        diagnostic["point_range"]["start"]["column"].as_u64(),
+        Some(4)
+    );
+    assert_eq!(diagnostic["point_range"]["end"]["row"].as_u64(), Some(0));
+    assert_eq!(diagnostic["point_range"]["end"]["column"].as_u64(), Some(6));
+    assert!(
+        diagnostic["expected"]
+            .as_array()
+            .expect("diagnostic should serialize expected tokens")
+            .iter()
+            .any(|value| value.as_str() == Some(r"/\d+/")),
+        "multibyte diagnostic JSON should preserve expected-token names: {diagnostic:?}"
+    );
+
+    let snapshot_json = serde_json::json!({
+        "schema": json["schema"].clone(),
+        "source": json["source"].clone(),
+        "language": json["language"].clone(),
+        "root_has_error": json["tree"]["root"]["flags"]["has_error"].clone(),
+        "first_diagnostic": {
+            "start_byte": diagnostic["start_byte"].clone(),
+            "end_byte": diagnostic["end_byte"].clone(),
+            "point_range": diagnostic["point_range"].clone(),
+            "expected": diagnostic["expected"].clone(),
+            "related_nodes": diagnostic["related_nodes"].clone(),
+        },
+    });
+
+    insta::assert_snapshot!(
+        "adze_document_json_multibyte_diagnostic",
+        serde_json::to_string_pretty(&snapshot_json)
+            .expect("multibyte diagnostic JSON summary should render as pretty JSON")
+    );
+}
+
+#[test]
+fn parse_document_json_serializes_multiline_diagnostic_point_range() {
+    use adze_example::typed_ast_contract::grammar;
+
+    let source = "1 +\n@";
+    let document = grammar::parse_document(source)
+        .expect("generated parse_document helper should return multiline partial parse facts");
+    let json = document.to_json_value();
+
+    assert_eq!(json["schema"].as_str(), Some(ADZE_DOCUMENT_JSON_SCHEMA));
+    assert_eq!(
+        json["source"]["byte_len"].as_u64(),
+        Some(source.len() as u64)
+    );
+    assert_eq!(
+        json["tree"]["root"]["flags"]["has_error"].as_bool(),
+        Some(true)
+    );
+
+    let diagnostic = json["diagnostics"]
+        .as_array()
+        .and_then(|diagnostics| diagnostics.first())
+        .expect("multiline bad token should serialize a diagnostic");
+    assert_eq!(diagnostic["start_byte"].as_u64(), Some(4));
+    assert_eq!(diagnostic["end_byte"].as_u64(), Some(5));
+    assert_eq!(diagnostic["point_range"]["start"]["row"].as_u64(), Some(1));
+    assert_eq!(
+        diagnostic["point_range"]["start"]["column"].as_u64(),
+        Some(0)
+    );
+    assert_eq!(diagnostic["point_range"]["end"]["row"].as_u64(), Some(1));
+    assert_eq!(diagnostic["point_range"]["end"]["column"].as_u64(), Some(1));
+    assert!(
+        diagnostic["expected"]
+            .as_array()
+            .expect("diagnostic should serialize expected tokens")
+            .iter()
+            .any(|value| value.as_str() == Some(r"/\d+/")),
+        "multiline diagnostic JSON should preserve expected-token names: {diagnostic:?}"
+    );
+
+    let snapshot_json = serde_json::json!({
+        "schema": json["schema"].clone(),
+        "source": json["source"].clone(),
+        "language": json["language"].clone(),
+        "root_has_error": json["tree"]["root"]["flags"]["has_error"].clone(),
+        "first_diagnostic": {
+            "start_byte": diagnostic["start_byte"].clone(),
+            "end_byte": diagnostic["end_byte"].clone(),
+            "point_range": diagnostic["point_range"].clone(),
+            "expected": diagnostic["expected"].clone(),
+            "related_nodes": diagnostic["related_nodes"].clone(),
+        },
+    });
+
+    insta::assert_snapshot!(
+        "adze_document_json_multiline_diagnostic",
+        serde_json::to_string_pretty(&snapshot_json)
+            .expect("multiline diagnostic JSON summary should render as pretty JSON")
+    );
+}
+
+#[test]
 #[cfg(feature = "glr")]
 fn parse_document_json_serializes_glr_ambiguity_summary() {
     use adze_example::ambiguous_expr::grammar;
