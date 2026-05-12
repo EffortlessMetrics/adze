@@ -59,6 +59,7 @@ fn leaf(sym: u16, start: usize, end: usize) -> ParseNode {
         start_byte: start,
         end_byte: end,
         field_name: None,
+        alias_symbol_id: None,
         children: vec![],
     }
 }
@@ -71,6 +72,7 @@ fn branch(sym: u16, start: usize, end: usize, children: Vec<ParseNode>) -> Parse
         start_byte: start,
         end_byte: end,
         field_name: None,
+        alias_symbol_id: None,
         children,
     }
 }
