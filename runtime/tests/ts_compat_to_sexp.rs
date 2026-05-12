@@ -3,7 +3,8 @@
 #![cfg(all(test, feature = "ts-compat", feature = "pure-rust"))]
 
 use adze::{
-    adze_ir::RuleId,
+    adze_glr_core::SymbolMetadata,
+    adze_ir::{RuleId, SymbolId},
     ts_compat::{Language, Parser},
 };
 use std::sync::Arc;
@@ -18,6 +19,59 @@ fn arithmetic_with_fields() -> Language {
     lang.table.field_map.insert((RuleId(2), 0), 0);
     lang.table.field_map.insert((RuleId(2), 1), 1);
     lang.table.field_map.insert((RuleId(2), 2), 2);
+    lang
+}
+
+fn symbol_named(lang: &Language, name: &str) -> SymbolId {
+    let index = lang
+        .table
+        .symbol_metadata
+        .iter()
+        .position(|metadata| metadata.name == name)
+        .unwrap_or_else(|| panic!("arithmetic fixture should expose '{name}' symbol metadata"));
+    let symbol = lang.table.symbol_metadata[index].symbol_id;
+    assert_eq!(
+        symbol.0 as usize, index,
+        "arithmetic fixture metadata should be indexed by symbol id"
+    );
+    symbol
+}
+
+fn arithmetic_with_expression_child_alias(alias_name: &str) -> Language {
+    let mut lang = (*adze_example::ts_langs::arithmetic()).clone();
+    let source_file = symbol_named(&lang, "source_file");
+    let alias_symbol = SymbolId(lang.table.symbol_metadata.len() as u16);
+
+    lang.table.symbol_metadata.push(SymbolMetadata {
+        name: alias_name.to_string(),
+        is_visible: true,
+        is_named: true,
+        is_supertype: false,
+        is_terminal: false,
+        is_extra: false,
+        is_fragile: false,
+        symbol_id: alias_symbol,
+    });
+    lang.table.symbol_count = lang
+        .table
+        .symbol_count
+        .max(lang.table.symbol_metadata.len());
+    lang.table
+        .index_to_symbol
+        .resize(lang.table.symbol_metadata.len(), SymbolId(0));
+    lang.table.index_to_symbol[alias_symbol.0 as usize] = alias_symbol;
+
+    let source_file_rule = lang
+        .table
+        .rules
+        .iter()
+        .position(|rule| rule.lhs == source_file && rule.rhs_len == 1)
+        .expect("arithmetic fixture should reduce source_file from expression");
+    lang.table
+        .alias_sequences
+        .resize_with(source_file_rule + 1, Vec::new);
+    lang.table.alias_sequences[source_file_rule] = vec![Some(alias_symbol)];
+
     lang
 }
 
@@ -54,6 +108,31 @@ fn to_sexp_matches_root_and_subtree_contract_for_generated_arithmetic() {
     assert_eq!(
         expression.to_sexp(),
         "(expression (expression) (expression))"
+    );
+}
+
+#[test]
+fn alias_visible_identity_is_used_in_sexp() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(Arc::new(arithmetic_with_expression_child_alias(
+            "binary_expression",
+        )))
+        .expect("Failed to set language");
+
+    let tree = parser.parse("1-2", None).expect("Parse failed");
+    let expression = tree
+        .root_node()
+        .child(0)
+        .expect("root should expose aliased expression child");
+
+    assert_eq!(
+        tree.root_node().to_sexp(),
+        "(source_file (binary_expression (expression) (expression)))"
+    );
+    assert_eq!(
+        expression.to_sexp(),
+        "(binary_expression (expression) (expression))"
     );
 }
 

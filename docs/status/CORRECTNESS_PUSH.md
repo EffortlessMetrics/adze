@@ -73,13 +73,14 @@ pin the intended shape:
 - [`docs/design/typed-cst.md`](../design/typed-cst.md): generated typed CST
   handles over `AdzeDocument`, not a second parse tree.
 - [`docs/reference/ts-compat-alias-semantics.md`](../reference/ts-compat-alias-semantics.md):
-  target alias-visible identity behavior for the future compatibility adapter.
+  current alias-visible identity behavior and remaining alias parity gaps for
+  the compatibility adapter.
 
 Keep implementation slices small:
 
 1. Minimal `AdzeDocument` alpha now exists for `tree()`, document-local node
-   IDs/lookups, explicit raw-symbol `NodeIdentity` slots for future
-   visible-vs-grammar identity projection, explicit `NodeFlags` for the current
+   IDs/lookups, explicit `NodeIdentity` slots for alias-visible and raw grammar
+   identity projection, alias-adjusted `NodeFlags` for the current
    named/visible/extra/token/error/missing/aggregate-error state, edge/parent lookup,
    language/node-kind metadata, `diagnostics()`, `metadata()`, and
    `ts_compat::Tree::from_document()` over the same parse data. It now also
@@ -108,9 +109,11 @@ Keep implementation slices small:
    CST wrapper can extract a semantic typed AST from its own document node while
    preserving document-level node provenance, without expanding into visitors,
    rewriters, typed queries, or JSON output.
-3. Alias-visible compatibility canaries only after native node identity is
-   populated from parser alias sequence data, not merely the current raw-symbol
-   identity slots.
+3. Initial alias-visible compatibility canaries now prove native document node
+   identity and parsed `ts_compat` node/S-expression projection for known
+   production alias sequence entries. Remaining alias work is node-types output,
+   query-compatible metadata/execution, anonymous alias named-child filtering,
+   GLR/generated-route parity, and imported corpus fixtures.
 
 Do not promote any native document, typed CST, alias-visible compatibility, or
 JSON output surface without an exact proof command and support-tier entry.

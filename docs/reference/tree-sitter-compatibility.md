@@ -70,16 +70,19 @@ The GLR implementation maintains bit-for-bit compatibility with Tree-sitter's C 
 This file covers generated `TSLanguage` table format and decode invariants.
 The `ts_compat::Node` runtime identity APIs have a separate contract in
 [`ts-compat-node-identity.md`](ts-compat-node-identity.md).
-The future alias-aware target semantics are drafted in
+Current alias-aware semantics and remaining parity gaps are documented in
 [`ts-compat-alias-semantics.md`](ts-compat-alias-semantics.md).
 
-Current `ts_compat` nodes expose raw parsed-symbol identity:
+Current `ts_compat` nodes expose alias-visible identity for known production
+alias sequence entries while preserving raw grammar identity:
 
-- `kind()` and `kind_id()` come from the parsed node symbol,
-- `grammar_name()` currently matches `kind()`,
-- `grammar_id()` currently matches `kind_id()`,
-- alias metadata is preserved in generated tables and decode output, but is
-  not yet projected into alias-visible node identity.
+- `kind()` and `kind_id()` use the alias-visible symbol when a production alias
+  applies, otherwise the parsed node symbol,
+- `grammar_name()` and `grammar_id()` remain the raw parsed grammar symbol,
+  ignoring aliases,
+- alias metadata is preserved in generated tables and decode output and is now
+  projected into parsed node identity for the covered node-identity/S-expression
+  canaries.
 
 Do not change alias-visible node identity, S-expression alias behavior, or
 node-types alias behavior without updating that contract and its canaries.

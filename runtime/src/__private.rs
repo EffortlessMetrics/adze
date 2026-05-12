@@ -1071,6 +1071,7 @@ fn convert_subtree_to_document_node(
         start_byte: subtree.node.byte_range.start,
         end_byte: subtree.node.byte_range.end,
         field_name: None,
+        alias_symbol_id: None,
         children,
     }
 }
@@ -1186,6 +1187,7 @@ fn convert_parsed_node_to_document_node(
         field_name: node
             .field_id
             .and_then(|field_id| field_name_by_id(lang, field_id)),
+        alias_symbol_id: None,
         children,
     }
 }
@@ -1234,6 +1236,7 @@ fn synthetic_document_root_for_errors(
         start_byte: error_span.start,
         end_byte: error_span.end,
         field_name: None,
+        alias_symbol_id: None,
         children: Vec::new(),
     };
 
@@ -1243,6 +1246,7 @@ fn synthetic_document_root_for_errors(
         start_byte: 0,
         end_byte: input.len(),
         field_name: None,
+        alias_symbol_id: None,
         children: vec![error_node],
     }
 }
@@ -1446,6 +1450,7 @@ mod tests {
             start_byte: 0,
             end_byte: 0,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![],
         };
 
@@ -1469,6 +1474,7 @@ mod tests {
             start_byte: 0,
             end_byte: 0,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![],
         };
 
@@ -1849,6 +1855,7 @@ mod tests {
             start_byte: 0,
             end_byte: 1,
             field_name: Some("name".to_string()),
+            alias_symbol_id: None,
             children: vec![],
         };
 
@@ -1866,18 +1873,21 @@ mod tests {
             start_byte: 0,
             end_byte: 2,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![crate::parser_v4::ParseNode {
                 symbol: adze_ir::SymbolId(2),
                 symbol_id: adze_ir::SymbolId(2),
                 start_byte: 0,
                 end_byte: 2,
                 field_name: Some("value".to_string()),
+                alias_symbol_id: None,
                 children: vec![crate::parser_v4::ParseNode {
                     symbol: adze_ir::SymbolId(3),
                     symbol_id: adze_ir::SymbolId(3),
                     start_byte: 0,
                     end_byte: 1,
                     field_name: Some("name".to_string()),
+                    alias_symbol_id: None,
                     children: vec![],
                 }],
             }],
@@ -1897,6 +1907,7 @@ mod tests {
             start_byte: 0,
             end_byte: 1,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![],
         };
         let unknown = crate::parser_v4::ParseNode {
@@ -1905,6 +1916,7 @@ mod tests {
             start_byte: 0,
             end_byte: 1,
             field_name: Some("does_not_exist".to_string()),
+            alias_symbol_id: None,
             children: vec![],
         };
 

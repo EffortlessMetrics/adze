@@ -45,6 +45,7 @@ pub struct ParseNode {
     pub start_byte: usize,
     pub end_byte: usize,
     pub field_name: Option<String>,
+    pub alias_symbol_id: Option<SymbolId>,
     pub children: Vec<ParseNode>,
 }
 
@@ -727,6 +728,7 @@ impl Parser {
                         end_byte: token.end,
                         children: vec![],
                         field_name: None,
+                        alias_symbol_id: None,
                     };
 
                     state_stack.push(next_state);
@@ -753,6 +755,7 @@ impl Parser {
                     }
                     children.reverse(); // Children were popped in reverse order
                     self.assign_field_names_for_production(rule_id, &mut children);
+                    self.assign_aliases_for_production(rule_id, &mut children);
 
                     // Create a parent node
                     let start_byte = children
@@ -770,6 +773,7 @@ impl Parser {
                         end_byte,
                         children,
                         field_name: None,
+                        alias_symbol_id: None,
                     };
 
                     // Get the goto state for the non-terminal
@@ -818,6 +822,7 @@ impl Parser {
                             start_byte: current_position,
                             end_byte: current_position,
                             field_name: None,
+                            alias_symbol_id: None,
                             children: vec![],
                         }
                     };
@@ -840,6 +845,7 @@ impl Parser {
                             start_byte: current_position,
                             end_byte: current_position,
                             field_name: None,
+                            alias_symbol_id: None,
                             children: vec![],
                         }
                     };
@@ -871,6 +877,7 @@ impl Parser {
                             start_byte: current_position,
                             end_byte: current_position,
                             field_name: None,
+                            alias_symbol_id: None,
                             children: vec![],
                         }
                     };
@@ -1009,6 +1016,22 @@ impl Parser {
             if let Some(field_name) = self.parse_table.field_names.get(*field_id as usize) {
                 child.field_name = Some(field_name.clone());
             }
+        }
+    }
+
+    fn assign_aliases_for_production(&self, rule_id: RuleId, children: &mut [ParseNode]) {
+        let Some(alias_sequence) = self.parse_table.alias_sequences.get(rule_id.0 as usize) else {
+            return;
+        };
+
+        for (child_index, alias_symbol_id) in alias_sequence.iter().enumerate() {
+            let Some(alias_symbol_id) = alias_symbol_id else {
+                continue;
+            };
+            let Some(child) = children.get_mut(child_index) else {
+                continue;
+            };
+            child.alias_symbol_id = Some(*alias_symbol_id);
         }
     }
 
@@ -1740,6 +1763,7 @@ mod tests {
                 start_byte: 0,
                 end_byte: 1,
                 field_name: None,
+                alias_symbol_id: None,
                 children: vec![],
             },
             ParseNode {
@@ -1748,6 +1772,7 @@ mod tests {
                 start_byte: 1,
                 end_byte: 2,
                 field_name: None,
+                alias_symbol_id: None,
                 children: vec![],
             },
         ];

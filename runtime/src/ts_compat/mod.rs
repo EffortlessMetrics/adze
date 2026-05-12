@@ -302,6 +302,9 @@ impl Tree {
     }
 
     fn kind_for_symbol(&self, sym: u16) -> &str {
+        if let Some(metadata) = self.language.symbol_metadata_for_id(sym) {
+            return metadata.name.as_str();
+        }
         // Try direct rule name mapping first
         if let Some(name) = self
             .language
@@ -322,6 +325,10 @@ impl Tree {
             return name.as_str();
         }
         "unknown"
+    }
+
+    fn visible_symbol_for_node(&self, node: &ParseNode) -> u16 {
+        node.alias_symbol_id.unwrap_or(node.symbol).0
     }
 
     /// Get the number of errors in this tree.
@@ -378,28 +385,29 @@ impl<'a> Node<'a> {
 
     /// Get the kind of this node as a string.
     pub fn kind(&self) -> &str {
-        self.tree.kind_for_symbol(self.node.symbol.0)
+        self.tree
+            .kind_for_symbol(self.tree.visible_symbol_for_node(self.node))
     }
 
     /// Get this node's kind as a numerical symbol id.
     pub fn kind_id(&self) -> u16 {
-        self.node.symbol.0
+        self.tree.visible_symbol_for_node(self.node)
     }
 
     /// Get this node's grammar symbol id, ignoring aliases.
     ///
-    /// Current `ts_compat` parse nodes do not carry alias-specific node
-    /// identity, so grammar id matches kind id.
+    /// Alias-visible `kind_id()` may differ from this value when production
+    /// alias metadata applies.
     pub fn grammar_id(&self) -> u16 {
-        self.kind_id()
+        self.node.symbol.0
     }
 
     /// Get this node's grammar symbol name, ignoring aliases.
     ///
-    /// Current `ts_compat` parse nodes do not carry alias-specific node
-    /// identity, so grammar name matches kind.
+    /// Alias-visible `kind()` may differ from this value when production alias
+    /// metadata applies.
     pub fn grammar_name(&self) -> &str {
-        self.kind()
+        self.tree.kind_for_symbol(self.node.symbol.0)
     }
 
     /// Get the start byte of this node.
@@ -520,13 +528,14 @@ impl<'a> Node<'a> {
             .map(|child| Node::new(self.tree, child))
     }
 
-    /// Check if this node is a named grammar node.
+    /// Check if this node is named after applying alias-visible identity.
     pub fn is_named(&self) -> bool {
+        let visible_symbol = self.tree.visible_symbol_for_node(self.node);
         self.tree
             .language
             .table
             .symbol_metadata
-            .get(self.node.symbol.0 as usize)
+            .get(visible_symbol as usize)
             .map(|metadata| metadata.is_named)
             .unwrap_or_else(|| {
                 !self
@@ -534,19 +543,26 @@ impl<'a> Node<'a> {
                     .language
                     .grammar
                     .tokens
-                    .contains_key(&self.node.symbol)
+                    .contains_key(&adze_ir::SymbolId(visible_symbol))
             })
     }
 
-    /// Check if this node is an extra grammar node, such as trivia.
+    /// Check if this node is extra after applying alias-visible identity.
     pub fn is_extra(&self) -> bool {
+        let visible_symbol = self.tree.visible_symbol_for_node(self.node);
         self.tree
             .language
             .table
             .symbol_metadata
-            .get(self.node.symbol.0 as usize)
+            .get(visible_symbol as usize)
             .map(|metadata| metadata.is_extra)
-            .unwrap_or_else(|| self.tree.language.table.extras.contains(&self.node.symbol))
+            .unwrap_or_else(|| {
+                self.tree
+                    .language
+                    .table
+                    .extras
+                    .contains(&adze_ir::SymbolId(visible_symbol))
+            })
     }
 
     /// Get the number of named children.
@@ -1099,6 +1115,7 @@ mod tests {
             start_byte,
             end_byte,
             field_name: None,
+            alias_symbol_id: None,
             children: Vec::new(),
         }
     }
@@ -1135,6 +1152,7 @@ mod tests {
             start_byte: 0,
             end_byte: 1,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![error_child],
         };
         let tree = Tree {
@@ -1168,6 +1186,7 @@ mod tests {
             start_byte: 0,
             end_byte: 3,
             field_name: None,
+            alias_symbol_id: None,
             children: vec![zero_width_error, spanning_error, zero_width_non_error],
         };
         let tree = Tree {
