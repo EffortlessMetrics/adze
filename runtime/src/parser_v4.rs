@@ -551,6 +551,38 @@ impl Parser {
         }
     }
 
+    fn synthetic_missing_node(position: usize) -> ParseNode {
+        ParseNode {
+            symbol: SymbolId(0),
+            symbol_id: SymbolId(0),
+            start_byte: position,
+            end_byte: position,
+            field_name: None,
+            alias_symbol_id: None,
+            children: vec![],
+        }
+    }
+
+    fn partial_error_tree(
+        node_stack: &mut Vec<ParseNode>,
+        lookahead: SymbolId,
+        current_position: usize,
+        input_len: usize,
+    ) -> ParseNode {
+        let had_partial_context = node_stack.len() > 1;
+        let Some(mut node) = node_stack.pop() else {
+            return Self::synthetic_missing_node(current_position);
+        };
+
+        if had_partial_context && lookahead.0 == 0 && current_position >= input_len {
+            node.end_byte = node.end_byte.max(current_position);
+            node.children
+                .push(Self::synthetic_missing_node(current_position));
+        }
+
+        node
+    }
+
     /// Internal parsing implementation shared by parse() and parse_tree()
     /// Returns (ParseNode, error_count)
     fn parse_internal(&mut self, input: &str, _return_tree: bool) -> Result<(ParseNode, usize)> {
@@ -811,21 +843,12 @@ impl Parser {
                     // A real implementation would do error recovery
                     error_count += 1;
 
-                    // Return a partial tree or error node
-                    let error_node = if let Some(node) = node_stack.pop() {
-                        node
-                    } else {
-                        // Create minimal error node
-                        ParseNode {
-                            symbol: SymbolId(0),
-                            symbol_id: SymbolId(0),
-                            start_byte: current_position,
-                            end_byte: current_position,
-                            field_name: None,
-                            alias_symbol_id: None,
-                            children: vec![],
-                        }
-                    };
+                    let error_node = Self::partial_error_tree(
+                        &mut node_stack,
+                        lookahead,
+                        current_position,
+                        input_bytes.len(),
+                    );
 
                     return Ok((error_node, error_count));
                 }
@@ -834,21 +857,12 @@ impl Parser {
                     // Handle Recover action - treat as error for now
                     error_count += 1;
 
-                    // Return a partial tree or recovery node
-                    let recovery_node = if let Some(node) = node_stack.pop() {
-                        node
-                    } else {
-                        // Create minimal recovery node
-                        ParseNode {
-                            symbol: SymbolId(0),
-                            symbol_id: SymbolId(0),
-                            start_byte: current_position,
-                            end_byte: current_position,
-                            field_name: None,
-                            alias_symbol_id: None,
-                            children: vec![],
-                        }
-                    };
+                    let recovery_node = Self::partial_error_tree(
+                        &mut node_stack,
+                        lookahead,
+                        current_position,
+                        input_bytes.len(),
+                    );
 
                     return Ok((recovery_node, error_count));
                 }
@@ -866,21 +880,12 @@ impl Parser {
                     // Unknown action type // Expected: V for Recover
                     error_count += 1;
 
-                    // Return a partial tree or error node
-                    let error_node = if let Some(node) = node_stack.pop() {
-                        node
-                    } else {
-                        // Create minimal error node
-                        ParseNode {
-                            symbol: SymbolId(0),
-                            symbol_id: SymbolId(0),
-                            start_byte: current_position,
-                            end_byte: current_position,
-                            field_name: None,
-                            alias_symbol_id: None,
-                            children: vec![],
-                        }
-                    };
+                    let error_node = Self::partial_error_tree(
+                        &mut node_stack,
+                        lookahead,
+                        current_position,
+                        input_bytes.len(),
+                    );
 
                     return Ok((error_node, error_count));
                 }

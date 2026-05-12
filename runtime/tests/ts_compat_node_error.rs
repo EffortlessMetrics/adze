@@ -27,6 +27,17 @@ fn assert_node_error_free(node: Node<'_>) {
     }
 }
 
+fn collect_missing_nodes<'tree>(node: Node<'tree>, missing: &mut Vec<Node<'tree>>) {
+    if node.is_missing() {
+        missing.push(node.clone());
+    }
+
+    for index in 0..node.child_count() {
+        let child = node.child(index).expect("child index should be valid");
+        collect_missing_nodes(child, missing);
+    }
+}
+
 #[test]
 fn generated_tree_reports_error_metadata_when_parser_recovers() {
     let mut parser = Parser::new();
@@ -73,6 +84,40 @@ fn generated_tree_reports_zero_width_error_root_as_missing() {
     assert!(root.is_missing());
     assert_eq!(root.byte_range(), 0..0);
     assert!(root.has_error());
+}
+
+#[test]
+fn generated_tree_reports_recovered_missing_child_for_truncated_expression() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(adze_example::ts_langs::arithmetic())
+        .expect("Failed to set language");
+
+    let source = "1-";
+    let tree = parser
+        .parse(source, None)
+        .expect("parser should return an inspectable truncated-input error tree");
+    let root = tree.root_node();
+
+    assert!(tree.error_count() > 0);
+    assert!(tree.has_errors());
+    assert!(!root.is_error());
+    assert!(!root.is_missing());
+    assert!(root.has_error());
+
+    let mut missing_nodes = Vec::new();
+    collect_missing_nodes(root, &mut missing_nodes);
+    assert!(
+        !missing_nodes.is_empty(),
+        "truncated expression should expose at least one recovered missing node"
+    );
+
+    for missing in missing_nodes {
+        assert!(missing.is_error());
+        assert!(missing.has_error());
+        assert_eq!(missing.start_byte(), missing.end_byte());
+        assert_eq!(missing.start_byte(), source.len());
+    }
 }
 
 #[test]
