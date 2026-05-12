@@ -1,0 +1,183 @@
+id = "adze-0-9-contract-convergence"
+title = "Adze 0.9.0 contract convergence"
+status = "active"
+owner = "droid-factory"
+created = "2026-05-12"
+
+objective = """
+Collapse or classify the workspace surface, recalibrate CI economics, update
+Rust/MSRV and lint policy in the right order, and promote product claims only
+where support-tier proof exists.
+"""
+
+end_state = [
+  "Every workspace package is classified.",
+  "No durable unpublished production crate category exists.",
+  "Owner-module migration targets name an owner and exit condition.",
+  "CI lane whitelist reflects the post-collapse workspace.",
+  "Ordinary PRs expose LEM estimates and over-ceiling PRs require override.",
+  "Rust/MSRV declarations agree after the 1.95 bump.",
+  "Lint policy checks pass without hiding easy refactors behind expect attributes.",
+  "Support tiers map every stable README claim to proof.",
+]
+
+[[work_item]]
+id = "source-of-truth-scaffolding"
+status = "complete"
+proposal = ""
+spec = ""
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+prs = [681]
+commands = [
+  "git diff --check",
+]
+
+[[work_item]]
+id = "contract-convergence-proposal"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = ""
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+prs = [691]
+commands = [
+  "git diff --check",
+]
+
+[[work_item]]
+id = "package-boundary-spec"
+status = "active"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
+adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
+plan = "plans/0.9.0/implementation-plan.md"
+prs = []
+commands = [
+  "git diff --check",
+]
+
+[[work_item]]
+id = "ci-economics-spec"
+status = "active"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "docs/specs/ADZE-SPEC-0002-ci-economics.md"
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+prs = []
+commands = [
+  "git diff --check",
+]
+
+[[work_item]]
+id = "adze-document-adr"
+status = "active"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "ADZE-SPEC-0003-canonical-parse-document"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/implementation-plan.md"
+prs = []
+commands = [
+  "git diff --check",
+]
+
+[[work_item]]
+id = "contract-convergence-plan"
+status = "active"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = ""
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+prs = []
+commands = [
+  "git diff --check",
+  "python -c \"import tomllib; tomllib.load(open('.adze/goals/active.toml', 'rb'))\"",
+]
+
+[[work_item]]
+id = "package-boundary-audit"
+status = "ready"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
+adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
+plan = "plans/0.9.0/implementation-plan.md"
+prs = []
+commands = [
+  "cargo metadata --format-version 1 --no-deps",
+  "cargo run -q -p xtask -- check-package-boundary",
+  "just ci-supported",
+]
+
+[[work_item]]
+id = "ci-economics-verifier"
+status = "ready"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "docs/specs/ADZE-SPEC-0002-ci-economics.md"
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+prs = []
+commands = [
+  "cargo run -q -p xtask -- check-ci-lane-whitelist",
+  "cargo run -q -p xtask -- ci plan",
+  "just ci-supported",
+]
+
+[[work_item]]
+id = "microcrate-collapse"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
+adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
+plan = "plans/0.9.0/implementation-plan.md"
+blocked_by = ["package-boundary-audit"]
+prs = []
+commands = [
+  "cargo metadata --format-version 1 --no-deps",
+  "cargo run -q -p xtask -- check-package-boundary",
+  "just check-msrv",
+  "just ci-supported",
+]
+
+[[work_item]]
+id = "rust-1.95-msrv-bump"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = ""
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+blocked_by = ["microcrate-collapse"]
+prs = []
+commands = [
+  "just check-msrv",
+  "just ci-supported",
+]
+
+[[work_item]]
+id = "clippy-policy-refresh"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = ""
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+blocked_by = ["rust-1.95-msrv-bump"]
+prs = []
+commands = [
+  "cargo run -q -p xtask -- check-lint-policy",
+  "just clippy",
+  "just ci-supported",
+]
+
+[[work_item]]
+id = "product-proof-refresh"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "ADZE-SPEC-0004-product-proof-and-support-tiers"
+adr = ""
+plan = "plans/0.9.0/implementation-plan.md"
+blocked_by = ["clippy-policy-refresh", "ci-economics-verifier"]
+prs = []
+commands = [
+  "just ci-supported",
+  "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
+  "cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture",
+]
