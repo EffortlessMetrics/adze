@@ -32,9 +32,9 @@ and review cycle for each single-document branch.
 | --- | --- | --- |
 | #681 | source-of-truth-scaffolding | README files for proposals, specs, ADRs, 0.9 plans, and active goals |
 | #691 | contract-convergence-proposal | `ADZE-PROP-0001` |
-| pending | economics-docs-consolidation | `ADZE-SPEC-0001`, `ADZE-SPEC-0002`, `ADZE-ADR-0001`, implementation plan, active goal manifest |
+| #692 | economics-docs-consolidation | `ADZE-SPEC-0001`, `ADZE-SPEC-0002`, `ADZE-ADR-0001`, implementation plan, active goal manifest |
 
-Superseded stacked PRs should be closed once the consolidated follow-up is open.
+Superseded stacked PRs #683 through #686 were closed after #692 landed.
 
 ## Work Item: source-of-truth-scaffolding
 
@@ -118,7 +118,7 @@ Revert the proposal PR.
 
 ## Work Item: package-boundary-spec
 
-Status: active
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0001-package-surface-boundary.md
 Linked ADR: ADZE-ADR-0002 no durable unpublished production crates
@@ -156,7 +156,7 @@ Revert the spec PR.
 
 ## Work Item: ci-economics-spec
 
-Status: active
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0002-ci-economics.md
 Linked ADR:
@@ -194,7 +194,7 @@ Revert the spec PR.
 
 ## Work Item: adze-document-adr
 
-Status: active
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ADZE-SPEC-0003 canonical parse document
 Linked ADR: ../../docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md
@@ -231,7 +231,7 @@ Revert the ADR PR.
 
 ## Work Item: contract-convergence-plan
 
-Status: active
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec:
 Linked ADR:

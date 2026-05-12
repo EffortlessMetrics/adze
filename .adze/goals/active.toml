@@ -47,48 +47,48 @@ commands = [
 
 [[work_item]]
 id = "package-boundary-spec"
-status = "active"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
 plan = "plans/0.9.0/implementation-plan.md"
-prs = []
+prs = [692]
 commands = [
   "git diff --check",
 ]
 
 [[work_item]]
 id = "ci-economics-spec"
-status = "active"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "docs/specs/ADZE-SPEC-0002-ci-economics.md"
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
-prs = []
+prs = [692]
 commands = [
   "git diff --check",
 ]
 
 [[work_item]]
 id = "adze-document-adr"
-status = "active"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "ADZE-SPEC-0003-canonical-parse-document"
 adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
 plan = "plans/0.9.0/implementation-plan.md"
-prs = []
+prs = [692]
 commands = [
   "git diff --check",
 ]
 
 [[work_item]]
 id = "contract-convergence-plan"
-status = "active"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = ""
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
-prs = []
+prs = [692]
 commands = [
   "git diff --check",
   "python -c \"import tomllib; tomllib.load(open('.adze/goals/active.toml', 'rb'))\"",
