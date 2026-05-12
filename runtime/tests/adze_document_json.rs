@@ -127,6 +127,80 @@ fn parse_document_json_serializes_diagnostics_and_error_flags() {
     );
 }
 
+#[test]
+#[cfg(feature = "glr")]
+fn parse_document_json_serializes_glr_ambiguity_summary() {
+    use adze_example::ambiguous_expr::grammar;
+
+    let source = "1 + 2 + 3";
+    let document = grammar::parse_document(source)
+        .expect("generated parse_document helper should return an ambiguous AdzeDocument");
+    let json = document.to_json_value();
+
+    assert_eq!(json["schema"].as_str(), Some(ADZE_DOCUMENT_JSON_SCHEMA));
+    assert!(json["diagnostics"].as_array().is_some_and(Vec::is_empty));
+    assert_eq!(
+        json["tree"]["root"]["flags"]["has_error"].as_bool(),
+        Some(false)
+    );
+
+    let ambiguities = json["ambiguities"]
+        .as_array()
+        .expect("document JSON should serialize ambiguity summaries");
+    assert_eq!(
+        ambiguities.len(),
+        1,
+        "ambiguous expression should serialize exactly one summary: {ambiguities:?}"
+    );
+
+    let ambiguity = &ambiguities[0];
+    assert_eq!(ambiguity["span"]["start_byte"].as_u64(), Some(0));
+    assert_eq!(
+        ambiguity["span"]["end_byte"].as_u64(),
+        Some(source.len() as u64)
+    );
+    assert_eq!(
+        ambiguity["selection_reason"].as_str(),
+        Some("StableStructuralTieBreak")
+    );
+
+    let selected = ambiguity["selected"]
+        .as_u64()
+        .expect("ambiguity JSON should identify the selected alternative");
+    let alternatives = ambiguity["alternatives"]
+        .as_array()
+        .expect("ambiguity JSON should serialize retained alternatives");
+    assert!(
+        alternatives.len() >= 2,
+        "ambiguity JSON should retain multiple alternatives: {alternatives:?}"
+    );
+
+    let selected_alternative = alternatives
+        .iter()
+        .find(|alternative| alternative["index"].as_u64() == Some(selected))
+        .expect("selected ambiguity alternative should be present in JSON");
+    assert_eq!(selected_alternative["span"]["start_byte"].as_u64(), Some(0));
+    assert_eq!(
+        selected_alternative["span"]["end_byte"].as_u64(),
+        Some(source.len() as u64)
+    );
+    assert!(selected_alternative["root_symbol"].as_u64().is_some());
+    assert_eq!(selected_alternative["in_error"].as_bool(), Some(false));
+    assert!(
+        selected_alternative["node_count"].as_u64().is_some(),
+        "selected alternative should preserve the runtime node-count summary field: {selected_alternative:?}"
+    );
+
+    let mut snapshot_json = json;
+    snapshot_json["ambiguities"][0]["selected"] = Value::String("<selected>".to_string());
+
+    insta::assert_snapshot!(
+        "adze_document_json_ambiguity",
+        serde_json::to_string_pretty(&snapshot_json)
+            .expect("ambiguous document JSON should render as pretty JSON")
+    );
+}
+
 fn find_json_node<'a>(
     node: &'a Value,
     kind: &str,
