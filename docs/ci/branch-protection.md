@@ -1,56 +1,96 @@
 # Branch protection
 
-## Today
+## Current required context
 
-The required check today is the existing `ci-supported` job in `ci.yml`
-(see `docs/status/KNOWN_RED.md`). Branch protection has not been changed
-by the rollout.
+Branch protection is managed through `.github/settings.yml`. The current
+required status check is:
 
-## Future
+```text
+CI / ci-supported
+```
 
-The rollout introduces a new aggregated check called **PR Gate Success**
-(see `.github/workflows/pr-gate.yml`). It depends on:
+That context is still the active merge rail until the dedicated branch
+protection PR lands. Do not combine that settings change with large workflow
+pruning.
 
-- `PR Plan` (advisory)
-- `Supported Rust Gate` (= `just ci-supported`)
-- `Docs Gate` (fmt only, runs only on docs-only PRs)
+## Target required context
 
-`PR Gate Success` succeeds when exactly one of `Supported Rust Gate` /
-`Docs Gate` succeeded and the other was skipped. PR Plan must not fail.
+The target required status check is the stable aggregate:
 
-This is **additive only** in the rollout's foundation phase. Branch
-protection is *not* updated yet. PR 17 in `docs/ci/adze-rollout-plan.md`
-is the dedicated change that flips the required check to
-`PR Gate Success` once the workflow has been stable for a sufficient
-window of PRs.
+```text
+PR Gate / PR Gate Success
+```
 
-## PR 17 — promotion criteria
+`PR Gate Success` is defined in `.github/workflows/pr-gate.yml` and aggregates:
 
-Branch protection promotion to `PR Gate Success` is gated on:
+- `PR Plan` for changed surfaces, docs-only classification, selected lanes, and
+  static LEM band;
+- `Supported Rust Gate` for ordinary Rust PRs (`just ci-supported`);
+- `Docs Gate` for docs-only PRs;
+- actuals receipt emission for later budget calibration.
+
+A raw matrix leaf must never be made the required branch-protection context.
+The required context should remain stable even when the underlying proof lanes
+are refactored.
+
+## Promotion PR
+
+The promotion is a standalone PR titled:
+
+```text
+ci: require PR Gate Success as the stable merge gate
+```
+
+It may change only the branch-protection settings and directly related docs /
+ledger metadata. It must not prune legacy workflows in the same PR.
+
+Expected settings delta:
+
+```yaml
+required_status_checks:
+  strict: true
+  contexts:
+    - "PR Gate / PR Gate Success"
+```
+
+## Promotion criteria
+
+Open the promotion PR only after operators can verify that `PR Gate Success` is
+healthy on recent PRs.
 
 | Criterion | Target |
 | --- | --- |
-| `PR Gate Success` job has run on every PR for | ≥ 14 calendar days |
-| `PR Gate Success` flake rate | < 1% |
-| Number of distinct PRs that exercised both `Supported Rust Gate` and `Docs Gate` paths | ≥ 5 each |
-| `ci-actuals.json` artifacts uploaded | ≥ 30 PRs |
-| Manual review of band/LEM accuracy | passes |
+| `PR Gate Success` job has run on every PR for | several recent PRs / operator-approved stability window |
+| `PR Gate Success` flake rate | low enough for the branch-protection owner to accept |
+| Both supported Rust and docs-only paths have been exercised | yes |
+| `ci-actuals.json` artifacts are emitted | yes |
+| Manual review of docs-only classification and LEM band accuracy | passes |
 
-When all five gates clear, PR 17 is opened. PR 17 itself only:
+The earlier long-window criteria remain useful for conservative rollout, but
+the branch-protection owner may choose a shorter window if PR Gate has already
+been stable in practice.
 
-1. updates `.github/settings.yml` (and any equivalent platform config) to
-   require `PR Gate Success` and stop requiring the legacy `ci-supported`
-   job, **and**
-2. removes the redundant `ci-supported` job from `ci.yml` if it is no
-   longer used by anything else (it is also reachable via the new
-   `pr-gate.yml`).
+## Follow-up after promotion
+
+After the required context has changed and remained green, open a separate PR:
+
+```text
+ci: stop running legacy ci.yml on ordinary PRs
+```
+
+That follow-up removes or guards the ordinary `pull_request` trigger from the
+legacy `.github/workflows/ci.yml` umbrella. It must not delete deep jobs; it only
+stops charging duplicate proof to ordinary PRs.
 
 ## Rollback
 
-Removing `pr-gate.yml` reverts to the existing required check. No state
-needs migrating because PR Gate Success is a new, separate workflow.
+If the aggregate context causes merge problems, restore the previous required
+context in `.github/settings.yml`:
 
-If PR 17 has landed and the new required check is causing problems, the
-rollback is to restore the previous required check name in
-`.github/settings.yml` and re-add the legacy `ci-supported` job
-configuration.
+```text
+CI / ci-supported
+```
+
+If legacy `ci.yml` PR execution has already been removed, restore the
+`pull_request` trigger in the separate workflow-pruning rollback. No data
+migration is needed because PR Gate is an additive workflow.

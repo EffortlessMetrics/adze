@@ -1,6 +1,6 @@
 # CI Lane Map
 
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-12
 **Purpose:** Classify every CI check so contributors can immediately tell
 whether a red mark means "must fix before merge" or "inspect at your leisure."
 
@@ -13,7 +13,23 @@ whether a red mark means "must fix before merge" or "inspect at your leisure."
 | **Push / scheduled** | Runs on `main` pushes or schedules. Not PR-blocking. | Inspect trend; fix in a follow-up. |
 | **Advisory** | Uses nightly / unstable toolchains, `continue-on-error`, or non-blocking labels. May be red due to toolchain drift. | Inspect if curious. Not actionable for most PRs. |
 
-Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-gate.yml`).
+Branch protection currently requires exactly one check: **`CI / ci-supported`**. The target required context is **`PR Gate / PR Gate Success`** after the dedicated branch-protection promotion PR lands. See `docs/ci/branch-protection.md`.
+
+---
+
+## CI economics implementation rails
+
+The lane map follows the rollout contract in `docs/ci/adze-rollout-plan.md`:
+
+1. ordinary PRs get one cheap required proof;
+2. expensive verification is advisory, routed, scheduled, manual, release-only, or label-triggered;
+3. macOS and Windows must not be ordinary PR defaults;
+4. every PR/push workflow job must have a lane entry before whitelist enforcement becomes blocking;
+5. `PR Gate / PR Gate Success` is the stable target branch-protection context.
+
+Ordinary PR target budgets are `<=25 LEM` preferred and `<=35 LEM` ceiling.
+High-cost PRs require routing labels such as `full-ci`, `ci:perf`,
+`platform-matrix`, or `ci-budget-override`.
 
 ---
 
@@ -27,7 +43,7 @@ Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-g
 | `pr-gate.yml` | `PR Gate Success` | PR + merge_group | Aggregate: plan + supported/docs gate must pass |
 | `pr-gate.yml` | `PR Plan` | PR | Computes docs_only, estimated LEM, budget band |
 
-Required branch protection context: `CI / ci-supported` (maps to the `ci-supported` job in `ci.yml`, also exercised via `pr-gate.yml`).
+Current required branch protection context: `CI / ci-supported`. Target context after promotion: `PR Gate / PR Gate Success`. Do not require raw matrix leaves.
 
 ### PR-only signal (non-blocking)
 

@@ -15,6 +15,7 @@ The label vocabulary used by PR Plan to opt in to deeper verification.
 | Label | Adds |
 | --- | --- |
 | `ci:perf` | full benchmark comparison |
+| `benchmarks` | full benchmark suite / benchmark comparison |
 | `ci:golden` | golden tests for grammars |
 | `ci:microcrate` | full microcrate CI matrix |
 | `ci:concurrency` | concurrency microcrate group |
@@ -22,6 +23,7 @@ The label vocabulary used by PR Plan to opt in to deeper verification.
 | `fuzz` | fuzz runtime |
 | `coverage` | coverage instrumentation |
 | `wasm` | wasm-check |
+| `api` | public API and SemVer checks |
 
 ## Release / API
 
@@ -41,7 +43,11 @@ The label vocabulary used by PR Plan to opt in to deeper verification.
 
 ## Notes
 
-- Labels are advisory until the routing PRs (10–14) land. Until then they
-  appear in the PR Plan summary but do not change which lanes run.
-- Labels never *raise* the hard ceiling. They explain a high LEM number; they
-  do not silence safety checks.
+- `.github/settings.yml` must define every routing label before workflows depend
+  on it. The current implementation queue adds missing labels in a dedicated
+  labels PR.
+- Labels are the operator interface for expensive verification. They should make
+  a lane eligible; they should not silently make raw matrix leaves required.
+- Labels never *raise* the hard ceiling. They explain a high LEM number; only
+  `full-ci` or `ci-budget-override` may allow over-ceiling work once static
+  budget enforcement lands.

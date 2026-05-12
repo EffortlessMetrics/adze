@@ -19,7 +19,7 @@ schema_version = "1.0"
 policy = "ci-lane-whitelist"
 owner = "release/ci"
 status = "advisory"
-updated = "2026-05-08"
+updated = "2026-05-12"
 
 [budget]
 # All values in LEM (Linux-equivalent minutes).
@@ -36,6 +36,42 @@ windows_latest = 2.0
 macos_latest = 10.0
 docker_build = 6.0
 external_ai_review = 4.0
+
+[rollout]
+ordinary_pr_preferred_lem = 25
+ordinary_pr_ceiling_lem = 35
+required_context_current = "CI / ci-supported"
+required_context_target = "PR Gate / PR Gate Success"
+principle = "Every PR gets one cheap required proof; everything else is advisory, routed, scheduled, manual, release-only, or label-triggered."
+sequence = [
+  "stabilize docs/control plane",
+  "make PR Gate authoritative",
+  "remove duplicate PR execution",
+  "route expensive lanes harder",
+  "enforce lane metadata",
+  "add labels / branch-protection rails",
+  "collect actuals",
+  "ratchet budgets from measured data",
+]
+needs_hardening = [
+  "routing-labels",
+  "pr-gate-required-context",
+  "workflow-change-whitelist-blocking",
+  "static-budget-enforcement",
+]
+needs_pruning = [
+  "legacy-ci-pr-trigger",
+  "test-policy-full-default-pr",
+  "pure-rust-default-pr",
+  "microcrate-docs-wasm-strict-default-pr",
+  "performance-comparison-default-pr",
+  "ts-bridge-duplicate-default-pr",
+  "api-semver-broad-default-pr",
+]
+deferred_until_actuals = [
+  "learned-estimates",
+  "measured-budget-ratchet",
+]
 
 # ---------------------------------------------------------------------------
 # Tier 0/1 — frontdoor lanes

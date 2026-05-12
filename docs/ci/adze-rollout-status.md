@@ -1,6 +1,6 @@
 # CI Economics Rollout Status
 
-Last review: 2026-05-08.
+Last review: 2026-05-12.
 
 This file is a status snapshot, not a live source of truth. Before using it for
 execution, refresh with `gh pr list` and the current workflow state.
@@ -77,6 +77,10 @@ execution, refresh with `gh pr list` and the current workflow state.
 
 ## Effective default PR lane cost (current)
 
+This snapshot is intentionally conservative. The authoritative queue for
+reducing the default shape is `docs/ci/adze-rollout-plan.md`; this section shows
+why the next wave focuses on pruning duplicate/expensive ordinary PR lanes.
+
 With all routing already in place, the effective default PR cost estimate:
 
 | Lane | Effective default PR cost |
@@ -95,8 +99,20 @@ With all routing already in place, the effective default PR cost estimate:
 | Clippy quarantine report | ~4 LEM |
 | **Estimated total (typical runtime PR)** | **~65–80 LEM** |
 
-Target is ≤35 LEM for ordinary PRs. The gap comes from `pure-rust-ci` (18 LEM)
-and `microcrate-ci` (variable) running broadly on every PR. Active exceptions in
+Target is ≤25 LEM preferred and ≤35 LEM ceiling for ordinary PRs. The gap comes
+from duplicate supported proof, full test-policy behavior, `pure-rust-ci`,
+variable `microcrate-ci`, performance comparison, and ts-bridge/API checks still
+being too broad for ordinary PR defaults. Active exceptions in
 `policy/ci-whitelist-exceptions.toml` track these while tightening continues.
+
+Next wave, in order:
+
+1. add missing routing labels to repo settings;
+2. promote `PR Gate / PR Gate Success` as the stable required context;
+3. remove ordinary PR execution from legacy `ci.yml`;
+4. split test-policy smoke/full;
+5. route pure-rust, microcrate, performance, ts-bridge, and API checks harder;
+6. enforce lane metadata only when workflow/policy files change;
+7. collect actuals before learned estimates or budget ratchets.
 
 See `docs/ci/lem-budgeting.md` for budget bands and override labels.
