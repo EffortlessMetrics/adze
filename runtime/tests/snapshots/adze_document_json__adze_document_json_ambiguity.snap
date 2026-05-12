@@ -1,0 +1,474 @@
+---
+source: runtime/tests/adze_document_json.rs
+expression: "serde_json::to_string_pretty(&snapshot_json).expect(\"ambiguous document JSON should render as pretty JSON\")"
+---
+{
+  "schema": "adze.document.v1",
+  "source": {
+    "byte_len": 9
+  },
+  "language": {
+    "name": "ambiguous_expr"
+  },
+  "metadata": {
+    "error_count": 0
+  },
+  "diagnostics": [],
+  "ambiguities": [
+    {
+      "span": {
+        "start_byte": 0,
+        "end_byte": 9
+      },
+      "selected": "<selected>",
+      "selection_reason": "StableStructuralTieBreak",
+      "alternatives": [
+        {
+          "index": 0,
+          "root_symbol": 4,
+          "span": {
+            "start_byte": 0,
+            "end_byte": 9
+          },
+          "dynamic_precedence": 0,
+          "in_error": false,
+          "cost": 0,
+          "node_count": 0
+        },
+        {
+          "index": 1,
+          "root_symbol": 4,
+          "span": {
+            "start_byte": 0,
+            "end_byte": 9
+          },
+          "dynamic_precedence": 0,
+          "in_error": false,
+          "cost": 0,
+          "node_count": 0
+        }
+      ]
+    }
+  ],
+  "tree": {
+    "root": {
+      "id": 0,
+      "kind": "source_file",
+      "kind_id": 1,
+      "grammar_kind": "source_file",
+      "grammar_id": 1,
+      "alias_symbol_id": null,
+      "has_alias": false,
+      "range": {
+        "start_byte": 0,
+        "end_byte": 9,
+        "start_point": {
+          "row": 0,
+          "column": 0
+        },
+        "end_point": {
+          "row": 0,
+          "column": 9
+        }
+      },
+      "flags": {
+        "named": true,
+        "visible": true,
+        "extra": false,
+        "terminal": false,
+        "supertype": false,
+        "error": false,
+        "missing": false,
+        "has_error": false
+      },
+      "text": null,
+      "children": [
+        {
+          "child_index": 0,
+          "field_name": null,
+          "field_id": null,
+          "node": {
+            "id": 1,
+            "kind": "Expr",
+            "kind_id": 3,
+            "grammar_kind": "Expr",
+            "grammar_id": 3,
+            "alias_symbol_id": null,
+            "has_alias": false,
+            "range": {
+              "start_byte": 0,
+              "end_byte": 9,
+              "start_point": {
+                "row": 0,
+                "column": 0
+              },
+              "end_point": {
+                "row": 0,
+                "column": 9
+              }
+            },
+            "flags": {
+              "named": true,
+              "visible": true,
+              "extra": false,
+              "terminal": false,
+              "supertype": false,
+              "error": false,
+              "missing": false,
+              "has_error": false
+            },
+            "text": null,
+            "children": [
+              {
+                "child_index": 0,
+                "field_name": null,
+                "field_id": null,
+                "node": {
+                  "id": 2,
+                  "kind": "Expr",
+                  "kind_id": 3,
+                  "grammar_kind": "Expr",
+                  "grammar_id": 3,
+                  "alias_symbol_id": null,
+                  "has_alias": false,
+                  "range": {
+                    "start_byte": 0,
+                    "end_byte": 1,
+                    "start_point": {
+                      "row": 0,
+                      "column": 0
+                    },
+                    "end_point": {
+                      "row": 0,
+                      "column": 1
+                    }
+                  },
+                  "flags": {
+                    "named": true,
+                    "visible": true,
+                    "extra": false,
+                    "terminal": false,
+                    "supertype": false,
+                    "error": false,
+                    "missing": false,
+                    "has_error": false
+                  },
+                  "text": null,
+                  "children": [
+                    {
+                      "child_index": 0,
+                      "field_name": null,
+                      "field_id": null,
+                      "node": {
+                        "id": 3,
+                        "kind": "/\\d+/",
+                        "kind_id": 7,
+                        "grammar_kind": "/\\d+/",
+                        "grammar_id": 7,
+                        "alias_symbol_id": null,
+                        "has_alias": false,
+                        "range": {
+                          "start_byte": 0,
+                          "end_byte": 1,
+                          "start_point": {
+                            "row": 0,
+                            "column": 0
+                          },
+                          "end_point": {
+                            "row": 0,
+                            "column": 1
+                          }
+                        },
+                        "flags": {
+                          "named": true,
+                          "visible": true,
+                          "extra": false,
+                          "terminal": true,
+                          "supertype": false,
+                          "error": false,
+                          "missing": false,
+                          "has_error": false
+                        },
+                        "text": "1",
+                        "children": []
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "child_index": 1,
+                "field_name": null,
+                "field_id": null,
+                "node": {
+                  "id": 4,
+                  "kind": "_/[-+*/]/",
+                  "kind_id": 6,
+                  "grammar_kind": "_/[-+*/]/",
+                  "grammar_id": 6,
+                  "alias_symbol_id": null,
+                  "has_alias": false,
+                  "range": {
+                    "start_byte": 2,
+                    "end_byte": 3,
+                    "start_point": {
+                      "row": 0,
+                      "column": 2
+                    },
+                    "end_point": {
+                      "row": 0,
+                      "column": 3
+                    }
+                  },
+                  "flags": {
+                    "named": false,
+                    "visible": false,
+                    "extra": false,
+                    "terminal": true,
+                    "supertype": false,
+                    "error": false,
+                    "missing": false,
+                    "has_error": false
+                  },
+                  "text": "+",
+                  "children": []
+                }
+              },
+              {
+                "child_index": 2,
+                "field_name": null,
+                "field_id": null,
+                "node": {
+                  "id": 5,
+                  "kind": "Expr",
+                  "kind_id": 3,
+                  "grammar_kind": "Expr",
+                  "grammar_id": 3,
+                  "alias_symbol_id": null,
+                  "has_alias": false,
+                  "range": {
+                    "start_byte": 4,
+                    "end_byte": 9,
+                    "start_point": {
+                      "row": 0,
+                      "column": 4
+                    },
+                    "end_point": {
+                      "row": 0,
+                      "column": 9
+                    }
+                  },
+                  "flags": {
+                    "named": true,
+                    "visible": true,
+                    "extra": false,
+                    "terminal": false,
+                    "supertype": false,
+                    "error": false,
+                    "missing": false,
+                    "has_error": false
+                  },
+                  "text": null,
+                  "children": [
+                    {
+                      "child_index": 0,
+                      "field_name": null,
+                      "field_id": null,
+                      "node": {
+                        "id": 6,
+                        "kind": "Expr",
+                        "kind_id": 3,
+                        "grammar_kind": "Expr",
+                        "grammar_id": 3,
+                        "alias_symbol_id": null,
+                        "has_alias": false,
+                        "range": {
+                          "start_byte": 4,
+                          "end_byte": 5,
+                          "start_point": {
+                            "row": 0,
+                            "column": 4
+                          },
+                          "end_point": {
+                            "row": 0,
+                            "column": 5
+                          }
+                        },
+                        "flags": {
+                          "named": true,
+                          "visible": true,
+                          "extra": false,
+                          "terminal": false,
+                          "supertype": false,
+                          "error": false,
+                          "missing": false,
+                          "has_error": false
+                        },
+                        "text": null,
+                        "children": [
+                          {
+                            "child_index": 0,
+                            "field_name": null,
+                            "field_id": null,
+                            "node": {
+                              "id": 7,
+                              "kind": "/\\d+/",
+                              "kind_id": 7,
+                              "grammar_kind": "/\\d+/",
+                              "grammar_id": 7,
+                              "alias_symbol_id": null,
+                              "has_alias": false,
+                              "range": {
+                                "start_byte": 4,
+                                "end_byte": 5,
+                                "start_point": {
+                                  "row": 0,
+                                  "column": 4
+                                },
+                                "end_point": {
+                                  "row": 0,
+                                  "column": 5
+                                }
+                              },
+                              "flags": {
+                                "named": true,
+                                "visible": true,
+                                "extra": false,
+                                "terminal": true,
+                                "supertype": false,
+                                "error": false,
+                                "missing": false,
+                                "has_error": false
+                              },
+                              "text": "2",
+                              "children": []
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "child_index": 1,
+                      "field_name": null,
+                      "field_id": null,
+                      "node": {
+                        "id": 8,
+                        "kind": "_/[-+*/]/",
+                        "kind_id": 6,
+                        "grammar_kind": "_/[-+*/]/",
+                        "grammar_id": 6,
+                        "alias_symbol_id": null,
+                        "has_alias": false,
+                        "range": {
+                          "start_byte": 6,
+                          "end_byte": 7,
+                          "start_point": {
+                            "row": 0,
+                            "column": 6
+                          },
+                          "end_point": {
+                            "row": 0,
+                            "column": 7
+                          }
+                        },
+                        "flags": {
+                          "named": false,
+                          "visible": false,
+                          "extra": false,
+                          "terminal": true,
+                          "supertype": false,
+                          "error": false,
+                          "missing": false,
+                          "has_error": false
+                        },
+                        "text": "+",
+                        "children": []
+                      }
+                    },
+                    {
+                      "child_index": 2,
+                      "field_name": null,
+                      "field_id": null,
+                      "node": {
+                        "id": 9,
+                        "kind": "Expr",
+                        "kind_id": 3,
+                        "grammar_kind": "Expr",
+                        "grammar_id": 3,
+                        "alias_symbol_id": null,
+                        "has_alias": false,
+                        "range": {
+                          "start_byte": 8,
+                          "end_byte": 9,
+                          "start_point": {
+                            "row": 0,
+                            "column": 8
+                          },
+                          "end_point": {
+                            "row": 0,
+                            "column": 9
+                          }
+                        },
+                        "flags": {
+                          "named": true,
+                          "visible": true,
+                          "extra": false,
+                          "terminal": false,
+                          "supertype": false,
+                          "error": false,
+                          "missing": false,
+                          "has_error": false
+                        },
+                        "text": null,
+                        "children": [
+                          {
+                            "child_index": 0,
+                            "field_name": null,
+                            "field_id": null,
+                            "node": {
+                              "id": 10,
+                              "kind": "/\\d+/",
+                              "kind_id": 7,
+                              "grammar_kind": "/\\d+/",
+                              "grammar_id": 7,
+                              "alias_symbol_id": null,
+                              "has_alias": false,
+                              "range": {
+                                "start_byte": 8,
+                                "end_byte": 9,
+                                "start_point": {
+                                  "row": 0,
+                                  "column": 8
+                                },
+                                "end_point": {
+                                  "row": 0,
+                                  "column": 9
+                                }
+                              },
+                              "flags": {
+                                "named": true,
+                                "visible": true,
+                                "extra": false,
+                                "terminal": true,
+                                "supertype": false,
+                                "error": false,
+                                "missing": false,
+                                "has_error": false
+                              },
+                              "text": "3",
+                              "children": []
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
