@@ -310,6 +310,12 @@ Planned schema families include:
 - `adze.typed-cst.v1`
 - `adze.forest.v1`
 
+The current alpha implements only `AdzeDocument::to_json_value()` under the
+`serialization` feature. It emits an experimental `adze.document.v1` envelope
+for the selected generic CST, source byte length, language name, metadata,
+structured diagnostics, and ambiguity summaries. This is a document canary for
+future output work, not a stable CLI/WASM `adze-json` contract.
+
 No JSON schema should be treated as stable until it has a fixture, snapshot, and
 support-tier entry.
 
@@ -356,7 +362,10 @@ extraction root. The same selected-tree extraction path is proven for generated
 true-GLR documents, so conflicted generated grammars can project a typed AST
 from `parse_document()` without creating a second parse truth. This is still an
 experimental document proof, not a stable native diagnostics or per-AST-node
-provenance schema.
+provenance schema. The current alpha also exposes a schema-tagged
+`AdzeDocument::to_json_value()` projection for the same selected generic CST,
+diagnostic, metadata, and ambiguity facts; it remains experimental and is not a
+CLI/WASM output contract.
 
 ## Proof Requirements
 
@@ -397,4 +406,5 @@ API direction so implementation PRs can stay small and reviewable:
 10. typed AST extraction from generated pure-Rust documents,
 11. document-level typed AST extraction provenance,
 12. GLR ambiguity summaries,
-13. schema-versioned CLI/WASM outputs.
+13. schema-versioned `AdzeDocument::to_json_value()` alpha,
+14. schema-versioned CLI/WASM outputs.
