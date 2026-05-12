@@ -178,25 +178,7 @@ impl AdzeDocument {
     where
         T: crate::Extract<T>,
     {
-        if !self.diagnostics.is_empty() {
-            return Err(self
-                .diagnostics
-                .iter()
-                .map(ParseDiagnostic::to_parse_error)
-                .collect());
-        }
-
-        let Some(language) = self.pure_language else {
-            return Err(vec![crate::errors::ParseError {
-                reason: crate::errors::ParseErrorReason::UnexpectedToken(
-                    "typed AST extraction requires generated pure-Rust language metadata"
-                        .to_string(),
-                ),
-                start: 0,
-                end: 0,
-                expected: Vec::new(),
-            }]);
-        };
+        let language = self.typed_ast_language()?;
 
         let parsed_root = document_node_to_parsed_node(&self.root, language, self.source_bytes());
         let extraction_target = self.typed_ast_extraction_target();
@@ -211,6 +193,43 @@ impl AdzeDocument {
         Ok(TypedAst {
             value,
             provenance: extraction_target.provenance,
+        })
+    }
+
+    /// Extract a typed AST from a specific document node.
+    ///
+    /// This supports typed CST handles as cheap syntax views: generated wrappers
+    /// validate their node kind, then ask the backing document to extract the
+    /// semantic value from that exact node. The returned provenance records the
+    /// supplied node id. Documents with parser diagnostics return those
+    /// diagnostics as parse errors instead of extracting from recovered syntax.
+    pub fn ast_from_node<T>(
+        &self,
+        node_id: NodeId,
+    ) -> Result<TypedAst<T>, Vec<crate::errors::ParseError>>
+    where
+        T: crate::Extract<T>,
+    {
+        let language = self.typed_ast_language()?;
+        let Some(node) = self.node_by_id(node_id) else {
+            return Err(vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(format!(
+                    "typed AST extraction node {} does not exist in document",
+                    node_id.as_usize()
+                )),
+                start: 0,
+                end: 0,
+                expected: Vec::new(),
+            }]);
+        };
+
+        let parsed_node = document_node_to_parsed_node(node, language, self.source_bytes());
+        let value =
+            <T as crate::Extract<_>>::extract(Some(&parsed_node), self.source_bytes(), 0, None);
+
+        Ok(TypedAst {
+            value,
+            provenance: Provenance::Node(node_id),
         })
     }
 
@@ -270,6 +289,30 @@ impl AdzeDocument {
             child_index: None,
             provenance: Provenance::Node(root.node_id()),
         }
+    }
+
+    fn typed_ast_language(
+        &self,
+    ) -> Result<&'static crate::pure_parser::TSLanguage, Vec<crate::errors::ParseError>> {
+        if !self.diagnostics.is_empty() {
+            return Err(self
+                .diagnostics
+                .iter()
+                .map(ParseDiagnostic::to_parse_error)
+                .collect());
+        }
+
+        self.pure_language.ok_or_else(|| {
+            vec![crate::errors::ParseError {
+                reason: crate::errors::ParseErrorReason::UnexpectedToken(
+                    "typed AST extraction requires generated pure-Rust language metadata"
+                        .to_string(),
+                ),
+                start: 0,
+                end: 0,
+                expected: Vec::new(),
+            }]
+        })
     }
 }
 
@@ -1281,6 +1324,19 @@ pub trait SyntaxNode<'doc>: Copy {
     /// Return whether this handle resolves to syntax that carries error state.
     fn has_error(&self) -> bool {
         self.node().map(|node| node.has_error()).unwrap_or(false)
+    }
+
+    /// Extract a typed AST from this typed CST handle's node.
+    ///
+    /// This is an alpha bridge between typed CST and typed AST views. The
+    /// wrapper remains a cheap node handle; extraction still happens through
+    /// the backing [`AdzeDocument`] and records this handle's node id as
+    /// document-level provenance.
+    fn ast<T>(&self) -> Result<TypedAst<T>, Vec<crate::errors::ParseError>>
+    where
+        T: crate::Extract<T>,
+    {
+        self.document().ast_from_node(self.node_id())
     }
 }
 

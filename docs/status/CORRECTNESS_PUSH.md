@@ -98,8 +98,10 @@ Keep implementation slices small:
    and generated typed CST `left`/`right` accessors. A follow-on generated
    precedence enum canary now proves explicit `left`/`operator`/`right` fields
    survive precedence operator inlining into native edge metadata and generated
-   typed CST accessors without expanding into visitors, rewriters, typed
-   queries, or JSON output.
+   typed CST accessors. The same runtime canary now proves a validated typed
+   CST wrapper can extract a semantic typed AST from its own document node while
+   preserving document-level node provenance, without expanding into visitors,
+   rewriters, typed queries, or JSON output.
 3. Alias-visible compatibility canaries only after native node identity is
    populated from parser alias sequence data, not merely the current raw-symbol
    identity slots.

@@ -386,6 +386,29 @@ fn generated_typed_cst_field_accessors_survive_precedence_enum_variants() {
     assert_eq!(right.text(), Some("2*3"));
 }
 
+#[test]
+fn generated_typed_cst_wrapper_extracts_typed_ast_from_its_node() {
+    use adze::document::Provenance;
+    use adze_example::fielded_precedence_typed_cst_contract::grammar::{self, Expr};
+
+    let source = "1+2*3";
+    let expected = grammar::parse(source).expect("fielded precedence grammar should parse");
+    let document = grammar::parse_document(source)
+        .expect("generated parse_document helper should return an AdzeDocument");
+    let root = document.tree().root();
+    let add_node =
+        find_node(root, "Expr_Add", source).expect("generic CST should contain the add node");
+    let add = grammar::syntax::ExprAdd::cast(&document, add_node.node_id())
+        .expect("generated Expr_Add wrapper should cast the matching generic node");
+
+    let typed_ast = add
+        .ast::<Expr>()
+        .expect("typed CST wrapper should extract typed AST from its own node");
+
+    assert_eq!(typed_ast.value(), &expected);
+    assert_eq!(typed_ast.provenance(), &Provenance::Node(add.node_id()));
+}
+
 fn assert_same_node<'doc>(wrapper: impl SyntaxNode<'doc>, node: adze::document::AdzeNode<'doc>) {
     assert_eq!(wrapper.node_id(), node.node_id());
     assert_eq!(wrapper.kind_name(), node.kind_name());
