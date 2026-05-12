@@ -81,3 +81,66 @@ labels:
   - name: good first issue
     color: "7057ff"
     description: Good for newcomers
+  - name: full-ci
+    color: "5319e7"
+    description: Run broad deep CI lanes; high-cost opt-in
+  - name: ci-budget-ack
+    color: "fbca04"
+    description: Acknowledge elevated or high CI LEM estimate
+  - name: ci-budget-override
+    color: "b60205"
+    description: Explicitly allow over-ceiling CI LEM estimate
+  - name: platform-matrix
+    color: "1d76db"
+    description: Run full OS and toolchain platform matrix
+  - name: pure-rust
+    color: "1d76db"
+    description: Run pure-Rust platform proof lanes
+  - name: coverage
+    color: "0e8a16"
+    description: Run coverage instrumentation and upload coverage artifacts
+  - name: ci:golden
+    color: "f9d0c4"
+    description: Run grammar golden and parity lanes
+  - name: ci:perf
+    color: "c5def5"
+    description: Run performance comparison lanes
+  - name: ci:microcrate
+    color: "bfd4f2"
+    description: Run full microcrate governance CI
+  - name: ci:concurrency
+    color: "bfd4f2"
+    description: Run concurrency-focused CI lanes
+  - name: wasm
+    color: "1d76db"
+    description: Run WASM proof lanes
+  - name: fuzz
+    color: "d93f0b"
+    description: Run fuzzing lanes
+  - name: benchmarks
+    color: "c5def5"
+    description: Run benchmark suites
+  - name: api
+    color: "0075ca"
+    description: Run public API and SemVer checks
+  - name: release-check
+    color: "006b75"
+    description: Run release readiness checks
+  - name: security-audit
+    color: "e11d21"
+    description: Run dependency and supply-chain security audit lanes
+  - name: mutation
+    color: "d93f0b"
+    description: Run mutation testing lanes
+  - name: property-tests
+    color: "0e8a16"
+    description: Run property-test lanes
+  - name: ts-bridge
+    color: "1d76db"
+    description: Run ts-bridge parity and deep checks
+  - name: skip-golden
+    color: "ededed"
+    description: Skip optional golden lanes when no explicit golden opt-in is present
+  - name: skip-perf
+    color: "ededed"
+    description: Skip optional performance lanes when no explicit performance opt-in is present

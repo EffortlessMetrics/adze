@@ -1,47 +1,51 @@
 # CI labels
 
-The label vocabulary used by PR Plan to opt in to deeper verification.
+Labels are the operator interface for expensive verification. They let a PR opt
+into deep proof without making that proof an ordinary default for everyone.
 
-## Cost labels
+## Budget labels
 
 | Label | Meaning |
 | --- | --- |
-| `ci-budget-ack` | acknowledge elevated/high LEM (35–125) |
-| `ci-budget-override` | allow >125 LEM |
-| `full-ci` | run all heavy lanes; implies budget override |
+| `ci-budget-ack` | Acknowledge elevated/high LEM (36-125) without changing the hard ceiling. |
+| `ci-budget-override` | Allow an over-ceiling PR (>125 LEM) when the cost is intentional. |
+| `full-ci` | Run broad deep verification; implies the operator accepts high CI spend. |
 
-## Risk-pack opt-in
-
-| Label | Adds |
-| --- | --- |
-| `ci:perf` | full benchmark comparison |
-| `ci:golden` | golden tests for grammars |
-| `ci:microcrate` | full microcrate CI matrix |
-| `ci:concurrency` | concurrency microcrate group |
-| `platform-matrix` | full OS/toolchain matrix |
-| `fuzz` | fuzz runtime |
-| `coverage` | coverage instrumentation |
-| `wasm` | wasm-check |
-
-## Release / API
+## Routing labels
 
 | Label | Adds |
 | --- | --- |
-| `release-check` | release-gate verification |
-| `security-audit` | dependency / RUSTSEC audit |
-| `mutation` | mutation testing on parser/glr core |
-| `property-tests` | property-test runs on parser |
+| `platform-matrix` | Full OS/toolchain proof. Windows and macOS remain opt-in, scheduled, manual, or release-only. |
+| `pure-rust` | Pure-Rust/platform proof without requesting every unrelated deep lane. |
+| `coverage` | Coverage instrumentation and Codecov artifacts. |
+| `ci:golden` | Grammar golden/parity validation. |
+| `ci:perf` | Performance comparison lanes. |
+| `benchmarks` | Full benchmark suite where supported. |
+| `ci:microcrate` | Full microcrate/governance matrix. |
+| `ci:concurrency` | Concurrency/rayon/bootstrap risk pack. |
+| `wasm` | WASM checks and browser/playground surfaces. |
+| `fuzz` | Runtime fuzzing lanes. |
+| `ts-bridge` | ts-bridge parity/deep checks. |
+| `api` | Public API and SemVer checks. |
+| `release-check` | Release readiness lanes. |
+| `security-audit` | Dependency/RUSTSEC/supply-chain audit lanes. |
+| `mutation` | Mutation testing on parser/GLR surfaces. |
+| `property-tests` | Property-test runs on parser/GLR surfaces. |
 
 ## Skip labels
 
 | Label | Effect |
 | --- | --- |
-| `skip-golden` | skip golden tests (only honored when no `ci:golden`) |
-| `skip-perf` | skip perf compare (only honored when no `ci:perf`) |
+| `skip-golden` | Skip golden tests when no explicit `ci:golden`/`full-ci` opt-in is present. |
+| `skip-perf` | Skip performance comparison when no explicit `ci:perf`/`benchmarks`/`full-ci` opt-in is present. |
 
-## Notes
+## Rules
 
-- Labels are advisory until the routing PRs (10–14) land. Until then they
-  appear in the PR Plan summary but do not change which lanes run.
-- Labels never *raise* the hard ceiling. They explain a high LEM number; they
-  do not silence safety checks.
+- Labels may select deeper verification; they must not make macOS or Windows an
+  ordinary PR default.
+- Labels explain and route cost; they do not weaken `just ci-supported`.
+- `full-ci` and `ci-budget-override` are the only labels that can authorize an
+  over-ceiling static plan.
+- When a workflow starts honoring a label, update this file,
+  `.github/settings.yml`, `.github/CI_LANES.md`, and the CI lane whitelist or
+  risk-pack ledger in the same PR.

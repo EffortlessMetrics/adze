@@ -1,6 +1,6 @@
 # CI Lane Map
 
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-12
 **Purpose:** Classify every CI check so contributors can immediately tell
 whether a red mark means "must fix before merge" or "inspect at your leisure."
 
@@ -13,9 +13,23 @@ whether a red mark means "must fix before merge" or "inspect at your leisure."
 | **Push / scheduled** | Runs on `main` pushes or schedules. Not PR-blocking. | Inspect trend; fix in a follow-up. |
 | **Advisory** | Uses nightly / unstable toolchains, `continue-on-error`, or non-blocking labels. May be red due to toolchain drift. | Inspect if curious. Not actionable for most PRs. |
 
-Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-gate.yml`).
+Branch protection currently requires exactly one check: **`CI / ci-supported`**. The target required context is **`PR Gate / PR Gate Success`** after the documented stability window.
 
 ---
+
+## Target ordinary PR shape
+
+| Lane | Blocking | Target LEM | Notes |
+| --- | ---: | ---: | --- |
+| PR Plan | no | ~1 | Changed surfaces and budget band |
+| Supported Rust Gate | yes | ~18-22 | `just ci-supported` |
+| PR Gate Success | yes | ~1 | Stable aggregate and future required check |
+| CI lane whitelist | advisory | ~1-2 | Workflow-sprawl guard |
+| ripr advisory | advisory | ~3-5 | Static oracle-gap signal; skip docs-only |
+| test-policy smoke | advisory or yes | ~1-3 | Hygiene-only smoke |
+
+macOS and Windows must not be ordinary PR defaults. Expensive lanes should be
+path-routed, label-triggered, scheduled, manual, release-only, or main-only.
 
 ## Complete lane inventory
 
@@ -27,7 +41,7 @@ Branch protection requires exactly one check: **`CI / ci-supported`** (via `pr-g
 | `pr-gate.yml` | `PR Gate Success` | PR + merge_group | Aggregate: plan + supported/docs gate must pass |
 | `pr-gate.yml` | `PR Plan` | PR | Computes docs_only, estimated LEM, budget band |
 
-Required branch protection context: `CI / ci-supported` (maps to the `ci-supported` job in `ci.yml`, also exercised via `pr-gate.yml`).
+Current required branch protection context: `CI / ci-supported`. Target context after promotion: `PR Gate / PR Gate Success`.
 
 ### PR-only signal (non-blocking)
 
@@ -142,8 +156,15 @@ required_status_checks:
     - "CI / ci-supported"
 ```
 
-This is correct and intentionally single-gated. All other checks are optional
-signal.
+This remains the rollback anchor. The planned promotion is to require only:
+
+```yaml
+required_status_checks:
+  contexts:
+    - "PR Gate / PR Gate Success"
+```
+
+The promotion must be a dedicated PR and must not be combined with workflow pruning. All raw matrix leaves and advisory lanes remain optional signal.
 
 ---
 
@@ -171,5 +192,6 @@ signal.
 When adding a new CI job:
 1. Add it to the appropriate table above.
 2. If advisory, use `continue-on-error: true` and the `Advisory / ` name prefix.
-3. If required, update `.github/settings.yml` branch protection contexts **and** this file.
+3. If required, update `.github/settings.yml` branch protection contexts **and** this file, and do not require raw matrix leaves.
 4. If push-only, ensure it does not trigger on PRs (use `if:` guards).
+5. If label-triggered, add the label to `.github/settings.yml` and `docs/ci/labels.md`.
