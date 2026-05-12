@@ -1001,6 +1001,16 @@ fn generated_object_like_parser_error_contract_is_feature_stable() {
             expected: &[":"],
         },
         Case {
+            label: "multibyte invalid identifier continuation before colon",
+            source: "{ namé: 1 }",
+            byte_span: 5..7,
+            start_line: 1,
+            start_column: 6,
+            end_line: 1,
+            end_column: 8,
+            expected: &[":"],
+        },
+        Case {
             label: "invalid value after colon",
             source: "{ name: nope }",
             byte_span: 8..9,
