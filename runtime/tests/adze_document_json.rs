@@ -28,12 +28,15 @@ fn parse_document_json_has_schema_and_tree_facts() {
     assert!(json["ambiguities"].as_array().is_some_and(Vec::is_empty));
 
     let root = &json["tree"]["root"];
+    let document_root = document.tree().root();
     assert_eq!(root["id"].as_u64(), Some(0));
     assert_eq!(root["kind"].as_str(), Some("source_file"));
     assert_eq!(root["grammar_kind"].as_str(), Some("source_file"));
     assert_eq!(root["has_alias"].as_bool(), Some(false));
     assert_eq!(root["flags"]["has_error"].as_bool(), Some(false));
 
+    let add_node = find_document_node(document_root, "Expr_Add", 0, source.len())
+        .expect("generic CST should contain the fielded add expression");
     let add = find_json_node(root, "Expr_Add", 0, source.len())
         .expect("document JSON should contain the fielded add expression");
     let children = add["children"]
@@ -57,6 +60,31 @@ fn parse_document_json_has_schema_and_tree_facts() {
             .all(|edge| edge["node"]["id"].as_u64().is_some()),
         "fielded edges should serialize nested child nodes: {children:?}"
     );
+    let native_edges = add_node.child_edges().collect::<Vec<_>>();
+    assert_eq!(
+        children.len(),
+        native_edges.len(),
+        "document JSON should serialize one edge per native child edge"
+    );
+    for (json_edge, native_edge) in children.iter().zip(native_edges) {
+        let native_child = native_edge
+            .child()
+            .expect("native edge should resolve to a child node");
+        assert_eq!(
+            json_edge["child_index"].as_u64(),
+            Some(native_edge.child_index() as u64)
+        );
+        assert_eq!(json_edge["field_name"].as_str(), native_edge.field_name());
+        assert_eq!(
+            json_edge["field_id"].as_u64(),
+            native_edge.field_id().map(|field_id| field_id.get() as u64)
+        );
+        assert_eq!(
+            json_edge["node"]["id"].as_u64(),
+            Some(native_child.node_id().as_usize() as u64)
+        );
+        assert_eq!(json_edge["node"]["kind"].as_str(), native_child.kind_name());
+    }
 
     insta::assert_snapshot!(
         "adze_document_json_fielded_precedence",
@@ -342,6 +370,26 @@ fn find_json_node<'a>(
 
     for edge in node["children"].as_array()? {
         if let Some(found) = find_json_node(&edge["node"], kind, start_byte, end_byte) {
+            return Some(found);
+        }
+    }
+
+    None
+}
+
+fn find_document_node<'doc>(
+    node: adze::document::AdzeNode<'doc>,
+    kind: &str,
+    start_byte: usize,
+    end_byte: usize,
+) -> Option<adze::document::AdzeNode<'doc>> {
+    if node.kind_name() == Some(kind) && node.byte_range() == (start_byte..end_byte) {
+        return Some(node);
+    }
+
+    for child_index in 0..node.child_count() {
+        let child = node.child(child_index)?;
+        if let Some(found) = find_document_node(child, kind, start_byte, end_byte) {
             return Some(found);
         }
     }
