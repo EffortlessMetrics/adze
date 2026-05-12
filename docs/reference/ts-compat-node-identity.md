@@ -43,7 +43,7 @@ Before Adze claims broader Tree-sitter alias parity, follow-up canaries must
 still cover:
 
 - how aliases appear in node-types metadata,
-- how anonymous aliases affect named-child filtering.
+- imported grammar corpus parity for alias-heavy grammars.
 
 The draft target contract is
 [`ts-compat-alias-semantics.md`](ts-compat-alias-semantics.md).
@@ -58,6 +58,7 @@ Current canaries that guard this contract include:
 ```bash
 cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_metadata -- --nocapture
 cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_metadata alias_visible_kind_and_grammar_identity_are_distinct -- --exact --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_metadata anonymous_alias_controls_named_child_filtering -- --exact --nocapture
 cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_to_sexp -- --nocapture
 cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_to_sexp alias_visible_identity_is_used_in_sexp -- --exact --nocapture
 cargo test -p adze --features "pure-rust,ts-compat" --test adze_document_alpha parse_document_projects_alias_visible_identity_from_native_node_data -- --exact --nocapture
