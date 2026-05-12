@@ -13,6 +13,12 @@ This document maps major Adze surfaces to five tiers:
 
 ## Feature-to-proof map
 
+Current native-document and typed-CST alpha notes: generated typed CST handles
+can now call the default `SyntaxNode::ast(...)` helper, which delegates to
+`AdzeDocument::ast_from_node(...)` and records `Provenance::Node` for the wrapper
+node used as the extraction root. This remains experimental document-level
+provenance, not per-AST-node provenance or a typed CST support promotion.
+
 | Surface | Tier | Proof command | CI lane | Notes / limitations |
 |---|---|---|---|---|
 | Typed extraction | **Stable** | `cargo test -p adze --lib --tests --bins` (via `just ci-supported`); product canaries: `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture`, `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture`, `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture` | `CI / ci-supported`; `ci-product-stable`; product-proof advisory | Core user contract via `adze` runtime tests in the supported lane, with exact-value, repeated-parse determinism, and README quickstart parse/diagnostic canaries in the stable/advisory product lanes. |

@@ -195,10 +195,13 @@ pub enum Provenance {
 
 This avoids pretending every semantic AST value maps to exactly one CST node.
 
-The current `AdzeDocument` alpha exposes only document-level typed AST
-provenance for the extraction root through `ast_with_provenance()`. Per-AST-node
-provenance remains future work and should not be inferred from that alpha
-wrapper.
+The current `AdzeDocument` alpha exposes document-level typed AST provenance for
+the extraction root through `ast_with_provenance()`. It also exposes
+`AdzeDocument::ast_from_node(...)` and the default `SyntaxNode::ast(...)` helper,
+so a validated typed CST wrapper can extract a semantic AST value from its own
+document node while recording that node as the extraction provenance.
+Per-AST-node provenance remains future work and should not be inferred from
+that alpha wrapper.
 
 ## Generation Scope
 
@@ -376,10 +379,13 @@ cargo test -p adze --features pure-rust \
 It checks that Rust expansion keeps explicit field metadata when precedence
 operator leaves are inlined, that generated token wrappers cast against the
 native document's inline-string kind names, and that generated `Expr_Add`
-accessors agree with the generic CST edges. Generated parser modules do not yet
-have a broad typed CST/generic CST parity matrix, visitor/rewriter surfaces,
-typed query APIs, or typed CST JSON output, and this is not a public typed CST
-support claim.
+accessors agree with the generic CST edges. The same runtime canary now proves a
+validated `Expr_Add` typed CST wrapper can extract the semantic `Expr` typed AST
+from its own node through `SyntaxNode::ast(...)`, with `Provenance::Node`
+recording the wrapper node. Generated parser modules do not yet have a broad
+typed CST/generic CST parity matrix, visitor/rewriter surfaces, typed query
+APIs, or typed CST JSON output, and this is not a public typed CST support
+claim.
 
 ## Support Status
 
