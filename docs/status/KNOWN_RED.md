@@ -121,7 +121,6 @@ Current canaries:
 - `adze` tablegen ABI conflict decode preservation — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e,ts-compat" --test test_e2e_ambiguous_grammar_glr tablegen_abi_decode_preserves_generated_conflict_cells -- --exact --nocapture`)
 - `adze` tablegen ABI alias decode preservation — **behavior** (`cargo test -p adze --features "pure-rust,glr,ts-compat" --test tablegen_abi_decode_roundtrip compressed_tslanguage_decode_preserves_alias_sequences -- --exact --nocapture`)
 - `adze-tablegen` node-types rule-name preservation — **behavior** (`cargo test -p adze-tablegen --test static_language_gen_comprehensive generate_node_types_preserves_rule_names -- --exact --nocapture`)
-- `adze` ts_compat missing-node guardrail — **behavior** (`cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_error generated_tree_reports_zero_width_error_root_as_missing -- --exact --nocapture`)
 - `adze-tablegen` alias ABI pointer/data preservation — **behavior** (`cargo test -p adze-tablegen --test alias_handling_comprehensive alias_abi_emits_non_null_pointers_when_counters_nonzero -- --exact --nocapture`)
 - `adze-tablegen` sparse production LHS ABI preservation — **behavior** (`cargo test -p adze-tablegen --test production_id_comprehensive edge_sparse_production_ids_emit_dense_production_lhs_index -- --exact --nocapture`)
 - README arithmetic quickstart clean-room parse and diagnostics — **behavior** (`cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`)
