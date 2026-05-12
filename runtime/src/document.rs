@@ -632,6 +632,66 @@ impl<'doc> NodeIdentity<'doc> {
     }
 }
 
+/// Native structural flags for one document node.
+///
+/// These flags are computed from the selected document tree and language
+/// metadata. They are the native source for generated typed CST wrappers and
+/// Tree-sitter-compatible projections that need named/extra/error/missing
+/// behavior without inventing local adapter state.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NodeFlags {
+    named: bool,
+    visible: bool,
+    extra: bool,
+    terminal: bool,
+    supertype: bool,
+    error: bool,
+    missing: bool,
+    has_error: bool,
+}
+
+impl NodeFlags {
+    /// Return whether the node is named in visible syntax.
+    pub fn is_named(&self) -> bool {
+        self.named
+    }
+
+    /// Return whether the node is visible in syntax output.
+    pub fn is_visible(&self) -> bool {
+        self.visible
+    }
+
+    /// Return whether the node is extra syntax such as trivia.
+    pub fn is_extra(&self) -> bool {
+        self.extra
+    }
+
+    /// Return whether the node is a terminal token.
+    pub fn is_terminal(&self) -> bool {
+        self.terminal
+    }
+
+    /// Return whether the node is a supertype.
+    pub fn is_supertype(&self) -> bool {
+        self.supertype
+    }
+
+    /// Return whether the node is a node-local synthetic error.
+    pub fn is_error(&self) -> bool {
+        self.error
+    }
+
+    /// Return whether the node is a zero-width synthetic missing node.
+    pub fn is_missing(&self) -> bool {
+        self.missing
+    }
+
+    /// Return whether this node or its descendants carry error state.
+    pub fn has_error(&self) -> bool {
+        self.has_error
+    }
+}
+
 /// Basic parse metadata for a native document.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseMetadata {
@@ -1013,6 +1073,25 @@ impl<'doc> AdzeNode<'doc> {
             .child()
     }
 
+    /// Return native structural flags for this node.
+    pub fn flags(&self) -> NodeFlags {
+        let kind = self.kind();
+        let error = self.node_local_is_error();
+        let missing = self.node_local_is_missing(error);
+        let has_error = self.subtree_has_error(error);
+
+        NodeFlags {
+            named: self.identity().visible_is_named(),
+            visible: kind.map(NodeKind::is_visible).unwrap_or(false),
+            extra: kind.map(NodeKind::is_extra).unwrap_or(false),
+            terminal: kind.map(NodeKind::is_terminal).unwrap_or(false),
+            supertype: kind.map(NodeKind::is_supertype).unwrap_or(false),
+            error,
+            missing,
+            has_error,
+        }
+    }
+
     /// Return whether this node is named according to language metadata.
     pub fn is_named(&self) -> bool {
         self.identity().visible_is_named()
@@ -1040,17 +1119,29 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return whether this node is a local synthetic error node.
     pub fn is_error(&self) -> bool {
-        self.node.symbol.0 == 0 && self.node.children.is_empty()
+        self.node_local_is_error()
     }
 
     /// Return whether this node is a zero-width synthetic missing node.
     pub fn is_missing(&self) -> bool {
-        self.start_byte() == self.end_byte() && self.is_error()
+        self.node_local_is_missing(self.node_local_is_error())
     }
 
     /// Return whether this node or its descendants carry error state.
     pub fn has_error(&self) -> bool {
-        self.is_error()
+        self.subtree_has_error(self.node_local_is_error())
+    }
+
+    fn node_local_is_error(&self) -> bool {
+        self.node.symbol.0 == 0 && self.node.children.is_empty()
+    }
+
+    fn node_local_is_missing(&self, is_error: bool) -> bool {
+        self.start_byte() == self.end_byte() && is_error
+    }
+
+    fn subtree_has_error(&self, is_error: bool) -> bool {
+        is_error
             || (std::ptr::eq(self.node, &self.document.root)
                 && self.document.metadata.error_count > 0)
             || (0..self.child_count()).any(|index| {

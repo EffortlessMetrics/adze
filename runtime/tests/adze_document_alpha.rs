@@ -109,6 +109,14 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert!(!root_identity.has_alias());
     assert!(root_identity.visible_is_named());
     assert!(root_identity.grammar_is_named());
+    let root_flags = root.flags();
+    assert!(root_flags.is_named());
+    assert!(root_flags.is_visible());
+    assert!(!root_flags.is_terminal());
+    assert!(!root_flags.is_extra());
+    assert!(!root_flags.is_error());
+    assert!(!root_flags.is_missing());
+    assert!(!root_flags.has_error());
     assert!(root.is_named());
     assert!(root.is_visible());
     assert!(!root.is_terminal());
@@ -159,6 +167,14 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert!(!expression_identity.has_alias());
     assert!(expression_identity.visible_is_named());
     assert!(expression_identity.grammar_is_named());
+    let expression_flags = expression.flags();
+    assert!(expression_flags.is_named());
+    assert!(expression_flags.is_visible());
+    assert!(!expression_flags.is_terminal());
+    assert!(!expression_flags.is_extra());
+    assert!(!expression_flags.is_error());
+    assert!(!expression_flags.is_missing());
+    assert!(!expression_flags.has_error());
     assert!(expression.is_named());
     assert!(expression.is_visible());
     assert!(!expression.is_terminal());
@@ -254,6 +270,12 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(left.utf8_text().expect("left text should be UTF-8"), "1");
     assert_eq!(operator.field_name(), Some("operator"));
     assert_eq!(operator.field_id().map(|id| id.get()), Some(2));
+    let operator_flags = operator.flags();
+    assert!(!operator_flags.is_named());
+    assert!(operator_flags.is_terminal());
+    assert!(!operator_flags.is_error());
+    assert!(!operator_flags.is_missing());
+    assert!(!operator_flags.has_error());
     assert_eq!(
         operator.utf8_text().expect("operator text should be UTF-8"),
         "-"
@@ -326,6 +348,7 @@ fn parse_document_exposes_recovery_metadata_and_diagnostics() {
     assert!(document.metadata().error_count > 0);
     assert!(document.tree().has_errors());
     assert!(document.tree().root().has_error());
+    assert!(document.tree().root().flags().has_error());
     assert!(!document.diagnostics().is_empty());
 
     let diagnostic = &document.diagnostics()[0];
@@ -344,6 +367,12 @@ fn parse_document_exposes_recovery_metadata_and_diagnostics() {
         related_node.has_error(),
         "related diagnostic node should carry error state"
     );
+    assert!(
+        related_node.flags().has_error(),
+        "native node flags should carry the same aggregate error state"
+    );
+    assert_eq!(related_node.flags().is_error(), related_node.is_error());
+    assert_eq!(related_node.flags().is_missing(), related_node.is_missing());
     assert_eq!(related_node.byte_range(), diagnostic.byte_span());
     let document_node_diagnostics: Vec<_> = document
         .diagnostics_for_node(related_node.node_id())

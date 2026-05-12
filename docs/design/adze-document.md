@@ -122,6 +122,26 @@ native model now has separate slots for alias-aware identity, but the
 Tree-sitter compatibility layer must not claim alias parity until parser nodes
 actually carry alias sequence entries and canaries prove the projection.
 
+Node flags are explicit native data as well:
+
+```rust
+pub struct NodeFlags {
+    named: bool,
+    visible: bool,
+    extra: bool,
+    terminal: bool,
+    supertype: bool,
+    error: bool,
+    missing: bool,
+    has_error: bool,
+}
+```
+
+The current alpha computes these flags from the selected document tree,
+language metadata, and parser recovery/error count. It does not yet claim
+alias-adjusted namedness, recovered-node classification, or per-node ambiguity
+flags.
+
 Fields are edge metadata:
 
 ```rust
