@@ -85,9 +85,10 @@ Keep implementation slices small:
    `ts_compat::Tree::from_document()` over the same parse data. It now also
    has an experimental `AdzeDocument::to_json_value()` projection under
    `serialization` that emits schema-tagged `adze.document.v1` facts for the
-   selected generic CST, diagnostics, metadata, and ambiguity summaries. Keep
-   expanding it in small proof-backed slices, and do not treat this as a stable
-   CLI/WASM `adze-json` contract.
+   selected generic CST, diagnostics, metadata, and ambiguity summaries, with
+   representative clean and diagnostic document snapshots. Keep expanding it in
+   small proof-backed slices, and do not treat this as a stable CLI/WASM
+   `adze-json` contract.
 2. A typed CST arithmetic spike now proves a generated-style fixture module,
    the runtime `SyntaxNode` handle contract, typed field accessors, spans,
    text, and recovery flags over document node IDs. Tablegen also has an alpha

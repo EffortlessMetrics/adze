@@ -9,7 +9,7 @@ use serde_json::Value;
 fn parse_document_json_has_schema_and_tree_facts() {
     use adze_example::fielded_precedence_typed_cst_contract::grammar;
 
-    let source = "1+2*3";
+    let source = "1+2";
     let document = grammar::parse_document(source)
         .expect("generated parse_document helper should return an AdzeDocument");
     let json = document.to_json_value();
@@ -56,6 +56,11 @@ fn parse_document_json_has_schema_and_tree_facts() {
             .iter()
             .all(|edge| edge["node"]["id"].as_u64().is_some()),
         "fielded edges should serialize nested child nodes: {children:?}"
+    );
+
+    insta::assert_snapshot!(
+        "adze_document_json_fielded_precedence",
+        serde_json::to_string_pretty(&json).expect("document JSON should render as pretty JSON")
     );
 }
 
@@ -113,6 +118,12 @@ fn parse_document_json_serializes_diagnostics_and_error_flags() {
             .as_str()
             .is_some_and(|message| message.contains("expected one of:")),
         "diagnostic JSON should preserve the diagnostic summary: {diagnostic:?}"
+    );
+
+    insta::assert_snapshot!(
+        "adze_document_json_diagnostic",
+        serde_json::to_string_pretty(&json)
+            .expect("diagnostic document JSON should render as pretty JSON")
     );
 }
 

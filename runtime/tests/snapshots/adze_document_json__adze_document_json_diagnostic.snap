@@ -1,0 +1,115 @@
+---
+source: runtime/tests/adze_document_json.rs
+expression: "serde_json::to_string_pretty(&json).expect(\"diagnostic document JSON should render as pretty JSON\")"
+---
+{
+  "schema": "adze.document.v1",
+  "source": {
+    "byte_len": 3
+  },
+  "language": {
+    "name": "typed_ast_contract"
+  },
+  "metadata": {
+    "error_count": 1
+  },
+  "diagnostics": [
+    {
+      "start_byte": 3,
+      "end_byte": 3,
+      "point_range": {
+        "start": {
+          "row": 0,
+          "column": 3
+        },
+        "end": {
+          "row": 0,
+          "column": 3
+        }
+      },
+      "found": "end",
+      "expected": [
+        "/\\d+/"
+      ],
+      "related_nodes": [
+        1
+      ],
+      "message": "end; expected one of: /\\d+/"
+    }
+  ],
+  "ambiguities": [],
+  "tree": {
+    "root": {
+      "id": 0,
+      "kind": "Whitespace__ws",
+      "kind_id": 4,
+      "grammar_kind": "Whitespace__ws",
+      "grammar_id": 4,
+      "alias_symbol_id": null,
+      "has_alias": false,
+      "range": {
+        "start_byte": 0,
+        "end_byte": 3,
+        "start_point": {
+          "row": 0,
+          "column": 0
+        },
+        "end_point": {
+          "row": 0,
+          "column": 3
+        }
+      },
+      "flags": {
+        "named": true,
+        "visible": true,
+        "extra": false,
+        "terminal": false,
+        "supertype": false,
+        "error": false,
+        "missing": false,
+        "has_error": true
+      },
+      "text": null,
+      "children": [
+        {
+          "child_index": 0,
+          "field_name": null,
+          "field_id": null,
+          "node": {
+            "id": 1,
+            "kind": "end",
+            "kind_id": 0,
+            "grammar_kind": "end",
+            "grammar_id": 0,
+            "alias_symbol_id": null,
+            "has_alias": false,
+            "range": {
+              "start_byte": 3,
+              "end_byte": 3,
+              "start_point": {
+                "row": 0,
+                "column": 3
+              },
+              "end_point": {
+                "row": 0,
+                "column": 3
+              }
+            },
+            "flags": {
+              "named": false,
+              "visible": true,
+              "extra": false,
+              "terminal": true,
+              "supertype": false,
+              "error": true,
+              "missing": true,
+              "has_error": true
+            },
+            "text": "",
+            "children": []
+          }
+        }
+      ]
+    }
+  }
+}

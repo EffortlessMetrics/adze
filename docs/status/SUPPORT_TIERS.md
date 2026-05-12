@@ -20,7 +20,8 @@ node used as the extraction root. This remains experimental document-level
 provenance, not per-AST-node provenance or a typed CST support promotion.
 `AdzeDocument::to_json_value()` now emits an experimental
 `adze.document.v1` envelope under the `serialization` feature for the same
-selected generic CST, diagnostics, metadata, and ambiguity summary facts. Proof:
+selected generic CST, diagnostics, metadata, and ambiguity summary facts, with
+snapshot fixtures for clean and diagnostic documents. Proof:
 `cargo test -p adze --features "pure-rust,serialization" --test adze_document_json -- --nocapture`.
 This is not a stable CLI/WASM `adze-json` contract.
 

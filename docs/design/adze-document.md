@@ -314,7 +314,8 @@ The current alpha implements only `AdzeDocument::to_json_value()` under the
 `serialization` feature. It emits an experimental `adze.document.v1` envelope
 for the selected generic CST, source byte length, language name, metadata,
 structured diagnostics, and ambiguity summaries. This is a document canary for
-future output work, not a stable CLI/WASM `adze-json` contract.
+future output work; snapshot fixtures pin representative clean and diagnostic
+documents, but this is not a stable CLI/WASM `adze-json` contract.
 
 No JSON schema should be treated as stable until it has a fixture, snapshot, and
 support-tier entry.
