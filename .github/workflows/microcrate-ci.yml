@@ -67,7 +67,7 @@ jobs:
               concurrency) match '^crates/concurrency' && v=true ;;
               governance) match '^(crates/governance|crates/bdd|tests/governance|crates/feature-policy|crates/runtime-governance)' && v=true ;;
               bdd) match '^crates/bdd' && v=true ;;
-              parser) match '^(crates/parser-|crates/common-syntax-core|crates/ts-format-core|crates/linecol-core|crates/stack-pool-core|crates/parsetable-metadata|glr-core/|tablegen/)' && v=true ;;
+              parser) match '^(crates/parser-|crates/common-syntax-core|crates/linecol-core|crates/stack-pool-core|crates/parsetable-metadata|glr-core/|tablegen/)' && v=true ;;
               core) match '^(ir/|glr-core/|tablegen/|common/)' && v=true ;;
               runtime) match '^(runtime/|runtime2/|macro/|tool/|cli/)' && v=true ;;
             esac
@@ -183,7 +183,6 @@ jobs:
             adze-linecol-core
             adze-stack-pool-core
             adze-parsetable-metadata
-            adze-ts-format-core
             adze-common-syntax-core
             adze-concurrency-caps-contract-core
           )
@@ -322,7 +321,6 @@ jobs:
             -p adze-parser-contract \
             -p adze-parser-governance-contract \
             -p adze-common-syntax-core \
-            -p adze-ts-format-core \
             -p adze-linecol-core \
             -p adze-stack-pool-core \
             -p adze-parsetable-metadata \

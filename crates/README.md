@@ -108,7 +108,6 @@ Shared utilities, metadata, and support structures.
 | [`parsetable-metadata`](parsetable-metadata) | Parse table metadata structures |
 | [`stack-pool-core`](stack-pool-core) | Stack-allocated pool utilities |
 | [`ts-c-harness`](ts-c-harness) | Tree-sitter C FFI test harness *(excluded from workspace)* |
-| [`ts-format-core`](ts-format-core) | Tree-sitter formatting utilities |
 
 ## Dependency Graph
 

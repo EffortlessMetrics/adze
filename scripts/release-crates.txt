@@ -45,7 +45,6 @@ adze-runtime
 adze-stack-pool-core
 adze-tool
 adze-cli
-adze-ts-format-core
 adze
 adze-go
 adze-javascript
