@@ -175,7 +175,6 @@ jobs:
             adze-bdd-governance-fixtures
             adze-bdd-grammar-analysis-core
             adze-bdd-grammar-fixtures
-            adze-bdd-grid-contract
             adze-bdd-grid-core
             adze-bdd-scenario-fixtures
             adze-parser-backend-core
@@ -301,7 +300,6 @@ jobs:
             -p adze-bdd-governance-fixtures \
             -p adze-bdd-grammar-analysis-core \
             -p adze-bdd-grammar-fixtures \
-            -p adze-bdd-grid-contract \
             -p adze-bdd-grid-core \
             -p adze-bdd-scenario-fixtures \
             -- --test-threads=$RUST_TEST_THREADS
