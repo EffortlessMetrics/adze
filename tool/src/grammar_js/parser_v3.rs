@@ -25,6 +25,9 @@ macro_rules! eprintln {
     };
 }
 
+mod function_block;
+mod lexing;
+
 /// Check if a string is a symbol reference like $.identifier
 fn is_symbol_ref(s: &str) -> bool {
     let trimmed = s.trim();
@@ -277,71 +280,14 @@ impl GrammarJsParserV3 {
     }
 
     fn extract_balanced_delim(&self, content: &str, open: char, close: char) -> Result<String> {
-        let mut depth = 1;
-        let mut pos = 0;
-        let chars: Vec<char> = content.chars().collect();
-
         eprintln!(
             "Debug: extract_balanced_delim called with open='{}' close='{}', content length={}",
             open,
             close,
-            chars.len()
+            content.chars().count()
         );
 
-        while depth > 0 && pos < chars.len() {
-            let ch = chars[pos];
-
-            // Simple string handling - just skip quoted content
-            if ch == '\'' || ch == '"' || ch == '`' {
-                let quote = ch;
-                pos += 1;
-                while pos < chars.len() {
-                    if chars[pos] == '\\' {
-                        pos += 2; // Skip escaped char
-                    } else if chars[pos] == quote {
-                        pos += 1;
-                        break;
-                    } else {
-                        pos += 1;
-                    }
-                }
-            } else if ch == '/' && pos + 1 < chars.len() {
-                // Handle regex patterns
-                if pos > 0
-                    && "[,({:;=\n ".contains(chars[pos - 1])
-                    && chars[pos + 1] != '/'
-                    && chars[pos + 1] != '*'
-                {
-                    // Likely a regex
-                    pos += 1;
-                    while pos < chars.len() {
-                        if chars[pos] == '\\' {
-                            pos += 2;
-                        } else if chars[pos] == '/' {
-                            pos += 1;
-                            break;
-                        } else {
-                            pos += 1;
-                        }
-                    }
-                } else {
-                    pos += 1;
-                }
-            } else {
-                if ch == open {
-                    depth += 1;
-                } else if ch == close {
-                    depth -= 1;
-                }
-                pos += 1;
-            }
-        }
-
-        if depth == 0 {
-            Ok(content[..pos - 1].to_string())
-        } else {
-            bail!("Unbalanced {} and {} in content", open, close)
-        }
+        lexing::extract_balanced_delim(content, open, close)
     }
 
     fn find_matching_paren(&self, content: &str) -> Result<usize> {
@@ -428,159 +374,13 @@ impl GrammarJsParserV3 {
     }
 
     fn parse_function_block(&self, block: &str) -> Result<Rule> {
-        // Function blocks have JavaScript code that ends with a return statement
-        // We need to extract the return value and handle inline const helper functions
-
-        eprintln!("Debug: parse_function_block called with block:\n{}", block);
-
-        // Special case: binary_operator-style table definitions
-        if block.contains("const table = [") {
-            // This is the pattern used in binary_operator: const table = [...] return choice(...table.map(...))
-            // For now, return a placeholder since we can't execute JavaScript
-            eprintln!("Warning: Complex JavaScript table definition found, returning placeholder");
-            return Ok(Rule::Choice { members: vec![] });
-        }
-
-        // Extract const helper function declarations
-        let mut helpers: IndexMap<String, (String, String)> = IndexMap::new();
-        let lines: Vec<&str> = block.lines().collect();
-
-        for line in &lines {
-            let trimmed = line.trim();
-            if trimmed.starts_with("const ") {
-                // Parse: const helperName = (param) => body
-                if let Some(eq_pos) = trimmed.find('=') {
-                    let helper_name = trimmed[6..eq_pos].trim();
-                    let rhs = trimmed[eq_pos + 1..].trim();
-
-                    // Check for arrow function: (param) => body
-                    if let Some(arrow_pos) = rhs.find("=>") {
-                        let params = rhs[..arrow_pos].trim();
-                        let body = rhs[arrow_pos + 2..].trim();
-
-                        // Extract parameter name from (param) or param
-                        let param_name = params
-                            .trim_matches(|c: char| c == '(' || c == ')' || c.is_whitespace());
-
-                        // Remove trailing semicolon from body if present
-                        let body = body.trim_end_matches(';').trim();
-
-                        helpers.insert(
-                            helper_name.to_string(),
-                            (param_name.to_string(), body.to_string()),
-                        );
-                        eprintln!(
-                            "Debug: Registered helper '{}' with param '{}' and body '{}'",
-                            helper_name, param_name, body
-                        );
-                    }
-                }
+        match function_block::parse(block)? {
+            function_block::ParsedFunctionBlock::PlaceholderChoice => {
+                Ok(Rule::Choice { members: vec![] })
             }
-        }
-
-        // Find the last 'return' statement
-        if let Some(return_pos) = block.rfind("return ") {
-            let return_content = &block[return_pos + 7..]; // Skip "return "
-
-            // Find the end of the return statement (either ';' or '}')
-            let mut end_pos = return_content.len();
-            let mut depth = 0;
-            let mut in_string = false;
-            let mut in_regex = false;
-            let mut escape_next = false;
-
-            for (i, ch) in return_content.chars().enumerate() {
-                if escape_next {
-                    escape_next = false;
-                    continue;
-                }
-
-                if ch == '\\' {
-                    escape_next = true;
-                    continue;
-                }
-
-                if !in_regex && (ch == '"' || ch == '\'') {
-                    in_string = !in_string;
-                }
-
-                if !in_string && ch == '/' {
-                    in_regex = !in_regex;
-                }
-
-                if !in_string && !in_regex {
-                    match ch {
-                        '(' | '{' | '[' => depth += 1,
-                        ')' | '}' | ']' => depth -= 1,
-                        ';' if depth == 0 => {
-                            end_pos = i;
-                            break;
-                        }
-                        _ => {}
-                    }
-                }
-
-                // If we hit the closing brace at depth -1, that's the end of the block
-                if depth < 0 {
-                    end_pos = i;
-                    break;
-                }
+            function_block::ParsedFunctionBlock::ReturnExpression(return_expr) => {
+                self.parse_rule(&return_expr)
             }
-
-            let mut return_expr = return_content[..end_pos].trim().to_string();
-
-            // Expand inline helper function calls
-            for (helper_name, (param_name, body)) in &helpers {
-                // Look for helperName(arg) pattern
-                let call_pattern = format!("{}(", helper_name);
-                if return_expr.contains(&call_pattern) {
-                    eprintln!(
-                        "Debug: Expanding helper '{}' in return expression",
-                        helper_name
-                    );
-
-                    // Find the argument to the helper function call
-                    if let Some(call_start) = return_expr.find(&call_pattern) {
-                        let args_start = call_start + call_pattern.len();
-
-                        // Extract the argument (handle nested parens)
-                        let mut depth = 1;
-                        let mut arg_end = args_start;
-                        let chars: Vec<char> = return_expr.chars().collect();
-
-                        for (i, ch) in chars.iter().enumerate().skip(args_start) {
-                            match ch {
-                                '(' => depth += 1,
-                                ')' => {
-                                    depth -= 1;
-                                    if depth == 0 {
-                                        arg_end = i;
-                                        break;
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
-
-                        let arg = &return_expr[args_start..arg_end];
-                        eprintln!("Debug: Helper argument: '{}'", arg);
-
-                        // Substitute parameter with argument in the body
-                        let expanded = body.replace(param_name, arg);
-                        eprintln!("Debug: Expanded body: '{}'", expanded);
-
-                        // Replace the helper call with the expanded body
-                        let replacement = expanded.clone();
-                        let call_expr = &return_expr[call_start..=arg_end];
-                        return_expr = return_expr.replace(call_expr, &replacement);
-                        eprintln!("Debug: New return expression: '{}'", return_expr);
-                    }
-                }
-            }
-
-            self.parse_rule(&return_expr)
-        } else {
-            bail!("Function block must contain a return statement")
         }
     }
 
@@ -872,57 +672,7 @@ impl GrammarJsParserV3 {
     }
 
     fn split_args(&self, content: &str, expected: i32) -> Result<Vec<String>> {
-        let mut args = Vec::new();
-        let mut current = String::new();
-        let mut depth = 0;
-        let mut in_string = false;
-        let mut string_char = ' ';
-        let mut escape_next = false;
-
-        for ch in content.chars() {
-            if escape_next {
-                escape_next = false;
-                current.push(ch);
-            } else if ch == '\\' {
-                escape_next = true;
-                current.push(ch);
-            } else if !in_string && (ch == '\'' || ch == '"' || ch == '`') {
-                in_string = true;
-                string_char = ch;
-                current.push(ch);
-            } else if in_string && ch == string_char {
-                in_string = false;
-                current.push(ch);
-            } else if !in_string {
-                match ch {
-                    '(' | '[' | '{' => {
-                        depth += 1;
-                        current.push(ch);
-                    }
-                    ')' | ']' | '}' => {
-                        depth -= 1;
-                        current.push(ch);
-                    }
-                    ',' if depth == 0 => {
-                        args.push(current.trim().to_string());
-                        current.clear();
-                    }
-                    _ => current.push(ch),
-                }
-            } else {
-                current.push(ch);
-            }
-        }
-
-        if !current.trim().is_empty() {
-            args.push(current.trim().to_string());
-        }
-
-        if expected > 0 && args.len() != expected as usize {
-            bail!("Expected {} arguments, got {}", expected, args.len());
-        }
-
-        Ok(args)
+        lexing::split_args(content, expected)
     }
 
     fn parse_rule_list(&self, content: &str) -> Result<Vec<Rule>> {
