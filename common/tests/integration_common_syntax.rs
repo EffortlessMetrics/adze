@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use adze_common::{FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type};
-use adze_common_syntax_core::{
+use adze_common::{
     filter_inner_type as core_filter_inner_type,
     try_extract_inner_type as core_try_extract_inner_type,
 };

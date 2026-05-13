@@ -1,7 +1,7 @@
 //! Advanced proc-macro attribute pattern tests for adze macros.
 //!
 //! Tests attribute parsing helpers, type extraction, type wrapping, and edge
-//! cases from `adze_common` (re-exported from `adze_common_syntax_core`).
+//! cases from `adze_common`.
 //! Since proc macros cannot be invoked directly in unit tests, we exercise the
 //! shared parsing and type-manipulation utilities that the macros rely on.
 

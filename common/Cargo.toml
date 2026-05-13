@@ -27,7 +27,6 @@ strict_docs = [] # Enable strict documentation requirements
 [dependencies]
 syn = { version = "2", features = [ "full", "extra-traits" ] }
 quote = "1"
-adze-common-syntax-core = { version = "0.1.0", path = "../crates/common-syntax-core" }
 
 [dev-dependencies]
 proptest = "1.4"

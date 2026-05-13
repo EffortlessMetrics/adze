@@ -165,7 +165,6 @@ const AREAS: &[(&str, &[&str])] = &[
             "glr-core/",
             "crates/parser-",
             "crates/grammar-",
-            "crates/common-syntax-core/",
             "crates/parsetable-metadata/",
             "crates/linecol-core/",
             "crates/error-location-core/",

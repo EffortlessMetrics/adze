@@ -1,4 +1,4 @@
-use adze_common_syntax_core::{FieldThenParams, NameValueExpr};
+use adze_common::{FieldThenParams, NameValueExpr};
 use syn::parse_quote;
 
 #[test]

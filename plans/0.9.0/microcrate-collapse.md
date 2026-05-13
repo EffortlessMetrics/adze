@@ -237,7 +237,6 @@ reason keeps it standalone.
 
 ### Candidate Packages
 
-- `adze-common-syntax-core`
 - `adze-error-location-core`
 - `adze-linecol-core`
 - `adze-stack-pool-core`

@@ -1,7 +1,6 @@
 # Auto-generated release surface from workspace metadata (publishable crates only).
 adze-bdd-grammar-fixtures
 adze-bdd-grid-core
-adze-common-syntax-core
 adze-common
 adze-concurrency-init-classifier-core
 adze-concurrency-init-rayon-core

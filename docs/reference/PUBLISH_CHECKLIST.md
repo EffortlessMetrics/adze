@@ -9,7 +9,7 @@ available on the registry before its dependents can be packaged.
 
 | Step | Crate | Directory | Key deps |
 |------|-------|-----------|----------|
-| 1 | `adze-common` | `common/` | `adze-common-syntax-core` |
+| 1 | `adze-common` | `common/` | *(external only)* |
 | 2 | `adze-ir` | `ir/` | *(external only)* |
 | 3 | `adze-glr-core` | `glr-core/` | `adze-ir` |
 | 4 | `adze-tablegen` | `tablegen/` | `adze-ir`, `adze-glr-core`, `adze-bdd-grid-core`, `adze-parsetable-metadata` |
@@ -25,10 +25,9 @@ the core crates that depend on them. The full set (in order) is:
 1. All `adze-concurrency-*` crates (caps-contract-core, map-core, env-core,
    init-core, caps-core, etc.)
 2. `adze-linecol-core`
-3. `adze-common-syntax-core`
-4. `adze-bdd-grid-core`
-5. `adze-governance-metadata` -> `adze-parsetable-metadata`
-6. `adze-runtime-governance` -> `adze-runtime-governance-api`
+3. `adze-bdd-grid-core`
+4. `adze-governance-metadata` -> `adze-parsetable-metadata`
+5. `adze-runtime-governance` -> `adze-runtime-governance-api`
 
 ## Pre-publish verification
 

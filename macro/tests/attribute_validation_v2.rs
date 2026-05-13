@@ -1,7 +1,7 @@
 //! Comprehensive attribute-validation tests for the adze proc-macro crate.
 //!
 //! Tests exercise the public helpers re-exported from `adze-common` (via
-//! `adze-common-syntax-core`), `syn`-level attribute parsing, and structural
+//! `adze-common`), `syn`-level attribute parsing, and structural
 //! patterns that the macro expansion relies on.
 
 use std::collections::HashSet;

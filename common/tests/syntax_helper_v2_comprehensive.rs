@@ -1,4 +1,4 @@
-//! Comprehensive tests for adze-common-syntax-core re-exported APIs:
+//! Comprehensive tests for adze-common syntax helper APIs:
 //! `try_extract_inner_type`, `filter_inner_type`, `wrap_leaf_type`,
 //! `NameValueExpr`, and `FieldThenParams`.
 

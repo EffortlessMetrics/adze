@@ -1,5 +1,5 @@
 //! Comprehensive tests for syntax manipulation and parsing utilities
-//! in adze-common (re-exported from adze-common-syntax-core).
+//! in adze-common.
 //!
 //! Covers: try_extract_inner_type, filter_inner_type, wrap_leaf_type,
 //! NameValueExpr parsing, FieldThenParams parsing, and their composition.
