@@ -2,24 +2,23 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 45
+**Total Crates:** 43
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 45 | 100% |
-| Contract Lock Tests | 43+ | 96%+ |
+| Complete (BDD + Property) | 43 | 100% |
+| Contract Lock Tests | 41+ | 95%+ |
 
-All 45 microcrates now have comprehensive test coverage with both BDD tests and property-based tests.
+All 43 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 45 crates have both BDD tests and property-based tests:
+All 43 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
-| `bdd-contract` | ✓ | ✓ | ✓ |
 | `bdd-governance-contract` | ✓ | ✓ | ✓ |
 | `bdd-governance-core` | ✓ | ✓ | ✓ |
 | `bdd-governance-fixtures` | ✓ | ✓ | - |
@@ -43,7 +42,6 @@ All 45 crates have both BDD tests and property-based tests:
 | `concurrency-normalize-core` | ✓ | ✓ | ✓ |
 | `concurrency-parse-core` | ✓ | ✓ | ✓ |
 | `concurrency-plan-core` | ✓ | ✓ | ✓ |
-| `feature-policy-contract` | ✓ | ✓ | ✓ |
 | `feature-policy-core` | ✓ | ✓ | ✓ |
 | `governance-contract` | ✓ | ✓ | ✓ |
 | `governance-matrix-contract` | ✓ | ✓ | ✓ |
@@ -67,9 +65,8 @@ All 45 crates have both BDD tests and property-based tests:
 
 ## Contract Lock Files
 
-The following 45+ crates have `contract_lock.rs` test files (contract verification):
+The following 41+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
 
-- `bdd-contract`
 - `bdd-governance-contract`
 - `bdd-governance-core`
 - `bdd-grid-contract`
@@ -90,7 +87,6 @@ The following 45+ crates have `contract_lock.rs` test files (contract verificati
 - `concurrency-normalize-core`
 - `concurrency-parse-core`
 - `concurrency-plan-core`
-- `feature-policy-contract`
 - `feature-policy-core`
 - `governance-contract`
 - `governance-matrix-contract`

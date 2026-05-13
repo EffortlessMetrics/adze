@@ -12,7 +12,6 @@ WASM_CRATES=(
     "adze-bdd-grid-core"
     "adze-governance-metadata"
     "adze-bdd-grid-contract"
-    "adze-bdd-contract"
 )
 
 FAILED=0

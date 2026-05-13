@@ -23,20 +23,6 @@ last_changed = "2026-05-12"
 last_changed_pr = "#694"
 
 [[package]]
-name = "adze-bdd-contract"
-path = "crates/bdd-contract"
-category = "owner-module-migration-target"
-owner = "governance/bdd"
-production_use = true
-publish_intent = "retire-or-inline"
-support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
-ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
-migration_target = "governance/bdd"
-removal_or_promotion_condition = "Move into the SRP owner submodule or reclassify with an accepted spec/ADR before 0.9 release."
-last_changed = "2026-05-12"
-last_changed_pr = "#694"
-
-[[package]]
 name = "adze-bdd-governance-contract"
 path = "crates/bdd-governance-contract"
 category = "owner-module-migration-target"
@@ -449,20 +435,6 @@ publish_intent = "retire-or-inline"
 support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
 ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
 migration_target = "diagnostics/source-location"
-removal_or_promotion_condition = "Move into the SRP owner submodule or reclassify with an accepted spec/ADR before 0.9 release."
-last_changed = "2026-05-12"
-last_changed_pr = "#694"
-
-[[package]]
-name = "adze-feature-policy-contract"
-path = "crates/feature-policy-contract"
-category = "owner-module-migration-target"
-owner = "governance/feature-policy"
-production_use = true
-publish_intent = "retire-or-inline"
-support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
-ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
-migration_target = "governance/feature-policy"
 removal_or_promotion_condition = "Move into the SRP owner submodule or reclassify with an accepted spec/ADR before 0.9 release."
 last_changed = "2026-05-12"
 last_changed_pr = "#694"
