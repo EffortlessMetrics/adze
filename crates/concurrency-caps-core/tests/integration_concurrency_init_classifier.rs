@@ -1,5 +1,5 @@
 use adze_concurrency_caps_core::is_already_initialized_error as caps_classifier;
-use adze_concurrency_init_classifier_core::is_already_initialized_error as classifier_core;
+use adze_concurrency_init_rayon_core::is_already_initialized_error as rayon_classifier;
 
 #[test]
 fn caps_core_reexport_matches_classifier_core_behavior() {
@@ -10,7 +10,7 @@ fn caps_core_reexport_matches_classifier_core_behavior() {
         "totally unrelated",
         "",
     ] {
-        assert_eq!(caps_classifier(message), classifier_core(message));
+        assert_eq!(caps_classifier(message), rayon_classifier(message));
     }
 }
 
@@ -23,6 +23,6 @@ fn caps_core_reexport_is_type_compatible_with_classifier_core() {
     let returned = accepts_core_fn(caps_classifier);
     assert_eq!(
         returned("The global thread pool has already been initialized"),
-        classifier_core("The global thread pool has already been initialized")
+        rayon_classifier("The global thread pool has already been initialized")
     );
 }

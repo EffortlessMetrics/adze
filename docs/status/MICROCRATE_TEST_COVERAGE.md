@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 34
+**Total Crates:** 33
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 34 | 100% |
-| Contract Lock Tests | 32+ | 95%+ |
+| Complete (BDD + Property) | 33 | 100% |
+| Contract Lock Tests | 31+ | 95%+ |
 
-All 34 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 33 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 34 remaining tracked crates have both BDD tests and property-based tests:
+All 33 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -30,7 +30,6 @@ All 34 remaining tracked crates have both BDD tests and property-based tests:
 | `concurrency-env-contract-core` | ✓ | ✓ | ✓ |
 | `concurrency-env-core` | ✓ | ✓ | ✓ |
 | `concurrency-init-bootstrap-core` | ✓ | ✓ | ✓ |
-| `concurrency-init-classifier-core` | ✓ | ✓ | ✓ |
 | `concurrency-init-core` | ✓ | ✓ | ✓ |
 | `concurrency-init-rayon-core` | ✓ | ✓ | ✓ |
 | `concurrency-map-core` | ✓ | ✓ | ✓ |
@@ -55,7 +54,7 @@ All 34 remaining tracked crates have both BDD tests and property-based tests:
 
 ## Contract Lock Files
 
-The following 32+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
+The following 31+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
 
 - `bdd-governance-contract`
 - `bdd-governance-core`
@@ -65,7 +64,6 @@ The following 32+ remaining tracked crates have `contract_lock.rs` test files (c
 - `concurrency-env-contract-core`
 - `concurrency-env-core`
 - `concurrency-init-bootstrap-core`
-- `concurrency-init-classifier-core`
 - `concurrency-init-core`
 - `concurrency-init-rayon-core`
 - `concurrency-map-core`
@@ -124,9 +122,8 @@ The following crates do not have contract lock tests (by design):
 3. **Concurrency Init Crates:**
    - `concurrency-init-core`
    - `concurrency-init-bootstrap-core`
-   - `concurrency-init-classifier-core`
    - `concurrency-init-rayon-core`
-   Five crates for initialization. Consider consolidating related functionality.
+   Remaining initialization crates should keep classifier and bootstrap helpers as SRP owner submodules instead of standalone migration targets.
 
 ## Documentation Status
 

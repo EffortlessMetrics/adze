@@ -150,8 +150,6 @@ jobs:
             adze-concurrency-env-contract-core
             adze-concurrency-init-core
             adze-concurrency-init-bootstrap-core
-            adze-concurrency-init-bootstrap-policy-core
-            adze-concurrency-init-classifier-core
             adze-concurrency-init-rayon-core
             adze-concurrency-map-core
             adze-concurrency-normalize-core
@@ -234,8 +232,6 @@ jobs:
             -p adze-concurrency-env-contract-core \
             -p adze-concurrency-env-core \
             -p adze-concurrency-init-bootstrap-core \
-            -p adze-concurrency-init-bootstrap-policy-core \
-            -p adze-concurrency-init-classifier-core \
             -p adze-concurrency-init-core \
             -p adze-concurrency-init-rayon-core \
             -p adze-concurrency-map-core \

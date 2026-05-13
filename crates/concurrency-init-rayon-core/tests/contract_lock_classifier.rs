@@ -1,4 +1,4 @@
-use adze_concurrency_init_classifier_core::is_already_initialized_error;
+use adze_concurrency_init_rayon_core::is_already_initialized_error;
 
 #[test]
 fn contract_classifier_requires_global_and_already_tokens() {
