@@ -2,7 +2,6 @@
 adze-bdd-grammar-analysis-core
 adze-bdd-grammar-fixtures
 adze-bdd-grid-core
-adze-bdd-grid-contract
 adze-common-syntax-core
 adze-common
 adze-concurrency-init-classifier-core
