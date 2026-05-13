@@ -1,12 +1,12 @@
 use adze_concurrency_caps_core::{
     ConcurrencyCaps as CapsConcurrencyCaps, current_caps as caps_current_caps,
 };
-use adze_concurrency_env_core::{
+use adze_concurrency_env_contract_core::{
     ConcurrencyCaps as EnvConcurrencyCaps, current_caps as env_current_caps,
 };
 
 #[test]
-fn caps_core_reexport_matches_env_core_defaults() {
+fn caps_core_reexport_matches_env_contract_defaults() {
     assert_eq!(
         CapsConcurrencyCaps::default(),
         EnvConcurrencyCaps::default()
@@ -14,12 +14,12 @@ fn caps_core_reexport_matches_env_core_defaults() {
 }
 
 #[test]
-fn caps_core_reexport_matches_env_core_current_caps() {
+fn caps_core_reexport_matches_env_contract_current_caps() {
     assert_eq!(caps_current_caps(), env_current_caps());
 }
 
 #[test]
-fn caps_core_reexport_is_type_compatible_with_env_core() {
+fn caps_core_reexport_is_type_compatible_with_env_contract() {
     fn accepts_env_type(value: EnvConcurrencyCaps) -> EnvConcurrencyCaps {
         value
     }

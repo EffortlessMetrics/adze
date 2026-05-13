@@ -147,7 +147,6 @@ remove unused seams.
 - `adze-concurrency-caps-contract-core`
 - `adze-concurrency-caps-core`
 - `adze-concurrency-env-contract-core`
-- `adze-concurrency-env-core`
 - `adze-concurrency-init-core`
 - `adze-concurrency-init-rayon-core`
 - `adze-concurrency-map-core`
@@ -160,7 +159,7 @@ remove unused seams.
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-concurrency-caps-core -p adze-concurrency-env-core -p adze-concurrency-init-core -- --test-threads=2
+cargo test -p adze-concurrency-caps-core -p adze-concurrency-env-contract-core -p adze-concurrency-init-core -- --test-threads=2
 just ci-supported
 ```
 

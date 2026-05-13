@@ -1,6 +1,6 @@
 //! Pure policy for bootstrap concurrency-caps normalization.
 
-use adze_concurrency_env_core::ConcurrencyCaps;
+use adze_concurrency_env_contract_core::ConcurrencyCaps;
 use adze_concurrency_normalize_core::normalized_concurrency;
 
 /// Normalize bootstrap caps to a safe, process-init-ready configuration.
@@ -15,7 +15,7 @@ pub fn bootstrap_caps(caps: ConcurrencyCaps) -> ConcurrencyCaps {
 #[cfg(test)]
 mod tests {
     use super::bootstrap_caps;
-    use adze_concurrency_env_core::{ConcurrencyCaps, DEFAULT_TOKIO_WORKER_THREADS};
+    use adze_concurrency_env_contract_core::{ConcurrencyCaps, DEFAULT_TOKIO_WORKER_THREADS};
 
     #[test]
     fn bootstrap_caps_normalizes_zero_rayon_threads() {

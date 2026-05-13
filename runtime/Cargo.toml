@@ -83,7 +83,7 @@ hex = "0.4"
 glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concurrency-init-rayon-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../crates/concurrency-init-core" }
-adze-concurrency-env-core = { version = "0.1.0", path = "../crates/concurrency-env-core" }
+adze-concurrency-env-contract-core = { version = "0.1.0", path = "../crates/concurrency-env-contract-core" }
 adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-map-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }

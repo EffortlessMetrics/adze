@@ -1,8 +1,8 @@
 use adze_concurrency_env_contract_core::parse_positive_usize_or_default as parse_core_parse;
-use adze_concurrency_env_core::parse_positive_usize_or_default as env_parse;
+use adze_concurrency_env_contract_core::parse_positive_usize_or_default as env_parse;
 
 #[test]
-fn env_core_reexport_matches_parse_core_behavior() {
+fn env_contract_reexport_matches_parse_core_behavior() {
     for default in 0usize..=64 {
         for value in [
             None,
@@ -18,7 +18,7 @@ fn env_core_reexport_matches_parse_core_behavior() {
 }
 
 #[test]
-fn env_core_reexport_stays_type_compatible_with_parse_core() {
+fn env_contract_reexport_stays_type_compatible_with_parse_core() {
     fn accepts_core_fn(f: fn(Option<&str>, usize) -> usize) -> fn(Option<&str>, usize) -> usize {
         f
     }

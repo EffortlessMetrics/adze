@@ -1,6 +1,6 @@
 #![no_main]
 
-use adze_concurrency_env_core::ConcurrencyCaps;
+use adze_concurrency_env_contract_core::ConcurrencyCaps;
 use adze_concurrency_init_core::bootstrap_caps;
 use libfuzzer_sys::fuzz_target;
 
