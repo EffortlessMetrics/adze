@@ -147,7 +147,6 @@ remove unused seams.
 - `adze-concurrency-env-contract-core`
 - `adze-concurrency-init-core`
 - `adze-concurrency-init-rayon-core`
-- `adze-concurrency-map-core`
 - `adze-concurrency-normalize-core`
 - `adze-concurrency-plan-core`
 

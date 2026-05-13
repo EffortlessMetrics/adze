@@ -1,6 +1,4 @@
-use adze_concurrency_map_core::{
-    ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency,
-};
+use adze::concurrency_caps::{ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency};
 use proptest::prelude::*;
 
 fn model_transform(value: i32) -> i32 {

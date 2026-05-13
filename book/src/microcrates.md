@@ -26,7 +26,6 @@ Bounded-concurrency infrastructure to prevent resource exhaustion:
 | `concurrency-env-contract-core` | `crates/concurrency-env-contract-core/` | Contracts and parsing for env-based cap sources |
 | `concurrency-init-core` | `crates/concurrency-init-core/` | Thread-pool initialization |
 | `concurrency-init-rayon-core` | `crates/concurrency-init-rayon-core/` | Rayon pool initialization with caps |
-| `concurrency-map-core` | `crates/concurrency-map-core/` | Concurrent map utilities |
 | `concurrency-bounded-map-core` | `crates/concurrency-bounded-map-core/` | Size-bounded concurrent map |
 | `concurrency-plan-core` | `crates/concurrency-plan-core/` | Concurrency execution plans |
 | `concurrency-normalize-core` | `crates/concurrency-normalize-core/` | Normalize caps across sources |

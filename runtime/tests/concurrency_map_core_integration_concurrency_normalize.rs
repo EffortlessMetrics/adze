@@ -1,4 +1,4 @@
-use adze_concurrency_map_core::normalized_concurrency as map_core_normalized_concurrency;
+use adze::concurrency_caps::normalized_concurrency as map_core_normalized_concurrency;
 use adze_concurrency_normalize_core::normalized_concurrency as normalize_core_normalized_concurrency;
 
 #[test]

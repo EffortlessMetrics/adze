@@ -1,4 +1,4 @@
-use adze_concurrency_map_core::{bounded_parallel_map, normalized_concurrency};
+use adze::concurrency_caps::{bounded_parallel_map, normalized_concurrency};
 
 #[test]
 fn given_zero_concurrency_when_normalizing_then_single_worker_is_used() {

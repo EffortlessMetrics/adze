@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 28
+**Total Crates:** 27
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 28 | 100% |
+| Complete (BDD + Property) | 27 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 28 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 27 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 28 remaining tracked crates have both BDD tests and property-based tests:
+All 27 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -28,7 +28,6 @@ All 28 remaining tracked crates have both BDD tests and property-based tests:
 | `concurrency-env-contract-core` | ✓ | ✓ | ✓ |
 | `concurrency-init-core` | ✓ | ✓ | ✓ |
 | `concurrency-init-rayon-core` | ✓ | ✓ | ✓ |
-| `concurrency-map-core` | ✓ | ✓ | ✓ |
 | `concurrency-normalize-core` | ✓ | ✓ | ✓ |
 | `concurrency-plan-core` | ✓ | ✓ | ✓ |
 | `feature-policy-core` | ✓ | ✓ | ✓ |
@@ -57,7 +56,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `concurrency-env-contract-core`
 - `concurrency-init-core`
 - `concurrency-init-rayon-core`
-- `concurrency-map-core`
 - `concurrency-normalize-core`
 - `concurrency-plan-core`
 - `feature-policy-core`

@@ -1,5 +1,5 @@
-use adze_concurrency_map_core::bounded::bounded_parallel_map as bounded_owner_map;
-use adze_concurrency_map_core::bounded_parallel_map as facade_bounded_map;
+use adze::concurrency_caps::bounded::bounded_parallel_map as bounded_owner_map;
+use adze::concurrency_caps::bounded_parallel_map as facade_bounded_map;
 
 type TransformFn = fn(i32) -> i32;
 type MapFn = fn(Vec<i32>, usize, TransformFn) -> Vec<i32>;
