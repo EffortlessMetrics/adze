@@ -20,7 +20,6 @@ adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
 adze-concurrency-map-core = { path = "../crates/concurrency-map-core" }
 adze-concurrency-env-core = { path = "../crates/concurrency-env-core" }
 adze-concurrency-init-core = { path = "../crates/concurrency-init-core" }
-adze-concurrency-init-bootstrap-core = { path = "../crates/concurrency-init-bootstrap-core" }
 adze-concurrency-init-rayon-core = { path = "../crates/concurrency-init-rayon-core" }
 adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
 adze-stack-pool-core = { path = "../crates/stack-pool-core" }
@@ -108,8 +107,8 @@ test = false
 doc = false
 
 [[bin]]
-name = "fuzz_concurrency_init_bootstrap_core"
-path = "fuzz_targets/fuzz_concurrency_init_bootstrap_core.rs"
+name = "fuzz_concurrency_init_bootstrap"
+path = "fuzz_targets/fuzz_concurrency_init_bootstrap.rs"
 test = false
 doc = false
 

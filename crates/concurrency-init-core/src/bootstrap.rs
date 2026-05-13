@@ -1,12 +1,5 @@
 //! Single-responsibility bootstrap for concurrency caps initialization.
 
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
-
 use adze_concurrency_env_core::current_caps;
 use adze_concurrency_init_rayon_core::init_rayon_global_once;
 
@@ -39,8 +32,7 @@ pub fn init_concurrency_caps_with_caps(caps: ConcurrencyCaps) {
 
 #[cfg(test)]
 mod tests {
-    use super::init_concurrency_caps_with_caps;
-    use crate::bootstrap_caps;
+    use super::{bootstrap_caps, init_concurrency_caps_with_caps};
     use adze_concurrency_env_core::{
         ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
         RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV,

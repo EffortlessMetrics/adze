@@ -24,7 +24,6 @@ members = [
   "crates/concurrency-env-core",
   "crates/concurrency-env-contract-core",
   "crates/concurrency-init-rayon-core",
-  "crates/concurrency-init-bootstrap-core",
   "crates/concurrency-init-core",
   "crates/concurrency-caps-core",
   "crates/governance-metadata",
