@@ -23,7 +23,6 @@ adze-concurrency-init-core = { path = "../crates/concurrency-init-core" }
 adze-concurrency-init-rayon-core = { path = "../crates/concurrency-init-rayon-core" }
 adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
 adze-stack-pool-core = { path = "../crates/stack-pool-core" }
-adze-concurrency-parse-core = { path = "../crates/concurrency-parse-core" }
 adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core" }
 adze-ts-format-core = { path = "../crates/ts-format-core" }
 adze-common = { path = "../common" }
@@ -70,8 +69,8 @@ test = false
 doc = false
 
 [[bin]]
-name = "fuzz_concurrency_parse_core"
-path = "fuzz_targets/fuzz_concurrency_parse_core.rs"
+name = "fuzz_concurrency_parse"
+path = "fuzz_targets/fuzz_concurrency_parse.rs"
 test = false
 doc = false
 

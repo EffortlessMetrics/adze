@@ -1,8 +1,8 @@
 use adze::concurrency_caps::parse_positive_usize_or_default as runtime_parse;
-use adze_concurrency_parse_core::parse_positive_usize_or_default as parse_core_parse;
+use adze_concurrency_env_contract_core::parse_positive_usize_or_default as parse_owner_parse;
 
 #[test]
-fn runtime_reexport_matches_microcrate_behavior() {
+fn runtime_reexport_matches_owner_module_behavior() {
     for default in 0usize..=64 {
         for value in [
             None,
@@ -14,7 +14,7 @@ fn runtime_reexport_matches_microcrate_behavior() {
         ] {
             assert_eq!(
                 runtime_parse(value, default),
-                parse_core_parse(value, default)
+                parse_owner_parse(value, default)
             );
         }
     }
@@ -27,5 +27,8 @@ fn runtime_reexport_stays_type_compatible() {
     }
 
     let returned = accepts_core_fn(runtime_parse);
-    assert_eq!(returned(Some(" 17 "), 5), parse_core_parse(Some(" 17 "), 5));
+    assert_eq!(
+        returned(Some(" 17 "), 5),
+        parse_owner_parse(Some(" 17 "), 5)
+    );
 }

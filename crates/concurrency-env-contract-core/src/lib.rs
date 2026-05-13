@@ -9,9 +9,10 @@
 
 use std::env;
 
+pub mod parse;
 pub mod vars;
 
-pub use adze_concurrency_parse_core::parse_positive_usize_or_default;
+pub use parse::parse_positive_usize_or_default;
 pub use vars::{
     DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS, RAYON_NUM_THREADS_ENV,
     TOKIO_WORKER_THREADS_ENV,

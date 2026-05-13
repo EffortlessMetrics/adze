@@ -32,7 +32,6 @@ Bounded-concurrency infrastructure to prevent resource exhaustion:
 | `concurrency-bounded-map-core` | `crates/concurrency-bounded-map-core/` | Size-bounded concurrent map |
 | `concurrency-plan-core` | `crates/concurrency-plan-core/` | Concurrency execution plans |
 | `concurrency-normalize-core` | `crates/concurrency-normalize-core/` | Normalize caps across sources |
-| `concurrency-parse-core` | `crates/concurrency-parse-core/` | Parse concurrency config strings |
 
 ## Governance and BDD crates
 
