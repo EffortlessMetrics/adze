@@ -6,7 +6,6 @@ members = [
   "runtime2",
   "crates/parsetable-metadata",
   "crates/bdd-grammar-fixtures",
-  "crates/bdd-governance-fixtures",
   "crates/runtime-governance",
   "crates/runtime-governance-api",
   "crates/runtime-governance-matrix",

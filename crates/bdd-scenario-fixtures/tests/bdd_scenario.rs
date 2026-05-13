@@ -1,7 +1,7 @@
 //! BDD-style tests for bdd-scenario-fixtures crate.
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
-//! This crate is a façade that re-exports from bdd-governance-fixtures and
+//! This crate is a facade that re-exports from bdd-governance-core and
 //! bdd-grammar-fixtures.
 
 use adze_bdd_scenario_fixtures::*;
