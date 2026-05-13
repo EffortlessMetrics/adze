@@ -19,8 +19,8 @@ strict_docs = []
 
 [dependencies]
 adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
-adze-concurrency-init-bootstrap-policy-core = { version = "0.1.0", path = "../concurrency-init-bootstrap-policy-core" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
+adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
 
 [dev-dependencies]
 proptest.workspace = true

@@ -216,20 +216,6 @@ last_changed = "2026-05-12"
 last_changed_pr = "#694"
 
 [[package]]
-name = "adze-concurrency-init-bootstrap-policy-core"
-path = "crates/concurrency-init-bootstrap-policy-core"
-category = "owner-module-migration-target"
-owner = "governance/concurrency"
-production_use = true
-publish_intent = "retire-or-inline"
-support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
-ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
-migration_target = "governance/concurrency"
-removal_or_promotion_condition = "Move into the SRP owner submodule or reclassify with an accepted spec/ADR before 0.9 release."
-last_changed = "2026-05-12"
-last_changed_pr = "#694"
-
-[[package]]
 name = "adze-concurrency-init-classifier-core"
 path = "crates/concurrency-init-classifier-core"
 category = "owner-module-migration-target"
