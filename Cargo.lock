@@ -362,7 +362,6 @@ dependencies = [
 name = "adze-feature-policy-core"
 version = "0.1.0"
 dependencies = [
- "adze-parser-backend-core",
  "criterion",
  "proptest",
 ]
@@ -556,14 +555,6 @@ dependencies = [
  "syn 2.0.117",
  "tempfile",
  "trybuild",
-]
-
-[[package]]
-name = "adze-parser-backend-core"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "proptest",
 ]
 
 [[package]]

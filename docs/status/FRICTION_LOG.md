@@ -209,7 +209,7 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 **Symptom:** Backend-selection tests in parser/governance microcrates fail differently depending on the effective feature-unified surface of the crate under test.
 **Expected:** Conflict-backend assertions should follow one repository-level contract regardless of which representative crate is proving it.
 **Actual:** Some tests assume `profile.has_glr()` and actual backend selection always agree, while other lanes can legitimately surface either a selected backend or the expected no-GLR panic.
-**Repro:** Recent head-specific failures on PR #264 in `crates/parser-backend-core/tests/bdd_parser_backend_core.rs`, `crates/parser-feature-contract/tests/bdd_parser.rs`, and `crates/runtime-governance/tests/integration_chain.rs`.
+**Repro:** Recent head-specific failures on PR #264 in the retired parser-backend contract tests, `crates/parser-feature-contract/tests/bdd_parser.rs`, and `crates/runtime-governance/tests/integration_chain.rs`.
 **Fix:** Define one authoritative contract for conflict-backend behavior and centralize the assertion/helper used across representative test crates.
 **Status:** Resolved (Wave 17, 2026-04-05)
 **Links:** [Issue #267](https://github.com/EffortlessMetrics/adze/issues/267)

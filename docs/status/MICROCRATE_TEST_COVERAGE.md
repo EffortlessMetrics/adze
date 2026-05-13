@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 41
+**Total Crates:** 40
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 41 | 100% |
-| Contract Lock Tests | 39+ | 95%+ |
+| Complete (BDD + Property) | 40 | 100% |
+| Contract Lock Tests | 38+ | 95%+ |
 
-All 41 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 40 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 41 remaining tracked crates have both BDD tests and property-based tests:
+All 40 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -50,7 +50,6 @@ All 41 remaining tracked crates have both BDD tests and property-based tests:
 | `governance-runtime-core` | ✓ | ✓ | ✓ |
 | `governance-runtime-reporting` | ✓ | ✓ | ✓ |
 | `linecol-core` | ✓ | ✓ | ✓ |
-| `parser-backend-core` | ✓ | ✓ | ✓ |
 | `parser-contract` | ✓ | ✓ | ✓ |
 | `parser-governance-contract` | ✓ | ✓ | ✓ |
 | `parsetable-metadata` | ✓ | ✓ | ✓ |
@@ -63,7 +62,7 @@ All 41 remaining tracked crates have both BDD tests and property-based tests:
 
 ## Contract Lock Files
 
-The following 39+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
+The following 38+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
 
 - `bdd-governance-contract`
 - `bdd-governance-core`
@@ -93,7 +92,6 @@ The following 39+ remaining tracked crates have `contract_lock.rs` test files (c
 - `governance-runtime-core`
 - `governance-runtime-reporting`
 - `linecol-core`
-- `parser-backend-core`
 - `parser-contract`
 - `parser-governance-contract`
 - `parsetable-metadata`

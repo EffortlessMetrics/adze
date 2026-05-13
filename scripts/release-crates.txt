@@ -21,7 +21,6 @@ adze-concurrency-caps-core
 adze-linecol-core
 adze-lsp-generator
 adze-macro
-adze-parser-backend-core
 adze-feature-policy-core
 adze-bdd-governance-core
 adze-bdd-governance-contract
