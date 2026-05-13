@@ -8,7 +8,6 @@ members = [
   "crates/bdd-grammar-analysis-core",
   "crates/bdd-grammar-fixtures",
   "crates/bdd-governance-fixtures",
-  "crates/parser-contract",
   "crates/parser-governance-contract",
   "crates/runtime-governance",
   "crates/runtime-governance-api",

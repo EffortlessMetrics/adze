@@ -68,13 +68,12 @@ Parser backend selection, metadata management, and policy enforcement.
 | [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
 | [`governance-runtime-reporting`](governance-runtime-reporting) | Governance reporting utilities |
 
-### Parser Contracts (2 crates)
+### Parser Contracts
 
 Parser backend abstraction and governance contracts.
 
 | Crate | Purpose |
 |-------|---------|
-| [`parser-contract`](parser-contract) | Shared contracts for parser backend selection |
 | [`parser-governance-contract`](parser-governance-contract) | Governance contracts for parser backends |
 
 ### Feature Policy
@@ -135,31 +134,19 @@ All crates support standard governance features for parser backend selection:
 Features propagate through the dependency chain:
 
 ```text
-parser-contract
-  └── governance-contract
-        └── parser-governance-contract
-              └── bdd-governance-contract
+governance-contract
+  └── parser-governance-contract
+        └── bdd-governance-contract
 ```
 
-Enabling `glr` on `parser-contract` automatically enables `pure-rust` and propagates down the chain.
+Enabling `glr` on `governance-contract` automatically enables `pure-rust` and propagates down the chain.
 
 ## Test Coverage Summary
 
-All 47 microcrates have comprehensive test coverage:
-
-| Category | Count | BDD Tests | Property Tests | Contract Lock |
-|----------|-------|-----------|----------------|---------------|
-| BDD Framework | 9 |✓| ✓ | 6/9 |
-| Concurrency | 14 | ✓ | ✓ | 14/14 |
-| Governance | 7 | ✓ | ✓ | 7/7 |
-| Parser Contracts | 4 | ✓ | ✓ | 4/4 |
-| Feature Policy | 2 | ✓ | ✓ | 2/2 |
-| Runtime Governance | 4 | ✓ | ✓ | 4/4 |
-| Utilities | 7 | ✓ | ✓ | 6/7 |
-
-**Total: 100% BDD + Property coverage across all 47 crates**
-
-See [MICROCRATE_TEST_COVERAGE.md](../docs/status/MICROCRATE_TEST_COVERAGE.md) for detailed coverage analysis.
+The microcrate list is actively shrinking during the 0.9 SRP owner-module
+transition. See
+[MICROCRATE_TEST_COVERAGE.md](../docs/status/MICROCRATE_TEST_COVERAGE.md)
+for the current tracked crate count and coverage analysis.
 
 ## Quick Start
 
@@ -170,7 +157,6 @@ Add microcrates to your `Cargo.toml` using workspace dependencies:
 ```toml
 [dependencies]
 adze-governance-contract = { workspace = true }
-adze-parser-contract = { workspace = true }
 ```
 
 ### Enabling Features
@@ -179,7 +165,7 @@ Select your parser backend via feature flags:
 
 ```toml
 [dependencies]
-adze-parser-contract = { workspace = true, features = ["glr"] }
+adze-governance-contract = { workspace = true, features = ["glr"] }
 ```
 
 ### Using BDD Progress Tracking
