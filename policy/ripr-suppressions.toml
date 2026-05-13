@@ -1,23 +1,18 @@
 # ripr suppressions for adze.
 #
-# Each suppression must have:
-#   - path-glob: where the suppression applies
-#   - finding: the ripr finding kind being suppressed
-#   - owner: team handle
-#   - reason: human-readable justification
-#   - expires: ISO date after which the entry is stale
+# Each suppression must declare a kind, owner, reason, and expiry. Test
+# efficiency suppressions match by test/path; seam suppressions match by the
+# fields supported by ripr's suppressions manifest schema.
 #
 # Empty by default; new entries land alongside the change that needs them.
 
-schema_version = "1.0"
-policy = "ripr-suppressions"
-status = "active"
-updated = "2026-05-07"
+schema_version = 1
 
 # Example (commented):
-# [[suppression]]
-# path-glob = "ir/src/some_module.rs"
-# finding = "weakly_exposed"
-# owner = "core/ir"
-# reason = "Behavior is intentionally observed via integration tests in tests/it/."
-# expires = "2026-08-07"
+# [[suppressions]]
+# kind = "test_efficiency"
+# test = "cli_prints_help"
+# path = "tests/cli.rs"
+# owner = "core/docs"
+# reason = "Intentionally broad CLI smoke test."
+# expires = "2099-09-01"

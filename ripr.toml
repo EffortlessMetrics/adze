@@ -6,30 +6,39 @@
 # when reading or writing ripr policy.
 #
 # This config keeps ripr advisory: every severity is "notice" or "warning",
-# and `[policy] fail_on = []` ensures the workflow never blocks merge.
+# and the GitHub workflow keeps ripr advisory/non-blocking.
 #
 # See docs/ci/ripr.md.
 
-schema_version = "1.0"
 
 [analysis]
-mode = "diff"
+mode = "draft"
+include_unchanged_tests = true
 
-[policy]
-fail_on = []
-
-[report]
+[reports]
 max_related_tests = 8
-include_context = true
 
-[severity]
-exposed = "notice"
+[severity.findings]
+exposed = "note"
 weakly_exposed = "warning"
 reachable_unrevealed = "warning"
-no_static_path = "notice"
-infection_unknown = "notice"
-propagation_unknown = "notice"
-static_unknown = "notice"
+no_static_path = "note"
+infection_unknown = "note"
+propagation_unknown = "note"
+static_unknown = "note"
+
+[severity.seams]
+strongly_gripped = "off"
+weakly_gripped = "warning"
+ungripped = "warning"
+reachable_unrevealed = "warning"
+activation_unknown = "note"
+propagation_unknown = "note"
+observation_unknown = "note"
+discrimination_unknown = "note"
+opaque = "note"
+intentional = "off"
+suppressed = "off"
 
 [suppressions]
 path = "policy/ripr-suppressions.toml"

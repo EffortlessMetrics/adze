@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use xshell::Shell;
 
+mod badges;
 mod baseline;
 mod bench;
 mod ci_plan;
@@ -15,6 +16,7 @@ mod grammar_json;
 mod lint;
 mod policy;
 mod profile;
+mod ripr;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -27,6 +29,36 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Regenerate public Shields endpoint JSON under badges/.
+    Badges {
+        /// Check committed badge endpoint drift without updating badges/.
+        #[arg(long)]
+        check: bool,
+    },
+    /// Produce or verify PR-scoped RIPR repository exposure evidence.
+    RiprPr {
+        /// Verify target/ripr/pr output contract instead of generating evidence.
+        #[arg(long)]
+        check: bool,
+        /// Base revision for diff-scoped analysis.
+        #[arg(long)]
+        base: Option<String>,
+        /// Head revision for diff-scoped analysis.
+        #[arg(long, default_value = "HEAD")]
+        head: String,
+    },
+    /// Produce or verify RIPR review guidance artifacts.
+    RiprReviewComments {
+        /// Verify target/ripr/review output contract instead of generating guidance.
+        #[arg(long)]
+        check: bool,
+        /// Base revision for diff-scoped review guidance.
+        #[arg(long, default_value = "origin/main")]
+        base: String,
+        /// Head revision for diff-scoped review guidance.
+        #[arg(long, default_value = "HEAD")]
+        head: String,
+    },
     /// Generate golden test files from tree-sitter
     GenerateGolden {
         /// Grammar to generate golden files for
@@ -379,6 +411,15 @@ fn main() -> Result<()> {
     let sh = Shell::new()?;
 
     match cli.command {
+        Commands::Badges { check } => {
+            badges::run(check)?;
+        }
+        Commands::RiprPr { check, base, head } => {
+            ripr::ripr_pr(check, base, head)?;
+        }
+        Commands::RiprReviewComments { check, base, head } => {
+            ripr::review_comments(check, base, head)?;
+        }
         Commands::Doctor => {
             doctor::run()?;
         }

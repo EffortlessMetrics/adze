@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
   pull-requests: read
 
 concurrency:
@@ -33,6 +34,13 @@ jobs:
       - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
       - name: Resolve base/head SHAs
         id: shas
         run: |
@@ -40,70 +48,73 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            git fetch --no-tags --depth=1 origin "$BASE_SHA" || true
           else
             BASE_SHA="$(git rev-parse origin/main 2>/dev/null || git rev-parse HEAD~1)"
             HEAD_SHA="$(git rev-parse HEAD)"
           fi
           echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Install ripr (advisory, graceful on failure)
         id: ripr-install
-        # ripr requires Rust 1.93+; adze MSRV stays at 1.92.0. Keep both the
-        # isolated toolchain install and ripr install on the graceful path.
         run: |
           set -euo pipefail
-          if rustup toolchain install 1.93 --no-self-update --profile minimal --quiet \
-            && cargo +1.93 install --locked ripr 2>/dev/null; then
+          if rustup toolchain install 1.95 --no-self-update --profile minimal \
+            && cargo +1.95 install --locked ripr 2>/dev/null; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             ripr --version || true
           else
-            # ripr may not yet be published to crates.io; keep graceful fallback.
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "ripr or Rust 1.93 install unavailable; using stub report."
+            echo "ripr install unavailable; xtask will emit advisory stub artifacts."
           fi
-      - name: Run ripr (advisory)
-        if: steps.ripr-install.outputs.available == 'true'
+
+      - name: RIPR PR evidence
         env:
-          BASE_SHA: ${{ steps.shas.outputs.base }}
-          HEAD_SHA: ${{ steps.shas.outputs.head }}
-        run: |
-          set -euo pipefail
-          mkdir -p target/ripr
-          ripr analyze \
-            --config ripr.toml \
-            --base "$BASE_SHA" \
-            --head "$HEAD_SHA" \
-            --json target/ripr/ripr-report.json \
-            --sarif target/ripr/ripr-report.sarif \
-            || echo "ripr exited non-zero (advisory)."
-      - name: Stub report (ripr not available)
-        if: steps.ripr-install.outputs.available != 'true'
-        run: |
-          set -euo pipefail
-          mkdir -p target/ripr
-          cat > target/ripr/ripr-report.json <<'JSON'
-          {
-            "schema_version": 1,
-            "status": "skipped",
-            "reason": "ripr binary not available via cargo install; will activate when published to crates.io."
-          }
-          JSON
-      - name: Upload ripr report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ripr-report
-          path: target/ripr/
-          if-no-files-found: warn
-      - name: Append summary
+          RIPR_BIN: ripr
+        run: cargo xtask ripr-pr --base "${{ steps.shas.outputs.base }}" --head "${{ steps.shas.outputs.head }}"
+
+      - name: RIPR review guidance
+        env:
+          RIPR_BIN: ripr
+        run: cargo xtask ripr-review-comments --base "${{ steps.shas.outputs.base }}" --head "${{ steps.shas.outputs.head }}"
+
+      - name: RIPR PR contract
         if: always()
         run: |
+          cargo xtask ripr-pr --check
+          cargo xtask ripr-review-comments --check
+
+      - name: RIPR annotations
+        if: always()
+        run: python scripts/ripr-annotations.py
+
+      - name: RIPR review summary
+        if: always()
+        shell: bash
+        run: |
           {
-            echo "## ripr advisory";
-            echo "";
-            if [ "${{ steps.ripr-install.outputs.available }}" = "true" ]; then
-              echo "- ripr installed via Rust 1.93 toolchain; analysis ran on \`${{ steps.shas.outputs.base }}..${{ steps.shas.outputs.head }}\`."
+            echo "## RIPR Review Guidance"
+            echo
+            if [ -f target/ripr/review/comments.md ]; then
+              cat target/ripr/review/comments.md
             else
-              echo "- ripr install attempted (Rust 1.93, cargo install --locked ripr) but not available yet; stub report uploaded."
+              echo "No RIPR review guidance was produced."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload RIPR PR evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ripr-pr
+          path: target/ripr/pr
+          if-no-files-found: warn
+
+      - name: Upload RIPR review guidance
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ripr-review
+          path: target/ripr/review
+          if-no-files-found: warn
