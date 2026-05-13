@@ -19,12 +19,9 @@ These crates form the main grammar-to-parser pipeline:
 
 ## Concurrency crates
 
-Bounded-concurrency infrastructure to prevent resource exhaustion:
-
-| Crate | Path | Responsibility |
-|---|---|---|
-| `concurrency-env-contract-core` | `crates/concurrency-env-contract-core/` | Contracts and parsing for env-based cap sources |
-| `concurrency-bounded-map-core` | `crates/concurrency-bounded-map-core/` | Size-bounded concurrent map |
+No standalone concurrency microcrates remain. Concurrency caps, environment
+contracts, normalization, planning, and bounded-map helpers now live under the
+runtime owner module `adze::concurrency_caps`.
 
 ## Governance and BDD crates
 

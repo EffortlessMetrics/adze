@@ -1,5 +1,5 @@
-use adze_concurrency_env_contract_core as contract_core;
-use adze_concurrency_env_contract_core as env_contract;
+use adze::concurrency_caps::env as contract_core;
+use adze::concurrency_caps::env as env_contract;
 
 #[test]
 fn env_contract_reexports_contract_items() {

@@ -1,7 +1,7 @@
 use adze::concurrency_caps::contract::{
     ConcurrencyCaps as CapsConcurrencyCaps, current_caps as caps_current_caps,
 };
-use adze_concurrency_env_contract_core::{
+use adze::concurrency_caps::env::{
     ConcurrencyCaps as EnvConcurrencyCaps, current_caps as env_current_caps,
 };
 

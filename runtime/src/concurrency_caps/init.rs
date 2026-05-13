@@ -1,6 +1,6 @@
 //! Rayon global thread-pool initialization utilities for process-wide concurrency caps.
 
-pub use adze_concurrency_env_contract_core::{
+pub use super::env::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };

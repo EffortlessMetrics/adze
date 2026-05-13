@@ -1,11 +1,11 @@
 //! Cross-crate integration tests for the env chain:
-//! `concurrency-env-contract-core` → `concurrency-env-contract-core` → `concurrency-env-contract-core`
+//! `adze::concurrency_caps::env` → `adze::concurrency_caps::env` → `adze::concurrency_caps::env`
 //!
 //! These tests validate that the environment configuration chain works correctly end-to-end.
 
-use adze_concurrency_env_contract_core as env_contract;
-use adze_concurrency_env_contract_core as parse_owner;
-use adze_concurrency_env_contract_core::{
+use adze::concurrency_caps::env as env_contract;
+use adze::concurrency_caps::env as parse_owner;
+use adze::concurrency_caps::env::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };

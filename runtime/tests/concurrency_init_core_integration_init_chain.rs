@@ -1,11 +1,11 @@
 //! Cross-crate integration tests for the init chain:
-//! `concurrency-env-contract-core` → `adze::concurrency_caps::init::bootstrap` → `adze::concurrency_caps::init::rayon`
+//! `adze::concurrency_caps::env` → `adze::concurrency_caps::init::bootstrap` → `adze::concurrency_caps::init::rayon`
 //!
 //! These tests validate that the full initialization chain works correctly end-to-end.
 
+use adze::concurrency_caps::env::{ConcurrencyCaps, current_caps};
 use adze::concurrency_caps::init::init_concurrency_caps_with_caps;
 use adze::concurrency_caps::init::rayon::init_rayon_global_once;
-use adze_concurrency_env_contract_core::{ConcurrencyCaps, current_caps};
 
 /// Test the full init chain from environment detection to Rayon initialization.
 /// This validates that caps detected from the environment can flow through
@@ -77,7 +77,7 @@ fn test_init_chain_with_various_thread_counts() {
 #[test]
 fn test_env_caps_compatible_with_bootstrap() {
     // Caps from env-core
-    let env_caps = adze_concurrency_env_contract_core::current_caps();
+    let env_caps = adze::concurrency_caps::env::current_caps();
 
     // Should be directly usable with bootstrap init
     init_concurrency_caps_with_caps(env_caps);

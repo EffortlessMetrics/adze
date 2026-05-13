@@ -143,15 +143,13 @@ remove unused seams.
 
 ### Candidate Packages
 
-- `adze-concurrency-bounded-map-core`
-- `adze-concurrency-env-contract-core`
-
+No standalone concurrency microcrate targets remain.
 ### Proof Commands
 
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze -p adze-concurrency-env-contract-core -- --test-threads=2
+cargo test -p adze -- --test-threads=2
 just ci-supported
 ```
 

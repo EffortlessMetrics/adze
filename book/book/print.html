@@ -6527,12 +6527,7 @@ with annotations ──▶ Grammar ──▶ LR(1) automaton ──▶ compresse
 </tbody></table>
 </div>
 <h2 id="concurrency-crates"><a class="header" href="#concurrency-crates">Concurrency crates</a></h2>
-<p>Bounded-concurrency infrastructure to prevent resource exhaustion:</p>
-<div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
-<tr><td><code>concurrency-env-contract-core</code></td><td><code>crates/concurrency-env-contract-core/</code></td><td>Contracts and parsing for env-based cap sources</td></tr>
-<tr><td><code>concurrency-bounded-map-core</code></td><td><code>crates/concurrency-bounded-map-core/</code></td><td>Size-bounded concurrent map</td></tr>
-</tbody></table>
-</div>
+<p>No standalone concurrency microcrates remain. Concurrency caps, environment contracts, normalization, planning, and bounded-map helpers now live under the runtime owner module <code>adze::concurrency_caps</code>.</p>
 <h2 id="governance-and-bdd-crates"><a class="header" href="#governance-and-bdd-crates">Governance and BDD crates</a></h2>
 <p>Quality-assurance infrastructure for feature tracking and behavioral contracts:</p>
 <div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>

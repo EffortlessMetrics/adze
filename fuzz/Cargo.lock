@@ -71,19 +71,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-bounded-map-core"
-version = "0.1.0"
-dependencies = [
- "rayon",
-]
-
-[[package]]
-name = "adze-concurrency-env-contract-core"
-version = "0.1.0"
-dependencies = [
-]
-
-[[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
 dependencies = [
@@ -98,10 +85,6 @@ dependencies = [
  "adze",
  "adze-bdd-grammar-fixtures",
  "adze-common",
- "adze-concurrency-bounded-map-core",
- "adze-concurrency-env-contract-core",
- "adze-concurrency-env-contract-core",
- "adze-concurrency-env-contract-core",
  "adze-glr-core",
  "adze-linecol-core",
  "adze-parser-backend-core",

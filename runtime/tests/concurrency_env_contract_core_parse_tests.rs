@@ -1,4 +1,4 @@
-use adze_concurrency_env_contract_core::parse_positive_usize_or_default;
+use adze::concurrency_caps::env::parse_positive_usize_or_default;
 
 #[test]
 fn none_returns_default() {

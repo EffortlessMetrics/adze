@@ -65,19 +65,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-bounded-map-core"
-version = "0.1.0"
-dependencies = [
- "rayon",
-]
-
-[[package]]
-name = "adze-concurrency-env-contract-core"
-version = "0.1.0"
-dependencies = [
-]
-
-[[package]]
 name = "adze-example"
 version = "0.8.0-dev"
 dependencies = [

@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 23
+**Total Crates:** 22
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 23 | 100% |
+| Complete (BDD + Property) | 22 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 23 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 22 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 23 remaining tracked crates have both BDD tests and property-based tests:
+All 22 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -25,7 +25,6 @@ All 23 remaining tracked crates have both BDD tests and property-based tests:
 | `bdd-grammar-fixtures` | ✓ | ✓ | - |
 | `bdd-grid-core` | ✓ | ✓ | ✓ |
 | `bdd-scenario-fixtures` | ✓ | ✓ | - |
-| `concurrency-env-contract-core` | ✓ | ✓ | ✓ |
 | `feature-policy-core` | ✓ | ✓ | ✓ |
 | `governance-contract` | ✓ | ✓ | ✓ |
 | `governance-matrix-contract` | ✓ | ✓ | ✓ |
@@ -49,7 +48,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `bdd-governance-contract`
 - `bdd-governance-core`
 - `bdd-grid-core`
-- `concurrency-env-contract-core`
 - `feature-policy-core`
 - `governance-contract`
 - `governance-matrix-contract`

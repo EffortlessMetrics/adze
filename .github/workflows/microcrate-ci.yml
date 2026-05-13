@@ -145,7 +145,6 @@ jobs:
           BOTH_CRATES=(
             adze-glr-core
             adze-tablegen
-            adze-concurrency-env-contract-core
             adze-governance-contract
             adze-governance-matrix-contract
             adze-governance-matrix-core
@@ -215,9 +214,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Test concurrency crates
         run: |
-          cargo test \
-            -p adze-concurrency-env-contract-core \
-            -- --test-threads=$RUST_TEST_THREADS
+          echo "No standalone concurrency microcrates remain; runtime owner modules are covered by ci-supported and runtime tests."
 
   test-governance:
     name: Test Governance Crates

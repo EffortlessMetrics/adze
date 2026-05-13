@@ -1,8 +1,8 @@
+use adze::concurrency_caps::env::{
+    ConcurrencyCaps as CoreConcurrencyCaps, current_caps as core_current_caps,
+};
 use adze::concurrency_caps::{
     ConcurrencyCaps as RuntimeConcurrencyCaps, current_caps as runtime_current_caps,
-};
-use adze_concurrency_env_contract_core::{
-    ConcurrencyCaps as CoreConcurrencyCaps, current_caps as core_current_caps,
 };
 
 #[test]

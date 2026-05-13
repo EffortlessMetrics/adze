@@ -1,6 +1,6 @@
 #![no_main]
 
-use adze_concurrency_env_contract_core::parse_positive_usize_or_default;
+use adze::concurrency_caps::env::parse_positive_usize_or_default;
 use libfuzzer_sys::fuzz_target;
 
 fn model_parse(value: Option<&str>, default: usize) -> usize {

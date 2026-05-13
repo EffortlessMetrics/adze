@@ -67,7 +67,6 @@ log = "0.4.27"
 smallvec.workspace = true
 wasm-bindgen = { version = "0.2.100", optional = true }
 adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
-adze-concurrency-env-contract-core = { version = "0.1.0", path = "../crates/concurrency-env-contract-core" }
 ts_bridge = { package = "ts-bridge", version = "0.1.0", path = "../tools/ts-bridge", optional = true, default-features = false }
 tree_sitter_json = { package = "tree-sitter-json", version = "0.24", optional = true }
 adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
