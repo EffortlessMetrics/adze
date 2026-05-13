@@ -1,4 +1,4 @@
-use adze_concurrency_init_core::rayon::init_rayon_global_once;
+use adze::concurrency_caps::init::rayon::init_rayon_global_once;
 use proptest::prelude::*;
 
 proptest! {

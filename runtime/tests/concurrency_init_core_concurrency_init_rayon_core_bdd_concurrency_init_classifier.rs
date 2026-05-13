@@ -1,4 +1,4 @@
-use adze_concurrency_init_core::rayon::is_already_initialized_error;
+use adze::concurrency_caps::init::rayon::is_already_initialized_error;
 
 #[test]
 fn given_global_already_message_when_classifying_then_it_is_detected() {

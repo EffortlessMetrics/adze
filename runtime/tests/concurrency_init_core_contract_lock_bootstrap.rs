@@ -1,6 +1,6 @@
 //! Contract lock test - verifies that public API remains stable.
 
-use adze_concurrency_init_core::{
+use adze::concurrency_caps::init::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, init_concurrency_caps,
     init_concurrency_caps_with_caps,

@@ -74,13 +74,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-init-core"
-version = "0.1.0"
-dependencies = [
- "adze-concurrency-env-contract-core",
-]
-
-[[package]]
 name = "adze-concurrency-normalize-core"
 version = "0.1.0"
 

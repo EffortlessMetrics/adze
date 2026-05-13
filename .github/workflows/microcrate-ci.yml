@@ -146,7 +146,6 @@ jobs:
             adze-glr-core
             adze-tablegen
             adze-concurrency-env-contract-core
-            adze-concurrency-init-core
             adze-concurrency-normalize-core
             adze-governance-contract
             adze-governance-matrix-contract
@@ -219,7 +218,6 @@ jobs:
         run: |
           cargo test \
             -p adze-concurrency-env-contract-core \
-            -p adze-concurrency-init-core \
             -p adze-concurrency-normalize-core \
             -- --test-threads=$RUST_TEST_THREADS
 

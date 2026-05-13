@@ -1,5 +1,5 @@
+use adze::concurrency_caps::init::rayon::init_rayon_global_once as rayon_core_fn;
 use adze::concurrency_caps::init_rayon_global_once as caps_core_fn;
-use adze_concurrency_init_core::rayon::init_rayon_global_once as rayon_core_fn;
 
 #[test]
 fn caps_core_reexport_matches_rayon_core_behavior() {

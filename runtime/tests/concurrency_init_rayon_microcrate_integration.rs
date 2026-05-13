@@ -1,5 +1,5 @@
+use adze::concurrency_caps::init::rayon::init_rayon_global_once as core_init_rayon_global_once;
 use adze::concurrency_caps::init_rayon_global_once as runtime_init_rayon_global_once;
-use adze_concurrency_init_core::rayon::init_rayon_global_once as core_init_rayon_global_once;
 
 #[test]
 fn runtime_reexport_matches_microcrate_init_behavior() {

@@ -1,5 +1,5 @@
+use adze::concurrency_caps::init::bootstrap_caps;
 use adze_concurrency_env_contract_core::ConcurrencyCaps;
-use adze_concurrency_init_core::bootstrap_caps;
 
 #[test]
 fn given_zero_rayon_threads_when_bootstrapping_then_it_normalizes_to_one_worker() {

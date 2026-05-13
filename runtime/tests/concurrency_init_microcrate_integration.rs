@@ -1,5 +1,5 @@
+use adze::concurrency_caps::init::init_concurrency_caps as core_init_concurrency_caps;
 use adze::concurrency_caps::init_concurrency_caps as runtime_init_concurrency_caps;
-use adze_concurrency_init_core::init_concurrency_caps as core_init_concurrency_caps;
 
 #[test]
 fn runtime_reexport_matches_microcrate_init_behavior() {

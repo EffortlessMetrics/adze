@@ -1,6 +1,6 @@
 #![no_main]
 
-use adze_concurrency_init_core::is_already_initialized_error;
+use adze::concurrency_caps::init::is_already_initialized_error;
 use libfuzzer_sys::fuzz_target;
 
 fn model_is_already_initialized_error(message: &str) -> bool {

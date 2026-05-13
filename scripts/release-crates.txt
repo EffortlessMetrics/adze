@@ -4,7 +4,6 @@ adze-bdd-grid-core
 adze-common
 adze-concurrency-normalize-core
 adze-concurrency-env-contract-core
-adze-concurrency-init-core
 adze-linecol-core
 adze-lsp-generator
 adze-macro
