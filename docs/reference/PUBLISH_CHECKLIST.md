@@ -26,11 +26,10 @@ the core crates that depend on them. The full set (in order) is:
    init-core, caps-core, etc.)
 2. `adze-linecol-core`
 3. `adze-stack-pool-core`
-4. `adze-ts-format-core`
-5. `adze-common-syntax-core`
-6. `adze-bdd-scenario-core` -> `adze-bdd-grid-core`
-7. `adze-governance-metadata` -> `adze-parsetable-metadata`
-8. `adze-runtime-governance` -> `adze-runtime-governance-api`
+4. `adze-common-syntax-core`
+5. `adze-bdd-scenario-core` -> `adze-bdd-grid-core`
+6. `adze-governance-metadata` -> `adze-parsetable-metadata`
+7. `adze-runtime-governance` -> `adze-runtime-governance-api`
 
 ## Pre-publish verification
 

@@ -12,7 +12,6 @@ members = [
   "crates/parser-governance-contract",
   "crates/runtime-governance",
   "crates/runtime-governance-api",
-  "crates/ts-format-core",
   "crates/runtime-governance-matrix",
   "crates/runtime2-governance",
   "crates/stack-pool-core",
