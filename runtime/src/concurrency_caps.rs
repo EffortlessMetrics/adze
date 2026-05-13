@@ -19,6 +19,8 @@
 pub mod bounded;
 /// Contract-focused concurrency cap facade.
 pub mod contract;
+/// Process-wide concurrency initialization helpers.
+pub mod init;
 /// Bounded parallel partition planning policy.
 pub mod plan;
 

@@ -1,5 +1,5 @@
+use adze::concurrency_caps::init::rayon::is_already_initialized_error as rayon_classifier;
 use adze::concurrency_caps::is_already_initialized_error as runtime_classifier;
-use adze_concurrency_init_core::rayon::is_already_initialized_error as rayon_classifier;
 
 #[test]
 fn runtime_reexport_matches_microcrate_behavior() {

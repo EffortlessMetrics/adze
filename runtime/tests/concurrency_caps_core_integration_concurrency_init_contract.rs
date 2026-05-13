@@ -1,5 +1,5 @@
 use adze::concurrency_caps::contract::init_concurrency_caps as caps_init_concurrency_caps;
-use adze_concurrency_init_core::init_concurrency_caps as init_core_init_concurrency_caps;
+use adze::concurrency_caps::init::init_concurrency_caps as init_core_init_concurrency_caps;
 
 #[test]
 fn caps_core_reexport_matches_init_core_behavior() {

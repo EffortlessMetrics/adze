@@ -1,4 +1,4 @@
-use adze_concurrency_init_core::{
+use adze::concurrency_caps::init::{
     init_concurrency_caps, init_rayon_global_once, is_already_initialized_error,
 };
 use proptest::prelude::*;

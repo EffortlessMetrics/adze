@@ -32,14 +32,13 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | [`bdd-grid-core`](bdd-grid-core) | Core implementation of BDD scenario grids |
 | [`bdd-scenario-fixtures`](bdd-scenario-fixtures) | General BDD scenario test fixtures |
 
-### Concurrency (3 crates)
+### Concurrency (2 crates)
 
 Thread pool management, concurrency caps, and parallel execution policies.
 
 | Crate | Purpose |
 |-------|---------|
 | [`concurrency-env-contract-core`](concurrency-env-contract-core) | Environment-based concurrency contract and parsing |
-| [`concurrency-init-core`](concurrency-init-core) | Rayon global thread-pool initialization |
 | [`concurrency-normalize-core`](concurrency-normalize-core) | Normalization of concurrency configurations |
 
 ### Governance (7 crates)
@@ -171,7 +170,7 @@ let backend = profile.preferred_backend();
 ### Using Concurrency Initialization
 
 ```rust
-use adze_concurrency_init_core::init_concurrency_caps;
+use adze::concurrency_caps::init_concurrency_caps;
 
 // Initialize concurrency caps (idempotent)
 init_concurrency_caps();
