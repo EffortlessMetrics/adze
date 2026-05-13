@@ -1,4 +1,4 @@
-use adze_concurrency_caps_core::contract::normalized_concurrency as caps_core_normalized_concurrency;
+use adze::concurrency_caps::normalized_concurrency as caps_core_normalized_concurrency;
 use adze_concurrency_normalize_core::normalized_concurrency as normalize_core_normalized_concurrency;
 
 #[test]

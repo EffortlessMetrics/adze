@@ -1,4 +1,4 @@
-use adze_concurrency_caps_core::contract::{bounded_parallel_map, normalized_concurrency};
+use adze::concurrency_caps::contract::{bounded_parallel_map, normalized_concurrency};
 use proptest::prelude::*;
 
 fn model_transform(value: i32) -> i32 {

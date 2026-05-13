@@ -1,4 +1,4 @@
-use adze_concurrency_caps_core::bounded_parallel_map as caps_bounded_parallel_map;
+use adze::concurrency_caps::bounded_parallel_map as caps_bounded_parallel_map;
 use adze_concurrency_map_core::bounded_parallel_map as core_bounded_parallel_map;
 
 type TransformFn = fn(i32) -> i32;

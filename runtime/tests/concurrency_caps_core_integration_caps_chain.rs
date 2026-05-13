@@ -1,11 +1,11 @@
 //! Cross-crate integration tests for the caps chain:
-//! `concurrency-caps-core` → `contract` owner submodule
+//! `adze::concurrency_caps` → `contract` owner submodule
 //!
 //! These tests validate that the caps aggregation layer correctly integrates
 //! all the underlying concurrency utilities.
 
-use adze_concurrency_caps_core as caps_core;
-use adze_concurrency_caps_core::contract as caps_contract;
+use adze::concurrency_caps as caps_core;
+use adze::concurrency_caps::contract as caps_contract;
 
 /// Test that caps-core and caps-core contract module expose the same ConcurrencyCaps type.
 #[test]

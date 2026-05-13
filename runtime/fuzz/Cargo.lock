@@ -6,7 +6,6 @@ version = 4
 name = "adze"
 version = "0.8.0-dev"
 dependencies = [
- "adze-concurrency-caps-core",
  "adze-glr-core",
  "adze-ir",
  "adze-linecol-core",
@@ -67,15 +66,6 @@ version = "0.1.0"
 dependencies = [
  "adze-concurrency-plan-core",
  "rayon",
-]
-
-[[package]]
-name = "adze-concurrency-caps-core"
-version = "0.1.0"
-dependencies = [
- "adze-concurrency-env-contract-core",
- "adze-concurrency-init-core",
- "adze-concurrency-map-core",
 ]
 
 [[package]]
