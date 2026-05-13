@@ -41,7 +41,6 @@ adze-runtime-governance
 adze-runtime-governance-api
 adze-runtime2-governance
 adze-runtime
-adze-stack-pool-core
 adze-tool
 adze-cli
 adze

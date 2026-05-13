@@ -105,7 +105,6 @@ Shared utilities, metadata, and support structures.
 | [`common-syntax-core`](common-syntax-core) | Common syntax utilities |
 | [`linecol-core`](linecol-core) | Line/column byte-position tracking |
 | [`parsetable-metadata`](parsetable-metadata) | Parse table metadata structures |
-| [`stack-pool-core`](stack-pool-core) | Stack-allocated pool utilities |
 | [`ts-c-harness`](ts-c-harness) | Tree-sitter C FFI test harness *(excluded from workspace)* |
 
 ## Dependency Graph
