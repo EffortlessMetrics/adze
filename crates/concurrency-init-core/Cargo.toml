@@ -18,7 +18,7 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
+adze-concurrency-env-contract-core = { version = "0.1.0", path = "../concurrency-env-contract-core" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
 

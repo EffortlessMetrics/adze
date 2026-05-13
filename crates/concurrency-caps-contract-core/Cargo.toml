@@ -18,7 +18,7 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
+adze-concurrency-env-contract-core = { version = "0.1.0", path = "../concurrency-env-contract-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
 adze-concurrency-map-core = { version = "0.1.0", path = "../concurrency-map-core" }
 
@@ -26,7 +26,7 @@ adze-concurrency-map-core = { version = "0.1.0", path = "../concurrency-map-core
 proptest.workspace = true
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../concurrency-init-rayon-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
-adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
+adze-concurrency-env-contract-core = { version = "0.1.0", path = "../concurrency-env-contract-core" }
 adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../concurrency-normalize-core" }
 adze-concurrency-plan-core = { version = "0.1.0", path = "../concurrency-plan-core" }

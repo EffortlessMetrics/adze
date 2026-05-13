@@ -1,13 +1,13 @@
 //! Cross-crate integration tests for the env chain:
-//! `concurrency-parse-core` → `concurrency-env-contract-core` → `concurrency-env-core`
+//! `concurrency-parse-core` → `concurrency-env-contract-core` → `concurrency-env-contract-core`
 //!
 //! These tests validate that the environment configuration chain works correctly end-to-end.
 
+use adze_concurrency_env_contract_core as env_contract;
 use adze_concurrency_env_contract_core::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };
-use adze_concurrency_env_core as env_core;
 use adze_concurrency_parse_core as parse_core;
 
 /// Test that the env chain correctly parses and returns default values.
@@ -15,7 +15,7 @@ use adze_concurrency_parse_core as parse_core;
 fn test_env_chain_defaults_are_consistent() {
     // Given: No environment overrides
     let contract_caps = ConcurrencyCaps::from_lookup(|_| None);
-    let env_caps = env_core::ConcurrencyCaps::from_lookup(|_| None);
+    let env_caps = env_contract::ConcurrencyCaps::from_lookup(|_| None);
 
     // Then: Both should return the same defaults
     assert_eq!(contract_caps, env_caps);
@@ -65,7 +65,7 @@ fn test_env_chain_type_compatibility() {
     }
 
     // env-core re-exports from env-contract-core, so types should be identical
-    let env_caps = env_core::ConcurrencyCaps::default();
+    let env_caps = env_contract::ConcurrencyCaps::default();
     let returned = accepts_contract_caps(env_caps);
     assert_eq!(returned, ConcurrencyCaps::default());
 }
@@ -73,15 +73,18 @@ fn test_env_chain_type_compatibility() {
 /// Test that the environment variable constants are consistent across the chain.
 #[test]
 fn test_env_chain_constants_are_consistent() {
-    assert_eq!(RAYON_NUM_THREADS_ENV, env_core::RAYON_NUM_THREADS_ENV);
-    assert_eq!(TOKIO_WORKER_THREADS_ENV, env_core::TOKIO_WORKER_THREADS_ENV);
+    assert_eq!(RAYON_NUM_THREADS_ENV, env_contract::RAYON_NUM_THREADS_ENV);
+    assert_eq!(
+        TOKIO_WORKER_THREADS_ENV,
+        env_contract::TOKIO_WORKER_THREADS_ENV
+    );
     assert_eq!(
         DEFAULT_RAYON_NUM_THREADS,
-        env_core::DEFAULT_RAYON_NUM_THREADS
+        env_contract::DEFAULT_RAYON_NUM_THREADS
     );
     assert_eq!(
         DEFAULT_TOKIO_WORKER_THREADS,
-        env_core::DEFAULT_TOKIO_WORKER_THREADS
+        env_contract::DEFAULT_TOKIO_WORKER_THREADS
     );
 }
 

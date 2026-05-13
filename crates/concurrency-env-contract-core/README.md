@@ -1,6 +1,7 @@
 # adze-concurrency-env-contract-core
 
-Shared contract for concurrency environment variables and defaults.
+Shared owner module for concurrency environment variables, defaults, parsing,
+and resolved cap snapshots.
 
 Part of the [adze](https://github.com/EffortlessMetrics/adze) workspace.
 

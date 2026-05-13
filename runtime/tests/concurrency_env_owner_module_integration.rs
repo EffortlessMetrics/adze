@@ -1,12 +1,12 @@
 use adze::concurrency_caps::{
     ConcurrencyCaps as RuntimeConcurrencyCaps, current_caps as runtime_current_caps,
 };
-use adze_concurrency_env_core::{
+use adze_concurrency_env_contract_core::{
     ConcurrencyCaps as CoreConcurrencyCaps, current_caps as core_current_caps,
 };
 
 #[test]
-fn runtime_reexport_matches_microcrate_defaults() {
+fn runtime_reexport_matches_owner_module_defaults() {
     assert_eq!(
         RuntimeConcurrencyCaps::default(),
         CoreConcurrencyCaps::default()
@@ -14,7 +14,7 @@ fn runtime_reexport_matches_microcrate_defaults() {
 }
 
 #[test]
-fn runtime_reexport_matches_microcrate_current_caps() {
+fn runtime_reexport_matches_owner_module_current_caps() {
     assert_eq!(runtime_current_caps(), core_current_caps());
 }
 

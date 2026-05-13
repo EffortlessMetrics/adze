@@ -20,7 +20,7 @@ strict_docs = []
 [dependencies]
 adze-concurrency-caps-contract-core = { version = "0.1.0", path = "../concurrency-caps-contract-core" }
 adze-concurrency-map-core = { version = "0.1.0", path = "../concurrency-map-core" }
-adze-concurrency-env-core = { version = "0.1.0", path = "../concurrency-env-core" }
+adze-concurrency-env-contract-core = { version = "0.1.0", path = "../concurrency-env-contract-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../concurrency-init-core" }
 
 [dev-dependencies]

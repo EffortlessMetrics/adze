@@ -1,6 +1,6 @@
 //! Contract lock test - verifies that bootstrap policy API remains stable.
 
-use adze_concurrency_env_core::ConcurrencyCaps;
+use adze_concurrency_env_contract_core::ConcurrencyCaps;
 use adze_concurrency_init_core::bootstrap_caps;
 
 /// Verify all public functions exist with expected signatures.
