@@ -2,7 +2,6 @@
 adze-bdd-grammar-fixtures
 adze-bdd-grid-core
 adze-common
-adze-concurrency-normalize-core
 adze-concurrency-env-contract-core
 adze-linecol-core
 adze-lsp-generator

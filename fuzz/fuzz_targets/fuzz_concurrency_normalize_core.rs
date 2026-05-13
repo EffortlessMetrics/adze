@@ -1,6 +1,6 @@
 #![no_main]
 
-use adze_concurrency_normalize_core::{MIN_CONCURRENCY, normalized_concurrency};
+use adze::concurrency_caps::normalize::{MIN_CONCURRENCY, normalized_concurrency};
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

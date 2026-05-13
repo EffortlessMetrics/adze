@@ -1,5 +1,5 @@
 //! Cross-crate integration tests for the map chain:
-//! `concurrency-normalize-core` → `adze::concurrency_caps::plan` → `adze::concurrency_caps::bounded`
+//! `adze::concurrency_caps::normalize` → `adze::concurrency_caps::plan` → `adze::concurrency_caps::bounded`
 //!
 //! These tests validate that the parallel map chain works correctly end-to-end.
 
@@ -7,13 +7,13 @@ use adze::concurrency_caps::bounded::{
     ParallelPartitionPlan as BoundedPlan, bounded_parallel_map as bounded_map,
     normalized_concurrency as bounded_normalized,
 };
+use adze::concurrency_caps::normalize::{
+    MIN_CONCURRENCY, normalized_concurrency as normalize_normalized,
+};
 use adze::concurrency_caps::plan::{
     ParallelPartitionPlan as PlanPlan, normalized_concurrency as plan_normalized,
 };
 use adze::concurrency_caps::{ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency};
-use adze_concurrency_normalize_core::{
-    MIN_CONCURRENCY, normalized_concurrency as normalize_normalized,
-};
 
 /// Test that the map chain correctly normalizes concurrency values.
 #[test]

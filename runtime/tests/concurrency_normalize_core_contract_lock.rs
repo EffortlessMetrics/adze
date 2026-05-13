@@ -1,4 +1,4 @@
-use adze_concurrency_normalize_core::{MIN_CONCURRENCY, normalized_concurrency};
+use adze::concurrency_caps::normalize::{MIN_CONCURRENCY, normalized_concurrency};
 
 #[test]
 fn contract_minimum_concurrency_constant_is_stable() {

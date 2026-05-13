@@ -1,4 +1,4 @@
-use adze_concurrency_normalize_core::{MIN_CONCURRENCY, normalized_concurrency};
+use adze::concurrency_caps::normalize::{MIN_CONCURRENCY, normalized_concurrency};
 use proptest::prelude::*;
 
 proptest! {
