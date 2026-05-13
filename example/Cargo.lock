@@ -111,15 +111,7 @@ name = "adze-concurrency-init-bootstrap-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-core",
- "adze-concurrency-init-bootstrap-policy-core",
  "adze-concurrency-init-rayon-core",
-]
-
-[[package]]
-name = "adze-concurrency-init-bootstrap-policy-core"
-version = "0.1.0"
-dependencies = [
- "adze-concurrency-env-core",
  "adze-concurrency-normalize-core",
 ]
 

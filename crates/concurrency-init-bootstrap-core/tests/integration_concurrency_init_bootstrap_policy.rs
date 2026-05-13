@@ -1,5 +1,5 @@
 use adze_concurrency_env_core::ConcurrencyCaps;
-use adze_concurrency_init_bootstrap_policy_core::bootstrap_caps;
+use adze_concurrency_init_bootstrap_core::bootstrap_caps;
 use adze_concurrency_normalize_core::normalized_concurrency;
 
 #[test]

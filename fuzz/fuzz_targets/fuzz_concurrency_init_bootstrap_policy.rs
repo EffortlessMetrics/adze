@@ -1,7 +1,7 @@
 #![no_main]
 
 use adze_concurrency_env_core::ConcurrencyCaps;
-use adze_concurrency_init_bootstrap_policy_core::bootstrap_caps;
+use adze_concurrency_init_bootstrap_core::bootstrap_caps;
 use libfuzzer_sys::fuzz_target;
 
 fn model_bootstrap_caps(caps: ConcurrencyCaps) -> ConcurrencyCaps {

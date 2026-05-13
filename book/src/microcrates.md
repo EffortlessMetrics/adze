@@ -30,7 +30,6 @@ Bounded-concurrency infrastructure to prevent resource exhaustion:
 | `concurrency-init-core` | `crates/concurrency-init-core/` | Thread-pool initialization |
 | `concurrency-init-rayon-core` | `crates/concurrency-init-rayon-core/` | Rayon pool initialization with caps |
 | `concurrency-init-bootstrap-core` | `crates/concurrency-init-bootstrap-core/` | Bootstrap-time cap detection |
-| `concurrency-init-bootstrap-policy-core` | `crates/concurrency-init-bootstrap-policy-core/` | Policy for bootstrap caps |
 | `concurrency-init-classifier-core` | `crates/concurrency-init-classifier-core/` | Classifies system into cap tiers |
 | `concurrency-map-core` | `crates/concurrency-map-core/` | Concurrent map utilities |
 | `concurrency-bounded-map-core` | `crates/concurrency-bounded-map-core/` | Size-bounded concurrent map |

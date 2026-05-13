@@ -32,7 +32,6 @@ adze-ts-format-core = { path = "../crates/ts-format-core" }
 adze-common = { path = "../common" }
 adze-concurrency-bounded-map-core = { path = "../crates/concurrency-bounded-map-core" }
 adze-concurrency-caps-contract-core = { path = "../crates/concurrency-caps-contract-core" }
-adze-concurrency-init-bootstrap-policy-core = { path = "../crates/concurrency-init-bootstrap-policy-core" }
 adze-parser-backend-core = { path = "../crates/parser-backend-core" }
 quote = "1"
 syn = { version = "2", features = [ "full", "extra-traits" ] }
@@ -158,8 +157,8 @@ test = false
 doc = false
 
 [[bin]]
-name = "fuzz_concurrency_init_bootstrap_policy_core"
-path = "fuzz_targets/fuzz_concurrency_init_bootstrap_policy_core.rs"
+name = "fuzz_concurrency_init_bootstrap_policy"
+path = "fuzz_targets/fuzz_concurrency_init_bootstrap_policy.rs"
 test = false
 doc = false
 

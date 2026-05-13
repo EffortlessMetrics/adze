@@ -43,7 +43,6 @@ Thread pool management, concurrency caps, and parallel execution policies.
 | [`concurrency-env-contract-core`](concurrency-env-contract-core) | Environment-based concurrency contract |
 | [`concurrency-env-core`](concurrency-env-core) | Environment variable parsing for concurrency |
 | [`concurrency-init-bootstrap-core`](concurrency-init-bootstrap-core) | Bootstrap initialization for concurrency |
-| [`concurrency-init-bootstrap-policy-core`](concurrency-init-bootstrap-policy-core) | Policy for bootstrap initialization |
 | [`concurrency-init-classifier-core`](concurrency-init-classifier-core) | Classification of initialization contexts |
 | [`concurrency-init-core`](concurrency-init-core) | Rayon global thread-pool initialization |
 | [`concurrency-init-rayon-core`](concurrency-init-rayon-core) | Rayon-specific initialization utilities |

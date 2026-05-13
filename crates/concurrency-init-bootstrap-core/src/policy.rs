@@ -1,12 +1,5 @@
 //! Pure policy for bootstrap concurrency-caps normalization.
 
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
-
 use adze_concurrency_env_core::ConcurrencyCaps;
 use adze_concurrency_normalize_core::normalized_concurrency;
 

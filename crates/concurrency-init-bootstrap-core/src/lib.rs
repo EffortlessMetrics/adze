@@ -8,13 +8,15 @@
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 use adze_concurrency_env_core::current_caps;
-use adze_concurrency_init_bootstrap_policy_core::bootstrap_caps;
 use adze_concurrency_init_rayon_core::init_rayon_global_once;
+
+pub mod policy;
 
 pub use adze_concurrency_env_core::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV,
 };
+pub use policy::bootstrap_caps;
 
 /// Initialize concurrency caps by reading the current process environment.
 pub fn init_concurrency_caps() {
@@ -38,11 +40,11 @@ pub fn init_concurrency_caps_with_caps(caps: ConcurrencyCaps) {
 #[cfg(test)]
 mod tests {
     use super::init_concurrency_caps_with_caps;
+    use crate::bootstrap_caps;
     use adze_concurrency_env_core::{
         ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
         RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV,
     };
-    use adze_concurrency_init_bootstrap_policy_core::bootstrap_caps;
 
     #[test]
     fn init_with_zero_rayon_threads_normalizes_to_minimum() {
