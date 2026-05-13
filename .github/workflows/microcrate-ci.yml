@@ -165,13 +165,11 @@ jobs:
             adze-governance-metadata
             adze-governance-runtime-core
             adze-governance-runtime-reporting
-            adze-feature-policy-contract
             adze-feature-policy-core
             adze-runtime-governance
             adze-runtime-governance-api
             adze-runtime-governance-matrix
             adze-runtime2-governance
-            adze-bdd-contract
             adze-bdd-governance-contract
             adze-bdd-governance-core
             adze-bdd-governance-fixtures
@@ -277,7 +275,6 @@ jobs:
             -p adze-governance-metadata \
             -p adze-governance-runtime-core \
             -p adze-governance-runtime-reporting \
-            -p adze-feature-policy-contract \
             -p adze-feature-policy-core \
             -p adze-runtime-governance \
             -p adze-runtime-governance-api \
@@ -299,7 +296,6 @@ jobs:
       - name: Test BDD crates
         run: |
           cargo test \
-            -p adze-bdd-contract \
             -p adze-bdd-governance-contract \
             -p adze-bdd-governance-core \
             -p adze-bdd-governance-fixtures \

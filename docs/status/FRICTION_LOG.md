@@ -181,18 +181,18 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 ### FR-015 - Feature Matrix Expected Failure
 
 **Area:** testing
-**Symptom:** `feature_profile_resolve_backend` test in `adze-feature-policy-contract` panics with "Grammar has shift/reduce or reduce/reduce conflicts, but the GLR feature is not enabled."
+**Symptom:** A historical feature-policy facade test panicked with "Grammar has shift/reduce or reduce/reduce conflicts, but the GLR feature is not enabled."
 **Expected:** Feature matrix: 12/12 pass.
 **Actual:** 11/12 pass; 1 expected failure due to intentional GLR feature gating logic being tested without the GLR feature enabled.
 **Fix:** Added conditional guard `if profile.has_glr()` in the test to only call `resolve_backend(true)` when GLR is available, avoiding the panic in pure-rust-without-GLR configuration.
 **Status:** Resolved
 **Discovered:** Wave 14
-**Resolved:** Wave 15 (2026-03-25) - Test now passes with all feature combinations (default, pure-rust, glr). Verified with `cargo test -p adze-feature-policy-contract --features pure-rust feature_profile_resolve_backend`.
+**Resolved:** Wave 15 (2026-03-25) - Test passed with all feature combinations before the facade was later retired during the 0.9 microcrate transition.
 
 ### FR-016 - Compiler ICE in Feature Policy Contract
 
 **Area:** testing
-**Symptom:** Compiler internal compiler error (ICE) when running tests in `adze-feature-policy-contract` with `proptest!` macro and complex control flow.
+**Symptom:** Compiler internal compiler error (ICE) when running tests in a historical feature-policy facade with `proptest!` macro and complex control flow.
 **Expected:** All tests compile and run without compiler errors.
 **Actual:** ICE triggered by combination of `proptest!` macro, `const fn` with `unreachable!()`, and nested `if` statements.
 **Fix:**

@@ -1,6 +1,6 @@
 # SRP Microcrates
 
-This directory contains **47 single-responsibility principle (SRP) microcrates** that implement governance-as-code for the Adze parser toolchain.
+This directory contains single-responsibility principle (SRP) support modules that implement governance-as-code for the Adze parser toolchain. During the 0.9 release work, transitional façade crates are being retired or moved into owner submodules before release.
 
 ## Overview
 
@@ -19,13 +19,12 @@ This modular architecture enables:
 
 ## Categories
 
-### BDD Framework (9 crates)
+### BDD Framework
 
 Behavior-driven development infrastructure for scenario tracking and progress reporting.
 
 | Crate | Purpose |
 |-------|---------|
-| [`bdd-contract`](bdd-contract) | Shared BDD contracts for scenario tracking and feature-matrix summaries |
 | [`bdd-governance-contract`](bdd-governance-contract) | Governance contracts for BDD progress tracking |
 | [`bdd-governance-core`](bdd-governance-core) | Core implementation of BDD governance |
 | [`bdd-governance-fixtures`](bdd-governance-fixtures) | Test fixtures for BDD governance scenarios |
@@ -80,13 +79,12 @@ Parser backend abstraction and governance contracts.
 | [`parser-contract`](parser-contract) | Shared contracts for parser backend selection |
 | [`parser-governance-contract`](parser-governance-contract) | Governance contracts for parser backends |
 
-### Feature Policy (2 crates)
+### Feature Policy
 
 Feature flag management and policy enforcement.
 
 | Crate | Purpose |
 |-------|---------|
-| [`feature-policy-contract`](feature-policy-contract) | Feature policy contract definitions |
 | [`feature-policy-core`](feature-policy-core) | Core parser feature-policy implementation |
 
 ### Runtime Governance (4 crates)
@@ -115,57 +113,12 @@ Shared utilities, metadata, and support structures.
 
 ## Dependency Graph
 
-```text
-                                    ┌─────────────────┐
-                                    │  bdd-grid-core  │
-                                    └────────┬────────┘
-                                             │
-                                             ▼
-                                    ┌─────────────────┐
-                                    │ bdd-grid-contract│
-                                    └────────┬────────┘
-                                             │
-                                             ▼
-┌──────────────────┐                ┌─────────────────┐
-│  bdd-grid-core   │                │  bdd-contract   │
-└──────────────────┘                └────────┬────────┘
-                                             │
-                                             ▼
-                                    ┌─────────────────────┐
-                                    │ bdd-governance-core │
-                                    └────────┬────────────┘
-                                             │
-                                             ▼
-                                    ┌─────────────────────────┐
-                                    │ bdd-governance-contract │
-                                    └────────┬────────────────┘
-                                             │
-                                             ▼
-                                    ┌───────────────────────────┐
-                                    │ parser-governance-contract │
-                                    └────────┬──────────────────┘
-                                             │
-                    ┌────────────────────────┼────────────────────────┐
-                    │                        │                        │
-                    ▼                        ▼                        ▼
-           ┌────────────────┐      ┌──────────────────┐    ┌─────────────────┐
-           │ governance-     │      │ parser-feature-  │    │ feature-policy- │
-           │ contract        │      │ contract         │    │ contract        │
-           └────────┬───────┘      └──────────────────┘    └─────────────────┘
-                    │
-                    ▼
-           ┌────────────────┐
-           │ parser-contract │
-           └────────────────┘
+The dependency graph is intentionally not maintained by hand during the 0.9
+microcrate transition. Use these source-of-truth commands instead:
 
-Concurrency Stack:
-┌───────────────────────────────────────────────────────────────┐
-│                    concurrency-init-core                       │
-│  ┌─────────────────────┬─────────────────────┬──────────────┐ │
-│  │ concurrency-env-core│concurrency-init-    │concurrency-  │ │
-│  │                     │bootstrap-core       │init-rayon-core│
-│  └─────────────────────┴─────────────────────┴──────────────┘ │
-└───────────────────────────────────────────────────────────────┘
+```bash
+cargo metadata --format-version 1 --no-deps
+cargo run -q -p xtask -- check-package-boundary
 ```
 
 ## Feature Flag Matrix
