@@ -20,7 +20,6 @@ members = [
   "crates/linecol-core",
   "crates/bdd-governance-core",
   "crates/bdd-governance-contract",
-  "crates/governance-contract",
   "crates/bdd-scenario-fixtures",
   "crates/bdd-grid-core",
   "crates/feature-policy-core",

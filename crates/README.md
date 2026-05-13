@@ -32,13 +32,12 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | [`bdd-grid-core`](bdd-grid-core) | Core implementation of BDD scenario grids |
 | [`bdd-scenario-fixtures`](bdd-scenario-fixtures) | General BDD scenario test fixtures |
 
-### Governance (7 crates)
+### Governance (6 crates)
 
 Parser backend selection, metadata management, and policy enforcement.
 
 | Crate | Purpose |
 |-------|---------|
-| [`governance-contract`](governance-contract) | Shared governance contracts for parser backend selection |
 | [`governance-matrix-contract`](governance-matrix-contract) | Governance matrix contract definitions |
 | [`governance-matrix-core`](governance-matrix-core) | Core governance matrix implementation |
 | [`governance-matrix-core-impl`](governance-matrix-core-impl) | Concrete governance matrix implementations |
@@ -103,11 +102,11 @@ All crates support standard governance features for parser backend selection:
 Features propagate through the dependency chain:
 
 ```text
-governance-contract
-  └── bdd-governance-contract
+bdd-governance-contract
+  └── bdd-governance-core
 ```
 
-Enabling `glr` on `governance-contract` automatically enables `pure-rust` and propagates down the chain.
+Enabling `glr` on `bdd-governance-contract` automatically enables `pure-rust` and propagates down the chain.
 
 ## Test Coverage Summary
 
@@ -124,7 +123,7 @@ Add microcrates to your `Cargo.toml` using workspace dependencies:
 
 ```toml
 [dependencies]
-adze-governance-contract = { workspace = true }
+adze-bdd-governance-contract = { workspace = true }
 ```
 
 ### Enabling Features
@@ -133,7 +132,7 @@ Select your parser backend via feature flags:
 
 ```toml
 [dependencies]
-adze-governance-contract = { workspace = true, features = ["glr"] }
+adze-bdd-governance-contract = { workspace = true, features = ["glr"] }
 ```
 
 ### Using BDD Progress Tracking
@@ -149,7 +148,7 @@ println!("{}", report);
 ### Using Governance Contracts
 
 ```rust
-use adze_governance_contract::{ParserBackend, ParserFeatureProfile};
+use adze_bdd_governance_contract::{ParserBackend, ParserFeatureProfile};
 
 // Get the current feature profile
 let profile = ParserFeatureProfile::current();

@@ -223,13 +223,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-governance-contract"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-contract",
-]
-
-[[package]]
 name = "adze-governance-matrix-contract"
 version = "0.1.0"
 dependencies = [
@@ -248,8 +241,8 @@ dependencies = [
 name = "adze-governance-matrix-core-impl"
 version = "0.1.0"
 dependencies = [
+ "adze-bdd-governance-contract",
  "adze-bdd-governance-core",
- "adze-governance-contract",
  "adze-governance-matrix-contract",
  "adze-governance-matrix-core",
  "criterion",
