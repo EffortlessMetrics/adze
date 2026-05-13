@@ -156,7 +156,6 @@ jobs:
             adze-runtime-governance-api
             adze-runtime-governance-matrix
             adze-runtime2-governance
-            adze-bdd-governance-contract
             adze-bdd-governance-core
             adze-bdd-governance-fixtures
             adze-bdd-grammar-fixtures
@@ -256,7 +255,6 @@ jobs:
       - name: Test BDD crates
         run: |
           cargo test \
-            -p adze-bdd-governance-contract \
             -p adze-bdd-governance-core \
             -p adze-bdd-governance-fixtures \
             -p adze-bdd-grammar-fixtures \

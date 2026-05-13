@@ -1,7 +1,7 @@
 //! BDD reporting helpers composed with parser feature profile contracts.
 //!
 //! This crate keeps feature-flagged reporting behavior available for tests and
-//! fixtures while leaving governance rules in the underlying contract crate.
+//! fixtures while leaving governance rules in the underlying core module.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -13,7 +13,7 @@
 use adze_governance_runtime_reporting::bdd_progress_report_with_profile_runtime;
 
 /// Re-exported progress constants and helpers from the shared BDD grid contracts.
-pub use adze_bdd_governance_contract::{
+pub use adze_bdd_governance_core::{
     BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend,
     ParserFeatureProfile, bdd_progress, bdd_progress_report, bdd_progress_report_with_profile,
     bdd_progress_status_line,

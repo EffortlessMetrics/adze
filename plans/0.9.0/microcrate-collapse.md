@@ -118,7 +118,7 @@ single policy owner that consumes them.
 - `adze-governance-runtime-profile-core` moved into
   `adze-governance-runtime-core::profile`.
 - `adze-governance-contract` facade removed; its only remaining dev consumer
-  now imports `adze-bdd-governance-contract` directly.
+  now imports `adze-bdd-governance-core` directly.
 
 ### Proof Commands
 
@@ -165,12 +165,16 @@ test support module.
 ### Candidate Packages
 
 - `adze-bdd-contract`
-- `adze-bdd-governance-contract`
 - `adze-bdd-governance-core`
 - `adze-bdd-governance-fixtures`
 - `adze-bdd-grammar-fixtures`
 - `adze-bdd-grid-core`
 - `adze-bdd-scenario-fixtures`
+
+### Completed Packages
+
+- `adze-bdd-governance-contract` facade removed; remaining consumers now
+  import `adze-bdd-governance-core` directly.
 
 ### Proof Commands
 

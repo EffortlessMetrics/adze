@@ -1,6 +1,6 @@
 //! Integration tests for the BDD governance chain.
 //!
-//! Tests the chain: bdd-grid-core → bdd-governance-core → bdd-governance-contract
+//! Tests the chain: bdd-grid-core → bdd-governance-core
 
 /// Tests that BddGovernanceMatrix can be constructed and used across the chain.
 #[test]

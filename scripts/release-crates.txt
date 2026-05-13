@@ -7,7 +7,6 @@ adze-lsp-generator
 adze-macro
 adze-feature-policy-core
 adze-bdd-governance-core
-adze-bdd-governance-contract
 adze-governance-matrix-core-impl
 adze-governance-matrix-core
 adze-governance-matrix-contract

@@ -55,14 +55,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-bdd-governance-contract"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-core",
- "proptest",
-]
-
-[[package]]
 name = "adze-bdd-governance-core"
 version = "0.1.0"
 dependencies = [
@@ -75,7 +67,7 @@ dependencies = [
 name = "adze-bdd-governance-fixtures"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-governance-contract",
+ "adze-bdd-governance-core",
  "adze-governance-runtime-reporting",
  "proptest",
 ]
@@ -241,7 +233,6 @@ dependencies = [
 name = "adze-governance-matrix-core-impl"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-governance-contract",
  "adze-bdd-governance-core",
  "adze-governance-matrix-contract",
  "adze-governance-matrix-core",
