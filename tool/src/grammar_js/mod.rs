@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub mod converter;
+mod function_block;
 pub mod helpers;
 pub mod json_converter;
 pub mod parser;
