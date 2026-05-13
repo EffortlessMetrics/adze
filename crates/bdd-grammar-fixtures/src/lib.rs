@@ -11,14 +11,17 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-pub use adze_bdd_grammar_analysis_core::{
-    ConflictAnalysis, analyze_conflicts, count_multi_action_cells, resolve_shift_reduce_actions,
-};
 use adze_glr_core::{FirstFollowSets, ParseTable, build_lr1_automaton};
 use adze_ir::{
     Associativity, Grammar, PrecedenceKind, ProductionId, Rule, Symbol, SymbolId, Token,
     TokenPattern,
 };
+pub use analysis::{
+    ConflictAnalysis, analyze_conflicts, count_multi_action_cells, resolve_shift_reduce_actions,
+};
+
+/// Conflict-analysis helpers for GLR BDD parse-table tests.
+pub mod analysis;
 
 /// Token pattern selector for reusable runtime token fixtures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

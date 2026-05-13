@@ -1,10 +1,8 @@
-//! BDD-style tests for bdd-grammar-analysis-core crate.
+//! BDD-style tests for the grammar analysis owner module.
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
 
-use adze_bdd_grammar_analysis_core::{
-    ConflictAnalysis, analyze_conflicts, count_multi_action_cells,
-};
+use adze_bdd_grammar_fixtures::{ConflictAnalysis, analyze_conflicts, count_multi_action_cells};
 use adze_glr_core::{Action, ParseTable, RuleId, StateId};
 
 /// Helper to create a parse table with given action table.

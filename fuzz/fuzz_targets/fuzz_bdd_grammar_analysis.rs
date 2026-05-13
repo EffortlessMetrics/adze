@@ -1,6 +1,6 @@
 #![no_main]
 
-use adze_bdd_grammar_analysis_core::{analyze_conflicts, count_multi_action_cells};
+use adze_bdd_grammar_fixtures::{analyze_conflicts, count_multi_action_cells};
 use adze_glr_core::{Action, ParseTable, RuleId, StateId};
 use libfuzzer_sys::fuzz_target;
 

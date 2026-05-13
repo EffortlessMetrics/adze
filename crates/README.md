@@ -28,7 +28,6 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | [`bdd-governance-contract`](bdd-governance-contract) | Governance contracts for BDD progress tracking |
 | [`bdd-governance-core`](bdd-governance-core) | Core implementation of BDD governance |
 | [`bdd-governance-fixtures`](bdd-governance-fixtures) | Test fixtures for BDD governance scenarios |
-| [`bdd-grammar-analysis-core`](bdd-grammar-analysis-core) | BDD scenario core for grammar analysis |
 | [`bdd-grammar-fixtures`](bdd-grammar-fixtures) | Test fixtures for grammar BDD scenarios |
 | [`bdd-grid-core`](bdd-grid-core) | Core implementation of BDD scenario grids |
 | [`bdd-scenario-fixtures`](bdd-scenario-fixtures) | General BDD scenario test fixtures |

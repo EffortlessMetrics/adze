@@ -1,14 +1,7 @@
 //! Conflict-analysis helpers for GLR BDD parse-table tests.
 //!
-//! This crate owns parse-table conflict inspection so fixture crates can keep
+//! This module owns parse-table conflict inspection so fixture code can keep
 //! grammar construction and conflict metrics responsibilities separated.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 use adze_glr_core::{
     Action, Conflict, ConflictResolver, ConflictType, Grammar, ParseTable, RuleId, StateId,

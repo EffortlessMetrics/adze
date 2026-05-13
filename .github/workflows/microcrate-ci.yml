@@ -172,7 +172,6 @@ jobs:
             adze-bdd-governance-contract
             adze-bdd-governance-core
             adze-bdd-governance-fixtures
-            adze-bdd-grammar-analysis-core
             adze-bdd-grammar-fixtures
             adze-bdd-grid-core
             adze-bdd-scenario-fixtures
@@ -291,7 +290,6 @@ jobs:
             -p adze-bdd-governance-contract \
             -p adze-bdd-governance-core \
             -p adze-bdd-governance-fixtures \
-            -p adze-bdd-grammar-analysis-core \
             -p adze-bdd-grammar-fixtures \
             -p adze-bdd-grid-core \
             -p adze-bdd-scenario-fixtures \

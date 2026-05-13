@@ -6549,8 +6549,7 @@ with annotations ──▶ Grammar ──▶ LR(1) automaton ──▶ compresse
 <p>Quality-assurance infrastructure for feature tracking and behavioral contracts:</p>
 <div class="table-wrapper"><table><thead><tr><th>Crate</th><th>Path</th><th>Responsibility</th></tr></thead><tbody>
 <tr><td><code>bdd-contract</code></td><td><code>crates/bdd-contract/</code></td><td>Shared BDD scenario and phase contracts</td></tr>
-<tr><td><code>bdd-grammar-analysis-core</code></td><td><code>crates/bdd-grammar-analysis-core/</code></td><td>Grammar-level BDD analysis</td></tr>
-<tr><td><code>bdd-grammar-fixtures</code></td><td><code>crates/bdd-grammar-fixtures/</code></td><td>Test fixtures for grammar BDD</td></tr>
+<tr><td><code>bdd-grammar-fixtures</code></td><td><code>crates/bdd-grammar-fixtures/</code></td><td>Test fixtures and grammar-level BDD analysis</td></tr>
 <tr><td><code>bdd-governance-contract</code></td><td><code>crates/bdd-governance-contract/</code></td><td>Governance BDD contracts</td></tr>
 <tr><td><code>bdd-governance-core</code></td><td><code>crates/bdd-governance-core/</code></td><td>Governance BDD snapshots/matrix composition</td></tr>
 <tr><td><code>bdd-governance-reporting-core</code></td><td><code>crates/bdd-governance-reporting-core/</code></td><td>Profile-aware governance report/status formatting</td></tr>
@@ -6735,7 +6734,7 @@ let scenario = BddScenario {
 };</code></pre>
 <p>The governance crates (<code>crates/governance-*</code>) use BDD grids to track which features pass across different runtime configurations.</p>
 <p>Run BDD-related tests:</p>
-<pre><code class="language-bash">cargo test -p bdd-grammar-analysis-core
+<pre><code class="language-bash">cargo test -p adze-bdd-grammar-fixtures
 cargo test -p bdd-governance-core
 cargo test -p bdd-grid-core
 </code></pre>

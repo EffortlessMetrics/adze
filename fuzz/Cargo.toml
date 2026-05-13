@@ -13,7 +13,7 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 adze = { path = "../runtime" }
-adze-bdd-grammar-analysis-core = { path = "../crates/bdd-grammar-analysis-core" }
+adze-bdd-grammar-fixtures = { path = "../crates/bdd-grammar-fixtures" }
 adze-glr-core = { path = "../glr-core" }
 adze-linecol-core = { path = "../crates/linecol-core" }
 adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
@@ -146,8 +146,8 @@ test = false
 doc = false
 
 [[bin]]
-name = "fuzz_bdd_grammar_analysis_core"
-path = "fuzz_targets/fuzz_bdd_grammar_analysis_core.rs"
+name = "fuzz_bdd_grammar_analysis"
+path = "fuzz_targets/fuzz_bdd_grammar_analysis.rs"
 test = false
 doc = false
 

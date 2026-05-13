@@ -184,12 +184,9 @@ test support module.
 - `adze-bdd-governance-contract`
 - `adze-bdd-governance-core`
 - `adze-bdd-governance-fixtures`
-- `adze-bdd-governance-reporting-core`
-- `adze-bdd-grammar-analysis-core`
 - `adze-bdd-grammar-fixtures`
 - `adze-bdd-grid-contract`
 - `adze-bdd-grid-core`
-- `adze-bdd-scenario-core`
 - `adze-bdd-scenario-fixtures`
 
 ### Proof Commands
@@ -197,7 +194,7 @@ test support module.
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-bdd-governance-core -p adze-bdd-scenario-core -p adze-bdd-grid-core -- --test-threads=2
+cargo test -p adze-bdd-governance-core -p adze-bdd-grid-core -p adze-bdd-grammar-fixtures -- --test-threads=2
 just ci-supported
 ```
 
