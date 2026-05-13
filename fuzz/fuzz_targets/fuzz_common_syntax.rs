@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use adze_common_syntax_core::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
+use adze_common::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 use libfuzzer_sys::fuzz_target;
 use quote::ToTokens;
 use syn::{Type, parse_str};

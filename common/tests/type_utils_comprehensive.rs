@@ -7,7 +7,7 @@
 //! - NameValueExpr: parsing key=value expressions
 //! - FieldThenParams: parsing field(params) expressions
 
-use adze_common_syntax_core::*;
+use adze_common::*;
 use quote::ToTokens;
 use std::collections::HashSet;
 use syn::parse_quote;

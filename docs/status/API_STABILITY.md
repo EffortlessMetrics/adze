@@ -231,16 +231,16 @@ Build-time code generation. Called from `build.rs` to produce parsers.
 
 ## `adze-common`
 
-Shared expansion logic for macro and tool crates. Re-exports `adze-common-syntax-core`.
+Shared expansion logic and syntax helpers for macro and tool crates.
 
-### Public Types (via `adze-common-syntax-core`)
+### Public Types
 
 | API | Kind | Stability | Docs | Tests |
 |-----|------|-----------|------|-------|
 | `NameValueExpr` | struct | **Stable** | — | ✅ |
 | `FieldThenParams` | struct | **Stable** | — | ✅ |
 
-### Public Functions (via `adze-common-syntax-core`)
+### Public Functions
 
 | API | Kind | Stability | Docs | Tests |
 |-----|------|-----------|------|-------|

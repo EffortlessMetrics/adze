@@ -1,6 +1,6 @@
-//! Comprehensive v4 tests for adze-common-syntax-core syntax helpers.
+//! Comprehensive v4 tests for adze-common syntax helpers.
 
-use adze_common_syntax_core::*;
+use adze_common::*;
 use quote::ToTokens;
 use std::collections::HashSet;
 use syn::{Type, parse_quote};

@@ -1,7 +1,7 @@
 //! Comprehensive edge-case tests for the expansion helpers in adze-common.
 //!
 //! The macro crate delegates to `adze_common` (re-exported from
-//! `adze_common_syntax_core`). These tests exercise `try_extract_inner_type`,
+//! `adze_common`). These tests exercise `try_extract_inner_type`,
 //! `filter_inner_type`, `wrap_leaf_type`, `NameValueExpr`, and
 //! `FieldThenParams` with corner-case inputs.
 

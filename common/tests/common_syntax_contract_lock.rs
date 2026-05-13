@@ -1,6 +1,6 @@
 //! Contract lock test - verifies that public API remains stable.
 
-use adze_common_syntax_core::{
+use adze_common::{
     FieldThenParams, NameValueExpr, filter_inner_type, try_extract_inner_type, wrap_leaf_type,
 };
 use std::collections::HashSet;

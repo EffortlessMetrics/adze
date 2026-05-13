@@ -29,7 +29,7 @@ adze-concurrency-parse-core = { path = "../crates/concurrency-parse-core" }
 adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core" }
 adze-concurrency-env-contract-core = { path = "../crates/concurrency-env-contract-core" }
 adze-ts-format-core = { path = "../crates/ts-format-core" }
-adze-common-syntax-core = { path = "../crates/common-syntax-core" }
+adze-common = { path = "../common" }
 adze-concurrency-bounded-map-core = { path = "../crates/concurrency-bounded-map-core" }
 adze-concurrency-caps-contract-core = { path = "../crates/concurrency-caps-contract-core" }
 adze-concurrency-init-bootstrap-policy-core = { path = "../crates/concurrency-init-bootstrap-policy-core" }
@@ -134,8 +134,8 @@ test = false
 doc = false
 
 [[bin]]
-name = "fuzz_common_syntax_core"
-path = "fuzz_targets/fuzz_common_syntax_core.rs"
+name = "fuzz_common_syntax"
+path = "fuzz_targets/fuzz_common_syntax.rs"
 test = false
 doc = false
 

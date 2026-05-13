@@ -67,7 +67,6 @@ AREAS: dict[str, list[str]] = {
         r"^glr-core/",
         r"^crates/parser-",
         r"^crates/grammar-",
-        r"^crates/common-syntax-core/",
         r"^crates/parsetable-metadata/",
         r"^crates/linecol-core/",
     ],

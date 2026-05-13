@@ -5,4 +5,6 @@
 
 //! Shared utility entrypoint for macro and tool parsing behavior.
 
-pub use adze_common_syntax_core::*;
+pub mod syntax;
+
+pub use syntax::*;
