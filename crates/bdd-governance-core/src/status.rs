@@ -1,17 +1,11 @@
 //! Status-line and backend-description helpers for governance reporting.
 //!
-//! This crate isolates machine-readable status output and conflict-backend
-//! descriptions so BDD governance cores can focus on snapshot/report assembly.
+//! This module isolates machine-readable status output and conflict-backend
+//! descriptions so BDD governance core logic can focus on snapshot/report
+//! assembly.
 
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
-
-pub use adze_bdd_grid_core::{BddPhase, BddScenario, bdd_progress};
-pub use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use crate::{BddPhase, BddScenario, bdd_progress};
+use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
 
 /// Advisory profile description for conflict-capable grammars.
 pub const GLR_CONFLICT_FALLBACK: &str =
@@ -52,7 +46,7 @@ pub fn bdd_progress_status_line(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID;
+    use crate::GLR_CONFLICT_PRESERVATION_GRID;
 
     #[test]
     fn fallback_mentions_glr() {

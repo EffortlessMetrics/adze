@@ -38,7 +38,6 @@ members = [
   "crates/bdd-scenario-fixtures",
   "crates/bdd-grid-core",
   "crates/feature-policy-core",
-  "crates/governance-status-core",
   "crates/concurrency-caps-contract-core",
   "crates/concurrency-init-bootstrap-policy-core",
   "tool",

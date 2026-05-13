@@ -1,8 +1,7 @@
 //! Core implementation of governance matrix snapshots and profile-aware matrix composition.
 //!
-//! Profile-aware rendering lives in the [`reporting`] owner module. Lower-level
-//! status helpers still come from `adze-governance-status-core` until that
-//! owner-module migration is handled in a follow-up.
+//! Profile-aware rendering lives in the [`reporting`] owner module and
+//! machine-readable status output lives in the [`status`] owner module.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -17,12 +16,15 @@ pub use adze_bdd_grid_core::{
 };
 pub use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
 pub use reporting::{
-    GLR_CONFLICT_FALLBACK, bdd_progress_report_with_profile, bdd_progress_status_line,
-    describe_backend_for_conflicts,
+    bdd_progress_report_with_profile, bdd_progress_status_line, describe_backend_for_conflicts,
 };
+pub use status::GLR_CONFLICT_FALLBACK;
 
 /// Profile-aware report/status rendering for BDD governance tracking.
 pub mod reporting;
+
+/// Machine-readable status output and backend descriptions.
+pub mod status;
 
 /// Snapshot of governance progress for one phase and feature profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
