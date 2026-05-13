@@ -24,8 +24,8 @@ durable dev-only/tooling surface with a current owner and proof rationale.
 As of the post-concurrency-collapse workspace:
 
 ```text
-workspace packages: 46
-owner-module migration targets: 21
+workspace packages: 45
+owner-module migration targets: 20
 ```
 
 The package-boundary ledger is the source of truth for the exact package list.
@@ -112,8 +112,12 @@ single policy owner that consumes them.
 - `adze-governance-matrix-core-impl`
 - `adze-governance-metadata`
 - `adze-governance-runtime-core`
-- `adze-governance-runtime-profile-core`
 - `adze-governance-runtime-reporting`
+
+### Completed Packages
+
+- `adze-governance-runtime-profile-core` moved into
+  `adze-governance-runtime-core::profile`.
 
 ### Proof Commands
 

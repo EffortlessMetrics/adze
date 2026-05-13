@@ -14,7 +14,6 @@ members = [
   "crates/governance-matrix-contract",
   "crates/governance-matrix-core-impl",
   "crates/governance-matrix-core",
-  "crates/governance-runtime-profile-core",
   "crates/governance-runtime-core",
   "crates/governance-runtime-reporting",
   "crates/governance-metadata",

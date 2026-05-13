@@ -11,17 +11,19 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-/// Re-exported governance reporting primitives (BDD grid, parser profiles, report helpers).
-pub use adze_governance_runtime_profile_core::{
-    ParserBackend, ParserFeatureProfile, parser_feature_profile_for_runtime,
-    parser_feature_profile_for_runtime2, resolve_backend_for_profile,
-};
+mod profile;
+
 pub use adze_governance_runtime_reporting::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, bdd_governance_snapshot, bdd_progress,
     bdd_progress_report, bdd_progress_report_with_profile,
     bdd_progress_report_with_profile_runtime, bdd_progress_status_line,
     describe_backend_for_conflicts,
+};
+/// Re-exported governance reporting primitives (BDD grid, parser profiles, report helpers).
+pub use profile::{
+    ParserBackend, ParserFeatureProfile, parser_feature_profile_for_runtime,
+    parser_feature_profile_for_runtime2, resolve_backend_for_profile,
 };
 
 /// Build a profile-specific governance report against the canonical GLR scenario grid.
