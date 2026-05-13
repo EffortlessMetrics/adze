@@ -101,14 +101,13 @@ Runtime-facing governance helpers and progress reporting.
 | [`runtime-governance-matrix`](runtime-governance-matrix) | Runtime governance matrix implementation |
 | [`runtime2-governance`](runtime2-governance) | Governance for runtime2 (production GLR) |
 
-### Utilities (7 crates)
+### Utilities (6 crates)
 
 Shared utilities, metadata, and support structures.
 
 | Crate | Purpose |
 |-------|---------|
 | [`common-syntax-core`](common-syntax-core) | Common syntax utilities |
-| [`glr-versioning`](glr-versioning) | GLR versioning support |
 | [`linecol-core`](linecol-core) | Line/column byte-position tracking |
 | [`parsetable-metadata`](parsetable-metadata) | Parse table metadata structures |
 | [`stack-pool-core`](stack-pool-core) | Stack-allocated pool utilities |

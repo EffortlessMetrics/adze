@@ -140,7 +140,7 @@ Policy enforcement, concurrency management, and testing infrastructure as code. 
 - **`parser-*`** (4): Parser contracts, feature contracts, backend abstraction
 - **`feature-policy-*`** (2): Feature flag policy enforcement
 - **`runtime-governance*`** (4): Runtime governance API and matrix
-- Other: `ts-format-core`, `linecol-core`, `stack-pool-core`, `glr-versioning`, `parsetable-metadata`, `common-syntax-core`
+- Other: `ts-format-core`, `linecol-core`, `stack-pool-core`, `parsetable-metadata`, `common-syntax-core`
 
 These are tested via `microcrate-ci.yml`, **not** `just ci-supported`.
 

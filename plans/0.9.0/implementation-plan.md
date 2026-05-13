@@ -356,7 +356,7 @@ estimates, and over-ceiling PRs require an explicit override.
 
 ```bash
 cargo run -q -p xtask -- check-ci-lane-whitelist
-cargo run -q -p xtask -- ci plan
+cargo run -q -p xtask -- ci-plan
 just ci-supported
 ```
 

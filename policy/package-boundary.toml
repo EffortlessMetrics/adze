@@ -495,20 +495,6 @@ last_changed = "2026-05-12"
 last_changed_pr = "#694"
 
 [[package]]
-name = "adze-glr-versioning"
-path = "crates/glr-versioning"
-category = "owner-module-migration-target"
-owner = "0.9/microcrate-collapse"
-production_use = true
-publish_intent = "retire-or-inline"
-support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
-ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
-migration_target = "0.9/microcrate-collapse"
-removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
-last_changed = "2026-05-12"
-last_changed_pr = "#694"
-
-[[package]]
 name = "adze-go"
 path = "grammars/go"
 category = "dev-only"
