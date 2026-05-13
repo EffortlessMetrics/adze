@@ -80,19 +80,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-caps-contract-core"
-version = "0.1.0"
-dependencies = [
- "adze-concurrency-env-contract-core",
- "adze-concurrency-init-core",
- "adze-concurrency-map-core",
-]
-
-[[package]]
 name = "adze-concurrency-caps-core"
 version = "0.1.0"
 dependencies = [
- "adze-concurrency-caps-contract-core",
  "adze-concurrency-env-contract-core",
  "adze-concurrency-init-core",
  "adze-concurrency-map-core",
@@ -153,7 +143,6 @@ dependencies = [
  "adze-bdd-grammar-fixtures",
  "adze-common",
  "adze-concurrency-bounded-map-core",
- "adze-concurrency-caps-contract-core",
  "adze-concurrency-caps-core",
  "adze-concurrency-env-contract-core",
  "adze-concurrency-env-contract-core",

@@ -1,4 +1,4 @@
-use adze_concurrency_caps_contract_core::{
+use adze_concurrency_caps_core::contract::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS, bounded_parallel_map,
 };
 

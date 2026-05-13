@@ -144,7 +144,6 @@ remove unused seams.
 ### Candidate Packages
 
 - `adze-concurrency-bounded-map-core`
-- `adze-concurrency-caps-contract-core`
 - `adze-concurrency-caps-core`
 - `adze-concurrency-env-contract-core`
 - `adze-concurrency-init-core`

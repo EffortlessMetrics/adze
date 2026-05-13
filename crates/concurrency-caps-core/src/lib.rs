@@ -22,19 +22,18 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
+/// Contract-focused concurrency cap façade.
+pub mod contract;
+
 /// Environment-based concurrency cap configuration and defaults.
-pub use adze_concurrency_env_contract_core::{
+pub use contract::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };
-/// One-time concurrency initialization helpers (rayon global pool, caps bootstrap).
-pub use adze_concurrency_init_core::{
-    init_concurrency_caps, init_rayon_global_once, is_already_initialized_error,
-};
 /// Bounded parallel map and partition planning utilities.
-pub use adze_concurrency_map_core::{
-    ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency,
-};
+pub use contract::{ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency};
+/// One-time concurrency initialization helpers (rayon global pool, caps bootstrap).
+pub use contract::{init_concurrency_caps, init_rayon_global_once, is_already_initialized_error};
 
 #[cfg(test)]
 mod tests {

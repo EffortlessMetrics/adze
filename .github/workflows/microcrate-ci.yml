@@ -172,7 +172,6 @@ jobs:
             adze-bdd-scenario-fixtures
             adze-linecol-core
             adze-parsetable-metadata
-            adze-concurrency-caps-contract-core
           )
           # Crates that only support strict_docs (not strict_api)
           DOCS_ONLY_CRATES=(
@@ -224,7 +223,6 @@ jobs:
       - name: Test concurrency crates
         run: |
           cargo test \
-            -p adze-concurrency-caps-contract-core \
             -p adze-concurrency-caps-core \
             -p adze-concurrency-env-contract-core \
             -p adze-concurrency-init-core \
