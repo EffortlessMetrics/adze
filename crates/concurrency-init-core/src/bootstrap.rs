@@ -1,7 +1,7 @@
 //! Single-responsibility bootstrap for concurrency caps initialization.
 
+use crate::rayon::init_rayon_global_once;
 use adze_concurrency_env_contract_core::current_caps;
-use adze_concurrency_init_rayon_core::init_rayon_global_once;
 
 pub mod policy;
 

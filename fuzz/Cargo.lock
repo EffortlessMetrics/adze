@@ -88,14 +88,6 @@ name = "adze-concurrency-init-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-contract-core",
- "adze-concurrency-init-rayon-core",
-]
-
-[[package]]
-name = "adze-concurrency-init-rayon-core"
-version = "0.1.0"
-dependencies = [
- "rayon",
 ]
 
 [[package]]
@@ -121,7 +113,6 @@ dependencies = [
  "adze-concurrency-env-contract-core",
  "adze-concurrency-env-contract-core",
  "adze-concurrency-init-core",
- "adze-concurrency-init-rayon-core",
  "adze-concurrency-normalize-core",
  "adze-concurrency-env-contract-core",
  "adze-glr-core",

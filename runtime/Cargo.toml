@@ -83,7 +83,6 @@ serde_json = "1.0.142"
 proptest = "1.4"
 hex = "0.4"
 glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
-adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concurrency-init-rayon-core" }
 adze-example = { version = "0.8.0-dev", path = "../example", features = ["ts-compat"] }
 adze-python-simple = { version = "0.1.0", path = "../grammars/python-simple" }
 adze-python = { version = "0.1.0", path = "../grammars/python" }

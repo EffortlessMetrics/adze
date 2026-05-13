@@ -80,14 +80,6 @@ name = "adze-concurrency-init-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-contract-core",
- "adze-concurrency-init-rayon-core",
-]
-
-[[package]]
-name = "adze-concurrency-init-rayon-core"
-version = "0.1.0"
-dependencies = [
- "rayon",
 ]
 
 [[package]]

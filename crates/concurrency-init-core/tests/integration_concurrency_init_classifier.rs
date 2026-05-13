@@ -1,5 +1,5 @@
 use adze_concurrency_init_core::is_already_initialized_error as init_core_fn;
-use adze_concurrency_init_rayon_core::is_already_initialized_error as rayon_core_fn;
+use adze_concurrency_init_core::rayon::is_already_initialized_error as rayon_core_fn;
 
 #[test]
 fn init_core_reexport_matches_classifier_core_behavior() {
