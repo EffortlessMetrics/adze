@@ -4,7 +4,7 @@ Status: proposed
 Owner: Adze maintainers
 Created: 2026-05-12
 Target milestone: 0.9.0
-Linked specs: ADZE-SPEC-0001 package surface boundary; ADZE-SPEC-0002 CI economics; ADZE-SPEC-0003 canonical parse document; ADZE-SPEC-0004 product proof and support tiers
+Linked specs: ADZE-SPEC-0001 package surface boundary; ADZE-SPEC-0002 CI economics; ADZE-SPEC-0003 canonical parse document; future ADZE-SPEC-0011 product proof and support tiers
 Linked ADRs: ADZE-ADR-0001 AdzeDocument one parse truth; ADZE-ADR-0002 no durable unpublished production crates; ADZE-ADR-0003 summary-first GLR ambiguity
 Linked plan: ../../plans/0.9.0/implementation-plan.md
 Linked issues:
@@ -54,7 +54,7 @@ proof tests, and the native document and Tree-sitter compatibility roadmap.
 0.9 contract convergence is successful when:
 
 - every workspace package is classified as a published crate, dev-only crate,
-  or temporary owner-module migration target;
+  or temporary owner-module migration target on its way to an SRP submodule;
 - no durable unpublished production crate category remains;
 - the supported CI lane stays green and remains the required proof for stable
   core claims;
@@ -127,14 +127,14 @@ diff.
 The milestone needs behavior specs for:
 
 - `ADZE-SPEC-0001-package-surface-boundary.md`: workspace package categories,
-  owner-module migration targets, and the rule that there is no durable
-  unpublished production crate category.
+  owner-module migration targets, the SRP submodule transition requirement, and
+  the rule that there is no durable unpublished production crate category.
 - `ADZE-SPEC-0002-ci-economics.md`: blocking versus advisory lanes, LEM bands,
   risk routing, and how policy ledgers own CI exceptions.
 - `ADZE-SPEC-0003-canonical-parse-document.md`: the native parse document as
   the source of truth for generic CST, typed CST, typed AST, diagnostics,
   Tree-sitter-compatible projection, and GLR ambiguity summaries.
-- `ADZE-SPEC-0004-product-proof-and-support-tiers.md`: the rule that stable
+- Future `ADZE-SPEC-0011-product-proof-and-support-tiers.md`: the rule that stable
   README claims require proof commands and support-tier mapping.
 
 Specs define behavior and acceptance evidence. They must link to
@@ -148,9 +148,9 @@ The milestone needs ADRs for durable choices that should outlive the 0.9 plan:
 - `ADZE-ADR-0001-adze-document-one-parse-truth.md`: `AdzeDocument` is the
   canonical parse product; typed CST, typed AST, diagnostics, GLR summaries, and
   Tree-sitter compatibility are projections.
-- `ADZE-ADR-0002-no-unpublished-production-crates.md`: production workspace
-  packages are either published public surfaces or explicitly temporary
-  migration targets.
+- `ADZE-ADR-0002-no-durable-unpublished-production-crates.md`: production
+  workspace packages are either published public surfaces or temporary
+  migration targets that must move into SRP owner submodules before release.
 - `ADZE-ADR-0003-summary-first-glr-ambiguity.md`: native GLR output starts with
   user-facing ambiguity summaries and selection reasons before raw forest
   internals become a public contract.

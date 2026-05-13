@@ -42,6 +42,13 @@ Examples:
 ADZE-SPEC-0001-package-surface-boundary.md
 ADZE-SPEC-0002-ci-economics.md
 ADZE-SPEC-0003-canonical-parse-document.md
+ADZE-SPEC-0004-typed-cst-and-ast-projections.md
+ADZE-SPEC-0005-diagnostics-and-recovery.md
+ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md
+ADZE-SPEC-0007-glr-ambiguity-summary.md
+ADZE-SPEC-0008-json-cli-wasm-projections.md
+ADZE-SPEC-0009-incremental-document-lifecycle.md
+ADZE-SPEC-0010-language-metadata-and-node-types.md
 ```
 
 ## Header

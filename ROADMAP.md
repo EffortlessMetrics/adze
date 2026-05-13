@@ -48,7 +48,8 @@ The `crates/` directory currently holds 56 governance/BDD/concurrency/tooling
 support crate directories. Before 0.9.0 ships, these should be audited and
 collapsed where a separate crate no longer has a current, proven boundary.
 The eventual release surface should stay tight, with implementation-only
-support code absorbed into the crates or xtask tooling that actually use it.
+support code absorbed into SRP submodules under the crates or xtask tooling that
+actually use it.
 
 **Why before 0.9.0:** a workspace graph this wide is a maintenance and CI
 economics commitment that is very hard to walk back. Collapsing before the MSRV
@@ -78,8 +79,9 @@ routing together.
 
 Everything else — governance, BDD, concurrency, policy, grammar-analysis,
 linecol, stack-pool, etc. — should either be inlined into the crate that
-actually uses it or move into xtask as dev-only tooling. If it doesn't have a
-current consumer outside its own directory, it doesn't get its own crate.
+actually uses it as an SRP submodule or move into xtask as dev-only tooling. If
+it doesn't have a current consumer outside its own directory, it doesn't get its
+own crate.
 
 **Steps:**
 

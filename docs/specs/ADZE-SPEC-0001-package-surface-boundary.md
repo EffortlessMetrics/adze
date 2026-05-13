@@ -32,9 +32,14 @@ Every workspace package must be classified as exactly one of these categories:
 | --- | --- | --- |
 | Published crate | A public package intended for crates.io or an equivalent stable user surface. | Durable when support-tier and release metadata agree. |
 | Dev-only crate | A package used only for tests, examples, benchmarks, fixtures, xtask support, or internal repo automation. | Durable only while it has a current dev/test/tooling owner and is excluded from production claims. |
-| Owner-module migration target | A temporary package scheduled to move into the public crate, dev-only crate, or xtask module that owns it. | Temporary; must name its target owner and removal condition. |
+| Owner-module migration target | A temporary package scheduled to move into the public crate, dev-only crate, or xtask module that owns it as an SRP submodule. | Temporary; must name its target owner and removal condition. |
 
 There is no durable unpublished production crate category.
+
+There is also no release-state owner-module migration category. A migration
+target is a pre-release transition state. Before the next release, every
+migration-target microcrate must be removed, inlined, moved into an SRP
+submodule under its owner, or reclassified by an accepted ADR.
 
 If a package is used by production code but is not intended to be published as a
 public surface, it must either become an owner-module migration target or be
@@ -51,13 +56,14 @@ The package-boundary ledger must record enough data for automation and review:
 - publish intent;
 - support-tier impact;
 - CI lane or risk-pack impact;
-- migration target when category is owner-module migration target;
+- migration target when category is owner-module migration target, expressed as
+  the intended SRP owner module or xtask/tooling module;
 - removal or promotion condition;
 - date and PR that last changed the classification.
 
-The future ledger location is expected to be `../../policy/package-boundary.toml`.
-Until that file exists, this spec is the behavior contract and implementation
-plans must not invent conflicting category names.
+The ledger location is `../../policy/package-boundary.toml`. This spec is the
+behavior contract and implementation plans must not invent conflicting category
+names.
 
 ## Non-Goals
 
@@ -106,10 +112,10 @@ reclassified.
 ### Owner-module migration target
 
 A single-use helper crate consumed by one public crate can be a migration target
-when its desired end state is an internal module under that owner.
+when its desired end state is an SRP submodule under that owner.
 
 The classification must name the target owner and the condition that closes the
-migration.
+migration. That closure must happen before the next release.
 
 ### Invalid durable category
 
@@ -176,7 +182,9 @@ This spec is satisfied for 0.9 when:
 - every workspace member is classified in the package-boundary ledger;
 - the verifier is part of the documented 0.9 proof sequence;
 - no package is classified as a durable unpublished production crate;
-- every migration target has an owner and exit condition;
+- every migration target has an owner, SRP submodule target, and exit condition;
+- the release checklist blocks release while any migration target remains
+  unresolved;
 - support-tier and CI policy docs are updated when package classification
   changes stable claims or CI routing.
 
