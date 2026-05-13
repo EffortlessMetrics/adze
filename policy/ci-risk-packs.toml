@@ -44,7 +44,7 @@ labels = ["full-ci", "ci:perf"]
 
 [risk_pack.grammar_golden]
 description = "Grammar crates, corpora, golden outputs, tree-sitter parity."
-paths = ["grammars/**", "golden-tests/**", "corpus/**", "crates/grammar-analysis-core/**"]
+paths = ["grammars/**", "golden-tests/**", "corpus/**"]
 lanes = ["golden-tests", "ripr-advisory"]
 deep_lanes = ["product-proof-advisory"]
 labels = ["ci:golden", "full-ci"]

@@ -1,11 +1,4 @@
-//! Core helpers for panic-safe grammar analysis.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+//! Panic-safe grammar analysis helpers for CLI commands.
 
 use adze_tool::pure_rust_builder::{BuildOptions, BuildResult, build_parser_for_crate};
 use anyhow::Result;
@@ -14,9 +7,12 @@ use std::path::Path;
 
 /// Analyze an adze grammar file and return parser-build metadata.
 ///
-/// This operation runs parser generation in a panic boundary, returning an error
-/// if analysis panics or if no grammar definitions are found.
-pub fn analyze_grammar_file(grammar: &Path, compress_tables: bool) -> Result<Vec<BuildResult>> {
+/// This operation runs parser generation in a panic boundary, returning an
+/// error if analysis panics or if no grammar definitions are found.
+pub(crate) fn analyze_grammar_file(
+    grammar: &Path,
+    compress_tables: bool,
+) -> Result<Vec<BuildResult>> {
     let temp_dir = tempfile::tempdir()?;
     let options = BuildOptions {
         out_dir: temp_dir.path().to_string_lossy().to_string(),

@@ -1,4 +1,3 @@
-use adze_grammar_analysis_core::analyze_grammar_file;
 use adze_tool::{build_parsers, pure_rust_builder::BuildResult};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -6,6 +5,10 @@ use colored::Colorize;
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+
+mod grammar_analysis;
+
+use grammar_analysis::analyze_grammar_file;
 
 /// Adze CLI
 #[derive(Parser, Debug)]

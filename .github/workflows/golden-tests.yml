@@ -37,7 +37,7 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" || true)
-          if echo "$changed" | grep -qE '^(golden-tests/|grammars/|corpus/|crates/grammar-analysis-core/|crates/common-syntax-core/|glr-core/|tablegen/|runtime/|runtime2/|\.github/workflows/golden-tests\.yml$)'; then
+          if echo "$changed" | grep -qE '^(golden-tests/|grammars/|corpus/|crates/common-syntax-core/|glr-core/|tablegen/|runtime/|runtime2/|\.github/workflows/golden-tests\.yml$)'; then
             echo "grammar_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "grammar_changed=false" >> "$GITHUB_OUTPUT"
