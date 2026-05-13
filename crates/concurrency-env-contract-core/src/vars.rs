@@ -1,12 +1,5 @@
 //! Shared constants for concurrency environment configuration.
 
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
-
 /// Environment variable used for Rayon global thread-pool caps.
 pub const RAYON_NUM_THREADS_ENV: &str = "RAYON_NUM_THREADS";
 
