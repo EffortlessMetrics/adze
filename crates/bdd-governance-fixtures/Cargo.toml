@@ -18,8 +18,8 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
+adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
 adze-governance-runtime-reporting = { version = "0.1.0", path = "../governance-runtime-reporting" }
-adze-bdd-governance-contract = { version = "0.1.0", path = "../bdd-governance-contract" }
 
 [dev-dependencies]
 proptest = { workspace = true }

@@ -1,6 +1,6 @@
 //! Integration tests for the BDD fixtures chain.
 //!
-//! Tests the chain: bdd-governance-contract → bdd-governance-fixtures
+//! Tests the chain: bdd-governance-core → bdd-governance-fixtures
 
 /// Tests that fixtures properly re-export types from governance contract.
 #[test]

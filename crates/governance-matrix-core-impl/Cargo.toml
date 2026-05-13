@@ -25,7 +25,6 @@ strict_docs = ["adze-bdd-governance-core/strict_docs"]
 adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
 
 [dev-dependencies]
-adze-bdd-governance-contract = { version = "0.1.0", path = "../bdd-governance-contract" }
 adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
 adze-governance-matrix-contract = { version = "0.1.0", path = "../governance-matrix-contract" }
 adze-governance-matrix-core = { version = "0.1.0", path = "../governance-matrix-core" }

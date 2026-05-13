@@ -25,7 +25,6 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 
 | Crate | Purpose |
 |-------|---------|
-| [`bdd-governance-contract`](bdd-governance-contract) | Governance contracts for BDD progress tracking |
 | [`bdd-governance-core`](bdd-governance-core) | Core implementation of BDD governance |
 | [`bdd-governance-fixtures`](bdd-governance-fixtures) | Test fixtures for BDD governance scenarios |
 | [`bdd-grammar-fixtures`](bdd-grammar-fixtures) | Test fixtures for grammar BDD scenarios |
@@ -102,11 +101,11 @@ All crates support standard governance features for parser backend selection:
 Features propagate through the dependency chain:
 
 ```text
-bdd-governance-contract
-  └── bdd-governance-core
+bdd-governance-core
+  └── bdd-grid-core
 ```
 
-Enabling `glr` on `bdd-governance-contract` automatically enables `pure-rust` and propagates down the chain.
+Enabling `glr` on `bdd-governance-core` automatically enables `pure-rust` and propagates down the chain.
 
 ## Test Coverage Summary
 
@@ -123,7 +122,7 @@ Add microcrates to your `Cargo.toml` using workspace dependencies:
 
 ```toml
 [dependencies]
-adze-bdd-governance-contract = { workspace = true }
+adze-bdd-governance-core = { workspace = true }
 ```
 
 ### Enabling Features
@@ -132,7 +131,7 @@ Select your parser backend via feature flags:
 
 ```toml
 [dependencies]
-adze-bdd-governance-contract = { workspace = true, features = ["glr"] }
+adze-bdd-governance-core = { workspace = true, features = ["glr"] }
 ```
 
 ### Using BDD Progress Tracking
@@ -148,7 +147,7 @@ println!("{}", report);
 ### Using Governance Contracts
 
 ```rust
-use adze_bdd_governance_contract::{ParserBackend, ParserFeatureProfile};
+use adze_bdd_governance_core::{ParserBackend, ParserFeatureProfile};
 
 // Get the current feature profile
 let profile = ParserFeatureProfile::current();
