@@ -9,7 +9,6 @@ adze-feature-policy-core
 adze-bdd-governance-core
 adze-governance-matrix-core-impl
 adze-governance-matrix-core
-adze-governance-matrix-contract
 adze-governance-metadata
 adze-governance-runtime-reporting
 adze-bdd-governance-fixtures

@@ -1,5 +1,5 @@
 //! Cross-crate integration tests for the governance matrix chain:
-//! `bdd-governance-core` → `governance-matrix-contract` → `governance-matrix-core` → `governance-matrix-core-impl`
+//! `bdd-governance-core` → `governance-matrix-core` → `governance-matrix-core-impl`
 //!
 //! These tests validate that the governance matrix chain works correctly end-to-end.
 

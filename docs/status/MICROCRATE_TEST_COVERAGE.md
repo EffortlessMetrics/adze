@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 19
+**Total Crates:** 18
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 19 | 100% |
+| Complete (BDD + Property) | 18 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 19 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 18 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 19 remaining tracked crates have both BDD tests and property-based tests:
+All 18 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -25,7 +25,6 @@ All 19 remaining tracked crates have both BDD tests and property-based tests:
 | `bdd-grid-core` | ✓ | ✓ | ✓ |
 | `bdd-scenario-fixtures` | ✓ | ✓ | - |
 | `feature-policy-core` | ✓ | ✓ | ✓ |
-| `governance-matrix-contract` | ✓ | ✓ | ✓ |
 | `governance-matrix-core` | ✓ | ✓ | ✓ |
 | `governance-matrix-core-impl` | ✓ | ✓ | ✓ |
 | `governance-metadata` | ✓ | ✓ | ✓ |
@@ -46,7 +45,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `bdd-governance-core`
 - `bdd-grid-core`
 - `feature-policy-core`
-- `governance-matrix-contract`
 - `governance-matrix-core`
 - `governance-matrix-core-impl`
 - `governance-metadata`
@@ -81,7 +79,6 @@ The following crates do not have contract lock tests (by design):
 ### Potential Consolidation Opportunities
 
 1. **Governance Matrix Crates:**
-   - `governance-matrix-contract`
    - `governance-matrix-core`
    - `governance-matrix-core-impl`
    These three crates handle matrix governance. Consider whether the split is necessary or if they could be consolidated.

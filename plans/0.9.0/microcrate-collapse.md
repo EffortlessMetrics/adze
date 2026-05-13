@@ -106,7 +106,6 @@ single policy owner that consumes them.
 
 ### Candidate Packages
 
-- `adze-governance-matrix-contract`
 - `adze-governance-matrix-core`
 - `adze-governance-matrix-core-impl`
 - `adze-governance-metadata`
@@ -119,6 +118,8 @@ single policy owner that consumes them.
   `adze-governance-runtime-core::profile`.
 - `adze-governance-contract` facade removed; its only remaining dev consumer
   now imports `adze-bdd-governance-core` directly.
+- `adze-governance-matrix-contract` facade removed; remaining consumers now
+  import `adze-governance-matrix-core` directly.
 
 ### Proof Commands
 
