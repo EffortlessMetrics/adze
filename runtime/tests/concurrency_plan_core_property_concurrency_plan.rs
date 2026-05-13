@@ -1,4 +1,4 @@
-use adze_concurrency_plan_core::{
+use adze::concurrency_caps::plan::{
     DIRECT_PARALLEL_THRESHOLD_MULTIPLIER, ParallelPartitionPlan, normalized_concurrency,
 };
 use proptest::prelude::*;

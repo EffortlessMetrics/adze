@@ -1,13 +1,13 @@
 //! Cross-crate integration tests for the plan chain:
-//! `concurrency-normalize-core` → `concurrency-plan-core`
+//! `concurrency-normalize-core` → `adze::concurrency_caps::plan`
 //!
 //! These tests validate that the partition planning chain works correctly end-to-end.
 
+use adze::concurrency_caps::plan::{
+    DIRECT_PARALLEL_THRESHOLD_MULTIPLIER, ParallelPartitionPlan, normalized_concurrency,
+};
 use adze_concurrency_normalize_core::{
     MIN_CONCURRENCY, normalized_concurrency as normalize_normalized,
-};
-use adze_concurrency_plan_core::{
-    DIRECT_PARALLEL_THRESHOLD_MULTIPLIER, ParallelPartitionPlan, normalized_concurrency,
 };
 
 /// Test that the plan chain correctly re-exports normalized_concurrency.
@@ -125,7 +125,7 @@ fn test_plan_chain_type_compatibility() {
         f
     }
 
-    // normalized_concurrency from plan-core should be compatible
+    // normalized_concurrency from plan owner module should be compatible
     let f = accepts_normalize_fn(normalized_concurrency);
     assert_eq!(f(0), MIN_CONCURRENCY);
     assert_eq!(f(4), 4);

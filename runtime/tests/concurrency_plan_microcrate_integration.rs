@@ -1,10 +1,10 @@
+use adze::concurrency_caps::plan::{
+    ParallelPartitionPlan as CoreParallelPartitionPlan,
+    normalized_concurrency as core_normalized_concurrency,
+};
 use adze::concurrency_caps::{
     ParallelPartitionPlan as RuntimeParallelPartitionPlan,
     normalized_concurrency as runtime_normalized_concurrency,
-};
-use adze_concurrency_plan_core::{
-    ParallelPartitionPlan as CoreParallelPartitionPlan,
-    normalized_concurrency as core_normalized_concurrency,
 };
 
 #[test]

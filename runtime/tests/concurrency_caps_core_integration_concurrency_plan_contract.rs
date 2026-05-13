@@ -2,7 +2,7 @@ use adze::concurrency_caps::contract::{
     ParallelPartitionPlan as CapsParallelPartitionPlan,
     normalized_concurrency as caps_normalized_concurrency,
 };
-use adze_concurrency_plan_core::{
+use adze::concurrency_caps::plan::{
     ParallelPartitionPlan as CoreParallelPartitionPlan,
     normalized_concurrency as core_normalized_concurrency,
 };

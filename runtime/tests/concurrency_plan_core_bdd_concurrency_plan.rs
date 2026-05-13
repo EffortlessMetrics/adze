@@ -1,4 +1,4 @@
-use adze_concurrency_plan_core::{ParallelPartitionPlan, normalized_concurrency};
+use adze::concurrency_caps::plan::{ParallelPartitionPlan, normalized_concurrency};
 
 #[test]
 fn given_zero_requested_concurrency_when_normalizing_then_single_worker_is_used() {

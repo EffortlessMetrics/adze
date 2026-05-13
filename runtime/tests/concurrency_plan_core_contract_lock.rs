@@ -1,4 +1,4 @@
-use adze_concurrency_plan_core::ParallelPartitionPlan;
+use adze::concurrency_caps::plan::ParallelPartitionPlan;
 
 #[test]
 fn contract_direct_parallel_threshold_boundary_is_stable() {

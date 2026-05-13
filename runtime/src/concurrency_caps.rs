@@ -19,6 +19,8 @@
 pub mod bounded;
 /// Contract-focused concurrency cap facade.
 pub mod contract;
+/// Bounded parallel partition planning policy.
+pub mod plan;
 
 /// Bounded parallel map and partition planning utilities.
 pub use bounded::{ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency};
