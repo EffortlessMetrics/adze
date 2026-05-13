@@ -1,14 +1,4 @@
-//! Shared parser-feature profile and backend-resolution primitives for runtime consumers.
-//!
-//! This crate intentionally isolates compile-time profile selection so higher-level
-//! governance/reporting crates can focus on matrix and report rendering concerns.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+//! Parser-feature profile and backend-resolution primitives for runtime consumers.
 
 pub use adze_governance_matrix_contract::{ParserBackend, ParserFeatureProfile};
 
