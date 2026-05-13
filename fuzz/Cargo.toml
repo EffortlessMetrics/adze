@@ -22,7 +22,6 @@ adze-concurrency-env-core = { path = "../crates/concurrency-env-core" }
 adze-concurrency-init-core = { path = "../crates/concurrency-init-core" }
 adze-concurrency-init-bootstrap-core = { path = "../crates/concurrency-init-bootstrap-core" }
 adze-concurrency-init-rayon-core = { path = "../crates/concurrency-init-rayon-core" }
-adze-concurrency-init-classifier-core = { path = "../crates/concurrency-init-classifier-core" }
 adze-concurrency-caps-core = { path = "../crates/concurrency-caps-core" }
 adze-stack-pool-core = { path = "../crates/stack-pool-core" }
 adze-concurrency-parse-core = { path = "../crates/concurrency-parse-core" }
@@ -121,12 +120,6 @@ test = false
 doc = false
 
 [[bin]]
-name = "fuzz_concurrency_init_classifier_core"
-path = "fuzz_targets/fuzz_concurrency_init_classifier_core.rs"
-test = false
-doc = false
-
-[[bin]]
 name = "fuzz_concurrency_env_contract_core"
 path = "fuzz_targets/fuzz_concurrency_env_contract_core.rs"
 test = false
@@ -159,6 +152,12 @@ doc = false
 [[bin]]
 name = "fuzz_concurrency_init_bootstrap_policy"
 path = "fuzz_targets/fuzz_concurrency_init_bootstrap_policy.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_concurrency_init_classifier"
+path = "fuzz_targets/fuzz_concurrency_init_classifier.rs"
 test = false
 doc = false
 

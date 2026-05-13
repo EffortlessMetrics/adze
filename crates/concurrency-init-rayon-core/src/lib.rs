@@ -9,7 +9,9 @@
 
 use std::sync::OnceLock;
 
-pub use adze_concurrency_init_classifier_core::is_already_initialized_error;
+pub mod classifier;
+
+pub use classifier::is_already_initialized_error;
 
 /// Initialize Rayon global thread-pool once for the current process.
 ///

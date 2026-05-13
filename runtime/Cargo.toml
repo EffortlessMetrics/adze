@@ -82,7 +82,6 @@ proptest = "1.4"
 hex = "0.4"
 glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concurrency-init-rayon-core" }
-adze-concurrency-init-classifier-core = { version = "0.1.0", path = "../crates/concurrency-init-classifier-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../crates/concurrency-init-core" }
 adze-concurrency-env-core = { version = "0.1.0", path = "../crates/concurrency-env-core" }
 adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-map-core" }

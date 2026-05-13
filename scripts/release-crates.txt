@@ -2,7 +2,6 @@
 adze-bdd-grammar-fixtures
 adze-bdd-grid-core
 adze-common
-adze-concurrency-init-classifier-core
 adze-concurrency-init-rayon-core
 adze-concurrency-normalize-core
 adze-concurrency-parse-core

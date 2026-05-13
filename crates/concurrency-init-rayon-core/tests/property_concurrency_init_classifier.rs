@@ -1,4 +1,4 @@
-use adze_concurrency_init_classifier_core::is_already_initialized_error;
+use adze_concurrency_init_rayon_core::is_already_initialized_error;
 use proptest::prelude::*;
 
 fn model_is_already_initialized_error(message: &str) -> bool {

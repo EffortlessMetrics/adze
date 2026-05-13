@@ -114,9 +114,6 @@ dependencies = [
  "adze-concurrency-normalize-core",
 ]
 
-[[package]]
-name = "adze-concurrency-init-classifier-core"
-version = "0.1.0"
 
 [[package]]
 name = "adze-concurrency-init-core"
@@ -131,7 +128,6 @@ dependencies = [
 name = "adze-concurrency-init-rayon-core"
 version = "0.1.0"
 dependencies = [
- "adze-concurrency-init-classifier-core",
  "rayon",
 ]
 

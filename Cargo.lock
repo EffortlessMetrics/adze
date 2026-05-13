@@ -23,7 +23,6 @@ version = "0.8.0-dev"
 dependencies = [
  "adze-concurrency-caps-core",
  "adze-concurrency-env-core",
- "adze-concurrency-init-classifier-core",
  "adze-concurrency-init-core",
  "adze-concurrency-init-rayon-core",
  "adze-concurrency-map-core",
@@ -169,7 +168,6 @@ name = "adze-concurrency-caps-contract-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-core",
- "adze-concurrency-init-classifier-core",
  "adze-concurrency-init-core",
  "adze-concurrency-init-rayon-core",
  "adze-concurrency-map-core",
@@ -185,7 +183,6 @@ version = "0.1.0"
 dependencies = [
  "adze-concurrency-caps-contract-core",
  "adze-concurrency-env-core",
- "adze-concurrency-init-classifier-core",
  "adze-concurrency-init-core",
  "adze-concurrency-init-rayon-core",
  "adze-concurrency-map-core",
@@ -224,19 +221,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-init-classifier-core"
-version = "0.1.0"
-dependencies = [
- "proptest",
-]
-
-[[package]]
 name = "adze-concurrency-init-core"
 version = "0.1.0"
 dependencies = [
  "adze-concurrency-env-core",
  "adze-concurrency-init-bootstrap-core",
- "adze-concurrency-init-classifier-core",
  "adze-concurrency-init-rayon-core",
  "proptest",
 ]
@@ -245,7 +234,6 @@ dependencies = [
 name = "adze-concurrency-init-rayon-core"
 version = "0.1.0"
 dependencies = [
- "adze-concurrency-init-classifier-core",
  "proptest",
  "rayon",
 ]

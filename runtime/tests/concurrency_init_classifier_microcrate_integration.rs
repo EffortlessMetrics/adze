@@ -1,5 +1,5 @@
 use adze::concurrency_caps::is_already_initialized_error as runtime_classifier;
-use adze_concurrency_init_classifier_core::is_already_initialized_error as core_classifier;
+use adze_concurrency_init_rayon_core::is_already_initialized_error as rayon_classifier;
 
 #[test]
 fn runtime_reexport_matches_microcrate_behavior() {
@@ -10,7 +10,7 @@ fn runtime_reexport_matches_microcrate_behavior() {
         "totally unrelated",
         "",
     ] {
-        assert_eq!(runtime_classifier(message), core_classifier(message));
+        assert_eq!(runtime_classifier(message), rayon_classifier(message));
     }
 }
 
@@ -23,6 +23,6 @@ fn runtime_reexport_stays_type_compatible() {
     let returned = accepts_core_fn(runtime_classifier);
     assert_eq!(
         returned("The global thread pool has already been initialized"),
-        core_classifier("The global thread pool has already been initialized")
+        rayon_classifier("The global thread pool has already been initialized")
     );
 }

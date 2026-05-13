@@ -32,7 +32,7 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | [`bdd-grid-core`](bdd-grid-core) | Core implementation of BDD scenario grids |
 | [`bdd-scenario-fixtures`](bdd-scenario-fixtures) | General BDD scenario test fixtures |
 
-### Concurrency (13 crates)
+### Concurrency (11 crates)
 
 Thread pool management, concurrency caps, and parallel execution policies.
 
@@ -43,7 +43,6 @@ Thread pool management, concurrency caps, and parallel execution policies.
 | [`concurrency-env-contract-core`](concurrency-env-contract-core) | Environment-based concurrency contract |
 | [`concurrency-env-core`](concurrency-env-core) | Environment variable parsing for concurrency |
 | [`concurrency-init-bootstrap-core`](concurrency-init-bootstrap-core) | Bootstrap initialization for concurrency |
-| [`concurrency-init-classifier-core`](concurrency-init-classifier-core) | Classification of initialization contexts |
 | [`concurrency-init-core`](concurrency-init-core) | Rayon global thread-pool initialization |
 | [`concurrency-init-rayon-core`](concurrency-init-rayon-core) | Rayon-specific initialization utilities |
 | [`concurrency-map-core`](concurrency-map-core) | Concurrent map data structures |

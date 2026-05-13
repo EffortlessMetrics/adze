@@ -1,12 +1,5 @@
 //! Message classification helpers for Rayon global thread-pool initialization errors.
 
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
-
 /// Return whether the provided message represents a Rayon global-pool
 /// already-initialized error.
 #[must_use]
