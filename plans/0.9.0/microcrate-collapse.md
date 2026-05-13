@@ -167,7 +167,6 @@ test support module.
 
 - `adze-bdd-contract`
 - `adze-bdd-governance-core`
-- `adze-bdd-governance-fixtures`
 - `adze-bdd-grammar-fixtures`
 - `adze-bdd-grid-core`
 - `adze-bdd-scenario-fixtures`
@@ -176,6 +175,8 @@ test support module.
 
 - `adze-bdd-governance-contract` facade removed; remaining consumers now
   import `adze-bdd-governance-core` directly.
+- `adze-bdd-governance-fixtures` facade removed; scenario fixtures now own the
+  current-profile helper functions and import BDD governance core directly.
 
 ### Proof Commands
 

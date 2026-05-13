@@ -64,15 +64,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-bdd-governance-fixtures"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-core",
- "adze-governance-runtime-reporting",
- "proptest",
-]
-
-[[package]]
 name = "adze-bdd-grammar-fixtures"
 version = "0.1.0"
 dependencies = [
@@ -93,8 +84,9 @@ dependencies = [
 name = "adze-bdd-scenario-fixtures"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-governance-fixtures",
+ "adze-bdd-governance-core",
  "adze-bdd-grammar-fixtures",
+ "adze-governance-runtime-reporting",
  "adze-ir",
  "proptest",
 ]

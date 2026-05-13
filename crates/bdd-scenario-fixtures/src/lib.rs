@@ -1,9 +1,9 @@
-//! Compatibility façade for BDD scenario fixtures.
+//! Compatibility facade for BDD scenario fixtures.
 //!
 //! This crate preserves the existing public API while splitting fixture
 //! responsibilities into two focused microcrates:
 //! - `adze-bdd-grammar-fixtures`: grammar tables, conflict analysis, and token metadata
-//! - `adze-bdd-governance-fixtures`: BDD reporting and profile helpers
+//! - `adze-bdd-governance-core`: BDD reporting and profile helpers
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -12,8 +12,30 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-pub use adze_bdd_governance_fixtures::*;
+use adze_governance_runtime_reporting::bdd_progress_report_with_profile_runtime;
+
+pub use adze_bdd_governance_core::{
+    BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend,
+    ParserFeatureProfile, bdd_progress, bdd_progress_report, bdd_progress_report_with_profile,
+    bdd_progress_status_line,
+};
 pub use adze_bdd_grammar_fixtures::*;
+
+/// BDD progress report using the current compile-time parser profile.
+pub fn bdd_progress_report_for_current_profile(phase: BddPhase, phase_title: &str) -> String {
+    bdd_progress_report_with_profile_runtime(
+        phase,
+        GLR_CONFLICT_PRESERVATION_GRID,
+        phase_title,
+        ParserFeatureProfile::current(),
+    )
+}
+
+/// BDD status line using the current compile-time parser profile.
+pub fn bdd_progress_status_line_for_current_profile(phase: BddPhase) -> String {
+    let profile = ParserFeatureProfile::current();
+    bdd_progress_status_line(phase, GLR_CONFLICT_PRESERVATION_GRID, profile)
+}
 
 #[cfg(test)]
 mod tests {

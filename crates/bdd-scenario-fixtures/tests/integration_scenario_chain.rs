@@ -1,6 +1,6 @@
 //! Integration tests for the BDD scenario fixtures chain.
 //!
-//! Tests the chain: bdd-governance-fixtures + bdd-grammar-fixtures → bdd-scenario-fixtures
+//! Tests the chain: bdd-governance-core + bdd-grammar-fixtures -> bdd-scenario-fixtures
 
 /// Tests that scenario fixtures properly re-export governance types.
 #[test]
