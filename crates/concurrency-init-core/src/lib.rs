@@ -11,8 +11,10 @@ pub use adze_concurrency_env_core::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };
-pub use adze_concurrency_init_bootstrap_core::init_concurrency_caps;
+pub mod bootstrap;
+
 pub use adze_concurrency_init_rayon_core::{init_rayon_global_once, is_already_initialized_error};
+pub use bootstrap::{bootstrap_caps, init_concurrency_caps, init_concurrency_caps_with_caps};
 
 #[cfg(test)]
 mod tests {

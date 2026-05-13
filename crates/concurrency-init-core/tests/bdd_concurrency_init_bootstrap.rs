@@ -1,6 +1,6 @@
 use adze_concurrency_env_core::ConcurrencyCaps;
-use adze_concurrency_init_bootstrap_core::init_concurrency_caps;
-use adze_concurrency_init_bootstrap_core::init_concurrency_caps_with_caps;
+use adze_concurrency_init_core::init_concurrency_caps;
+use adze_concurrency_init_core::init_concurrency_caps_with_caps;
 
 #[test]
 fn given_zero_rayon_threads_when_bootstrapping_with_explicit_caps_then_initialization_succeeds() {
