@@ -41,6 +41,34 @@ defaults.
 | `skip-golden` | Skip golden tests where the workflow supports it and no explicit golden opt-in is present. |
 | `skip-perf` | Skip performance comparison where the workflow supports it and no explicit perf opt-in is present. |
 
+## Routing status
+
+Labels marked **(active)** are checked by at least one workflow condition today.
+Labels marked **(planned)** are defined for future routing; adding them to a PR
+has no CI effect until a workflow gates on them.
+
+| Label | Status |
+| --- | --- |
+| `full-ci` | active |
+| `ci-budget-override` | active |
+| `ci-budget-ack` | active |
+| `platform-matrix` | active |
+| `ci:golden` | active |
+| `ci:perf` | active |
+| `ci:microcrate` | active |
+| `ci:concurrency` | active |
+| `fuzz` | active |
+| `wasm` | planned |
+| `pure-rust` | planned |
+| `benchmarks` | planned |
+| `api` | planned |
+| `release-check` | planned |
+| `security-audit` | planned |
+| `mutation` | planned |
+| `property-tests` | planned |
+| `ts-bridge` | planned |
+| `coverage` | planned |
+
 ## Required settings labels
 
 `.github/settings.yml` should define every label that appears in this document,

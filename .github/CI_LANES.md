@@ -30,11 +30,16 @@ Branch protection currently requires exactly one check: **`CI / ci-supported`**.
 Current required branch protection context: `CI / ci-supported`.
 Target required branch protection context: `PR Gate / PR Gate Success` after a dedicated migration PR. Do not require raw matrix leaves.
 
+### Legacy required (overlaps with PR Gate)
+
+| Workflow | Job name | Trigger | Lane | Notes |
+|----------|----------|---------|------|-------|
+| `ci.yml` | `ci-supported` | PR + push | **Required today** | Legacy required context; duplicates `pr-gate.yml` `Supported Rust Gate`. Should stop running on ordinary PRs after PR Gate is promoted. |
+
 ### PR-only signal (non-blocking)
 
 | Workflow | Job name | Trigger | Lane | Notes |
 |----------|----------|---------|------|-------|
-| `ci.yml` | `ci-supported` | PR + push | **Required today** | Legacy required context; should stop running on ordinary PRs after PR Gate is promoted |
 | `ci.yml` | `semver-checks` | PR only | PR-only | Detects breaking API changes |
 | `ci.yml` | `api-stability` | PR only | PR-only | `cargo-public-api` diff; `continue-on-error` |
 | `ci.yml` | `package-validation` | PR only | PR-only | Validates package manifests for release surface |
