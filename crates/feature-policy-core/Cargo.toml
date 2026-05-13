@@ -14,22 +14,14 @@ documentation = "https://docs.rs/adze-feature-policy-core"
 
 [features]
 default = []
-pure-rust = ["adze-parser-backend-core/pure-rust"]
-tree-sitter-c2rust = [
-    "adze-parser-backend-core/tree-sitter-c2rust",
-]
-tree-sitter-standard = [
-    "adze-parser-backend-core/tree-sitter-standard",
-]
-glr = ["pure-rust", "adze-parser-backend-core/glr"]
+pure-rust = []
+tree-sitter-c2rust = []
+tree-sitter-standard = []
+glr = ["pure-rust"]
 strict_docs = []
 strict_api = []
 
-[dependencies]
-adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }
-
 [dev-dependencies]
-adze-parser-backend-core = { version = "0.1.0", path = "../parser-backend-core" }
 proptest = { workspace = true }
 criterion = { workspace = true }
 

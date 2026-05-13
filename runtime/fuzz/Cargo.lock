@@ -181,7 +181,6 @@ dependencies = [
 name = "adze-feature-policy-core"
 version = "0.1.0"
 dependencies = [
- "adze-parser-backend-core",
 ]
 
 [[package]]
@@ -294,10 +293,6 @@ dependencies = [
  "quote",
  "syn 2.0.104",
 ]
-
-[[package]]
-name = "adze-parser-backend-core"
-version = "0.1.0"
 
 [[package]]
 name = "adze-parsetable-metadata"
