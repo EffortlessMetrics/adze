@@ -16,11 +16,9 @@ adze = { path = "../runtime" }
 adze-bdd-grammar-fixtures = { path = "../crates/bdd-grammar-fixtures" }
 adze-glr-core = { path = "../glr-core" }
 adze-linecol-core = { path = "../crates/linecol-core" }
-adze-concurrency-env-contract-core = { path = "../crates/concurrency-env-contract-core" }
 adze-stack-pool-core = { path = "../crates/stack-pool-core" }
 adze-ts-format-core = { path = "../crates/ts-format-core" }
 adze-common = { path = "../common" }
-adze-concurrency-bounded-map-core = { path = "../crates/concurrency-bounded-map-core" }
 adze-parser-backend-core = { path = "../crates/parser-backend-core" }
 quote = "1"
 syn = { version = "2", features = [ "full", "extra-traits" ] }

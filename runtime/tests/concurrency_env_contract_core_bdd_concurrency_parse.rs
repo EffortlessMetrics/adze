@@ -1,4 +1,4 @@
-use adze_concurrency_env_contract_core::parse_positive_usize_or_default;
+use adze::concurrency_caps::env::parse_positive_usize_or_default;
 
 #[test]
 fn given_missing_value_when_parsing_then_default_is_returned() {

@@ -1,4 +1,4 @@
-use adze_concurrency_env_contract_core::{
+use adze::concurrency_caps::env::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     parse_positive_usize_or_default,
 };
@@ -39,9 +39,9 @@ proptest! {
         tokio in prop::option::of(any::<String>()),
     ) {
         let caps = ConcurrencyCaps::from_lookup(|name| {
-            if name == adze_concurrency_env_contract_core::RAYON_NUM_THREADS_ENV {
+            if name == adze::concurrency_caps::env::RAYON_NUM_THREADS_ENV {
                 rayon.clone()
-            } else if name == adze_concurrency_env_contract_core::TOKIO_WORKER_THREADS_ENV {
+            } else if name == adze::concurrency_caps::env::TOKIO_WORKER_THREADS_ENV {
                 tokio.clone()
             } else {
                 None

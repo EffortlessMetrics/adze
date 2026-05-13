@@ -1,5 +1,5 @@
+use adze::concurrency_caps::env::ConcurrencyCaps;
 use adze::concurrency_caps::init::init_concurrency_caps_with_caps;
-use adze_concurrency_env_contract_core::ConcurrencyCaps;
 use proptest::prelude::*;
 
 proptest! {

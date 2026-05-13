@@ -19,6 +19,8 @@
 pub mod bounded;
 /// Contract-focused concurrency cap facade.
 pub mod contract;
+/// Environment-based concurrency cap configuration and defaults.
+pub mod env;
 /// Process-wide concurrency initialization helpers.
 pub mod init;
 /// Concurrency normalization helpers.

@@ -1,6 +1,6 @@
+use adze::concurrency_caps::env::ConcurrencyCaps;
 use adze::concurrency_caps::init::bootstrap_caps;
 use adze::concurrency_caps::normalize::normalized_concurrency;
-use adze_concurrency_env_contract_core::ConcurrencyCaps;
 use proptest::prelude::*;
 
 proptest! {
