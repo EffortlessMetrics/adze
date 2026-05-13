@@ -93,6 +93,7 @@ impl Category {
 #[derive(Debug, Default, Serialize)]
 struct PackageBoundaryReport {
     mode: String,
+    release_gate: bool,
     workspace_packages: usize,
     ledger_packages: usize,
     by_category: BTreeMap<String, usize>,
@@ -108,13 +109,13 @@ struct Finding {
     message: String,
 }
 
-pub fn run_check(mode: Mode) -> Result<()> {
+pub fn run_check(mode: Mode, release_gate: bool) -> Result<()> {
     let root = workspace_root()?;
     let report_dir = ensure_report_dir(&root)?;
     let ledger = load_ledger(&root)?;
     let workspace_packages = load_workspace_packages(&root)?;
 
-    let report = validate(&ledger, &workspace_packages, mode);
+    let report = validate(&ledger, &workspace_packages, mode, release_gate);
     write_reports(&report_dir, &report)?;
     print_summary(&report);
 
@@ -191,9 +192,11 @@ fn validate(
     ledger: &PackageBoundaryFile,
     workspace_packages: &BTreeMap<String, WorkspacePackage>,
     mode: Mode,
+    release_gate: bool,
 ) -> PackageBoundaryReport {
     let mut report = PackageBoundaryReport {
         mode: format!("{mode:?}"),
+        release_gate,
         workspace_packages: workspace_packages.len(),
         ledger_packages: ledger.packages.len(),
         ..Default::default()
@@ -255,7 +258,7 @@ fn validate(
             )),
         }
 
-        validate_category_contract(entry, category, &mut report);
+        validate_category_contract(entry, category, release_gate, &mut report);
     }
 
     for package in workspace_packages.keys() {
@@ -360,6 +363,7 @@ fn required_entry_field(
 fn validate_category_contract(
     entry: &PackageEntry,
     category: Category,
+    release_gate: bool,
     report: &mut PackageBoundaryReport,
 ) {
     let production_use = entry.production_use.unwrap_or(false);
@@ -421,6 +425,15 @@ fn validate_category_contract(
                     "migration targets usually represent production surface debt; confirm false is intentional",
                 ));
             }
+            if release_gate {
+                report.findings.push(finding(
+                    "error",
+                    "release-blocking-migration-target",
+                    Some(&entry.name),
+                    Some("category"),
+                    "owner-module migration targets are pre-release transition states; move into the SRP owner submodule, remove, or reclassify with an accepted ADR before release",
+                ));
+            }
         }
     }
 }
@@ -433,6 +446,7 @@ fn write_reports(dir: &Path, report: &PackageBoundaryReport) -> Result<()> {
     let mut md = String::new();
     md.push_str("# Package boundary report\n\n");
     md.push_str(&format!("- mode: `{}`\n", report.mode));
+    md.push_str(&format!("- release gate: `{}`\n", report.release_gate));
     md.push_str(&format!(
         "- workspace packages: {}\n",
         report.workspace_packages
@@ -469,6 +483,7 @@ fn write_reports(dir: &Path, report: &PackageBoundaryReport) -> Result<()> {
 
 fn print_summary(report: &PackageBoundaryReport) {
     println!("package-boundary check ({})", report.mode);
+    println!("  release gate:      {}", report.release_gate);
     println!("  workspace packages: {}", report.workspace_packages);
     println!("  ledger packages:    {}", report.ledger_packages);
     println!("  errors:             {}", count_severity(report, "error"));
@@ -582,12 +597,35 @@ mod tests {
             ),
         ]);
 
-        let report = validate(&ledger, &workspace, Mode::BlockingAllowlist);
+        let report = validate(&ledger, &workspace, Mode::BlockingAllowlist, false);
         let codes: BTreeSet<_> = report.findings.iter().map(|f| f.code).collect();
 
         assert!(codes.contains("duplicate-package"));
         assert!(codes.contains("unknown-package"));
         assert!(codes.contains("missing-package"));
         assert!(codes.contains("missing-migration-target"));
+    }
+
+    #[test]
+    fn release_gate_reports_remaining_migration_targets() {
+        let ledger = PackageBoundaryFile {
+            schema_version: "1.0".to_string(),
+            policy: "package-boundary".to_string(),
+            owner: "test".to_string(),
+            status: "advisory".to_string(),
+            updated: "2026-05-12".to_string(),
+            packages: vec![entry("migration", "owner-module-migration-target")],
+        };
+        let workspace = BTreeMap::from([(
+            "migration".to_string(),
+            WorkspacePackage {
+                path: "migration".to_string(),
+            },
+        )]);
+
+        let report = validate(&ledger, &workspace, Mode::BlockingAllowlist, true);
+        let codes: BTreeSet<_> = report.findings.iter().map(|f| f.code).collect();
+
+        assert!(codes.contains("release-blocking-migration-target"));
     }
 }

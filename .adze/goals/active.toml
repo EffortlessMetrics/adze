@@ -131,12 +131,26 @@ spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
 plan = "plans/0.9.0/microcrate-collapse.md"
 blocked_by = []
-prs = [696, 697]
+prs = [696, 697, 729, 730, 731, 732, 733, 734, 735, 736, 737]
 commands = [
   "cargo metadata --format-version 1 --no-deps",
   "cargo run -q -p xtask -- check-package-boundary",
   "just check-msrv",
   "just ci-supported",
+]
+
+[[work_item]]
+id = "package-boundary-release-gate"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
+adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
+plan = "plans/0.9.0/microcrate-collapse.md"
+blocked_by = ["microcrate-collapse"]
+prs = []
+commands = [
+  "cargo run -q -p xtask -- check-package-boundary --release-gate",
+  "PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh",
 ]
 
 [[work_item]]

@@ -21,12 +21,11 @@ durable dev-only/tooling surface with a current owner and proof rationale.
 
 ## Current State
 
-As of the post-#697 workspace:
+As of the post-concurrency-collapse workspace:
 
 ```text
-published packages: 10
-dev-only packages: 15
-owner-module migration targets: 52
+workspace packages: 46
+owner-module migration targets: 21
 ```
 
 The package-boundary ledger is the source of truth for the exact package list.
@@ -84,11 +83,6 @@ consumer, or remove them when they are only test scaffolding.
 
 ### Candidate Packages
 
-- `adze-grammar-analysis-core`
-- `adze-parser-backend-core`
-- `adze-parser-contract`
-- `adze-parser-feature-profile-core`
-- `adze-parser-governance-contract`
 - `adze-parsetable-metadata`
 
 ### Proof Commands
@@ -96,7 +90,7 @@ consumer, or remove them when they are only test scaffolding.
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-parser-backend-core -p adze-parser-contract -p adze-parser-governance-contract -p adze-parsetable-metadata -- --test-threads=2
+cargo test -p adze-parsetable-metadata -- --test-threads=2
 just ci-supported
 ```
 
@@ -120,7 +114,6 @@ single policy owner that consumes them.
 - `adze-governance-runtime-core`
 - `adze-governance-runtime-profile-core`
 - `adze-governance-runtime-reporting`
-- `adze-governance-status-core`
 
 ### Proof Commands
 
@@ -133,13 +126,14 @@ just ci-supported
 
 ## Work Item: concurrency-to-srp-submodules
 
-Status: ready
+Status: complete
 Owner: governance/concurrency
+Linked PRs: #729, #730, #731, #732, #733, #734, #735, #736, #737
 
 ### Goal
 
 Collapse concurrency policy/configuration helper crates into one owner module or
-remove unused seams.
+remove unused seams. No standalone concurrency microcrate targets remain.
 
 ### Candidate Packages
 
@@ -170,7 +164,6 @@ test support module.
 - `adze-bdd-governance-core`
 - `adze-bdd-governance-fixtures`
 - `adze-bdd-grammar-fixtures`
-- `adze-bdd-grid-contract`
 - `adze-bdd-grid-core`
 - `adze-bdd-scenario-fixtures`
 
@@ -180,6 +173,30 @@ test support module.
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
 cargo test -p adze-bdd-governance-core -p adze-bdd-grid-core -p adze-bdd-grammar-fixtures -- --test-threads=2
+just ci-supported
+```
+
+## Work Item: feature-policy-to-srp-submodule
+
+Status: ready
+Owner: governance/feature-policy
+
+### Goal
+
+Move feature/backend selection policy into the governance owner module that
+actually consumes it, or reclassify it with an accepted ADR if it remains a
+durable standalone crate.
+
+### Candidate Packages
+
+- `adze-feature-policy-core`
+
+### Proof Commands
+
+```bash
+cargo metadata --format-version 1 --no-deps
+cargo run -q -p xtask -- check-package-boundary
+cargo test -p adze-feature-policy-core -- --test-threads=2
 just ci-supported
 ```
 
@@ -222,30 +239,40 @@ reason keeps it standalone.
 
 ### Candidate Packages
 
-- `adze-error-location-core`
 - `adze-linecol-core`
-- `adze-stack-pool-core`
-- `adze-ts-format-core`
 
 ### Proof Commands
 
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-linecol-core -p adze-error-location-core -p adze-stack-pool-core -p adze-ts-format-core -- --test-threads=2
+cargo test -p adze-linecol-core -- --test-threads=2
 just ci-supported
 ```
 
 ## Release Gate
 
-Before the next release:
+Routine collapse PRs should keep this transition check green:
 
 ```bash
 cargo run -q -p xtask -- check-package-boundary
 ```
 
-must report no unclassified packages and the release checklist must confirm no
-remaining `owner-module-migration-target` entries in `policy/package-boundary.toml`.
+Before the next release, the stricter release gate must also pass:
+
+```bash
+cargo run -q -p xtask -- check-package-boundary --release-gate
+```
+
+The release helper and release workflow pass:
+
+```bash
+PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
+```
+
+Those release-gate checks fail while any
+`owner-module-migration-target` entry remains in
+`policy/package-boundary.toml`.
 
 If any migration target remains, release is blocked unless a new accepted ADR
 reclassifies that package as a durable standalone crate.

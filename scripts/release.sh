@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RELEASE_CRATE_FILE="${RELEASE_CRATE_FILE:-${SCRIPT_DIR}/release-crates.txt}"
 RELEASE_SURFACE_MODE="${RELEASE_SURFACE_MODE:-fixed}"
 STRICT_PUBLISH_SURFACE="${STRICT_PUBLISH_SURFACE:-0}"
+PACKAGE_BOUNDARY_RELEASE_GATE="${PACKAGE_BOUNDARY_RELEASE_GATE:-1}"
 
 DRY_RUN=false
 if [[ "${1:-}" == "--dry-run" ]]; then
@@ -40,12 +41,14 @@ echo "Dry run: ${DRY_RUN}"
 echo "Release surface mode: ${RELEASE_SURFACE_MODE}"
 echo "Release crate file: ${RELEASE_CRATE_FILE}"
 echo "Strict publish surface: ${STRICT_PUBLISH_SURFACE}"
+echo "Package-boundary release gate: ${PACKAGE_BOUNDARY_RELEASE_GATE}"
 echo
 
 # Run release surface validation before publishing
 RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
 RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" \
 STRICT_PUBLISH_SURFACE="$STRICT_PUBLISH_SURFACE" \
+PACKAGE_BOUNDARY_RELEASE_GATE="$PACKAGE_BOUNDARY_RELEASE_GATE" \
 "${SCRIPT_DIR}/validate-release-surface.sh"
 echo
 
