@@ -70,7 +70,6 @@ AREAS: dict[str, list[str]] = {
         r"^crates/common-syntax-core/",
         r"^crates/parsetable-metadata/",
         r"^crates/linecol-core/",
-        r"^crates/error-location-core/",
     ],
     "grammar": [
         r"^grammars/",

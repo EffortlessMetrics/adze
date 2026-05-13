@@ -107,7 +107,7 @@ Primary implementation surfaces:
 cargo test -p adze --features "pure-rust,glr" --test generated_parse_errors -- --nocapture
 cargo test -p adze --features "pure-rust,glr" --test error_display_tests -- --nocapture
 cargo test -p adze-linecol-core
-cargo test -p adze-error-location-core
+cargo test -p adze-runtime error_location -- --nocapture
 git diff --check
 ```
 

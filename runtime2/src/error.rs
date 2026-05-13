@@ -1,8 +1,49 @@
 //! Error types for parsing operations
 
+use adze_linecol_core::LineCol;
 use thiserror::Error;
 
-pub use adze_error_location_core::ErrorLocation;
+/// Location information for a parse error.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorLocation {
+    /// Byte offset in the input.
+    pub byte_offset: usize,
+    /// Line number (1-indexed).
+    pub line: usize,
+    /// Column number (1-indexed).
+    pub column: usize,
+}
+
+impl ErrorLocation {
+    /// Create an explicit error location.
+    #[must_use]
+    pub const fn new(byte_offset: usize, line: usize, column: usize) -> Self {
+        Self {
+            byte_offset,
+            line,
+            column,
+        }
+    }
+
+    /// Compute line/column information from a byte offset.
+    ///
+    /// Line and column values are 1-indexed.
+    #[must_use]
+    pub fn from_byte_offset(input: &[u8], byte_offset: usize) -> Self {
+        let tracker = LineCol::at_position(input, byte_offset);
+        Self {
+            byte_offset,
+            line: tracker.line + 1,
+            column: tracker.column(byte_offset) + 1,
+        }
+    }
+}
+
+impl std::fmt::Display for ErrorLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
 
 /// Parse error with details about what went wrong
 #[derive(Debug, Error)]
