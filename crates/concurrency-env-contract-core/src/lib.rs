@@ -9,11 +9,13 @@
 
 use std::env;
 
-pub use adze_concurrency_env_vars_core::{
+pub mod vars;
+
+pub use adze_concurrency_parse_core::parse_positive_usize_or_default;
+pub use vars::{
     DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS, RAYON_NUM_THREADS_ENV,
     TOKIO_WORKER_THREADS_ENV,
 };
-pub use adze_concurrency_parse_core::parse_positive_usize_or_default;
 
 /// Snapshot of active concurrency cap values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
