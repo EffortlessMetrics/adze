@@ -38,7 +38,6 @@ dependencies = [
  "adze-python",
  "adze-python-simple",
  "adze-runtime-governance-api",
- "adze-stack-pool-core",
  "adze-tablegen",
  "ahash",
  "anyhow",
@@ -679,14 +678,6 @@ name = "adze-runtime2-governance"
 version = "0.1.0"
 dependencies = [
  "adze-runtime-governance-matrix",
- "proptest",
-]
-
-[[package]]
-name = "adze-stack-pool-core"
-version = "0.1.0"
-dependencies = [
- "criterion",
  "proptest",
 ]
 

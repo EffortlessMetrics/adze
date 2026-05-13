@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 40
+**Total Crates:** 39
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 40 | 100% |
-| Contract Lock Tests | 38+ | 95%+ |
+| Complete (BDD + Property) | 39 | 100% |
+| Contract Lock Tests | 37+ | 95%+ |
 
-All 40 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 39 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 40 remaining tracked crates have both BDD tests and property-based tests:
+All 39 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -57,12 +57,11 @@ All 40 remaining tracked crates have both BDD tests and property-based tests:
 | `runtime-governance-api` | ✓ | ✓ | ✓ |
 | `runtime-governance-matrix` | ✓ | ✓ | ✓ |
 | `runtime2-governance` | ✓ | ✓ | ✓ |
-| `stack-pool-core` | ✓ | ✓ | ✓ |
 | `ts-c-harness` | ✓ | ✓ | - |
 
 ## Contract Lock Files
 
-The following 38+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
+The following 37+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
 
 - `bdd-governance-contract`
 - `bdd-governance-core`
@@ -99,7 +98,6 @@ The following 38+ remaining tracked crates have `contract_lock.rs` test files (c
 - `runtime-governance-api`
 - `runtime-governance-matrix`
 - `runtime2-governance`
-- `stack-pool-core`
 
 ### Crates Without Contract Lock Tests
 

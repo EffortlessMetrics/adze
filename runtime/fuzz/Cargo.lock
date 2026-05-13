@@ -12,7 +12,6 @@ dependencies = [
  "adze-linecol-core",
  "adze-macro",
  "adze-runtime-governance-api",
- "adze-stack-pool-core",
  "adze-tablegen",
  "ahash",
  "anyhow",
@@ -324,10 +323,6 @@ version = "0.1.0"
 dependencies = [
  "adze-governance-runtime-core",
 ]
-
-[[package]]
-name = "adze-stack-pool-core"
-version = "0.1.0"
 
 [[package]]
 name = "adze-tablegen"

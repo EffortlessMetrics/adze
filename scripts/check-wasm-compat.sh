@@ -6,7 +6,6 @@ echo "=== WASM Compatibility Check ==="
 # Pure data crates that MUST compile for WASM
 WASM_CRATES=(
     "adze-linecol-core"
-    "adze-stack-pool-core"
     "adze-parsetable-metadata"
     "adze-feature-policy-core"
     "adze-bdd-grid-core"
