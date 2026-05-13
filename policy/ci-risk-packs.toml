@@ -58,7 +58,7 @@ paths = [
     "crates/feature-policy*/**",
     "crates/runtime-governance*/**",
 ]
-lanes = ["microcrate-ci", "test-policy"]
+lanes = ["microcrate-ci"]
 deep_lanes = ["core-tests"]
 labels = ["ci:microcrate", "full-ci"]
 

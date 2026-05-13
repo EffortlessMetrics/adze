@@ -139,7 +139,7 @@ RISK_PACKS: dict[str, dict[str, object]] = {
     },
     "microcrate_governance": {
         "areas": ["governance"],
-        "lanes": ["microcrate-ci", "test-policy"],
+        "lanes": ["microcrate-ci"],
         "deep_lanes": [],
         "labels": ["ci:microcrate", "full-ci"],
     },
@@ -198,7 +198,6 @@ DEFAULT_LANES = [
     "pr-plan",
     "ci-supported",
     "ripr-advisory",
-    "test-policy",
     "ci-lane-whitelist-lint",
 ]
 
@@ -287,7 +286,7 @@ def select_lanes(areas: set[str], packs: list[str], labels: list[str]) -> list[d
             }
 
     for lane in DEFAULT_LANES:
-        add(lane, blocking=lane in {"ci-supported", "test-policy"}, reason="default frontdoor")
+        add(lane, blocking=lane == "ci-supported", reason="default frontdoor")
 
     docs_only = areas <= {"docs"} and bool(areas)
     if not docs_only:

@@ -124,7 +124,6 @@ const FRONTDOOR_DEFAULTS: &[&str] = &[
     "pr-plan",
     "ci-supported",
     "ripr-advisory",
-    "test-policy",
     "ci-lane-whitelist-lint",
 ];
 
