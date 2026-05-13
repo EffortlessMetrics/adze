@@ -1,6 +1,6 @@
 use adze::concurrency_caps::ConcurrencyCaps as RuntimeConcurrencyCaps;
+use adze::concurrency_caps::contract::ConcurrencyCaps as ContractConcurrencyCaps;
 use adze::concurrency_caps::{bounded_parallel_map, init_concurrency_caps, normalized_concurrency};
-use adze_concurrency_caps_core::ConcurrencyCaps as CoreConcurrencyCaps;
 
 #[test]
 fn runtime_reexports_bounded_parallel_map_with_expected_behavior() {
@@ -26,12 +26,12 @@ fn runtime_reexport_init_is_idempotent() {
 
 #[test]
 fn runtime_reexport_stays_type_compatible() {
-    fn accepts_core_type(value: CoreConcurrencyCaps) -> CoreConcurrencyCaps {
+    fn accepts_contract_type(value: ContractConcurrencyCaps) -> ContractConcurrencyCaps {
         value
     }
 
     let runtime_value = RuntimeConcurrencyCaps::default();
-    let returned = accepts_core_type(runtime_value);
+    let returned = accepts_contract_type(runtime_value);
 
     assert_eq!(
         returned.rayon_threads,

@@ -1,4 +1,4 @@
-use adze_concurrency_caps_core::contract::init_concurrency_caps as caps_init_concurrency_caps;
+use adze::concurrency_caps::contract::init_concurrency_caps as caps_init_concurrency_caps;
 use adze_concurrency_init_core::init_concurrency_caps as init_core_init_concurrency_caps;
 
 #[test]

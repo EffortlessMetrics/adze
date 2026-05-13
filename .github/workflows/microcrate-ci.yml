@@ -145,7 +145,6 @@ jobs:
           BOTH_CRATES=(
             adze-glr-core
             adze-tablegen
-            adze-concurrency-caps-core
             adze-concurrency-env-contract-core
             adze-concurrency-init-core
             adze-concurrency-init-rayon-core
@@ -205,7 +204,6 @@ jobs:
           # Run tests for a representative subset to keep CI fast
           cargo test -p adze-glr-core $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS
           cargo test -p adze-tablegen $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS
-          cargo test -p adze-concurrency-caps-core $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS || true
           cargo test -p adze-linecol-core $FEATURE_FLAG --lib -- --test-threads=$RUST_TEST_THREADS || true
 
   # ── Crate-group parallel test jobs ──────────────────────────────────
@@ -223,7 +221,6 @@ jobs:
       - name: Test concurrency crates
         run: |
           cargo test \
-            -p adze-concurrency-caps-core \
             -p adze-concurrency-env-contract-core \
             -p adze-concurrency-init-core \
             -p adze-concurrency-init-rayon-core \

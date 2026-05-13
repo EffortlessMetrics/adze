@@ -8,7 +8,6 @@ adze-concurrency-env-contract-core
 adze-concurrency-init-core
 adze-concurrency-plan-core
 adze-concurrency-map-core
-adze-concurrency-caps-core
 adze-linecol-core
 adze-lsp-generator
 adze-macro

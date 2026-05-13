@@ -1,4 +1,4 @@
-use adze_concurrency_caps_core::{
+use adze::concurrency_caps::contract::{
     ParallelPartitionPlan as CapsParallelPartitionPlan,
     normalized_concurrency as caps_normalized_concurrency,
 };

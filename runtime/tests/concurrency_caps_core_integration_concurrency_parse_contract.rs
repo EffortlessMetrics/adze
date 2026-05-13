@@ -1,4 +1,4 @@
-use adze_concurrency_caps_core::contract::parse_positive_usize_or_default as caps_parse;
+use adze::concurrency_caps::contract::parse_positive_usize_or_default as caps_parse;
 use adze_concurrency_env_contract_core::parse_positive_usize_or_default as parse_owner_parse;
 
 #[test]

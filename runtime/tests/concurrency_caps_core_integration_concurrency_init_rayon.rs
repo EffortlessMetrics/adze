@@ -1,4 +1,4 @@
-use adze_concurrency_caps_core::contract::init_rayon_global_once as caps_core_fn;
+use adze::concurrency_caps::init_rayon_global_once as caps_core_fn;
 use adze_concurrency_init_rayon_core::init_rayon_global_once as rayon_core_fn;
 
 #[test]
