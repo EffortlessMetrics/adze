@@ -82,7 +82,7 @@ These jobs run on push to `main`, on schedules, or via `workflow_dispatch` with 
 | `microcrate-ci.yml` | `Formatting` through `Strict Docs` | Push + path-routed PR | Push | Governance micro-crate tests |
 | `golden-tests.yml` | `Golden Tests` | Push + path-routed PR | Push | Tree-sitter parity validation |
 | `performance.yml` | `Performance Regression Check` | PR (path-routed) | PR-only | Benchmark comparison on perf-impact changes |
-| `test-policy.yml` | `Enforce Test Policy` | PR + push | PR-only | Test naming, connectivity, coverage |
+| `test-policy.yml` | `Enforce Test Policy` | Path-routed PR + push + manual | Advisory | Test naming, disabled-test prevention, runtime caps |
 | `mdbook.yml` | `build` + `deploy` | Push + PR | Push | Documentation site build |
 | `smoke-ts-bridge.yml` | `smoke` | Push + PR | PR-only | ts-bridge link verification |
 | `ts-bridge-smoke.yml` | `smoke` | Push + PR | PR-only | ts-bridge smoke with libtree-sitter |

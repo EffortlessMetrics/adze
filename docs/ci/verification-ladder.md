@@ -8,7 +8,6 @@ ladder as its risk pack justifies — no further.
 | Lane | Source | Why |
 | --- | --- | --- |
 | `ci-supported` | `just ci-supported` | Format, clippy, tests on the supported crate set |
-| test-policy | `.github/workflows/test-policy.yml` | Hygiene: no silently disabled tests, runtime caps |
 | PR Gate Success | summary check | One required target for branch protection |
 
 ## Tier 1 – Frontdoor advisory (every PR, non-blocking)
@@ -28,6 +27,7 @@ ladder as its risk pack justifies — no further.
 | `tablegen` | tablegen ABI/canary lanes |
 | `grammar_golden` | golden tests for grammars |
 | `microcrate_governance` | governance/BDD microcrate group |
+| test-policy paths | test hygiene and runtime-cap checks for test-policy changes |
 | `concurrency` | concurrency microcrate group |
 | `wasm` | wasm-check |
 | `performance` | quick benchmark compile |

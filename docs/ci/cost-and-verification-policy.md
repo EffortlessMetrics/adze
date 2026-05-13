@@ -40,9 +40,9 @@ the design center.
 
 | Tier | Trigger | Examples |
 | --- | --- | --- |
-| frontdoor | every PR, blocking | `just ci-supported`, test-policy |
+| frontdoor | every PR, blocking | `just ci-supported` / `PR Gate Success` |
 | advisory | every PR, non-blocking | PR Plan, ripr |
-| risk-routed | risk pack matches | parser fuzz build, golden, microcrate group |
+| risk-routed | risk pack or path matches | parser fuzz build, golden, microcrate group, test-policy |
 | deep | `main`, nightly, label | OS matrix, fuzz runtime, full benchmarks |
 | release | tag, manual | semver, MSRV, security audit |
 
