@@ -96,12 +96,12 @@ commands = [
 
 [[work_item]]
 id = "package-boundary-audit"
-status = "ready"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
 plan = "plans/0.9.0/implementation-plan.md"
-prs = []
+prs = [694]
 commands = [
   "cargo metadata --format-version 1 --no-deps",
   "cargo run -q -p xtask -- check-package-boundary",
@@ -124,12 +124,12 @@ commands = [
 
 [[work_item]]
 id = "microcrate-collapse"
-status = "blocked"
+status = "ready"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
 plan = "plans/0.9.0/implementation-plan.md"
-blocked_by = ["package-boundary-audit"]
+blocked_by = []
 prs = []
 commands = [
   "cargo metadata --format-version 1 --no-deps",

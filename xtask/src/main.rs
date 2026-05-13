@@ -238,6 +238,12 @@ enum Commands {
     },
     /// Run every policy check and emit a combined Markdown report.
     PolicyReport,
+    /// Verify workspace packages against policy/package-boundary.toml.
+    CheckPackageBoundary {
+        /// Operating mode: advisory | blocking-allowlist | blocking-strict
+        #[arg(long, default_value = "blocking-allowlist")]
+        mode: String,
+    },
     /// Lint workflows against policy/ci-lane-whitelist.toml.
     ///
     /// Reports undeclared workflow jobs, missing exceptions for expensive
@@ -493,6 +499,10 @@ fn main() -> Result<()> {
         }
         Commands::PolicyReport => {
             policy::report::run()?;
+        }
+        Commands::CheckPackageBoundary { mode } => {
+            let mode = policy::Mode::parse(&mode)?;
+            policy::package_boundary::run_check(mode)?;
         }
         Commands::CheckCiLaneWhitelist { mode } => {
             let mode = policy::Mode::parse(&mode)?;

@@ -9,6 +9,7 @@ pub mod ci_lane_whitelist;
 pub mod file_policy;
 pub mod lint_policy;
 pub mod no_panic;
+pub mod package_boundary;
 pub mod report;
 
 /// Where the checks write their JSON/Markdown artefacts.

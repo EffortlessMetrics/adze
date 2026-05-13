@@ -273,7 +273,7 @@ Revert the plan/manifest PR.
 
 ## Work Item: package-boundary-audit
 
-Status: ready
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0001-package-surface-boundary.md
 Linked ADR: ADZE-ADR-0002 no durable unpublished production crates
@@ -287,13 +287,15 @@ surface boundary.
 
 ### Production Delta
 
-Expected later changes:
+Added:
 
 - `../../policy/package-boundary.toml`
 - package-boundary verifier command
 - verifier tests
-- support-tier or CI policy updates if the classification affects claims or
-  routing
+
+No support-tier or CI routing claim changed in this audit. Later package
+classification changes must update the relevant ledgers when they affect claims
+or routing.
 
 ### Non-Goals
 
@@ -366,12 +368,12 @@ until a replacement policy lands.
 
 ## Work Item: microcrate-collapse
 
-Status: blocked
+Status: ready
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0001-package-surface-boundary.md
 Linked ADR: ADZE-ADR-0002 no durable unpublished production crates
 Blocks: rust-1.95-msrv-bump; clippy-policy-refresh; ci-lem-refresh
-Blocked by: package-boundary-audit
+Blocked by: none
 
 ### Goal
 
