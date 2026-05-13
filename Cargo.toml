@@ -33,7 +33,6 @@ members = [
   "crates/governance-metadata",
   "crates/linecol-core",
   "crates/bdd-governance-core",
-  "crates/bdd-governance-reporting-core",
   "crates/bdd-governance-contract",
   "crates/governance-contract",
   "crates/bdd-scenario-fixtures",

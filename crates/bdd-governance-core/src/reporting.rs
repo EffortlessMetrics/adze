@@ -1,22 +1,16 @@
 //! Profile-aware report/status rendering for BDD governance tracking.
 //!
-//! This crate intentionally owns formatting concerns so governance matrix core
+//! This module intentionally owns formatting concerns so governance matrix core
 //! logic can stay focused on typed snapshots and matrix composition.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
 use core::fmt::Write;
 
-pub use adze_bdd_grid_core::{BddPhase, BddScenario, bdd_progress, bdd_progress_report};
-pub use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
 pub use adze_governance_status_core::{
     GLR_CONFLICT_FALLBACK, bdd_progress_status_line, describe_backend_for_conflicts,
 };
+
+use crate::{BddPhase, BddScenario, bdd_progress, bdd_progress_report};
+use adze_feature_policy_core::ParserFeatureProfile;
 
 /// Compose BDD progress with parser profile diagnostics in one report.
 pub fn bdd_progress_report_with_profile(
@@ -51,7 +45,8 @@ pub fn bdd_progress_report_with_profile(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID;
+    use crate::GLR_CONFLICT_PRESERVATION_GRID;
+    use adze_feature_policy_core::ParserBackend;
 
     #[test]
     fn conflict_backend_description_prefers_glr() {
