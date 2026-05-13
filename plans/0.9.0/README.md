@@ -32,6 +32,7 @@ work into focused files:
 
 ```text
 implementation-plan.md
+api-foundation.md
 microcrate-collapse.md
 rust-1.95.md
 ci-economics-v2.md

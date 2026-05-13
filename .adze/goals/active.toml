@@ -13,12 +13,13 @@ where support-tier proof exists.
 end_state = [
   "Every workspace package is classified.",
   "No durable unpublished production crate category exists.",
-  "Owner-module migration targets name an owner and exit condition.",
+  "Owner-module migration targets transition into SRP owner submodules before the next release.",
   "CI lane whitelist reflects the post-collapse workspace.",
   "Ordinary PRs expose LEM estimates and over-ceiling PRs require override.",
   "Rust/MSRV declarations agree after the 1.95 bump.",
   "Lint policy checks pass without hiding easy refactors behind expect attributes.",
   "Support tiers map every stable README claim to proof.",
+  "API foundation specs define AdzeDocument and every projection as one parse truth.",
 ]
 
 [[work_item]]
@@ -124,13 +125,13 @@ commands = [
 
 [[work_item]]
 id = "microcrate-collapse"
-status = "ready"
+status = "active"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
-adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
-plan = "plans/0.9.0/implementation-plan.md"
+adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
+plan = "plans/0.9.0/microcrate-collapse.md"
 blocked_by = []
-prs = []
+prs = [696, 697]
 commands = [
   "cargo metadata --format-version 1 --no-deps",
   "cargo run -q -p xtask -- check-package-boundary",
@@ -171,7 +172,7 @@ commands = [
 id = "product-proof-refresh"
 status = "blocked"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "ADZE-SPEC-0004-product-proof-and-support-tiers"
+spec = "ADZE-SPEC-0011-product-proof-and-support-tiers"
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
 blocked_by = ["clippy-policy-refresh", "ci-economics-verifier"]
@@ -180,4 +181,150 @@ commands = [
   "just ci-supported",
   "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
   "cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture",
+]
+
+[[work_item]]
+id = "api-foundation-spec-stack"
+status = "active"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = []
+prs = []
+commands = [
+  "python -c \"import tomllib; tomllib.load(open('policy/doc-artifacts.toml', 'rb')); tomllib.load(open('.adze/goals/active.toml', 'rb'))\"",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "document-model-alpha-v2"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["api-foundation-spec-stack"]
+prs = []
+commands = [
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test adze_document_alpha -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "pure-parser-document-bridge"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["document-model-alpha-v2"]
+prs = []
+commands = [
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test adze_document_alpha -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "generated-parse-document-canonical"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["pure-parser-document-bridge"]
+prs = []
+commands = [
+  "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
+  "cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "typed-cst-schema-generation"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["generated-parse-document-canonical"]
+prs = []
+commands = [
+  "cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture",
+  "cargo test -p adze-tablegen typed_cst -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "document-diagnostics-store"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["generated-parse-document-canonical"]
+prs = []
+commands = [
+  "cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,glr\" --test error_display_tests -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "ts-compat-document-adapter"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["document-model-alpha-v2"]
+prs = []
+commands = [
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_to_sexp -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_error -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "document-ambiguity-summary"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md"
+adr = "docs/adr/ADZE-ADR-0003-summary-first-glr-ambiguity.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["generated-parse-document-canonical"]
+prs = []
+commands = [
+  "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_parse_document_reports_ambiguity_summary -- --exact --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "document-json-schema-alpha"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0008-json-cli-wasm-projections.md"
+adr = "docs/adr/ADZE-ADR-0004-schema-versioned-projections.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["document-model-alpha-v2"]
+prs = []
+commands = [
+  "cargo test -p adze --features \"pure-rust,serialization\" --test adze_document_json -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "language-schema-node-types"
+status = "blocked"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0010-language-metadata-and-node-types.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = ["document-model-alpha-v2"]
+prs = []
+commands = [
+  "cargo test -p adze-tablegen node_types -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_types -- --nocapture",
+  "git diff --check",
 ]

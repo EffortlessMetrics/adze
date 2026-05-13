@@ -9,6 +9,7 @@ Linked specs:
 - ../../docs/specs/ADZE-SPEC-0002-ci-economics.md
 Linked ADRs:
 - ../../docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md
+- ../../docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md
 Active goal: ../../.adze/goals/active.toml
 Support-tier map: ../../docs/status/SUPPORT_TIERS.md
 
@@ -33,8 +34,15 @@ and review cycle for each single-document branch.
 | #681 | source-of-truth-scaffolding | README files for proposals, specs, ADRs, 0.9 plans, and active goals |
 | #691 | contract-convergence-proposal | `ADZE-PROP-0001` |
 | #692 | economics-docs-consolidation | `ADZE-SPEC-0001`, `ADZE-SPEC-0002`, `ADZE-ADR-0001`, implementation plan, active goal manifest |
+| pending | api-foundation-spec-stack | `ADZE-PROP-0002`, `ADZE-SPEC-0003` through `ADZE-SPEC-0010`, `ADZE-ADR-0003`, `ADZE-ADR-0004`, `plans/0.9.0/api-foundation.md`, `policy/doc-artifacts.toml` |
 
 Superseded stacked PRs #683 through #686 were closed after #692 landed.
+
+The microcrate-to-SRP submodule transition is tracked in
+`microcrate-collapse.md` and blocks the next release. The API foundation spec stack is tracked separately in
+`api-foundation.md`. It encodes the runtime/API build sequence so follow-up
+implementation PRs can be executed from source-of-truth artifacts rather than
+chat history.
 
 ## Work Item: source-of-truth-scaffolding
 
@@ -367,16 +375,18 @@ until a replacement policy lands.
 
 ## Work Item: microcrate-collapse
 
-Status: ready
+Status: active
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0001-package-surface-boundary.md
-Linked ADR: ADZE-ADR-0002 no durable unpublished production crates
+Linked ADR: ../../docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md
 Blocks: rust-1.95-msrv-bump; clippy-policy-refresh; ci-lem-refresh
 Blocked by: none
 
 ### Goal
 
 Move or remove temporary owner-module migration targets in owner-sized batches.
+The target form is an SRP submodule under the crate, xtask module, or dev-only
+tooling module that actually owns the behavior. This is a next-release blocker.
 
 ### Production Delta
 
@@ -389,8 +399,10 @@ No opportunistic parser behavior changes or support-tier promotion.
 
 ### Acceptance
 
-Each package-collapse PR removes a documented migration target or reclassifies
-it with a new accepted contract. The supported gate remains green.
+Each package-collapse PR removes a documented migration target, moves it into an
+SRP submodule, or reclassifies it with a new accepted ADR. The supported gate
+remains green. The next release is blocked while unresolved migration targets
+remain in `../../policy/package-boundary.toml`.
 
 ### Proof Commands
 
@@ -490,7 +502,7 @@ Revert the lint policy PR and any mechanical fixes tied only to that promotion.
 
 Status: blocked
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
-Linked spec: ADZE-SPEC-0004 product proof and support tiers
+Linked spec: future ADZE-SPEC-0011 product proof and support tiers
 Linked ADR:
 Blocks: 0.9-closeout
 Blocked by: clippy-policy-refresh; ci-economics-verifier

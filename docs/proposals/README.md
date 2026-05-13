@@ -40,6 +40,7 @@ Example:
 
 ```text
 ADZE-PROP-0001-0.9-contract-convergence.md
+ADZE-PROP-0002-api-foundation.md
 ```
 
 ## Header

@@ -1,0 +1,212 @@
+schema_version = "1.0"
+policy = "doc-artifacts"
+owner = "docs/release"
+status = "active"
+
+[[artifact]]
+id = "ADZE-PROP-0001"
+kind = "proposal"
+path = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+status = "proposed"
+owner = "release/product"
+milestone = "0.9.0"
+source_of_truth_for = ["0.9 release rationale", "contract convergence campaign"]
+links_to = [
+  "ADZE-SPEC-0001",
+  "ADZE-SPEC-0002",
+  "ADZE-ADR-0001",
+  "plans/0.9.0/implementation-plan.md",
+]
+
+[[artifact]]
+id = "ADZE-PROP-0002"
+kind = "proposal"
+path = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+status = "proposed"
+owner = "runtime/api"
+milestone = "0.9.x"
+source_of_truth_for = ["API foundation rationale", "one parse truth product direction"]
+links_to = [
+  "ADZE-SPEC-0003",
+  "ADZE-SPEC-0004",
+  "ADZE-SPEC-0005",
+  "ADZE-SPEC-0006",
+  "ADZE-SPEC-0007",
+  "ADZE-SPEC-0008",
+  "ADZE-SPEC-0009",
+  "ADZE-SPEC-0010",
+  "ADZE-ADR-0001",
+  "ADZE-ADR-0003",
+  "ADZE-ADR-0004",
+  "plans/0.9.0/api-foundation.md",
+]
+
+[[artifact]]
+id = "ADZE-SPEC-0001"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
+status = "proposed"
+owner = "release/package"
+milestone = "0.9.0"
+source_of_truth_for = ["package surface boundary", "microcrate to SRP submodule release gate"]
+links_to = ["ADZE-PROP-0001", "ADZE-ADR-0002", "policy/package-boundary.toml", "plans/0.9.0/microcrate-collapse.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0002"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0002-ci-economics.md"
+status = "proposed"
+owner = "release/ci"
+milestone = "0.9.0"
+source_of_truth_for = ["CI economics behavior contract"]
+links_to = ["ADZE-PROP-0001", "policy/ci-lane-whitelist.toml", "policy/ci-risk-packs.toml"]
+
+[[artifact]]
+id = "ADZE-SPEC-0003"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
+status = "accepted"
+owner = "runtime/api"
+milestone = "0.9.x"
+source_of_truth_for = ["canonical parse document behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0004"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md"
+status = "accepted"
+owner = "tablegen/runtime"
+milestone = "0.9.x"
+source_of_truth_for = ["typed CST and typed AST projection behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0005"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md"
+status = "accepted"
+owner = "runtime/diagnostics"
+milestone = "0.9.x"
+source_of_truth_for = ["diagnostics and recovery behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0006"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md"
+status = "accepted"
+owner = "runtime/ts-compat"
+milestone = "0.9.x"
+source_of_truth_for = ["Tree-sitter compatibility adapter behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0007"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md"
+status = "accepted"
+owner = "runtime/glr"
+milestone = "0.9.x"
+source_of_truth_for = ["GLR ambiguity summary behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0003", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0008"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0008-json-cli-wasm-projections.md"
+status = "accepted"
+owner = "cli/wasm/schema"
+milestone = "0.9.x"
+source_of_truth_for = ["serialized projection behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0004", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0009"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0009-incremental-document-lifecycle.md"
+status = "proposed"
+owner = "runtime/incremental"
+milestone = "post-0.9"
+source_of_truth_for = ["incremental document lifecycle behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0010"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0010-language-metadata-and-node-types.md"
+status = "accepted"
+owner = "tablegen/runtime/ts-compat"
+milestone = "0.9.x"
+source_of_truth_for = ["language metadata and node-types behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-ADR-0001"
+kind = "adr"
+path = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+status = "proposed"
+owner = "runtime/api"
+milestone = "0.9.x"
+source_of_truth_for = ["one parse truth architecture decision"]
+links_to = ["ADZE-PROP-0002", "ADZE-SPEC-0003"]
+
+[[artifact]]
+id = "ADZE-ADR-0002"
+kind = "adr"
+path = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
+status = "accepted"
+owner = "release/package"
+milestone = "0.9.0"
+source_of_truth_for = ["no durable unpublished production crates", "microcrate to SRP submodule architecture decision"]
+links_to = ["ADZE-PROP-0001", "ADZE-SPEC-0001", "plans/0.9.0/microcrate-collapse.md", "policy/package-boundary.toml"]
+
+[[artifact]]
+id = "ADZE-ADR-0003"
+kind = "adr"
+path = "docs/adr/ADZE-ADR-0003-summary-first-glr-ambiguity.md"
+status = "accepted"
+owner = "runtime/glr"
+milestone = "0.9.x"
+source_of_truth_for = ["summary-first GLR ambiguity architecture decision"]
+links_to = ["ADZE-PROP-0002", "ADZE-SPEC-0007"]
+
+[[artifact]]
+id = "ADZE-ADR-0004"
+kind = "adr"
+path = "docs/adr/ADZE-ADR-0004-schema-versioned-projections.md"
+status = "accepted"
+owner = "cli/wasm/schema"
+milestone = "0.9.x"
+source_of_truth_for = ["schema-versioned serialized projection decision"]
+links_to = ["ADZE-PROP-0002", "ADZE-SPEC-0008"]
+
+[[artifact]]
+id = "plans/0.9.0/implementation-plan.md"
+kind = "plan"
+path = "plans/0.9.0/implementation-plan.md"
+status = "active"
+owner = "release/product"
+milestone = "0.9.0"
+source_of_truth_for = ["0.9 contract convergence sequence"]
+links_to = ["ADZE-PROP-0001", ".adze/goals/active.toml"]
+
+[[artifact]]
+id = "plans/0.9.0/microcrate-collapse.md"
+kind = "plan"
+path = "plans/0.9.0/microcrate-collapse.md"
+status = "active"
+owner = "release/package"
+milestone = "0.9.0"
+source_of_truth_for = ["microcrate to SRP submodule transition sequence"]
+links_to = ["ADZE-PROP-0001", "ADZE-SPEC-0001", "ADZE-ADR-0002", ".adze/goals/active.toml", "policy/package-boundary.toml"]
+
+[[artifact]]
+id = "plans/0.9.0/api-foundation.md"
+kind = "plan"
+path = "plans/0.9.0/api-foundation.md"
+status = "proposed"
+owner = "runtime/api"
+milestone = "0.9.x"
+source_of_truth_for = ["API foundation implementation sequence"]
+links_to = ["ADZE-PROP-0002", ".adze/goals/active.toml"]

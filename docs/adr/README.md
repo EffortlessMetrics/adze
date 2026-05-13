@@ -37,6 +37,9 @@ Example:
 
 ```text
 ADZE-ADR-0001-adze-document-one-parse-truth.md
+ADZE-ADR-0002-no-durable-unpublished-production-crates.md
+ADZE-ADR-0003-summary-first-glr-ambiguity.md
+ADZE-ADR-0004-schema-versioned-projections.md
 ```
 
 ## Header

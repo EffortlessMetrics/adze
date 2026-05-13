@@ -68,7 +68,10 @@ Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-nativ
 - [**Specs**](./specs/README.md) - Behavior contracts, acceptance criteria, and proof requirements.
 - [**Architecture Decisions**](./adr/README.md) - Durable architecture decisions and their consequences.
 - [**0.9.0 Plans**](../plans/0.9.0/README.md) - PR-sized implementation sequencing and proof commands.
+- [**Microcrate To SRP Plan**](../plans/0.9.0/microcrate-collapse.md) - Release-blocking transition from migration-target microcrates to SRP owner submodules.
+- [**API Foundation Plan**](../plans/0.9.0/api-foundation.md) - PR-sized sequence for `AdzeDocument` and its typed, diagnostic, GLR, compatibility, JSON, CLI, and WASM projections.
 - [**Active Goals**](../.adze/goals/README.md) - Machine-readable Droid/Codex execution state conventions.
+- [**Document Artifact Ledger**](../policy/doc-artifacts.toml) - Machine-readable registry for proposals, specs, ADRs, and implementation plans.
 - [**Correctness Push Plan**](./status/CORRECTNESS_PUSH.md) - Current merge/proof sequence for parser, GLR, tablegen ABI, CLI, and product-proof convergence.
 - [**Support Tiers**](./status/SUPPORT_TIERS.md) - Feature claims mapped to proof commands and CI lanes.
 - [**Friction Log**](./status/FRICTION_LOG.md) - Current developer pain points we are burning down.
