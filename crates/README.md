@@ -70,15 +70,14 @@ Parser backend selection, metadata management, and policy enforcement.
 | [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
 | [`governance-runtime-reporting`](governance-runtime-reporting) | Governance reporting utilities |
 
-### Parser Contracts (4 crates)
+### Parser Contracts (3 crates)
 
-Parser backend abstraction and feature negotiation.
+Parser backend abstraction and governance contracts.
 
 | Crate | Purpose |
 |-------|---------|
 | [`parser-backend-core`](parser-backend-core) | Core parser backend abstractions |
 | [`parser-contract`](parser-contract) | Shared contracts for parser backend selection |
-| [`parser-feature-contract`](parser-feature-contract) | Parser feature negotiation contracts |
 | [`parser-governance-contract`](parser-governance-contract) | Governance contracts for parser backends |
 
 ### Feature Policy (2 crates)

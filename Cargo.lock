@@ -617,13 +617,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-parser-feature-contract"
-version = "0.1.0"
-dependencies = [
- "adze-feature-policy-contract",
-]
-
-[[package]]
 name = "adze-parser-feature-profile-core"
 version = "0.1.0"
 dependencies = [

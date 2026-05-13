@@ -10,7 +10,6 @@ members = [
   "crates/bdd-governance-fixtures",
   "crates/parser-contract",
   "crates/parser-governance-contract",
-  "crates/parser-feature-contract",
   "crates/runtime-governance",
   "crates/runtime-governance-api",
   "crates/ts-format-core",
