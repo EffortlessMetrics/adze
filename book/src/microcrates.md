@@ -24,7 +24,6 @@ Bounded-concurrency infrastructure to prevent resource exhaustion:
 | Crate | Path | Responsibility |
 |---|---|---|
 | `concurrency-caps-core` | `crates/concurrency-caps-core/` | Core cap values and initialization |
-| `concurrency-caps-contract-core` | `crates/concurrency-caps-contract-core/` | Trait contracts for cap providers |
 | `concurrency-env-contract-core` | `crates/concurrency-env-contract-core/` | Contracts and parsing for env-based cap sources |
 | `concurrency-init-core` | `crates/concurrency-init-core/` | Thread-pool initialization |
 | `concurrency-init-rayon-core` | `crates/concurrency-init-rayon-core/` | Rayon pool initialization with caps |

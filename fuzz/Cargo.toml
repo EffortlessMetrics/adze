@@ -27,7 +27,6 @@ adze-concurrency-normalize-core = { path = "../crates/concurrency-normalize-core
 adze-ts-format-core = { path = "../crates/ts-format-core" }
 adze-common = { path = "../common" }
 adze-concurrency-bounded-map-core = { path = "../crates/concurrency-bounded-map-core" }
-adze-concurrency-caps-contract-core = { path = "../crates/concurrency-caps-contract-core" }
 adze-parser-backend-core = { path = "../crates/parser-backend-core" }
 quote = "1"
 syn = { version = "2", features = [ "full", "extra-traits" ] }
