@@ -1,11 +1,4 @@
-//! Core bounded parallel map implementation.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+//! Bounded parallel map implementation details.
 
 use rayon::prelude::*;
 
@@ -19,7 +12,7 @@ pub use adze_concurrency_plan_core::{ParallelPartitionPlan, normalized_concurren
 /// # Examples
 ///
 /// ```
-/// use adze_concurrency_bounded_map_core::bounded_parallel_map;
+/// use adze_concurrency_map_core::bounded_parallel_map;
 ///
 /// let input: Vec<i32> = (0..10).collect();
 /// let mut result = bounded_parallel_map(input, 4, |x| x * 2);

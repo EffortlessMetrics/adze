@@ -201,16 +201,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-bounded-map-core"
-version = "0.1.0"
-dependencies = [
- "adze-concurrency-normalize-core",
- "adze-concurrency-plan-core",
- "proptest",
- "rayon",
-]
-
-[[package]]
 name = "adze-concurrency-caps-contract-core"
 version = "0.1.0"
 dependencies = [
@@ -317,11 +307,11 @@ dependencies = [
 name = "adze-concurrency-map-core"
 version = "0.1.0"
 dependencies = [
- "adze-concurrency-bounded-map-core",
  "adze-concurrency-normalize-core",
  "adze-concurrency-plan-core",
  "criterion",
  "proptest",
+ "rayon",
 ]
 
 [[package]]

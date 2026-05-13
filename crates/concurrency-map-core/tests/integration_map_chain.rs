@@ -1,9 +1,9 @@
 //! Cross-crate integration tests for the map chain:
-//! `concurrency-normalize-core` → `concurrency-plan-core` → `concurrency-bounded-map-core` → `concurrency-map-core`
+//! `concurrency-normalize-core` → `concurrency-plan-core` → `concurrency-map-core::bounded`
 //!
 //! These tests validate that the parallel map chain works correctly end-to-end.
 
-use adze_concurrency_bounded_map_core::{
+use adze_concurrency_map_core::bounded::{
     ParallelPartitionPlan as BoundedPlan, bounded_parallel_map as bounded_map,
     normalized_concurrency as bounded_normalized,
 };
@@ -61,7 +61,7 @@ fn test_map_chain_partition_plan_consistency() {
 
             assert_eq!(
                 map_plan, bounded_plan,
-                "map vs bounded at items={item_count}, concurrency={concurrency}"
+                "map facade vs owner module at items={item_count}, concurrency={concurrency}"
             );
             assert_eq!(
                 map_plan, core_plan,

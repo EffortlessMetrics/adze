@@ -33,13 +33,12 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | [`bdd-grid-core`](bdd-grid-core) | Core implementation of BDD scenario grids |
 | [`bdd-scenario-fixtures`](bdd-scenario-fixtures) | General BDD scenario test fixtures |
 
-### Concurrency (14 crates)
+### Concurrency (13 crates)
 
 Thread pool management, concurrency caps, and parallel execution policies.
 
 | Crate | Purpose |
 |-------|---------|
-| [`concurrency-bounded-map-core`](concurrency-bounded-map-core) | Bounded concurrent map implementation |
 | [`concurrency-caps-contract-core`](concurrency-caps-contract-core) | Contracts for concurrency cap definitions |
 | [`concurrency-caps-core`](concurrency-caps-core) | Core concurrency cap implementations |
 | [`concurrency-env-contract-core`](concurrency-env-contract-core) | Environment-based concurrency contract |
