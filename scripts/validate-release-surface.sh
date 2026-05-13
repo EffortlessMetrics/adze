@@ -5,6 +5,40 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STRICT_PUBLISH_SURFACE="${STRICT_PUBLISH_SURFACE:-0}"
 RELEASE_CRATE_FILE="${RELEASE_CRATE_FILE:-${SCRIPT_DIR}/release-crates.txt}"
 RELEASE_SURFACE_MODE="${RELEASE_SURFACE_MODE:-fixed}"
+PACKAGE_BOUNDARY_RELEASE_GATE="${PACKAGE_BOUNDARY_RELEASE_GATE:-0}"
+
+boundary_gate="${PACKAGE_BOUNDARY_RELEASE_GATE,,}"
+if [[ "$boundary_gate" == "1" || "$boundary_gate" == "true" || "$boundary_gate" == "yes" || "$boundary_gate" == "on" ]]; then
+  python - "${SCRIPT_DIR}/.." <<'PY'
+from pathlib import Path
+import sys
+import tomllib
+
+root = Path(sys.argv[1]).resolve()
+policy_path = root / "policy" / "package-boundary.toml"
+data = tomllib.loads(policy_path.read_text(encoding="utf-8"))
+targets = [
+    package.get("name", "<unknown>")
+    for package in data.get("package", [])
+    if package.get("category") == "owner-module-migration-target"
+]
+if targets:
+    shown = ", ".join(targets[:12])
+    if len(targets) > 12:
+        shown = f"{shown}, and {len(targets) - 12} more"
+    print(
+        f"::error::Release blocked: {len(targets)} owner-module migration target(s) remain in policy/package-boundary.toml: {shown}",
+        file=sys.stderr,
+    )
+    print(
+        "::error::Move them into SRP owner submodules, remove them, or reclassify them with an accepted ADR before release.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+print("Package-boundary release gate passed: no owner-module migration targets remain.")
+PY
+fi
 
 mapfile -t ALLOWED_CRATES < <(RELEASE_SURFACE_MODE="$RELEASE_SURFACE_MODE" \
   RELEASE_CRATE_FILE="$RELEASE_CRATE_FILE" "${SCRIPT_DIR}/release-surface.sh")

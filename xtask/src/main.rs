@@ -243,6 +243,13 @@ enum Commands {
         /// Operating mode: advisory | blocking-allowlist | blocking-strict
         #[arg(long, default_value = "blocking-allowlist")]
         mode: String,
+        /// Fail while any owner-module migration target remains.
+        ///
+        /// This is intended for release-candidate validation. Routine package
+        /// collapse PRs should use the default transition check so the ledger
+        /// can track remaining work without making main permanently red.
+        #[arg(long)]
+        release_gate: bool,
     },
     /// Lint workflows against policy/ci-lane-whitelist.toml.
     ///
@@ -500,9 +507,9 @@ fn main() -> Result<()> {
         Commands::PolicyReport => {
             policy::report::run()?;
         }
-        Commands::CheckPackageBoundary { mode } => {
+        Commands::CheckPackageBoundary { mode, release_gate } => {
             let mode = policy::Mode::parse(&mode)?;
-            policy::package_boundary::run_check(mode)?;
+            policy::package_boundary::run_check(mode, release_gate)?;
         }
         Commands::CheckCiLaneWhitelist { mode } => {
             let mode = policy::Mode::parse(&mode)?;

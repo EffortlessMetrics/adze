@@ -83,6 +83,8 @@ A package-boundary implementation must provide:
 
 - a machine-readable package-boundary ledger;
 - a verifier that checks every workspace package has exactly one category;
+- a release-gate verifier mode that fails while any owner-module migration
+  target remains unresolved;
 - a verifier failure when a package is production-used, unpublished, and not a
   migration target;
 - a verifier failure when an owner-module migration target has no owner or no
@@ -174,6 +176,15 @@ just ci-supported
 Implementation PRs may add narrower tests for the verifier. Package-collapse PRs
 must run the verifier and the supported gate after any workspace membership or
 Cargo metadata change.
+
+The release-candidate proof adds:
+
+```bash
+cargo run -q -p xtask -- check-package-boundary --release-gate
+PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
+```
+
+Those commands are expected to fail while the transition is still active.
 
 ## Metrics / Promotion Rule
 

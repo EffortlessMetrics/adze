@@ -402,7 +402,8 @@ No opportunistic parser behavior changes or support-tier promotion.
 Each package-collapse PR removes a documented migration target, moves it into an
 SRP submodule, or reclassifies it with a new accepted ADR. The supported gate
 remains green. The next release is blocked while unresolved migration targets
-remain in `../../policy/package-boundary.toml`.
+remain in `../../policy/package-boundary.toml`; the release-only proof is
+`cargo run -q -p xtask -- check-package-boundary --release-gate`.
 
 ### Proof Commands
 
@@ -411,6 +412,13 @@ cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
 just check-msrv
 just ci-supported
+```
+
+Release-candidate proof, expected to fail until the migration is complete:
+
+```bash
+cargo run -q -p xtask -- check-package-boundary --release-gate
+PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
 ```
 
 ### Rollback

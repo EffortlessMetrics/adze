@@ -76,6 +76,7 @@ jobs:
           RELEASE_SURFACE_MODE="${{ inputs.release_surface_mode }}" \
           RELEASE_CRATE_FILE="${{ inputs.release_crate_file }}" \
           STRICT_PUBLISH_SURFACE="${{ inputs.strict_publish_surface }}" \
+          PACKAGE_BOUNDARY_RELEASE_GATE=1 \
           ./scripts/validate-release-surface.sh
 
       - name: Validate version bump
