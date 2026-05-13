@@ -1,6 +1,6 @@
 #![no_main]
 
-use adze_concurrency_map_core::{bounded_parallel_map, normalized_concurrency};
+use adze::concurrency_caps::{bounded_parallel_map, normalized_concurrency};
 use libfuzzer_sys::fuzz_target;
 
 fn model_transform(value: i32) -> i32 {

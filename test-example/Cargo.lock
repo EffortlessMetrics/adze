@@ -93,13 +93,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-map-core"
-version = "0.1.0"
-dependencies = [
- "adze-concurrency-bounded-map-core",
-]
-
-[[package]]
 name = "adze-concurrency-normalize-core"
 version = "0.1.0"
 

@@ -1,4 +1,4 @@
-use adze_concurrency_map_core::{ParallelPartitionPlan, bounded_parallel_map};
+use adze::concurrency_caps::{ParallelPartitionPlan, bounded_parallel_map};
 
 #[test]
 fn contract_zero_concurrency_matches_single_worker_behavior() {

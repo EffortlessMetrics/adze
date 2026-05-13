@@ -148,7 +148,6 @@ jobs:
             adze-concurrency-env-contract-core
             adze-concurrency-init-core
             adze-concurrency-init-rayon-core
-            adze-concurrency-map-core
             adze-concurrency-normalize-core
             adze-concurrency-plan-core
             adze-governance-contract
@@ -224,7 +223,6 @@ jobs:
             -p adze-concurrency-env-contract-core \
             -p adze-concurrency-init-core \
             -p adze-concurrency-init-rayon-core \
-            -p adze-concurrency-map-core \
             -p adze-concurrency-normalize-core \
             -p adze-concurrency-plan-core \
             -- --test-threads=$RUST_TEST_THREADS

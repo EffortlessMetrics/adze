@@ -15,16 +15,18 @@
 //! assert_eq!(parse_positive_usize_or_default(Some("16"), 8), 16);
 //! ```
 
+/// Bounded parallel map implementation details.
+pub mod bounded;
 /// Contract-focused concurrency cap facade.
 pub mod contract;
 
+/// Bounded parallel map and partition planning utilities.
+pub use bounded::{ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency};
 /// Environment-based concurrency cap configuration and defaults.
 pub use contract::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };
-/// Bounded parallel map and partition planning utilities.
-pub use contract::{ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency};
 /// One-time concurrency initialization helpers (rayon global pool, caps bootstrap).
 pub use contract::{init_concurrency_caps, init_rayon_global_once, is_already_initialized_error};
 
