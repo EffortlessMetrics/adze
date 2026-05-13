@@ -68,14 +68,6 @@ Parser backend selection, metadata management, and policy enforcement.
 | [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
 | [`governance-runtime-reporting`](governance-runtime-reporting) | Governance reporting utilities |
 
-### Parser Contracts
-
-Parser backend abstraction and governance contracts.
-
-| Crate | Purpose |
-|-------|---------|
-| [`parser-governance-contract`](parser-governance-contract) | Governance contracts for parser backends |
-
 ### Feature Policy
 
 Feature flag management and policy enforcement.
@@ -135,8 +127,7 @@ Features propagate through the dependency chain:
 
 ```text
 governance-contract
-  └── parser-governance-contract
-        └── bdd-governance-contract
+  └── bdd-governance-contract
 ```
 
 Enabling `glr` on `governance-contract` automatically enables `pure-rust` and propagates down the chain.
