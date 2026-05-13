@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 46
+**Total Crates:** 45
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 46 | 100% |
-| Contract Lock Tests | 44+ | 96%+ |
+| Complete (BDD + Property) | 45 | 100% |
+| Contract Lock Tests | 43+ | 96%+ |
 
-All 46 microcrates now have comprehensive test coverage with both BDD tests and property-based tests.
+All 45 microcrates now have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 46 crates have both BDD tests and property-based tests:
+All 45 crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -55,7 +55,6 @@ All 46 crates have both BDD tests and property-based tests:
 | `linecol-core` | ✓ | ✓ | ✓ |
 | `parser-backend-core` | ✓ | ✓ | ✓ |
 | `parser-contract` | ✓ | ✓ | ✓ |
-| `parser-feature-contract` | ✓ | ✓ | ✓ |
 | `parser-governance-contract` | ✓ | ✓ | ✓ |
 | `parsetable-metadata` | ✓ | ✓ | ✓ |
 | `runtime-governance` | ✓ | ✓ | ✓ |
@@ -103,7 +102,6 @@ The following 45+ crates have `contract_lock.rs` test files (contract verificati
 - `linecol-core`
 - `parser-backend-core`
 - `parser-contract`
-- `parser-feature-contract`
 - `parser-governance-contract`
 - `parsetable-metadata`
 - `runtime-governance`
@@ -149,9 +147,8 @@ The following crates do not have contract lock tests (by design):
 
 3. **Parser Contract Crates:**
    - `parser-contract`
-   - `parser-feature-contract`
    - `parser-governance-contract`
-   Three separate contract crates for parsers. Evaluate if these can be merged.
+   Two separate contract crates for parsers. Evaluate if these can be merged.
 
 4. **Concurrency Init Crates:**
    - `concurrency-init-core`

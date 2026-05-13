@@ -182,7 +182,6 @@ jobs:
             adze-bdd-scenario-fixtures
             adze-parser-backend-core
             adze-parser-contract
-            adze-parser-feature-contract
             adze-parser-governance-contract
             adze-linecol-core
             adze-stack-pool-core
@@ -327,7 +326,6 @@ jobs:
           cargo test \
             -p adze-parser-backend-core \
             -p adze-parser-contract \
-            -p adze-parser-feature-contract \
             -p adze-parser-governance-contract \
             -p adze-common-syntax-core \
             -p adze-ts-format-core \
