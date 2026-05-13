@@ -5,10 +5,9 @@
 
 use core::fmt::Write;
 
-pub use adze_governance_status_core::{
+pub use crate::status::{
     GLR_CONFLICT_FALLBACK, bdd_progress_status_line, describe_backend_for_conflicts,
 };
-
 use crate::{BddPhase, BddScenario, bdd_progress, bdd_progress_report};
 use adze_feature_policy_core::ParserFeatureProfile;
 
