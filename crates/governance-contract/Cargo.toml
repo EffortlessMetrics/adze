@@ -14,12 +14,12 @@ documentation = "https://docs.rs/adze-governance-contract"
 
 [features]
 default = []
-pure-rust = ["adze-parser-governance-contract/pure-rust"]
-tree-sitter-c2rust = ["adze-parser-governance-contract/tree-sitter-c2rust"]
-tree-sitter-standard = ["adze-parser-governance-contract/tree-sitter-standard"]
-glr = ["pure-rust", "adze-parser-governance-contract/glr"]
-strict_api = ["adze-parser-governance-contract/strict_api"]
-strict_docs = ["adze-parser-governance-contract/strict_docs"]
+pure-rust = ["adze-bdd-governance-contract/pure-rust"]
+tree-sitter-c2rust = ["adze-bdd-governance-contract/tree-sitter-c2rust"]
+tree-sitter-standard = ["adze-bdd-governance-contract/tree-sitter-standard"]
+glr = ["pure-rust", "adze-bdd-governance-contract/glr"]
+strict_api = ["adze-bdd-governance-contract/strict_api"]
+strict_docs = ["adze-bdd-governance-contract/strict_docs"]
 
 [dependencies]
-adze-parser-governance-contract = { version = "0.1.0", path = "../parser-governance-contract" }
+adze-bdd-governance-contract = { version = "0.1.0", path = "../bdd-governance-contract" }

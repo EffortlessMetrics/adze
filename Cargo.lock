@@ -417,7 +417,7 @@ dependencies = [
 name = "adze-governance-contract"
 version = "0.1.0"
 dependencies = [
- "adze-parser-governance-contract",
+ "adze-bdd-governance-contract",
 ]
 
 [[package]]
@@ -554,13 +554,6 @@ dependencies = [
  "syn 2.0.117",
  "tempfile",
  "trybuild",
-]
-
-[[package]]
-name = "adze-parser-governance-contract"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-contract",
 ]
 
 [[package]]

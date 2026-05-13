@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 38
+**Total Crates:** 37
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 38 | 100% |
-| Contract Lock Tests | 36+ | 95%+ |
+| Complete (BDD + Property) | 37 | 100% |
+| Contract Lock Tests | 35+ | 95%+ |
 
-All 38 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 37 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 38 remaining tracked crates have both BDD tests and property-based tests:
+All 37 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -50,7 +50,6 @@ All 38 remaining tracked crates have both BDD tests and property-based tests:
 | `governance-runtime-core` | ✓ | ✓ | ✓ |
 | `governance-runtime-reporting` | ✓ | ✓ | ✓ |
 | `linecol-core` | ✓ | ✓ | ✓ |
-| `parser-governance-contract` | ✓ | ✓ | ✓ |
 | `parsetable-metadata` | ✓ | ✓ | ✓ |
 | `runtime-governance` | ✓ | ✓ | ✓ |
 | `runtime-governance-api` | ✓ | ✓ | ✓ |
@@ -60,7 +59,7 @@ All 38 remaining tracked crates have both BDD tests and property-based tests:
 
 ## Contract Lock Files
 
-The following 36+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
+The following 35+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
 
 - `bdd-governance-contract`
 - `bdd-governance-core`
@@ -90,7 +89,6 @@ The following 36+ remaining tracked crates have `contract_lock.rs` test files (c
 - `governance-runtime-core`
 - `governance-runtime-reporting`
 - `linecol-core`
-- `parser-governance-contract`
 - `parsetable-metadata`
 - `runtime-governance`
 - `runtime-governance-api`
@@ -131,11 +129,7 @@ The following crates do not have contract lock tests (by design):
    - `runtime2-governance`
    Four crates for runtime governance seems excessive. Review if `runtime2-governance` is legacy or if consolidation is possible.
 
-3. **Parser Contract Crates:**
-   - `parser-governance-contract`
-   The compatibility facade has been retired during the 0.9 microcrate transition.
-
-4. **Concurrency Init Crates:**
+3. **Concurrency Init Crates:**
    - `concurrency-init-core`
    - `concurrency-init-bootstrap-core`
    - `concurrency-init-bootstrap-policy-core`

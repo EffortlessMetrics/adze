@@ -32,7 +32,6 @@ adze-governance-runtime-reporting
 adze-bdd-governance-fixtures
 adze-bdd-scenario-fixtures
 adze-governance-runtime-core
-adze-parser-governance-contract
 adze-governance-contract
 adze-parsetable-metadata
 adze-runtime-governance-matrix

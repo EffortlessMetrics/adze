@@ -55,7 +55,6 @@ paths = [
     "crates/governance*/**",
     "crates/bdd*/**",
     "tests/governance/**",
-    "crates/parser-governance-contract/**",
     "crates/feature-policy*/**",
     "crates/runtime-governance*/**",
 ]
