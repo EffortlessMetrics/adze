@@ -322,7 +322,7 @@ without a replacement classification source of truth.
 
 ## Work Item: ci-economics-verifier
 
-Status: ready
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0002-ci-economics.md
 Linked ADR:
@@ -336,12 +336,11 @@ in policy ledgers and checked by automation.
 
 ### Production Delta
 
-Expected later changes:
+Added:
 
-- `../../policy/ci-lane-whitelist.toml`
-- `../../policy/ci-risk-packs.toml`
-- CI whitelist verifier updates
-- PR Plan or equivalent LEM output updates
+- `../../policy/ci-lane-whitelist.toml` alignment for missing workflow jobs
+- default-PR routing cleanup for mdBook, Droid review, and ts-bridge smoke
+- removal of the duplicate `smoke-ts-bridge` workflow
 
 ### Non-Goals
 

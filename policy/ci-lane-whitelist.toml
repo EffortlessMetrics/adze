@@ -288,6 +288,28 @@ review_after = "2026-06-07"
 expires = "2026-08-07"
 
 [[lane]]
+id = "golden-path-detect"
+workflow = ".github/workflows/golden-tests.yml"
+job = "paths"
+display_name = "Golden path detector"
+kind = "control"
+tier = "compatibility"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 1
+owner = "grammar/fixtures"
+intent = "Detect whether a PR touches grammar or golden-test surfaces."
+failure_mode = "Golden tests either run unnecessarily or miss a routed grammar change."
+proof_obligation = "Compute grammar_changed output for golden-tests routing."
+evidence = ["job logs", "grammar_changed output"]
+allowed_triggers = ["pull_request", "push"]
+routing_note = "Cheap setup job; matrix work remains gated by changed paths or ci:golden/full-ci labels."
+duplicate_of = ["pr-plan"]
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
 id = "golden-tests"
 workflow = ".github/workflows/golden-tests.yml"
 job = "golden-tests"
@@ -354,34 +376,13 @@ review_after = "2026-06-07"
 expires = "2026-11-07"
 
 [[lane]]
-id = "smoke-ts-bridge"
-workflow = ".github/workflows/smoke-ts-bridge.yml"
-job = "smoke"
-display_name = "ts-bridge smoke"
-kind = "ffi"
-tier = "frontdoor"
-default_pr = true
-blocking = false
-runner = "ubuntu_latest"
-base_lem = 4
-owner = "core/runtime"
-intent = "Verify ts-bridge can link against system tree-sitter."
-failure_mode = "ts-bridge tooling silently breaks against tree-sitter ABI."
-proof_obligation = "Build ts-bridge in production mode and verify link."
-evidence = ["job logs"]
-allowed_triggers = ["pull_request", "push"]
-duplicate_of = ["ts-bridge-smoke", "ts-bridge-parity"]
-review_after = "2026-06-07"
-expires = "2026-11-07"
-
-[[lane]]
 id = "ts-bridge-smoke"
 workflow = ".github/workflows/ts-bridge-smoke.yml"
 job = "smoke"
 display_name = "ts-bridge smoke (workflow)"
 kind = "ffi"
-tier = "frontdoor"
-default_pr = true
+tier = "advisory"
+default_pr = false
 blocking = false
 runner = "ubuntu_latest"
 base_lem = 4
@@ -390,8 +391,9 @@ intent = "Smoke test for ts-bridge tooling."
 failure_mode = "ts-bridge tooling regresses silently."
 proof_obligation = "Run ts-bridge smoke harness."
 evidence = ["job logs"]
-allowed_triggers = ["pull_request", "push"]
-duplicate_of = ["smoke-ts-bridge"]
+allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
+routing_note = "Workflow is path-routed to tools/ts-bridge, scripts/smoke-link.sh, Cargo manifests, or its own workflow file."
+duplicate_of = ["ts-bridge-parity"]
 review_after = "2026-06-07"
 expires = "2026-09-07"
 
@@ -539,9 +541,10 @@ base_lem = 10
 owner = "release/ci"
 intent = "External AI-assisted review hook."
 failure_mode = "External review service drifts from policy."
-proof_obligation = "Invoke external review service when triggered."
+proof_obligation = "Invoke external review service when explicitly requested."
 evidence = ["service-side artifacts"]
-allowed_triggers = ["workflow_dispatch"]
+allowed_triggers = ["pull_request"]
+routing_note = "Job runs only when the PR title/body contains @droid or the droid-review label is present."
 duplicate_of = []
 review_after = "2026-06-07"
 expires = "2026-11-07"
@@ -563,6 +566,27 @@ proof_obligation = "Invoke external droid integration."
 evidence = ["service-side artifacts"]
 allowed_triggers = ["workflow_dispatch"]
 duplicate_of = ["droid-review"]
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
+id = "droid-security-scan"
+workflow = ".github/workflows/droid-security-scan.yml"
+job = "droid-security-scan"
+display_name = "Droid security scan"
+kind = "external"
+tier = "deep"
+default_pr = false
+blocking = false
+runner = "external_ai_review"
+base_lem = 10
+owner = "release/security"
+intent = "Scheduled/manual external security scan."
+failure_mode = "External security scan drifts from release policy."
+proof_obligation = "Invoke external security scan when scheduled or manually requested."
+evidence = ["service-side artifacts"]
+allowed_triggers = ["workflow_dispatch", "schedule"]
+duplicate_of = ["droid"]
 review_after = "2026-06-07"
 expires = "2026-11-07"
 

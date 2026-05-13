@@ -1,5 +1,23 @@
 name: ts-bridge-smoke
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/ts-bridge/**
+      - scripts/smoke-link.sh
+      - .github/workflows/ts-bridge-smoke.yml
+      - Cargo.lock
+      - Cargo.toml
+  pull_request:
+    branches: [main]
+    paths:
+      - tools/ts-bridge/**
+      - scripts/smoke-link.sh
+      - .github/workflows/ts-bridge-smoke.yml
+      - Cargo.lock
+      - Cargo.toml
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
