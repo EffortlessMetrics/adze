@@ -698,3 +698,45 @@ allowed_triggers = ["push", "workflow_dispatch", "pull_request"]
 duplicate_of = []
 review_after = "2026-06-07"
 expires = "2026-11-07"
+
+[[lane]]
+id = "badge-endpoints-refresh"
+workflow = ".github/workflows/badge-endpoints.yml"
+job = "refresh"
+display_name = "Badge Endpoints Refresh"
+kind = "release"
+tier = "automation"
+default_pr = false
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 4
+owner = "release/ci"
+intent = "Regenerate public Shields endpoint JSON and open a badge refresh PR."
+failure_mode = "README badge endpoints can drift from repo-scoped generated evidence."
+proof_obligation = "Run cargo xtask badges and create an automation PR when badges/*.json changes."
+evidence = ["badges/ripr-plus.json", "create-pull-request summary"]
+allowed_triggers = ["push", "workflow_dispatch"]
+duplicate_of = []
+review_after = "2026-06-12"
+expires = "2026-11-12"
+
+[[lane]]
+id = "ripr-pr-evidence"
+workflow = ".github/workflows/ripr-pr.yml"
+job = "ripr"
+display_name = "RIPR PR Evidence"
+kind = "static-exposure"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 4
+owner = "core/test"
+intent = "Produce diff-scoped RIPR repository exposure and review guidance artifacts for PRs."
+failure_mode = "Reviewers lack focused static evidence and weak seam guidance for changed Rust code."
+proof_obligation = "Run cargo xtask ripr-pr, cargo xtask ripr-review-comments, and verify the PR evidence contract."
+evidence = ["target/ripr/pr", "target/ripr/review", "GitHub step summary"]
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+duplicate_of = [".github/workflows/ripr.yml:ripr"]
+review_after = "2026-06-12"
+expires = "2026-11-12"
