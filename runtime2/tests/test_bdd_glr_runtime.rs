@@ -7,8 +7,9 @@
 
 #![cfg(all(feature = "pure-rust", feature = "serialization"))]
 
-use adze_bdd_scenario_fixtures::{
-    BddPhase, DANGLING_ELSE_SYMBOL_METADATA, DANGLING_ELSE_TOKEN_PATTERNS,
+use adze_bdd_governance_core::BddPhase;
+use adze_bdd_grammar_fixtures::{
+    DANGLING_ELSE_SYMBOL_METADATA, DANGLING_ELSE_TOKEN_PATTERNS,
     PRECEDENCE_ARITHMETIC_SYMBOL_METADATA, PRECEDENCE_ARITHMETIC_TOKEN_PATTERNS,
     SymbolMetadataSpec, TokenPatternKind, TokenPatternSpec,
     build_runtime_dangling_else_parse_table, build_runtime_precedence_arithmetic_parse_table,

@@ -169,7 +169,6 @@ test support module.
 - `adze-bdd-governance-core`
 - `adze-bdd-grammar-fixtures`
 - `adze-bdd-grid-core`
-- `adze-bdd-scenario-fixtures`
 
 ### Completed Packages
 
@@ -177,6 +176,8 @@ test support module.
   import `adze-bdd-governance-core` directly.
 - `adze-bdd-governance-fixtures` facade removed; scenario fixtures now own the
   current-profile helper functions and import BDD governance core directly.
+- `adze-bdd-scenario-fixtures` facade removed; the GLR BDD test now imports
+  grammar fixtures and BDD governance reporting helpers directly.
 
 ### Proof Commands
 

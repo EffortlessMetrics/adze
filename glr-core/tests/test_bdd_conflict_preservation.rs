@@ -5,16 +5,26 @@
 //!
 //! Reference: docs/plans/BDD_GLR_CONFLICT_PRESERVATION.md
 
-use adze_bdd_scenario_fixtures::{
-    BddPhase, analyze_conflicts, bdd_progress_report_for_current_profile, build_lr1_parse_table,
-    dangling_else_grammar, no_precedence_grammar, precedence_arithmetic_grammar,
-    resolve_shift_reduce_actions,
+use adze_bdd_governance_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID, ParserFeatureProfile};
+use adze_bdd_grammar_fixtures::{
+    analyze_conflicts, build_lr1_parse_table, dangling_else_grammar, no_precedence_grammar,
+    precedence_arithmetic_grammar, resolve_shift_reduce_actions,
 };
 use adze_glr_core::{Action, ParseTable};
+use adze_governance_runtime_reporting::bdd_progress_report_with_profile_runtime;
 use adze_ir::{Associativity, RuleId, StateId, SymbolId};
 
 const PRECEDENCE_PLUS_TOKEN: SymbolId = SymbolId(2);
 const PRECEDENCE_STAR_TOKEN: SymbolId = SymbolId(3);
+
+fn bdd_progress_report_for_current_profile(phase: BddPhase, phase_title: &str) -> String {
+    bdd_progress_report_with_profile_runtime(
+        phase,
+        GLR_CONFLICT_PRESERVATION_GRID,
+        phase_title,
+        ParserFeatureProfile::current(),
+    )
+}
 
 //
 // ============================================================================
