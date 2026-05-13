@@ -1,0 +1,171 @@
+schema_version = "1.0"
+policy = "doc-artifacts"
+owner = "docs/release"
+status = "active"
+description = """
+Ledger of source-of-truth document artifacts. Every proposal, spec, ADR, plan,
+goal manifest, and handoff should appear here so automation can verify
+existence, uniqueness, and link integrity.
+"""
+
+# --- Proposals ---
+
+[[artifact]]
+id = "ADZE-PROP-0001"
+kind = "proposal"
+path = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+status = "proposed"
+owner = "api/runtime"
+milestone = "0.9.x"
+source_of_truth_for = ["0.9 contract convergence rationale", "workspace surface collapse direction"]
+links_to = [
+  "ADZE-SPEC-0001",
+  "ADZE-SPEC-0002",
+  "ADZE-ADR-0001",
+]
+
+[[artifact]]
+id = "ADZE-PROP-0002"
+kind = "proposal"
+path = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+status = "proposed"
+owner = "api/runtime"
+milestone = "0.9.x"
+source_of_truth_for = ["API foundation rationale", "one parse truth product direction"]
+links_to = [
+  "ADZE-SPEC-0003",
+  "ADZE-SPEC-0004",
+  "ADZE-SPEC-0005",
+  "ADZE-SPEC-0006",
+  "ADZE-SPEC-0007",
+  "ADZE-SPEC-0008",
+  "ADZE-SPEC-0009",
+  "ADZE-SPEC-0010",
+  "ADZE-ADR-0001",
+]
+
+# --- Specs ---
+
+[[artifact]]
+id = "ADZE-SPEC-0001"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
+status = "proposed"
+owner = "release/package"
+milestone = "0.9.x"
+source_of_truth_for = ["package boundary categories", "workspace package classification"]
+links_to = ["ADZE-PROP-0001", "ADZE-SPEC-0002"]
+
+[[artifact]]
+id = "ADZE-SPEC-0002"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0002-ci-economics.md"
+status = "proposed"
+owner = "ci/infra"
+milestone = "0.9.x"
+source_of_truth_for = ["CI economics contract", "LEM budgeting", "lane routing"]
+links_to = ["ADZE-PROP-0001"]
+
+[[artifact]]
+id = "ADZE-SPEC-0003"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
+status = "proposed"
+owner = "api/runtime"
+milestone = "0.9.x"
+source_of_truth_for = ["AdzeDocument behavior", "canonical parse product contract"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0004", "ADZE-SPEC-0005"]
+
+[[artifact]]
+id = "ADZE-SPEC-0004"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md"
+status = "proposed"
+owner = "api/runtime"
+milestone = "0.9.x"
+source_of_truth_for = ["typed CST projection behavior", "typed AST extraction behavior"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0003"]
+
+[[artifact]]
+id = "ADZE-SPEC-0005"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md"
+status = "proposed"
+owner = "api/runtime"
+milestone = "0.9.x"
+source_of_truth_for = ["diagnostic behavior", "error recovery contract"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0003"]
+
+[[artifact]]
+id = "ADZE-SPEC-0006"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md"
+status = "proposed"
+owner = "api/ts-compat"
+milestone = "0.9.x"
+source_of_truth_for = ["ts_compat adapter behavior", "node identity contract"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0003"]
+
+[[artifact]]
+id = "ADZE-SPEC-0007"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md"
+status = "proposed"
+owner = "api/glr"
+milestone = "0.9.x"
+source_of_truth_for = ["GLR ambiguity summary behavior", "selection reason contract"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0003"]
+
+[[artifact]]
+id = "ADZE-SPEC-0008"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0008-json-cli-wasm-projections.md"
+status = "proposed"
+owner = "api/serialization"
+milestone = "0.9.x"
+source_of_truth_for = ["JSON projection behavior", "schema versioning"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0003"]
+
+[[artifact]]
+id = "ADZE-SPEC-0009"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0009-incremental-document-lifecycle.md"
+status = "proposed"
+owner = "api/runtime"
+milestone = "future"
+source_of_truth_for = ["incremental parsing lifecycle"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0003"]
+
+[[artifact]]
+id = "ADZE-SPEC-0010"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0010-language-metadata-and-node-types.md"
+status = "proposed"
+owner = "api/metadata"
+milestone = "0.9.x"
+source_of_truth_for = ["language metadata behavior", "node-types projection"]
+links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "ADZE-SPEC-0006"]
+
+# --- ADRs ---
+
+[[artifact]]
+id = "ADZE-ADR-0001"
+kind = "adr"
+path = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+status = "proposed"
+owner = "api/runtime"
+milestone = "0.9.x"
+source_of_truth_for = ["one parse truth decision", "AdzeDocument as canonical product"]
+links_to = ["ADZE-PROP-0001", "ADZE-SPEC-0003"]
+
+# --- Goal manifests ---
+
+[[artifact]]
+id = "GOAL-0.9-contract-convergence"
+kind = "goal"
+path = ".adze/goals/active.toml"
+status = "active"
+owner = "droid-factory"
+milestone = "0.9.x"
+source_of_truth_for = ["current 0.9 work item state"]
+links_to = ["ADZE-PROP-0001", "ADZE-PROP-0002"]

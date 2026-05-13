@@ -1,0 +1,51 @@
+# Goal Manifest Template
+
+Use this template when creating or updating `.adze/goals/active.toml`.
+
+## Shape
+
+```toml
+id = "campaign-id"
+title = "Human-readable campaign title"
+status = "active"
+owner = "owner-name"
+created = "YYYY-MM-DD"
+
+objective = """
+One-paragraph description of what this campaign achieves.
+"""
+
+end_state = [
+  "Criterion 1.",
+  "Criterion 2.",
+]
+
+[[work_item]]
+id = "work-item-id"
+status = "ready"
+spec = "docs/specs/ADZE-SPEC-NNNN-..."
+commands = ["just ci-supported"]
+```
+
+## Status Values
+
+| Status | Meaning |
+| --- | --- |
+| `active` | Currently executing. |
+| `complete` | All end_state criteria met. |
+| `paused` | Temporarily stopped. |
+| `superseded` | Replaced by a different campaign. |
+
+## Archival
+
+When a campaign is complete:
+
+1. Copy `active.toml` to `.adze/goals/archive/<date>-<id>.toml`.
+2. Replace `active.toml` with the next campaign or an empty scaffold.
+
+## Rules
+
+- One `active.toml` per campaign.
+- Work item IDs must be unique.
+- Blocked items must name their blockers.
+- Commands must be runnable from the workspace root.
