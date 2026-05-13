@@ -84,10 +84,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-concurrency-normalize-core"
-version = "0.1.0"
-
-[[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
 dependencies = [
@@ -105,7 +101,6 @@ dependencies = [
  "adze-concurrency-bounded-map-core",
  "adze-concurrency-env-contract-core",
  "adze-concurrency-env-contract-core",
- "adze-concurrency-normalize-core",
  "adze-concurrency-env-contract-core",
  "adze-glr-core",
  "adze-linecol-core",

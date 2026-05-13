@@ -21,6 +21,8 @@ pub mod bounded;
 pub mod contract;
 /// Process-wide concurrency initialization helpers.
 pub mod init;
+/// Concurrency normalization helpers.
+pub mod normalize;
 /// Bounded parallel partition planning policy.
 pub mod plan;
 

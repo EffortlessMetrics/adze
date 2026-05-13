@@ -1,6 +1,6 @@
 //! Pure policy helpers for bounded parallel partition planning.
 
-pub use adze_concurrency_normalize_core::{MIN_CONCURRENCY, normalized_concurrency};
+pub use super::normalize::{MIN_CONCURRENCY, normalized_concurrency};
 
 /// Workloads at or below `concurrency * DIRECT_PARALLEL_THRESHOLD_MULTIPLIER`
 /// prefer direct parallel iteration over chunk partitioning.

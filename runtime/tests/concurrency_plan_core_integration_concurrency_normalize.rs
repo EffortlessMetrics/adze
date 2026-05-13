@@ -1,10 +1,10 @@
+use adze::concurrency_caps::normalize::{
+    MIN_CONCURRENCY as normalize_core_minimum,
+    normalized_concurrency as normalize_core_normalized_concurrency,
+};
 use adze::concurrency_caps::plan::{
     MIN_CONCURRENCY as plan_core_minimum,
     normalized_concurrency as plan_core_normalized_concurrency,
-};
-use adze_concurrency_normalize_core::{
-    MIN_CONCURRENCY as normalize_core_minimum,
-    normalized_concurrency as normalize_core_normalized_concurrency,
 };
 
 #[test]

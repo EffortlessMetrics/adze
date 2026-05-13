@@ -145,7 +145,6 @@ remove unused seams.
 
 - `adze-concurrency-bounded-map-core`
 - `adze-concurrency-env-contract-core`
-- `adze-concurrency-normalize-core`
 
 ### Proof Commands
 

@@ -1,5 +1,5 @@
 use adze::concurrency_caps::contract::normalized_concurrency as caps_core_normalized_concurrency;
-use adze_concurrency_normalize_core::normalized_concurrency as normalize_core_normalized_concurrency;
+use adze::concurrency_caps::normalize::normalized_concurrency as normalize_core_normalized_concurrency;
 
 #[test]
 fn caps_core_reexport_matches_normalize_core_behavior() {

@@ -1,7 +1,7 @@
 //! Pure policy for bootstrap concurrency-caps normalization.
 
+use crate::concurrency_caps::normalize::normalized_concurrency;
 use adze_concurrency_env_contract_core::ConcurrencyCaps;
-use adze_concurrency_normalize_core::normalized_concurrency;
 
 /// Normalize bootstrap caps to a safe, process-init-ready configuration.
 #[must_use]

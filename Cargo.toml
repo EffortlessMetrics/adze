@@ -17,7 +17,6 @@ members = [
   "crates/governance-runtime-profile-core",
   "crates/governance-runtime-core",
   "crates/governance-runtime-reporting",
-  "crates/concurrency-normalize-core",
   "crates/concurrency-env-contract-core",
   "crates/governance-metadata",
   "crates/linecol-core",

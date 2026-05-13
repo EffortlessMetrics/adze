@@ -1,4 +1,4 @@
-use adze_concurrency_normalize_core::{MIN_CONCURRENCY, normalized_concurrency};
+use adze::concurrency_caps::normalize::{MIN_CONCURRENCY, normalized_concurrency};
 
 #[test]
 fn given_zero_requested_concurrency_when_normalizing_then_minimum_is_used() {
