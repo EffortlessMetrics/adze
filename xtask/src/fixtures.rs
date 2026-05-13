@@ -84,13 +84,11 @@ fn generate_fixture(
 
     // Alternate between operators to create interesting parsing
     let operators = [" - ", " * "];
-    let mut current_num = 2;
 
-    for i in 0..target_ops {
+    for (current_num, i) in (2..).zip(0..target_ops) {
         let op = operators[i % 2];
         content.push_str(op);
         content.push_str(&current_num.to_string());
-        current_num += 1;
     }
 
     content.push('\n');

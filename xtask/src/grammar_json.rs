@@ -17,20 +17,19 @@ pub fn extract_node_types_from_grammar_json(grammar_json: &str) -> Result<Vec<No
             // Extract node type info based on rule patterns
             if let Some(rule_type) = rule_value.get("type").and_then(|t| t.as_str()) {
                 match rule_type {
-                    "SEQ" | "PREC_LEFT" | "PREC_RIGHT" => {
-                        // Only process if this is a main rule (not an internal _0, _1 rule)
+                    "SEQ" | "PREC_LEFT" | "PREC_RIGHT"
                         if !rule_name.contains("_0")
                             && !rule_name.ends_with("_1")
-                            && !rule_name.ends_with("_2")
-                        {
-                            let fields = extract_fields_from_rule(rule_value);
-                            node_types.push(NodeTypeInfo {
-                                name: clean_rule_name(rule_name),
-                                named: true,
-                                fields,
-                            });
-                        }
+                            && !rule_name.ends_with("_2") =>
+                    {
+                        let fields = extract_fields_from_rule(rule_value);
+                        node_types.push(NodeTypeInfo {
+                            name: clean_rule_name(rule_name),
+                            named: true,
+                            fields,
+                        });
                     }
+                    "SEQ" | "PREC_LEFT" | "PREC_RIGHT" => {}
                     "STRING" => {
                         // This is a literal token
                         if let Some(value) = rule_value.get("value").and_then(|v| v.as_str()) {

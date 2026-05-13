@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use xshell::Shell;
 
+mod badges;
 mod baseline;
 mod bench;
 mod ci_plan;
@@ -15,6 +16,7 @@ mod grammar_json;
 mod lint;
 mod policy;
 mod profile;
+mod ripr;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -151,6 +153,24 @@ enum Commands {
     },
     /// Run local environment doctor checks (toolchain, targets, workspace)
     Doctor,
+    /// Generate or check public Shields endpoint JSON under badges/.
+    Badges {
+        /// Check committed endpoints for drift without updating badges/.
+        #[arg(long)]
+        check: bool,
+    },
+    /// Produce or check PR-scoped RIPR repository exposure evidence.
+    RiprPr {
+        /// Check target/ripr/pr output contract without running ripr.
+        #[arg(long)]
+        check: bool,
+    },
+    /// Produce or check PR-scoped RIPR review guidance.
+    RiprReviewComments {
+        /// Check target/ripr/review output contract without running ripr.
+        #[arg(long)]
+        check: bool,
+    },
     /// Run all lint checks (fmt -> no-mangle -> debug-block validator -> clippy)
     ///
     /// Examples:
@@ -388,6 +408,15 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Doctor => {
             doctor::run()?;
+        }
+        Commands::Badges { check } => {
+            badges::run(check)?;
+        }
+        Commands::RiprPr { check } => {
+            ripr::run_pr(check)?;
+        }
+        Commands::RiprReviewComments { check } => {
+            ripr::run_review_comments(check)?;
         }
         Commands::GenerateGolden { grammar, force } => {
             golden::generate_golden(&sh, grammar, force)?;

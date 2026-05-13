@@ -78,3 +78,4 @@ Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-nativ
 - [**Now / Next / Later**](./status/NOW_NEXT_LATER.md) - Rolling execution plan.
 - [**Known Red**](./status/KNOWN_RED.md) - Exclusions from the supported CI lane.
 - [**PR Template**](./PR_TEMPLATE.md) - Checklist for contributors.
+- [**Verification**](./VERIFICATION.md) - README badge meanings, generated endpoints, and PR evidence boundaries.

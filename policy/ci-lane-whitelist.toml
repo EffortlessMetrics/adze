@@ -139,11 +139,33 @@ base_lem = 4
 owner = "core/test"
 intent = "Static RIPR exposure analysis on changed Rust code; flags weakly tested or unrevealed paths."
 failure_mode = "Subtle runtime/parser changes ship without an oracle that can distinguish behavior."
-proof_obligation = "Run ripr in diff mode and emit JSON/SARIF report."
-evidence = ["target/ripr/ripr-report.json"]
+proof_obligation = "Run ripr in diff mode through xtask and emit PR/review evidence artifacts."
+evidence = ["target/ripr/pr/repo-exposure.json", "target/ripr/review/comments.json"]
 allowed_triggers = ["pull_request", "workflow_dispatch"]
 duplicate_of = []
 provisioning_note = "Stub (no-op) until ripr binary provisioned via workspace MSRV toolchain. See docs/ci/ripr.md."
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
+id = "badge-endpoints"
+workflow = ".github/workflows/badge-endpoints.yml"
+job = "refresh"
+display_name = "Badge Endpoints"
+kind = "static-exposure"
+tier = "advisory"
+default_pr = false
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 4
+owner = "release/ci"
+intent = "Refresh committed public Shields endpoint JSON when explicitly requested."
+failure_mode = "Public badge endpoint JSON drifts from current repo-scoped static evidence."
+proof_obligation = "Run cargo xtask badges and open a generated badge refresh PR."
+evidence = ["badges/ripr-plus.json", "badge refresh PR"]
+allowed_triggers = ["workflow_dispatch"]
+duplicate_of = ["ripr-advisory"]
+routing_note = "Manual-only to avoid adding recurring PR or main-push CI cost."
 review_after = "2026-06-07"
 expires = "2026-11-07"
 
