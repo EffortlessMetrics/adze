@@ -1,16 +1,16 @@
 //! Cross-crate integration tests for the governance matrix chain:
-//! `governance-contract` → `governance-matrix-contract` → `governance-matrix-core` → `governance-matrix-core-impl`
+//! `bdd-governance-contract` → `governance-matrix-contract` → `governance-matrix-core` → `governance-matrix-core-impl`
 //!
 //! These tests validate that the governance matrix chain works correctly end-to-end.
 
+use adze_bdd_governance_contract::{
+    BddGovernanceMatrix as ContractMatrix, BddPhase as ContractPhase,
+    ParserFeatureProfile as ContractProfile,
+};
 use adze_bdd_governance_core::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, ParserFeatureProfile,
     bdd_governance_snapshot, bdd_progress, bdd_progress_report_with_profile,
     bdd_progress_status_line,
-};
-use adze_governance_contract::{
-    BddGovernanceMatrix as ContractMatrix, BddPhase as ContractPhase,
-    ParserFeatureProfile as ContractProfile,
 };
 use adze_governance_matrix_core as matrix_core;
 
