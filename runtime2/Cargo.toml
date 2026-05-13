@@ -40,7 +40,6 @@ proptest.workspace = true
 serde_json.workspace = true
 adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
 adze-tablegen = { path = "../tablegen", features = ["serialization"] }
-adze-parser-contract = { path = "../crates/parser-contract" }
 
 [features]
 default = ["glr", "serialization"]

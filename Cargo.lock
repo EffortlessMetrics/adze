@@ -557,13 +557,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-parser-contract"
-version = "0.1.0"
-dependencies = [
- "adze-governance-contract",
-]
-
-[[package]]
 name = "adze-parser-governance-contract"
 version = "0.1.0"
 dependencies = [
@@ -626,7 +619,6 @@ dependencies = [
  "adze-glr-core",
  "adze-ir",
  "adze-linecol-core",
- "adze-parser-contract",
  "adze-parsetable-metadata",
  "adze-runtime2-governance",
  "adze-tablegen",

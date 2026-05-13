@@ -177,7 +177,6 @@ jobs:
             adze-bdd-grammar-fixtures
             adze-bdd-grid-core
             adze-bdd-scenario-fixtures
-            adze-parser-contract
             adze-parser-governance-contract
             adze-linecol-core
             adze-parsetable-metadata
@@ -315,7 +314,6 @@ jobs:
       - name: Test parser crates
         run: |
           cargo test \
-            -p adze-parser-contract \
             -p adze-parser-governance-contract \
             -p adze-common-syntax-core \
             -p adze-linecol-core \
