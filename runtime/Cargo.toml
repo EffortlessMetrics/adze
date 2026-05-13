@@ -69,7 +69,7 @@ wasm-bindgen = { version = "0.2.100", optional = true }
 adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
 adze-concurrency-env-contract-core = { version = "0.1.0", path = "../crates/concurrency-env-contract-core" }
 adze-concurrency-init-core = { version = "0.1.0", path = "../crates/concurrency-init-core" }
-adze-concurrency-plan-core = { version = "0.1.0", path = "../crates/concurrency-plan-core" }
+adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
 ts_bridge = { package = "ts-bridge", version = "0.1.0", path = "../tools/ts-bridge", optional = true, default-features = false }
 tree_sitter_json = { package = "tree-sitter-json", version = "0.24", optional = true }
 adze-runtime-governance-api = { version = "0.1.0", path = "../crates/runtime-governance-api" }
@@ -84,7 +84,6 @@ proptest = "1.4"
 hex = "0.4"
 glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 adze-concurrency-init-rayon-core = { version = "0.1.0", path = "../crates/concurrency-init-rayon-core" }
-adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
 adze-example = { version = "0.8.0-dev", path = "../example", features = ["ts-compat"] }
 adze-python-simple = { version = "0.1.0", path = "../grammars/python-simple" }
 adze-python = { version = "0.1.0", path = "../grammars/python" }

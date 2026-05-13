@@ -3,7 +3,7 @@
 use rayon::prelude::*;
 
 /// Re-exported partition planning types used by the bounded parallel map.
-pub use adze_concurrency_plan_core::{ParallelPartitionPlan, normalized_concurrency};
+pub use super::plan::{ParallelPartitionPlan, normalized_concurrency};
 
 /// Run a bounded parallel map operation.
 ///

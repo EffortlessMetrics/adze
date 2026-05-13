@@ -16,7 +16,6 @@ adze = { path = "../runtime" }
 adze-bdd-grammar-fixtures = { path = "../crates/bdd-grammar-fixtures" }
 adze-glr-core = { path = "../glr-core" }
 adze-linecol-core = { path = "../crates/linecol-core" }
-adze-concurrency-plan-core = { path = "../crates/concurrency-plan-core" }
 adze-concurrency-env-contract-core = { path = "../crates/concurrency-env-contract-core" }
 adze-concurrency-init-core = { path = "../crates/concurrency-init-core" }
 adze-concurrency-init-rayon-core = { path = "../crates/concurrency-init-rayon-core" }
