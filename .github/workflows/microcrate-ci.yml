@@ -147,7 +147,6 @@ jobs:
             adze-tablegen
             adze-concurrency-env-contract-core
             adze-concurrency-init-core
-            adze-concurrency-init-rayon-core
             adze-concurrency-normalize-core
             adze-governance-contract
             adze-governance-matrix-contract
@@ -221,7 +220,6 @@ jobs:
           cargo test \
             -p adze-concurrency-env-contract-core \
             -p adze-concurrency-init-core \
-            -p adze-concurrency-init-rayon-core \
             -p adze-concurrency-normalize-core \
             -- --test-threads=$RUST_TEST_THREADS
 

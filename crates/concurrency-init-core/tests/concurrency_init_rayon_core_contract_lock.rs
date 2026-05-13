@@ -1,4 +1,4 @@
-use adze_concurrency_init_rayon_core::init_rayon_global_once;
+use adze_concurrency_init_core::rayon::init_rayon_global_once;
 
 #[test]
 fn contract_repeated_initialization_returns_ok() {

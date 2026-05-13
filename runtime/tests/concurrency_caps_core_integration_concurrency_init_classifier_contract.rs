@@ -1,5 +1,5 @@
 use adze::concurrency_caps::contract::is_already_initialized_error as caps_classifier;
-use adze_concurrency_init_rayon_core::is_already_initialized_error as rayon_classifier;
+use adze_concurrency_init_core::rayon::is_already_initialized_error as rayon_classifier;
 
 #[test]
 fn caps_core_reexport_matches_classifier_core_behavior() {
