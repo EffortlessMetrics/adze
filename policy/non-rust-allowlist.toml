@@ -689,3 +689,13 @@ classification = "docs"
 retired = true
 reason = "Legacy migration audit; preserved verbatim for historical record."
 covered_by = ["manual review"]
+
+[[allow]]
+glob = "badges/*.json"
+kind = "generated_badge_endpoint"
+owner = "release/ci"
+surface = "docs"
+classification = "generated"
+reason = "Generated Shields endpoint JSON for public README badges."
+generated_by = "cargo xtask badges"
+covered_by = ["cargo xtask badges --check"]

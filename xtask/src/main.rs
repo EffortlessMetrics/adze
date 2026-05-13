@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use xshell::Shell;
 
+mod badges;
 mod baseline;
 mod bench;
 mod ci_plan;
@@ -15,6 +16,7 @@ mod grammar_json;
 mod lint;
 mod policy;
 mod profile;
+mod ripr;
 mod test_grammars;
 mod test_local_grammars;
 
@@ -254,6 +256,36 @@ enum Commands {
         #[arg(long, default_value = "advisory")]
         mode: String,
     },
+    /// Regenerate public Shields endpoint JSON under badges/.
+    Badges {
+        /// Check committed endpoints for drift without updating badges/.
+        #[arg(long)]
+        check: bool,
+    },
+    /// Produce PR-scoped RIPR repository exposure evidence.
+    RiprPr {
+        /// Check the existing PR evidence output contract.
+        #[arg(long)]
+        check: bool,
+        /// Base ref for diff-scoped evidence.
+        #[arg(long, default_value = "origin/main")]
+        base: String,
+        /// Head ref for diff-scoped evidence.
+        #[arg(long, default_value = "HEAD")]
+        head: String,
+    },
+    /// Produce RIPR review guidance comments as local artifacts.
+    RiprReviewComments {
+        /// Check the existing review guidance output contract.
+        #[arg(long)]
+        check: bool,
+        /// Base ref for review guidance.
+        #[arg(long, default_value = "origin/main")]
+        base: String,
+        /// Head ref for review guidance.
+        #[arg(long, default_value = "HEAD")]
+        head: String,
+    },
     /// Compute the CI plan for the current PR (LEM + lane selection).
     ///
     /// Reads policy/ci-lane-whitelist.toml and policy/ci-risk-packs.toml,
@@ -379,6 +411,15 @@ fn main() -> Result<()> {
     let sh = Shell::new()?;
 
     match cli.command {
+        Commands::Badges { check } => {
+            badges::run(check)?;
+        }
+        Commands::RiprPr { check, base, head } => {
+            ripr::run_pr(ripr::RiprArgs { check, base, head })?;
+        }
+        Commands::RiprReviewComments { check, base, head } => {
+            ripr::run_review_comments(ripr::RiprArgs { check, base, head })?;
+        }
         Commands::Doctor => {
             doctor::run()?;
         }

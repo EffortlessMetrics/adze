@@ -1109,6 +1109,51 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: just
+      - name: Install ripr
+        continue-on-error: true
+        run: cargo install ripr --locked
+      - name: Fetch RIPR base branch
+        if: github.event_name == 'pull_request'
+        run: git fetch --no-tags --prune --depth=1 origin "${{ github.base_ref }}"
+      - name: RIPR PR evidence
+        id: ripr_pr
+        run: cargo xtask ripr-pr --base origin/${{ github.base_ref || 'main' }} --head HEAD
+      - name: RIPR review guidance
+        id: ripr_review
+        run: cargo xtask ripr-review-comments --base origin/${{ github.base_ref || 'main' }} --head HEAD
+      - name: RIPR PR contract
+        if: always()
+        run: cargo xtask ripr-pr --check
+      - name: RIPR review summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## RIPR Review Guidance"
+            echo
+            if [ -f target/ripr/review/comments.md ]; then
+              cat target/ripr/review/comments.md
+            else
+              echo "No RIPR review guidance was produced."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: RIPR annotations
+        if: always()
+        run: python scripts/ripr-annotations.py
+      - name: Upload RIPR PR evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: ripr-pr
+          path: target/ripr/pr
+          if-no-files-found: warn
+      - name: Upload RIPR review guidance
+        if: always()
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: ripr-review
+          path: target/ripr/review
+          if-no-files-found: warn
       - name: Run ci-supported lane
         run: just ci-supported
 
