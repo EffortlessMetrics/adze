@@ -1,0 +1,1091 @@
+# Package boundary ledger for the Adze workspace.
+#
+# Source of truth for ADZE-SPEC-0001. Every workspace package must be
+# classified exactly once as published, dev-only, or owner-module-migration-target.
+
+schema_version = "1.0"
+policy = "package-boundary"
+owner = "release/package-surface"
+status = "advisory"
+updated = "2026-05-12"
+
+[[package]]
+name = "adze"
+path = "runtime"
+category = "published"
+owner = "core-pipeline/runtime"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-contract"
+path = "crates/bdd-contract"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-governance-contract"
+path = "crates/bdd-governance-contract"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-governance-core"
+path = "crates/bdd-governance-core"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-governance-fixtures"
+path = "crates/bdd-governance-fixtures"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-governance-reporting-core"
+path = "crates/bdd-governance-reporting-core"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-grammar-analysis-core"
+path = "crates/bdd-grammar-analysis-core"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-grammar-fixtures"
+path = "crates/bdd-grammar-fixtures"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-grid-contract"
+path = "crates/bdd-grid-contract"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-grid-core"
+path = "crates/bdd-grid-core"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-scenario-core"
+path = "crates/bdd-scenario-core"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-bdd-scenario-fixtures"
+path = "crates/bdd-scenario-fixtures"
+category = "owner-module-migration-target"
+owner = "governance/bdd"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/bdd"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-benchmarks"
+path = "benchmarks"
+category = "dev-only"
+owner = "benchmarks"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-cli"
+path = "cli"
+category = "published"
+owner = "cli/user-tooling"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-common"
+path = "common"
+category = "published"
+owner = "core-pipeline/common"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-common-syntax-core"
+path = "crates/common-syntax-core"
+category = "owner-module-migration-target"
+owner = "syntax-formatting"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "syntax-formatting"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-bounded-map-core"
+path = "crates/concurrency-bounded-map-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-caps-contract-core"
+path = "crates/concurrency-caps-contract-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-caps-core"
+path = "crates/concurrency-caps-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-env-contract-core"
+path = "crates/concurrency-env-contract-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-env-core"
+path = "crates/concurrency-env-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-env-vars-core"
+path = "crates/concurrency-env-vars-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-core"
+path = "crates/concurrency-init-bootstrap-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-init-bootstrap-policy-core"
+path = "crates/concurrency-init-bootstrap-policy-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-init-classifier-core"
+path = "crates/concurrency-init-classifier-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-init-core"
+path = "crates/concurrency-init-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-init-rayon-core"
+path = "crates/concurrency-init-rayon-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-map-core"
+path = "crates/concurrency-map-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-normalize-core"
+path = "crates/concurrency-normalize-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-parse-core"
+path = "crates/concurrency-parse-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-concurrency-plan-core"
+path = "crates/concurrency-plan-core"
+category = "owner-module-migration-target"
+owner = "governance/concurrency"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/concurrency"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-error-location-core"
+path = "crates/error-location-core"
+category = "owner-module-migration-target"
+owner = "diagnostics/source-location"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "diagnostics/source-location"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-feature-policy-contract"
+path = "crates/feature-policy-contract"
+category = "owner-module-migration-target"
+owner = "governance/feature-policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/feature-policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-feature-policy-core"
+path = "crates/feature-policy-core"
+category = "owner-module-migration-target"
+owner = "governance/feature-policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/feature-policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-glr-core"
+path = "glr-core"
+category = "published"
+owner = "glr-core/parser-generation"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-glr-versioning"
+path = "crates/glr-versioning"
+category = "owner-module-migration-target"
+owner = "0.9/microcrate-collapse"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "0.9/microcrate-collapse"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-go"
+path = "grammars/go"
+category = "dev-only"
+owner = "grammar-fixtures/go"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-golden-tests"
+path = "golden-tests"
+category = "dev-only"
+owner = "golden-tests"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-contract"
+path = "crates/governance-contract"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-matrix-contract"
+path = "crates/governance-matrix-contract"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-matrix-core"
+path = "crates/governance-matrix-core"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-matrix-core-impl"
+path = "crates/governance-matrix-core-impl"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-metadata"
+path = "crates/governance-metadata"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-runtime-core"
+path = "crates/governance-runtime-core"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-runtime-profile-core"
+path = "crates/governance-runtime-profile-core"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-runtime-reporting"
+path = "crates/governance-runtime-reporting"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-governance-status-core"
+path = "crates/governance-status-core"
+category = "owner-module-migration-target"
+owner = "governance/policy"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "governance/policy"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-grammar-analysis-core"
+path = "crates/grammar-analysis-core"
+category = "owner-module-migration-target"
+owner = "parser-contracts"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "parser-contracts"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-ir"
+path = "ir"
+category = "published"
+owner = "core-pipeline/ir"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-javascript"
+path = "grammars/javascript"
+category = "dev-only"
+owner = "grammar-fixtures/javascript"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-linecol-core"
+path = "crates/linecol-core"
+category = "owner-module-migration-target"
+owner = "diagnostics/source-location"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "diagnostics/source-location"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-lsp-generator"
+path = "lsp-generator"
+category = "published"
+owner = "lsp-generator/user-tooling"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-macro"
+path = "macro"
+category = "published"
+owner = "core-pipeline/macro"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-parser-backend-core"
+path = "crates/parser-backend-core"
+category = "owner-module-migration-target"
+owner = "parser-contracts"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "parser-contracts"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-parser-contract"
+path = "crates/parser-contract"
+category = "owner-module-migration-target"
+owner = "parser-contracts"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "parser-contracts"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-parser-feature-contract"
+path = "crates/parser-feature-contract"
+category = "owner-module-migration-target"
+owner = "parser-contracts"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "parser-contracts"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-parser-feature-profile-core"
+path = "crates/parser-feature-profile-core"
+category = "owner-module-migration-target"
+owner = "parser-contracts"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "parser-contracts"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-parser-governance-contract"
+path = "crates/parser-governance-contract"
+category = "owner-module-migration-target"
+owner = "parser-contracts"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "parser-contracts"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-parsetable-metadata"
+path = "crates/parsetable-metadata"
+category = "owner-module-migration-target"
+owner = "parser-contracts"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "parser-contracts"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-playground"
+path = "playground"
+category = "dev-only"
+owner = "playground"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-python"
+path = "grammars/python"
+category = "dev-only"
+owner = "grammar-fixtures/python"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-python-simple"
+path = "grammars/python-simple"
+category = "dev-only"
+owner = "grammar-fixtures/python-simple"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-runtime"
+path = "runtime2"
+category = "published"
+owner = "runtime2/tree-sitter-compat"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-runtime-governance"
+path = "crates/runtime-governance"
+category = "owner-module-migration-target"
+owner = "runtime-governance"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "runtime-governance"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-runtime-governance-api"
+path = "crates/runtime-governance-api"
+category = "owner-module-migration-target"
+owner = "runtime-governance"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "runtime-governance"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-runtime-governance-matrix"
+path = "crates/runtime-governance-matrix"
+category = "owner-module-migration-target"
+owner = "runtime-governance"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "runtime-governance"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-runtime2-governance"
+path = "crates/runtime2-governance"
+category = "owner-module-migration-target"
+owner = "runtime-governance"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "runtime-governance"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-stack-pool-core"
+path = "crates/stack-pool-core"
+category = "owner-module-migration-target"
+owner = "glr-core/runtime-memory"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "glr-core/runtime-memory"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-tablegen"
+path = "tablegen"
+category = "published"
+owner = "tablegen/ffi-and-table-output"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-testing"
+path = "testing"
+category = "dev-only"
+owner = "test-infrastructure"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-tool"
+path = "tool"
+category = "published"
+owner = "core-pipeline/tool"
+production_use = true
+publish_intent = "public"
+support_tier_impact = "links to docs/status/SUPPORT_TIERS.md before stable release claims"
+ci_impact = "ci-supported or explicitly routed product proof"
+removal_or_promotion_condition = "Maintain release metadata and support-tier proof before stable claims."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-ts-format-core"
+path = "crates/ts-format-core"
+category = "owner-module-migration-target"
+owner = "syntax-formatting"
+production_use = true
+publish_intent = "retire-or-inline"
+support_tier_impact = "temporary internal surface; no stable product claim until migrated or promoted"
+ci_impact = "collapse target; keep out of default CI expansion unless routed by owner"
+migration_target = "syntax-formatting"
+removal_or_promotion_condition = "Move into the owner module or reclassify with an accepted spec/ADR before 0.9 release."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "adze-wasm-demo"
+path = "wasm-demo"
+category = "dev-only"
+owner = "wasm-demo"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "downstream-demo"
+path = "samples/downstream-demo"
+category = "dev-only"
+owner = "samples"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "glr-test-support"
+path = "glr-test-support"
+category = "dev-only"
+owner = "glr-test-support"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "governance-integration-tests"
+path = "tests/governance"
+category = "dev-only"
+owner = "integration-tests"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "test-mini"
+path = "test-mini"
+category = "dev-only"
+owner = "test-mini"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "test-vec-wrapper"
+path = "grammars/test-vec-wrapper"
+category = "dev-only"
+owner = "grammar-fixtures/test-vec-wrapper"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
+
+[[package]]
+name = "xtask"
+path = "xtask"
+category = "dev-only"
+owner = "xtask/policy-automation"
+production_use = false
+publish_intent = "none"
+support_tier_impact = "dev/test/tooling only; excluded from product claims"
+ci_impact = "dev/test/tooling lane only"
+removal_or_promotion_condition = "Keep as dev-only while it has active test/tooling ownership; reclassify before any product claim."
+last_changed = "2026-05-12"
+last_changed_pr = "#694"
