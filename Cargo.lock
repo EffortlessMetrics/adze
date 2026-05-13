@@ -122,14 +122,9 @@ dependencies = [
 name = "adze-bdd-grid-core"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-scenario-core",
  "criterion",
  "proptest",
 ]
-
-[[package]]
-name = "adze-bdd-scenario-core"
-version = "0.1.0"
 
 [[package]]
 name = "adze-bdd-scenario-fixtures"

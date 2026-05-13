@@ -1,14 +1,7 @@
 //! Core BDD scenario status and ledger-row contracts.
 //!
-//! This crate isolates the scenario representation from broader grid concerns so
-//! policy and reporting crates can depend on a smaller SRP-focused surface.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+//! This module isolates the scenario representation from broader grid concerns
+//! inside the BDD grid owner crate.
 
 use core::fmt;
 
@@ -17,7 +10,7 @@ use core::fmt;
 /// # Examples
 ///
 /// ```
-/// use adze_bdd_scenario_core::BddPhase;
+/// use adze_bdd_grid_core::scenario::BddPhase;
 ///
 /// let phase = BddPhase::Core;
 /// assert_eq!(phase, BddPhase::Core);
@@ -41,7 +34,7 @@ impl fmt::Display for BddPhase {
 /// # Examples
 ///
 /// ```
-/// use adze_bdd_scenario_core::BddScenarioStatus;
+/// use adze_bdd_grid_core::scenario::BddScenarioStatus;
 ///
 /// let done = BddScenarioStatus::Implemented;
 /// assert!(done.implemented());
