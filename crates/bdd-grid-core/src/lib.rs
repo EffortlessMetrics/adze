@@ -13,7 +13,10 @@
 
 use core::fmt::Write;
 
-pub use adze_bdd_scenario_core::{BddPhase, BddScenario, BddScenarioStatus};
+/// Owner module for BDD scenario status and ledger-row contracts.
+pub mod scenario;
+
+pub use scenario::{BddPhase, BddScenario, BddScenarioStatus};
 
 /// Validation issue discovered while checking a BDD scenario grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

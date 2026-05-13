@@ -2,7 +2,7 @@
 
 Core BDD grid contracts for parser progress reporting and feature-aware status tracking.
 
-This crate now focuses on grid progress aggregation/reporting and re-exports scenario primitives from `adze-bdd-scenario-core`.
+This crate owns grid progress aggregation/reporting and its `scenario` submodule owns the scenario primitives.
 
 Part of the [adze](https://github.com/EffortlessMetrics/adze) workspace.
 
