@@ -4,7 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Shared contract for concurrency environment variables and defaults."
+description = "Shared contract for concurrency environment variables, defaults, and parsing."
 repository = "https://github.com/EffortlessMetrics/adze"
 publish = ["crates.io"]
 keywords = ["concurrency", "threading", "caps", "parallel", "rayon"]
@@ -17,9 +17,5 @@ default = []
 strict_api = []
 strict_docs = []
 
-[dependencies]
-adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }
-
 [dev-dependencies]
 proptest.workspace = true
-adze-concurrency-parse-core = { version = "0.1.0", path = "../concurrency-parse-core" }

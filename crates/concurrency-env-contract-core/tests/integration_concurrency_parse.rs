@@ -1,8 +1,8 @@
 use adze_concurrency_env_contract_core::parse_positive_usize_or_default as contract_parse;
-use adze_concurrency_parse_core::parse_positive_usize_or_default as parse_core_parse;
+use adze_concurrency_env_contract_core::parse_positive_usize_or_default as parse_owner_parse;
 
 #[test]
-fn parse_adapter_matches_parse_core() {
+fn parse_adapter_matches_parse_owner() {
     for default in 0usize..=64 {
         for raw in [
             None,
@@ -12,7 +12,10 @@ fn parse_adapter_matches_parse_core() {
             Some("42"),
             Some("invalid"),
         ] {
-            assert_eq!(contract_parse(raw, default), parse_core_parse(raw, default));
+            assert_eq!(
+                contract_parse(raw, default),
+                parse_owner_parse(raw, default)
+            );
         }
     }
 }

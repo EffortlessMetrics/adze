@@ -20,7 +20,6 @@ members = [
   "crates/concurrency-map-core",
   "crates/concurrency-plan-core",
   "crates/concurrency-normalize-core",
-  "crates/concurrency-parse-core",
   "crates/concurrency-env-contract-core",
   "crates/concurrency-init-rayon-core",
   "crates/concurrency-init-core",

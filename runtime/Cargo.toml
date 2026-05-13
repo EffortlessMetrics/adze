@@ -86,7 +86,6 @@ adze-concurrency-init-core = { version = "0.1.0", path = "../crates/concurrency-
 adze-concurrency-env-contract-core = { version = "0.1.0", path = "../crates/concurrency-env-contract-core" }
 adze-concurrency-map-core = { version = "0.1.0", path = "../crates/concurrency-map-core" }
 adze-concurrency-normalize-core = { version = "0.1.0", path = "../crates/concurrency-normalize-core" }
-adze-concurrency-parse-core = { version = "0.1.0", path = "../crates/concurrency-parse-core" }
 adze-concurrency-plan-core = { version = "0.1.0", path = "../crates/concurrency-plan-core" }
 adze-example = { version = "0.8.0-dev", path = "../example", features = ["ts-compat"] }
 adze-python-simple = { version = "0.1.0", path = "../grammars/python-simple" }

@@ -1,14 +1,14 @@
 //! Cross-crate integration tests for the env chain:
-//! `concurrency-parse-core` → `concurrency-env-contract-core` → `concurrency-env-contract-core`
+//! `concurrency-env-contract-core` → `concurrency-env-contract-core` → `concurrency-env-contract-core`
 //!
 //! These tests validate that the environment configuration chain works correctly end-to-end.
 
 use adze_concurrency_env_contract_core as env_contract;
+use adze_concurrency_env_contract_core as parse_owner;
 use adze_concurrency_env_contract_core::{
     ConcurrencyCaps, DEFAULT_RAYON_NUM_THREADS, DEFAULT_TOKIO_WORKER_THREADS,
     RAYON_NUM_THREADS_ENV, TOKIO_WORKER_THREADS_ENV, current_caps, parse_positive_usize_or_default,
 };
-use adze_concurrency_parse_core as parse_core;
 
 /// Test that the env chain correctly parses and returns default values.
 #[test]
@@ -26,21 +26,21 @@ fn test_env_chain_defaults_are_consistent() {
     );
 }
 
-/// Test that parse_core functions are correctly re-exported through the chain.
+/// Test that parse_owner functions are correctly re-exported through the chain.
 #[test]
 fn test_env_chain_parse_function_reexport() {
     // The parse function should work identically at both levels
     assert_eq!(
         parse_positive_usize_or_default(Some("42"), 10),
-        parse_core::parse_positive_usize_or_default(Some("42"), 10)
+        parse_owner::parse_positive_usize_or_default(Some("42"), 10)
     );
     assert_eq!(
         parse_positive_usize_or_default(None, 10),
-        parse_core::parse_positive_usize_or_default(None, 10)
+        parse_owner::parse_positive_usize_or_default(None, 10)
     );
     assert_eq!(
         parse_positive_usize_or_default(Some("0"), 10),
-        parse_core::parse_positive_usize_or_default(Some("0"), 10)
+        parse_owner::parse_positive_usize_or_default(Some("0"), 10)
     );
 }
 

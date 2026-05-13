@@ -4,7 +4,6 @@ adze-bdd-grid-core
 adze-common
 adze-concurrency-init-rayon-core
 adze-concurrency-normalize-core
-adze-concurrency-parse-core
 adze-concurrency-env-contract-core
 adze-concurrency-init-core
 adze-concurrency-plan-core
