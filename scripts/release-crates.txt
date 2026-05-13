@@ -1,5 +1,4 @@
 # Auto-generated release surface from workspace metadata (publishable crates only).
-adze-bdd-grammar-analysis-core
 adze-bdd-grammar-fixtures
 adze-bdd-grid-core
 adze-common-syntax-core

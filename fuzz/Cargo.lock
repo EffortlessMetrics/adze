@@ -45,10 +45,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-bdd-grammar-analysis-core"
+name = "adze-bdd-grammar-fixtures"
 version = "0.1.0"
 dependencies = [
  "adze-glr-core",
+ "adze-ir",
 ]
 
 [[package]]
@@ -198,7 +199,7 @@ name = "adze-fuzz"
 version = "0.0.0"
 dependencies = [
  "adze",
- "adze-bdd-grammar-analysis-core",
+ "adze-bdd-grammar-fixtures",
  "adze-common-syntax-core",
  "adze-concurrency-bounded-map-core",
  "adze-concurrency-caps-contract-core",

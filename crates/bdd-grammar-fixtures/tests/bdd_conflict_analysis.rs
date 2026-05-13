@@ -1,4 +1,4 @@
-use adze_bdd_grammar_analysis_core::{
+use adze_bdd_grammar_fixtures::{
     analyze_conflicts, count_multi_action_cells, resolve_shift_reduce_actions,
 };
 use adze_glr_core::{Action, ParseTable, StateId};
