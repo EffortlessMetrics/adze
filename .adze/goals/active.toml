@@ -118,7 +118,7 @@ plan = "plans/0.9.0/implementation-plan.md"
 prs = [695]
 commands = [
   "cargo run -q -p xtask -- check-ci-lane-whitelist",
-  "cargo run -q -p xtask -- ci plan",
+  "cargo run -q -p xtask -- ci-plan",
   "just ci-supported",
 ]
 

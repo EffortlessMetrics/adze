@@ -30,7 +30,7 @@ labels = ["full-ci"]
 
 [risk_pack.glr_core]
 description = "LR/GLR automata, conflict routing, ambiguity machinery, parse-table behavior."
-paths = ["glr-core/**", "crates/glr-versioning/**", "crates/parser-backend-core/**"]
+paths = ["glr-core/**", "crates/parser-backend-core/**"]
 lanes = ["ci-supported", "ripr-advisory"]
 deep_lanes = ["fuzz-pr", "benchmarks-pr", "performance-regression"]
 labels = ["mutation", "property-tests", "ci:perf"]
