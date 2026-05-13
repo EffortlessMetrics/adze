@@ -14,7 +14,6 @@ adze-concurrency-init-bootstrap-policy-core
 adze-concurrency-init-bootstrap-core
 adze-concurrency-init-core
 adze-concurrency-plan-core
-adze-concurrency-bounded-map-core
 adze-concurrency-map-core
 adze-concurrency-caps-contract-core
 adze-concurrency-caps-core

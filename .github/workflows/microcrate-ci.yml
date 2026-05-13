@@ -146,7 +146,6 @@ jobs:
             adze-glr-core
             adze-tablegen
             adze-concurrency-caps-core
-            adze-concurrency-bounded-map-core
             adze-concurrency-env-core
             adze-concurrency-env-contract-core
             adze-concurrency-init-core
@@ -232,7 +231,6 @@ jobs:
       - name: Test concurrency crates
         run: |
           cargo test \
-            -p adze-concurrency-bounded-map-core \
             -p adze-concurrency-caps-contract-core \
             -p adze-concurrency-caps-core \
             -p adze-concurrency-env-contract-core \

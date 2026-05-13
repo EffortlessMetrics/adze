@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 37
+**Total Crates:** 36
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 37 | 100% |
-| Contract Lock Tests | 35+ | 95%+ |
+| Complete (BDD + Property) | 36 | 100% |
+| Contract Lock Tests | 34+ | 95%+ |
 
-All 37 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 36 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 37 remaining tracked crates have both BDD tests and property-based tests:
+All 36 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -27,7 +27,6 @@ All 37 remaining tracked crates have both BDD tests and property-based tests:
 | `bdd-grid-core` | ✓ | ✓ | ✓ |
 | `bdd-scenario-fixtures` | ✓ | ✓ | - |
 | `common-syntax-core` | ✓ | ✓ | ✓ |
-| `concurrency-bounded-map-core` | ✓ | ✓ | ✓ |
 | `concurrency-caps-contract-core` | ✓ | ✓ | ✓ |
 | `concurrency-caps-core` | ✓ | ✓ | ✓ |
 | `concurrency-env-contract-core` | ✓ | ✓ | ✓ |
@@ -59,14 +58,13 @@ All 37 remaining tracked crates have both BDD tests and property-based tests:
 
 ## Contract Lock Files
 
-The following 35+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
+The following 34+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
 
 - `bdd-governance-contract`
 - `bdd-governance-core`
 - `bdd-grid-core`
 - `bdd-grammar-analysis-core`
 - `common-syntax-core`
-- `concurrency-bounded-map-core`
 - `concurrency-caps-contract-core`
 - `concurrency-caps-core`
 - `concurrency-env-contract-core`

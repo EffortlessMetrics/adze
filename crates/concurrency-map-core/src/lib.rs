@@ -7,10 +7,11 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
+/// Owner module for bounded parallel map implementation details.
+pub mod bounded;
+
 /// Re-exported bounded parallel map and partition planning utilities.
-pub use adze_concurrency_bounded_map_core::{
-    ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency,
-};
+pub use bounded::{ParallelPartitionPlan, bounded_parallel_map, normalized_concurrency};
 
 #[cfg(test)]
 mod tests {
