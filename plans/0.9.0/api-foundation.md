@@ -212,9 +212,10 @@ git diff --check
 
 ## Work Item: ts-compat-document-adapter
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md
 Blocked by: none
+PR: #771
 
 ### Goal
 

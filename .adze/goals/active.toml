@@ -324,13 +324,13 @@ commands = [
 
 [[work_item]]
 id = "ts-compat-document-adapter"
-status = "ready"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md"
 adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
 plan = "plans/0.9.0/api-foundation.md"
 blocked_by = []
-prs = []
+prs = [771]
 commands = [
   "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_to_sexp -- --nocapture",
   "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_error -- --nocapture",
