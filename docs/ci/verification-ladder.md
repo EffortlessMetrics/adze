@@ -27,7 +27,7 @@ ladder as its risk pack justifies — no further.
 | `tablegen` | tablegen ABI/canary lanes |
 | `grammar_golden` | golden tests for grammars |
 | `microcrate_governance` | governance integration tests and BDD governance support |
-| test-policy paths | test hygiene and runtime-cap checks for test-policy changes |
+| test-policy paths | test hygiene and static inventory for test-policy changes; runtime caps run on main/manual |
 | `concurrency` | concurrency owner-module opt-in; no standalone concurrency microcrates remain |
 | `wasm` | wasm-check |
 | `performance` | quick benchmark compile |

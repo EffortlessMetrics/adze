@@ -21,6 +21,20 @@ echo "# Test Inventory Report" > "$OUTPUT"
 echo "**Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 
+count_declared_tests() {
+    local crate_path=$1
+
+    if [ ! -d "$crate_path" ]; then
+        echo "0"
+        return
+    fi
+
+    {
+        find "$crate_path/src" "$crate_path/tests" -name "*.rs" -type f 2>/dev/null \
+            -exec grep -hE '^[[:space:]]*#\[(tokio::)?test' {} + || true
+    } | wc -l | tr -d '[:space:]'
+}
+
 # Function to count tests in a crate
 count_tests() {
     local crate_path=$1
@@ -28,8 +42,9 @@ count_tests() {
 
     echo -e "${BLUE}Analyzing ${crate_name}...${NC}"
 
-    # Count total tests
-    local total_tests=$(cd "$crate_path" && cargo test --lib --tests 2>/dev/null -- --list 2>/dev/null | grep -c "test " || echo "0")
+    # Count statically declared tests. This keeps the policy report cheap and
+    # avoids compiling every integration test binary just to build inventory.
+    local total_tests=$(count_declared_tests "$crate_path")
 
     # Count ignored tests
     local ignored_tests=$(find "$crate_path" -name "*.rs" -type f -exec grep -l "#\[ignore" {} \; | wc -l)
@@ -84,7 +99,7 @@ total_ignored=0
 
 for crate in runtime macro glr-core tablegen tool ir common example; do
     if [ -d "$REPO_ROOT/$crate" ]; then
-        crate_tests=$(cd "$REPO_ROOT/$crate" && cargo test --lib --tests 2>/dev/null -- --list 2>/dev/null | grep -c "test " || echo "0")
+        crate_tests=$(count_declared_tests "$REPO_ROOT/$crate")
         total_all_tests=$((total_all_tests + crate_tests))
 
         crate_ignored=$(find "$REPO_ROOT/$crate" -name "*.rs" -type f -exec grep -l "#\[ignore" {} \; | wc -l)
@@ -115,7 +130,7 @@ compliant=true
 
 for crate in "${!min_counts[@]}"; do
     if [ -d "$REPO_ROOT/$crate" ]; then
-        actual=$(cd "$REPO_ROOT/$crate" && cargo test --lib --tests 2>/dev/null -- --list 2>/dev/null | grep -c "test " || echo "0")
+        actual=$(count_declared_tests "$REPO_ROOT/$crate")
         required=${min_counts[$crate]}
 
         if [ "$actual" -ge "$required" ]; then

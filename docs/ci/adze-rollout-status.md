@@ -86,14 +86,14 @@ With all routing already in place, the effective default PR cost estimate:
 | PR Gate Success | ~1 LEM |
 | CI Lane Whitelist | ~2 LEM |
 | ripr advisory | ~4 LEM (isolated install attempted; stub report on toolchain/binary failure) |
-| Test Policy | ~12 LEM |
+| Test Policy | ~2 LEM |
 | Pure Rust (ubuntu/stable only) | ~18 LEM |
 | Microcrate CI (routed by risk pack) | ~5–20 LEM depending on changed surface |
 | Fuzz build smoke (parser/glr paths only) | ~3 LEM |
 | Criterion smoke | ~6 LEM |
 | ts-bridge lanes | ~8 LEM |
 | Clippy quarantine report | ~4 LEM |
-| **Estimated total (typical runtime PR)** | **~65–80 LEM** |
+| **Estimated total (typical runtime PR)** | **~55–70 LEM** |
 
 Target is ≤35 LEM for ordinary PRs. The gap comes from `pure-rust-ci` (18 LEM)
 and `microcrate-ci` (variable) running broadly on every PR. Active exceptions in
