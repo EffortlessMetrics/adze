@@ -202,6 +202,16 @@ source_of_truth_for = ["microcrate to SRP submodule transition sequence"]
 links_to = ["ADZE-PROP-0001", "ADZE-SPEC-0001", "ADZE-ADR-0002", ".adze/goals/active.toml", "policy/package-boundary.toml"]
 
 [[artifact]]
+id = "plans/0.9.0/rust-1.95.md"
+kind = "plan"
+path = "plans/0.9.0/rust-1.95.md"
+status = "complete"
+owner = "release/toolchain"
+milestone = "0.9.0"
+source_of_truth_for = ["Rust 1.95 MSRV bump"]
+links_to = ["ADZE-PROP-0001", ".adze/goals/active.toml", "plans/0.9.0/implementation-plan.md"]
+
+[[artifact]]
 id = "plans/0.9.0/api-foundation.md"
 kind = "plan"
 path = "plans/0.9.0/api-foundation.md"

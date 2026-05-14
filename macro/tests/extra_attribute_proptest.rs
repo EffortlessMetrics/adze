@@ -959,11 +959,10 @@ proptest! {
                         }
                     }
                 }
-                Item::Enum(e) => {
-                    if e.attrs.iter().any(|a| is_adze_attr(a, "language")) {
-                        *found.entry("language".to_string()).or_insert(0usize) += 1;
-                    }
+                Item::Enum(e) if e.attrs.iter().any(|a| is_adze_attr(a, "language")) => {
+                    *found.entry("language".to_string()).or_insert(0usize) += 1;
                 }
+                Item::Enum(_) => {}
                 _ => {}
             }
         }

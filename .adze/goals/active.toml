@@ -155,26 +155,40 @@ commands = [
 
 [[work_item]]
 id = "rust-1.95-msrv-bump"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
+spec = ""
+adr = ""
+plan = "plans/0.9.0/rust-1.95.md"
+blocked_by = []
+prs = [760]
+commands = [
+  "cargo metadata --format-version 1 --no-deps",
+  "cargo run -q -p xtask -- check-lint-policy",
+  "cargo test -p xtask doctor -j 1 -- --nocapture",
+  "cargo test -p xtask lint_policy -j 1 -- --nocapture",
+  "cargo test -p adze-parsetable-metadata -- --test-threads=2",
+  "cargo clippy -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen --all-targets -- -D warnings",
+  "cargo run -q -p xtask -- check-package-boundary --release-gate",
+  "cargo fmt -p adze -- --check",
+  "cargo fmt -p adze-tool -- --check",
+  "cargo fmt -p adze-ir -- --check",
+  "cargo fmt -p adze-glr-core -- --check",
+  "cargo fmt -p adze-macro -- --check",
+  "cargo fmt -p adze-tablegen -- --check",
+  "cargo fmt -p xtask -p adze-parsetable-metadata -- --check",
+  "git diff --check",
+  "just ci-supported",
+]
+
+[[work_item]]
+id = "clippy-policy-refresh"
 status = "ready"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = ""
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
 blocked_by = []
-prs = []
-commands = [
-  "just check-msrv",
-  "just ci-supported",
-]
-
-[[work_item]]
-id = "clippy-policy-refresh"
-status = "blocked"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = ""
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-blocked_by = ["rust-1.95-msrv-bump"]
 prs = []
 commands = [
   "cargo run -q -p xtask -- check-lint-policy",

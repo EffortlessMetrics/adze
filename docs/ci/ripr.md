@@ -18,17 +18,16 @@ PR, never on docs-only PRs, never on `merge_group`, and is configured with
 
 ## MSRV and provisioning
 
-Adze pins `rust-toolchain.toml` to `1.92.0`. `ripr` requires `1.93+`. We
-do not bump MSRV for this advisory check. Provisioning options, in order
-of preference:
+Adze pins `rust-toolchain.toml` to `1.95.0`. `ripr` requires `1.93+`, so the
+advisory workflow can use the workspace MSRV toolchain. Provisioning options,
+in order of preference:
 
 1. **Pinned prebuilt binary** — drop a `ripr` binary on the runner via a
    release asset URL or self-hosted artifact mirror.
-2. **Isolated toolchain** — install a `1.93` toolchain only for the ripr
-   step using `dtolnay/rust-toolchain@stable` with a different `with:
-   toolchain:` value, then `cargo install --locked --root /opt/ripr ripr`.
-3. **MSRV bump** — once the workspace MSRV moves past `1.93`, install
-   normally via `cargo install --locked ripr`.
+2. **Workspace toolchain** — install through the pinned MSRV toolchain with
+   `cargo install --locked ripr`.
+3. **Stub report** — if install fails, upload a skipped advisory report rather
+   than blocking the PR.
 
 Until one of those is wired in, the workflow detects the absence of `ripr`
 and emits a stub `ripr-report.json` with `"status": "skipped"`. The

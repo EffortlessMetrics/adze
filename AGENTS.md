@@ -7,8 +7,8 @@ Instructions for autonomous AI agents (OpenAI Codex, etc.) working on this repos
 Adze is an AST-first grammar toolchain for Rust. It generates Tree-sitter parsers from Rust type annotations using a pure-Rust GLR implementation.
 
 - **Language**: Rust 2024 edition
-- **MSRV**: 1.92.0
-- **Workspace**: 75 crates
+- **MSRV**: 1.95.0
+- **Workspace**: 28 crates
 - **Command runner**: `just` (see `justfile`)
 
 ## Setup
@@ -17,7 +17,7 @@ The toolchain is auto-configured via `rust-toolchain.toml` — no manual Rust in
 
 ```bash
 # Verify toolchain
-rustc --version   # Should be >= 1.92.0
+rustc --version   # Should be >= 1.95.0
 just --version    # Command runner
 
 # System dependency (only needed for ts-bridge)

@@ -4,7 +4,7 @@
 [![Codecov](https://codecov.io/gh/EffortlessMetrics/adze/graph/badge.svg?branch=main)](https://codecov.io/gh/EffortlessMetrics/adze)
 [![Crates.io](https://img.shields.io/crates/v/adze)](https://crates.io/crates/adze)
 [![docs.rs](https://img.shields.io/docsrs/adze)](https://docs.rs/adze)
-[![MSRV](https://img.shields.io/badge/MSRV-1.92-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
+[![MSRV](https://img.shields.io/badge/MSRV-1.95-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
 
 **Your grammar is your AST.** Formerly `rust-sitter`.

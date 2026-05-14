@@ -192,14 +192,14 @@ fn given_generation_info_when_creating_then_holds_values() {
     let info = GenerationInfo {
         timestamp: "2025-01-01T00:00:00Z".to_string(),
         tool_version: "0.1.0".to_string(),
-        rust_version: "1.92.0".to_string(),
+        rust_version: "1.95.0".to_string(),
         host_triple: "x86_64-unknown-linux-gnu".to_string(),
     };
 
     // When / Then
     assert_eq!(info.timestamp, "2025-01-01T00:00:00Z");
     assert_eq!(info.tool_version, "0.1.0");
-    assert_eq!(info.rust_version, "1.92.0");
+    assert_eq!(info.rust_version, "1.95.0");
     assert_eq!(info.host_triple, "x86_64-unknown-linux-gnu");
 }
 
@@ -209,7 +209,7 @@ fn given_generation_info_when_serializing_then_roundtrips() {
     let info = GenerationInfo {
         timestamp: "2025-06-15T12:30:00Z".to_string(),
         tool_version: "0.2.0".to_string(),
-        rust_version: "1.93.0".to_string(),
+        rust_version: "1.96.0".to_string(),
         host_triple: "aarch64-apple-darwin".to_string(),
     };
 
@@ -238,7 +238,7 @@ fn given_full_metadata_when_serializing_then_roundtrips() {
         generation: GenerationInfo {
             timestamp: "2025-01-01T00:00:00Z".to_string(),
             tool_version: "0.1.0".to_string(),
-            rust_version: "1.92.0".to_string(),
+            rust_version: "1.95.0".to_string(),
             host_triple: "x86_64-unknown-linux-gnu".to_string(),
         },
         statistics: TableStatistics {
@@ -278,7 +278,7 @@ fn given_metadata_with_optional_fields_when_serializing_then_roundtrips() {
         generation: GenerationInfo {
             timestamp: "2025-01-01T00:00:00Z".to_string(),
             tool_version: "0.1.0".to_string(),
-            rust_version: "1.92.0".to_string(),
+            rust_version: "1.95.0".to_string(),
             host_triple: "x86_64-unknown-linux-gnu".to_string(),
         },
         statistics: TableStatistics {
@@ -318,7 +318,7 @@ fn given_metadata_when_using_from_bytes_then_parses_correctly() {
         generation: GenerationInfo {
             timestamp: "2025-01-01T00:00:00Z".to_string(),
             tool_version: "0.1.0".to_string(),
-            rust_version: "1.92.0".to_string(),
+            rust_version: "1.95.0".to_string(),
             host_triple: "x86_64-unknown-linux-gnu".to_string(),
         },
         statistics: TableStatistics {

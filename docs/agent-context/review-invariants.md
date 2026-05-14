@@ -5,7 +5,7 @@ Invariants that must hold in all code submitted to this repository.
 ## Type System
 1. **Extract trait usage**: All grammar types implement `Extract` correctly
 2. **No orphaned derives**: Macro derives are paired with type definitions
-3. **MSRV compliance**: Code compiles with Rust 1.92.0 (check `rust-version` in Cargo.toml)
+3. **MSRV compliance**: Code compiles with Rust 1.95.0 (check `rust-version` in Cargo.toml)
 4. **Edition consistency**: All crates use Rust 2024 edition
 
 ## Parser Behavior

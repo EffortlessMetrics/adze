@@ -5,7 +5,7 @@
 ## Prerequisites
 
 ### System Requirements
-- **Rust 1.92.0+** (2024 edition support)
+- **Rust 1.95.0+** (2024 edition support)
 - **Node.js**: Required for `tree-sitter` CLI compatibility (legacy/C backend only)
 - **C Compiler**: Required for `tree-sitter` C integration
 - **just**: Command runner (optional but recommended)

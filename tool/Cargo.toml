@@ -2,7 +2,7 @@
 name = "adze-tool"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.92"
+rust-version = "1.95.0"
 authors = ["Steven Zimmerman, CPA"]
 description = "Build-time code generation tool for Adze grammar definitions"
 license = "Apache-2.0 OR MIT"

@@ -22,7 +22,7 @@ See `adze-rollout-status.md` for status of each item.
 | `pr-plan.yml` | Reusable; computes LEM/band/docs_only from `xtask ci-plan` | Active |
 | `pr-gate.yml` | Aggregates Supported + Docs Gate → `PR Gate Success` | Active |
 | `ci-policy.yml` | CI lane whitelist advisory lint | Active |
-| `ripr.yml` | ripr advisory with isolated Rust 1.93 install and stub fallback | Active advisory |
+| `ripr.yml` | ripr advisory with workspace MSRV install and stub fallback | Active advisory |
 | `fuzz.yml` | Label/push/schedule-gated runtime fuzz; build smoke on parser/glr PRs | Active |
 | `pure-rust-ci.yml` | Matrix-setup: ubuntu/stable on default PR; full matrix on labels/main | Active |
 | `golden-tests.yml` | Grammar-path and `ci:golden`/`full-ci` label gated | Active |

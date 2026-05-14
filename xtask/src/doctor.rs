@@ -6,7 +6,7 @@
 use anyhow::Result;
 use std::process::Command;
 
-const MSRV: &str = "1.92.0";
+const MSRV: &str = "1.95.0";
 
 struct CheckResult {
     name: &'static str,
@@ -206,8 +206,8 @@ fn check_wasm32_target() -> CheckResult {
     }
 }
 
-/// Minimal semver parser: returns (major, minor, patch) from "1.92.0" style strings.
-/// Handles trailing metadata like "1.92.0 (hash date)" or "1.92.0-nightly".
+/// Minimal semver parser: returns (major, minor, patch) from "1.95.0" style strings.
+/// Handles trailing metadata like "1.95.0 (hash date)" or "1.95.0-nightly".
 fn parse_semver(s: &str) -> Option<(u32, u32, u32)> {
     let s = s.split(&[' ', '(', '-'][..]).next()?;
     let mut parts = s.split('.');
@@ -231,23 +231,23 @@ mod tests {
 
     #[test]
     fn parse_semver_accepts_stable_and_prerelease_rustc_versions() {
-        assert_eq!(parse_semver("1.92.0"), Some((1, 92, 0)));
-        assert_eq!(parse_semver("1.93.0-nightly"), Some((1, 93, 0)));
-        assert_eq!(parse_semver("1.92.0 (abcdef 2026-01-01)"), Some((1, 92, 0)));
-        assert_eq!(parse_semver("1.92"), Some((1, 92, 0)));
+        assert_eq!(parse_semver("1.95.0"), Some((1, 95, 0)));
+        assert_eq!(parse_semver("1.96.0-nightly"), Some((1, 96, 0)));
+        assert_eq!(parse_semver("1.95.0 (abcdef 2026-01-01)"), Some((1, 95, 0)));
+        assert_eq!(parse_semver("1.95"), Some((1, 95, 0)));
     }
 
     #[test]
     fn parse_semver_rejects_invalid_versions() {
-        assert_eq!(parse_semver("rustc 1.92.0"), None);
+        assert_eq!(parse_semver("rustc 1.95.0"), None);
         assert_eq!(parse_semver("not-a-version"), None);
         assert_eq!(parse_semver("1.x.0"), None);
     }
 
     #[test]
     fn meets_msrv_compares_against_workspace_msrv() {
-        assert!(!meets_msrv("1.91.9"));
-        assert!(meets_msrv("1.92.0"));
-        assert!(meets_msrv("1.93.0-nightly"));
+        assert!(!meets_msrv("1.94.9"));
+        assert!(meets_msrv("1.95.0"));
+        assert!(meets_msrv("1.96.0-nightly"));
     }
 }

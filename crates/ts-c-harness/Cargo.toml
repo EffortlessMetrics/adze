@@ -2,7 +2,7 @@
 name = "adze-ts-c-harness"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.92.0"
+rust-version = "1.95.0"
 license = "Apache-2.0 OR MIT"
 description = "Internal Tree-sitter C FFI parity test harness."
 repository = "https://github.com/EffortlessMetrics/adze"

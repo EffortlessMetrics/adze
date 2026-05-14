@@ -1515,7 +1515,7 @@ fn build_diagnostics(root: &ParseNode, error_count: usize, source: &str) -> Vec<
         return Vec::new();
     }
 
-    let span = first_error_span(root).unwrap_or_else(|| root.start_byte..root.end_byte);
+    let span = first_error_span(root).unwrap_or(root.start_byte..root.end_byte);
     let start_byte = span.start.min(source.len());
     let end_byte = span.end.min(source.len()).max(start_byte);
     let point_range = PointRange::from_byte_range(source, start_byte..end_byte);

@@ -46,7 +46,7 @@ fn test_contract_lock_types() {
     let _generation = GenerationInfo {
         timestamp: "2025-01-01T00:00:00Z".into(),
         tool_version: "0.1.0".into(),
-        rust_version: "1.92.0".into(),
+        rust_version: "1.95.0".into(),
         host_triple: "x86_64-unknown-linux-gnu".into(),
     };
 
@@ -77,7 +77,7 @@ fn test_contract_lock_types() {
         generation: GenerationInfo {
             timestamp: "2025-01-01T00:00:00Z".into(),
             tool_version: "0.1.0".into(),
-            rust_version: "1.92.0".into(),
+            rust_version: "1.95.0".into(),
             host_triple: "x86_64-unknown-linux-gnu".into(),
         },
         statistics: TableStatistics {
@@ -110,7 +110,7 @@ fn test_contract_lock_metadata_methods() {
         generation: GenerationInfo {
             timestamp: "2025-01-01T00:00:00Z".into(),
             tool_version: "0.1.0".into(),
-            rust_version: "1.92.0".into(),
+            rust_version: "1.95.0".into(),
             host_triple: "x86_64-unknown-linux-gnu".into(),
         },
         statistics: TableStatistics {
@@ -179,7 +179,7 @@ fn test_contract_lock_serde_roundtrip() {
     let generation = GenerationInfo {
         timestamp: "2025-06-15T12:00:00Z".into(),
         tool_version: "0.8.0".into(),
-        rust_version: "1.92.0".into(),
+        rust_version: "1.95.0".into(),
         host_triple: "aarch64-unknown-linux-gnu".into(),
     };
     let json = serde_json::to_string(&generation).unwrap();

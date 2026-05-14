@@ -187,11 +187,10 @@ impl GrammarJs {
 
     fn validate_rule(&self, rule: &Rule, context: &str) -> Result<()> {
         match rule {
-            Rule::Symbol { name } => {
-                if !self.rules.contains_key(name) && !self.is_external(name) {
-                    bail!("Symbol '{}' referenced in '{}' not found", name, context);
-                }
+            Rule::Symbol { name } if !self.rules.contains_key(name) && !self.is_external(name) => {
+                bail!("Symbol '{}' referenced in '{}' not found", name, context);
             }
+            Rule::Symbol { .. } => {}
             Rule::Seq { members } | Rule::Choice { members } => {
                 for member in members {
                     self.validate_rule(member, context)?;

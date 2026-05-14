@@ -16,7 +16,7 @@ fn sample_metadata() -> ParsetableMetadata {
         generation: GenerationInfo {
             timestamp: "2025-01-15T12:00:00Z".to_string(),
             tool_version: "0.1.0".to_string(),
-            rust_version: "1.92.0".to_string(),
+            rust_version: "1.95.0".to_string(),
             host_triple: "x86_64-unknown-linux-gnu".to_string(),
         },
         statistics: TableStatistics {
