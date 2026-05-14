@@ -62,39 +62,70 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
             echo "ripr or workspace toolchain install unavailable; using stub report."
           fi
-      - name: Run ripr (advisory)
+      - name: RIPR PR evidence
         if: steps.ripr-install.outputs.available == 'true'
         env:
-          BASE_SHA: ${{ steps.shas.outputs.base }}
-          HEAD_SHA: ${{ steps.shas.outputs.head }}
-        run: |
-          set -euo pipefail
-          mkdir -p target/ripr
-          ripr analyze \
-            --config ripr.toml \
-            --base "$BASE_SHA" \
-            --head "$HEAD_SHA" \
-            --json target/ripr/ripr-report.json \
-            --sarif target/ripr/ripr-report.sarif \
-            || echo "ripr exited non-zero (advisory)."
+          RIPR_BASE: ${{ steps.shas.outputs.base }}
+          RIPR_HEAD: ${{ steps.shas.outputs.head }}
+        run: cargo xtask ripr-pr
+      - name: RIPR review guidance
+        if: steps.ripr-install.outputs.available == 'true'
+        env:
+          RIPR_BASE: ${{ steps.shas.outputs.base }}
+          RIPR_HEAD: ${{ steps.shas.outputs.head }}
+        run: cargo xtask ripr-review-comments
       - name: Stub report (ripr not available)
         if: steps.ripr-install.outputs.available != 'true'
         run: |
           set -euo pipefail
-          mkdir -p target/ripr
-          cat > target/ripr/ripr-report.json <<'JSON'
+          mkdir -p target/ripr/pr target/ripr/review
+          cat > target/ripr/pr/repo-exposure.json <<'JSON'
           {
             "schema_version": 1,
             "status": "skipped",
             "reason": "ripr binary not available via cargo install; will activate when published to crates.io."
           }
           JSON
-      - name: Upload ripr report
+          cat > target/ripr/pr/repo-exposure.md <<'MD'
+          # RIPR PR evidence
+
+          ripr was not available; stub evidence was produced.
+          MD
+          cat > target/ripr/review/comments.json <<'JSON'
+          {
+            "schema_version": 1,
+            "comments": [],
+            "summary_only": [],
+            "suppressed": [],
+            "warnings": ["ripr binary not available via cargo install; stub guidance was produced."]
+          }
+          JSON
+          cat > target/ripr/review/comments.md <<'MD'
+          # RIPR review guidance
+
+          ripr was not available; stub guidance was produced.
+          MD
+      - name: RIPR PR contract
         if: always()
-        uses: actions/upload-artifact@v4
+        run: |
+          cargo xtask ripr-pr --check
+          cargo xtask ripr-review-comments --check
+      - name: RIPR annotations
+        if: always()
+        run: python scripts/ripr-annotations.py
+      - name: Upload RIPR PR evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.0
         with:
-          name: ripr-report
-          path: target/ripr/
+          name: ripr-pr
+          path: target/ripr/pr
+          if-no-files-found: warn
+      - name: Upload RIPR review guidance
+        if: always()
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: ripr-review
+          path: target/ripr/review
           if-no-files-found: warn
       - name: Append summary
         if: always()
@@ -102,9 +133,15 @@ jobs:
           {
             echo "## ripr advisory";
             echo "";
-            if [ "${{ steps.ripr-install.outputs.available }}" = "true" ]; then
+            if [ -f target/ripr/review/comments.md ]; then
+              cat target/ripr/review/comments.md
+            elif [ "${{ steps.ripr-install.outputs.available }}" = "true" ]; then
               echo "- ripr installed via the workspace MSRV toolchain; analysis ran on \`${{ steps.shas.outputs.base }}..${{ steps.shas.outputs.head }}\`."
             else
               echo "- ripr install attempted with the workspace MSRV toolchain, but was not available yet; stub report uploaded."
             fi
+            echo ""
+            echo "### Artifacts"
+            echo "- `ripr-pr`: `target/ripr/pr/`"
+            echo "- `ripr-review`: `target/ripr/review/`"
           } >> "$GITHUB_STEP_SUMMARY"
