@@ -173,9 +173,10 @@ git diff --check
 
 ## Work Item: typed-cst-schema-generation
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md
 Blocked by: none
+PR: #769
 
 ### Goal
 
@@ -185,7 +186,7 @@ Generate typed CST wrappers over document node IDs and field edge metadata.
 
 ```bash
 cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture
-cargo test -p adze-tablegen typed_cst -- --nocapture
+cargo test -p adze-tablegen --lib typed_cst -- --nocapture
 git diff --check
 ```
 
