@@ -23,7 +23,7 @@
 //! └────────────────────────────────────────────┘
 //! ```
 
-use adze_bdd_grid_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID};
+use adze_bdd_governance_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID};
 use adze_glr_core::ParseTable;
 use adze_ir::Grammar;
 use std::fs::File;

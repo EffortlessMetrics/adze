@@ -4,7 +4,7 @@
 
 #![cfg(feature = "serialization")]
 
-use adze_bdd_grid_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID};
+use adze_bdd_governance_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID};
 use adze_glr_core::{Action, GotoIndexing, LexMode, ParseTable, StateId, SymbolId};
 use adze_ir::{Grammar, RuleId};
 use adze_tablegen::parsetable_writer::{

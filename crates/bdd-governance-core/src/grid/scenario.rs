@@ -10,7 +10,7 @@ use core::fmt;
 /// # Examples
 ///
 /// ```
-/// use adze_bdd_grid_core::scenario::BddPhase;
+/// use adze_bdd_governance_core::grid::scenario::BddPhase;
 ///
 /// let phase = BddPhase::Core;
 /// assert_eq!(phase, BddPhase::Core);
@@ -34,7 +34,7 @@ impl fmt::Display for BddPhase {
 /// # Examples
 ///
 /// ```
-/// use adze_bdd_grid_core::scenario::BddScenarioStatus;
+/// use adze_bdd_governance_core::grid::scenario::BddScenarioStatus;
 ///
 /// let done = BddScenarioStatus::Implemented;
 /// assert!(done.implemented());

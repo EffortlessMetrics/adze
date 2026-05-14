@@ -58,7 +58,7 @@ dependencies = [
 name = "adze-bdd-governance-core"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-grid-core",
+ "criterion",
  "proptest",
 ]
 
@@ -68,14 +68,6 @@ version = "0.1.0"
 dependencies = [
  "adze-glr-core",
  "adze-ir",
- "proptest",
-]
-
-[[package]]
-name = "adze-bdd-grid-core"
-version = "0.1.0"
-dependencies = [
- "criterion",
  "proptest",
 ]
 
@@ -344,7 +336,7 @@ dependencies = [
 name = "adze-tablegen"
 version = "0.8.0-dev"
 dependencies = [
- "adze-bdd-grid-core",
+ "adze-bdd-governance-core",
  "adze-glr-core",
  "adze-ir",
  "adze-parsetable-metadata",
@@ -1265,7 +1257,6 @@ name = "governance-integration-tests"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-governance-core",
- "adze-bdd-grid-core",
  "adze-governance-metadata",
  "adze-governance-runtime-core",
  "adze-parsetable-metadata",

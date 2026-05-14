@@ -2,10 +2,10 @@
 //!
 //! Validates the end-to-end flow:
 //!   bdd-governance-core feature policy → governance-metadata → parsetable-metadata
-//!   bdd-grid-core → governance-runtime-core reporting
+//!   bdd-governance-core grid → governance-runtime-core reporting
 
 use adze_bdd_governance_core::ParserFeatureProfile;
-use adze_bdd_grid_core::{
+use adze_bdd_governance_core::{
     BddPhase, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress, bdd_progress_report,
 };
 use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
@@ -202,7 +202,7 @@ fn parsetable_metadata_bytes_roundtrip() {
 }
 
 // ===================================================================
-// 5. bdd-grid-core: BDD progress tracking across phases
+// 5. bdd-governance-core grid: BDD progress tracking across phases
 // ===================================================================
 
 #[test]

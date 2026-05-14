@@ -1,8 +1,8 @@
-//! Property-based tests for bdd-grid-core.
+//! Property-based tests for the BDD governance grid owner module.
 
 use proptest::prelude::*;
 
-use adze_bdd_grid_core::{BddPhase, BddScenarioStatus};
+use adze_bdd_governance_core::{BddPhase, BddScenarioStatus};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -111,7 +111,7 @@ proptest! {
 
 #[test]
 fn grid_scenarios_have_valid_ids() {
-    for (i, scenario) in adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID
+    for (i, scenario) in adze_bdd_governance_core::GLR_CONFLICT_PRESERVATION_GRID
         .iter()
         .enumerate()
     {
@@ -132,32 +132,32 @@ fn grid_scenarios_have_valid_ids() {
 #[test]
 fn grid_scenarios_have_unique_ids() {
     use std::collections::HashSet;
-    let ids: HashSet<u8> = adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID
+    let ids: HashSet<u8> = adze_bdd_governance_core::GLR_CONFLICT_PRESERVATION_GRID
         .iter()
         .map(|s| s.id)
         .collect();
     assert_eq!(
         ids.len(),
-        adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID.len()
+        adze_bdd_governance_core::GLR_CONFLICT_PRESERVATION_GRID.len()
     );
 }
 
 #[test]
 fn bdd_progress_empty_returns_zero() {
-    let (implemented, total) = adze_bdd_grid_core::bdd_progress(BddPhase::Core, &[]);
+    let (implemented, total) = adze_bdd_governance_core::bdd_progress(BddPhase::Core, &[]);
     assert_eq!(implemented, 0);
     assert_eq!(total, 0);
 }
 
 #[test]
 fn bdd_progress_grid_returns_valid_counts() {
-    let (core_impl, core_total) = adze_bdd_grid_core::bdd_progress(
+    let (core_impl, core_total) = adze_bdd_governance_core::bdd_progress(
         BddPhase::Core,
-        adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID,
+        adze_bdd_governance_core::GLR_CONFLICT_PRESERVATION_GRID,
     );
-    let (rt_impl, rt_total) = adze_bdd_grid_core::bdd_progress(
+    let (rt_impl, rt_total) = adze_bdd_governance_core::bdd_progress(
         BddPhase::Runtime,
-        adze_bdd_grid_core::GLR_CONFLICT_PRESERVATION_GRID,
+        adze_bdd_governance_core::GLR_CONFLICT_PRESERVATION_GRID,
     );
 
     assert!(core_total > 0);

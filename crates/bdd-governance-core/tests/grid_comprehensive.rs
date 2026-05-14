@@ -1,5 +1,5 @@
 // Comprehensive tests for BDD grid core
-use adze_bdd_grid_core::*;
+use adze_bdd_governance_core::*;
 
 // ---------------------------------------------------------------------------
 // BddPhase

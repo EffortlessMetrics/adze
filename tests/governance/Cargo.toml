@@ -9,6 +9,5 @@ license = "MIT OR Apache-2.0"
 adze-bdd-governance-core = { path = "../../crates/bdd-governance-core" }
 adze-governance-metadata = { path = "../../crates/governance-metadata" }
 adze-parsetable-metadata = { path = "../../crates/parsetable-metadata" }
-adze-bdd-grid-core = { path = "../../crates/bdd-grid-core" }
 adze-governance-runtime-core = { path = "../../crates/governance-runtime-core" }
 serde_json.workspace = true

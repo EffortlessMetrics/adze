@@ -134,7 +134,7 @@ pub const GLR_CONFLICT_PRESERVATION_GRID: &[BddScenario] = &[
 /// # Examples
 ///
 /// ```
-/// use adze_bdd_grid_core::*;
+/// use adze_bdd_governance_core::*;
 ///
 /// let scenarios = [BddScenario {
 ///     id: 1,
@@ -201,7 +201,7 @@ pub fn bdd_grid_issues(scenarios: &[BddScenario]) -> Vec<BddGridIssue> {
 /// # Examples
 ///
 /// ```
-/// use adze_bdd_grid_core::*;
+/// use adze_bdd_governance_core::*;
 ///
 /// let report = bdd_progress_report(
 ///     BddPhase::Runtime,

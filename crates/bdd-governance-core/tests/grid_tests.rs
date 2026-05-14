@@ -1,4 +1,4 @@
-use adze_bdd_grid_core::*;
+use adze_bdd_governance_core::*;
 
 #[test]
 fn bdd_phase_display_core() {

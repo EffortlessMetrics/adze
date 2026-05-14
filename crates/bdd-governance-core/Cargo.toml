@@ -18,11 +18,13 @@ pure-rust = []
 tree-sitter-c2rust = []
 tree-sitter-standard = []
 glr = ["pure-rust"]
-strict_api = ["adze-bdd-grid-core/strict_api"]
-strict_docs = ["adze-bdd-grid-core/strict_docs"]
-
-[dependencies]
-adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
+strict_api = []
+strict_docs = []
 
 [dev-dependencies]
+criterion.workspace = true
 proptest = { workspace = true }
+
+[[bench]]
+name = "bdd_grid_bench"
+harness = false

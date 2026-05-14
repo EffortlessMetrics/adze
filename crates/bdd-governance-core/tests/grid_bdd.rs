@@ -1,8 +1,8 @@
-//! BDD-style tests for bdd-grid-core crate.
+//! BDD-style tests for the BDD governance grid owner module.
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
 
-use adze_bdd_grid_core::{
+use adze_bdd_governance_core::{
     BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
     bdd_progress_report,
 };

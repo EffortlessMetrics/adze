@@ -174,7 +174,6 @@ test support module.
 - `adze-bdd-contract`
 - `adze-bdd-governance-core`
 - `adze-bdd-grammar-fixtures`
-- `adze-bdd-grid-core`
 
 ### Completed Packages
 
@@ -184,19 +183,20 @@ test support module.
   current-profile helper functions and import BDD governance core directly.
 - `adze-bdd-scenario-fixtures` facade removed; the GLR BDD test now imports
   grammar fixtures and BDD governance reporting helpers directly.
+- `adze-bdd-grid-core` moved into `adze-bdd-governance-core::grid`.
 
 ### Proof Commands
 
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-bdd-governance-core -p adze-bdd-grid-core -p adze-bdd-grammar-fixtures -- --test-threads=2
+cargo test -p adze-bdd-governance-core -p adze-bdd-grammar-fixtures -- --test-threads=2
 just ci-supported
 ```
 
 ## Work Item: feature-policy-to-srp-submodule
 
-Status: ready
+Status: done
 Owner: governance/feature-policy
 
 ### Goal
@@ -205,8 +205,10 @@ Move feature/backend selection policy into the governance owner module that
 actually consumes it, or reclassify it with an accepted ADR if it remains a
 durable standalone crate.
 
-### Candidate Packages
+### Completed Packages
 
+- `adze-feature-policy-core` moved into
+  `adze-bdd-governance-core::feature_policy`.
 
 ### Proof Commands
 
