@@ -1,6 +1,6 @@
 # Known red
 
-**Last updated:** 2026-05-07
+**Last updated:** 2026-05-14
 
 This file tracks intentional exclusions from the supported lane:
 
@@ -56,7 +56,11 @@ These are intentionally excluded for now because they are prototypes, platform-s
 - `golden-tests/` (useful contract, but can be heavy and multi-language)
 - `benchmarks/` (signal, not merge-blocking)
 - `grammars/*` (valuable, but not yet a stable published surface)
-- `crates/*` (47 BDD/governance microcrates; structure stable, READMEs added)
+- `crates/*` support surfaces are not part of the required `ci-supported`
+  lane unless one is also a core pipeline dependency. The 0.9
+  microcrate-to-SRP collapse is complete; release readiness is guarded by
+  `cargo run -q -p xtask -- check-package-boundary --release-gate`, which
+  fails if a temporary owner-module migration target returns.
 
 ### Not in the supported lane (workflows)
 These may run as optional signal (nightly/manual/canary), but are not required for merge:

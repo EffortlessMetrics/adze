@@ -1,38 +1,55 @@
 # Publish Checklist
 
-How to publish the core Adze crates to crates.io.
+How to publish the Adze release surface to crates.io.
 
 ## Publish Order
 
-Crates **must** be published in dependency order. Each crate must be
-available on the registry before its dependents can be packaged.
+Crates **must** be published in dependency order. The source of truth for the
+release surface and publish order is:
+
+```text
+scripts/release-crates.txt
+```
+
+The 0.9 microcrate-to-SRP transition is complete. Temporary
+`owner-module-migration-target` packages are not allowed in the release surface;
+the release gate must pass before publishing.
+
+```bash
+cargo run -q -p xtask -- check-package-boundary --release-gate
+PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
+```
+
+Durable support crates that remain standalone are recorded by
+`docs/adr/ADZE-ADR-0005-durable-published-support-crates.md` and must remain in
+the release surface while core crates depend on them:
+
+- `adze-bdd-governance-core`
+- `adze-linecol-core`
+- `adze-parsetable-metadata`
+
+The following table is a compact dependency reminder for the core pipeline, not
+the complete release surface.
 
 | Step | Crate | Directory | Key deps |
 |------|-------|-----------|----------|
 | 1 | `adze-common` | `common/` | *(external only)* |
 | 2 | `adze-ir` | `ir/` | *(external only)* |
-| 3 | `adze-glr-core` | `glr-core/` | `adze-ir` |
-| 4 | `adze-tablegen` | `tablegen/` | `adze-ir`, `adze-glr-core`, `adze-bdd-governance-core`, `adze-parsetable-metadata` |
-| 5 | `adze-macro` | `macro/` | `adze-common` |
-| 6 | `adze-tool` | `tool/` | `adze-common`, `adze-ir`, `adze-glr-core`, `adze-tablegen` |
-| 7 | `adze` | `runtime/` | `adze-macro`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, microcrates |
-
-### Prerequisite micro-crates
-
-Several governance/infrastructure micro-crates must be published **before**
-the core crates that depend on them. The full set (in order) is:
-
-1. All `adze-concurrency-*` crates (caps-contract-core, map-core, env-core,
-   init-core, caps-core, etc.)
-2. `adze-linecol-core`
-3. `adze-bdd-governance-core`
-4. `adze-parsetable-metadata`
+| 3 | durable support crates | `crates/*` | see `ADZE-ADR-0005` |
+| 4 | `adze-glr-core` | `glr-core/` | `adze-ir` |
+| 5 | `adze-tablegen` | `tablegen/` | `adze-ir`, `adze-glr-core`, durable support crates |
+| 6 | `adze-macro` | `macro/` | `adze-common` |
+| 7 | `adze-tool` | `tool/` | `adze-common`, `adze-ir`, `adze-glr-core`, `adze-tablegen` |
+| 8 | `adze` | `runtime/` | `adze-macro`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, durable support crates |
 
 ## Pre-publish verification
 
 ```bash
 # Run the automated check (metadata + cargo package --list)
 ./scripts/check-publish.sh
+
+# Validate the release surface and the microcrate-to-SRP release gate
+PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
 
 # Full packaging test (requires all deps on crates.io already)
 cargo package --allow-dirty -p <crate>
@@ -63,21 +80,23 @@ git status  # should be clean
 # 2. Update versions for the release you are cutting
 #    For example: 0.8.0 -> 0.9.0, including Cargo.toml files and cross-references.
 
-# 3. Run the publish check
+# 3. Run the publish and release-surface checks
 ./scripts/check-publish.sh
+PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
 
 # 4. Commit the version bump
 git commit -am "release: vX.Y.Z"
 git tag vX.Y.Z
 
-# 5. Publish in order (wait for each to appear on crates.io)
-cargo publish -p adze-common
-cargo publish -p adze-ir
-cargo publish -p adze-glr-core
-cargo publish -p adze-tablegen
-cargo publish -p adze-macro
-cargo publish -p adze-tool
-cargo publish -p adze
+# 5. Publish in scripts/release-crates.txt order.
+#    Prefer the release helper; otherwise publish each listed crate manually and
+#    wait for each to appear on crates.io before publishing dependents.
+./scripts/release.sh
+# or:
+# while read -r crate; do
+#   [[ -z "$crate" || "$crate" == \#* ]] && continue
+#   cargo publish -p "$crate"
+# done < scripts/release-crates.txt
 
 # 6. Push tags
 git push origin main --tags
