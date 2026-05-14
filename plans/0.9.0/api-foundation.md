@@ -192,9 +192,10 @@ git diff --check
 
 ## Work Item: document-diagnostics-store
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md
 Blocked by: none
+PR: #770
 
 ### Goal
 
