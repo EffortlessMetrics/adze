@@ -7,13 +7,11 @@ name = "adze"
 version = "0.8.0-dev"
 dependencies = [
  "adze-glr-core",
+ "adze-governance-runtime-core",
  "adze-ir",
  "adze-linecol-core",
  "adze-macro",
- "adze-runtime-governance-api",
- "adze-stack-pool-core",
  "adze-tablegen",
- "adze-ts-format-core",
  "ahash",
  "anyhow",
  "indexmap",
@@ -29,29 +27,12 @@ dependencies = [
 name = "adze-bdd-governance-core"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-governance-reporting-core",
  "adze-bdd-grid-core",
  "adze-feature-policy-core",
-]
-
-[[package]]
-name = "adze-bdd-governance-reporting-core"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-grid-core",
- "adze-feature-policy-core",
- "adze-governance-status-core",
 ]
 
 [[package]]
 name = "adze-bdd-grid-core"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-scenario-core",
-]
-
-[[package]]
-name = "adze-bdd-scenario-core"
 version = "0.1.0"
 
 [[package]]
@@ -65,10 +46,6 @@ dependencies = [
 [[package]]
 name = "adze-feature-policy-core"
 version = "0.1.0"
-dependencies = [
- "adze-parser-backend-core",
- "adze-parser-feature-profile-core",
-]
 
 [[package]]
 name = "adze-glr-core"
@@ -85,27 +62,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-governance-matrix-contract"
-version = "0.1.0"
-dependencies = [
- "adze-governance-matrix-core",
-]
-
-[[package]]
-name = "adze-governance-matrix-core"
-version = "0.1.0"
-dependencies = [
- "adze-governance-matrix-core-impl",
-]
-
-[[package]]
-name = "adze-governance-matrix-core-impl"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-core",
-]
-
-[[package]]
 name = "adze-governance-metadata"
 version = "0.1.0"
 dependencies = [
@@ -118,7 +74,7 @@ dependencies = [
 name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
- "adze-governance-matrix-contract",
+ "adze-bdd-governance-core",
  "adze-governance-runtime-reporting",
 ]
 
@@ -126,15 +82,7 @@ dependencies = [
 name = "adze-governance-runtime-reporting"
 version = "0.1.0"
 dependencies = [
- "adze-governance-matrix-contract",
-]
-
-[[package]]
-name = "adze-governance-status-core"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-grid-core",
- "adze-feature-policy-core",
+ "adze-bdd-governance-core",
 ]
 
 [[package]]
@@ -163,17 +111,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-parser-backend-core"
-version = "0.1.0"
-
-[[package]]
-name = "adze-parser-feature-profile-core"
-version = "0.1.0"
-dependencies = [
- "adze-parser-backend-core",
-]
-
-[[package]]
 name = "adze-parsetable-metadata"
 version = "0.1.0"
 dependencies = [
@@ -182,31 +119,6 @@ dependencies = [
  "serde_json",
  "thiserror",
 ]
-
-[[package]]
-name = "adze-runtime-governance"
-version = "0.1.0"
-dependencies = [
- "adze-runtime-governance-matrix",
-]
-
-[[package]]
-name = "adze-runtime-governance-api"
-version = "0.1.0"
-dependencies = [
- "adze-runtime-governance",
-]
-
-[[package]]
-name = "adze-runtime-governance-matrix"
-version = "0.1.0"
-dependencies = [
- "adze-governance-runtime-core",
-]
-
-[[package]]
-name = "adze-stack-pool-core"
-version = "0.1.0"
 
 [[package]]
 name = "adze-tablegen"
@@ -221,7 +133,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustc-hash",
- "rustc_version_runtime",
+ "rustc_version",
  "serde",
  "serde_json",
  "sha2",
@@ -254,14 +166,6 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-generate",
-]
-
-[[package]]
-name = "adze-ts-format-core"
-version = "0.1.0"
-dependencies = [
- "adze-glr-core",
- "serde",
 ]
 
 [[package]]
@@ -998,16 +902,6 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
- "semver 0.9.0",
-]
-
-[[package]]
-name = "rustc_version_runtime"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6de8ecd7fad7731f306f69b6e10ec5a3178c61e464dcc06979427aa4cc891145"
-dependencies = [
- "rustc_version",
  "semver 0.9.0",
 ]
 

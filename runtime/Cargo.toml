@@ -24,9 +24,9 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["pure-rust"]
-pure-rust = ["adze-macro/pure-rust", "adze-runtime-governance-matrix/pure-rust"]
-tree-sitter-c2rust = ["tree-sitter-runtime-c2rust", "adze-runtime-governance-matrix/tree-sitter-c2rust"]
-tree-sitter-standard = ["tree-sitter-runtime-standard", "adze-runtime-governance-matrix/tree-sitter-standard"]
+pure-rust = ["adze-macro/pure-rust", "adze-governance-runtime-core/pure-rust"]
+tree-sitter-c2rust = ["tree-sitter-runtime-c2rust", "adze-governance-runtime-core/tree-sitter-c2rust"]
+tree-sitter-standard = ["tree-sitter-runtime-standard", "adze-governance-runtime-core/tree-sitter-standard"]
 wasm = ["wasm-bindgen", "pure-rust"]
 simd = ["pure-rust"]
 serialization = ["serde", "serde_json", "adze-glr-core/serialization"] # Enable tree serialization
@@ -44,7 +44,7 @@ strict_docs = [] # Enable strict documentation requirements
 strict_api = [] # Enable strict API surface checking
 unstable-benches = [] # Enable benchmarks that depend on unstable APIs
 glr_telemetry = [] # Enable GLR telemetry
-glr = ["adze-runtime-governance-matrix/glr"] # Enable GLR parser mode
+glr = ["adze-governance-runtime-core/glr"] # Enable GLR parser mode
 with-grammars = ["dep:ts_bridge", "dep:tree_sitter_json"] # Enable tests that require ts-bridge and tree-sitter grammars
 
 [dependencies]
@@ -69,7 +69,7 @@ wasm-bindgen = { version = "0.2.100", optional = true }
 adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
 ts_bridge = { package = "ts-bridge", version = "0.1.0", path = "../tools/ts-bridge", optional = true, default-features = false }
 tree_sitter_json = { package = "tree-sitter-json", version = "0.24", optional = true }
-adze-runtime-governance-matrix = { version = "0.1.0", path = "../crates/runtime-governance-matrix" }
+adze-governance-runtime-core = { version = "0.1.0", path = "../crates/governance-runtime-core" }
 
 [dev-dependencies]
 insta = "1.43.1"

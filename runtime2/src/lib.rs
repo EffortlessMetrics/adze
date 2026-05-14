@@ -67,17 +67,14 @@ pub use token::Token;
 pub use tree::Tree;
 
 // Governance + feature-flag reporting compatibility surface for runtime2 consumers.
-pub use adze_runtime_governance_matrix::{
-    BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_FALLBACK,
-    GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
-    bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime2,
-    bdd_governance_matrix_for_runtime2_profile, bdd_governance_snapshot, bdd_progress,
-    bdd_progress_report, bdd_progress_report_for_profile, bdd_progress_report_for_runtime2_profile,
+pub use adze_governance_runtime_core::{
+    BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
+    GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
+    bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime2, bdd_governance_snapshot,
+    bdd_progress, bdd_progress_report, bdd_progress_report_for_profile,
     bdd_progress_report_with_profile, bdd_progress_status_line,
-    bdd_progress_status_line_for_profile, bdd_progress_status_line_for_runtime2_profile,
-    describe_backend_for_conflicts, parser_feature_profile_for_runtime2,
-    resolve_backend_for_profile, resolve_backend_for_runtime2_profile, resolve_runtime2_backend,
-    runtime2_governance_snapshot,
+    bdd_progress_status_line_for_profile, describe_backend_for_conflicts,
+    parser_feature_profile_for_runtime2, resolve_backend_for_profile,
 };
 
 #[cfg(feature = "incremental_glr")]
@@ -91,6 +88,60 @@ pub const fn parser_feature_profile_for_current_runtime2() -> ParserFeatureProfi
 /// Resolve the backend for the active runtime2 feature profile.
 pub const fn current_backend_for_runtime2(has_conflicts: bool) -> ParserBackend {
     resolve_runtime2_backend(cfg!(feature = "pure-rust"), has_conflicts)
+}
+
+/// Build a governance matrix for a runtime2-compatible profile.
+pub fn bdd_governance_matrix_for_runtime2_profile(
+    phase: BddPhase,
+    pure_rust_glr: bool,
+) -> BddGovernanceMatrix {
+    bdd_governance_matrix_for_runtime2(phase, pure_rust_glr)
+}
+
+/// Build a BDD report for an explicit runtime2 profile.
+pub fn bdd_progress_report_for_runtime2_profile(
+    phase: BddPhase,
+    phase_title: &str,
+    profile: ParserFeatureProfile,
+) -> String {
+    adze_governance_runtime_core::bdd_progress_report_with_profile_runtime(
+        phase,
+        GLR_CONFLICT_PRESERVATION_GRID,
+        phase_title,
+        profile,
+    )
+}
+
+/// Build a BDD status line for an explicit runtime2 profile.
+pub fn bdd_progress_status_line_for_runtime2_profile(
+    phase: BddPhase,
+    profile: ParserFeatureProfile,
+) -> String {
+    bdd_progress_status_line_for_profile(phase, profile)
+}
+
+/// Resolve runtime2 backend resolution from an explicit profile.
+pub const fn resolve_backend_for_runtime2_profile(
+    profile: ParserFeatureProfile,
+    has_conflicts: bool,
+) -> ParserBackend {
+    resolve_backend_for_profile(profile, has_conflicts)
+}
+
+/// Resolve runtime2 backend resolution directly from the `pure-rust-glr` toggle.
+pub const fn resolve_runtime2_backend(pure_rust_glr: bool, has_conflicts: bool) -> ParserBackend {
+    resolve_backend_for_profile(
+        parser_feature_profile_for_runtime2(pure_rust_glr),
+        has_conflicts,
+    )
+}
+
+/// Build a runtime2 governance snapshot for an explicit profile.
+pub fn runtime2_governance_snapshot(
+    phase: BddPhase,
+    profile: ParserFeatureProfile,
+) -> BddGovernanceSnapshot {
+    bdd_governance_snapshot(phase, GLR_CONFLICT_PRESERVATION_GRID, profile)
 }
 
 /// Resolve the backend for the active runtime2 feature profile.
