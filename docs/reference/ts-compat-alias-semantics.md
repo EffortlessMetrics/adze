@@ -162,14 +162,20 @@ cargo test -p adze --features "pure-rust,ts-compat" \
   -- --exact --nocapture
 
 cargo test -p adze --features "pure-rust,ts-compat" \
+  --test ts_compat_node_metadata \
+  anonymous_alias_controls_named_child_filtering \
+  -- --exact --nocapture
+
+cargo test -p adze --features "pure-rust,ts-compat" \
   --test ts_compat_to_sexp \
   alias_visible_identity_is_used_in_sexp \
   -- --exact --nocapture
 ```
 
-The canaries above cover current node identity and S-expression projection.
-Future node-types and query alias canaries should be added beside them rather
-than inferred from these narrower tests.
+The canaries above cover current node identity, visible namedness for
+named-child filtering, and S-expression projection. Future node-types and query
+alias canaries should be added beside them rather than inferred from these
+narrower tests.
 
 ## Compatibility Status
 
@@ -177,5 +183,4 @@ Remaining limitations:
 
 - node-types output does not yet claim alias-visible parity,
 - query metadata/execution does not yet claim alias-visible parity,
-- anonymous alias named-child filtering needs focused canaries,
 - imported grammar corpus parity remains future work.

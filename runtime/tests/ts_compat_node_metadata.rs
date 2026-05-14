@@ -28,7 +28,10 @@ fn minus_symbol(lang: &Language) -> SymbolId {
     symbol_named(lang, "-")
 }
 
-fn arithmetic_with_expression_child_alias(alias_name: &str) -> (Language, SymbolId, SymbolId) {
+fn arithmetic_with_expression_child_alias(
+    alias_name: &str,
+    alias_is_named: bool,
+) -> (Language, SymbolId, SymbolId) {
     let mut lang = (*adze_example::ts_langs::arithmetic()).clone();
     let source_file = symbol_named(&lang, "source_file");
     let expression = symbol_named(&lang, "expression");
@@ -37,7 +40,7 @@ fn arithmetic_with_expression_child_alias(alias_name: &str) -> (Language, Symbol
     lang.table.symbol_metadata.push(SymbolMetadata {
         name: alias_name.to_string(),
         is_visible: true,
-        is_named: true,
+        is_named: alias_is_named,
         is_supertype: false,
         is_terminal: false,
         is_extra: false,
@@ -163,7 +166,7 @@ fn generated_tree_exposes_node_grammar_metadata() {
 #[test]
 fn alias_visible_kind_and_grammar_identity_are_distinct() {
     let (lang, expression_symbol, alias_symbol) =
-        arithmetic_with_expression_child_alias("binary_expression");
+        arithmetic_with_expression_child_alias("binary_expression", true);
 
     let mut parser = Parser::new();
     parser
@@ -191,6 +194,48 @@ fn alias_visible_kind_and_grammar_identity_are_distinct() {
     );
     assert_ne!(expression.kind_id(), expression.grammar_id());
     assert_ne!(expression.kind(), expression.grammar_name());
+}
+
+#[test]
+fn anonymous_alias_controls_named_child_filtering() {
+    let (lang, expression_symbol, alias_symbol) =
+        arithmetic_with_expression_child_alias("binary_expression", false);
+
+    let mut parser = Parser::new();
+    parser
+        .set_language(Arc::new(lang))
+        .expect("Failed to set language");
+
+    let tree = parser.parse("1-2", None).expect("Parse failed");
+    let root = tree.root_node();
+    let expression = root
+        .child(0)
+        .expect("root should expose aliased expression child");
+
+    assert_eq!(root.child_count(), 1);
+    assert_eq!(
+        root.named_child_count(),
+        0,
+        "anonymous alias should remove the child from named-child traversal"
+    );
+    assert!(
+        root.named_child(0).is_none(),
+        "anonymous alias should not be returned by named_child"
+    );
+    assert_eq!(expression.kind(), "binary_expression");
+    assert_eq!(expression.kind_id(), alias_symbol.0);
+    assert!(!expression.is_named());
+    assert_eq!(expression.grammar_name(), "expression");
+    assert_eq!(expression.grammar_id(), expression_symbol.0);
+    assert_eq!(
+        tree.language().id_for_node_kind("binary_expression", false),
+        alias_symbol.0
+    );
+    assert_eq!(
+        tree.language().id_for_node_kind("binary_expression", true),
+        0
+    );
+    assert!(!tree.language().node_kind_is_named(expression.kind_id()));
 }
 
 #[test]
