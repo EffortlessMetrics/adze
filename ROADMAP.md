@@ -88,7 +88,7 @@ no release-state category for unpublished production microcrates.
 - [ ] Clippy planned-lint activation (6 lints gated on 1.94/1.95)
 - [x] Non-Rust file allowlist reconciled against new structure
 - [x] CI economics update (LEM estimates reflect new workspace shape)
-- [ ] Product-proof refresh maps stable README claims to current proof commands
+- [x] Product-proof refresh maps stable README claims to current proof commands
 
 ### Other 0.9.0 work
 - **Post-release hardening**: Finish narrowing workflow-only red and restore any proof surfaces trimmed only for publication.

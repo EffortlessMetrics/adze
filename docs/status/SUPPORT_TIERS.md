@@ -1,6 +1,6 @@
 # Support Tiers and Proof Surface
 
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-14
 **Source of truth for:** README feature claims, `docs/status/KNOWN_RED.md`, and CI expectations.
 
 This document maps major Adze surfaces to five tiers:
@@ -12,6 +12,12 @@ This document maps major Adze surfaces to five tiers:
 - **Intentionally excluded** — tracked in `KNOWN_RED`; not currently a merge requirement.
 
 ## Feature-to-proof map
+
+0.9 product-proof closeout: README rows marked **Stable** are limited to the
+Stable rows below and are guarded by
+`cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture`.
+The bounded stable-product lane is `just ci-product-stable`; it remains
+advisory until branch protection explicitly promotes it.
 
 Current native-document and typed-CST alpha notes: generated typed CST handles
 can now call the default `SyntaxNode::ast(...)` helper, which delegates to

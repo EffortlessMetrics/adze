@@ -4,7 +4,7 @@ Status: proposed
 Owner: Adze maintainers
 Created: 2026-05-12
 Target milestone: 0.9.0
-Linked specs: ADZE-SPEC-0001 package surface boundary; ADZE-SPEC-0002 CI economics; ADZE-SPEC-0003 canonical parse document; future ADZE-SPEC-0011 product proof and support tiers
+Linked specs: ADZE-SPEC-0001 package surface boundary; ADZE-SPEC-0002 CI economics; ADZE-SPEC-0003 canonical parse document; ADZE-SPEC-0011 product proof and support tiers
 Linked ADRs: ADZE-ADR-0001 AdzeDocument one parse truth; ADZE-ADR-0002 no durable unpublished production crates; ADZE-ADR-0003 summary-first GLR ambiguity
 Linked plan: ../../plans/0.9.0/implementation-plan.md
 Linked issues:
@@ -134,7 +134,7 @@ The milestone needs behavior specs for:
 - `ADZE-SPEC-0003-canonical-parse-document.md`: the native parse document as
   the source of truth for generic CST, typed CST, typed AST, diagnostics,
   Tree-sitter-compatible projection, and GLR ambiguity summaries.
-- Future `ADZE-SPEC-0011-product-proof-and-support-tiers.md`: the rule that stable
+- `ADZE-SPEC-0011-product-proof-and-support-tiers.md`: the rule that stable
   README claims require proof commands and support-tier mapping.
 
 Specs define behavior and acceptance evidence. They must link to
