@@ -4,8 +4,7 @@
 //! descriptions so BDD governance core logic can focus on snapshot/report
 //! assembly.
 
-use crate::{BddPhase, BddScenario, bdd_progress};
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use crate::{BddPhase, BddScenario, ParserBackend, ParserFeatureProfile, bdd_progress};
 
 /// Advisory profile description for conflict-capable grammars.
 pub const GLR_CONFLICT_FALLBACK: &str =

@@ -73,7 +73,7 @@ just ci-supported
 
 ## Work Item: parser-contracts-to-srp-submodules
 
-Status: ready
+Status: done
 Owner: parser-contracts
 
 ### Goal
@@ -81,8 +81,10 @@ Owner: parser-contracts
 Move parser contract/support crates into SRP submodules under their actual
 consumer, or remove them when they are only test scaffolding.
 
-### Candidate Packages
+### Completed Packages
 
+- `adze-feature-policy-core` moved into
+  `adze-bdd-governance-core::feature_policy`.
 - `adze-parsetable-metadata`
 
 ### Proof Commands
@@ -205,14 +207,13 @@ durable standalone crate.
 
 ### Candidate Packages
 
-- `adze-feature-policy-core`
 
 ### Proof Commands
 
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-feature-policy-core -- --test-threads=2
+cargo test -p adze-bdd-governance-core -- --test-threads=2
 just ci-supported
 ```
 

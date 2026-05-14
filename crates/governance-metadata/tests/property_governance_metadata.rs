@@ -2,7 +2,7 @@
 
 use proptest::prelude::*;
 
-use adze_feature_policy_core::ParserFeatureProfile;
+use adze_bdd_governance_core::ParserFeatureProfile;
 use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-// Comprehensive tests for feature-policy-core
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+// Comprehensive tests for the feature policy owner module.
+use adze_bdd_governance_core::{ParserBackend, ParserFeatureProfile};
 
 // ---------------------------------------------------------------------------
 // ParserFeatureProfile construction

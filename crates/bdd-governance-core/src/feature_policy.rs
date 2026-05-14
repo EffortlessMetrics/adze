@@ -1,11 +1,4 @@
-//! Core contracts for parser backend selection and feature profiles.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+//! Parser backend selection and feature profile contracts for governance reports.
 
 use core::fmt::{self, Display, Formatter};
 
@@ -29,7 +22,7 @@ pub enum ParserBackendSelection {
 /// # Examples
 ///
 /// ```
-/// use adze_feature_policy_core::ParserBackend;
+/// use adze_bdd_governance_core::ParserBackend;
 ///
 /// let backend = ParserBackend::GLR;
 /// assert!(backend.is_glr());
@@ -222,147 +215,5 @@ impl Display for ParserFeatureProfile {
         } else {
             Ok(())
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn facade_reexports_profile_and_backend() {
-        let profile = ParserFeatureProfile::current();
-        let backend = profile.resolve_backend(false);
-        assert!(matches!(
-            backend,
-            ParserBackend::TreeSitter | ParserBackend::PureRust | ParserBackend::GLR
-        ));
-    }
-
-    #[test]
-    fn display_values_are_stable() {
-        assert_eq!(
-            ParserBackend::TreeSitter.to_string(),
-            "tree-sitter C runtime"
-        );
-        assert_eq!(ParserBackend::PureRust.to_string(), "pure-Rust LR parser");
-        assert_eq!(ParserBackend::GLR.to_string(), "pure-Rust GLR parser");
-    }
-
-    #[test]
-    fn backend_name_returns_human_readable_string() {
-        assert_eq!(ParserBackend::TreeSitter.name(), "tree-sitter C runtime");
-        assert_eq!(ParserBackend::PureRust.name(), "pure-Rust LR parser");
-        assert_eq!(ParserBackend::GLR.name(), "pure-Rust GLR parser");
-    }
-
-    #[test]
-    fn backend_is_glr_only_for_glr() {
-        assert!(ParserBackend::GLR.is_glr());
-        assert!(!ParserBackend::PureRust.is_glr());
-        assert!(!ParserBackend::TreeSitter.is_glr());
-    }
-
-    #[test]
-    fn backend_is_pure_rust_for_lr_and_glr() {
-        assert!(ParserBackend::PureRust.is_pure_rust());
-        assert!(ParserBackend::GLR.is_pure_rust());
-        assert!(!ParserBackend::TreeSitter.is_pure_rust());
-    }
-
-    #[test]
-    fn backend_select_matches_feature_contract() {
-        #[cfg(feature = "glr")]
-        {
-            assert_eq!(ParserBackend::select(false), ParserBackend::GLR);
-            assert_eq!(ParserBackend::select(true), ParserBackend::GLR);
-        }
-
-        #[cfg(all(feature = "pure-rust", not(feature = "glr")))]
-        {
-            assert_eq!(ParserBackend::select(false), ParserBackend::PureRust);
-            assert!(std::panic::catch_unwind(|| ParserBackend::select(true)).is_err());
-        }
-
-        #[cfg(not(any(feature = "pure-rust", feature = "glr")))]
-        {
-            assert_eq!(ParserBackend::select(false), ParserBackend::TreeSitter);
-            assert_eq!(ParserBackend::select(true), ParserBackend::TreeSitter);
-        }
-    }
-
-    #[test]
-    fn profile_matches_cfg() {
-        let profile = ParserFeatureProfile::current();
-        assert_eq!(profile.pure_rust, cfg!(feature = "pure-rust"));
-        assert_eq!(
-            profile.tree_sitter_standard,
-            cfg!(feature = "tree-sitter-standard")
-        );
-        assert_eq!(
-            profile.tree_sitter_c2rust,
-            cfg!(feature = "tree-sitter-c2rust")
-        );
-        assert_eq!(profile.glr, cfg!(feature = "glr"));
-    }
-
-    #[test]
-    fn resolve_backend_glr_takes_priority() {
-        let profile = ParserFeatureProfile {
-            pure_rust: true,
-            tree_sitter_standard: true,
-            tree_sitter_c2rust: true,
-            glr: true,
-        };
-        assert_eq!(profile.resolve_backend(false), ParserBackend::GLR);
-        assert_eq!(profile.resolve_backend(true), ParserBackend::GLR);
-    }
-
-    #[test]
-    fn resolve_backend_pure_rust_without_conflicts() {
-        let profile = ParserFeatureProfile {
-            pure_rust: true,
-            tree_sitter_standard: false,
-            tree_sitter_c2rust: false,
-            glr: false,
-        };
-        assert_eq!(profile.resolve_backend(false), ParserBackend::PureRust);
-    }
-
-    #[test]
-    #[should_panic(expected = "GLR feature is not enabled")]
-    fn resolve_backend_pure_rust_with_conflicts_panics() {
-        let profile = ParserFeatureProfile {
-            pure_rust: true,
-            tree_sitter_standard: false,
-            tree_sitter_c2rust: false,
-            glr: false,
-        };
-        let _ = profile.resolve_backend(true);
-    }
-
-    #[test]
-    fn backend_selection_contract_reports_conflict_requirement() {
-        let profile = ParserFeatureProfile {
-            pure_rust: true,
-            tree_sitter_standard: false,
-            tree_sitter_c2rust: false,
-            glr: false,
-        };
-        assert_eq!(
-            profile.backend_selection_contract(true),
-            ParserBackendSelection::ConflictsRequireGlr
-        );
-    }
-
-    #[test]
-    fn display_none_when_empty() {
-        let profile = ParserFeatureProfile {
-            pure_rust: false,
-            tree_sitter_standard: false,
-            tree_sitter_c2rust: false,
-            glr: false,
-        };
-        assert_eq!(profile.to_string(), "none");
     }
 }

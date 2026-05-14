@@ -1,13 +1,13 @@
 //! Cross-crate governance pipeline integration tests.
 //!
 //! Validates the end-to-end flow:
-//!   feature-policy-core → governance-metadata → parsetable-metadata
+//!   bdd-governance-core feature policy → governance-metadata → parsetable-metadata
 //!   bdd-grid-core → governance-runtime-core reporting
 
+use adze_bdd_governance_core::ParserFeatureProfile;
 use adze_bdd_grid_core::{
     BddPhase, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress, bdd_progress_report,
 };
-use adze_feature_policy_core::ParserFeatureProfile;
 use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 use adze_governance_runtime_core::bdd_progress_report_with_profile_runtime;
 use adze_governance_runtime_core::{
@@ -75,7 +75,7 @@ fn build_metadata(
 }
 
 // ===================================================================
-// 1. feature-policy-core: profile creation and backend resolution
+// 1. bdd-governance-core feature policy: profile creation and backend resolution
 // ===================================================================
 
 #[test]
@@ -106,7 +106,7 @@ fn tree_sitter_profile_backend_resolution() {
 }
 
 // ===================================================================
-// 2. feature-policy-core → governance-metadata snapshot roundtrip
+// 2. bdd-governance-core feature policy → governance-metadata snapshot roundtrip
 // ===================================================================
 
 #[test]
@@ -315,7 +315,7 @@ fn runtime_reporting_includes_governance_sections() {
 
 #[test]
 fn end_to_end_glr_governance_pipeline() {
-    // Step 1: Create a profile (feature-policy-core)
+    // Step 1: Create a profile (bdd-governance-core feature policy)
     let profile = glr_profile();
 
     // Step 2: Convert to snapshot (governance-metadata)

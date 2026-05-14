@@ -17,7 +17,7 @@ graph TD
     end
 
     subgraph "Adze Governance Layer"
-        PolicyCore["feature-policy-core<br/>(Backend Selection)"]
+        PolicyCore["bdd-governance-core::feature_policy<br/>(Backend Selection)"]
         BddGrid["bdd-grid-core<br/>(Contract Tracking)"]
     end
 
@@ -109,7 +109,7 @@ sequenceDiagram
 | `adze-ir` | Intermediate representation of grammars |
 | `adze-glr-core` | Automaton construction and conflict analysis |
 | `adze-tablegen` | Table compression and Rust code generation |
-| `crates/feature-policy-core` | Logic for backend selection and policy enforcement |
+| `crates/bdd-governance-core/src/feature_policy.rs` | Logic for backend selection and policy enforcement |
 | `crates/bdd-grid-core` | Ledger of BDD scenarios and progress tracking |
 
 ---

@@ -29,7 +29,7 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | [`bdd-grammar-fixtures`](bdd-grammar-fixtures) | Test fixtures for grammar BDD scenarios |
 | [`bdd-grid-core`](bdd-grid-core) | Core implementation of BDD scenario grids |
 
-### Governance (6 crates)
+### Governance (2 crates)
 
 Parser backend selection, metadata management, and policy enforcement.
 
@@ -38,22 +38,7 @@ Parser backend selection, metadata management, and policy enforcement.
 | [`governance-metadata`](governance-metadata) | Metadata structures for governance |
 | [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
 
-### Feature Policy
-
-Feature flag management and policy enforcement.
-
-| Crate | Purpose |
-|-------|---------|
-| [`feature-policy-core`](feature-policy-core) | Core parser feature-policy implementation |
-
-### Runtime Governance (4 crates)
-
-Runtime-facing governance helpers and progress reporting.
-
-| Crate | Purpose |
-|-------|---------|
-
-### Utilities (5 crates)
+### Utilities (3 crates)
 
 Shared utilities, metadata, and support structures.
 

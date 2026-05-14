@@ -1,6 +1,6 @@
 //! Contract lock test - verifies that public API remains stable.
 
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use adze_bdd_governance_core::{ParserBackend, ParserFeatureProfile};
 
 /// Verify all public types exist and have expected structure.
 #[test]

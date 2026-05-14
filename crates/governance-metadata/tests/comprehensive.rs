@@ -93,7 +93,7 @@ fn snapshot_serde_json_fields() {
 
 #[test]
 fn snapshot_from_profile() {
-    use adze_feature_policy_core::ParserFeatureProfile;
+    use adze_bdd_governance_core::ParserFeatureProfile;
     let profile = ParserFeatureProfile {
         pure_rust: true,
         tree_sitter_standard: false,
@@ -109,7 +109,7 @@ fn snapshot_from_profile() {
 
 #[test]
 fn snapshot_as_profile_roundtrip() {
-    use adze_feature_policy_core::ParserFeatureProfile;
+    use adze_bdd_governance_core::ParserFeatureProfile;
     let profile = ParserFeatureProfile {
         pure_rust: true,
         tree_sitter_standard: true,

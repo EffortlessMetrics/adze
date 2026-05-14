@@ -5,7 +5,6 @@ adze-common
 adze-linecol-core
 adze-lsp-generator
 adze-macro
-adze-feature-policy-core
 adze-bdd-governance-core
 adze-governance-metadata
 adze-governance-runtime-core

@@ -10,8 +10,9 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-use adze_bdd_grid_core::{BddPhase, BddScenario, bdd_progress};
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use adze_bdd_governance_core::{
+    BddPhase, BddScenario, ParserBackend, ParserFeatureProfile, bdd_progress,
+};
 use serde::{Deserialize, Serialize};
 
 /// Snapshot of parser feature flags captured in build artifacts and diagnostics.
@@ -72,7 +73,7 @@ impl ParserFeatureProfileSnapshot {
     ///
     /// ```
     /// use adze_governance_metadata::ParserFeatureProfileSnapshot;
-    /// use adze_feature_policy_core::ParserFeatureProfile;
+    /// use adze_bdd_governance_core::ParserFeatureProfile;
     ///
     /// let profile = ParserFeatureProfile {
     ///     pure_rust: true, tree_sitter_standard: false,
@@ -326,7 +327,7 @@ mod tests {
 
     #[test]
     fn governance_metadata_for_grid() {
-        use adze_bdd_grid_core::BddScenarioStatus;
+        use adze_bdd_governance_core::BddScenarioStatus;
         let scenarios = [BddScenario {
             id: 1,
             title: "test",
@@ -418,7 +419,7 @@ mod tests {
 
     #[test]
     fn governance_metadata_for_grid_runtime_phase() {
-        use adze_bdd_grid_core::BddScenarioStatus;
+        use adze_bdd_governance_core::BddScenarioStatus;
         let scenarios = [BddScenario {
             id: 1,
             title: "test",
