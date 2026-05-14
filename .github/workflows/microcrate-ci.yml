@@ -149,7 +149,6 @@ jobs:
             adze-governance-runtime-core
             adze-governance-runtime-reporting
             adze-feature-policy-core
-            adze-runtime-governance
             adze-runtime-governance-matrix
             adze-bdd-governance-core
             adze-bdd-grammar-fixtures
@@ -225,7 +224,6 @@ jobs:
             -p adze-governance-runtime-core \
             -p adze-governance-runtime-reporting \
             -p adze-feature-policy-core \
-            -p adze-runtime-governance \
             -p adze-runtime-governance-matrix \
             -- --test-threads=$RUST_TEST_THREADS
 

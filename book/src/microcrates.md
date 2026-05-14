@@ -38,7 +38,6 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `governance-metadata` | `crates/governance-metadata/` | Governance metadata types |
 | `governance-runtime-core` | `crates/governance-runtime-core/` | Runtime governance checks |
 | `governance-runtime-reporting` | `crates/governance-runtime-reporting/` | Governance reports |
-| `runtime-governance` | `crates/runtime-governance/` | Runtime governance integration |
 | `runtime-governance-matrix` | `crates/runtime-governance-matrix/` | Runtime feature matrix |
 | `feature-policy-contract` | `crates/feature-policy-contract/` | Feature-flag policy contracts |
 | `feature-policy-core` | `crates/feature-policy-core/` | Feature-flag policy logic |
@@ -97,7 +96,7 @@ The dependency graph is intentionally acyclic and layered. A quick rule of thumb
 
 - **Contract crates** (`*-contract`) define traits. They have no logic and no dependencies beyond `std`.
 - **Core crates** (`*-core`) implement those traits. They depend only on their contract crate.
-- **Integration crates** (e.g., `runtime-governance`) wire cores together behind a façade.
+- **Integration crates** wire cores together behind an owner-facing module or crate.
 - **Application crates** (`cli`, `playground`, `tool`) sit at the top and pull in whatever they need.
 
 This keeps compile times low, enforces API boundaries, and makes it straightforward to swap implementations.
