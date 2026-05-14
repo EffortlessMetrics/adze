@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 14
+**Total Crates:** 13
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 14 | 100% |
+| Complete (BDD + Property) | 13 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 14 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 13 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 14 remaining tracked crates have both BDD tests and property-based tests:
+All 13 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -31,7 +31,6 @@ All 14 remaining tracked crates have both BDD tests and property-based tests:
 | `runtime-governance` | ✓ | ✓ | ✓ |
 | `runtime-governance-api` | ✓ | ✓ | ✓ |
 | `runtime-governance-matrix` | ✓ | ✓ | ✓ |
-| `runtime2-governance` | ✓ | ✓ | ✓ |
 | `ts-c-harness` | ✓ | ✓ | - |
 
 ## Contract Lock Files
@@ -49,7 +48,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `runtime-governance`
 - `runtime-governance-api`
 - `runtime-governance-matrix`
-- `runtime2-governance`
 
 ### Crates Without Contract Lock Tests
 
@@ -74,8 +72,7 @@ The following crates do not have contract lock tests (by design):
    - `runtime-governance`
    - `runtime-governance-api`
    - `runtime-governance-matrix`
-   - `runtime2-governance`
-   Four crates for runtime governance seems excessive. Review if `runtime2-governance` is legacy or if consolidation is possible.
+   These remaining runtime governance surfaces should either collapse into their SRP owner modules or be reclassified with an accepted ADR before release.
 
 2. **Concurrency Init Crates:**
    Remaining initialization crates should keep classifier and bootstrap helpers as SRP owner submodules instead of standalone migration targets.

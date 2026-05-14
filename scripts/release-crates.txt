@@ -14,7 +14,6 @@ adze-parsetable-metadata
 adze-runtime-governance-matrix
 adze-runtime-governance
 adze-runtime-governance-api
-adze-runtime2-governance
 adze-runtime
 adze-tool
 adze-cli

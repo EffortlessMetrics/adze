@@ -41,7 +41,6 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `runtime-governance` | `crates/runtime-governance/` | Runtime governance integration |
 | `runtime-governance-api` | `crates/runtime-governance-api/` | Public governance API |
 | `runtime-governance-matrix` | `crates/runtime-governance-matrix/` | Runtime feature matrix |
-| `runtime2-governance` | `crates/runtime2-governance/` | GLR runtime governance |
 | `feature-policy-contract` | `crates/feature-policy-contract/` | Feature-flag policy contracts |
 | `feature-policy-core` | `crates/feature-policy-core/` | Feature-flag policy logic |
 | `parser-contract` | `crates/parser-contract/` | Parser trait contracts |

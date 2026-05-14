@@ -9,7 +9,6 @@ members = [
   "crates/runtime-governance",
   "crates/runtime-governance-api",
   "crates/runtime-governance-matrix",
-  "crates/runtime2-governance",
   "crates/governance-runtime-core",
   "crates/governance-runtime-reporting",
   "crates/governance-metadata",
