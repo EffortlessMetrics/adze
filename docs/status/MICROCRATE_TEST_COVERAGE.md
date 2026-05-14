@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 15
+**Total Crates:** 14
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 15 | 100% |
+| Complete (BDD + Property) | 14 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 15 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 14 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 15 remaining tracked crates have both BDD tests and property-based tests:
+All 14 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -23,7 +23,6 @@ All 15 remaining tracked crates have both BDD tests and property-based tests:
 | `bdd-grammar-fixtures` | ✓ | ✓ | - |
 | `bdd-grid-core` | ✓ | ✓ | ✓ |
 | `feature-policy-core` | ✓ | ✓ | ✓ |
-| `governance-matrix-core` | ✓ | ✓ | ✓ |
 | `governance-metadata` | ✓ | ✓ | ✓ |
 | `governance-runtime-core` | ✓ | ✓ | ✓ |
 | `governance-runtime-reporting` | ✓ | ✓ | ✓ |
@@ -42,7 +41,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `bdd-governance-core`
 - `bdd-grid-core`
 - `feature-policy-core`
-- `governance-matrix-core`
 - `governance-metadata`
 - `governance-runtime-core`
 - `governance-runtime-reporting`
@@ -72,18 +70,14 @@ The following crates do not have contract lock tests (by design):
 
 ### Potential Consolidation Opportunities
 
-1. **Governance Matrix Crates:**
-   - `governance-matrix-core`
-   These three crates handle matrix governance. Consider whether the split is necessary or if they could be consolidated.
-
-2. **Runtime Governance Crates:**
+1. **Runtime Governance Crates:**
    - `runtime-governance`
    - `runtime-governance-api`
    - `runtime-governance-matrix`
    - `runtime2-governance`
    Four crates for runtime governance seems excessive. Review if `runtime2-governance` is legacy or if consolidation is possible.
 
-3. **Concurrency Init Crates:**
+2. **Concurrency Init Crates:**
    Remaining initialization crates should keep classifier and bootstrap helpers as SRP owner submodules instead of standalone migration targets.
 
 ## Documentation Status

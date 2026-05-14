@@ -145,7 +145,6 @@ jobs:
           BOTH_CRATES=(
             adze-glr-core
             adze-tablegen
-            adze-governance-matrix-core
             adze-governance-metadata
             adze-governance-runtime-core
             adze-governance-runtime-reporting
@@ -224,7 +223,6 @@ jobs:
       - name: Test governance crates
         run: |
           cargo test \
-            -p adze-governance-matrix-core \
             -p adze-governance-metadata \
             -p adze-governance-runtime-core \
             -p adze-governance-runtime-reporting \
