@@ -8,7 +8,7 @@ Thank you for your interest in contributing! This guide covers everything you ne
 # 1. Fork and clone
 git clone https://github.com/<you>/adze.git && cd adze
 
-# 2. Toolchain installs automatically via rust-toolchain.toml (Rust 1.92+)
+# 2. Toolchain installs automatically via rust-toolchain.toml (Rust 1.95+)
 rustup show  # verify toolchain
 
 # 3. Build
@@ -25,7 +25,7 @@ cargo fmt --all --check && cargo clippy --all -- -D warnings
 
 ## Prerequisites
 
-- **Rust 1.92.0+** with `rustfmt` and `clippy` (configured via `rust-toolchain.toml`)
+- **Rust 1.95.0+** with `rustfmt` and `clippy` (configured via `rust-toolchain.toml`)
 - **jq** for crate-aware checks
 - **rg** (ripgrep) — optional but recommended
 - **libtree-sitter-dev** — only needed for the `ts-bridge` tool

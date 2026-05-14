@@ -48,18 +48,19 @@ jobs:
           echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
       - name: Install ripr (advisory, graceful on failure)
         id: ripr-install
-        # ripr requires Rust 1.93+; adze MSRV stays at 1.92.0. Keep both the
-        # isolated toolchain install and ripr install on the graceful path.
+        # ripr requires Rust 1.93+. Install through the workspace MSRV toolchain
+        # and keep the advisory install on a graceful path.
         run: |
           set -euo pipefail
-          if rustup toolchain install 1.93 --no-self-update --profile minimal --quiet \
-            && cargo +1.93 install --locked ripr 2>/dev/null; then
+          TOOLCHAIN="$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)"
+          if rustup toolchain install "$TOOLCHAIN" --no-self-update --profile minimal --quiet \
+            && cargo +"$TOOLCHAIN" install --locked ripr 2>/dev/null; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             ripr --version || true
           else
             # ripr may not yet be published to crates.io; keep graceful fallback.
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "ripr or Rust 1.93 install unavailable; using stub report."
+            echo "ripr or workspace toolchain install unavailable; using stub report."
           fi
       - name: Run ripr (advisory)
         if: steps.ripr-install.outputs.available == 'true'
@@ -102,8 +103,8 @@ jobs:
             echo "## ripr advisory";
             echo "";
             if [ "${{ steps.ripr-install.outputs.available }}" = "true" ]; then
-              echo "- ripr installed via Rust 1.93 toolchain; analysis ran on \`${{ steps.shas.outputs.base }}..${{ steps.shas.outputs.head }}\`."
+              echo "- ripr installed via the workspace MSRV toolchain; analysis ran on \`${{ steps.shas.outputs.base }}..${{ steps.shas.outputs.head }}\`."
             else
-              echo "- ripr install attempted (Rust 1.93, cargo install --locked ripr) but not available yet; stub report uploaded."
+              echo "- ripr install attempted with the workspace MSRV toolchain, but was not available yet; stub report uploaded."
             fi
           } >> "$GITHUB_STEP_SUMMARY"

@@ -70,7 +70,7 @@ pub fn generate_lexer(
     }
 
     // Sort keywords by length (longest first)
-    keywords.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+    keywords.sort_by_key(|(_, keyword)| std::cmp::Reverse(keyword.len()));
 
     let mut token_matches = Vec::new();
 

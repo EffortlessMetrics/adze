@@ -806,11 +806,10 @@ fn reachable_terminals(g: &Grammar, nt: SymbolId) -> Vec<u16> {
                         Symbol::Terminal(id) => {
                             terminals.push(id.0);
                         }
-                        Symbol::NonTerminal(id) => {
-                            if visited.insert(*id) {
-                                queue.push_back(*id);
-                            }
+                        Symbol::NonTerminal(id) if visited.insert(*id) => {
+                            queue.push_back(*id);
                         }
+                        Symbol::NonTerminal(_) => {}
                         _ => {}
                     }
                 }

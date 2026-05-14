@@ -17,7 +17,7 @@ fn sample_generation_info() -> GenerationInfo {
     GenerationInfo {
         timestamp: "2025-01-15T12:00:00Z".to_string(),
         tool_version: "0.1.0".to_string(),
-        rust_version: "1.92.0".to_string(),
+        rust_version: "1.95.0".to_string(),
         host_triple: "x86_64-unknown-linux-gnu".to_string(),
     }
 }
@@ -243,7 +243,7 @@ fn deserialize_metadata_missing_optional_fields() {
         "generation": {
             "timestamp": "2025-01-01T00:00:00Z",
             "tool_version": "0.1.0",
-            "rust_version": "1.92.0",
+            "rust_version": "1.95.0",
             "host_triple": "x86_64-unknown-linux-gnu"
         },
         "statistics": {

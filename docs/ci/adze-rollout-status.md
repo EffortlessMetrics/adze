@@ -21,7 +21,7 @@ execution, refresh with `gh pr list` and the current workflow state.
 | F03 | PR Plan workflow (`pr-plan.yml`) | ✅ | Calls `xtask ci-plan`, emits `ci-plan.json` with outputs `docs_only`, `estimated_lem`, `band` |
 | F04 | PR Gate Success workflow (`pr-gate.yml`) | ✅ | Supported Gate + Docs Gate + `PR Gate Success` aggregator |
 | F05 | ci-actuals telemetry scaffold | ✅ | `scripts/ci/emit-ci-actuals.py` emits plan vs actual; uploaded as artifact |
-| F06 | ripr advisory (`ripr.yml`) | ✅ | Advisory install attempts run on an isolated Rust 1.93 toolchain and fall back to a stub report on install failure |
+| F06 | ripr advisory (`ripr.yml`) | ✅ | Advisory install attempts run on the workspace MSRV toolchain and fall back to a stub report on install failure |
 
 ## Control plane
 
@@ -30,7 +30,7 @@ execution, refresh with `gh pr list` and the current workflow state.
 | C01 | CI policy workflow (`ci-policy.yml`) | ✅ | Runs `check-ci-lane-whitelist --mode advisory` on every PR |
 | C02 | Synchronize-only cancellation | ✅ | PR #563 merged — prevents label events from killing running jobs |
 | C03 | Lane whitelist cost alignment | ✅ | PR #564 merged — corrects stale LEM for already-gated lanes |
-| C04 | Real ripr provisioning | ✅ | PR #565 merged — isolated Rust 1.93 install with graceful stub fallback |
+| C04 | Real ripr provisioning | ✅ | PR #565 merged — graceful stub fallback remains; install now uses the workspace MSRV toolchain |
 | C05 | Benchmark deduplication | ✅ | PR #566 merged — `performance-check` gated to `ci:perf` label |
 
 ## Routing
@@ -58,7 +58,7 @@ execution, refresh with `gh pr list` and the current workflow state.
 
 | # | Item | Status | Notes |
 | --- | --- | --- | --- |
-| T01 | MSRV 1.93 | ⏳ | PR: `policy/msrv-1-93` — dedicated policy PR, prerequisite for ripr simplification |
+| T01 | MSRV 1.95 | 🟡 | Dedicated policy PR after microcrate collapse; unblocks Clippy policy refresh |
 
 ## Branch protection
 

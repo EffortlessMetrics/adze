@@ -432,7 +432,7 @@ entry.
 
 ## Work Item: rust-1.95-msrv-bump
 
-Status: ready
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec:
 Linked ADR:
@@ -445,8 +445,8 @@ Bump workspace MSRV/toolchain policy after the package graph is smaller.
 
 ### Production Delta
 
-Expected later changes include toolchain files, manifest `rust-version` fields,
-CI setup, docs, and any xtask doctor or policy checks that enforce MSRV.
+Changed toolchain files, manifest `rust-version` fields, CI setup, docs, and
+xtask doctor/lint policy checks that enforce MSRV.
 
 ### Non-Goals
 
@@ -459,7 +459,21 @@ All MSRV declarations agree and the supported gate is green.
 ### Proof Commands
 
 ```bash
-just check-msrv
+cargo metadata --format-version 1 --no-deps
+cargo run -q -p xtask -- check-lint-policy
+cargo test -p xtask doctor -j 1 -- --nocapture
+cargo test -p xtask lint_policy -j 1 -- --nocapture
+cargo test -p adze-parsetable-metadata -- --test-threads=2
+cargo clippy -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen --all-targets -- -D warnings
+cargo run -q -p xtask -- check-package-boundary --release-gate
+cargo fmt -p adze -- --check
+cargo fmt -p adze-tool -- --check
+cargo fmt -p adze-ir -- --check
+cargo fmt -p adze-glr-core -- --check
+cargo fmt -p adze-macro -- --check
+cargo fmt -p adze-tablegen -- --check
+cargo fmt -p xtask -p adze-parsetable-metadata -- --check
+git diff --check
 just ci-supported
 ```
 
@@ -469,12 +483,12 @@ Revert the MSRV bump PR.
 
 ## Work Item: clippy-policy-refresh
 
-Status: blocked
+Status: ready
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec:
 Linked ADR:
 Blocks: product-proof-refresh
-Blocked by: rust-1.95-msrv-bump
+Blocked by: none
 
 ### Goal
 

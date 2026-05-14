@@ -143,7 +143,7 @@ proof_obligation = "Run ripr in diff mode and emit JSON/SARIF report."
 evidence = ["target/ripr/ripr-report.json"]
 allowed_triggers = ["pull_request", "workflow_dispatch"]
 duplicate_of = []
-provisioning_note = "Stub (no-op) until ripr binary provisioned via isolated Rust 1.93 toolchain. See PR ci/ripr-provision and docs/ci/ripr.md."
+provisioning_note = "Stub (no-op) until ripr binary provisioned via workspace MSRV toolchain. See docs/ci/ripr.md."
 review_after = "2026-06-07"
 expires = "2026-11-07"
 

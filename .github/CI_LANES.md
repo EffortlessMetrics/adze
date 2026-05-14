@@ -58,7 +58,7 @@ These jobs run on push to `main`, on schedules, or via `workflow_dispatch` with 
 | `ci.yml` | `Deterministic Codegen` | Push only | Push | Verifies build determinism |
 | `ci.yml` | `Feature Matrix` | Push only | Push | Per-crate feature matrix checks |
 | `ci.yml` | `Feature Matrix Extras` | Push only | Push | Feature powerset via cargo-hack |
-| `ci.yml` | `MSRV (1.92.0)` | Push only | Push | Minimum Supported Rust Version check |
+| `ci.yml` | `MSRV (1.95.0)` | Push only | Push | Minimum Supported Rust Version check |
 | `ci.yml` | `Security & Supply Chain` | Push only | Push | `cargo deny check` |
 | `ci.yml` | `Documentation` | Push only | Push | `cargo doc --workspace` with `-D warnings` |
 | `ci.yml` | `adze-python (Optimized Build)` | Push only | Push | Python grammar build + test |

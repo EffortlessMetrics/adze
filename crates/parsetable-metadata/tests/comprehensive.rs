@@ -36,7 +36,7 @@ fn sample_metadata() -> ParsetableMetadata {
         generation: GenerationInfo {
             timestamp: "2025-01-01T00:00:00Z".into(),
             tool_version: "0.1.0".into(),
-            rust_version: "1.92.0".into(),
+            rust_version: "1.95.0".into(),
             host_triple: "x86_64-unknown-linux-gnu".into(),
         },
         statistics: TableStatistics {
@@ -120,7 +120,7 @@ fn generation_info_fields() {
     let g = GenerationInfo {
         timestamp: "now".into(),
         tool_version: "0.1".into(),
-        rust_version: "1.92".into(),
+        rust_version: "1.95.0".into(),
         host_triple: "x86_64".into(),
     };
     assert_eq!(g.timestamp, "now");

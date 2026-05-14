@@ -20,7 +20,7 @@ just policy                # Run all policy-stack checks (advisory)
 ## Requirements
 
 ### Minimum Rust Version (MSRV)
-- **Rust 1.92.0** or later
+- **Rust 1.95.0** or later
 - **Rust 2024 Edition** - all workspace crates use the latest edition
 - Components: `rustfmt`, `clippy` (automatically configured via `rust-toolchain.toml`)
 

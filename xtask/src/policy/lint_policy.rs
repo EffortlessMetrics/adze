@@ -236,20 +236,20 @@ mod tests {
 
     #[test]
     fn version_compare_works() {
-        assert!(version_geq("1.93.0", "1.92"));
-        assert!(version_geq("1.93.0", "1.93"));
-        assert!(!version_geq("1.92.0", "1.93"));
+        assert!(version_geq("1.96.0", "1.95"));
+        assert!(version_geq("1.95.0", "1.95"));
+        assert!(!version_geq("1.94.0", "1.95"));
     }
 
     #[test]
     fn extract_kv_handles_spaced_assignment() {
-        let text = "rust-version = \"1.92.0\"\nother = 1\n";
-        assert_eq!(extract_kv(text, "rust-version").as_deref(), Some("1.92.0"));
+        let text = "rust-version = \"1.95.0\"\nother = 1\n";
+        assert_eq!(extract_kv(text, "rust-version").as_deref(), Some("1.95.0"));
     }
 
     #[test]
     fn extract_kv_handles_tight_assignment() {
-        let text = "channel=\"1.92.0\"\n";
-        assert_eq!(extract_kv(text, "channel").as_deref(), Some("1.92.0"));
+        let text = "channel=\"1.95.0\"\n";
+        assert_eq!(extract_kv(text, "channel").as_deref(), Some("1.95.0"));
     }
 }

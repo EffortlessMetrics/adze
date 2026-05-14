@@ -52,11 +52,7 @@ impl PerfStats {
         let hits = self.cache_hits.load(Ordering::Relaxed);
         let misses = self.cache_misses.load(Ordering::Relaxed);
 
-        let avg_time_us = if calls > 0 {
-            (time_ns / calls) / 1000
-        } else {
-            0
-        };
+        let avg_time_us = time_ns.checked_div(calls).unwrap_or(0) / 1000;
         let throughput_mb_s = if time_ns > 0 {
             (bytes as f64 / (1024.0 * 1024.0)) / (time_ns as f64 / 1_000_000_000.0)
         } else {

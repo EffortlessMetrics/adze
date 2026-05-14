@@ -2,7 +2,7 @@
 name = "adze-glr-core"
 version = "0.8.0-dev"
 edition = "2024"
-rust-version = "1.92"
+rust-version = "1.95.0"
 description = "GLR parser generation algorithms for pure-Rust Tree-sitter"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/effortlessmetrics/adze"

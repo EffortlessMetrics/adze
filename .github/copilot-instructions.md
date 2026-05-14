@@ -1,12 +1,12 @@
 # Copilot Instructions — Adze
 
-Adze is an AST-first grammar toolchain for Rust. Rust 2024 edition, MSRV 1.92.0, 75-crate workspace.
+Adze is an AST-first grammar toolchain for Rust. Rust 2024 edition, MSRV 1.95.0, 28-crate workspace.
 
 ## Code Conventions
 
 ### Edition and Language
 - Rust 2024 edition — use `gen` keyword awareness, `unsafe_op_in_unsafe_fn` is denied
-- All crates inherit `edition = "2024"` and `rust-version = "1.92.0"` from workspace
+- All crates inherit `edition = "2024"` and `rust-version = "1.95.0"` from workspace
 - Dependencies use `workspace = true` in per-crate Cargo.toml:
   ```toml
   [dependencies]

@@ -81,9 +81,8 @@ fn build_left_recursive_grammar(grammar_name: &str, op_count: usize) -> Grammar 
         },
     );
 
-    let mut next_tok = 2u16;
     let mut op_ids = Vec::new();
-    for i in 0..op_count.max(1) {
+    for (next_tok, i) in (2u16..).zip(0..op_count.max(1)) {
         let id = SymbolId(next_tok);
         grammar.tokens.insert(
             id,
@@ -94,14 +93,12 @@ fn build_left_recursive_grammar(grammar_name: &str, op_count: usize) -> Grammar 
             },
         );
         op_ids.push(id);
-        next_tok += 1;
     }
 
     let expr_id = SymbolId(100);
     grammar.rule_names.insert(expr_id, "expr".to_string());
 
-    let mut prod_id = 0u16;
-    for op in &op_ids {
+    for (prod_id, op) in op_ids.iter().enumerate() {
         grammar.add_rule(Rule {
             lhs: expr_id,
             rhs: vec![
@@ -112,9 +109,8 @@ fn build_left_recursive_grammar(grammar_name: &str, op_count: usize) -> Grammar 
             precedence: None,
             associativity: None,
             fields: vec![],
-            production_id: ProductionId(prod_id),
+            production_id: ProductionId(prod_id as u16),
         });
-        prod_id += 1;
     }
 
     // Base case: expr -> number
@@ -124,7 +120,7 @@ fn build_left_recursive_grammar(grammar_name: &str, op_count: usize) -> Grammar 
         precedence: None,
         associativity: None,
         fields: vec![],
-        production_id: ProductionId(prod_id),
+        production_id: ProductionId(op_ids.len() as u16),
     });
 
     grammar
