@@ -63,15 +63,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-bdd-grammar-fixtures"
-version = "0.1.0"
-dependencies = [
- "adze-glr-core",
- "adze-ir",
- "proptest",
-]
-
-[[package]]
 name = "adze-benchmarks"
 version = "0.1.0"
 dependencies = [
@@ -135,7 +126,6 @@ name = "adze-glr-core"
 version = "0.8.0-dev"
 dependencies = [
  "adze-bdd-governance-core",
- "adze-bdd-grammar-fixtures",
  "adze-governance-runtime-core",
  "adze-ir",
  "adze-tablegen",
@@ -300,7 +290,6 @@ name = "adze-runtime"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-governance-core",
- "adze-bdd-grammar-fixtures",
  "adze-glr-core",
  "adze-governance-runtime-core",
  "adze-ir",
@@ -309,6 +298,7 @@ dependencies = [
  "adze-tablegen",
  "bumpalo",
  "criterion",
+ "glr-test-support",
  "memchr",
  "pretty_assertions",
  "proptest",
@@ -1238,6 +1228,7 @@ version = "0.1.0"
 dependencies = [
  "adze-glr-core",
  "adze-ir",
+ "proptest",
 ]
 
 [[package]]

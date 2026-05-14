@@ -13,7 +13,7 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 adze = { path = "../runtime" }
-adze-bdd-grammar-fixtures = { path = "../crates/bdd-grammar-fixtures" }
+glr-test-support = { path = "../glr-test-support" }
 adze-glr-core = { path = "../glr-core" }
 adze-linecol-core = { path = "../crates/linecol-core" }
 adze-stack-pool-core = { path = "../crates/stack-pool-core" }

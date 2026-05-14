@@ -26,7 +26,6 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | Crate | Purpose |
 |-------|---------|
 | [`bdd-governance-core`](bdd-governance-core) | Core implementation of BDD governance |
-| [`bdd-grammar-fixtures`](bdd-grammar-fixtures) | Test fixtures for grammar BDD scenarios |
 
 ### Governance (1 crate)
 

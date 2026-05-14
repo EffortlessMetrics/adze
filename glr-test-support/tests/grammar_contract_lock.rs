@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod contract_lock {
-    use adze_bdd_grammar_fixtures::*;
+    use glr_test_support::*;
 
     #[test]
     fn contract_lock_types() {

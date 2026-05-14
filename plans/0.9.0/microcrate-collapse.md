@@ -174,7 +174,6 @@ test support module.
 
 - `adze-bdd-contract`
 - `adze-bdd-governance-core`
-- `adze-bdd-grammar-fixtures`
 
 ### Completed Packages
 
@@ -185,13 +184,15 @@ test support module.
 - `adze-bdd-scenario-fixtures` facade removed; the GLR BDD test now imports
   grammar fixtures and BDD governance reporting helpers directly.
 - `adze-bdd-grid-core` moved into `adze-bdd-governance-core::grid`.
+- `adze-bdd-grammar-fixtures` moved into
+  `glr-test-support::grammar_fixtures`.
 
 ### Proof Commands
 
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-bdd-governance-core -p adze-bdd-grammar-fixtures -- --test-threads=2
+cargo test -p adze-bdd-governance-core -p glr-test-support -- --test-threads=2
 just ci-supported
 ```
 

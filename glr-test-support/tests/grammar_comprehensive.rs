@@ -1,6 +1,6 @@
 // Comprehensive tests for BDD grammar fixtures
-use adze_bdd_grammar_fixtures::*;
 use adze_ir::Associativity;
+use glr_test_support::*;
 
 // ---------------------------------------------------------------------------
 // Grammar construction tests

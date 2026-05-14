@@ -10,6 +10,9 @@ publish = false
 adze-glr-core = { path = "../glr-core" }
 adze-ir = { path = "../ir" }
 
+[dev-dependencies]
+proptest = { workspace = true }
+
 [features]
 perf-counters = ["adze-glr-core/perf-counters"]
 

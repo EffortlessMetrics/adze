@@ -1,8 +1,6 @@
-use adze_bdd_grammar_fixtures::{
-    analyze_conflicts, count_multi_action_cells, resolve_shift_reduce_actions,
-};
 use adze_glr_core::{Action, ParseTable, StateId};
 use adze_ir::{Grammar, ProductionId, Rule, RuleId, Symbol, SymbolId, Token, TokenPattern};
+use glr_test_support::{analyze_conflicts, count_multi_action_cells, resolve_shift_reduce_actions};
 
 fn minimal_reduce_reduce_grammar() -> Grammar {
     let mut grammar = Grammar::new("fixture-minimal".to_string());

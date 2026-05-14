@@ -39,7 +39,7 @@ pretty_assertions = "1.4"
 proptest.workspace = true
 serde_json.workspace = true
 adze-bdd-governance-core = { version = "0.1.0", path = "../crates/bdd-governance-core" }
-adze-bdd-grammar-fixtures = { version = "0.1.0", path = "../crates/bdd-grammar-fixtures" }
+glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 adze-tablegen = { path = "../tablegen", features = ["serialization"] }
 
 [features]

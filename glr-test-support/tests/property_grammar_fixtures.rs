@@ -1,9 +1,9 @@
-//! Property-based tests for bdd-grammar-fixtures.
+//! Property-based tests for GLR grammar fixtures.
 
 use proptest::prelude::*;
 
-use adze_bdd_grammar_fixtures::{SymbolMetadataSpec, TokenPatternKind, TokenPatternSpec};
 use adze_ir::SymbolId;
+use glr_test_support::{SymbolMetadataSpec, TokenPatternKind, TokenPatternSpec};
 
 // ---------------------------------------------------------------------------
 // Strategies
@@ -134,10 +134,10 @@ proptest! {
 
 #[test]
 fn dangling_else_symbol_metadata_not_empty() {
-    assert!(!adze_bdd_grammar_fixtures::DANGLING_ELSE_SYMBOL_METADATA.is_empty());
+    assert!(!glr_test_support::DANGLING_ELSE_SYMBOL_METADATA.is_empty());
 }
 
 #[test]
 fn dangling_else_token_patterns_not_empty() {
-    assert!(!adze_bdd_grammar_fixtures::DANGLING_ELSE_TOKEN_PATTERNS.is_empty());
+    assert!(!glr_test_support::DANGLING_ELSE_TOKEN_PATTERNS.is_empty());
 }

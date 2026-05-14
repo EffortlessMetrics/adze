@@ -1,4 +1,4 @@
-use adze_bdd_grammar_fixtures as fixtures;
+use glr_test_support as fixtures;
 
 #[test]
 fn given_facade_and_owner_module_when_analyzing_the_same_table_results_match() {
@@ -9,8 +9,8 @@ fn given_facade_and_owner_module_when_analyzing_the_same_table_results_match() {
     // When
     let facade_analysis = fixtures::analyze_conflicts(&table);
     let facade_count = fixtures::count_multi_action_cells(&table);
-    let core_analysis = fixtures::analysis::analyze_conflicts(&table);
-    let core_count = fixtures::analysis::count_multi_action_cells(&table);
+    let core_analysis = fixtures::grammar_fixtures::analysis::analyze_conflicts(&table);
+    let core_count = fixtures::grammar_fixtures::analysis::count_multi_action_cells(&table);
 
     // Then
     assert_eq!(

@@ -2,6 +2,20 @@ use adze_glr_core::{Action, LexMode, ParseRule, ParseTable};
 use adze_ir::{Grammar, StateId, SymbolId};
 use std::collections::BTreeMap;
 
+/// Grammar fixtures and conflict-analysis helpers for GLR BDD tests.
+pub mod grammar_fixtures;
+
+pub use grammar_fixtures::{
+    ConflictAnalysis, DANGLING_ELSE_SYMBOL_METADATA, DANGLING_ELSE_TOKEN_PATTERNS,
+    PRECEDENCE_ARITHMETIC_SYMBOL_METADATA, PRECEDENCE_ARITHMETIC_TOKEN_PATTERNS,
+    SymbolMetadataSpec, TokenPatternKind, TokenPatternSpec, analyze_conflicts,
+    build_dangling_else_parse_table, build_lr1_parse_table,
+    build_precedence_arithmetic_parse_table, build_runtime_dangling_else_parse_table,
+    build_runtime_parse_table, build_runtime_precedence_arithmetic_parse_table,
+    count_multi_action_cells, dangling_else_grammar, no_precedence_grammar,
+    precedence_arithmetic_grammar, resolve_shift_reduce_actions,
+};
+
 /// Test helpers for constructing minimal parse tables
 ///
 /// ### Invariants captured here
