@@ -1,7 +1,7 @@
 # Adze Roadmap
 
 **Current Version:** 0.8.0
-**MSRV:** 1.92 (Rust 2024 edition)
+**MSRV:** 1.95 (Rust 2024 edition)
 
 Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust type definitions into high-performance GLR parse machinery.
 
@@ -42,26 +42,25 @@ Adze (formerly `rust-sitter`) is a Rust-native grammar toolchain that turns Rust
 
 ## 🚀 Milestone 0.9.0: Ecosystem & Tooling (Current)
 
-### Prerequisite: microcrate-to-SRP collapse
+### Completed prerequisite: microcrate-to-SRP collapse
 
-The `crates/` directory currently holds 56 governance/BDD/concurrency/tooling
-support crate directories. Before 0.9.0 ships, these should be audited and
-collapsed where a separate crate no longer has a current, proven boundary.
-The eventual release surface should stay tight, with implementation-only
-support code absorbed into SRP submodules under the crates or xtask tooling that
-actually use it.
+The release-blocking microcrate-to-SRP transition is complete. The post-collapse
+workspace has 28 packages and zero `owner-module-migration-target` entries in
+`policy/package-boundary.toml`.
 
-**Why before 0.9.0:** a workspace graph this wide is a maintenance and CI
-economics commitment that is very hard to walk back. Collapsing before the MSRV
-bump and clippy lint promotions also avoids touching twice as many Cargo.toml
-files.
+This remains a release gate, not just a historical cleanup. Before 0.9.0 ships,
+the release candidate must keep both package-boundary commands green:
 
-**Target shape — two categories only:**
+```bash
+cargo run -q -p xtask -- check-package-boundary
+cargo run -q -p xtask -- check-package-boundary --release-gate
+```
 
-1. **Public surfaces** — crates that ship on crates.io and have a stable API.
-2. **Internal seams** — crates kept separate only where the isolation genuinely
-   improves compile times, test isolation, or ownership boundaries between
-   existing public surfaces. Not "might be useful someday" — real, current benefit.
+The release surface should stay tight: implementation-only support code belongs
+in SRP submodules under the crate or xtask tooling that actually owns it. A
+standalone crate remains acceptable only when it is a published public surface,
+a durable published support surface recorded by ADR, or genuine dev-only
+tooling.
 
 Current supported/publishable core remains seven crates until a follow-up
 implementation PR changes Cargo metadata, release scripts, support docs, and CI
@@ -77,28 +76,19 @@ routing together.
 | `adze-glr-core` | GLR parser generation | publishable supported core | evaluate internal seam after public API/release impact review |
 | `adze-tablegen` | table compression, FFI generation | publishable supported core | evaluate internal seam after codegen/release impact review |
 
-Everything else — governance, BDD, concurrency, policy, grammar-analysis,
-linecol, stack-pool, etc. — should either be inlined into the crate that
-actually uses it as an SRP submodule or move into xtask as dev-only tooling. If
-it doesn't have a current consumer outside its own directory, it doesn't get its
-own crate.
-
-**Steps:**
-
-1. Audit which support crates have external dependents outside xtask.
-2. Inline single-use microcrates into their single consumer.
-3. Merge microcrate groups (governance-*, bdd-*, concurrency-*, parser-*, feature-policy-*) into one module per group under xtask or the consuming crate.
-4. Remove the now-empty microcrate directories.
-5. Update workspace members, CI routing, and `justfile`.
-6. Run `just check-msrv` and `just ci-supported`.
+The collapse record lives in `plans/0.9.0/microcrate-collapse.md`. The durable
+architecture rule lives in
+`docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md`: there is
+no release-state category for unpublished production microcrates.
 
 ### Release blockers
 
-- [ ] Microcrate collapse/audit complete with Cargo metadata, CI routing, and support docs updated
-- [ ] MSRV bump to 1.95 (toolchain, Cargo.toml, CI, docs, xtask doctor)
+- [x] Microcrate collapse/audit complete with Cargo metadata, CI routing, and support docs updated
+- [x] MSRV bump to 1.95 (toolchain, Cargo.toml, CI, docs, xtask doctor)
 - [ ] Clippy planned-lint activation (6 lints gated on 1.94/1.95)
-- [ ] Non-Rust file allowlist reconciled against new structure
-- [ ] CI economics update (LEM estimates reflect new workspace shape)
+- [x] Non-Rust file allowlist reconciled against new structure
+- [x] CI economics update (LEM estimates reflect new workspace shape)
+- [ ] Product-proof refresh maps stable README claims to current proof commands
 
 ### Other 0.9.0 work
 - **Post-release hardening**: Finish narrowing workflow-only red and restore any proof surfaces trimmed only for publication.

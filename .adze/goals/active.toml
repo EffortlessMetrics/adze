@@ -131,7 +131,7 @@ spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
 plan = "plans/0.9.0/microcrate-collapse.md"
 blocked_by = []
-prs = [696, 697, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758]
+prs = [696, 697, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759]
 commands = [
   "cargo metadata --format-version 1 --no-deps",
   "cargo run -q -p xtask -- check-package-boundary",
@@ -147,7 +147,7 @@ spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
 plan = "plans/0.9.0/microcrate-collapse.md"
 blocked_by = []
-prs = [738, 758]
+prs = [738, 758, 759]
 commands = [
   "cargo run -q -p xtask -- check-package-boundary --release-gate",
   "PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh",

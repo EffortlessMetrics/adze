@@ -39,12 +39,12 @@ and review cycle for each single-document branch.
 Superseded stacked PRs #683 through #686 were closed after #692 landed.
 
 The microcrate-to-SRP submodule transition is tracked in
-`microcrate-collapse.md`. That release blocker is complete as of PR #758: no
-`owner-module-migration-target` entries remain and the package-boundary release
-gate is expected to stay green. The API foundation spec stack is tracked
-separately in `api-foundation.md`. It encodes the runtime/API build sequence so
-follow-up implementation PRs can be executed from source-of-truth artifacts
-rather than chat history.
+`microcrate-collapse.md`. That release blocker was completed by PR #758 and
+closed out by PR #759: no `owner-module-migration-target` entries remain and
+the package-boundary release gate is expected to stay green. The API foundation
+spec stack is tracked separately in `api-foundation.md`. It encodes the
+runtime/API build sequence so follow-up implementation PRs can be executed from
+source-of-truth artifacts rather than chat history.
 
 ## Work Item: source-of-truth-scaffolding
 
