@@ -1,5 +1,5 @@
 //! Cross-crate integration tests for the runtime governance chain:
-//! `runtime-governance-api` → `runtime-governance-matrix` → `runtime-governance`
+//! `runtime-governance-matrix` → `runtime-governance`
 //!
 //! These tests validate that the runtime governance chain works correctly end-to-end.
 
@@ -11,7 +11,6 @@ use adze_runtime_governance::{
     bdd_progress_status_line, bdd_status_line_for_current_profile, current_backend_for,
     parser_feature_profile_for_runtime, resolve_backend_for_profile, runtime_governance_snapshot,
 };
-use adze_runtime_governance_api as api;
 use adze_runtime_governance_matrix as matrix;
 
 /// Test that the runtime governance chain correctly propagates profile types.
@@ -138,16 +137,6 @@ fn test_runtime_governance_chain_different_phases() {
         assert_eq!(snapshot.phase, phase);
         assert!(snapshot.total >= snapshot.implemented);
     }
-}
-
-/// Test that the API facade correctly re-exports from runtime-governance.
-#[test]
-fn test_runtime_governance_chain_api_facade() {
-    // The API facade should re-export all the same types
-    let profile = parser_feature_profile_for_runtime();
-    let api_profile = api::parser_feature_profile_for_runtime();
-
-    assert_eq!(profile, api_profile);
 }
 
 /// Test that backend selection works correctly for conflict scenarios.

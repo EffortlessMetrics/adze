@@ -43,7 +43,6 @@ This plan addresses feature-flag standardization across the workspace. Documenta
 
 | Crate | Features |
 |-------|----------|
-| `adze-runtime-governance-api` | `pure-rust`, `tree-sitter-standard`, `tree-sitter-c2rust`, `glr`, `strict_api`, `strict_docs` |
 | `adze-runtime-governance` | `pure-rust`, `tree-sitter-standard`, `tree-sitter-c2rust`, `glr`, `strict_api`, `strict_docs` |
 | `adze-parser-backend-core` | `pure-rust`, `tree-sitter-c2rust`, `tree-sitter-standard`, `glr`, `strict_api`, `strict_docs` |
 | `adze-parsetable-metadata` | `strict_api`, `strict_docs` |
@@ -60,7 +59,7 @@ This plan addresses feature-flag standardization across the workspace. Documenta
 
 **Evidence:**
 - [`runtime2/Cargo.toml:47`](runtime2/Cargo.toml:47): `glr-core = ["dep:adze-glr-core", "dep:adze-ir"]`
-- [`runtime/Cargo.toml:39`](runtime/Cargo.toml:39): `glr = ["adze-runtime-governance-api/glr"]`
+- [`runtime/Cargo.toml:39`](runtime/Cargo.toml:39): `glr = ["adze-runtime-governance/glr"]`
 - Documentation (PR#1) standardized on `glr`
 
 **Code Usage (300+ occurrences):**
