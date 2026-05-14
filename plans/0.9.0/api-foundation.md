@@ -1,6 +1,6 @@
 # 0.9 API Foundation Implementation Plan
 
-Status: proposed
+Status: active
 Owner: runtime/api
 Created: 2026-05-13
 Linked proposal: ../../docs/proposals/ADZE-PROP-0002-api-foundation.md
@@ -31,7 +31,7 @@ itself; `../../docs/status/SUPPORT_TIERS.md` owns product claims and proof.
 
 ## Work Item: api-foundation-spec-stack
 
-Status: active
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0002-api-foundation.md
 Linked specs:
 - ../../docs/specs/ADZE-SPEC-0003-canonical-parse-document.md
@@ -80,7 +80,7 @@ Revert the docs/policy PR. No runtime behavior changes need rollback.
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0003-canonical-parse-document.md
-Blocked by: api-foundation-spec-stack
+Blocked by: none
 
 ### Goal
 

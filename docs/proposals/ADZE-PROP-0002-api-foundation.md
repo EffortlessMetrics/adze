@@ -1,6 +1,6 @@
 # ADZE-PROP-0002: API foundation
 
-Status: proposed
+Status: accepted
 Owner: runtime/api
 Created: 2026-05-13
 Target milestone: 0.9.x / 1.0 foundation
