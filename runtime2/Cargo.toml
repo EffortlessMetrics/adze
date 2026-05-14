@@ -38,7 +38,8 @@ criterion.workspace = true
 pretty_assertions = "1.4"
 proptest.workspace = true
 serde_json.workspace = true
-adze-bdd-scenario-fixtures = { path = "../crates/bdd-scenario-fixtures" }
+adze-bdd-governance-core = { version = "0.1.0", path = "../crates/bdd-governance-core" }
+adze-bdd-grammar-fixtures = { version = "0.1.0", path = "../crates/bdd-grammar-fixtures" }
 adze-tablegen = { path = "../tablegen", features = ["serialization"] }
 
 [features]

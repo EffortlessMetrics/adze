@@ -11,7 +11,6 @@ adze-governance-matrix-core-impl
 adze-governance-matrix-core
 adze-governance-metadata
 adze-governance-runtime-reporting
-adze-bdd-scenario-fixtures
 adze-governance-runtime-core
 adze-parsetable-metadata
 adze-runtime-governance-matrix

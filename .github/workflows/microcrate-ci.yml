@@ -158,7 +158,6 @@ jobs:
             adze-bdd-governance-core
             adze-bdd-grammar-fixtures
             adze-bdd-grid-core
-            adze-bdd-scenario-fixtures
             adze-linecol-core
             adze-parsetable-metadata
           )
@@ -255,7 +254,6 @@ jobs:
             -p adze-bdd-governance-core \
             -p adze-bdd-grammar-fixtures \
             -p adze-bdd-grid-core \
-            -p adze-bdd-scenario-fixtures \
             -- --test-threads=$RUST_TEST_THREADS
 
   test-parser:
