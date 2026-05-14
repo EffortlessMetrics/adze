@@ -56,7 +56,6 @@ Runtime-facing governance helpers and progress reporting.
 | [`runtime-governance`](runtime-governance) | Runtime-facing governance helpers |
 | [`runtime-governance-api`](runtime-governance-api) | Runtime governance API definitions |
 | [`runtime-governance-matrix`](runtime-governance-matrix) | Runtime governance matrix implementation |
-| [`runtime2-governance`](runtime2-governance) | Governance for runtime2 (production GLR) |
 
 ### Utilities (5 crates)
 

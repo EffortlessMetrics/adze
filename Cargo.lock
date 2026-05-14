@@ -349,7 +349,7 @@ dependencies = [
  "adze-ir",
  "adze-linecol-core",
  "adze-parsetable-metadata",
- "adze-runtime2-governance",
+ "adze-runtime-governance-matrix",
  "adze-tablegen",
  "bumpalo",
  "criterion",
@@ -391,14 +391,6 @@ name = "adze-runtime-governance-matrix"
 version = "0.1.0"
 dependencies = [
  "adze-governance-runtime-core",
- "proptest",
-]
-
-[[package]]
-name = "adze-runtime2-governance"
-version = "0.1.0"
-dependencies = [
- "adze-runtime-governance-matrix",
  "proptest",
 ]
 

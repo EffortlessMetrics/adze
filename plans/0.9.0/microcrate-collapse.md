@@ -229,7 +229,12 @@ owner modules that consume them.
 - `adze-runtime-governance`
 - `adze-runtime-governance-api`
 - `adze-runtime-governance-matrix`
-- `adze-runtime2-governance`
+
+### Completed Packages
+
+- `adze-runtime2-governance` facade removed; runtime2 now imports
+  `adze-runtime-governance-matrix` directly while preserving runtime2-specific
+  public helper functions in the runtime2 owner module.
 
 ### Proof Commands
 
