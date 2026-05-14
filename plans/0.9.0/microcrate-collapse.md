@@ -226,18 +226,21 @@ owner modules that consume them.
 
 ### Candidate Packages
 
-- `adze-runtime-governance-matrix`
+- None remaining in this work item.
 
 ### Completed Packages
 
 - `adze-runtime-governance` facade removed; runtime now imports
-  `adze-runtime-governance-matrix` directly while preserving the public
+  the shared governance runtime core directly while preserving the public
   `adze::parser_selection::*` compatibility module.
+- `adze-runtime-governance-matrix` removed; runtime now owns
+  `adze::parser_selection::*` helper composition and runtime2 owns its
+  runtime2-specific helper composition.
 - `adze-runtime-governance-api` facade removed before the runtime facade;
   the public `adze::parser_selection::*` compatibility module remains owned by
   runtime.
 - `adze-runtime2-governance` facade removed; runtime2 now imports
-  `adze-runtime-governance-matrix` directly while preserving runtime2-specific
+  the shared governance runtime core directly while preserving runtime2-specific
   public helper functions in the runtime2 owner module.
 
 ### Proof Commands
@@ -245,7 +248,8 @@ owner modules that consume them.
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-runtime-governance-matrix -- --test-threads=2
+cargo test -p adze-governance-runtime-core -- --test-threads=2
+cargo test -p adze -p adze-runtime -- --test-threads=2
 just ci-supported
 ```
 

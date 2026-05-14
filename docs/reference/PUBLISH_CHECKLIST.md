@@ -27,7 +27,6 @@ the core crates that depend on them. The full set (in order) is:
 2. `adze-linecol-core`
 3. `adze-bdd-grid-core`
 4. `adze-governance-metadata` -> `adze-parsetable-metadata`
-5. `adze-runtime-governance-matrix`
 
 ## Pre-publish verification
 

@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 11
+**Total Crates:** 10
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 11 | 100% |
+| Complete (BDD + Property) | 10 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 11 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 10 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 11 remaining tracked crates have both BDD tests and property-based tests:
+All 10 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -28,7 +28,6 @@ All 11 remaining tracked crates have both BDD tests and property-based tests:
 | `governance-runtime-reporting` | ✓ | ✓ | ✓ |
 | `linecol-core` | ✓ | ✓ | ✓ |
 | `parsetable-metadata` | ✓ | ✓ | ✓ |
-| `runtime-governance-matrix` | ✓ | ✓ | ✓ |
 | `ts-c-harness` | ✓ | ✓ | - |
 
 ## Contract Lock Files
@@ -43,7 +42,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `governance-runtime-reporting`
 - `linecol-core`
 - `parsetable-metadata`
-- `runtime-governance-matrix`
 
 ### Crates Without Contract Lock Tests
 
@@ -65,8 +63,7 @@ The following crates do not have contract lock tests (by design):
 ### Potential Consolidation Opportunities
 
 1. **Runtime Governance Crates:**
-   - `runtime-governance-matrix`
-   These remaining runtime governance surfaces should either collapse into their SRP owner modules or be reclassified with an accepted ADR before release.
+   The runtime governance facade/matrix stack has been collapsed into the runtime owner modules and shared governance runtime core.
 
 2. **Concurrency Init Crates:**
    Remaining initialization crates should keep classifier and bootstrap helpers as SRP owner submodules instead of standalone migration targets.
