@@ -281,6 +281,18 @@ enum Commands {
         #[arg(long, default_value = "advisory")]
         mode: String,
     },
+    /// Validate policy/doc-artifacts.toml: paths exist, IDs unique, links resolve.
+    CheckDocArtifacts {
+        /// Operating mode: advisory (warnings only) | blocking (fail on errors).
+        #[arg(long, default_value = "blocking")]
+        mode: String,
+    },
+    /// Validate .adze/goals/active.toml: fields present, IDs unique, references valid.
+    CheckActiveGoal {
+        /// Operating mode: advisory (warnings only) | blocking (fail on errors).
+        #[arg(long, default_value = "blocking")]
+        mode: String,
+    },
     /// Compute the CI plan for the current PR (LEM + lane selection).
     ///
     /// Reads policy/ci-lane-whitelist.toml and policy/ci-risk-packs.toml,
@@ -543,6 +555,12 @@ fn main() -> Result<()> {
         Commands::CheckCiLaneWhitelist { mode } => {
             let mode = policy::Mode::parse(&mode)?;
             policy::ci_lane_whitelist::run_check(mode)?;
+        }
+        Commands::CheckDocArtifacts { mode } => {
+            policy::doc_artifacts::run(&mode)?;
+        }
+        Commands::CheckActiveGoal { mode } => {
+            policy::active_goal::run(&mode)?;
         }
         Commands::CiPlan {
             base,
