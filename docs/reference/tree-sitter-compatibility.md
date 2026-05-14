@@ -86,3 +86,16 @@ alias sequence entries while preserving raw grammar identity:
 
 Do not change alias-visible node identity, S-expression alias behavior, or
 node-types alias behavior without updating that contract and its canaries.
+
+## Runtime Node-Types Metadata
+
+`ts_compat::Language::node_types_json()` exposes an advisory Tree-sitter-style
+`node-types.json` projection generated from the language grammar metadata. The
+current projection covers generated node kinds and field metadata, but it is not
+full Tree-sitter parity.
+
+Alias-visible node-types remain intentionally future work. Current alias
+metadata can be preserved at the table/native identity layers while
+`node_types_json()` still reports the underlying grammar node types. Do not
+promote this surface to query-compatible node-types parity until alias-visible
+node-types canaries are added.

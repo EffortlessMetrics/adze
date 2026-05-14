@@ -16,7 +16,9 @@ Current Adze runtime state:
   slots and can mark known production aliases,
 - parsed `ts_compat::Node` values project alias-visible `kind()`,
   `kind_id()`, `is_named()`, and `to_sexp()` while keeping
-  `grammar_name()`/`grammar_id()` on the raw parsed symbol.
+  `grammar_name()`/`grammar_id()` on the raw parsed symbol,
+- `ts_compat::Language::node_types_json()` projects advisory node-types metadata
+  from grammar metadata, but does not yet project alias-visible node-types.
 
 This document is the target contract for the projection layer. The current
 runtime implements the node-identity and S-expression portions for known
@@ -177,10 +179,20 @@ named-child filtering, and S-expression projection. Future node-types and query
 alias canaries should be added beside them rather than inferred from these
 narrower tests.
 
+The current advisory node-types projection also pins the alias gap explicitly:
+
+```bash
+cargo test -p adze --features "pure-rust,ts-compat" \
+  --test ts_compat_node_types \
+  node_types_json_keeps_alias_projection_gap_explicit \
+  -- --exact --nocapture
+```
+
 ## Compatibility Status
 
 Remaining limitations:
 
-- node-types output does not yet claim alias-visible parity,
+- advisory node-types output is generated from grammar metadata and does not
+  yet claim alias-visible parity,
 - query metadata/execution does not yet claim alias-visible parity,
 - imported grammar corpus parity remains future work.
