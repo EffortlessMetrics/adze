@@ -669,7 +669,7 @@ fn edge_case_encode_small_shift_zero() {
 fn edge_case_encode_small_reduce_zero() {
     let c = TableCompressor::new();
     let v = c.encode_action_small(&Action::Reduce(RuleId(0))).unwrap();
-    assert_eq!(v, 0x8000 | 1); // 1-based encoding
+    assert_eq!(v, 0x8000 | 0x0001); // 1-based encoding
 }
 
 #[test]

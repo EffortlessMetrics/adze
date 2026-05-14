@@ -3,7 +3,9 @@
 //! Verifies that:
 //! 1. The workspace MSRV in `Cargo.toml` matches `policy/clippy-lints.toml`.
 //! 2. No `clippy.toml` introduces panic-family test carveouts.
-//! 3. No `[[planned]]` lint is activated before its `activate_when_msrv`.
+//! 3. Active lint policy mirrors `[workspace.lints]`.
+//! 4. No `[[planned]]` lint is activated before its `activate_when_msrv`.
+//! 5. No `[[planned]]` lint remains overdue after its `activate_when_msrv`.
 //!
 //! Runs in advisory mode by default — failures are reported but do not stop
 //! CI. Once we are confident the manifest matches reality everywhere, this
@@ -64,6 +66,7 @@ pub fn run_check(mode: Mode) -> Result<()> {
 
     check_msrv_consistency(&root, &policy, &mut findings)?;
     check_no_test_carveouts(&root, &mut findings)?;
+    check_active_lints_match_cargo(&root, &policy, &mut findings)?;
     check_planned_not_active_early(&root, &policy, &mut findings)?;
 
     let summary = format!(
@@ -194,19 +197,117 @@ fn check_no_test_carveouts(root: &Path, findings: &mut Findings) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Default, PartialEq, Eq)]
+struct WorkspaceLintTables {
+    rust: BTreeMap<String, String>,
+    clippy: BTreeMap<String, String>,
+}
+
+fn check_active_lints_match_cargo(
+    root: &Path,
+    policy: &PolicyFile,
+    findings: &mut Findings,
+) -> Result<()> {
+    let cargo = std::fs::read_to_string(root.join("Cargo.toml"))?;
+    let workspace_lints = workspace_lints_from_cargo(&cargo)?;
+
+    compare_lint_table("rust", &policy.active.rust, &workspace_lints.rust, findings);
+    compare_lint_table(
+        "clippy",
+        &policy.active.clippy,
+        &workspace_lints.clippy,
+        findings,
+    );
+
+    Ok(())
+}
+
+fn workspace_lints_from_cargo(cargo: &str) -> Result<WorkspaceLintTables> {
+    let value: toml::Value = toml::from_str(cargo).context("parsing Cargo.toml as TOML")?;
+    let Some(workspace) = value.get("workspace").and_then(toml::Value::as_table) else {
+        return Ok(WorkspaceLintTables::default());
+    };
+    let Some(lints) = workspace.get("lints").and_then(toml::Value::as_table) else {
+        return Ok(WorkspaceLintTables::default());
+    };
+
+    Ok(WorkspaceLintTables {
+        rust: extract_lint_table(lints.get("rust")),
+        clippy: extract_lint_table(lints.get("clippy")),
+    })
+}
+
+fn extract_lint_table(value: Option<&toml::Value>) -> BTreeMap<String, String> {
+    let Some(table) = value.and_then(toml::Value::as_table) else {
+        return BTreeMap::new();
+    };
+
+    table
+        .iter()
+        .filter_map(|(name, value)| lint_level(value).map(|level| (name.clone(), level)))
+        .collect()
+}
+
+fn lint_level(value: &toml::Value) -> Option<String> {
+    if let Some(level) = value.as_str() {
+        return Some(level.to_string());
+    }
+    value
+        .as_table()
+        .and_then(|table| table.get("level"))
+        .and_then(toml::Value::as_str)
+        .map(str::to_string)
+}
+
+fn compare_lint_table(
+    kind: &str,
+    policy: &BTreeMap<String, String>,
+    cargo: &BTreeMap<String, String>,
+    findings: &mut Findings,
+) {
+    for (name, expected_level) in policy {
+        match cargo.get(name) {
+            Some(actual_level) if actual_level == expected_level => {}
+            Some(actual_level) => findings.issues.push(format!(
+                "policy active {kind} lint `{name}` is `{expected_level}` but Cargo.toml has `{actual_level}`"
+            )),
+            None => findings.issues.push(format!(
+                "policy active {kind} lint `{name}` is missing from Cargo.toml [workspace.lints.{kind}]"
+            )),
+        }
+    }
+
+    for (name, actual_level) in cargo {
+        if !policy.contains_key(name) {
+            findings.issues.push(format!(
+                "Cargo.toml [workspace.lints.{kind}] contains `{name}` = `{actual_level}` but policy/clippy-lints.toml does not list it as active"
+            ));
+        }
+    }
+}
+
 fn check_planned_not_active_early(
     root: &Path,
     policy: &PolicyFile,
     findings: &mut Findings,
 ) -> Result<()> {
     let cargo = std::fs::read_to_string(root.join("Cargo.toml"))?;
+    let workspace_lints = workspace_lints_from_cargo(&cargo)?;
     let active_msrv = extract_kv(&cargo, "rust-version").unwrap_or_else(|| policy.msrv.clone());
     for planned in &policy.planned {
         let target = &planned.activate_when_msrv;
         if version_geq(&active_msrv, target) {
+            findings.issues.push(format!(
+                "planned lint `{}` is due at MSRV {target}; move it to active policy or reschedule it with a new reason",
+                planned.name
+            ));
             continue;
         }
-        if cargo.contains(&planned.name) {
+
+        let lint_key = planned_lint_key(&planned.name);
+        let active_early = workspace_lints.rust.contains_key(lint_key)
+            || workspace_lints.clippy.contains_key(lint_key);
+        if active_early {
             findings.issues.push(format!(
                 "planned lint `{}` referenced in Cargo.toml before MSRV {target}",
                 planned.name
@@ -214,6 +315,12 @@ fn check_planned_not_active_early(
         }
     }
     Ok(())
+}
+
+fn planned_lint_key(name: &str) -> &str {
+    name.strip_prefix("clippy::")
+        .or_else(|| name.strip_prefix("rust::"))
+        .unwrap_or(name)
 }
 
 fn version_geq(a: &str, b: &str) -> bool {
@@ -251,5 +358,44 @@ mod tests {
     fn extract_kv_handles_tight_assignment() {
         let text = "channel=\"1.95.0\"\n";
         assert_eq!(extract_kv(text, "channel").as_deref(), Some("1.95.0"));
+    }
+
+    #[test]
+    fn workspace_lints_from_cargo_extracts_string_and_table_levels() {
+        let cargo = r#"
+[workspace]
+
+[workspace.lints.rust]
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+allow_attributes_without_reason = "deny"
+manual_ilog2 = { level = "warn", priority = -1 }
+"#;
+
+        let tables = workspace_lints_from_cargo(cargo).unwrap();
+
+        assert_eq!(
+            tables.rust.get("missing_docs").map(String::as_str),
+            Some("warn")
+        );
+        assert_eq!(
+            tables
+                .clippy
+                .get("allow_attributes_without_reason")
+                .map(String::as_str),
+            Some("deny")
+        );
+        assert_eq!(
+            tables.clippy.get("manual_ilog2").map(String::as_str),
+            Some("warn")
+        );
+    }
+
+    #[test]
+    fn planned_lint_key_strips_known_tool_prefixes() {
+        assert_eq!(planned_lint_key("clippy::manual_ilog2"), "manual_ilog2");
+        assert_eq!(planned_lint_key("rust::missing_docs"), "missing_docs");
+        assert_eq!(planned_lint_key("custom_lint"), "custom_lint");
     }
 }

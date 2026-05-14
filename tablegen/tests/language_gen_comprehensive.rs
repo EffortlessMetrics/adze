@@ -1469,7 +1469,7 @@ fn encode_action_small_reduce() {
     let c = TableCompressor::new();
     let encoded = c.encode_action_small(&Action::Reduce(RuleId(5))).unwrap();
     // bit 15 set, rule_id+1 in lower bits
-    assert_eq!(encoded, 0x8000 | 6);
+    assert_eq!(encoded, 0x8000 | 0x0006);
 }
 
 #[test]

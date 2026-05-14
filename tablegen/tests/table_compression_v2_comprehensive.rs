@@ -859,7 +859,7 @@ fn t63_encode_action_small_shift() {
 fn t64_encode_action_small_reduce() {
     let c = TableCompressor::new();
     let v = c.encode_action_small(&Action::Reduce(RuleId(0))).unwrap();
-    assert_eq!(v, 0x8000 | 1); // 1-based
+    assert_eq!(v, 0x8000 | 0x0001); // 1-based
 }
 
 #[test]

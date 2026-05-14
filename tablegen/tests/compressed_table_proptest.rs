@@ -615,7 +615,7 @@ fn test_encode_action_small_reduce() {
         .encode_action_small(&Action::Reduce(RuleId(0)))
         .unwrap();
     // Reduce: high bit set, 1-based rule id
-    assert_eq!(encoded, 0x8000 | 1);
+    assert_eq!(encoded, 0x8000 | 0x0001);
 }
 
 #[test]

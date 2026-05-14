@@ -183,16 +183,21 @@ commands = [
 
 [[work_item]]
 id = "clippy-policy-refresh"
-status = "ready"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = ""
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
 blocked_by = []
-prs = []
+prs = [762]
 commands = [
   "cargo run -q -p xtask -- check-lint-policy",
+  "cargo test -p xtask lint_policy -j 1 -- --nocapture",
+  "cargo clippy -p xtask --all-targets -- -D warnings",
   "just clippy",
+  "cargo clippy -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen --all-targets -- -D warnings",
+  "cargo run -q -p xtask -- check-package-boundary --release-gate",
+  "git diff --check",
   "just ci-supported",
 ]
 

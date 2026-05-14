@@ -29,6 +29,12 @@ const_item_interior_mutations = "deny"
 
 [active.clippy]
 allow_attributes_without_reason = "deny"
+decimal_bitwise_operands = "warn"
+disallowed_fields = "deny"
+manual_checked_ops = "warn"
+manual_ilog2 = "warn"
+needless_type_cast = "warn"
+same_length_and_capacity = "deny"
 
 # Staged lints — currently advisory in the semantic checker. Plan:
 #   stage 1 (now): warn here, semantic checker is advisory
@@ -47,39 +53,5 @@ indexing_slicing = { level = "warn", target = "deny", stage = 1 }
 string_slice = { level = "warn", target = "deny", stage = 1 }
 dbg_macro = { level = "warn", target = "deny", stage = 1 }
 
-# Planned lints — gated on MSRV bumps.
-[[planned]]
-name = "clippy::same_length_and_capacity"
-level = "deny"
-activate_when_msrv = "1.94"
-reason = "Catch raw-parts reconstruction mistakes."
-
-[[planned]]
-name = "clippy::manual_ilog2"
-level = "warn"
-activate_when_msrv = "1.94"
-reason = "Prefer the standard integer log helper."
-
-[[planned]]
-name = "clippy::decimal_bitwise_operands"
-level = "warn"
-activate_when_msrv = "1.94"
-reason = "Make bit masks visually inspectable."
-
-[[planned]]
-name = "clippy::needless_type_cast"
-level = "warn"
-activate_when_msrv = "1.94"
-reason = "Avoid stale numeric type drift."
-
-[[planned]]
-name = "clippy::disallowed_fields"
-level = "deny"
-activate_when_msrv = "1.95"
-reason = "Ban direct field access across protected seams."
-
-[[planned]]
-name = "clippy::manual_checked_ops"
-level = "warn"
-activate_when_msrv = "1.95"
-reason = "Prefer checked arithmetic over manual divide-by-zero guards."
+# Planned lints — gated on future MSRV bumps. The Rust 1.94/1.95 lint batch is
+# active as of the 0.9 Clippy policy refresh.
