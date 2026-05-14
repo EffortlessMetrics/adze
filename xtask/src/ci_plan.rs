@@ -173,9 +173,9 @@ const AREAS: &[(&str, &[&str])] = &[
     ("tablegen", &["tablegen/", "crates/parsetable-metadata/"]),
     (
         "governance",
-        &["crates/governance", "crates/bdd", "tests/governance/"],
+        &["crates/bdd-governance-core/", "tests/governance/"],
     ),
-    ("concurrency", &["crates/concurrency"]),
+    ("concurrency", &["runtime/src/concurrency_caps"]),
     ("wasm", &["wasm-demo/", "runtime/wasm", "playground/"]),
     ("performance", &["benchmarks/", "baselines/"]),
     (

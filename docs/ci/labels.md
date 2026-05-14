@@ -17,7 +17,7 @@ The label vocabulary used by PR Plan to opt in to deeper verification.
 | `ci:perf` | full benchmark comparison |
 | `ci:golden` | golden tests for grammars |
 | `ci:microcrate` | full microcrate CI matrix |
-| `ci:concurrency` | concurrency microcrate group |
+| `ci:concurrency` | concurrency owner-module opt-in; standalone concurrency microcrates are collapsed |
 | `platform-matrix` | full OS/toolchain matrix |
 | `fuzz` | fuzz runtime |
 | `coverage` | coverage instrumentation |

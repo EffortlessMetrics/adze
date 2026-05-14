@@ -1,6 +1,6 @@
 # ADZE-SPEC-0001: Package surface boundary
 
-Status: proposed
+Status: accepted
 Owner: Adze maintainers
 Created: 2026-05-12
 Linked proposal: ../proposals/ADZE-PROP-0001-0.9-contract-convergence.md

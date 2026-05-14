@@ -17,7 +17,7 @@ execution, refresh with `gh pr list` and the current workflow state.
 | # | Item | Status | Notes |
 | --- | --- | --- | --- |
 | F01 | CI lane whitelist (`policy/ci-lane-whitelist.toml`) | ✅ | All workflows mapped with owner, LEM, triggers |
-| F02 | CI risk packs (`policy/ci-risk-packs.toml`) | ✅ | 10 risk packs: core_runtime, macro_tool, glr_core, tablegen, grammar_golden, microcrate_governance, concurrency, wasm, performance, manifest_release |
+| F02 | CI risk packs (`policy/ci-risk-packs.toml`) | ✅ | 10 risk packs; microcrate governance now routes only durable BDD governance support and governance integration tests |
 | F03 | PR Plan workflow (`pr-plan.yml`) | ✅ | Calls `xtask ci-plan`, emits `ci-plan.json` with outputs `docs_only`, `estimated_lem`, `band` |
 | F04 | PR Gate Success workflow (`pr-gate.yml`) | ✅ | Supported Gate + Docs Gate + `PR Gate Success` aggregator |
 | F05 | ci-actuals telemetry scaffold | ✅ | `scripts/ci/emit-ci-actuals.py` emits plan vs actual; uploaded as artifact |
@@ -40,7 +40,7 @@ execution, refresh with `gh pr list` and the current workflow state.
 | R01 | Fuzz gating (label/push only) | ✅ | `fuzz.yml` — runtime fuzz requires `fuzz`/`full-ci` label or push/schedule |
 | R02 | Pure-Rust PR matrix reduction | ✅ | `pure-rust-ci.yml` — ubuntu/stable default; full matrix on `platform-matrix`/`full-ci`/main |
 | R03 | Golden tests grammar routing | ✅ | `golden-tests.yml` — paths + `ci:golden`/`full-ci` label gates |
-| R04 | Microcrate CI risk-pack routing | ✅ | `microcrate-ci.yml` — per-group path detection (concurrency/governance/bdd/parser/core/runtime) |
+| R04 | Microcrate CI risk-pack routing | ✅ | `microcrate-ci.yml` — per-group path detection after SRP collapse (governance integration, BDD support, parser support, core, runtime) |
 | R05 | Benchmark PR ownership cleanup | ✅ | PR #566 merged — removes duplicate baseline+comparison from default PR path |
 
 ## Policy ledgers

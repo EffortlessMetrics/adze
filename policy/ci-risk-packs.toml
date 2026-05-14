@@ -12,7 +12,7 @@ schema_version = "1.0"
 policy = "ci-risk-packs"
 owner = "release/ci"
 status = "advisory"
-updated = "2026-05-07"
+updated = "2026-05-14"
 
 [risk_pack.core_runtime]
 description = "Runtime parser, typed extraction, errors, and public runtime behavior."
@@ -50,23 +50,20 @@ deep_lanes = ["product-proof-advisory"]
 labels = ["ci:golden", "full-ci"]
 
 [risk_pack.microcrate_governance]
-description = "Governance, BDD, parser contracts, runtime governance, feature policy."
+description = "Governance integration tests and the durable BDD governance support contract."
 paths = [
-    "crates/governance*/**",
-    "crates/bdd*/**",
+    "crates/bdd-governance-core/**",
     "tests/governance/**",
-    "crates/feature-policy*/**",
-    "crates/runtime-governance*/**",
 ]
 lanes = ["microcrate-ci"]
 deep_lanes = ["core-tests"]
 labels = ["ci:microcrate", "full-ci"]
 
 [risk_pack.concurrency]
-description = "Concurrency caps, environment normalization, rayon/bootstrap/init behavior."
-paths = ["crates/concurrency*/**"]
-keywords = ["thread", "rayon", "parallel", "bootstrap"]
-lanes = ["microcrate-ci", "ripr-advisory"]
+description = "Historical concurrency owner-module opt-in. Standalone concurrency microcrates have been collapsed."
+paths = []
+keywords = ["concurrency_caps", "thread", "rayon", "parallel", "bootstrap"]
+lanes = ["ci-supported"]
 deep_lanes = []
 labels = ["ci:concurrency", "full-ci"]
 

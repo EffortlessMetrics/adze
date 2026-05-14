@@ -13,7 +13,7 @@ where support-tier proof exists.
 end_state = [
   "Every workspace package is classified.",
   "No durable unpublished production crate category exists.",
-  "Owner-module migration targets transition into SRP owner submodules before the next release.",
+  "No owner-module migration targets remain before the next release.",
   "CI lane whitelist reflects the post-collapse workspace.",
   "Ordinary PRs expose LEM estimates and over-ceiling PRs require override.",
   "Rust/MSRV declarations agree after the 1.95 bump.",
@@ -125,29 +125,29 @@ commands = [
 
 [[work_item]]
 id = "microcrate-collapse"
-status = "active"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
 plan = "plans/0.9.0/microcrate-collapse.md"
 blocked_by = []
-prs = [696, 697, 729, 730, 731, 732, 733, 734, 735, 736, 737]
+prs = [696, 697, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758]
 commands = [
   "cargo metadata --format-version 1 --no-deps",
   "cargo run -q -p xtask -- check-package-boundary",
-  "just check-msrv",
+  "cargo run -q -p xtask -- check-package-boundary --release-gate",
   "just ci-supported",
 ]
 
 [[work_item]]
 id = "package-boundary-release-gate"
-status = "blocked"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
 adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
 plan = "plans/0.9.0/microcrate-collapse.md"
-blocked_by = ["microcrate-collapse"]
-prs = []
+blocked_by = []
+prs = [738, 758]
 commands = [
   "cargo run -q -p xtask -- check-package-boundary --release-gate",
   "PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh",
@@ -155,12 +155,12 @@ commands = [
 
 [[work_item]]
 id = "rust-1.95-msrv-bump"
-status = "blocked"
+status = "ready"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
 spec = ""
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
-blocked_by = ["microcrate-collapse"]
+blocked_by = []
 prs = []
 commands = [
   "just check-msrv",

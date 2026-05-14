@@ -1,7 +1,7 @@
 # Microcrate Test Coverage Analysis
 
 **Generated:** 2026-03-26
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-05-14
 **Total Crates:** 4
 
 ## Summary
@@ -9,9 +9,11 @@
 | Category | Count | Percentage |
 |----------|-------|------------|
 | Complete (BDD + Property) | 4 | 100% |
-| Contract Lock Tests | 30+ | 95%+ |
+| Durable support crates with contract locks | 3 | 100% |
 
-All 4 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+The remaining tracked support surfaces have comprehensive test coverage with
+BDD/property coverage where applicable. The package-boundary release gate is now
+the source of truth for whether any temporary microcrate remains.
 
 ## Complete Coverage (BDD + Property Tests)
 
@@ -26,7 +28,8 @@ All 4 remaining tracked crates have both BDD tests and property-based tests:
 
 ## Contract Lock Files
 
-The following 30+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
+The following durable support crates have `contract_lock.rs` test files
+(contract verification):
 
 - `bdd-governance-core`
 - `linecol-core`
@@ -54,7 +57,8 @@ The following crates do not have contract lock tests (by design):
    The runtime governance facade/matrix stack has been collapsed into runtime owner modules and `bdd-governance-core::runtime`.
 
 2. **Concurrency Init Crates:**
-   Remaining initialization crates should keep classifier and bootstrap helpers as SRP owner submodules instead of standalone migration targets.
+   Standalone concurrency crates have been collapsed. Classifier and bootstrap
+   helpers now live as SRP owner submodules under the runtime surface.
 
 ## Documentation Status
 
@@ -70,6 +74,7 @@ This is acceptable as `ts-c-harness` is an FFI test harness (excluded from works
 
 1. ✅ ~~Add property tests to high-priority crates missing them~~ - **COMPLETE**
 2. ✅ ~~Add BDD + Property tests to crates with no coverage~~ - **COMPLETE**
-3. Review overlapping crates for potential consolidation
+3. ✅ ~~Review overlapping crates for potential consolidation~~ - **COMPLETE for 0.9 package-boundary release gate**
 4. ✅ Documentation check complete - all workspace crates documented
-5. Consider adding contract lock tests to fixture crates if applicable
+5. Keep release-facing support crate claims mapped through `SUPPORT_TIERS.md`
+   before promoting any product behavior.
