@@ -146,7 +146,6 @@ jobs:
             adze-glr-core
             adze-tablegen
             adze-governance-matrix-core
-            adze-governance-matrix-core-impl
             adze-governance-metadata
             adze-governance-runtime-core
             adze-governance-runtime-reporting
@@ -226,7 +225,6 @@ jobs:
         run: |
           cargo test \
             -p adze-governance-matrix-core \
-            -p adze-governance-matrix-core-impl \
             -p adze-governance-metadata \
             -p adze-governance-runtime-core \
             -p adze-governance-runtime-reporting \

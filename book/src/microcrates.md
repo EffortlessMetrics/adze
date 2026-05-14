@@ -37,7 +37,6 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `bdd-grid-core` | `crates/bdd-grid-core/` | Grid BDD evaluation logic |
 | `governance-metadata` | `crates/governance-metadata/` | Governance metadata types |
 | `governance-matrix-core` | `crates/governance-matrix-core/` | Feature matrix evaluation |
-| `governance-matrix-core-impl` | `crates/governance-matrix-core-impl/` | Feature matrix implementation |
 | `governance-runtime-core` | `crates/governance-runtime-core/` | Runtime governance checks |
 | `governance-runtime-reporting` | `crates/governance-runtime-reporting/` | Governance reports |
 | `runtime-governance` | `crates/runtime-governance/` | Runtime governance integration |

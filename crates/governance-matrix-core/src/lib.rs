@@ -1,8 +1,8 @@
-//! Compatibility facade for the governance matrix core implementation.
+//! Compatibility facade for the BDD governance matrix implementation.
 //!
-//! The actual implementation now lives in `adze-governance-matrix-core-impl` so
-//! façade crates can keep this historical crate name while downstream users are
-//! insulated from package reshuffling.
+//! The actual implementation now lives in `adze-bdd-governance-core` so this
+//! historical package name can keep downstream users insulated from package
+//! reshuffling.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
@@ -11,7 +11,7 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-pub use adze_governance_matrix_core_impl::*;
+pub use adze_bdd_governance_core::*;
 
 #[cfg(test)]
 mod tests {
