@@ -26,9 +26,9 @@ ladder as its risk pack justifies — no further.
 | `glr_core` | parser tests, fuzz build smoke, perf compile |
 | `tablegen` | tablegen ABI/canary lanes |
 | `grammar_golden` | golden tests for grammars |
-| `microcrate_governance` | governance/BDD microcrate group |
+| `microcrate_governance` | governance integration tests and BDD governance support |
 | test-policy paths | test hygiene and runtime-cap checks for test-policy changes |
-| `concurrency` | concurrency microcrate group |
+| `concurrency` | concurrency owner-module opt-in; no standalone concurrency microcrates remain |
 | `wasm` | wasm-check |
 | `performance` | quick benchmark compile |
 | `manifest_release` | api-stability advisory |

@@ -2,7 +2,7 @@
 
 Risk packs are the bridge between "what changed" and "what to verify". Each
 pack names a surface (parser, tablegen, grammar/golden, governance,
-concurrency, wasm, performance, manifest/release) and lists the lanes that
+concurrency owner modules, wasm, performance, manifest/release) and lists the lanes that
 should run when that surface is touched.
 
 ## File
@@ -50,7 +50,7 @@ rather than filesystem layout.
 
 ## Updating packs
 
-When adding a new product surface (a new microcrate group, a new grammar
+When adding a new product surface (a new support crate, a new grammar
 implementation, a new runtime layer), add a pack first, then route the
 relevant lanes to it. The PR for the new surface should include the pack
 update; the rollout plan in `docs/ci/adze-rollout-plan.md` describes the

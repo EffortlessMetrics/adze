@@ -80,12 +80,11 @@ AREAS: dict[str, list[str]] = {
         r"^crates/parsetable-metadata/",
     ],
     "governance": [
-        r"^crates/governance",
-        r"^crates/bdd",
+        r"^crates/bdd-governance-core/",
         r"^tests/governance/",
     ],
     "concurrency": [
-        r"^crates/concurrency",
+        r"concurrency_caps",
     ],
     "wasm": [
         r"^wasm-demo/",
@@ -145,7 +144,7 @@ RISK_PACKS: dict[str, dict[str, object]] = {
     },
     "concurrency": {
         "areas": ["concurrency"],
-        "lanes": ["microcrate-ci", "ripr-advisory"],
+        "lanes": ["ci-supported"],
         "deep_lanes": [],
         "labels": ["ci:concurrency", "full-ci"],
     },
@@ -288,28 +287,6 @@ def select_lanes(areas: set[str], packs: list[str], labels: list[str]) -> list[d
     for lane in DEFAULT_LANES:
         add(lane, blocking=lane == "ci-supported", reason="default frontdoor")
 
-    docs_only = areas <= {"docs"} and bool(areas)
-    if not docs_only:
-        # While routing is not live, the existing PR-default heavy lanes still run.
-        # PR Plan reports them so the cost is visible. Mark them as advisory in
-        # the plan body; their actual blocking semantics live in the workflows.
-        for lane in [
-            "ci-main",
-            "core-tests",
-            "criterion-smoke",
-            "ts-bridge-smoke",
-            "ts-bridge-parity",
-            "smoke-ts-bridge",
-            "clippy-quarantine-report",
-            "microcrate-ci",
-            "pure-rust-os-matrix",
-            "golden-tests",
-            "performance-regression",
-            "benchmarks-pr",
-            "fuzz-pr",
-        ]:
-            add(lane, blocking=False, reason="currently default-PR (pre-routing)")
-
     for pack in packs:
         for lane in RISK_PACKS[pack].get("lanes", []):  # type: ignore[union-attr]
             add(str(lane), blocking=False, reason=f"risk pack: {pack}")
@@ -359,8 +336,8 @@ def make_plan(base: str, head: str, labels: list[str]) -> dict[str, object]:
         "selection": {"risk_packs": packs, "lanes": lanes},
         "budget": {"estimated_lem": total, "band": band_for(total)},
         "notes": [
-            "Advisory plan. Routing PRs (10–14) are not yet live, so existing default-PR heavy lanes still run regardless of the plan.",
-            "Static lane LEM values come from policy/ci-lane-whitelist.toml; learned estimates are added later (PR 18).",
+            "Advisory fallback plan. The canonical planner is `cargo run -q -p xtask -- ci-plan`.",
+            "Static lane LEM values are mirrored from policy/ci-lane-whitelist.toml.",
         ],
     }
 

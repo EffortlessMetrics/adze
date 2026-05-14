@@ -1,6 +1,6 @@
 # 0.9 Microcrate To SRP Submodule Transition Plan
 
-Status: active
+Status: complete
 Owner: release/package
 Created: 2026-05-13
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
@@ -19,13 +19,17 @@ This is a release prerequisite, not a documentation preference. A package can
 remain a standalone crate at release only when it is a published surface or a
 durable dev-only/tooling surface with a current owner and proof rationale.
 
+The release-blocking transition is complete as of PR #758. This plan remains as
+the closeout record and as the release-gate contract for keeping migration
+targets out of the release surface.
+
 ## Current State
 
-As of the post-concurrency-collapse workspace:
+As of the post-collapse workspace after PR #758:
 
 ```text
-workspace packages: 45
-owner-module migration targets: 20
+workspace packages: 28
+owner-module migration targets: 0
 ```
 
 The package-boundary ledger is the source of truth for the exact package list.
@@ -48,8 +52,8 @@ owner-module migration targets: 0
 
 ## Work Item: retire-zero-reverse-dependency-facades
 
-Status: active
-Linked PRs: #696, #697
+Status: complete
+Linked PRs: #696, #697, #741, #742, #743, #744, #745, #746, #747, #748, #749, #750, #751
 
 ### Goal
 
@@ -99,7 +103,7 @@ just ci-supported
 
 ## Work Item: governance-to-xtask-srp-submodules
 
-Status: ready
+Status: complete
 Owner: governance/policy
 
 ### Goal
@@ -165,7 +169,7 @@ just ci-supported
 
 ## Work Item: bdd-to-srp-submodules
 
-Status: ready
+Status: complete
 Owner: governance/bdd
 
 ### Goal
@@ -175,7 +179,7 @@ test support module.
 
 ### Candidate Packages
 
-- `adze-bdd-contract`
+No standalone BDD migration targets remain.
 
 ### Completed Packages
 
@@ -227,7 +231,7 @@ just ci-supported
 
 ## Work Item: runtime-governance-to-srp-submodules
 
-Status: ready
+Status: complete
 Owner: runtime-governance
 
 ### Goal
@@ -268,7 +272,7 @@ just ci-supported
 
 ## Work Item: source-location-and-formatting-srp-submodules
 
-Status: ready
+Status: complete
 Owner: diagnostics/source-location and syntax-formatting
 
 ### Goal
@@ -297,13 +301,14 @@ just ci-supported
 
 ## Release Gate
 
-Routine collapse PRs should keep this transition check green:
+Routine collapse or classification PRs should keep this transition check green:
 
 ```bash
 cargo run -q -p xtask -- check-package-boundary
 ```
 
-Before the next release, the stricter release gate must also pass:
+The stricter release gate now passes and must stay green before the next
+release:
 
 ```bash
 cargo run -q -p xtask -- check-package-boundary --release-gate
@@ -315,12 +320,30 @@ The release helper and release workflow pass:
 PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
 ```
 
-Those release-gate checks fail while any
+Those release-gate checks fail if any
 `owner-module-migration-target` entry remains in
 `policy/package-boundary.toml`.
 
 If any migration target remains, release is blocked unless a new accepted ADR
 reclassifies that package as a durable standalone crate.
+
+## Closeout
+
+The transition removed or folded the temporary governance, BDD, runtime
+governance, concurrency, feature-policy, parser-contract, and source-location
+microcrate seams. The only remaining production support crates are durable
+published support surfaces recorded by `ADZE-ADR-0005`:
+
+- `adze-bdd-governance-core`
+- `adze-linecol-core`
+- `adze-parsetable-metadata`
+
+Release readiness is now checked by:
+
+```bash
+cargo run -q -p xtask -- check-package-boundary --release-gate
+PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh
+```
 
 ## Rollback
 

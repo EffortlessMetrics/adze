@@ -39,10 +39,12 @@ and review cycle for each single-document branch.
 Superseded stacked PRs #683 through #686 were closed after #692 landed.
 
 The microcrate-to-SRP submodule transition is tracked in
-`microcrate-collapse.md` and blocks the next release. The API foundation spec stack is tracked separately in
-`api-foundation.md`. It encodes the runtime/API build sequence so follow-up
-implementation PRs can be executed from source-of-truth artifacts rather than
-chat history.
+`microcrate-collapse.md`. That release blocker is complete as of PR #758: no
+`owner-module-migration-target` entries remain and the package-boundary release
+gate is expected to stay green. The API foundation spec stack is tracked
+separately in `api-foundation.md`. It encodes the runtime/API build sequence so
+follow-up implementation PRs can be executed from source-of-truth artifacts
+rather than chat history.
 
 ## Work Item: source-of-truth-scaffolding
 
@@ -375,7 +377,7 @@ until a replacement policy lands.
 
 ## Work Item: microcrate-collapse
 
-Status: active
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0001-package-surface-boundary.md
 Linked ADR: ../../docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md
@@ -390,8 +392,10 @@ tooling module that actually owns the behavior. This is a next-release blocker.
 
 ### Production Delta
 
-Later PRs may change workspace membership, module ownership, crate imports,
-policy ledgers, CI routing, and docs that name package boundaries.
+Owner-sized PRs changed workspace membership, module ownership, crate imports,
+policy ledgers, CI routing, and docs that name package boundaries. The remaining
+standalone production support crates are explicit published support surfaces
+recorded by `ADZE-ADR-0005`.
 
 ### Non-Goals
 
@@ -399,11 +403,11 @@ No opportunistic parser behavior changes or support-tier promotion.
 
 ### Acceptance
 
-Each package-collapse PR removes a documented migration target, moves it into an
-SRP submodule, or reclassifies it with a new accepted ADR. The supported gate
-remains green. The next release is blocked while unresolved migration targets
-remain in `../../policy/package-boundary.toml`; the release-only proof is
-`cargo run -q -p xtask -- check-package-boundary --release-gate`.
+Each package-collapse PR removed a documented migration target, moved it into an
+SRP submodule, or reclassified it with a new accepted ADR. The supported gate
+remained green. The next release is blocked if any new unresolved migration
+target appears in `../../policy/package-boundary.toml`; the release-only proof
+is `cargo run -q -p xtask -- check-package-boundary --release-gate`.
 
 ### Proof Commands
 
@@ -414,7 +418,7 @@ just check-msrv
 just ci-supported
 ```
 
-Release-candidate proof, expected to fail until the migration is complete:
+Release-candidate proof:
 
 ```bash
 cargo run -q -p xtask -- check-package-boundary --release-gate
@@ -428,12 +432,12 @@ entry.
 
 ## Work Item: rust-1.95-msrv-bump
 
-Status: blocked
+Status: ready
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec:
 Linked ADR:
 Blocks: clippy-policy-refresh
-Blocked by: microcrate-collapse
+Blocked by: none
 
 ### Goal
 

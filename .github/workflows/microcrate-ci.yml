@@ -64,9 +64,9 @@ jobs:
           for k in concurrency governance bdd parser core runtime; do
             v=false
             case "$k" in
-              concurrency) match '^crates/concurrency' && v=true ;;
-              governance) match '^(crates/governance|crates/bdd|tests/governance|crates/runtime-governance)' && v=true ;;
-              bdd) match '^crates/bdd' && v=true ;;
+              concurrency) match '^runtime/src/concurrency_caps' && v=true ;;
+              governance) match '^tests/governance/' && v=true ;;
+              bdd) match '^(crates/bdd-governance-core/|glr-test-support/)' && v=true ;;
               parser) match '^(crates/parser-|crates/linecol-core|crates/parsetable-metadata|glr-core/|tablegen/)' && v=true ;;
               core) match '^(ir/|glr-core/|tablegen/|common/)' && v=true ;;
               runtime) match '^(runtime/|runtime2/|macro/|tool/|cli/)' && v=true ;;
@@ -145,7 +145,6 @@ jobs:
           BOTH_CRATES=(
             adze-glr-core
             adze-tablegen
-            adze-governance-runtime-core
             adze-bdd-governance-core
             adze-linecol-core
             adze-parsetable-metadata
@@ -214,7 +213,7 @@ jobs:
       - name: Test governance crates
         run: |
           cargo test \
-            -p adze-governance-runtime-core \
+            -p governance-integration-tests \
             -- --test-threads=$RUST_TEST_THREADS
 
   test-bdd:
