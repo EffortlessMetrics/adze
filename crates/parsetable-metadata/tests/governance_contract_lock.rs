@@ -1,7 +1,7 @@
 //! Contract lock test - verifies that public API remains stable.
 
 use adze_bdd_governance_core::ParserFeatureProfile;
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 type ParserFeatureProfileSnapshotNewFn = fn(bool, bool, bool, bool) -> ParserFeatureProfileSnapshot;
 type GovernanceMetadataWithCountsFn = fn(String, usize, usize, String) -> GovernanceMetadata;

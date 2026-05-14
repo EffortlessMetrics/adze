@@ -9,8 +9,10 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-/// Re-exported governance types used in `.parsetable` metadata payloads.
-pub use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+/// Governance metadata embedded in `.parsetable` metadata payloads.
+pub mod governance;
+
+pub use governance::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 use serde::{Deserialize, Serialize};
 
 /// Magic number identifying .parsetable files: "RSPT".

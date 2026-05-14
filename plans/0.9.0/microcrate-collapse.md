@@ -108,7 +108,6 @@ single policy owner that consumes them.
 
 ### Candidate Packages
 
-- `adze-governance-metadata`
 - `adze-governance-runtime-core`
 
 ### Completed Packages
@@ -126,6 +125,8 @@ single policy owner that consumes them.
 - `adze-governance-runtime-reporting` collapsed into
   `adze-governance-runtime-core`; runtime report formatting is now owned by the
   remaining runtime governance core.
+- `adze-governance-metadata` moved into
+  `adze-parsetable-metadata::governance`.
 
 ### Proof Commands
 

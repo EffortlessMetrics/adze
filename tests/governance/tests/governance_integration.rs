@@ -1,14 +1,13 @@
 //! Cross-crate governance pipeline integration tests.
 //!
 //! Validates the end-to-end flow:
-//!   bdd-governance-core feature policy → governance-metadata → parsetable-metadata
+//!   bdd-governance-core feature policy → parsetable-metadata governance module → parsetable-metadata
 //!   bdd-governance-core grid → governance-runtime-core reporting
 
 use adze_bdd_governance_core::ParserFeatureProfile;
 use adze_bdd_governance_core::{
     BddPhase, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress, bdd_progress_report,
 };
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 use adze_governance_runtime_core::bdd_progress_report_with_profile_runtime;
 use adze_governance_runtime_core::{
     bdd_governance_matrix_for_profile, bdd_progress_report_for_profile, resolve_backend_for_profile,
@@ -17,6 +16,7 @@ use adze_parsetable_metadata::{
     FeatureFlags, GenerationInfo, GrammarInfo, METADATA_SCHEMA_VERSION, ParsetableMetadata,
     TableStatistics,
 };
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -106,7 +106,7 @@ fn tree_sitter_profile_backend_resolution() {
 }
 
 // ===================================================================
-// 2. bdd-governance-core feature policy → governance-metadata snapshot roundtrip
+// 2. bdd-governance-core feature policy → parsetable-metadata governance module snapshot roundtrip
 // ===================================================================
 
 #[test]
@@ -133,7 +133,7 @@ fn snapshot_serialization_roundtrip() {
 }
 
 // ===================================================================
-// 3. governance-metadata: GovernanceMetadata from BDD grid
+// 3. parsetable-metadata governance module: GovernanceMetadata from BDD grid
 // ===================================================================
 
 #[test]
@@ -318,7 +318,7 @@ fn end_to_end_glr_governance_pipeline() {
     // Step 1: Create a profile (bdd-governance-core feature policy)
     let profile = glr_profile();
 
-    // Step 2: Convert to snapshot (governance-metadata)
+    // Step 2: Convert to snapshot (parsetable-metadata governance module)
     let snapshot = ParserFeatureProfileSnapshot::from_profile(profile);
     assert_eq!(snapshot.as_profile(), profile);
 

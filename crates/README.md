@@ -28,13 +28,12 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 | [`bdd-governance-core`](bdd-governance-core) | Core implementation of BDD governance |
 | [`bdd-grammar-fixtures`](bdd-grammar-fixtures) | Test fixtures for grammar BDD scenarios |
 
-### Governance (2 crates)
+### Governance (1 crate)
 
 Parser backend selection, metadata management, and policy enforcement.
 
 | Crate | Purpose |
 |-------|---------|
-| [`governance-metadata`](governance-metadata) | Metadata structures for governance |
 | [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
 
 ### Utilities (3 crates)
@@ -44,7 +43,7 @@ Shared utilities, metadata, and support structures.
 | Crate | Purpose |
 |-------|---------|
 | [`linecol-core`](linecol-core) | Line/column byte-position tracking |
-| [`parsetable-metadata`](parsetable-metadata) | Parse table metadata structures |
+| [`parsetable-metadata`](parsetable-metadata) | Parse table and governance metadata structures |
 | [`ts-c-harness`](ts-c-harness) | Tree-sitter C FFI test harness *(excluded from workspace)* |
 
 ## Dependency Graph

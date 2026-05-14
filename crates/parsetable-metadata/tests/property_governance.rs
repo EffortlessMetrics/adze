@@ -1,9 +1,9 @@
-//! Property-based tests for governance-metadata.
+//! Property-based tests for parsetable-metadata governance module.
 
 use proptest::prelude::*;
 
 use adze_bdd_governance_core::ParserFeatureProfile;
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 // ---------------------------------------------------------------------------
 // Strategies

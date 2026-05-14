@@ -1,5 +1,5 @@
 // Comprehensive tests for governance metadata types
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 // ---------------------------------------------------------------------------
 // ParserFeatureProfileSnapshot

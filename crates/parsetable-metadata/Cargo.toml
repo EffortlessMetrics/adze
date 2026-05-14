@@ -17,7 +17,7 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-governance-metadata = { version = "0.1.0", path = "../governance-metadata" }
+adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
@@ -29,4 +29,8 @@ proptest = { workspace = true }
 
 [[bench]]
 name = "metadata_bench"
+harness = false
+
+[[bench]]
+name = "governance_bench"
 harness = false

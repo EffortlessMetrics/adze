@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```
-/// use adze_governance_metadata::ParserFeatureProfileSnapshot;
+/// use adze_parsetable_metadata::ParserFeatureProfileSnapshot;
 ///
 /// let snap = ParserFeatureProfileSnapshot::new(true, false, true, false);
 /// assert!(snap.pure_rust);
@@ -45,7 +45,7 @@ impl ParserFeatureProfileSnapshot {
     /// # Examples
     ///
     /// ```
-    /// use adze_governance_metadata::ParserFeatureProfileSnapshot;
+    /// use adze_parsetable_metadata::ParserFeatureProfileSnapshot;
     ///
     /// let snap = ParserFeatureProfileSnapshot::new(false, true, false, true);
     /// assert!(!snap.pure_rust);
@@ -72,7 +72,7 @@ impl ParserFeatureProfileSnapshot {
     /// # Examples
     ///
     /// ```
-    /// use adze_governance_metadata::ParserFeatureProfileSnapshot;
+    /// use adze_parsetable_metadata::ParserFeatureProfileSnapshot;
     /// use adze_bdd_governance_core::ParserFeatureProfile;
     ///
     /// let profile = ParserFeatureProfile {
@@ -149,7 +149,7 @@ fn env_flag(names: &[&str]) -> bool {
 /// # Examples
 ///
 /// ```
-/// use adze_governance_metadata::GovernanceMetadata;
+/// use adze_parsetable_metadata::GovernanceMetadata;
 ///
 /// let meta = GovernanceMetadata::with_counts("core", 5, 8, "core:5/8");
 /// assert_eq!(meta.implemented, 5);
@@ -174,7 +174,7 @@ impl GovernanceMetadata {
     /// # Examples
     ///
     /// ```
-    /// use adze_governance_metadata::GovernanceMetadata;
+    /// use adze_parsetable_metadata::GovernanceMetadata;
     ///
     /// let done = GovernanceMetadata::with_counts("rt", 8, 8, "rt:8/8");
     /// assert!(done.is_complete());
@@ -192,7 +192,7 @@ impl GovernanceMetadata {
     /// # Examples
     ///
     /// ```
-    /// use adze_governance_metadata::GovernanceMetadata;
+    /// use adze_parsetable_metadata::GovernanceMetadata;
     ///
     /// let meta = GovernanceMetadata::with_counts("runtime", 6, 8, "runtime:6/8");
     /// assert_eq!(meta.phase, "runtime");

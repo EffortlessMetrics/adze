@@ -1,9 +1,9 @@
 //! Serde JSON roundtrip tests for all serializable types in parsetable-metadata.
 
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 use adze_parsetable_metadata::{
     FeatureFlags, GenerationInfo, GrammarInfo, ParsetableMetadata, TableStatistics,
 };
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 fn sample_grammar_info() -> GrammarInfo {
     GrammarInfo {
