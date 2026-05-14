@@ -53,7 +53,6 @@ Runtime-facing governance helpers and progress reporting.
 
 | Crate | Purpose |
 |-------|---------|
-| [`runtime-governance`](runtime-governance) | Runtime-facing governance helpers |
 | [`runtime-governance-matrix`](runtime-governance-matrix) | Runtime governance matrix implementation |
 
 ### Utilities (5 crates)
