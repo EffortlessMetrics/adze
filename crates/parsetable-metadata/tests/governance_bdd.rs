@@ -1,11 +1,11 @@
-//! BDD-style tests for governance-metadata crate.
+//! BDD-style tests for parsetable-metadata governance module crate.
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
 
 use adze_bdd_governance_core::{
     BddPhase, BddScenario, BddScenarioStatus, ParserBackend, ParserFeatureProfile,
 };
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 #[test]
 fn given_all_flags_true_when_creating_snapshot_then_all_fields_are_true() {

@@ -1,6 +1,6 @@
-//! Serde JSON roundtrip tests for all serializable types in governance-metadata.
+//! Serde JSON roundtrip tests for all serializable types in parsetable-metadata governance module.
 
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 // --- ParserFeatureProfileSnapshot ---
 

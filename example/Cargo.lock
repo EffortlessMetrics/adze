@@ -66,14 +66,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adze-governance-metadata"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-core",
- "serde",
-]
-
-[[package]]
 name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
@@ -109,7 +101,7 @@ dependencies = [
 name = "adze-parsetable-metadata"
 version = "0.1.0"
 dependencies = [
- "adze-governance-metadata",
+ "adze-bdd-governance-core",
  "serde",
  "serde_json",
  "thiserror",

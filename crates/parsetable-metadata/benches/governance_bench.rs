@@ -2,7 +2,7 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 
 use adze_bdd_governance_core::ParserFeatureProfile;
-use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use adze_parsetable_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 fn sample_profile_snapshot() -> ParserFeatureProfileSnapshot {
     ParserFeatureProfileSnapshot::new(true, false, true, false)
