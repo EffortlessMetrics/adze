@@ -32,6 +32,7 @@ pub struct AdzeDocument {
     source: String,
     root: ParseNode,
     node_index: Vec<NodeIndex>,
+    syntax: SyntaxTree,
     language: LanguageMetadata,
     diagnostics: Vec<ParseDiagnostic>,
     ambiguities: Vec<crate::glr_parser::AmbiguitySummary>,
@@ -84,17 +85,21 @@ impl AdzeDocument {
         ambiguities: Vec<crate::glr_parser::AmbiguitySummary>,
     ) -> Self {
         let node_index = build_node_index(&root);
+        let language = LanguageMetadata::from_runtime(
+            runtime.language_name,
+            runtime.grammar,
+            runtime.parse_table,
+        );
+        let syntax =
+            SyntaxTree::from_parse_root(&root, source, &language, error_count, &node_index);
         let mut diagnostics = diagnostics;
         attach_related_nodes(&root, &mut diagnostics);
         Self {
             source: source.to_string(),
             root,
             node_index,
-            language: LanguageMetadata::from_runtime(
-                runtime.language_name,
-                runtime.grammar,
-                runtime.parse_table,
-            ),
+            syntax,
+            language,
             diagnostics,
             ambiguities,
             metadata: ParseMetadata { error_count },
@@ -288,18 +293,6 @@ impl AdzeDocument {
         Some(node)
     }
 
-    fn child_id(&self, node_id: NodeId, child_index: usize) -> Option<NodeId> {
-        self.node_index
-            .get(node_id.as_usize())?
-            .child_ids
-            .get(child_index)
-            .copied()
-    }
-
-    fn parent_id(&self, node_id: NodeId) -> Option<NodeId> {
-        self.node_index.get(node_id.as_usize())?.parent_id
-    }
-
     fn typed_ast_extraction_target(&self) -> TypedAstExtractionTarget {
         let root = self.tree().root();
         if root.kind_name() != Some("source_file") {
@@ -460,6 +453,212 @@ struct NodeIndex {
     path: Vec<usize>,
     parent_id: Option<NodeId>,
     child_ids: Vec<NodeId>,
+}
+
+/// Direct selected-tree storage for an [`AdzeDocument`].
+///
+/// This is the alpha v2 storage layer behind the borrowed [`AdzeTree`] view.
+/// It records document-local node and edge facts directly so future typed CST,
+/// diagnostics, JSON, and Tree-sitter compatibility projections do not need to
+/// infer structure from recursive tree path replay.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SyntaxTree {
+    root_id: NodeId,
+    nodes: Vec<NodeRecord>,
+    edges: Vec<EdgeRecord>,
+    parents: Vec<Option<NodeId>>,
+}
+
+impl SyntaxTree {
+    fn from_parse_root(
+        root: &ParseNode,
+        source: &str,
+        language: &LanguageMetadata,
+        error_count: usize,
+        node_index: &[NodeIndex],
+    ) -> Self {
+        let mut nodes = Vec::new();
+        collect_node_records(root, source, language, error_count, true, &mut nodes);
+
+        let mut tree = Self {
+            root_id: NodeId::new(0),
+            nodes,
+            edges: Vec::new(),
+            parents: node_index.iter().map(|index| index.parent_id).collect(),
+        };
+        collect_edge_records(root, tree.root_id, node_index, language, &mut tree);
+        tree
+    }
+
+    /// Return the document-local root node id.
+    pub fn root_id(&self) -> NodeId {
+        self.root_id
+    }
+
+    /// Return the number of direct node records in this tree.
+    pub fn node_count(&self) -> usize {
+        self.nodes.len()
+    }
+
+    /// Return the number of direct parent-to-child edge records.
+    pub fn edge_count(&self) -> usize {
+        self.edges.len()
+    }
+
+    /// Return the direct record for a document-local node id.
+    pub fn node_record(&self, node_id: NodeId) -> Option<&NodeRecord> {
+        self.nodes.get(node_id.as_usize())
+    }
+
+    /// Return the direct record for an edge index.
+    pub fn edge_record(&self, edge_index: usize) -> Option<&EdgeRecord> {
+        self.edges.get(edge_index)
+    }
+
+    /// Return the parent id for a document-local node id.
+    pub fn parent_id(&self, node_id: NodeId) -> Option<NodeId> {
+        self.parents.get(node_id.as_usize()).copied().flatten()
+    }
+
+    /// Return a child edge record by parent node id and child index.
+    pub fn child_edge_record(&self, parent_id: NodeId, child_index: usize) -> Option<&EdgeRecord> {
+        let parent = self.node_record(parent_id)?;
+        self.edges
+            .get(parent.edge_range().get(child_index)?)
+            .filter(|edge| edge.parent_id == parent_id && edge.child_index == child_index)
+    }
+
+    /// Return the edge record connecting a parent to a child, if one exists.
+    pub fn parent_edge_record(&self, child_id: NodeId) -> Option<&EdgeRecord> {
+        let parent_id = self.parent_id(child_id)?;
+        let parent = self.node_record(parent_id)?;
+        self.edges[parent.edge_range().as_range()]
+            .iter()
+            .find(|edge| edge.child_id == child_id)
+    }
+}
+
+/// Contiguous edge range owned by one [`NodeRecord`].
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct EdgeRange {
+    start: usize,
+    len: usize,
+}
+
+impl EdgeRange {
+    /// Construct an edge range from a start index and edge count.
+    pub fn new(start: usize, len: usize) -> Self {
+        Self { start, len }
+    }
+
+    /// Return the first edge index in this range.
+    pub fn start(self) -> usize {
+        self.start
+    }
+
+    /// Return the number of edges in this range.
+    pub fn len(self) -> usize {
+        self.len
+    }
+
+    /// Return whether this range contains no edges.
+    pub fn is_empty(self) -> bool {
+        self.len == 0
+    }
+
+    /// Return the exclusive end edge index.
+    pub fn end(self) -> usize {
+        self.start + self.len
+    }
+
+    /// Return this edge range as a standard Rust range.
+    pub fn as_range(self) -> Range<usize> {
+        self.start()..self.end()
+    }
+
+    fn get(self, child_index: usize) -> Option<usize> {
+        (child_index < self.len).then_some(self.start + child_index)
+    }
+}
+
+/// Direct facts for one selected-tree node.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NodeRecord {
+    visible_id: SymbolId,
+    grammar_id: SymbolId,
+    byte_range: Range<usize>,
+    point_range: PointRange,
+    edge_range: EdgeRange,
+    alias_symbol_id: Option<SymbolId>,
+    flags: NodeFlags,
+}
+
+impl NodeRecord {
+    /// Return the alias-visible kind id for this node.
+    pub fn visible_id(&self) -> SymbolId {
+        self.visible_id
+    }
+
+    /// Return the grammar kind id for this node, ignoring aliases.
+    pub fn grammar_id(&self) -> SymbolId {
+        self.grammar_id
+    }
+
+    /// Return the source byte range for this node.
+    pub fn byte_range(&self) -> Range<usize> {
+        self.byte_range.clone()
+    }
+
+    /// Return the zero-based point range for this node.
+    pub fn point_range(&self) -> PointRange {
+        self.point_range
+    }
+
+    /// Return this node's contiguous child-edge range.
+    pub fn edge_range(&self) -> EdgeRange {
+        self.edge_range
+    }
+
+    /// Return the alias symbol id applied to this node, if one exists.
+    pub fn alias_symbol_id(&self) -> Option<SymbolId> {
+        self.alias_symbol_id
+    }
+
+    /// Return direct structural flags for this node.
+    pub fn flags(&self) -> NodeFlags {
+        self.flags
+    }
+}
+
+/// Direct facts for one selected-tree parent-to-child edge.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EdgeRecord {
+    parent_id: NodeId,
+    child_id: NodeId,
+    child_index: usize,
+    field_id: Option<FieldId>,
+}
+
+impl EdgeRecord {
+    /// Return the parent node id for this edge.
+    pub fn parent_id(&self) -> NodeId {
+        self.parent_id
+    }
+
+    /// Return the child node id for this edge.
+    pub fn child_id(&self) -> NodeId {
+        self.child_id
+    }
+
+    /// Return the child index within the parent.
+    pub fn child_index(&self) -> usize {
+        self.child_index
+    }
+
+    /// Return the public field id attached to this edge, if any.
+    pub fn field_id(&self) -> Option<FieldId> {
+        self.field_id
+    }
 }
 
 /// Native language metadata attached to a parse document.
@@ -716,7 +915,7 @@ impl<'doc> NodeIdentity<'doc> {
 /// metadata. They are the native source for generated typed CST wrappers and
 /// Tree-sitter-compatible projections that need named/extra/error/missing
 /// behavior without inventing local adapter state.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct NodeFlags {
     named: bool,
     visible: bool,
@@ -930,12 +1129,27 @@ impl<'doc> AdzeTree<'doc> {
 
     /// Return the root node id.
     pub fn root_id(&self) -> NodeId {
-        NodeId::new(0)
+        self.document.syntax.root_id()
     }
 
     /// Return the number of indexed nodes in this tree.
     pub fn node_count(&self) -> usize {
-        self.document.node_index.len()
+        self.document.syntax.node_count()
+    }
+
+    /// Return the number of direct parent-to-child edges in this tree.
+    pub fn edge_count(&self) -> usize {
+        self.document.syntax.edge_count()
+    }
+
+    /// Return the direct selected-tree record for a node id.
+    pub fn node_record(&self, node_id: NodeId) -> Option<&'doc NodeRecord> {
+        self.document.syntax.node_record(node_id)
+    }
+
+    /// Return the direct selected-tree record for an edge index.
+    pub fn edge_record(&self, edge_index: usize) -> Option<&'doc EdgeRecord> {
+        self.document.syntax.edge_record(edge_index)
     }
 
     /// Return a node by document-local id.
@@ -981,15 +1195,34 @@ impl<'doc> AdzeNode<'doc> {
         self.id
     }
 
+    /// Return this node's direct selected-tree record.
+    pub fn record(&self) -> &'doc NodeRecord {
+        self.document
+            .syntax
+            .node_record(self.id)
+            .expect("AdzeNode ids are created only from indexed document records")
+    }
+
     /// Return this node's parent id, if it is not the root.
     pub fn parent_id(&self) -> Option<NodeId> {
-        self.document.parent_id(self.id)
+        self.document.syntax.parent_id(self.id)
     }
 
     /// Return this node's parent, if it is not the root.
     pub fn parent(&self) -> Option<AdzeNode<'doc>> {
         self.parent_id()
             .and_then(|parent_id| self.document.tree().node(parent_id))
+    }
+
+    /// Return the edge that connects this node to its parent.
+    pub fn parent_edge(&self) -> Option<AdzeEdge<'doc>> {
+        self.document
+            .syntax
+            .parent_edge_record(self.id)
+            .map(|record| AdzeEdge {
+                document: self.document,
+                record,
+            })
     }
 
     /// Return metadata for this node's kind, when known.
@@ -1008,18 +1241,15 @@ impl<'doc> AdzeNode<'doc> {
     /// identity so compatibility projections can expose Tree-sitter-style
     /// aliases without losing the original grammar symbol.
     pub fn identity(&self) -> NodeIdentity<'doc> {
-        let grammar_kind = self.kind();
+        let record = self.record();
+        let grammar_kind = self.document.language.symbol(record.grammar_id());
         let grammar_name = grammar_kind.map(NodeKind::name);
         let grammar_is_named = grammar_kind.map(NodeKind::is_named).unwrap_or(false);
-        let alias_kind = self
-            .node
-            .alias_symbol_id
+        let alias_kind = record
+            .alias_symbol_id()
             .and_then(|alias_symbol_id| self.document.language.symbol(alias_symbol_id));
         let visible_kind = alias_kind.or(grammar_kind);
-        let visible_id = self
-            .node
-            .alias_symbol_id
-            .unwrap_or_else(|| self.symbol_id());
+        let visible_id = record.visible_id();
         let visible_name = visible_kind.map(NodeKind::name);
         let visible_is_named = visible_kind
             .map(NodeKind::is_named)
@@ -1027,10 +1257,10 @@ impl<'doc> AdzeNode<'doc> {
 
         NodeIdentity {
             visible_id,
-            grammar_id: self.symbol_id(),
+            grammar_id: record.grammar_id(),
             visible_name,
             grammar_name,
-            alias_symbol_id: self.node.alias_symbol_id,
+            alias_symbol_id: record.alias_symbol_id(),
             visible_is_named,
             grammar_is_named,
         }
@@ -1058,27 +1288,27 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return the node's grammar symbol id.
     pub fn symbol_id(&self) -> SymbolId {
-        self.node.symbol_id
+        self.record().grammar_id()
     }
 
     /// Return the start byte for this node.
     pub fn start_byte(&self) -> usize {
-        self.node.start_byte
+        self.record().byte_range().start
     }
 
     /// Return the end byte for this node.
     pub fn end_byte(&self) -> usize {
-        self.node.end_byte
+        self.record().byte_range().end
     }
 
     /// Return the byte range for this node.
     pub fn byte_range(&self) -> Range<usize> {
-        self.start_byte()..self.end_byte()
+        self.record().byte_range()
     }
 
     /// Return this node's zero-based point range.
     pub fn point_range(&self) -> PointRange {
-        PointRange::from_byte_range(self.document.source_text(), self.byte_range())
+        self.record().point_range()
     }
 
     /// Return this node's source text if the byte range is valid UTF-8.
@@ -1093,13 +1323,12 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return the field name attached to this node's parent edge, if any.
     pub fn field_name(&self) -> Option<&'doc str> {
-        self.node.field_name.as_deref()
+        self.parent_edge().and_then(|edge| edge.field_name())
     }
 
     /// Return the public field id attached to this node's parent edge, if any.
     pub fn field_id(&self) -> Option<FieldId> {
-        self.field_name()
-            .and_then(|field_name| self.document.language().field_id_for_name(field_name))
+        self.parent_edge().and_then(|edge| edge.field_id())
     }
 
     /// Return the number of direct children.
@@ -1114,18 +1343,11 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return a child edge by index.
     pub fn child_edge(&self, index: usize) -> Option<AdzeEdge<'doc>> {
-        let child = self.node.children.get(index)?;
-        let child_id = self.document.child_id(self.id, index)?;
+        self.node.children.get(index)?;
+        let record = self.document.syntax.child_edge_record(self.id, index)?;
         Some(AdzeEdge {
             document: self.document,
-            parent_id: self.id,
-            child_index: index,
-            child_id,
-            field_name: child.field_name.as_deref(),
-            field_id: child
-                .field_name
-                .as_deref()
-                .and_then(|field_name| self.document.language().field_id_for_name(field_name)),
+            record,
         })
     }
 
@@ -1164,21 +1386,7 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return native structural flags for this node.
     pub fn flags(&self) -> NodeFlags {
-        let kind = self.visible_kind();
-        let error = self.node_local_is_error();
-        let missing = self.node_local_is_missing(error);
-        let has_error = self.subtree_has_error(error);
-
-        NodeFlags {
-            named: self.identity().visible_is_named(),
-            visible: kind.map(NodeKind::is_visible).unwrap_or(false),
-            extra: kind.map(NodeKind::is_extra).unwrap_or(false),
-            terminal: kind.map(NodeKind::is_terminal).unwrap_or(false),
-            supertype: kind.map(NodeKind::is_supertype).unwrap_or(false),
-            error,
-            missing,
-            has_error,
-        }
+        self.record().flags()
     }
 
     /// Return whether this node is named according to language metadata.
@@ -1214,36 +1422,17 @@ impl<'doc> AdzeNode<'doc> {
 
     /// Return whether this node is a local synthetic error node.
     pub fn is_error(&self) -> bool {
-        self.node_local_is_error()
+        self.flags().is_error()
     }
 
     /// Return whether this node is a zero-width synthetic missing node.
     pub fn is_missing(&self) -> bool {
-        self.node_local_is_missing(self.node_local_is_error())
+        self.flags().is_missing()
     }
 
     /// Return whether this node or its descendants carry error state.
     pub fn has_error(&self) -> bool {
-        self.subtree_has_error(self.node_local_is_error())
-    }
-
-    fn node_local_is_error(&self) -> bool {
-        self.node.symbol.0 == 0 && self.node.children.is_empty()
-    }
-
-    fn node_local_is_missing(&self, is_error: bool) -> bool {
-        self.start_byte() == self.end_byte() && is_error
-    }
-
-    fn subtree_has_error(&self, is_error: bool) -> bool {
-        is_error
-            || (std::ptr::eq(self.node, &self.document.root)
-                && self.document.metadata.error_count > 0)
-            || (0..self.child_count()).any(|index| {
-                self.child(index)
-                    .map(|child| child.has_error())
-                    .unwrap_or(false)
-            })
+        self.flags().has_error()
     }
 
     /// Return diagnostics directly related to this node.
@@ -1264,42 +1453,45 @@ impl<'doc> AdzeNode<'doc> {
 #[derive(Clone, Copy, Debug)]
 pub struct AdzeEdge<'doc> {
     document: &'doc AdzeDocument,
-    parent_id: NodeId,
-    child_index: usize,
-    child_id: NodeId,
-    field_name: Option<&'doc str>,
-    field_id: Option<FieldId>,
+    record: &'doc EdgeRecord,
 }
 
 impl<'doc> AdzeEdge<'doc> {
+    /// Return this edge's direct selected-tree record.
+    pub fn record(&self) -> &'doc EdgeRecord {
+        self.record
+    }
+
     /// Return the parent node id for this edge.
     pub fn parent_id(&self) -> NodeId {
-        self.parent_id
+        self.record.parent_id()
     }
 
     /// Return this edge's child index within its parent.
     pub fn child_index(&self) -> usize {
-        self.child_index
+        self.record.child_index()
     }
 
     /// Return the child node id for this edge.
     pub fn child_id(&self) -> NodeId {
-        self.child_id
+        self.record.child_id()
     }
 
     /// Return the child node for this edge.
     pub fn child(&self) -> Option<AdzeNode<'doc>> {
-        self.document.tree().node(self.child_id)
+        self.document.tree().node(self.record.child_id())
     }
 
     /// Return the field name attached to this edge, if any.
     pub fn field_name(&self) -> Option<&'doc str> {
-        self.field_name
+        self.record
+            .field_id()
+            .and_then(|field_id| self.document.language().field_name_for_id(field_id.get()))
     }
 
     /// Return the public field id attached to this edge, if any.
     pub fn field_id(&self) -> Option<FieldId> {
-        self.field_id
+        self.record.field_id()
     }
 }
 
@@ -1646,6 +1838,93 @@ fn build_node_index(root: &ParseNode) -> Vec<NodeIndex> {
     let mut path = Vec::new();
     collect_node_index(root, &mut path, &mut index);
     index
+}
+
+fn collect_node_records(
+    node: &ParseNode,
+    source: &str,
+    language: &LanguageMetadata,
+    error_count: usize,
+    is_root: bool,
+    nodes: &mut Vec<NodeRecord>,
+) -> bool {
+    let id = NodeId::new(nodes.len());
+    let grammar_id = node.symbol_id;
+    let alias_symbol_id = node.alias_symbol_id;
+    let visible_id = alias_symbol_id.unwrap_or(grammar_id);
+
+    nodes.push(NodeRecord {
+        visible_id,
+        grammar_id,
+        byte_range: node.start_byte..node.end_byte,
+        point_range: PointRange::from_byte_range(source, node.start_byte..node.end_byte),
+        edge_range: EdgeRange::default(),
+        alias_symbol_id,
+        flags: NodeFlags::default(),
+    });
+
+    let mut child_has_error = false;
+    for child in &node.children {
+        child_has_error |= collect_node_records(child, source, language, error_count, false, nodes);
+    }
+
+    let error = is_error_parse_node(node);
+    let missing = node.start_byte == node.end_byte && error;
+    let has_error = error || child_has_error || (is_root && error_count > 0);
+    let kind = language.symbol(visible_id);
+    nodes[id.as_usize()].flags = NodeFlags {
+        named: kind.map(NodeKind::is_named).unwrap_or(false),
+        visible: kind.map(NodeKind::is_visible).unwrap_or(false),
+        extra: kind.map(NodeKind::is_extra).unwrap_or(false),
+        terminal: kind.map(NodeKind::is_terminal).unwrap_or(false),
+        supertype: kind.map(NodeKind::is_supertype).unwrap_or(false),
+        error,
+        missing,
+        has_error,
+    };
+
+    has_error
+}
+
+fn collect_edge_records(
+    node: &ParseNode,
+    node_id: NodeId,
+    node_index: &[NodeIndex],
+    language: &LanguageMetadata,
+    tree: &mut SyntaxTree,
+) {
+    let edge_start = tree.edges.len();
+    let child_ids = node_index
+        .get(node_id.as_usize())
+        .map(|index| index.child_ids.as_slice())
+        .unwrap_or(&[]);
+
+    for (child_index, child) in node.children.iter().enumerate() {
+        let Some(child_id) = child_ids.get(child_index).copied() else {
+            continue;
+        };
+        tree.edges.push(EdgeRecord {
+            parent_id: node_id,
+            child_id,
+            child_index,
+            field_id: child
+                .field_name
+                .as_deref()
+                .and_then(|field_name| language.field_id_for_name(field_name)),
+        });
+    }
+
+    let edge_len = tree.edges.len().saturating_sub(edge_start);
+    if let Some(record) = tree.nodes.get_mut(node_id.as_usize()) {
+        record.edge_range = EdgeRange::new(edge_start, edge_len);
+    }
+
+    for (child_index, child) in node.children.iter().enumerate() {
+        let Some(child_id) = child_ids.get(child_index).copied() else {
+            continue;
+        };
+        collect_edge_records(child, child_id, node_index, language, tree);
+    }
 }
 
 fn collect_node_index(

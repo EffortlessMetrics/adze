@@ -78,9 +78,10 @@ Revert the docs/policy PR. No runtime behavior changes need rollback.
 
 ## Work Item: document-model-alpha-v2
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0003-canonical-parse-document.md
 Blocked by: none
+PR: #765
 
 ### Goal
 
@@ -101,6 +102,7 @@ parse-node paths.
 
 ```bash
 cargo test -p adze --features "pure-rust,ts-compat" --test adze_document_alpha -- --nocapture
+cargo clippy -p adze --features "pure-rust,ts-compat" --all-targets -- -D warnings
 git diff --check
 ```
 
@@ -112,7 +114,7 @@ Remove the new document model changes and tests.
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0003-canonical-parse-document.md
-Blocked by: document-model-alpha-v2
+Blocked by: none
 
 ### Goal
 
@@ -206,7 +208,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md
-Blocked by: document-model-alpha-v2
+Blocked by: none
 
 ### Goal
 
@@ -242,7 +244,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0008-json-cli-wasm-projections.md
-Blocked by: document-model-alpha-v2
+Blocked by: none
 
 ### Goal
 
@@ -260,7 +262,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0010-language-metadata-and-node-types.md
-Blocked by: document-model-alpha-v2
+Blocked by: none
 
 ### Goal
 

@@ -119,6 +119,14 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(tree.language().name(), lang.name.as_str());
     assert!(!tree.has_errors());
     assert_eq!(tree.error_count(), 0);
+    assert_eq!(
+        tree.edge_count(),
+        (0..tree.node_count())
+            .filter_map(|index| tree.node(NodeId::new(index)))
+            .map(|node| node.child_count())
+            .sum::<usize>(),
+        "direct edge records should cover every parent-to-child relation"
+    );
     assert!(
         tree.node_count() >= 5,
         "tree should index root, expression, and fielded arithmetic children"
@@ -126,8 +134,18 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
 
     let root = tree.root();
     assert_eq!(tree.root_id(), root.node_id());
+    let root_record = root.record();
+    assert_eq!(tree.node_record(root.node_id()), Some(root_record));
+    assert_eq!(root_record.visible_id(), root.kind_id());
+    assert_eq!(root_record.grammar_id(), root.grammar_id());
+    assert_eq!(root_record.alias_symbol_id(), None);
+    assert_eq!(root_record.byte_range(), root.byte_range());
+    assert_eq!(root_record.point_range(), root.point_range());
+    assert_eq!(root_record.edge_range().len(), root.child_count());
+    assert_eq!(root_record.flags(), root.flags());
     assert_eq!(root.parent_id(), None);
     assert!(root.parent().is_none());
+    assert!(root.parent_edge().is_none());
     assert_eq!(
         tree.node(root.node_id())
             .expect("root id should resolve")
@@ -167,6 +185,23 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     let root_expression_edge = root
         .child_edge(0)
         .expect("root should expose expression edge");
+    let root_expression_edge_record = root_expression_edge.record();
+    assert_eq!(
+        tree.edge_record(root_record.edge_range().start()),
+        Some(root_expression_edge_record)
+    );
+    assert_eq!(
+        root_expression_edge_record.parent_id(),
+        root_expression_edge.parent_id()
+    );
+    assert_eq!(
+        root_expression_edge_record.child_index(),
+        root_expression_edge.child_index()
+    );
+    assert_eq!(
+        root_expression_edge_record.field_id(),
+        root_expression_edge.field_id()
+    );
     assert_eq!(root_expression_edge.parent_id(), root.node_id());
     assert_eq!(root_expression_edge.child_index(), 0);
     assert_eq!(root_expression_edge.field_name(), None);
@@ -174,6 +209,14 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
 
     let expression = root.child(0).expect("root should expose expression child");
     assert_eq!(root_expression_edge.child_id(), expression.node_id());
+    assert_eq!(root_expression_edge_record.child_id(), expression.node_id());
+    assert_eq!(
+        expression
+            .parent_edge()
+            .expect("expression should resolve parent edge")
+            .record(),
+        root_expression_edge_record
+    );
     assert_eq!(
         root_expression_edge
             .child()
@@ -198,6 +241,16 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(expression.kind_name(), Some("expression"));
     assert_eq!(expression.grammar_name(), Some("expression"));
     let expression_identity = expression.identity();
+    let expression_record = expression.record();
+    assert_eq!(expression_record.visible_id(), expression.kind_id());
+    assert_eq!(expression_record.grammar_id(), expression.grammar_id());
+    assert_eq!(expression_record.alias_symbol_id(), None);
+    assert_eq!(expression_record.byte_range(), expression.byte_range());
+    assert_eq!(expression_record.point_range(), expression.point_range());
+    assert_eq!(
+        expression_record.edge_range().len(),
+        expression.child_count()
+    );
     assert_eq!(expression_identity.visible_id(), expression.kind_id());
     assert_eq!(expression_identity.grammar_id(), expression.grammar_id());
     assert_eq!(expression_identity.visible_name(), Some("expression"));
@@ -253,10 +306,18 @@ fn parse_document_exposes_generic_tree_and_ts_projection_from_same_parse() {
     assert_eq!(edges[0].child_id(), left.node_id());
     assert_eq!(edges[0].field_name(), Some("left"));
     assert_eq!(edges[0].field_id().map(|id| id.get()), Some(1));
+    assert_eq!(edges[0].record().parent_id(), expression.node_id());
+    assert_eq!(edges[0].record().child_id(), left.node_id());
+    assert_eq!(edges[0].record().child_index(), 0);
+    assert_eq!(edges[0].record().field_id().map(|id| id.get()), Some(1));
     assert_eq!(edges[1].field_name(), Some("operator"));
     assert_eq!(edges[1].field_id().map(|id| id.get()), Some(2));
+    assert_eq!(edges[1].record().child_id(), operator.node_id());
+    assert_eq!(edges[1].record().field_id().map(|id| id.get()), Some(2));
     assert_eq!(edges[2].field_name(), Some("right"));
     assert_eq!(edges[2].field_id().map(|id| id.get()), Some(3));
+    assert_eq!(edges[2].record().child_id(), right.node_id());
+    assert_eq!(edges[2].record().field_id().map(|id| id.get()), Some(3));
     assert_eq!(
         expression
             .edge_by_field_name("left")
