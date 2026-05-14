@@ -2,25 +2,24 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 5
+**Total Crates:** 4
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 5 | 100% |
+| Complete (BDD + Property) | 4 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 5 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 4 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 5 remaining tracked crates have both BDD tests and property-based tests:
+All 4 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
 | `bdd-governance-core` | ✓ | ✓ | ✓ |
-| `governance-runtime-core` | ✓ | ✓ | ✓ |
 | `linecol-core` | ✓ | ✓ | ✓ |
 | `parsetable-metadata` | ✓ | ✓ | ✓ |
 | `ts-c-harness` | ✓ | ✓ | - |
@@ -30,7 +29,6 @@ All 5 remaining tracked crates have both BDD tests and property-based tests:
 The following 30+ remaining tracked crates have `contract_lock.rs` test files (contract verification):
 
 - `bdd-governance-core`
-- `governance-runtime-core`
 - `linecol-core`
 - `parsetable-metadata`
 
@@ -53,7 +51,7 @@ The following crates do not have contract lock tests (by design):
 ### Potential Consolidation Opportunities
 
 1. **Runtime Governance Crates:**
-   The runtime governance facade/matrix stack has been collapsed into the runtime owner modules and shared governance runtime core.
+   The runtime governance facade/matrix stack has been collapsed into runtime owner modules and `bdd-governance-core::runtime`.
 
 2. **Concurrency Init Crates:**
    Remaining initialization crates should keep classifier and bootstrap helpers as SRP owner submodules instead of standalone migration targets.

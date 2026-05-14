@@ -1,6 +1,6 @@
 //! Parser-feature profile and backend-resolution primitives for runtime consumers.
 
-pub use adze_bdd_governance_core::{ParserBackend, ParserFeatureProfile};
+pub use crate::feature_policy::{ParserBackend, ParserFeatureProfile};
 
 /// Return the compile-time parser feature profile for the runtime crate.
 pub const fn parser_feature_profile_for_runtime() -> ParserFeatureProfile {

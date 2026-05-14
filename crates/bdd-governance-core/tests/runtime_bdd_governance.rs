@@ -1,8 +1,8 @@
-//! BDD-style tests for governance-runtime-core crate.
+//! BDD-style tests for the BDD governance runtime module.
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
 
-use adze_governance_runtime_core::{
+use adze_bdd_governance_core::{
     BddPhase, ParserBackend, ParserFeatureProfile, bdd_governance_matrix_for_profile,
     bdd_governance_matrix_for_runtime, bdd_governance_matrix_for_runtime2,
     bdd_progress_report_for_profile, bdd_progress_status_line_for_profile,

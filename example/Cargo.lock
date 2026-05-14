@@ -6,8 +6,8 @@ version = 4
 name = "adze"
 version = "0.8.0-dev"
 dependencies = [
+ "adze-bdd-governance-core",
  "adze-glr-core",
- "adze-governance-runtime-core",
  "adze-ir",
  "adze-linecol-core",
  "adze-macro",
@@ -63,13 +63,6 @@ dependencies = [
  "smallvec",
  "thiserror",
  "typed-arena",
-]
-
-[[package]]
-name = "adze-governance-runtime-core"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-core",
 ]
 
 [[package]]

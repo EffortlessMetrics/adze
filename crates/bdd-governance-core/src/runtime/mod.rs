@@ -1,21 +1,14 @@
-//! Shared governance primitives for runtime profile selection and BDD reporting.
+//! Runtime-oriented governance primitives for profile selection and BDD reporting.
 //!
-//! This crate intentionally owns the profile composition helpers so that both
-//! `runtime` and `runtime2` consumers can share the same behavior and fixture
-//! wiring for BDD progress reporting.
-
-#![forbid(unsafe_op_in_unsafe_fn)]
-#![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
-#![cfg_attr(feature = "strict_docs", deny(missing_docs))]
-#![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
+//! This module owns the profile composition helpers so that both `runtime` and
+//! `runtime2` consumers can share the same behavior and fixture wiring for BDD
+//! progress reporting without a separate governance runtime crate.
 
 mod profile;
 
 use core::fmt::Write;
 
-pub use adze_bdd_governance_core::{
+pub use crate::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, bdd_governance_snapshot, bdd_progress,
     bdd_progress_report, bdd_progress_report_with_profile, bdd_progress_status_line,

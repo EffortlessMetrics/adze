@@ -4,7 +4,6 @@ adze-linecol-core
 adze-lsp-generator
 adze-macro
 adze-bdd-governance-core
-adze-governance-runtime-core
 adze-parsetable-metadata
 adze-runtime
 adze-tool

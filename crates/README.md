@@ -27,13 +27,12 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 |-------|---------|
 | [`bdd-governance-core`](bdd-governance-core) | Core implementation of BDD governance |
 
-### Governance (1 crate)
+### Governance
 
 Parser backend selection, metadata management, and policy enforcement.
 
 | Crate | Purpose |
 |-------|---------|
-| [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
 
 ### Utilities (3 crates)
 
