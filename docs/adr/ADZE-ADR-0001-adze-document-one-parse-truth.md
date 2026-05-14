@@ -1,9 +1,9 @@
 # ADZE-ADR-0001: AdzeDocument is one parse truth
 
-Status: proposed
+Status: accepted
 Date: 2026-05-12
 Owner: Adze maintainers
-Linked proposal: ../proposals/ADZE-PROP-0001-0.9-contract-convergence.md
+Linked proposal: ../proposals/ADZE-PROP-0002-api-foundation.md
 Linked specs: ../specs/ADZE-SPEC-0003-canonical-parse-document.md
 
 ## Decision

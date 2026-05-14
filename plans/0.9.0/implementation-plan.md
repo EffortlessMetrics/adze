@@ -1,6 +1,6 @@
 # Adze 0.9.0 Contract Convergence Implementation Plan
 
-Status: proposed
+Status: active
 Owner: Adze maintainers
 Created: 2026-05-12
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
@@ -34,7 +34,7 @@ and review cycle for each single-document branch.
 | #681 | source-of-truth-scaffolding | README files for proposals, specs, ADRs, 0.9 plans, and active goals |
 | #691 | contract-convergence-proposal | `ADZE-PROP-0001` |
 | #692 | economics-docs-consolidation | `ADZE-SPEC-0001`, `ADZE-SPEC-0002`, `ADZE-ADR-0001`, implementation plan, active goal manifest |
-| pending | api-foundation-spec-stack | `ADZE-PROP-0002`, `ADZE-SPEC-0003` through `ADZE-SPEC-0010`, `ADZE-ADR-0003`, `ADZE-ADR-0004`, `plans/0.9.0/api-foundation.md`, `policy/doc-artifacts.toml` |
+| #698 | api-foundation-spec-stack | `ADZE-PROP-0002`, `ADZE-SPEC-0003` through `ADZE-SPEC-0010`, `ADZE-ADR-0003`, `ADZE-ADR-0004`, `plans/0.9.0/api-foundation.md`, `policy/doc-artifacts.toml` |
 
 Superseded stacked PRs #683 through #686 were closed after #692 landed.
 
