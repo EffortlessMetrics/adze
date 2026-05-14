@@ -1,9 +1,9 @@
-//! BDD-style tests for bdd-grammar-fixtures crate.
+//! BDD-style tests for GLR grammar fixtures.
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
 
-use adze_bdd_grammar_fixtures::*;
 use adze_ir::{Associativity, SymbolId};
+use glr_test_support::*;
 
 // ---------------------------------------------------------------------------
 // TokenPatternKind tests

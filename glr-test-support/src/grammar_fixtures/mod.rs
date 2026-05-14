@@ -1,13 +1,11 @@
 //! Shared grammar fixtures and conflict analysis helpers for GLR BDD tests.
 //!
-//! This crate intentionally owns grammar-level BDD fixtures (fixture grammars,
+//! This module intentionally owns grammar-level BDD fixtures (fixture grammars,
 //! parse-table builders, token metadata, and table introspection helpers) so
 //! downstream crates can compose behavior without monolithic fixtures.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
-#![cfg_attr(feature = "strict_api", deny(unreachable_pub))]
-#![cfg_attr(not(feature = "strict_api"), warn(unreachable_pub))]
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 

@@ -2,8 +2,8 @@
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
 
-use adze_bdd_grammar_fixtures::{ConflictAnalysis, analyze_conflicts, count_multi_action_cells};
 use adze_glr_core::{Action, ParseTable, RuleId, StateId};
+use glr_test_support::{ConflictAnalysis, analyze_conflicts, count_multi_action_cells};
 
 /// Helper to create a parse table with given action table.
 fn make_table(action_table: Vec<Vec<Vec<Action>>>, states: usize, symbols: usize) -> ParseTable {

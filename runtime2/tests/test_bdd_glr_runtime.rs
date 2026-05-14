@@ -8,19 +8,19 @@
 #![cfg(all(feature = "pure-rust", feature = "serialization"))]
 
 use adze_bdd_governance_core::BddPhase;
-use adze_bdd_grammar_fixtures::{
-    DANGLING_ELSE_SYMBOL_METADATA, DANGLING_ELSE_TOKEN_PATTERNS,
-    PRECEDENCE_ARITHMETIC_SYMBOL_METADATA, PRECEDENCE_ARITHMETIC_TOKEN_PATTERNS,
-    SymbolMetadataSpec, TokenPatternKind, TokenPatternSpec,
-    build_runtime_dangling_else_parse_table, build_runtime_precedence_arithmetic_parse_table,
-    count_multi_action_cells,
-};
 use adze_glr_core::ParseTable;
 use adze_ir::Associativity;
 use adze_runtime::{
     Parser, bdd_progress_report_for_current_profile,
     language::SymbolMetadata,
     tokenizer::{Matcher, TokenPattern as RuntimeTokenPattern},
+};
+use glr_test_support::{
+    DANGLING_ELSE_SYMBOL_METADATA, DANGLING_ELSE_TOKEN_PATTERNS,
+    PRECEDENCE_ARITHMETIC_SYMBOL_METADATA, PRECEDENCE_ARITHMETIC_TOKEN_PATTERNS,
+    SymbolMetadataSpec, TokenPatternKind, TokenPatternSpec,
+    build_runtime_dangling_else_parse_table, build_runtime_precedence_arithmetic_parse_table,
+    count_multi_action_cells,
 };
 
 fn build_runtime_symbol_metadata(specs: &[SymbolMetadataSpec]) -> Vec<SymbolMetadata> {

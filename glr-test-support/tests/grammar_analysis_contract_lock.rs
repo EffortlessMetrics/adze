@@ -1,6 +1,6 @@
 //! Contract lock test - verifies that public API remains stable.
 
-use adze_bdd_grammar_fixtures::{
+use glr_test_support::{
     ConflictAnalysis, analyze_conflicts, count_multi_action_cells, resolve_shift_reduce_actions,
 };
 

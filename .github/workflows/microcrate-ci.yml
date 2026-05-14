@@ -145,10 +145,8 @@ jobs:
           BOTH_CRATES=(
             adze-glr-core
             adze-tablegen
-            adze-governance-metadata
             adze-governance-runtime-core
             adze-bdd-governance-core
-            adze-bdd-grammar-fixtures
             adze-linecol-core
             adze-parsetable-metadata
           )
@@ -216,7 +214,6 @@ jobs:
       - name: Test governance crates
         run: |
           cargo test \
-            -p adze-governance-metadata \
             -p adze-governance-runtime-core \
             -- --test-threads=$RUST_TEST_THREADS
 
@@ -235,7 +232,7 @@ jobs:
         run: |
           cargo test \
             -p adze-bdd-governance-core \
-            -p adze-bdd-grammar-fixtures \
+            -p glr-test-support \
             -- --test-threads=$RUST_TEST_THREADS
 
   test-parser:

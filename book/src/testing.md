@@ -133,9 +133,9 @@ The governance crates (`crates/governance-*`) use BDD grids to track which featu
 Run BDD-related tests:
 
 ```bash
-cargo test -p adze-bdd-grammar-fixtures
 cargo test -p adze-bdd-governance-core
 cargo test -p adze-bdd-governance-core grid::
+cargo test -p glr-test-support grammar_
 ```
 
 ## Test connectivity safeguards
