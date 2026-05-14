@@ -201,17 +201,7 @@ dependencies = [
 name = "adze-governance-matrix-core"
 version = "0.1.0"
 dependencies = [
- "adze-governance-matrix-core-impl",
- "proptest",
-]
-
-[[package]]
-name = "adze-governance-matrix-core-impl"
-version = "0.1.0"
-dependencies = [
  "adze-bdd-governance-core",
- "adze-governance-matrix-core",
- "criterion",
  "proptest",
 ]
 

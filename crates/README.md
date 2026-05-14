@@ -36,7 +36,6 @@ Parser backend selection, metadata management, and policy enforcement.
 | Crate | Purpose |
 |-------|---------|
 | [`governance-matrix-core`](governance-matrix-core) | Core governance matrix implementation |
-| [`governance-matrix-core-impl`](governance-matrix-core-impl) | Concrete governance matrix implementations |
 | [`governance-metadata`](governance-metadata) | Metadata structures for governance |
 | [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
 | [`governance-runtime-reporting`](governance-runtime-reporting) | Governance reporting utilities |

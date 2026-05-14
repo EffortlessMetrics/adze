@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 16
+**Total Crates:** 15
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 16 | 100% |
+| Complete (BDD + Property) | 15 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 16 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 15 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 16 remaining tracked crates have both BDD tests and property-based tests:
+All 15 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -24,7 +24,6 @@ All 16 remaining tracked crates have both BDD tests and property-based tests:
 | `bdd-grid-core` | ✓ | ✓ | ✓ |
 | `feature-policy-core` | ✓ | ✓ | ✓ |
 | `governance-matrix-core` | ✓ | ✓ | ✓ |
-| `governance-matrix-core-impl` | ✓ | ✓ | ✓ |
 | `governance-metadata` | ✓ | ✓ | ✓ |
 | `governance-runtime-core` | ✓ | ✓ | ✓ |
 | `governance-runtime-reporting` | ✓ | ✓ | ✓ |
@@ -44,7 +43,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `bdd-grid-core`
 - `feature-policy-core`
 - `governance-matrix-core`
-- `governance-matrix-core-impl`
 - `governance-metadata`
 - `governance-runtime-core`
 - `governance-runtime-reporting`
@@ -76,7 +74,6 @@ The following crates do not have contract lock tests (by design):
 
 1. **Governance Matrix Crates:**
    - `governance-matrix-core`
-   - `governance-matrix-core-impl`
    These three crates handle matrix governance. Consider whether the split is necessary or if they could be consolidated.
 
 2. **Runtime Governance Crates:**
