@@ -231,8 +231,8 @@ fn roundtrip_encode_decode_all_action_types() {
     let cases: Vec<(Action, u16)> = vec![
         (Action::Shift(StateId(0)), 0),
         (Action::Shift(StateId(100)), 100),
-        (Action::Reduce(RuleId(0)), 0x8000 | 1),
-        (Action::Reduce(RuleId(42)), 0x8000 | 43),
+        (Action::Reduce(RuleId(0)), 0x8000 | 0x0001),
+        (Action::Reduce(RuleId(42)), 0x8000 | 0x002b),
         (Action::Accept, 0xFFFF),
         (Action::Error, 0xFFFE),
         (Action::Recover, 0xFFFD),

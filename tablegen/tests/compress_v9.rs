@@ -238,7 +238,7 @@ fn tc_encode_shift_overflow_errors() {
 fn tc_encode_reduce_zero() {
     let tc = TableCompressor::new();
     let encoded = tc.encode_action_small(&Action::Reduce(RuleId(0))).unwrap();
-    assert_eq!(encoded, 0x8000 | 1); // 1-based
+    assert_eq!(encoded, 0x8000 | 0x0001); // 1-based
 }
 
 #[test]
@@ -998,7 +998,7 @@ fn tc_encode_all_action_variants() {
         (Action::Shift(StateId(0)), 0),
         (Action::Shift(StateId(100)), 100),
         (Action::Reduce(RuleId(0)), 0x8001),
-        (Action::Reduce(RuleId(9)), 0x8000 | 10),
+        (Action::Reduce(RuleId(9)), 0x8000 | 0x000a),
         (Action::Accept, 0xFFFF),
         (Action::Error, 0xFFFE),
         (Action::Recover, 0xFFFD),

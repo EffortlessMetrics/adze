@@ -497,15 +497,21 @@ workspace churn.
 
 ### Production Delta
 
-Expected later changes:
+This work item activates the Rust 1.94/1.95 planned Clippy lint batch after the
+workspace has moved to Rust 1.95 and the package surface has been collapsed.
 
-- `../../policy/clippy-lints.toml`
-- lint verifier updates
-- targeted code fixes where required
+- `../../Cargo.toml` promotes the lint levels in `[workspace.lints.clippy]`.
+- `../../policy/clippy-lints.toml` moves the due planned lints into active
+  policy.
+- `../../xtask/src/policy/lint_policy.rs` verifies active policy matches
+  Cargo workspace lint declarations and fails overdue planned lints.
+- Targeted test/code cleanups make bit-mask operands visually explicit.
 
 ### Non-Goals
 
-No broad refactors hidden behind lint updates.
+No broad refactors hidden behind lint updates. This slice enables the
+`disallowed_fields` lint level but does not add a protected-field inventory;
+that belongs in a later seam-specific policy PR.
 
 ### Acceptance
 
@@ -516,7 +522,12 @@ rather than used to avoid straightforward cleanup.
 
 ```bash
 cargo run -q -p xtask -- check-lint-policy
+cargo test -p xtask lint_policy -j 1 -- --nocapture
+cargo clippy -p xtask --all-targets -- -D warnings
 just clippy
+cargo clippy -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen --all-targets -- -D warnings
+cargo run -q -p xtask -- check-package-boundary --release-gate
+git diff --check
 just ci-supported
 ```
 

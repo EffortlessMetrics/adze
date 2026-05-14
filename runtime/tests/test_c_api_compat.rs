@@ -103,16 +103,18 @@ fn test_parse_table_format() {
     const ACTIONS_ACCEPT: u16 = 2;
     #[allow(dead_code)]
     const ACTIONS_RECOVER: u16 = 3;
+    const SHIFT_STATE: u16 = 0x002a;
+    const REDUCE_RULE: u16 = 0x0007;
 
     // Action encoding uses top 2 bits for type
-    let shift_action = (ACTIONS_SHIFT << 14) | 42; // Shift to state 42
-    let reduce_action = (ACTIONS_REDUCE << 14) | 7; // Reduce by rule 7
+    let shift_action = (ACTIONS_SHIFT << 14) | SHIFT_STATE;
+    let reduce_action = (ACTIONS_REDUCE << 14) | REDUCE_RULE;
 
     assert_eq!(shift_action >> 14, ACTIONS_SHIFT);
-    assert_eq!(shift_action & 0x3FFF, 42);
+    assert_eq!(shift_action & 0x3FFF, SHIFT_STATE);
 
     assert_eq!(reduce_action >> 14, ACTIONS_REDUCE);
-    assert_eq!(reduce_action & 0x3FFF, 7);
+    assert_eq!(reduce_action & 0x3FFF, REDUCE_RULE);
 }
 
 /// Test symbol ID compatibility

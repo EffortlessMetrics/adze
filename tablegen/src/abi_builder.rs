@@ -1731,7 +1731,7 @@ mod tests {
 
         // Reduce (1-based in Tree-sitter)
         let enc = builder.encode_action(&Action::Reduce(RuleId(3))).unwrap();
-        assert_eq!(enc, 0x8000 | 4, "Reduce(3) → 0x8004");
+        assert_eq!(enc, 0x8000 | 0x0004, "Reduce(3) -> 0x8004");
 
         // Accept
         let enc = builder.encode_action(&Action::Accept).unwrap();

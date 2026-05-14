@@ -457,7 +457,7 @@ fn encode_action_reduce_roundtrips() {
         .encode_action_small(&Action::Reduce(RuleId(7)))
         .unwrap();
     // Reduce encoded as 0x8000 | (rule_id + 1)
-    assert_eq!(encoded, 0x8000 | 8);
+    assert_eq!(encoded, 0x8000 | 0x0008);
 }
 
 #[test]

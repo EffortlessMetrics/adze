@@ -765,7 +765,7 @@ fn bpa_v9_compressor_encode_reduce() {
     let tc = TableCompressor::new();
     let encoded = tc.encode_action_small(&Action::Reduce(RuleId(5))).unwrap();
     // Reduce: bit 15 set, 1-based rule ID
-    assert_eq!(encoded, 0x8000 | 6);
+    assert_eq!(encoded, 0x8000 | 0x0006);
 }
 
 // =============================================================================

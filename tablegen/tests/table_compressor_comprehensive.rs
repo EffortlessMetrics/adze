@@ -836,7 +836,7 @@ fn test_42_encode_action_small_reduce() {
 
     assert!(result.is_ok());
     // Reduce encoding: 0x8000 | (rule_id + 1)
-    assert_eq!(result.unwrap(), 0x8000 | 51);
+    assert_eq!(result.unwrap(), 0x8000 | 0x0033);
 }
 
 #[test]

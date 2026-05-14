@@ -485,14 +485,14 @@ fn v6_encode_03_reduce() {
     let tc = TableCompressor::new();
     let encoded = tc.encode_action_small(&Action::Reduce(RuleId(0))).unwrap();
     // bit 15 set, 1-based rule ID
-    assert_eq!(encoded, 0x8000 | 1);
+    assert_eq!(encoded, 0x8000 | 0x0001);
 }
 
 #[test]
 fn v6_encode_04_reduce_larger_rule() {
     let tc = TableCompressor::new();
     let encoded = tc.encode_action_small(&Action::Reduce(RuleId(99))).unwrap();
-    assert_eq!(encoded, 0x8000 | 100);
+    assert_eq!(encoded, 0x8000 | 0x0064);
 }
 
 #[test]

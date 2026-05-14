@@ -220,7 +220,7 @@ fn serialize_reduce_action_encoding() {
     let deser: SerializableLanguage = serde_json::from_str(&json).unwrap();
     // Reduce uses 0x8000 | (rule_id + 1)
     assert_eq!(deser.parse_table[0], 3); // symbol
-    assert_eq!(deser.parse_table[1], 0x8000 | 1); // reduce rule 0 → 1-based
+    assert_eq!(deser.parse_table[1], 0x8000 | 0x0001); // reduce rule 0 → 1-based
 }
 
 #[test]
