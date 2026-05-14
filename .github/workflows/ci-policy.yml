@@ -60,3 +60,55 @@ jobs:
             cat target/ci-lane-whitelist.log || true;
             echo '```';
           } >> "$GITHUB_STEP_SUMMARY"
+
+  source-of-truth:
+    name: Source of Truth
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Tree-sitter development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtree-sitter-dev pkg-config
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: adze-xtask-${{ hashFiles('Cargo.lock') }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build xtask
+        run: cargo build -p xtask --bin xtask
+      - name: Check doc-artifacts ledger
+        run: |
+          set -o pipefail
+          mkdir -p target/policy
+          cargo run -q -p xtask -- check-doc-artifacts --mode blocking 2>&1 | tee target/policy/doc-artifacts.log
+      - name: Check active goal manifest
+        run: |
+          set -o pipefail
+          cargo run -q -p xtask -- check-active-goal --mode blocking 2>&1 | tee target/policy/active-goal.log
+      - name: Upload source-of-truth receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-of-truth-receipts
+          path: |
+            target/policy/doc-artifacts.log
+            target/policy/active-goal.log
+          if-no-files-found: warn
+      - name: Append to step summary
+        if: always()
+        run: |
+          {
+            echo "## Source of Truth";
+            echo "";
+            echo "### Doc Artifacts";
+            echo '```';
+            cat target/policy/doc-artifacts.log || true;
+            echo '```';
+            echo "";
+            echo "### Active Goal";
+            echo '```';
+            cat target/policy/active-goal.log || true;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
