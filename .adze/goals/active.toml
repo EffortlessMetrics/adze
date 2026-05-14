@@ -309,13 +309,13 @@ commands = [
 
 [[work_item]]
 id = "document-diagnostics-store"
-status = "ready"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md"
 adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
 plan = "plans/0.9.0/api-foundation.md"
 blocked_by = []
-prs = []
+prs = [770]
 commands = [
   "cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors -- --nocapture",
   "cargo test -p adze --features \"pure-rust,glr\" --test error_display_tests -- --nocapture",
