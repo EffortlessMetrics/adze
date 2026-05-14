@@ -37,7 +37,6 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `bdd-grid-core` | `crates/bdd-grid-core/` | Grid BDD evaluation logic |
 | `governance-metadata` | `crates/governance-metadata/` | Governance metadata types |
 | `governance-runtime-core` | `crates/governance-runtime-core/` | Runtime governance checks |
-| `governance-runtime-reporting` | `crates/governance-runtime-reporting/` | Governance reports |
 | `feature-policy-contract` | `crates/feature-policy-contract/` | Feature-flag policy contracts |
 | `feature-policy-core` | `crates/feature-policy-core/` | Feature-flag policy logic |
 | `parser-contract` | `crates/parser-contract/` | Parser trait contracts |

@@ -2,20 +2,20 @@
 
 **Generated:** 2026-03-26
 **Last Updated:** 2026-03-27
-**Total Crates:** 10
+**Total Crates:** 9
 
 ## Summary
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Complete (BDD + Property) | 10 | 100% |
+| Complete (BDD + Property) | 9 | 100% |
 | Contract Lock Tests | 30+ | 95%+ |
 
-All 10 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
+All 9 remaining tracked microcrates have comprehensive test coverage with both BDD tests and property-based tests.
 
 ## Complete Coverage (BDD + Property Tests)
 
-All 10 remaining tracked crates have both BDD tests and property-based tests:
+All 9 remaining tracked crates have both BDD tests and property-based tests:
 
 | Crate | BDD File | Property File | Contract Lock |
 |-------|----------|---------------|---------------|
@@ -25,7 +25,6 @@ All 10 remaining tracked crates have both BDD tests and property-based tests:
 | `feature-policy-core` | ✓ | ✓ | ✓ |
 | `governance-metadata` | ✓ | ✓ | ✓ |
 | `governance-runtime-core` | ✓ | ✓ | ✓ |
-| `governance-runtime-reporting` | ✓ | ✓ | ✓ |
 | `linecol-core` | ✓ | ✓ | ✓ |
 | `parsetable-metadata` | ✓ | ✓ | ✓ |
 | `ts-c-harness` | ✓ | ✓ | - |
@@ -39,7 +38,6 @@ The following 30+ remaining tracked crates have `contract_lock.rs` test files (c
 - `feature-policy-core`
 - `governance-metadata`
 - `governance-runtime-core`
-- `governance-runtime-reporting`
 - `linecol-core`
 - `parsetable-metadata`
 

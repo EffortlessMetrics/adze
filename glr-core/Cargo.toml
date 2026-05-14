@@ -60,7 +60,7 @@ glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 trybuild = "1"
 adze-bdd-governance-core = { version = "0.1.0", path = "../crates/bdd-governance-core" }
 adze-bdd-grammar-fixtures = { version = "0.1.0", path = "../crates/bdd-grammar-fixtures" }
-adze-governance-runtime-reporting = { version = "0.1.0", path = "../crates/governance-runtime-reporting" }
+adze-governance-runtime-core = { version = "0.1.0", path = "../crates/governance-runtime-core" }
 adze-tablegen = { version = "0.8.0-dev", path = "../tablegen" }
 indexmap = { version = "2.0", features = ["serde"] }
 

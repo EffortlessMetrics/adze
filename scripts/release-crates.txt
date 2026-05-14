@@ -8,7 +8,6 @@ adze-macro
 adze-feature-policy-core
 adze-bdd-governance-core
 adze-governance-metadata
-adze-governance-runtime-reporting
 adze-governance-runtime-core
 adze-parsetable-metadata
 adze-runtime

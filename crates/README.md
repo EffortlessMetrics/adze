@@ -37,7 +37,6 @@ Parser backend selection, metadata management, and policy enforcement.
 |-------|---------|
 | [`governance-metadata`](governance-metadata) | Metadata structures for governance |
 | [`governance-runtime-core`](governance-runtime-core) | Runtime governance core functionality |
-| [`governance-runtime-reporting`](governance-runtime-reporting) | Governance reporting utilities |
 
 ### Feature Policy
 

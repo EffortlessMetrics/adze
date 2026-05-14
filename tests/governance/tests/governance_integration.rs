@@ -2,17 +2,17 @@
 //!
 //! Validates the end-to-end flow:
 //!   feature-policy-core → governance-metadata → parsetable-metadata
-//!   bdd-grid-core → governance-runtime-core → governance-runtime-reporting
+//!   bdd-grid-core → governance-runtime-core reporting
 
 use adze_bdd_grid_core::{
     BddPhase, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress, bdd_progress_report,
 };
 use adze_feature_policy_core::ParserFeatureProfile;
 use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
+use adze_governance_runtime_core::bdd_progress_report_with_profile_runtime;
 use adze_governance_runtime_core::{
     bdd_governance_matrix_for_profile, bdd_progress_report_for_profile, resolve_backend_for_profile,
 };
-use adze_governance_runtime_reporting::bdd_progress_report_with_profile_runtime;
 use adze_parsetable_metadata::{
     FeatureFlags, GenerationInfo, GrammarInfo, METADATA_SCHEMA_VERSION, ParsetableMetadata,
     TableStatistics,
@@ -291,7 +291,7 @@ fn resolve_backend_through_governance_runtime_core() {
 }
 
 // ===================================================================
-// 7. governance-runtime-reporting: runtime report formatting
+// 7. governance-runtime-core reporting: runtime report formatting
 // ===================================================================
 
 #[test]

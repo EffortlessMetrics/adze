@@ -76,14 +76,6 @@ name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-governance-core",
- "adze-governance-runtime-reporting",
-]
-
-[[package]]
-name = "adze-governance-runtime-reporting"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-core",
 ]
 
 [[package]]
