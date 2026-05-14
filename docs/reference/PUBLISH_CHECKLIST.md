@@ -12,7 +12,7 @@ available on the registry before its dependents can be packaged.
 | 1 | `adze-common` | `common/` | *(external only)* |
 | 2 | `adze-ir` | `ir/` | *(external only)* |
 | 3 | `adze-glr-core` | `glr-core/` | `adze-ir` |
-| 4 | `adze-tablegen` | `tablegen/` | `adze-ir`, `adze-glr-core`, `adze-bdd-grid-core`, `adze-parsetable-metadata` |
+| 4 | `adze-tablegen` | `tablegen/` | `adze-ir`, `adze-glr-core`, `adze-bdd-governance-core`, `adze-parsetable-metadata` |
 | 5 | `adze-macro` | `macro/` | `adze-common` |
 | 6 | `adze-tool` | `tool/` | `adze-common`, `adze-ir`, `adze-glr-core`, `adze-tablegen` |
 | 7 | `adze` | `runtime/` | `adze-macro`, `adze-ir`, `adze-glr-core`, `adze-tablegen`, microcrates |
@@ -25,7 +25,7 @@ the core crates that depend on them. The full set (in order) is:
 1. All `adze-concurrency-*` crates (caps-contract-core, map-core, env-core,
    init-core, caps-core, etc.)
 2. `adze-linecol-core`
-3. `adze-bdd-grid-core`
+3. `adze-bdd-governance-core`
 4. `adze-governance-metadata` -> `adze-parsetable-metadata`
 
 ## Pre-publish verification

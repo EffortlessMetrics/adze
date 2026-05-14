@@ -1,11 +1,11 @@
-//! Benchmarks for bdd-grid-core hot-path functions.
+//! Benchmarks for BDD grid hot-path functions.
 //!
 //! Measures performance of scenario lookup and progress reporting used in BDD framework.
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 
-use adze_bdd_grid_core::{
+use adze_bdd_governance_core::{
     BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
     bdd_progress_report,
 };

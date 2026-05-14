@@ -27,7 +27,6 @@ Behavior-driven development infrastructure for scenario tracking and progress re
 |-------|---------|
 | [`bdd-governance-core`](bdd-governance-core) | Core implementation of BDD governance |
 | [`bdd-grammar-fixtures`](bdd-grammar-fixtures) | Test fixtures for grammar BDD scenarios |
-| [`bdd-grid-core`](bdd-grid-core) | Core implementation of BDD scenario grids |
 
 ### Governance (2 crates)
 
@@ -77,7 +76,7 @@ Features propagate through the dependency chain:
 
 ```text
 bdd-governance-core
-  └── bdd-grid-core
+  └── bdd-governance-core::grid
 ```
 
 Enabling `glr` on `bdd-governance-core` automatically enables `pure-rust` and propagates down the chain.

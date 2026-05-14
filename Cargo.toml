@@ -10,7 +10,6 @@ members = [
   "crates/governance-metadata",
   "crates/linecol-core",
   "crates/bdd-governance-core",
-  "crates/bdd-grid-core",
   "tool",
   "common",
   "ir",

@@ -1,11 +1,11 @@
 //! Integration tests for the BDD governance chain.
 //!
-//! Tests the chain: bdd-grid-core → bdd-governance-core
+//! Tests the chain: bdd-governance-core grid → profile-aware governance.
 
 /// Tests that BddGovernanceMatrix can be constructed and used across the chain.
 #[test]
 fn test_governance_chain_matrix_from_core_to_contract() {
-    // Given: Types from bdd-governance-core (which re-exports from bdd-grid-core)
+    // Given: Types from bdd-governance-core grid reexports.
     use adze_bdd_governance_core::{BddGovernanceMatrix, BddPhase, ParserFeatureProfile};
 
     // When: Create a matrix using the standard constructor

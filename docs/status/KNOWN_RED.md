@@ -142,7 +142,7 @@ Current canaries:
 - `wasm-demo` canary — **compile-only** (`cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown`)
 - grammar metadata smoke (`adze-python`) — **behavior** (`cargo test -p adze-python test_python_language_exists -- --exact --nocapture`)
 - `runtime2` metadata canary — **behavior** (`cargo test --manifest-path runtime2/Cargo.toml --features test-utils --test basic language_smoke_exposes_metadata_queries -- --exact --nocapture`)
-- governance/BDD microcrate smoke (`adze-bdd-grid-core`) — **behavior** (`cargo test -p adze-bdd-grid-core --lib tests::progress_summary_reports_counts -- --exact --nocapture`)
+- governance/BDD grid owner smoke (`adze-bdd-governance-core`) — **behavior** (`cargo test -p adze-bdd-governance-core --lib grid::tests::progress_summary_reports_counts -- --exact --nocapture`)
 
 Notes:
 - This lane intentionally does not provide full product proof; it is bounded canary signal only.

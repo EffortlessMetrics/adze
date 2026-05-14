@@ -10,12 +10,12 @@
 #![cfg_attr(feature = "strict_docs", deny(missing_docs))]
 #![cfg_attr(not(feature = "strict_docs"), allow(missing_docs))]
 
-pub use adze_bdd_grid_core::{
-    BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
-    bdd_progress_report,
-};
 pub use feature_policy::{
     CONFLICTS_REQUIRE_GLR_MESSAGE, ParserBackend, ParserBackendSelection, ParserFeatureProfile,
+};
+pub use grid::{
+    BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
+    bdd_progress_report,
 };
 pub use reporting::{
     bdd_progress_report_with_profile, bdd_progress_status_line, describe_backend_for_conflicts,
@@ -24,6 +24,9 @@ pub use status::GLR_CONFLICT_FALLBACK;
 
 /// Parser backend feature-profile contracts owned by BDD governance.
 pub mod feature_policy;
+
+/// BDD scenario grid and progress-reporting contracts.
+pub mod grid;
 
 /// Profile-aware report/status rendering for BDD governance tracking.
 pub mod reporting;

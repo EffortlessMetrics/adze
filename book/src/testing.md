@@ -134,8 +134,8 @@ Run BDD-related tests:
 
 ```bash
 cargo test -p adze-bdd-grammar-fixtures
-cargo test -p bdd-governance-core
-cargo test -p bdd-grid-core
+cargo test -p adze-bdd-governance-core
+cargo test -p adze-bdd-governance-core grid::
 ```
 
 ## Test connectivity safeguards
