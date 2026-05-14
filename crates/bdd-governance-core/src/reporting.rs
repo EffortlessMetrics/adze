@@ -8,8 +8,7 @@ use core::fmt::Write;
 pub use crate::status::{
     GLR_CONFLICT_FALLBACK, bdd_progress_status_line, describe_backend_for_conflicts,
 };
-use crate::{BddPhase, BddScenario, bdd_progress, bdd_progress_report};
-use adze_feature_policy_core::ParserFeatureProfile;
+use crate::{BddPhase, BddScenario, ParserFeatureProfile, bdd_progress, bdd_progress_report};
 
 /// Compose BDD progress with parser profile diagnostics in one report.
 pub fn bdd_progress_report_with_profile(
@@ -44,8 +43,7 @@ pub fn bdd_progress_report_with_profile(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::GLR_CONFLICT_PRESERVATION_GRID;
-    use adze_feature_policy_core::ParserBackend;
+    use crate::{GLR_CONFLICT_PRESERVATION_GRID, ParserBackend};
 
     #[test]
     fn conflict_backend_description_prefers_glr() {

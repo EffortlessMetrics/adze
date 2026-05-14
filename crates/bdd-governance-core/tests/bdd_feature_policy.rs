@@ -1,8 +1,8 @@
-//! BDD tests for feature-policy-core crate.
+//! BDD tests for the feature policy owner module.
 //!
 //! These tests verify the public API behavior using Given/When/Then style.
 
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use adze_bdd_governance_core::{ParserBackend, ParserFeatureProfile};
 
 // =============================================================================
 // ParserFeatureProfile Creation Tests

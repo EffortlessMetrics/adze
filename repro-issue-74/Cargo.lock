@@ -28,7 +28,6 @@ name = "adze-bdd-governance-core"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-grid-core",
- "adze-feature-policy-core",
 ]
 
 [[package]]
@@ -42,10 +41,6 @@ dependencies = [
  "quote",
  "syn 2.0.117",
 ]
-
-[[package]]
-name = "adze-feature-policy-core"
-version = "0.1.0"
 
 [[package]]
 name = "adze-glr-core"
@@ -65,8 +60,7 @@ dependencies = [
 name = "adze-governance-metadata"
 version = "0.1.0"
 dependencies = [
- "adze-bdd-grid-core",
- "adze-feature-policy-core",
+ "adze-bdd-governance-core",
  "serde",
 ]
 

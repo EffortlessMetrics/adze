@@ -1,6 +1,6 @@
 use std::panic::catch_unwind;
 
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use adze_bdd_governance_core::{ParserBackend, ParserFeatureProfile};
 
 #[test]
 fn parser_backend_reexport_and_profile_resolve_backend_stay_in_sync() {

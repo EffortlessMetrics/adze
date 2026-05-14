@@ -18,8 +18,7 @@ strict_api = []
 strict_docs = []
 
 [dependencies]
-adze-bdd-grid-core = { version = "0.1.0", path = "../bdd-grid-core" }
-adze-feature-policy-core = { version = "0.1.0", path = "../feature-policy-core" }
+adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
 serde.workspace = true
 
 [dev-dependencies]

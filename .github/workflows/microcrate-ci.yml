@@ -65,7 +65,7 @@ jobs:
             v=false
             case "$k" in
               concurrency) match '^crates/concurrency' && v=true ;;
-              governance) match '^(crates/governance|crates/bdd|tests/governance|crates/feature-policy|crates/runtime-governance)' && v=true ;;
+              governance) match '^(crates/governance|crates/bdd|tests/governance|crates/runtime-governance)' && v=true ;;
               bdd) match '^crates/bdd' && v=true ;;
               parser) match '^(crates/parser-|crates/linecol-core|crates/parsetable-metadata|glr-core/|tablegen/)' && v=true ;;
               core) match '^(ir/|glr-core/|tablegen/|common/)' && v=true ;;
@@ -147,7 +147,6 @@ jobs:
             adze-tablegen
             adze-governance-metadata
             adze-governance-runtime-core
-            adze-feature-policy-core
             adze-bdd-governance-core
             adze-bdd-grammar-fixtures
             adze-bdd-grid-core
@@ -220,7 +219,6 @@ jobs:
           cargo test \
             -p adze-governance-metadata \
             -p adze-governance-runtime-core \
-            -p adze-feature-policy-core \
             -- --test-threads=$RUST_TEST_THREADS
 
   test-bdd:

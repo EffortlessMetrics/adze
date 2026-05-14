@@ -2,8 +2,9 @@
 //!
 //! Tests follow the Given/When/Then pattern to verify public API behavior.
 
-use adze_bdd_grid_core::{BddPhase, BddScenario, BddScenarioStatus};
-use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+use adze_bdd_governance_core::{
+    BddPhase, BddScenario, BddScenarioStatus, ParserBackend, ParserFeatureProfile,
+};
 use adze_governance_metadata::{GovernanceMetadata, ParserFeatureProfileSnapshot};
 
 #[test]

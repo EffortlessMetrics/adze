@@ -14,11 +14,16 @@ pub use adze_bdd_grid_core::{
     BddPhase, BddScenario, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress,
     bdd_progress_report,
 };
-pub use adze_feature_policy_core::{ParserBackend, ParserFeatureProfile};
+pub use feature_policy::{
+    CONFLICTS_REQUIRE_GLR_MESSAGE, ParserBackend, ParserBackendSelection, ParserFeatureProfile,
+};
 pub use reporting::{
     bdd_progress_report_with_profile, bdd_progress_status_line, describe_backend_for_conflicts,
 };
 pub use status::GLR_CONFLICT_FALLBACK;
+
+/// Parser backend feature-profile contracts owned by BDD governance.
+pub mod feature_policy;
 
 /// Profile-aware report/status rendering for BDD governance tracking.
 pub mod reporting;
