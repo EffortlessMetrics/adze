@@ -250,9 +250,10 @@ git diff --check
 
 ## Work Item: document-json-schema-alpha
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0008-json-cli-wasm-projections.md
 Blocked by: none
+PR: #775
 
 ### Goal
 
