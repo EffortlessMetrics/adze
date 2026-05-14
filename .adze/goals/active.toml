@@ -367,15 +367,16 @@ commands = [
 
 [[work_item]]
 id = "language-schema-node-types"
-status = "ready"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0010-language-metadata-and-node-types.md"
 adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
 plan = "plans/0.9.0/api-foundation.md"
 blocked_by = []
-prs = []
+prs = [776]
 commands = [
   "cargo test -p adze-tablegen node_types -- --nocapture",
-  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_types -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_language_metadata -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_language_fields -- --nocapture",
   "git diff --check",
 ]

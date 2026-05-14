@@ -269,9 +269,10 @@ git diff --check
 
 ## Work Item: language-schema-node-types
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0010-language-metadata-and-node-types.md
 Blocked by: none
+PR: #776
 
 ### Goal
 
@@ -282,7 +283,8 @@ by typed CST and Tree-sitter compatibility.
 
 ```bash
 cargo test -p adze-tablegen node_types -- --nocapture
-cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_types -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_language_metadata -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_language_fields -- --nocapture
 git diff --check
 ```
 
