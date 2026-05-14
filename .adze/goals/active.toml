@@ -265,13 +265,13 @@ commands = [
 
 [[work_item]]
 id = "generated-parse-document-canonical"
-status = "ready"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
 adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
 plan = "plans/0.9.0/api-foundation.md"
 blocked_by = []
-prs = []
+prs = [767]
 commands = [
   "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
   "cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture",
@@ -279,13 +279,27 @@ commands = [
 ]
 
 [[work_item]]
-id = "typed-cst-schema-generation"
-status = "blocked"
+id = "parse-fast-path-delegates-to-document"
+status = "ready"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md"
 adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
 plan = "plans/0.9.0/api-foundation.md"
-blocked_by = ["generated-parse-document-canonical"]
+blocked_by = []
+prs = []
+commands = [
+  "cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_parse_document_ast_matches_parse -- --exact --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "typed-cst-schema-generation"
+status = "ready"
+proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
+spec = "docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md"
+adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
+plan = "plans/0.9.0/api-foundation.md"
+blocked_by = []
 prs = []
 commands = [
   "cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture",
@@ -295,12 +309,12 @@ commands = [
 
 [[work_item]]
 id = "document-diagnostics-store"
-status = "blocked"
+status = "ready"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md"
 adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
 plan = "plans/0.9.0/api-foundation.md"
-blocked_by = ["generated-parse-document-canonical"]
+blocked_by = []
 prs = []
 commands = [
   "cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors -- --nocapture",
@@ -325,12 +339,12 @@ commands = [
 
 [[work_item]]
 id = "document-ambiguity-summary"
-status = "blocked"
+status = "ready"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md"
 adr = "docs/adr/ADZE-ADR-0003-summary-first-glr-ambiguity.md"
 plan = "plans/0.9.0/api-foundation.md"
-blocked_by = ["generated-parse-document-canonical"]
+blocked_by = []
 prs = []
 commands = [
   "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_parse_document_reports_ambiguity_summary -- --exact --nocapture",
