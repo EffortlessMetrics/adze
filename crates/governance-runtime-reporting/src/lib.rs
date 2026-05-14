@@ -14,7 +14,7 @@
 use core::fmt::Write;
 
 /// Re-exported governance matrix types and helpers for BDD progress tracking.
-pub use adze_governance_matrix_core::{
+pub use adze_bdd_governance_core::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
     bdd_governance_snapshot, bdd_progress, bdd_progress_report, bdd_progress_report_with_profile,
