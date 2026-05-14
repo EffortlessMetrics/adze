@@ -85,7 +85,8 @@ consumer, or remove them when they are only test scaffolding.
 
 - `adze-feature-policy-core` moved into
   `adze-bdd-governance-core::feature_policy`.
-- `adze-parsetable-metadata`
+- `adze-parsetable-metadata` reclassified as a durable published support crate
+  by `ADZE-ADR-0005`.
 
 ### Proof Commands
 
@@ -175,7 +176,6 @@ test support module.
 ### Candidate Packages
 
 - `adze-bdd-contract`
-- `adze-bdd-governance-core`
 
 ### Completed Packages
 
@@ -188,6 +188,8 @@ test support module.
 - `adze-bdd-grid-core` moved into `adze-bdd-governance-core::grid`.
 - `adze-bdd-grammar-fixtures` moved into
   `glr-test-support::grammar_fixtures`.
+- `adze-bdd-governance-core` reclassified as a durable published support crate
+  by `ADZE-ADR-0005`.
 
 ### Proof Commands
 
@@ -277,7 +279,12 @@ reason keeps it standalone.
 
 ### Candidate Packages
 
-- `adze-linecol-core`
+No standalone source-location migration targets remain.
+
+### Completed Packages
+
+- `adze-linecol-core` reclassified as a durable published support crate by
+  `ADZE-ADR-0005`.
 
 ### Proof Commands
 
