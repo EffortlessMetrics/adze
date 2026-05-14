@@ -1,6 +1,6 @@
 //! Contract lock test - verifies that public API remains stable.
 
-use adze_governance_runtime_core::{
+use adze_bdd_governance_core::{
     BddGovernanceMatrix, BddPhase, ParserBackend, ParserFeatureProfile,
     bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime,
     bdd_governance_matrix_for_runtime2, bdd_progress_report_for_profile,

@@ -108,7 +108,7 @@ single policy owner that consumes them.
 
 ### Candidate Packages
 
-- `adze-governance-runtime-core`
+No standalone governance runtime package targets remain.
 
 ### Completed Packages
 
@@ -127,13 +127,15 @@ single policy owner that consumes them.
   remaining runtime governance core.
 - `adze-governance-metadata` moved into
   `adze-parsetable-metadata::governance`.
+- `adze-governance-runtime-core` moved into
+  `adze-bdd-governance-core::runtime`.
 
 ### Proof Commands
 
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p xtask --bin xtask policy -- --nocapture
+cargo test -p adze-bdd-governance-core -- --test-threads=2
 just ci-supported
 ```
 
@@ -249,13 +251,15 @@ owner modules that consume them.
 - `adze-runtime2-governance` facade removed; runtime2 now imports
   the shared governance runtime core directly while preserving runtime2-specific
   public helper functions in the runtime2 owner module.
+- `adze-governance-runtime-core` moved into
+  `adze-bdd-governance-core::runtime`.
 
 ### Proof Commands
 
 ```bash
 cargo metadata --format-version 1 --no-deps
 cargo run -q -p xtask -- check-package-boundary
-cargo test -p adze-governance-runtime-core -- --test-threads=2
+cargo test -p adze-bdd-governance-core runtime -- --test-threads=2
 cargo test -p adze -p adze-runtime -- --test-threads=2
 just ci-supported
 ```

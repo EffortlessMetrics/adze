@@ -2,14 +2,14 @@
 //!
 //! Validates the end-to-end flow:
 //!   bdd-governance-core feature policy → parsetable-metadata governance module → parsetable-metadata
-//!   bdd-governance-core grid → governance-runtime-core reporting
+//!   bdd-governance-core grid → bdd-governance-core runtime reporting
 
 use adze_bdd_governance_core::ParserFeatureProfile;
+use adze_bdd_governance_core::bdd_progress_report_with_profile_runtime;
 use adze_bdd_governance_core::{
     BddPhase, BddScenarioStatus, GLR_CONFLICT_PRESERVATION_GRID, bdd_progress, bdd_progress_report,
 };
-use adze_governance_runtime_core::bdd_progress_report_with_profile_runtime;
-use adze_governance_runtime_core::{
+use adze_bdd_governance_core::{
     bdd_governance_matrix_for_profile, bdd_progress_report_for_profile, resolve_backend_for_profile,
 };
 use adze_parsetable_metadata::{
@@ -254,7 +254,7 @@ fn bdd_progress_report_contains_all_scenarios() {
 }
 
 // ===================================================================
-// 6. governance-runtime-core: matrix + backend resolution
+// 6. bdd-governance-core runtime module: matrix + backend resolution
 // ===================================================================
 
 #[test]
@@ -291,7 +291,7 @@ fn resolve_backend_through_governance_runtime_core() {
 }
 
 // ===================================================================
-// 7. governance-runtime-core reporting: runtime report formatting
+// 7. bdd-governance-core runtime reporting: runtime report formatting
 // ===================================================================
 
 #[test]

@@ -33,7 +33,6 @@ Quality-assurance infrastructure for feature tracking and behavioral contracts:
 | `bdd-governance-core` | `crates/bdd-governance-core/` | Governance BDD snapshots/matrix composition |
 | `bdd-governance-reporting-core` | `crates/bdd-governance-reporting-core/` | Profile-aware governance report/status formatting |
 | `bdd-grid-contract` | `crates/bdd-grid-contract/` | Grid/matrix BDD contracts |
-| `governance-runtime-core` | `crates/governance-runtime-core/` | Runtime governance checks |
 | `feature-policy-contract` | `crates/feature-policy-contract/` | Feature-flag policy contracts |
 | `parser-contract` | `crates/parser-contract/` | Parser trait contracts |
 | `parser-governance-contract` | `crates/parser-governance-contract/` | Parser governance contracts |

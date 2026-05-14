@@ -1,7 +1,7 @@
 //! Compatibility shim for the standalone runtime governance API.
 //! Kept for backward-compatible public paths (`adze::parser_selection::*`).
 
-pub use adze_governance_runtime_core::*;
+pub use adze_bdd_governance_core::*;
 
 /// Select the parser backend for the current compile-time feature profile.
 pub const fn current_backend_for(has_conflicts: bool) -> ParserBackend {

@@ -67,7 +67,7 @@ pub use token::Token;
 pub use tree::Tree;
 
 // Governance + feature-flag reporting compatibility surface for runtime2 consumers.
-pub use adze_governance_runtime_core::{
+pub use adze_bdd_governance_core::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, ParserBackend, ParserFeatureProfile,
     bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime2, bdd_governance_snapshot,
@@ -104,7 +104,7 @@ pub fn bdd_progress_report_for_runtime2_profile(
     phase_title: &str,
     profile: ParserFeatureProfile,
 ) -> String {
-    adze_governance_runtime_core::bdd_progress_report_with_profile_runtime(
+    adze_bdd_governance_core::bdd_progress_report_with_profile_runtime(
         phase,
         GLR_CONFLICT_PRESERVATION_GRID,
         phase_title,

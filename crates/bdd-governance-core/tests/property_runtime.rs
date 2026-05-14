@@ -1,8 +1,8 @@
-//! Property-based tests for governance-runtime-core.
+//! Property-based tests for the BDD governance runtime module.
 
 use proptest::prelude::*;
 
-use adze_governance_runtime_core::{
+use adze_bdd_governance_core::{
     BddPhase, ParserBackend, ParserFeatureProfile, bdd_governance_matrix_for_profile,
     bdd_governance_matrix_for_runtime2, bdd_progress_report_for_profile,
     bdd_progress_status_line_for_profile, parser_feature_profile_for_runtime2,

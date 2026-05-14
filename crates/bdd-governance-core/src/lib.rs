@@ -20,6 +20,13 @@ pub use grid::{
 pub use reporting::{
     bdd_progress_report_with_profile, bdd_progress_status_line, describe_backend_for_conflicts,
 };
+pub use runtime::{
+    bdd_governance_matrix_for_profile, bdd_governance_matrix_for_runtime,
+    bdd_governance_matrix_for_runtime2, bdd_progress_report_for_profile,
+    bdd_progress_report_with_profile_runtime, bdd_progress_status_line_for_profile,
+    parser_feature_profile_for_runtime, parser_feature_profile_for_runtime2,
+    resolve_backend_for_profile,
+};
 pub use status::GLR_CONFLICT_FALLBACK;
 
 /// Parser backend feature-profile contracts owned by BDD governance.
@@ -30,6 +37,9 @@ pub mod grid;
 
 /// Profile-aware report/status rendering for BDD governance tracking.
 pub mod reporting;
+
+/// Runtime-oriented profile composition and BDD governance report helpers.
+pub mod runtime;
 
 /// Machine-readable status output and backend descriptions.
 pub mod status;

@@ -16,7 +16,7 @@ thiserror = "1.0"
 smallvec.workspace = true
 rustc-hash.workspace = true
 adze-parsetable-metadata = { version = "0.1.0", path = "../crates/parsetable-metadata" }
-adze-governance-runtime-core = { version = "0.1.0", path = "../crates/governance-runtime-core" }
+adze-bdd-governance-core = { version = "0.1.0", path = "../crates/bdd-governance-core" }
 adze-linecol-core = { version = "0.1.0", path = "../crates/linecol-core" }
 
 # GLR core (optional, enabled by default)
@@ -38,7 +38,6 @@ criterion.workspace = true
 pretty_assertions = "1.4"
 proptest.workspace = true
 serde_json.workspace = true
-adze-bdd-governance-core = { version = "0.1.0", path = "../crates/bdd-governance-core" }
 glr-test-support = { version = "0.1.0", path = "../glr-test-support" }
 adze-tablegen = { path = "../tablegen", features = ["serialization"] }
 

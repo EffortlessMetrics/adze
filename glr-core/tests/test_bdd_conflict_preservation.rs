@@ -5,9 +5,9 @@
 //!
 //! Reference: docs/plans/BDD_GLR_CONFLICT_PRESERVATION.md
 
+use adze_bdd_governance_core::bdd_progress_report_with_profile_runtime;
 use adze_bdd_governance_core::{BddPhase, GLR_CONFLICT_PRESERVATION_GRID, ParserFeatureProfile};
 use adze_glr_core::{Action, ParseTable};
-use adze_governance_runtime_core::bdd_progress_report_with_profile_runtime;
 use adze_ir::{Associativity, RuleId, StateId, SymbolId};
 use glr_test_support::{
     analyze_conflicts, build_lr1_parse_table, dangling_else_grammar, no_precedence_grammar,

@@ -1,5 +1,5 @@
-// Comprehensive tests for governance-runtime-core
-use adze_governance_runtime_core::*;
+// Comprehensive tests for the BDD governance runtime module.
+use adze_bdd_governance_core::*;
 
 #[test]
 fn runtime_profile() {

@@ -1,6 +1,6 @@
-//! Integration tests for the governance-runtime-core crate.
+//! Integration tests for the BDD governance runtime module.
 
-use adze_governance_runtime_core::*;
+use adze_bdd_governance_core::*;
 
 #[test]
 fn runtime_profile_pure_rust_matches_cfg() {
