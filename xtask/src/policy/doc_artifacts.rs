@@ -11,8 +11,7 @@
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::collections::BTreeSet;
 
 use super::{SimpleCheckMode, workspace_root};
 
@@ -79,6 +78,9 @@ pub fn run(mode: &str) -> Result<()> {
     if file.policy.is_empty() {
         errors.push("missing policy".into());
     }
+    if file.owner.is_empty() {
+        errors.push("missing owner".into());
+    }
     if file.status.is_empty() {
         errors.push("missing status".into());
     }
@@ -111,6 +113,15 @@ pub fn run(mode: &str) -> Result<()> {
         }
         if art.owner.is_empty() {
             errors.push(format!("artifact {} missing owner", art.id));
+        }
+        if art.milestone.is_empty() {
+            warnings.push(format!("artifact {} missing milestone", art.id));
+        }
+        if art.source_of_truth_for.is_empty() {
+            warnings.push(format!(
+                "artifact {} missing source_of_truth_for entries",
+                art.id
+            ));
         }
 
         // Kind validation

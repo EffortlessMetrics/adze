@@ -12,7 +12,6 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::collections::BTreeSet;
-use std::path::Path;
 
 use super::{SimpleCheckMode, workspace_root};
 
@@ -89,6 +88,12 @@ pub fn run(mode: &str) -> Result<()> {
     }
     if file.owner.is_empty() {
         errors.push("missing top-level owner".into());
+    }
+    if file.created.is_empty() {
+        errors.push("missing top-level created".into());
+    }
+    if file.objective.trim().is_empty() {
+        errors.push("missing top-level objective".into());
     }
     if file.end_state.is_empty() {
         warnings.push("empty end_state".into());
