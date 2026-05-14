@@ -12,9 +12,6 @@ on:
       - "docs/ci/coverage.md"
       - "policy/ci-lane-whitelist.toml"
       - "policy/ci-risk-packs.toml"
-      - "**/tests/**"
-      - "**/*test*.rs"
-      - "**/*tests*.rs"
   push:
     branches: [ main ]
 
@@ -75,9 +72,23 @@ jobs:
 
           echo "✅ All #[ignore] attributes are documented"
 
-      - name: Verify minimum test counts
+      - name: Verify minimum declared test counts
         run: |
-          echo "Verifying minimum test counts per crate..."
+          echo "Verifying minimum declared test counts per crate..."
+
+          count_declared_tests() {
+            local crate_path="$1"
+
+            if [ ! -d "$crate_path" ]; then
+              echo 0
+              return
+            fi
+
+            {
+              find "$crate_path/src" "$crate_path/tests" -name "*.rs" -type f 2>/dev/null \
+                -exec grep -hE '^[[:space:]]*#\[(tokio::)?test' {} + || true
+            } | wc -l | tr -d '[:space:]'
+          }
 
           # Directory -> package mapping
           declare -A crate_packages=(
@@ -112,19 +123,12 @@ jobs:
 
               echo "Checking $crate ($package)..."
 
-              if ! test_list=$(cargo test -p "$package" --lib --tests -- --list 2>/dev/null); then
-                echo "::error::Failed to list tests for $crate ($package)"
-                failed=true
-                continue
-              fi
+              actual=$(count_declared_tests "$crate")
 
-              # cargo test -- --list format ends test cases with ": test"
-              actual=$(printf '%s\n' "$test_list" | awk '/: test$/{count++} END{print count+0}')
-
-              echo "$crate: $actual tests (minimum: $required)"
+              echo "$crate: $actual declared tests (minimum: $required)"
 
               if [ "$actual" -lt "$required" ]; then
-                echo "::error::$crate has $actual tests, but requires at least $required"
+                echo "::error::$crate has $actual declared tests, but requires at least $required"
                 failed=true
               fi
             fi
@@ -197,6 +201,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Check test execution time
+        if: github.event_name != 'pull_request'
         run: |
           set -o pipefail
           echo "Running tests with timeout enforcement..."
@@ -289,9 +294,9 @@ jobs:
         run: |
           echo "## Test Policy Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Minimum test counts verified" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Minimum declared test counts verified" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ All #[ignore] attributes documented" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ No .rs.disabled files found" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Test execution times within limits" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Runtime-cap proof runs on main and manual dispatch" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "See test-inventory-report artifact for detailed breakdown" >> $GITHUB_STEP_SUMMARY

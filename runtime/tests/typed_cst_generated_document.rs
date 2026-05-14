@@ -324,6 +324,61 @@ fn generated_typed_cst_field_accessors_project_native_edges() {
 }
 
 #[test]
+fn generated_parse_document_bridge_populates_direct_node_edge_records() {
+    let source = "123+";
+    let document = adze_example::fielded_typed_cst_contract::grammar::parse_document(source)
+        .expect("generated parse_document helper should return an AdzeDocument");
+    let tree = document.tree();
+    let root = tree.root();
+    let pair = find_node(root, "Pair", source).expect("generic CST should contain the pair node");
+    let pair_record = pair.record();
+
+    assert_eq!(tree.node_record(pair.node_id()), Some(pair_record));
+    assert_eq!(pair_record.visible_id(), pair.kind_id());
+    assert_eq!(pair_record.grammar_id(), pair.grammar_id());
+    assert_eq!(pair_record.byte_range(), pair.byte_range());
+    assert_eq!(pair_record.point_range(), pair.point_range());
+    assert_eq!(pair_record.edge_range().len(), pair.child_count());
+    assert_eq!(pair_record.flags(), pair.flags());
+    assert_eq!(
+        tree.edge_count(),
+        (0..tree.node_count())
+            .filter_map(|index| tree.node(adze::document::NodeId::new(index)))
+            .map(|node| node.child_count())
+            .sum::<usize>(),
+        "direct edge records should cover every generated parse_document edge"
+    );
+
+    let left_edge = pair
+        .edge_by_field_name("left")
+        .expect("generic CST should expose direct left edge metadata");
+    let left = left_edge
+        .child()
+        .expect("direct left edge record should resolve its child");
+    let left_record = left_edge.record();
+    let left_field_id = document
+        .language()
+        .field_id_for_name("left")
+        .expect("generated language metadata should expose left field id");
+
+    assert_eq!(left_edge.field_id(), Some(left_field_id));
+    assert_eq!(left_record.parent_id(), pair.node_id());
+    assert_eq!(left_record.child_id(), left.node_id());
+    assert_eq!(left_record.child_index(), 0);
+    assert_eq!(left_record.field_id(), Some(left_field_id));
+    assert_eq!(
+        left.parent_edge()
+            .expect("left node should resolve direct parent edge")
+            .record(),
+        left_record
+    );
+    assert_eq!(left.field_name(), Some("left"));
+    assert_eq!(left.field_id(), Some(left_field_id));
+    assert_eq!(left.record().byte_range(), left.byte_range());
+    assert_eq!(left.utf8_text().ok(), Some("123"));
+}
+
+#[test]
 fn generated_typed_cst_field_accessors_survive_precedence_enum_variants() {
     use adze_example::fielded_precedence_typed_cst_contract::grammar::{self, Expr};
 

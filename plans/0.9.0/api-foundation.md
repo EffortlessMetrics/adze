@@ -112,9 +112,10 @@ Remove the new document model changes and tests.
 
 ## Work Item: pure-parser-document-bridge
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0003-canonical-parse-document.md
 Blocked by: none
+PR: #766
 
 ### Goal
 
@@ -126,6 +127,7 @@ metadata.
 
 ```bash
 cargo test -p adze --features "pure-rust,ts-compat" --test adze_document_alpha -- --nocapture
+cargo test -p adze --features pure-rust --test typed_cst_generated_document generated_parse_document_bridge_populates_direct_node_edge_records -- --exact --nocapture
 cargo test -p adze --features "pure-rust,glr" --test generated_parse_errors -- --nocapture
 git diff --check
 ```
@@ -134,7 +136,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0003-canonical-parse-document.md
-Blocked by: pure-parser-document-bridge
+Blocked by: none
 
 ### Goal
 

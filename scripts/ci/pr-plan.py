@@ -176,7 +176,7 @@ LANE_LEM: dict[str, int] = {
     "ci-supported": 20,
     "ci-lane-whitelist-lint": 2,
     "ripr-advisory": 4,
-    "test-policy": 12,
+    "test-policy": 2,
     "core-tests": 18,
     "criterion-smoke": 6,
     "smoke-ts-bridge": 4,
