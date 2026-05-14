@@ -5,12 +5,36 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
+pub mod active_goal;
 pub mod ci_lane_whitelist;
+pub mod doc_artifacts;
 pub mod file_policy;
 pub mod lint_policy;
 pub mod no_panic;
 pub mod package_boundary;
 pub mod report;
+
+/// Simple mode for source-of-truth checks that only distinguish advisory
+/// reporting from blocking enforcement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SimpleCheckMode {
+    /// Report findings, never fail.
+    Advisory,
+    /// Fail on errors.
+    Blocking,
+}
+
+impl SimpleCheckMode {
+    pub fn parse(s: &str) -> Result<Self> {
+        match s {
+            "advisory" => Ok(SimpleCheckMode::Advisory),
+            "blocking" | "blocking-allowlist" | "blocking-strict" => Ok(SimpleCheckMode::Blocking),
+            other => {
+                anyhow::bail!("unknown source-of-truth mode: {other} (expected advisory|blocking)")
+            }
+        }
+    }
+}
 
 /// Where the checks write their JSON/Markdown artefacts.
 pub fn report_dir(workspace_root: &Path) -> PathBuf {
