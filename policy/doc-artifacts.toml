@@ -14,6 +14,7 @@ source_of_truth_for = ["0.9 release rationale", "contract convergence campaign"]
 links_to = [
   "ADZE-SPEC-0001",
   "ADZE-SPEC-0002",
+  "ADZE-SPEC-0011",
   "ADZE-ADR-0001",
   "plans/0.9.0/implementation-plan.md",
 ]
@@ -35,6 +36,7 @@ links_to = [
   "ADZE-SPEC-0008",
   "ADZE-SPEC-0009",
   "ADZE-SPEC-0010",
+  "ADZE-SPEC-0011",
   "ADZE-ADR-0001",
   "ADZE-ADR-0003",
   "ADZE-ADR-0004",
@@ -140,6 +142,16 @@ owner = "tablegen/runtime/ts-compat"
 milestone = "0.9.x"
 source_of_truth_for = ["language metadata and node-types behavior"]
 links_to = ["ADZE-PROP-0002", "ADZE-ADR-0001", "plans/0.9.0/api-foundation.md"]
+
+[[artifact]]
+id = "ADZE-SPEC-0011"
+kind = "spec"
+path = "docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md"
+status = "accepted"
+owner = "release/product"
+milestone = "0.9.0"
+source_of_truth_for = ["product proof and support-tier behavior", "README Stable claim proof contract"]
+links_to = ["ADZE-PROP-0001", "docs/status/SUPPORT_TIERS.md", "scripts/ci-product-stable.sh", "plans/0.9.0/implementation-plan.md"]
 
 [[artifact]]
 id = "ADZE-ADR-0001"

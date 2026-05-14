@@ -49,6 +49,7 @@ ADZE-SPEC-0007-glr-ambiguity-summary.md
 ADZE-SPEC-0008-json-cli-wasm-projections.md
 ADZE-SPEC-0009-incremental-document-lifecycle.md
 ADZE-SPEC-0010-language-metadata-and-node-types.md
+ADZE-SPEC-0011-product-proof-and-support-tiers.md
 ```
 
 ## Header

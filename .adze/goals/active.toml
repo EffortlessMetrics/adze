@@ -203,15 +203,17 @@ commands = [
 
 [[work_item]]
 id = "product-proof-refresh"
-status = "blocked"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "ADZE-SPEC-0011-product-proof-and-support-tiers"
+spec = "docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md"
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
-blocked_by = ["clippy-policy-refresh", "ci-economics-verifier"]
-prs = []
+blocked_by = []
+prs = [763]
 commands = [
   "just ci-supported",
+  "just ci-product-stable",
+  "cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture",
   "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
   "cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture",
 ]

@@ -537,12 +537,12 @@ Revert the lint policy PR and any mechanical fixes tied only to that promotion.
 
 ## Work Item: product-proof-refresh
 
-Status: blocked
+Status: active
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
-Linked spec: future ADZE-SPEC-0011 product proof and support tiers
+Linked spec: ../../docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md
 Linked ADR:
 Blocks: 0.9-closeout
-Blocked by: clippy-policy-refresh; ci-economics-verifier
+Blocked by: none
 
 ### Goal
 
@@ -551,11 +551,16 @@ after package and CI policy changes land.
 
 ### Production Delta
 
-Expected later changes:
+This work item closes the 0.9 Stable-claim proof map after package collapse, CI
+economics, MSRV, and lint policy work are in place.
 
-- `../../docs/status/SUPPORT_TIERS.md`
-- README or tutorial claim wording if needed
-- exact product-proof canaries for promoted surfaces
+- `../../docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md`
+  defines the Stable-claim proof contract.
+- `../../docs/status/SUPPORT_TIERS.md` records the 0.9 product-proof closeout
+  and remains the source of truth for README feature claims.
+- `../../README.md` continues to summarize only rows backed by
+  `SUPPORT_TIERS.md`.
+- `../../scripts/ci-product-stable.sh` remains the bounded stable-product lane.
 
 ### Non-Goals
 
@@ -565,12 +570,14 @@ grammar support without receipts.
 ### Acceptance
 
 Every stable README claim maps to a support-tier row and repeatable proof
-command.
+command, and the stable-product lane passes.
 
 ### Proof Commands
 
 ```bash
 just ci-supported
+cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture
+just ci-product-stable
 cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture
 cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture
 ```
