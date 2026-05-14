@@ -13,11 +13,12 @@
 
 mod profile;
 
-pub use adze_governance_runtime_reporting::{
+use core::fmt::Write;
+
+pub use adze_bdd_governance_core::{
     BddGovernanceMatrix, BddGovernanceSnapshot, BddPhase, BddScenario, BddScenarioStatus,
     GLR_CONFLICT_FALLBACK, GLR_CONFLICT_PRESERVATION_GRID, bdd_governance_snapshot, bdd_progress,
-    bdd_progress_report, bdd_progress_report_with_profile,
-    bdd_progress_report_with_profile_runtime, bdd_progress_status_line,
+    bdd_progress_report, bdd_progress_report_with_profile, bdd_progress_status_line,
     describe_backend_for_conflicts,
 };
 /// Re-exported governance reporting primitives (BDD grid, parser profiles, report helpers).
@@ -33,6 +34,35 @@ pub fn bdd_progress_report_for_profile(
     profile: ParserFeatureProfile,
 ) -> String {
     BddGovernanceMatrix::new(phase, profile, GLR_CONFLICT_PRESERVATION_GRID).report(phase_title)
+}
+
+/// Build a runtime-oriented governance report using an explicit feature profile.
+pub fn bdd_progress_report_with_profile_runtime(
+    phase: BddPhase,
+    scenarios: &[BddScenario],
+    phase_title: &str,
+    profile: ParserFeatureProfile,
+) -> String {
+    let mut out = bdd_progress_report_with_profile(phase, scenarios, phase_title, profile);
+    let (implemented, total) = bdd_progress(phase, scenarios);
+
+    let _ = writeln!(
+        &mut out,
+        "Governance status: {implemented}/{total} scenarios implemented"
+    );
+    let _ = writeln!(&mut out, "Feature profile: {profile}");
+    let _ = writeln!(
+        &mut out,
+        "Non-conflict backend: {}",
+        profile.resolve_backend(false).name()
+    );
+    let _ = writeln!(
+        &mut out,
+        "Conflict profiles: {}",
+        describe_backend_for_conflicts(profile)
+    );
+
+    out
 }
 
 /// Build a profile-specific governance matrix for the canonical GLR scenario grid.
@@ -134,5 +164,38 @@ mod tests {
         let profile_off = parser_feature_profile_for_runtime2(false);
         assert!(!profile_off.tree_sitter_standard);
         assert!(!profile_off.tree_sitter_c2rust);
+    }
+
+    #[test]
+    fn runtime_report_uses_grid_and_profile_text() {
+        let profile = ParserFeatureProfile {
+            pure_rust: false,
+            tree_sitter_standard: true,
+            tree_sitter_c2rust: false,
+            glr: false,
+        };
+
+        let report = bdd_progress_report_with_profile_runtime(
+            BddPhase::Runtime,
+            GLR_CONFLICT_PRESERVATION_GRID,
+            "Runtime",
+            profile,
+        );
+
+        assert!(report.contains("Runtime"));
+        assert!(report.contains("Feature profile:"));
+        assert!(report.contains("Governance status:"));
+    }
+
+    #[test]
+    fn runtime_report_with_empty_scenarios() {
+        let profile = ParserFeatureProfile::current();
+        let report =
+            bdd_progress_report_with_profile_runtime(BddPhase::Core, &[], "Empty", profile);
+        assert!(report.contains("Empty"));
+        assert!(report.contains("Governance status: 0/0"));
+        assert!(report.contains("Feature profile:"));
+        assert!(report.contains("Non-conflict backend:"));
+        assert!(report.contains("Conflict profiles:"));
     }
 }

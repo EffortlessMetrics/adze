@@ -16,33 +16,26 @@ documentation = "https://docs.rs/adze-governance-runtime-core"
 default = []
 pure-rust = [
   "adze-bdd-governance-core/pure-rust",
-  "adze-governance-runtime-reporting/pure-rust",
 ]
 tree-sitter-c2rust = [
   "adze-bdd-governance-core/tree-sitter-c2rust",
-  "adze-governance-runtime-reporting/tree-sitter-c2rust",
 ]
 tree-sitter-standard = [
   "adze-bdd-governance-core/tree-sitter-standard",
-  "adze-governance-runtime-reporting/tree-sitter-standard",
 ]
 glr = [
   "pure-rust",
   "adze-bdd-governance-core/glr",
-  "adze-governance-runtime-reporting/glr",
 ]
 strict_api = [
   "adze-bdd-governance-core/strict_api",
-  "adze-governance-runtime-reporting/strict_api",
 ]
 strict_docs = [
   "adze-bdd-governance-core/strict_docs",
-  "adze-governance-runtime-reporting/strict_docs",
 ]
 
 [dependencies]
 adze-bdd-governance-core = { version = "0.1.0", path = "../bdd-governance-core" }
-adze-governance-runtime-reporting = { version = "0.1.0", path = "../governance-runtime-reporting" }
 
 [dev-dependencies]
 proptest = { workspace = true }

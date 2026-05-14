@@ -153,7 +153,7 @@ version = "0.8.0-dev"
 dependencies = [
  "adze-bdd-governance-core",
  "adze-bdd-grammar-fixtures",
- "adze-governance-runtime-reporting",
+ "adze-governance-runtime-core",
  "adze-ir",
  "adze-tablegen",
  "criterion",
@@ -215,21 +215,7 @@ name = "adze-governance-runtime-core"
 version = "0.1.0"
 dependencies = [
  "adze-bdd-governance-core",
- "adze-governance-runtime-reporting",
  "proptest",
-]
-
-[[package]]
-name = "adze-governance-runtime-reporting"
-version = "0.1.0"
-dependencies = [
- "adze-bdd-governance-core",
- "adze-bdd-grid-core",
- "adze-feature-policy-core",
- "adze-governance-metadata",
- "adze-governance-runtime-core",
- "proptest",
- "serde_json",
 ]
 
 [[package]]
@@ -1292,7 +1278,6 @@ dependencies = [
  "adze-feature-policy-core",
  "adze-governance-metadata",
  "adze-governance-runtime-core",
- "adze-governance-runtime-reporting",
  "adze-parsetable-metadata",
  "serde_json",
 ]

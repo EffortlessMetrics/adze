@@ -11,7 +11,7 @@ use adze_bdd_grammar_fixtures::{
     precedence_arithmetic_grammar, resolve_shift_reduce_actions,
 };
 use adze_glr_core::{Action, ParseTable};
-use adze_governance_runtime_reporting::bdd_progress_report_with_profile_runtime;
+use adze_governance_runtime_core::bdd_progress_report_with_profile_runtime;
 use adze_ir::{Associativity, RuleId, StateId, SymbolId};
 
 const PRECEDENCE_PLUS_TOKEN: SymbolId = SymbolId(2);

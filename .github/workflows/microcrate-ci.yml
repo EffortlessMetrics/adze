@@ -147,7 +147,6 @@ jobs:
             adze-tablegen
             adze-governance-metadata
             adze-governance-runtime-core
-            adze-governance-runtime-reporting
             adze-feature-policy-core
             adze-bdd-governance-core
             adze-bdd-grammar-fixtures
@@ -221,7 +220,6 @@ jobs:
           cargo test \
             -p adze-governance-metadata \
             -p adze-governance-runtime-core \
-            -p adze-governance-runtime-reporting \
             -p adze-feature-policy-core \
             -- --test-threads=$RUST_TEST_THREADS
 

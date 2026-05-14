@@ -11,5 +11,4 @@ adze-governance-metadata = { path = "../../crates/governance-metadata" }
 adze-parsetable-metadata = { path = "../../crates/parsetable-metadata" }
 adze-bdd-grid-core = { path = "../../crates/bdd-grid-core" }
 adze-governance-runtime-core = { path = "../../crates/governance-runtime-core" }
-adze-governance-runtime-reporting = { path = "../../crates/governance-runtime-reporting" }
 serde_json.workspace = true

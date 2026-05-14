@@ -108,7 +108,6 @@ single policy owner that consumes them.
 
 - `adze-governance-metadata`
 - `adze-governance-runtime-core`
-- `adze-governance-runtime-reporting`
 
 ### Completed Packages
 
@@ -122,6 +121,9 @@ single policy owner that consumes them.
   now imports `adze-bdd-governance-core` directly.
 - `adze-governance-matrix-core` facade removed; runtime governance consumers now
   import `adze-bdd-governance-core` directly.
+- `adze-governance-runtime-reporting` collapsed into
+  `adze-governance-runtime-core`; runtime report formatting is now owned by the
+  remaining runtime governance core.
 
 ### Proof Commands
 
