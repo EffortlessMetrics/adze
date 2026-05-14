@@ -1,6 +1,6 @@
 # CI Economics Rollout Status
 
-Last review: 2026-05-08.
+Last review: 2026-05-14.
 
 This file is a status snapshot, not a live source of truth. Before using it for
 execution, refresh with `gh pr list` and the current workflow state.
@@ -58,7 +58,7 @@ execution, refresh with `gh pr list` and the current workflow state.
 
 | # | Item | Status | Notes |
 | --- | --- | --- | --- |
-| T01 | MSRV 1.95 | 🟡 | Dedicated policy PR after microcrate collapse; unblocks Clippy policy refresh |
+| T01 | MSRV 1.95 | ✅ | PR #760 landed after the microcrate collapse; Clippy policy refresh is the next lint ratchet |
 
 ## Branch protection
 

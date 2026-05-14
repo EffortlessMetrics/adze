@@ -14,6 +14,7 @@ adze-ir = { path = "../ir" }
 proptest = { workspace = true }
 
 [features]
+strict_docs = []
 perf-counters = ["adze-glr-core/perf-counters"]
 
 [lib]

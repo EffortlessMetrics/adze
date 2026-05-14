@@ -19,13 +19,13 @@ This is a release prerequisite, not a documentation preference. A package can
 remain a standalone crate at release only when it is a published surface or a
 durable dev-only/tooling surface with a current owner and proof rationale.
 
-The release-blocking transition is complete as of PR #758. This plan remains as
-the closeout record and as the release-gate contract for keeping migration
-targets out of the release surface.
+The release-blocking transition was completed by PR #758 and closed out by PR
+#759. This plan remains as the closeout record and as the release-gate contract
+for keeping migration targets out of the release surface.
 
 ## Current State
 
-As of the post-collapse workspace after PR #758:
+As of the post-collapse workspace after PR #759:
 
 ```text
 workspace packages: 28
