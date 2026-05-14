@@ -154,9 +154,10 @@ git diff --check
 
 ## Work Item: parse-fast-path-delegates-to-document
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md
 Blocked by: none
+PR: #768
 
 ### Goal
 
