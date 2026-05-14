@@ -134,9 +134,10 @@ git diff --check
 
 ## Work Item: generated-parse-document-canonical
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0003-canonical-parse-document.md
 Blocked by: none
+PR: #767
 
 ### Goal
 
@@ -155,7 +156,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md
-Blocked by: generated-parse-document-canonical
+Blocked by: none
 
 ### Goal
 
@@ -173,7 +174,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md
-Blocked by: generated-parse-document-canonical
+Blocked by: none
 
 ### Goal
 
@@ -191,7 +192,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md
-Blocked by: generated-parse-document-canonical
+Blocked by: none
 
 ### Goal
 
@@ -229,7 +230,7 @@ git diff --check
 
 Status: ready
 Linked spec: ../../docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md
-Blocked by: generated-parse-document-canonical
+Blocked by: none
 
 ### Goal
 
