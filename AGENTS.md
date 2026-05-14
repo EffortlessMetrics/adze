@@ -86,7 +86,9 @@ Add to `~/.bashrc` or `~/.zshrc` for persistence:
 export RUSTC_WRAPPER=sccache
 ```
 
-sccache caches compiled artifacts, significantly reducing rebuild times. This is especially helpful for the 75-crate workspace.
+sccache caches compiled artifacts, significantly reducing rebuild times. This is
+still useful for the post-collapse 28-package workspace, especially after
+`cargo clean` or toolchain updates.
 
 ### Linting
 
@@ -122,7 +124,9 @@ These are checked by `just ci-supported`:
 
 - **`runtime2/`** — Production GLR runtime with Tree-sitter compatible API
 - **`grammars/`** — Language implementations: `python`, `javascript`, `go`, `python-simple`, `test-vec-wrapper`
-- **`crates/`** — 47 governance-as-code micro-crates (concurrency, BDD, policy, parser contracts)
+- **`crates/`** — durable support crates after the microcrate-to-SRP collapse:
+  `bdd-governance-core`, `common-type-ops-core`, `linecol-core`,
+  `parsetable-metadata`, plus the excluded `ts-c-harness`
 - **`tools/ts-bridge/`** — Tree-sitter parse table extraction (excluded from workspace)
 - **`cli/`**, **`lsp-generator/`**, **`playground/`**, **`wasm-demo/`** — Developer tools
 - **`golden-tests/`** — Tree-sitter parity validation
@@ -194,7 +198,7 @@ Enforced via `[workspace.lints.rust]`:
 | `pure-rust-ci.yml` | Pure-Rust implementation |
 | `core-tests.yml` | Core crate testing |
 | `golden-tests.yml` | Tree-sitter parity |
-| `microcrate-ci.yml` | Governance micro-crates |
+| `microcrate-ci.yml` | Post-collapse support/governance risk packs |
 | `fuzz.yml` | Fuzz testing |
 | `benchmarks.yml` | Performance benchmarks |
 
@@ -238,7 +242,7 @@ If all pass, the PR is ready for review.
 
 - `justfile` — Development recipes
 - `rust-toolchain.toml` — Toolchain pinning
-- `Cargo.toml` — Workspace root with 75 members
+- `Cargo.toml` — Workspace root with 28 members
 - `.githooks/pre-commit` — Pre-commit checks (install via `.githooks/install.sh`)
 - `docs/status/KNOWN_RED.md` — Intentional CI exclusions
 - `scripts/test-matrix.sh` — Feature matrix testing

@@ -123,11 +123,18 @@ If it happens twice, it's not "user error". It's friction we own until we remove
 ### FR-009 - Slow Workspace Build
 
 **Area:** dev loop
-**Symptom:** `cargo check --workspace` or `cargo build` takes 10+ minutes on standard hardware due to 47 microcrates in `crates/` plus the full core pipeline.
+**Symptom:** `cargo check --workspace` or `cargo build` historically took 10+
+minutes on standard hardware when the workspace included 47 governance/support
+microcrates plus the full core pipeline.
 **Expected:** Developers can iterate quickly on individual crates.
-**Actual:** Full workspace builds are prohibitively slow for local development.
-**Fix:** Use per-crate `cargo check -p <crate>` for iteration; consider workspace partitioning.
-**Status:** Open
+**Actual:** The 0.9 microcrate-to-SRP collapse reduced the workspace to 28
+packages, but full workspace builds can still be heavier than focused
+iteration because grammar/tooling/golden surfaces remain outside the core
+supported lane.
+**Fix:** Use per-crate `cargo check -p <crate>` and `just ci-supported` for
+routine iteration. Keep the package-boundary release gate green so temporary
+microcrates do not return before release.
+**Status:** Mitigated
 
 ### FR-010 - `pure_parser.rs` Parse Errors
 
