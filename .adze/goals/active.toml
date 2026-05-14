@@ -339,13 +339,13 @@ commands = [
 
 [[work_item]]
 id = "document-ambiguity-summary"
-status = "ready"
+status = "complete"
 proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
 spec = "docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md"
 adr = "docs/adr/ADZE-ADR-0003-summary-first-glr-ambiguity.md"
 plan = "plans/0.9.0/api-foundation.md"
 blocked_by = []
-prs = []
+prs = [772]
 commands = [
   "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_parse_document_reports_ambiguity_summary -- --exact --nocapture",
   "git diff --check",

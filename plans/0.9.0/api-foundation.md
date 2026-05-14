@@ -232,9 +232,10 @@ git diff --check
 
 ## Work Item: document-ambiguity-summary
 
-Status: ready
+Status: complete
 Linked spec: ../../docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md
 Blocked by: none
+PR: #772
 
 ### Goal
 
