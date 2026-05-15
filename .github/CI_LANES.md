@@ -37,7 +37,8 @@ Required branch protection context: `CI / ci-supported` (maps to the `ci-support
 | `ci.yml` | `semver-checks` | PR only | PR-only | Detects breaking API changes |
 | `ci.yml` | `api-stability` | PR only | PR-only | `cargo-public-api` diff; `continue-on-error` |
 | `ci.yml` | `package-validation` | PR only | PR-only | Validates package manifests for release surface |
-| `ci-policy.yml` | `CI Lane Whitelist` | PR + push | PR-only | Advisory xtask lane whitelist lint |
+| `ci-policy.yml` | `CI Lane Whitelist` | PR + push | Advisory | xtask lane whitelist lint |
+| `ci-policy.yml` | `Source of Truth` | PR + push | Advisory | doc-artifacts and active-goal ledger checks |
 | `ripr.yml` | `ripr advisory` | PR | PR-only | Advisory report; non-blocking |
 | `droid-review.yml` | `droid-review` | PR (non-draft) | PR-only | Factory Droid auto-review; `continue-on-error` |
 
@@ -77,12 +78,12 @@ These jobs run on push to `main`, on schedules, or via `workflow_dispatch` with 
 | `pure-rust-ci.yml` | `Code Coverage` | Push + labeled PR | Advisory | Coverage report; label-gated |
 | `core-tests.yml` | `core` | Scheduled (nightly) + dispatch | Scheduled | Full nightly canary: clippy, doc, all-features |
 | `benchmarks.yml` | `Performance Benchmarks` | Push + labeled PR | Push | Benchmark comparison for PRs |
-| `benchmarks.yml` | `Criterion HTML Report` | Push (main only) | Push | Criterion report generation |
+| `benchmarks.yml` | `Criterion HTML Report` | Dispatch only | Advisory | Manual Criterion HTML report generation |
 | `coverage.yml` | `Codecov Coverage` | Push + labeled PR | Push | Dedicated coverage lane |
 | `microcrate-ci.yml` | `Formatting` through `Strict Docs` | Push + path-routed PR | Push | Governance micro-crate tests |
 | `golden-tests.yml` | `Golden Tests` | Push + path-routed PR | Push | Tree-sitter parity validation |
 | `performance.yml` | `Performance Regression Check` | PR (path-routed) | PR-only | Benchmark comparison on perf-impact changes |
-| `test-policy.yml` | `Enforce Test Policy` | Policy/docs PR + push + manual | Advisory | Test naming, disabled-test prevention, static inventory; runtime caps on push/manual |
+| `test-policy.yml` | `Enforce Test Policy` | Policy/docs PR + push + manual | Advisory | Test naming, disabled-test prevention, static inventory; runtime caps on push/manual with cold-compile hang guard |
 | `mdbook.yml` | `build` + `deploy` | Push + PR | Push | Documentation site build |
 | `smoke-ts-bridge.yml` | `smoke` | Push + PR | PR-only | ts-bridge link verification |
 | `ts-bridge-smoke.yml` | `smoke` | Push + PR | PR-only | ts-bridge smoke with libtree-sitter |
