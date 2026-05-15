@@ -126,6 +126,27 @@ review_after = "2026-06-07"
 expires = "2026-11-07"
 
 [[lane]]
+id = "source-of-truth-policy"
+workflow = ".github/workflows/ci-policy.yml"
+job = "source-of-truth"
+display_name = "Source of Truth"
+kind = "policy"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 2
+owner = "docs/release"
+intent = "Validate the source-of-truth artifact ledger and active goal manifest."
+failure_mode = "Agent-operable docs drift from their machine-readable ledgers."
+proof_obligation = "Run check-doc-artifacts and check-active-goal in blocking mode and upload receipts."
+evidence = ["target/policy/doc-artifacts.log", "target/policy/active-goal.log"]
+allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
+duplicate_of = []
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
 id = "ripr-advisory"
 workflow = ".github/workflows/ripr.yml"
 job = "ripr"
@@ -185,7 +206,7 @@ intent = "Enforce test hygiene, ignored-test documentation, .rs.disabled policy,
 failure_mode = "Tests are silently disabled, undocumented, insufficient, or too slow in the test-policy proof lane."
 proof_obligation = "Run the test policy checks and upload the inventory report."
 evidence = ["TEST_INVENTORY_REPORT.md", "step summary"]
-routing_note = "Path-routed on PRs that change the test-policy workflow, inventory script, CI test-policy docs, or lane policy. Routine test-file PRs rely on ci-supported and risk-routed test lanes. Runtime-cap execution remains on main/push and workflow_dispatch."
+routing_note = "Path-routed on PRs that change the test-policy workflow, inventory script, CI test-policy docs, or lane policy. Routine test-file PRs rely on ci-supported and risk-routed test lanes. Runtime-cap execution remains on main/push and workflow_dispatch; the compile timeout is only a coarse hang guard."
 allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
 duplicate_of = []
 review_after = "2026-06-07"
@@ -305,7 +326,7 @@ failure_mode = "Benchmark drift not visible to reviewers."
 proof_obligation = "Run adze benchmark suites and compare to cached baseline when available."
 evidence = ["bench-results/", "benchmark-report.md", "PR comment"]
 allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
-routing_note = "Full benchmark suite gated to 'ci:perf'/'benchmarks'/'full-ci' labels and main/push since rollout PR 11. Does not run on unlabeled PR. base_lem=35 reflects cost when it runs."
+routing_note = "Benchmark comparison is gated to 'ci:perf'/'benchmarks'/'full-ci' labels, workflow_dispatch, and main/push since rollout PR 11. Criterion HTML publishing is manual-only; compile/no-run benchmark proof lives in criterion-smoke/performance lanes. Does not run on unlabeled PR. base_lem=35 reflects cost when it runs."
 duplicate_of = ["performance-regression"]
 review_after = "2026-06-07"
 expires = "2026-08-07"

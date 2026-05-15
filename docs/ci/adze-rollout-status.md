@@ -27,7 +27,7 @@ execution, refresh with `gh pr list` and the current workflow state.
 
 | # | Item | Status | Notes |
 | --- | --- | --- | --- |
-| C01 | CI policy workflow (`ci-policy.yml`) | ✅ | Runs `check-ci-lane-whitelist --mode advisory` on every PR |
+| C01 | CI policy workflow (`ci-policy.yml`) | ✅ | Runs `check-ci-lane-whitelist --mode advisory` plus source-of-truth ledger checks on every PR |
 | C02 | Synchronize-only cancellation | ✅ | PR #563 merged — prevents label events from killing running jobs |
 | C03 | Lane whitelist cost alignment | ✅ | PR #564 merged — corrects stale LEM for already-gated lanes |
 | C04 | Real ripr provisioning | ✅ | PR #565 merged — graceful stub fallback remains; install now uses the workspace MSRV toolchain |

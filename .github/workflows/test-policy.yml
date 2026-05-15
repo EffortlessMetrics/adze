@@ -27,6 +27,8 @@ env:
   OPENBLAS_NUM_THREADS: 1
   MKL_NUM_THREADS: 1
   NUMEXPR_NUM_THREADS: 1
+  TEST_POLICY_COMPILE_TIMEOUT_SECONDS: 600
+  TEST_POLICY_RUNTIME_TIMEOUT_SECONDS: 60
 
 jobs:
   test-policy:
@@ -222,7 +224,9 @@ jobs:
             ["common"]="adze-common"
           )
 
-          # Run tests with 60s timeout per crate (compilation separated)
+          # Run tests with a runtime timeout per produced test binary. The
+          # compile timeout is only a coarse hang guard; compilation time is
+          # not the behavior this policy lane measures.
           for crate in runtime macro glr-core tablegen tool ir common; do
             if [ -d "$crate" ]; then
               package="${crate_packages[$crate]}"
@@ -237,15 +241,15 @@ jobs:
               trap 'rm -f "$test_bins_file"' EXIT
 
               # Compile once, then execute the produced test binaries under the runtime budget.
-              timeout -k 10s 180s cargo test -p "$package" --lib --tests --no-run --message-format=json \
+              timeout -k 10s "${TEST_POLICY_COMPILE_TIMEOUT_SECONDS}s" cargo test -p "$package" --lib --tests --no-run --message-format=json \
                 | jq -r 'select(.reason == "compiler-artifact" and .profile.test == true and .executable != null) | .executable' \
                 | sort -u > "$test_bins_file" || {
                 exit_code=$?
                 if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
                   if [ $exit_code -eq 137 ]; then
-                    echo "::error::Compilation for $crate exceeded 180s timeout and was force-killed"
+                    echo "::error::Compilation for $crate exceeded ${TEST_POLICY_COMPILE_TIMEOUT_SECONDS}s timeout and was force-killed"
                   else
-                    echo "::error::Compilation for $crate exceeded 180s timeout"
+                    echo "::error::Compilation for $crate exceeded ${TEST_POLICY_COMPILE_TIMEOUT_SECONDS}s timeout"
                   fi
                   exit 1
                 else
@@ -266,13 +270,13 @@ jobs:
                 test_name=$(basename "$test_bin")
                 echo "Testing $crate ($package): $test_name"
 
-                timeout -k 10s 60s "$test_bin" || {
+                timeout -k 10s "${TEST_POLICY_RUNTIME_TIMEOUT_SECONDS}s" "$test_bin" || {
                   exit_code=$?
                   if [ $exit_code -eq 124 ] || [ $exit_code -eq 137 ]; then
                     if [ $exit_code -eq 137 ]; then
-                      echo "::error::Test binary $test_name in $crate exceeded 60s timeout and was force-killed"
+                      echo "::error::Test binary $test_name in $crate exceeded ${TEST_POLICY_RUNTIME_TIMEOUT_SECONDS}s timeout and was force-killed"
                     else
-                      echo "::error::Test binary $test_name in $crate exceeded 60s timeout"
+                      echo "::error::Test binary $test_name in $crate exceeded ${TEST_POLICY_RUNTIME_TIMEOUT_SECONDS}s timeout"
                     fi
                     popd >/dev/null
                     exit 1

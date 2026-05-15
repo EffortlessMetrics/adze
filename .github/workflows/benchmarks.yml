@@ -1,9 +1,10 @@
 name: Benchmarks
 
 # PR ownership of benchmark comparison is performance.yml. This workflow
-# runs the full benchmark suite on main, on workflow_dispatch, and on PRs
+# runs the benchmark comparison lane on main, on workflow_dispatch, and on PRs
 # that explicitly opt in via the `ci:perf`, `benchmarks`, or `full-ci`
-# label. See docs/ci/adze-rollout-plan.md (PR 11).
+# label. Full Criterion HTML publishing is manual-only; compile/no-run
+# benchmark proof lives in criterion-smoke/performance lanes.
 
 on:
   push:
@@ -273,7 +274,7 @@ jobs:
   criterion-report:
     name: Criterion HTML Report
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch'
     steps:
     - uses: actions/checkout@v6.0.2
     
