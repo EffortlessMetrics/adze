@@ -197,11 +197,29 @@ links_to = ["ADZE-PROP-0002", "ADZE-SPEC-0008"]
 id = "plans/0.9.0/implementation-plan.md"
 kind = "plan"
 path = "plans/0.9.0/implementation-plan.md"
-status = "active"
+status = "complete"
 owner = "release/product"
 milestone = "0.9.0"
 source_of_truth_for = ["0.9 contract convergence sequence"]
 links_to = ["ADZE-PROP-0001", ".adze/goals/active.toml"]
+
+[[artifact]]
+id = "plans/0.9.0/closeout.md"
+kind = "plan"
+path = "plans/0.9.0/closeout.md"
+status = "complete"
+owner = "release/product"
+milestone = "0.9.0"
+source_of_truth_for = ["0.9 contract convergence closeout", "release handoff evidence"]
+links_to = [
+  "ADZE-PROP-0001",
+  "ADZE-SPEC-0001",
+  "ADZE-SPEC-0002",
+  "ADZE-SPEC-0011",
+  ".adze/goals/active.toml",
+  "docs/status/SUPPORT_TIERS.md",
+  "policy/package-boundary.toml",
+]
 
 [[artifact]]
 id = "plans/0.9.0/microcrate-collapse.md"
