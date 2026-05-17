@@ -3,7 +3,7 @@
 **Last updated:** 2026-05-11
 **Status:** **Post-queue correctness proof** — `adze` 0.8.0 is live on crates.io, the supported gate remains bounded, and the live GitHub PR queue is empty after the downstream demo, Getting Started, and tutorial-diagnostics proof PRs landed. Remaining work is tracked as focused proof issues rather than a broad merge queue. The current push is tracked in [`CORRECTNESS_PUSH.md`](./CORRECTNESS_PUSH.md).
 
-Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For support-tier proof commands, see [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
+Adze status and rolling execution plan. For recurring pain points, see [`docs/status/FRICTION_LOG.md`](./FRICTION_LOG.md). For Rust-core migration candidates, see [`docs/status/RUST_CORE_MIGRATION_CANDIDATES.md`](./RUST_CORE_MIGRATION_CANDIDATES.md). For API stability guarantees per crate, see [`docs/status/API_STABILITY.md`](./API_STABILITY.md). For support-tier proof commands, see [`docs/status/SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
 
 ---
 
