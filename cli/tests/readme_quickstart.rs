@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -317,26 +318,66 @@ fn readme_stable_claims_are_in_stable_product_lane() {
     let readme = include_str!("../../README.md");
     let support_tiers = include_str!("../../docs/status/SUPPORT_TIERS.md");
     let stable_lane = include_str!("../../scripts/ci-product-stable.sh");
-    let proof_commands = readme_stable_proof_commands(readme);
+    let stable_rows: Vec<_> = readme_capability_rows(readme)
+        .into_iter()
+        .filter(|row| row.tier == "stable")
+        .collect();
 
     assert!(
-        !proof_commands.is_empty(),
+        !stable_rows.is_empty(),
         "README capability table should include Stable proof commands"
     );
 
-    for command in proof_commands {
+    for row in stable_rows {
+        for command in row.proof_commands {
+            assert!(
+                support_tiers.contains(&command),
+                "README Stable proof command must be documented in docs/status/SUPPORT_TIERS.md:\n{command}"
+            );
+
+            if is_required_gate(&command) {
+                continue;
+            }
+
+            assert!(
+                stable_lane.contains(&command),
+                "README Stable proof command must be present in scripts/ci-product-stable.sh:\n{command}"
+            );
+        }
+    }
+}
+
+#[test]
+fn readme_capability_rows_match_support_tiers() {
+    let readme = include_str!("../../README.md");
+    let support_tiers = include_str!("../../docs/status/SUPPORT_TIERS.md");
+    let readme_rows = readme_capability_rows(readme);
+    let support_rows = support_tier_rows(support_tiers);
+
+    assert!(
+        !readme_rows.is_empty(),
+        "README capability table should include product surface rows"
+    );
+
+    for row in readme_rows {
         assert!(
-            support_tiers.contains(&command),
-            "README Stable proof command must be documented in docs/status/SUPPORT_TIERS.md:\n{command}"
+            !row.proof_commands.is_empty(),
+            "README capability row should name at least one proof command: {}",
+            row.surface
         );
 
-        if is_required_gate(&command) {
-            continue;
-        }
+        let key = surface_lookup_key(&row.surface);
+        let Some(support_tier) = support_rows.get(&key) else {
+            panic!(
+                "README capability surface must exist in docs/status/SUPPORT_TIERS.md: {}",
+                row.surface
+            );
+        };
 
-        assert!(
-            stable_lane.contains(&command),
-            "README Stable proof command must be present in scripts/ci-product-stable.sh:\n{command}"
+        assert_eq!(
+            &row.tier, support_tier,
+            "README capability tier must match docs/status/SUPPORT_TIERS.md for {}",
+            row.surface
         );
     }
 }
@@ -434,8 +475,15 @@ edition = "2024"
     )
 }
 
-fn readme_stable_proof_commands(readme: &str) -> Vec<String> {
-    let mut commands = Vec::new();
+#[derive(Debug)]
+struct CapabilityRow {
+    surface: String,
+    tier: String,
+    proof_commands: Vec<String>,
+}
+
+fn readme_capability_rows(readme: &str) -> Vec<CapabilityRow> {
+    let mut rows = Vec::new();
     let mut in_capability_table = false;
 
     for line in readme.lines() {
@@ -452,29 +500,78 @@ fn readme_stable_proof_commands(readme: &str) -> Vec<String> {
             continue;
         }
 
-        if !line.starts_with('|') || !line.contains("| **Stable** |") {
+        if !line.starts_with('|') {
             continue;
         }
 
-        let columns: Vec<&str> = line.split('|').collect();
-        assert!(
-            columns.len() >= 4,
-            "README Stable capability row should have a proof column: {line}"
-        );
+        let columns = markdown_columns(line);
+        if columns.len() < 3 || is_markdown_separator(&columns) || columns[0] == "Surface" {
+            continue;
+        }
 
-        let proof = columns[3];
+        let proof = columns[2];
         let row_commands = inline_code_spans(proof);
-        assert!(
-            !row_commands.is_empty(),
-            "README Stable capability row should name at least one proof command: {line}"
-        );
-
-        commands.extend(row_commands);
+        rows.push(CapabilityRow {
+            surface: columns[0].to_string(),
+            tier: tier_lookup_key(columns[1]),
+            proof_commands: row_commands,
+        });
     }
 
-    commands.sort();
-    commands.dedup();
-    commands
+    rows
+}
+
+fn support_tier_rows(support_tiers: &str) -> BTreeMap<String, String> {
+    let mut rows = BTreeMap::new();
+
+    for line in support_tiers.lines() {
+        if !line.starts_with('|') {
+            continue;
+        }
+
+        let columns = markdown_columns(line);
+        if columns.len() < 2 || is_markdown_separator(&columns) || columns[0] == "Surface" {
+            continue;
+        }
+
+        rows.entry(surface_lookup_key(columns[0]))
+            .or_insert_with(|| tier_lookup_key(columns[1]));
+    }
+
+    rows
+}
+
+fn markdown_columns(line: &str) -> Vec<&str> {
+    line.trim()
+        .trim_matches('|')
+        .split('|')
+        .map(str::trim)
+        .collect()
+}
+
+fn is_markdown_separator(columns: &[&str]) -> bool {
+    columns
+        .iter()
+        .all(|column| !column.is_empty() && column.chars().all(|ch| matches!(ch, '-' | ':' | ' ')))
+}
+
+fn surface_lookup_key(surface: &str) -> String {
+    surface
+        .split(" (")
+        .next()
+        .unwrap_or(surface)
+        .replace('`', "")
+        .trim()
+        .to_ascii_lowercase()
+}
+
+fn tier_lookup_key(tier: &str) -> String {
+    let cleaned = tier.replace('*', "").trim().to_ascii_lowercase();
+    if cleaned.starts_with("stable") {
+        "stable".to_string()
+    } else {
+        cleaned
+    }
 }
 
 fn inline_code_spans(text: &str) -> Vec<String> {
