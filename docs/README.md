@@ -68,7 +68,7 @@ Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-nativ
 - [**Specs**](./specs/README.md) - Behavior contracts, acceptance criteria, and proof requirements.
 - [**Architecture Decisions**](./adr/README.md) - Durable architecture decisions and their consequences.
 - [**0.9.0 Plans**](../plans/0.9.0/README.md) - PR-sized implementation sequencing and proof commands.
-- [**Microcrate To SRP Plan**](../plans/0.9.0/microcrate-collapse.md) - Release-blocking transition from migration-target microcrates to SRP owner submodules.
+- [**Microcrate To SRP Plan**](../plans/0.9.0/microcrate-collapse.md) - Completed transition and release-gate record for keeping migration-target microcrates out of the release surface.
 - [**API Foundation Plan**](../plans/0.9.0/api-foundation.md) - PR-sized sequence for `AdzeDocument` and its typed, diagnostic, GLR, compatibility, JSON, CLI, and WASM projections.
 - [**Active Goals**](../.adze/goals/README.md) - Machine-readable Droid/Codex execution state conventions.
 - [**Document Artifact Ledger**](../policy/doc-artifacts.toml) - Machine-readable registry for proposals, specs, ADRs, and implementation plans.

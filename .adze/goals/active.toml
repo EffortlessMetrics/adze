@@ -209,11 +209,12 @@ spec = "docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md"
 adr = ""
 plan = "plans/0.9.0/implementation-plan.md"
 blocked_by = []
-prs = [763]
+prs = [763, 785]
 commands = [
   "just ci-supported",
   "just ci-product-stable",
   "cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture",
+  "cargo test -p adze-cli readme_capability_rows_match_support_tiers -- --exact --nocapture",
   "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
   "cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture",
 ]
