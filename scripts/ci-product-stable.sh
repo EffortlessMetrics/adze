@@ -9,6 +9,7 @@ fi
 # Stable product canaries map to README Stable claims only.
 # Broader stabilizing/advisory surfaces remain in scripts/ci-product.sh.
 CANARIES=(
+  "README capability tier alignment|cargo test -p adze-cli readme_capability_rows_match_support_tiers -- --exact --nocapture"
   "README stable proof alignment|cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture"
   "typed extraction exact value|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture"
   "typed extraction repeated-parse determinism|cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture"
