@@ -49,6 +49,13 @@ The check runs in **advisory** mode for now: it writes
 `target/policy/file-policy.md` and `target/policy/file-policy.json` but does
 not fail CI. Once the baseline is settled, this will flip to blocking.
 
+The same report now includes a **Rust migration candidates** section. These are
+non-Rust files that are executable repository logic (shell/Python/JavaScript
+scripts, hooks, release helpers) or production `grammar.js` definitions that can
+be moved toward the Rust-first core design. Tooling candidates should normally
+land as `xtask` subcommands; grammar candidates should normally land as Rust
+annotation-driven grammar crates.
+
 ## Adding a new non-Rust file
 
 1. Try Rust first. Many YAML configs and shell scripts can be replaced with
