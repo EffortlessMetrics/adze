@@ -1,6 +1,6 @@
 # Adze 0.9.0 Contract Convergence Implementation Plan
 
-Status: active
+Status: complete
 Owner: Adze maintainers
 Created: 2026-05-12
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
