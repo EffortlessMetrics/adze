@@ -79,3 +79,4 @@ Welcome to the Adze documentation. Adze (formerly `rust-sitter`) is a Rust-nativ
 - [**Known Red**](./status/KNOWN_RED.md) - Exclusions from the supported CI lane.
 - [**PR Template**](./PR_TEMPLATE.md) - Checklist for contributors.
 - [**Verification**](./VERIFICATION.md) - README badge meanings, generated endpoints, and PR evidence boundaries.
+- [**Rust Core Migration Audit**](./analysis/rust-core-migration-audit-2026-05-16.md) - Prioritized candidates for moving durable non-Rust tooling into Rust-owned core automation.
