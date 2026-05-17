@@ -297,14 +297,15 @@ fn write_reports(dir: &Path, report: &FileReport) -> Result<()> {
         md.push_str("\n## Rust migration candidates\n\n");
         md.push_str("These matched non-Rust tooling surfaces are good candidates to move into `xtask` or a core Rust crate. Fixture, generated, docs, and platform-required configuration files are intentionally excluded.\n\n");
         md.push_str(
-            "| path | kind | owner | target | reason | covered by |\n|---|---|---|---|---|---|\n",
+            "| path | kind | owner | surface | target | reason | covered by |\n|---|---|---|---|---|---|---|\n",
         );
         for c in &report.rust_migration_candidates {
             md.push_str(&format!(
-                "| `{}` | {} | {} | {} | {} | {} |\n",
+                "| `{}` | {} | {} | {} | {} | {} | {} |\n",
                 c.path,
                 c.kind,
                 c.owner,
+                c.current_surface,
                 c.migration_target,
                 c.reason,
                 c.covered_by.join("<br>")
@@ -345,22 +346,39 @@ fn is_migratable_entry(path: &str, entry: &AllowEntry) -> bool {
     ) {
         return false;
     }
+    if is_grammar_definition(path) {
+        return entry.surface == "grammar" || entry.kind.contains("grammar");
+    }
     let has_tool_extension = matches!(
         Path::new(path).extension().and_then(|ext| ext.to_str()),
         Some("sh" | "py" | "js")
-    );
+    ) || is_hook_script(path);
     let is_tool_surface = matches!(
         entry.surface.as_str(),
         "tooling" | "release" | "ci" | "build"
     );
     let is_tool_kind = entry.kind.contains("tooling")
+        || entry.kind.contains("hook")
         || entry.kind.contains("orchestrator")
         || entry.kind == "web_demo";
     has_tool_extension && is_tool_surface && is_tool_kind
 }
 
+fn is_grammar_definition(path: &str) -> bool {
+    path.ends_with("grammar.js")
+}
+
+fn is_hook_script(path: &str) -> bool {
+    (path.starts_with(".githooks/") || path.starts_with("hooks/"))
+        && Path::new(path).extension().and_then(|ext| ext.to_str()) != Some("md")
+}
+
 fn migration_target_for(path: &str, entry: &AllowEntry) -> &'static str {
-    if path.starts_with("scripts/ci/") {
+    if is_grammar_definition(path) {
+        "Rust grammar crate using Adze annotations"
+    } else if path.starts_with(".githooks/") || path.starts_with("hooks/") {
+        "xtask lint/preflight subcommand plus thin hook shim"
+    } else if path.starts_with("scripts/ci/") {
         "xtask CI planning/reporting module"
     } else if path.starts_with("scripts/") {
         "xtask policy/build subcommand"
@@ -387,4 +405,69 @@ fn print_summary(report: &FileReport) {
         report.rust_migration_candidates.len()
     );
     println!("  unused entries:   {}", report.unused_entries.len());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(kind: &str, surface: &str, classification: &str) -> AllowEntry {
+        AllowEntry {
+            glob: Some("scripts/**".to_string()),
+            path: None,
+            kind: kind.to_string(),
+            owner: "core/build".to_string(),
+            surface: surface.to_string(),
+            classification: classification.to_string(),
+            reason: "test entry".to_string(),
+            covered_by: vec!["cargo test -p xtask".to_string()],
+            expires: None,
+            retired: None,
+            generated_by: None,
+        }
+    }
+
+    #[test]
+    fn rust_migration_candidate_accepts_tooling_scripts() {
+        let entries = [entry("shell_tooling", "tooling", "tooling")];
+        let candidate = rust_migration_candidate("scripts/check.sh", &[(4, &entries[0])])
+            .expect("tooling script should be a migration candidate");
+
+        assert_eq!(candidate.current_surface, "tooling");
+        assert_eq!(candidate.migration_target, "xtask policy/build subcommand");
+        assert_eq!(candidate.covered_by, ["cargo test -p xtask"]);
+    }
+
+    #[test]
+    fn rust_migration_candidate_skips_fixture_scripts() {
+        let entries = [entry("language_fixture", "fixtures", "test")];
+        let candidate = rust_migration_candidate("fixtures/example.py", &[(2, &entries[0])]);
+
+        assert!(candidate.is_none());
+    }
+
+    #[test]
+    fn rust_migration_candidate_routes_grammar_js_to_rust_grammar() {
+        let entries = [entry("grammar_input", "grammar", "production")];
+        let candidate =
+            rust_migration_candidate("grammars/example/grammar.js", &[(7, &entries[0])])
+                .expect("production grammar.js should be a migration candidate");
+
+        assert_eq!(
+            candidate.migration_target,
+            "Rust grammar crate using Adze annotations"
+        );
+    }
+
+    #[test]
+    fn rust_migration_candidate_routes_extensionless_hooks_to_xtask() {
+        let entries = [entry("git_hook", "tooling", "tooling")];
+        let candidate = rust_migration_candidate(".githooks/pre-push", &[(0, &entries[0])])
+            .expect("extensionless hook should be a migration candidate");
+
+        assert_eq!(
+            candidate.migration_target,
+            "xtask lint/preflight subcommand plus thin hook shim"
+        );
+    }
 }
