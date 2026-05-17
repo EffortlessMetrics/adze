@@ -483,12 +483,13 @@ Revert the MSRV bump PR.
 
 ## Work Item: clippy-policy-refresh
 
-Status: ready
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec:
 Linked ADR:
 Blocks: product-proof-refresh
 Blocked by: none
+Linked PRs: #762
 
 ### Goal
 
@@ -537,12 +538,13 @@ Revert the lint policy PR and any mechanical fixes tied only to that promotion.
 
 ## Work Item: product-proof-refresh
 
-Status: active
+Status: complete
 Linked proposal: ../../docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md
 Linked spec: ../../docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md
 Linked ADR:
 Blocks: 0.9-closeout
 Blocked by: none
+Linked PRs: #763, #785
 
 ### Goal
 
@@ -561,6 +563,9 @@ economics, MSRV, and lint policy work are in place.
 - `../../README.md` continues to summarize only rows backed by
   `SUPPORT_TIERS.md`.
 - `../../scripts/ci-product-stable.sh` remains the bounded stable-product lane.
+- README capability-tier rows are checked against `SUPPORT_TIERS.md` so stable,
+  stabilizing, advisory, experimental, future, and intentionally excluded claims
+  cannot drift silently.
 
 ### Non-Goals
 
@@ -577,6 +582,7 @@ command, and the stable-product lane passes.
 ```bash
 just ci-supported
 cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture
+cargo test -p adze-cli readme_capability_rows_match_support_tiers -- --exact --nocapture
 just ci-product-stable
 cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture
 cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture
