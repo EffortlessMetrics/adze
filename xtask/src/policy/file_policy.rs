@@ -51,6 +51,18 @@ pub struct FileReport {
     pub allowlist_size: usize,
     pub unallowlisted: Vec<String>,
     pub unused_entries: Vec<UnusedEntry>,
+    pub rust_migration_candidates: Vec<RustMigrationCandidate>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RustMigrationCandidate {
+    pub path: String,
+    pub kind: String,
+    pub owner: String,
+    pub current_surface: String,
+    pub migration_target: String,
+    pub reason: String,
+    pub covered_by: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -66,16 +78,17 @@ pub fn run_check(mode: Mode) -> Result<()> {
     let entries = load_allowlist(&root)?;
 
     let mut builders = Vec::new();
-    for (idx, entry) in entries.iter().enumerate() {
+    for (entry_idx, entry) in entries.iter().enumerate() {
         if let Some(glob) = entry.glob.as_deref().or(entry.path.as_deref()) {
             match Glob::new(glob) {
-                Ok(g) => builders.push((idx, g)),
+                Ok(g) => builders.push((entry_idx, g)),
                 Err(err) => {
                     eprintln!("warning: invalid glob `{glob}` in non-rust-allowlist.toml: {err}");
                 }
             }
         }
     }
+    let pattern_to_entry_idx: Vec<usize> = builders.iter().map(|(idx, _)| *idx).collect();
     let mut gsb = GlobSetBuilder::new();
     for (_, g) in &builders {
         gsb.add(g.clone());
@@ -100,8 +113,15 @@ pub fn run_check(mode: Mode) -> Result<()> {
             report.unallowlisted.push(path.clone());
         } else {
             report.matched += 1;
+            let mut matched_entries = Vec::new();
             for m in matches {
-                used.insert(m);
+                if let Some(entry_idx) = pattern_to_entry_idx.get(m).copied() {
+                    used.insert(entry_idx);
+                    matched_entries.push((entry_idx, &entries[entry_idx]));
+                }
+            }
+            if let Some(candidate) = rust_migration_candidate(path, &matched_entries) {
+                report.rust_migration_candidates.push(candidate);
             }
         }
     }
@@ -254,6 +274,10 @@ fn write_reports(dir: &Path, report: &FileReport) -> Result<()> {
         "- unused allowlist entries: {}\n",
         report.unused_entries.len()
     ));
+    md.push_str(&format!(
+        "- rust migration candidates: {}\n",
+        report.rust_migration_candidates.len()
+    ));
 
     if !report.unallowlisted.is_empty() {
         md.push_str("\n## Unallowlisted (top 100)\n\n");
@@ -269,8 +293,88 @@ fn write_reports(dir: &Path, report: &FileReport) -> Result<()> {
         }
     }
 
+    if !report.rust_migration_candidates.is_empty() {
+        md.push_str("\n## Rust migration candidates\n\n");
+        md.push_str("These matched non-Rust tooling surfaces are good candidates to move into `xtask` or a core Rust crate. Fixture, generated, docs, and platform-required configuration files are intentionally excluded.\n\n");
+        md.push_str(
+            "| path | kind | owner | target | reason | covered by |\n|---|---|---|---|---|---|\n",
+        );
+        for c in &report.rust_migration_candidates {
+            md.push_str(&format!(
+                "| `{}` | {} | {} | {} | {} | {} |\n",
+                c.path,
+                c.kind,
+                c.owner,
+                c.migration_target,
+                c.reason,
+                c.covered_by.join("<br>")
+            ));
+        }
+    }
+
     std::fs::write(dir.join("file-policy.md"), md)?;
     Ok(())
+}
+
+fn rust_migration_candidate(
+    path: &str,
+    matched_entries: &[(usize, &AllowEntry)],
+) -> Option<RustMigrationCandidate> {
+    let entry = matched_entries
+        .iter()
+        .map(|(_, entry)| *entry)
+        .find(|entry| is_migratable_entry(path, entry))?;
+    Some(RustMigrationCandidate {
+        path: path.to_owned(),
+        kind: entry.kind.clone(),
+        owner: entry.owner.clone(),
+        current_surface: entry.surface.clone(),
+        migration_target: migration_target_for(path, entry).to_owned(),
+        reason: entry.reason.clone(),
+        covered_by: entry.covered_by.clone(),
+    })
+}
+
+fn is_migratable_entry(path: &str, entry: &AllowEntry) -> bool {
+    if entry.retired.unwrap_or(false) || entry.classification == "generated" {
+        return false;
+    }
+    if matches!(
+        entry.classification.as_str(),
+        "docs" | "fixtures" | "test" | "config"
+    ) {
+        return false;
+    }
+    let has_tool_extension = matches!(
+        Path::new(path).extension().and_then(|ext| ext.to_str()),
+        Some("sh" | "py" | "js")
+    );
+    let is_tool_surface = matches!(
+        entry.surface.as_str(),
+        "tooling" | "release" | "ci" | "build"
+    );
+    let is_tool_kind = entry.kind.contains("tooling")
+        || entry.kind.contains("orchestrator")
+        || entry.kind == "web_demo";
+    has_tool_extension && is_tool_surface && is_tool_kind
+}
+
+fn migration_target_for(path: &str, entry: &AllowEntry) -> &'static str {
+    if path.starts_with("scripts/ci/") {
+        "xtask CI planning/reporting module"
+    } else if path.starts_with("scripts/") {
+        "xtask policy/build subcommand"
+    } else if path.starts_with("runtime/build-wasm") {
+        "runtime/core WASM build subcommand"
+    } else if path.starts_with("golden-tests/") {
+        "xtask golden-test command"
+    } else if path.starts_with("tools/ts-bridge/") {
+        "ts-bridge Rust crate"
+    } else if entry.surface == "demo" {
+        "Rust-backed playground/demo command"
+    } else {
+        "core Rust tooling surface"
+    }
 }
 
 fn print_summary(report: &FileReport) {
@@ -278,5 +382,9 @@ fn print_summary(report: &FileReport) {
     println!("  non-rust scanned: {}", report.total_non_rust);
     println!("  matched:          {}", report.matched);
     println!("  unallowlisted:    {}", report.unallowlisted.len());
+    println!(
+        "  rust migrations:  {}",
+        report.rust_migration_candidates.len()
+    );
     println!("  unused entries:   {}", report.unused_entries.len());
 }
