@@ -1,6 +1,6 @@
 # CI Lane Map
 
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-17
 **Purpose:** Classify every CI check so contributors can immediately tell
 whether a red mark means "must fix before merge" or "inspect at your leisure."
 
@@ -48,7 +48,7 @@ These jobs run on push to `main`, on schedules, or via `workflow_dispatch` with 
 
 | Workflow | Job name | Trigger | Lane | Notes |
 |----------|----------|---------|------|-------|
-| `ci.yml` | `Lint` | Push only | Push | Full lint suite (bare no_mangle, debug blocks, fmt, clippy) |
+| `ci.yml` | `Lint` | Push only | Push | Full lint suite (`cargo xtask check-no-mangle`, debug blocks, fmt, clippy) |
 | `ci.yml` | `Test` | Push only | Push | OS x features x toolchain matrix (3 OS, 4 features, 2 toolchains) |
 | `ci.yml` | `Matrix Smoke Test` | Push only | Push | Workspace default + all-features test |
 | `ci.yml` | `Test with Debug Assertions` | Push only | Push | Debug-assertion tests for glr-core, runtime, tablegen |
