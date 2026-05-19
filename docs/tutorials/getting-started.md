@@ -17,6 +17,30 @@ A comprehensive guide to building parsers with Adze's macro-based grammar genera
 
 ## Quick Start
 
+The fastest currently proven path is the generated starter project from a repo
+checkout. The intended published install command is `cargo install adze-cli`,
+but the current proof uses the CLI built from this checkout until `adze-cli` is
+published as a crates.io install surface:
+
+```bash
+cargo run -p adze-cli -- init calc
+cd calc
+cargo test
+cargo run --example parse -- "1 + 2 * 3"
+```
+
+That path teaches the default user flow:
+
+```rust
+let ast = grammar::parse("1 + 2 * 3")?;
+let document = grammar::parse_document("1 +")?;
+```
+
+The repo backs this shape with `testing/downstream-starter`, a standalone
+fixture that proves path dependencies, `build.rs`, generated parser imports,
+diagnostics, and the parse example. Published `cargo install adze-cli` remains
+release-surface work, not a proven Stable claim yet.
+
 ### Installation
 
 Add adze to your `Cargo.toml`:
@@ -344,7 +368,8 @@ Usually means a token_count issue or mismatched versions.
 
 #### Empty string extraction
 
-If you are using `transform` to parse the string, ensure the closure is actually being executed (see Known Issues). For simple text extraction, stick to `String` type.
+If you need raw token text, use `String` fields. If you need a typed value, use
+`#[adze::leaf(transform = ...)]` and keep the transform small and deterministic.
 
 ### Debug Tips
 

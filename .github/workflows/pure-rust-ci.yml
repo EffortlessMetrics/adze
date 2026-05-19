@@ -1,16 +1,20 @@
 name: Pure Rust Implementation CI
 
-# Default PR runs Ubuntu/stable only. The full OS × toolchain matrix runs
-# on push to main, on workflow_dispatch, and on PRs labeled
+# Default code-path PR runs Ubuntu/stable only. Docs/policy-only PRs skip the
+# Rust jobs. Excluded tool islands such as tools/ts-bridge are owned by their
+# focused smoke lanes instead of the whole-workspace Pure Rust lane. The full
+# OS × toolchain matrix runs on workflow_dispatch and on PRs labeled
 # 'platform-matrix' or 'full-ci'. See docs/ci/adze-rollout-plan.md (PR 13).
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 env:
   RUST_BACKTRACE: 1
@@ -28,21 +32,41 @@ env:
 jobs:
   matrix-setup:
     name: Matrix Setup
+    if: |
+      github.event_name != 'pull_request' ||
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'full-ci' ||
+      github.event.label.name == 'platform-matrix'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
       os: ${{ steps.compute.outputs.os }}
       rust: ${{ steps.compute.outputs.rust }}
+      rust_changed: ${{ steps.compute.outputs.rust_changed }}
+      run_rust: ${{ steps.compute.outputs.run_rust }}
     steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
       - id: compute
         run: |
           set -euo pipefail
           full=false
+          rust_changed=false
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             full=true
+            rust_changed=true
           elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}" == "true" ]] \
             || [[ "${{ contains(github.event.pull_request.labels.*.name, 'platform-matrix') }}" == "true" ]]; then
             full=true
+            rust_changed=true
+          else
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" || true)
+            if echo "$changed" | grep -qE '^(Cargo\.toml|Cargo\.lock)$|^(runtime/|runtime2/|macro/|common/|ir/|glr-core/|tablegen/|crates/|grammars/|tool/|cli/|xtask/|tests/|testing/|glr-test-support/|test-mini/|lsp-generator/|playground/|wasm-demo/|\.github/workflows/pure-rust-ci\.yml$)'; then
+              rust_changed=true
+            fi
           fi
           if [ "$full" = "true" ]; then
             echo 'os=["ubuntu-latest","macos-latest","windows-latest"]' >> "$GITHUB_OUTPUT"
@@ -51,11 +75,20 @@ jobs:
             echo 'os=["ubuntu-latest"]' >> "$GITHUB_OUTPUT"
             echo 'rust=["stable"]' >> "$GITHUB_OUTPUT"
           fi
+          if [ "$rust_changed" = "true" ]; then
+            echo "run_rust=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_rust=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "rust_changed=$rust_changed" >> "$GITHUB_OUTPUT"
+          echo "Rust jobs selected: $rust_changed"
 
   test-pure-rust:
     name: Test Pure Rust Implementation
     needs: matrix-setup
+    if: needs.matrix-setup.outputs.run_rust == 'true'
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -93,14 +126,35 @@ jobs:
     - name: Build
       run: cargo build --verbose
     
-    - name: Run tests
+    - name: Run supported crate tests
+      if: |
+        github.event_name == 'pull_request' &&
+        !contains(github.event.pull_request.labels.*.name, 'full-ci')
+      timeout-minutes: 25
+      run: |
+        cargo test \
+          -p adze \
+          -p adze-macro \
+          -p adze-tool \
+          -p adze-common \
+          -p adze-ir \
+          -p adze-glr-core \
+          -p adze-tablegen \
+          --lib --tests --bins \
+          -- --test-threads=$RUST_TEST_THREADS
+
+    - name: Run full workspace tests
+      if: |
+        github.event_name != 'pull_request' ||
+        contains(github.event.pull_request.labels.*.name, 'full-ci')
+      timeout-minutes: 25
       run: cargo test --verbose -- --test-threads=$RUST_TEST_THREADS
 
     - name: Skip benchmark compile check on pull requests
       if: matrix.os != 'windows-latest' && github.event_name == 'pull_request'
       run: |
         echo "::notice::Skipping all-crate benchmark compile check on pull_request events."
-        echo "::notice::Benchmark compile coverage is owned by performance.yml/benchmarks.yml and opt-in labels."
+        echo "::notice::Benchmark compile coverage is owned by criterion-smoke.yml and manual/full-CI lanes."
     
     - name: Run benchmark compile check (all crates)
       if: matrix.os != 'windows-latest' && github.event_name != 'pull_request'
@@ -162,7 +216,7 @@ jobs:
   golden-tests:
     name: Golden Tests
     # The dedicated golden-tests.yml workflow is the PR-default; this job
-    # runs on push/full-ci to keep the integrated path covered.
+    # runs on workflow_dispatch/full-ci to keep the integrated path covered.
     if: |
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'ci:golden') ||
@@ -194,6 +248,8 @@ jobs:
   
   integration-tests:
     name: Integration Tests
+    needs: matrix-setup
+    if: needs.matrix-setup.outputs.run_rust == 'true'
     runs-on: ubuntu-latest
     
     steps:
@@ -208,7 +264,7 @@ jobs:
   
   performance:
     name: Performance Regression Tests
-    # Owned by performance.yml on PR; this job runs on push/full-ci.
+    # Benchmark proof is explicit. This integrated job runs on workflow_dispatch/full-ci.
     if: |
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'ci:perf') ||
@@ -239,46 +295,3 @@ jobs:
           echo "Potential performance regression detected"
           exit 1
         fi
-  
-  coverage:
-    name: Code Coverage
-    if: |
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'coverage') ||
-      contains(github.event.pull_request.labels.*.name, 'full-ci')
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v6.0.2
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Install cargo-llvm-cov
-      uses: taiki-e/install-action@v2
-      with:
-        tool: cargo-llvm-cov
-    
-    - name: Generate coverage
-      run: |
-        cargo llvm-cov --workspace --exclude adze-wasm-demo --features "pure-rust,glr,incremental_glr,external_scanners,serialization,ts-compat" --lcov --output-path lcov.info
-    
-    - name: Upload coverage artifact
-      if: always()
-      uses: actions/upload-artifact@v7.0.0
-      with:
-        name: adze-lcov
-        path: lcov.info
-        if-no-files-found: error
-        retention-days: 14
-
-    - name: Upload coverage to Codecov
-      if: ${{ always() && hashFiles('lcov.info') != '' }}
-      uses: codecov/codecov-action@v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: lcov.info
-        flags: rust
-        name: adze-rust
-        fail_ci_if_error: false
-        verbose: true

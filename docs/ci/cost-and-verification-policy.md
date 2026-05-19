@@ -19,6 +19,10 @@ At high agentic PR volume, broad defaults become the product's operating cost.
 Adze targets a different model: Rust-native checks, cheap oracle-gap detection
 with `ripr`, LEM visibility, and risk-routed deep lanes.
 
+The runner-class model is documented in
+[`runner-classes.md`](./runner-classes.md). GitHub-hosted fallback must stay
+scoped to the selected lane; it must not recreate the public-era full-CI fanout.
+
 ## The unit: LEM
 
 `LEM = wall-clock job minutes × runner multiplier`
@@ -40,7 +44,7 @@ the design center.
 
 | Tier | Trigger | Examples |
 | --- | --- | --- |
-| frontdoor | every PR, blocking | `just ci-supported` / `PR Gate Success` |
+| frontdoor | every PR, blocking | `Rust Small Result` in `adze-swarm`; `just ci-supported` remains the local supported/product proof |
 | advisory | every PR, non-blocking | PR Plan, ripr |
 | risk-routed | risk pack or path matches | parser fuzz build, golden, microcrate group, test-policy |
 | deep | `main`, nightly, label | OS matrix, fuzz runtime, full benchmarks |
@@ -77,6 +81,7 @@ See `docs/ci/adze-rollout-plan.md` for the per-PR breakdown.
 ## Related
 
 - `docs/ci/lem-budgeting.md` – how LEM is computed and budgeted
+- `docs/ci/runner-classes.md` – CX43, CX53, and GitHub-hosted runner roles
 - `docs/ci/verification-ladder.md` – tiers and what they prove
 - `docs/ci/adze-rollout-plan.md` – per-PR rollout plan and status
 - `docs/ci/labels.md` – label vocabulary used by routing

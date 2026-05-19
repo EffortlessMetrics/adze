@@ -91,7 +91,8 @@ fn main() {
 
 Then call `grammar::parse(input)` to get `Result<YourType, Vec<ParseError>>`.
 
-See the [Getting Started tutorial](./docs/tutorials/getting-started.md) for a full walkthrough.
+For the shortest path, start with [Quickstart: First Parser In 10 Minutes](./docs/tutorials/quickstart-10-minutes.md).
+For the API ladder, read the [Mental Model](./docs/explanations/mental-model.md).
 
 ## Current status
 
@@ -107,32 +108,32 @@ Support tiers, proof commands, and CI lanes are tracked in [`docs/status/SUPPORT
 | **Stabilizing** | Implemented and tested, but missing broader product proof before stable promotion |
 | **Experimental** | Implemented, but outside the supported contract; behavior may change |
 | **Advisory** | Useful non-blocking signal from optional CI, smoke tests, or examples |
-| **Intentionally excluded** | Tracked proof signal outside current product claims until explicitly reclassified |
 
 ### Capability table
 
 | Surface | Tier | Proof |
 |---------|------|-------|
 | Typed extraction | **Stable** | `just ci-supported`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_left_associative_addition -- --exact --nocapture`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture` |
-| Pure-Rust parser | **Stable** | `just ci-supported`; `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`; `cargo test -p adze-cli getting_started_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture`; `cargo test -p adze-cli book_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture`; `cargo test -p downstream-demo -- --nocapture`; `cargo run -p downstream-demo --quiet` |
+| Pure-Rust parser | **Stable** | `just ci-supported`; `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`; `cargo test -p adze-cli getting_started_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture`; `cargo test -p adze-cli book_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture`; `cargo test -p downstream-demo -- --nocapture`; `cargo run -p downstream-demo --quiet`; `cargo test --manifest-path testing/downstream-starter/Cargo.toml`; `cargo run --manifest-path testing/downstream-starter/Cargo.toml --example parse` |
 | Operator precedence | **Stable** | `cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture`; `cargo test -p adze-glr-core --test ambiguity_detection_comprehensive test_precedence_resolves_add_mul -- --exact --nocapture` |
 | Serialization (core tables) | **Stable** | `cargo test -p adze-glr-core --features serialization --doc`; `cargo test -p adze-glr-core --features serialization --test serialization_v9 sv9_complex_precedence_roundtrip -- --exact --nocapture` |
 | GLR conflict routing | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr test_ambiguous_grammar_glr_parsing -- --exact --nocapture`; `cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_glr_runtime_retains_multiple_complete_alternatives -- --exact --nocapture` |
 | Tablegen TSLanguage ABI | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr,ts-compat" --test tablegen_abi_decode_roundtrip combined_tslanguage_decode_preserves_metadata_fields_aliases_externals_and_lex_modes -- --exact --nocapture` |
 | Structured parse errors | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr" --test generated_parse_errors generated_typed_parser_unexpected_eof_expected_field_is_populated -- --exact --nocapture`; `cargo test -p adze --features pure-rust --test generated_parse_errors expected_token_sets_are_reported -- --exact --nocapture` |
-| AdzeDocument native API | **Experimental** | `cargo test -p adze --features "pure-rust,ts-compat" --test adze_document_alpha -- --nocapture`; `cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_parse_document_ast_matches_parse -- --exact --nocapture`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_parse_document_ast_records_extraction_provenance -- --exact --nocapture`; `cargo test -p adze --features "pure-rust,serialization" --test adze_document_json -- --nocapture` |
+| AdzeDocument native API | **Stabilizing** | `cargo test -p adze --features "pure-rust,ts-compat" --test adze_document_alpha -- --nocapture`; `cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_parse_document_ast_matches_parse -- --exact --nocapture`; `cargo test --manifest-path testing/downstream-starter/Cargo.toml` |
 | Typed CST native view | **Experimental** | `cargo test -p adze --features "pure-rust,ts-compat" --test typed_cst_arithmetic_spike -- --nocapture`; `cargo test -p adze-tablegen typed_cst_generator -- --nocapture` |
 | External scanners | **Experimental** | `cargo test -p adze --features external_scanners` |
 | Incremental parsing | **Experimental** | `cargo test --workspace --features incremental_glr` |
-| CLI | **Advisory** | `cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture`; `cargo test -p adze-cli test_init_cargo_toml_references_adze_dependency -- --exact --nocapture` |
+| CLI | **Stabilizing** | `cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture`; `cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture`; `cargo test -p adze-cli getting_started_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture`; `cargo test -p adze-cli test_parse_document_projection_modes_emit_schema_envelopes -- --exact --nocapture`; `cargo test -p adze-cli parse_document_json_modes_emit_recovery_diagnostics -- --exact --nocapture` |
 | `adze-tool` CLI | **Advisory** | `cargo test -p adze-tool --test cli_test test_test_command_rejects_corpus_without_parser -- --exact --nocapture` |
 | WASM | **Advisory** | `cargo check --manifest-path wasm-demo/Cargo.toml --target wasm32-unknown-unknown` |
 | Tree-sitter interop | **Advisory** | `./scripts/smoke-link.sh ts-bridge` |
-| Tree-sitter compatibility API | **Advisory** | `cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_error -- --nocapture` |
-| runtime2 | **Intentionally excluded** | `cargo test --manifest-path runtime2/Cargo.toml --features test-utils --test basic language_smoke_exposes_metadata_queries -- --exact --nocapture` |
+| Tree-sitter compatibility API | **Stabilizing** | `cargo test -p adze --features "pure-rust,glr,ts-compat" --test ts_compat_selected_tree -- --nocapture`; `cargo test -p adze --features "pure-rust,ts-compat,query" --test ts_compat_imported_shape_smoke -- --nocapture` |
+| Query compatibility subset | **Stabilizing** | `cargo run -p adze --features query --example query_highlighting`; `cargo test -p adze --features query --lib query -- --nocapture`; `cargo test -p adze --features "pure-rust,ts-compat,query" --test query_differential -- --nocapture` |
+| runtime2 | **Advisory** | `cargo test --manifest-path runtime2/Cargo.toml --features test-utils --test basic language_smoke_exposes_metadata_queries -- --exact --nocapture` |
 | Grammars | **Advisory** | `cargo test -p adze-python test_python_language_exists -- --exact` |
 | Golden tests | **Advisory** | `cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture` |
-| Benchmarks | **Advisory** | `cargo test -p adze-benchmarks --test verify_fixture_parsing verify_parse_bench_uses_real_parser_workload -- --exact --nocapture` |
+| Benchmarks | **Advisory** | `cargo run -q -p xtask -- perf-receipt --profile product-smoke`; `cargo test -p adze-benchmarks --test verify_fixture_parsing verify_parse_bench_uses_real_parser_workload -- --exact --nocapture` |
 
 Rule for documentation and CI promotion: no Stable feature claim without a named proof command in [`docs/status/SUPPORT_TIERS.md`](./docs/status/SUPPORT_TIERS.md).
 
