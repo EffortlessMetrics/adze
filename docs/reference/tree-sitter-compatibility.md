@@ -1,6 +1,160 @@
-# Tree-sitter Format Specification
+# Tree-sitter Compatibility Reference
 
-> **This spec governs encoder, decoder, runtime, tests, and CI. Any changes to tags/columns/reduce/goto/Accept must update all of: encoder, decoder, tests, `docs/ts_spec.md`, `docs/MERGE_CHECKLIST.md`.**
+This reference defines Adze's current Tree-sitter compatibility contract. It
+covers two related but separate surfaces:
+
+- generated `TSLanguage` table-format and decode invariants;
+- the `ts_compat` selected-tree adapter that projects from native Adze document
+  facts.
+
+Tree-sitter compatibility is an adapter surface. It does not define Adze's
+native parse truth. `AdzeDocument` remains the canonical parse product, and
+`ts_compat` exposes the selected tree for ecosystem interop.
+
+Do not read this page as a full Tree-sitter parity claim. The supported subset
+below is the current product contract; broader query, node-types, corpus, and
+error-recovery parity remain explicitly tiered in
+[`SUPPORT_TIERS.md`](../status/SUPPORT_TIERS.md).
+
+Query compatibility has its own subset reference:
+[`query-compatibility.md`](query-compatibility.md).
+
+## How To Use The Adapter
+
+Use the compatibility adapter when existing tooling expects Tree-sitter-shaped
+`Tree` and `Node` traversal. Native Adze code should prefer
+`grammar::parse()` for typed Rust values or `grammar::parse_document()` for
+document facts.
+
+There are two supported entry shapes.
+
+Use `ts_compat::Parser` when the integration is already written in
+Tree-sitter terms:
+
+```rust
+let mut parser = adze::ts_compat::Parser::new();
+parser.set_language(language.clone())?;
+let tree = parser.parse(source, None)?;
+let root = tree.root_node();
+```
+
+Use `Tree::from_document` when the application already has the native document
+and wants a compatibility view over the same parse truth:
+
+```rust
+let document = grammar::parse_document(source)?;
+let tree = adze::ts_compat::Tree::from_document(language.clone(), &document);
+let root = tree.root_node();
+```
+
+The second shape is the preferred product model for Adze-native tooling:
+parse once into `AdzeDocument`, then project the selected Tree-sitter-shaped
+view from that document.
+
+## Concept Map
+
+| Tree-sitter concept | Adze source |
+| --- | --- |
+| `Tree` | selected tree projected from `AdzeDocument` or parsed by `ts_compat::Parser` |
+| `Node` | selected document node facts exposed through `ts_compat::Node` |
+| `kind()` / `kind_id()` | alias-visible document identity |
+| `grammar_name()` / `grammar_id()` | raw grammar identity |
+| Fields | document edges plus generated language field metadata |
+| Byte and point ranges | document node ranges |
+| `ERROR`, missing, extra, aggregate error state | document flags and diagnostics where facts exist |
+| S-expression | selected document tree |
+| `node-types.json` | language metadata projection, still advisory for alias-visible parity |
+| Queries | documented subset in [`query-compatibility.md`](query-compatibility.md) |
+
+Use the native APIs instead when the code needs typed Rust AST values, raw GLR
+ambiguity alternatives, user-facing diagnostics, stable JSON/CLI schemas, or
+full Tree-sitter query parity. Those are separate Adze surfaces with separate
+support-tier rows.
+
+## Selected-tree Compatibility Subset
+
+The compatibility adapter exposes one selected tree. Native GLR ambiguity
+summaries stay on `AdzeDocument`; `ts_compat` does not expose raw forest data or
+multiple parse alternatives.
+
+### Supported now
+
+These method families are covered by current canaries and are the main
+selected-tree subset users should build against:
+
+| Area | Supported surface |
+| --- | --- |
+| Tree entry | `Tree::root_node()`, `Tree::language()`, document-backed tree creation |
+| Child traversal | `child(i)`, `named_child(i)`, `child_count()`, `named_child_count()` |
+| Sibling and parent traversal | `parent()`, `next_sibling()`, `prev_sibling()`, named sibling filtering |
+| Cursor traversal | forward, reverse/end, reset/reuse, depth, descendant indexing |
+| Ranges | `start_byte()`, `end_byte()`, `start_position()`, `end_position()` |
+| Descendant lookup | byte-range and point-range descendant lookup |
+| Field lookup | `child_by_field_name()`, public field IDs, child field-name lookup |
+| Identity | alias-visible `kind()` / `kind_id()`, raw `grammar_name()` / `grammar_id()` |
+| Node flags | `is_named()`, `is_extra()`, `is_error()`, `has_error()`, `is_missing()` where facts exist |
+| S-expression | named-node S-expression output using alias-visible identity |
+| Language metadata | field-name/id lookup and node-kind metadata lookup |
+
+### Stabilizing
+
+These surfaces are useful and covered by targeted tests, but still need broader
+fixture and imported-grammar proof before promotion:
+
+- alias-visible identity across all generated parser paths;
+- selected-tree error and missing-node projection for recovered generated input;
+- node-types metadata generated from the same language schema;
+- GLR selected-tree determinism for a broader conflict matrix;
+- parity against imported grammar fixtures beyond the current smoke/canary set.
+
+### Advisory or future
+
+These are not product claims yet:
+
+- full Tree-sitter query parity;
+- alias-visible node-types parity;
+- parse-state metadata;
+- changed-range/incremental edit parity;
+- C ABI stability for arbitrary external consumers;
+- full imported grammar corpus compatibility;
+- raw GLR forest exposure through `ts_compat`.
+
+### Known gaps and not-planned boundaries
+
+The selected-tree adapter is not a promise that every Tree-sitter consumer can
+switch without inspection. Before adopting it, check these boundaries:
+
+- query behavior is a documented subset, not full Tree-sitter query parity;
+- alias-visible `node-types.json` parity is not promoted yet;
+- imported grammar corpus parity is not promoted yet;
+- parse-state metadata and incremental changed-range parity are not promoted;
+- raw GLR forest data is native Adze data and is not exposed through
+  `ts_compat`;
+- diagnostics remain native `AdzeDocument` facts even when error and missing
+  flags are projected onto compatibility nodes.
+
+### Proof commands
+
+Representative selected-tree proof is tracked in
+[`SUPPORT_TIERS.md`](../status/SUPPORT_TIERS.md). The main local canaries are:
+
+```bash
+cargo test -p adze --features "pure-rust,glr,ts-compat" --test ts_compat_selected_tree -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_tree_children -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_tree_cursor -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_language_fields -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_metadata -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_node_error -- --nocapture
+cargo test -p adze --features "pure-rust,ts-compat" --test ts_compat_to_sexp -- --nocapture
+```
+
+Promotion of this subset should use the consolidated `ts_compat_selected_tree`
+matrix plus targeted method-family canaries rather than relying only on
+scattered tests.
+
+Do not promote this page, README wording, or support-tier rows to a Stable
+Tree-sitter compatibility claim unless the relevant method family has a proof
+command, CI lane, known-gap statement, and rollback path.
 
 ## Critical ABI Contract
 
@@ -63,7 +217,10 @@ This document defines the exact binary format and invariants that must be mainta
 - Minimum Compatible: Version 13
 
 ## ABI Stability
-The GLR implementation maintains bit-for-bit compatibility with Tree-sitter's C runtime for all table formats and action encodings.
+The table ABI targets Tree-sitter language version 15 for the covered table
+formats and action encodings. Compatibility claims are proof-driven: do not
+claim full Tree-sitter runtime parity until the relevant method family, query
+behavior, node-types metadata, and imported grammar corpus proof exist.
 
 ## Runtime Node Identity
 

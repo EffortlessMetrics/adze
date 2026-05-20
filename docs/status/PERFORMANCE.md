@@ -52,25 +52,24 @@ Grammar size affects two separate phases:
 
 ## Optimization Tips
 
-### Use the Pure-Rust Backend for WASM
+### Prefer the Rust-Native Generated Parser Path
 
-The default `tree-sitter-c2rust` backend compiles to pure Rust, making it
-WASM-compatible without a C toolchain:
+The supported product path is Rust-native generated parsing:
 
-```toml
-[dependencies]
-adze = { version = "0.8" }  # c2rust backend is the default
+```text
+Rust grammar types
+  -> generated parser
+  -> grammar::parse()
+  -> grammar::parse_document()
 ```
 
-For native builds where you want the standard C runtime:
+`grammar::parse()` is the ergonomic typed AST path. `parse_document()` is the
+tooling path for diagnostics, ranges, ambiguity summaries, JSON, and
+Tree-sitter-compatible selected-tree projections.
 
-```toml
-[dependencies]
-adze = { version = "0.8", features = ["tree-sitter-standard"] }
-```
-
-The pure-Rust backend avoids FFI overhead in WASM and produces smaller binaries
-for `wasm32-unknown-unknown` targets.
+Do not treat historical C-backend feature flags as current performance advice.
+WASM, CLI JSON, and Tree-sitter-compatible projections are measured and promoted
+through their own support-tier rows and proof commands.
 
 ### Design Grammars for Performance
 
@@ -147,7 +146,6 @@ cargo bench -p adze-benchmarks
 
 | Crate | Benchmark | What It Measures |
 |---|---|---|
-| `adze-benchmarks` | `glr_performance.rs` | End-to-end GLR parsing of arithmetic fixtures |
 | `adze-benchmarks` | `glr_performance_real.rs` | Release-gated real parsing benchmarks |
 | `adze-glr-core` | `automaton.rs` | LR(1) automaton construction time |
 | `adze-glr-core` | `perf_snapshot.rs` | GLR core performance snapshots |
@@ -167,19 +165,20 @@ The table below classifies every benchmark file under:
 - `tablegen/benches/**`
 
 Use this inventory to distinguish **real parser/GLR evidence** from
-**placeholder** and **utility** microbenchmarks.
+build-pipeline and infrastructure microbenchmarks. For the
+`adze-benchmarks` package, `benchmarks/README.md` and
+`benchmarks/Cargo.toml` carry the package-local source of truth.
 
 | Benchmark file | Classification | Notes |
 |---|---|---|
-| `benchmarks/benches/glr_performance.rs` | real parser workload | Parses real arithmetic fixtures with `adze_example::arithmetic::grammar::parse`. |
-| `benchmarks/benches/glr_hot.rs` | real parser workload | Hot-path fixture parsing only (medium/large). |
-| `benchmarks/benches/glr_performance_real.rs` | real parser workload | Primary fixture-driven GLR parser benchmark. |
-| `benchmarks/benches/incremental_bench.rs` | GLR forest/fork workload | Measures incremental parser behavior using grammar/token/edit helpers. |
-| `benchmarks/benches/core_baselines.rs` | tablegen workload | IR normalize, FIRST/FOLLOW, LR(1) automaton, and table compression generation steps. |
-| `benchmarks/benches/arena_vs_box_allocation.rs` | utility microbenchmark | Allocation strategy benchmark; not an end-to-end parser benchmark. |
-| `benchmarks/benches/optimization_bench.rs` | placeholder/mock | Simulated parse/fork loops (`parse_simulation`), not a parser run. |
-| `benchmarks/benches/stack_optimization.rs` | utility microbenchmark | Stack/pool/fork-pattern data-structure costs, synthetic workload. |
-| `benchmarks/benches/parse_bench.rs` | placeholder/mock | Explicit placeholder target (`placeholder_no_parser_workload`). |
+| `benchmarks/benches/parse_bench.rs` | real parser workload | Baseline arithmetic parsing with generated parser fixtures. |
+| `benchmarks/benches/glr_hot.rs` | real parser workload | Hot-path medium/large arithmetic fixtures. |
+| `benchmarks/benches/glr_performance_real.rs` | real parser workload | Full GLR parsing with valid arithmetic fixtures. |
+| `benchmarks/benches/incremental_bench.rs` | real parser workload | Full-reparse vs incremental reparse behavior. |
+| `benchmarks/benches/core_baselines.rs` | build-pipeline workload | IR normalize, FIRST/FOLLOW, LR(1) automaton, and table compression generation steps. |
+| `benchmarks/benches/arena_vs_box_allocation.rs` | infrastructure microbenchmark | Arena vs Box allocation comparison. |
+| `benchmarks/benches/optimization_bench.rs` | legacy infrastructure microbenchmark | Superseded by `arena_vs_box_allocation.rs` and `stack_optimization.rs`. |
+| `benchmarks/benches/stack_optimization.rs` | infrastructure microbenchmark | Vec vs persistent stack micro-benchmarks. |
 | `runtime/benches/glr_parser_bench.rs` | GLR forest/fork workload | GLR parsing stress cases, including ambiguous grammars. |
 | `runtime/benches/runtime_parse_serialize_bench.rs` | compression/decode workload | Runtime parse + JSON/S-expression serialization traversal costs. |
 | `runtime/benches/parser_benchmark.rs` | real parser workload | Pure-Rust parser over expression inputs. |
@@ -315,18 +314,19 @@ longer to compile than small arithmetic grammars.
 tables are embedded as static data and impose no runtime penalty. Use
 `cargo build --release` to speed up the generation itself.
 
-### Incremental Parsing (Disabled)
+### Incremental Parsing (Experimental)
 
-The GLR incremental parsing path (`runtime/src/glr_incremental.rs`) is
-currently **disabled** and falls back to fresh parsing. The infrastructure exists
-but has known architectural issues:
+Incremental lifecycle support is experimental. The accepted contract is
+document-centered: edit requests produce a new `AdzeDocument`, and metadata must
+say whether the request reused structure or fell back to a full reparse.
 
-- Error tracking uses hardcoded `is_error: false` in subtree creation
-- Root kind determination diverges between forest symbols and parse results
-- Token-level vs grammar-level parsing produces inconsistent trees
+Adze does not currently publish stable reuse percentages, stable
+cross-document node handles, or incremental speedup guarantees.
 
-The conservative fallback ensures correctness at the cost of not reusing
-subtrees from previous parses. See `glr_incremental.rs:281-297` for details.
+For the lifecycle contract, see
+`docs/specs/ADZE-SPEC-0009-incremental-document-lifecycle.md`. For user-facing
+guidance, see `docs/how-to/incremental-parsing.md` and
+`docs/explanations/incremental-parsing-theory.md`.
 
 ### Fork/Merge Overhead
 

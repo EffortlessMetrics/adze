@@ -19,7 +19,7 @@ schema_version = "1.0"
 policy = "ci-lane-whitelist"
 owner = "release/ci"
 status = "advisory"
-updated = "2026-05-08"
+updated = "2026-05-15"
 
 [budget]
 # All values in LEM (Linux-equivalent minutes).
@@ -105,6 +105,90 @@ review_after = "2026-06-07"
 expires = "2026-11-07"
 
 [[lane]]
+id = "em-rust-small-route"
+workflow = ".github/workflows/em-ci-routed-rust.yml"
+job = "route-rust-small"
+display_name = "Route Rust Small"
+kind = "control"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 1
+owner = "release/ci"
+intent = "Select the CX43 self-hosted Rust small runner when idle, otherwise fall back to GitHub-hosted."
+failure_mode = "The swarm base gate cannot choose a trusted execution lane."
+proof_obligation = "Query runner availability and emit the selected rust-small target."
+evidence = ["job logs", "GitHub job outputs"]
+allowed_triggers = ["pull_request", "merge_group", "workflow_dispatch"]
+duplicate_of = []
+review_after = "2026-06-15"
+expires = "2026-11-15"
+
+[[lane]]
+id = "em-rust-small-cx43"
+workflow = ".github/workflows/em-ci-routed-rust.yml"
+job = "rust-small-cx43"
+display_name = "Rust Small on CX43"
+kind = "rust"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "mixed"
+base_lem = 10
+owner = "core/build"
+intent = "Run the swarm base Rust check on the CX43 self-hosted trusted runner when available."
+failure_mode = "Same-repo swarm PRs are not checked on the preferred bounded runner."
+proof_obligation = "Run cargo fetch and cargo check --workspace --locked in the routed Rust container."
+evidence = ["job logs", "sccache stats"]
+allowed_triggers = ["pull_request", "merge_group", "workflow_dispatch"]
+duplicate_of = ["ci-supported"]
+review_after = "2026-06-15"
+expires = "2026-11-15"
+
+[[lane]]
+id = "em-rust-small-github"
+workflow = ".github/workflows/em-ci-routed-rust.yml"
+job = "rust-small-github"
+display_name = "Rust Small on GitHub Hosted"
+kind = "rust"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 12
+owner = "core/build"
+intent = "Run the swarm base Rust check on GitHub-hosted runners when CX43 is unavailable."
+failure_mode = "Swarm PRs stall when the preferred self-hosted runner is busy or unavailable."
+proof_obligation = "Run cargo fetch and cargo check --workspace --locked on GitHub-hosted Ubuntu."
+evidence = ["job logs"]
+allowed_triggers = ["pull_request", "merge_group", "workflow_dispatch"]
+duplicate_of = ["ci-supported"]
+review_after = "2026-06-15"
+expires = "2026-11-15"
+
+[[lane]]
+id = "em-rust-small-result"
+workflow = ".github/workflows/em-ci-routed-rust.yml"
+job = "rust-small-result"
+display_name = "Rust Small Result"
+kind = "control"
+tier = "frontdoor"
+default_pr = true
+blocking = true
+runner = "ubuntu_latest"
+base_lem = 1
+owner = "release/ci"
+intent = "Provide the single required aggregate result for the routed swarm Rust small gate."
+failure_mode = "Branch protection cannot distinguish the selected routed lane from the skipped fallback lane."
+proof_obligation = "Pass only when the selected Rust Small implementation lane succeeds."
+evidence = ["job summary", "selected lane result"]
+allowed_triggers = ["pull_request", "merge_group", "workflow_dispatch"]
+duplicate_of = ["em-rust-small-cx43", "em-rust-small-github"]
+review_after = "2026-06-15"
+expires = "2026-11-15"
+
+[[lane]]
 id = "ci-lane-whitelist-lint"
 workflow = ".github/workflows/ci-policy.yml"
 job = "ci-lane-whitelist"
@@ -145,6 +229,28 @@ allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
 duplicate_of = []
 review_after = "2026-06-07"
 expires = "2026-11-07"
+
+[[lane]]
+id = "glr-invariants"
+workflow = ".github/workflows/ci-policy.yml"
+job = "glr-invariants"
+display_name = "GLR Invariants"
+kind = "policy"
+tier = "frontdoor"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 2
+owner = "core/parser"
+intent = "Run GOTO indexing and symbol-indexing guardrails on GLR, runtime parser, and tablegen changes."
+failure_mode = "A parser/tablegen change can corrupt GOTO indexing or SymbolId(0) conventions without an explicit receipt."
+proof_obligation = "Run cargo xtask check-goto-indexing and the xtask goto_indexing tests when invariant-sensitive paths change."
+evidence = ["target/policy/goto-indexing.log", "target/policy/goto-indexing-tests.log"]
+allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
+routing_note = "The job wakes with ci-policy but runs the guard only for runtime/parser/tablegen/glr-core/goto-indexing paths, push, or manual dispatch."
+duplicate_of = []
+review_after = "2026-06-15"
+expires = "2026-11-15"
 
 [[lane]]
 id = "ripr-advisory"
@@ -202,12 +308,12 @@ blocking = false
 runner = "ubuntu_latest"
 base_lem = 2
 owner = "core/test"
-intent = "Enforce test hygiene, ignored-test documentation, .rs.disabled policy, and static minimum counts on policy/test-inventory changes; runtime bounds run on main or manual dispatch."
+intent = "Enforce test hygiene, ignored-test documentation, .rs.disabled policy, and static minimum counts on policy/test-inventory changes; runtime bounds run on manual dispatch."
 failure_mode = "Tests are silently disabled, undocumented, insufficient, or too slow in the test-policy proof lane."
 proof_obligation = "Run the test policy checks and upload the inventory report."
 evidence = ["TEST_INVENTORY_REPORT.md", "step summary"]
-routing_note = "Path-routed on PRs that change the test-policy workflow, inventory script, CI test-policy docs, or lane policy. Routine test-file PRs rely on ci-supported and risk-routed test lanes. Runtime-cap execution remains on main/push and workflow_dispatch; the compile timeout is only a coarse hang guard."
-allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
+routing_note = "Path-routed on PRs that change the test-policy workflow, inventory script, CI test-policy docs, or lane policy. Routine test-file PRs rely on Rust Small Result and risk-routed test lanes. Runtime-cap execution remains available through workflow_dispatch; the compile timeout is only a coarse hang guard."
+allowed_triggers = ["pull_request", "workflow_dispatch"]
 duplicate_of = []
 review_after = "2026-06-07"
 expires = "2026-11-07"
@@ -232,8 +338,8 @@ intent = "Validate pure-Rust implementation across OS/toolchain matrix."
 failure_mode = "Pure-Rust parser path passes Linux but fails on Windows, macOS, stable, or nightly."
 proof_obligation = "Run clippy, build, tests, and bench compile checks across OS/toolchain matrix."
 evidence = ["job logs"]
-allowed_triggers = ["pull_request", "push"]
-routing_note = "matrix-setup job limits default PR to ubuntu/stable (~18 LEM). Full OS*toolchain matrix (was 180 LEM) gated to 'platform-matrix'/'full-ci' labels and main/push."
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+routing_note = "matrix-setup job skips docs/policy-only PRs, limits code-path PRs to ubuntu/stable (~18 LEM), and gates the full OS*toolchain matrix (was 180 LEM) to 'platform-matrix'/'full-ci' labels and workflow_dispatch."
 expensive = true
 default_pr_exception = "ci-exception-pure-rust-os-matrix-default-pr"
 duplicate_of = ["ci-supported", "microcrate-ci"]
@@ -249,14 +355,14 @@ tier = "frontdoor"
 default_pr = true
 blocking = true
 runner = "ubuntu_latest"
-base_lem = 45
+base_lem = 18
 owner = "core/build"
 intent = "Validate microcrate governance, parser, BDD, concurrency, WASM, docs, and strict features."
 failure_mode = "Microcrate split surfaces drift independently from supported runtime lane."
 proof_obligation = "Run crate-group tests, docs, WASM check, strict feature checks, and formatting."
 evidence = ["job logs"]
-allowed_triggers = ["pull_request", "push"]
-routing_note = "changes setup job routes each PR to the matching crate groups only (concurrency/governance/bdd/parser/core/runtime). Full run on 'ci:microcrate'/'full-ci' labels and main."
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+routing_note = "changes setup job routes each PR to matching crate groups and receipt jobs. Formatting/docs/WASM/strict checks run only on matching Rust/package paths. Full run on 'ci:microcrate'/'full-ci' labels, microcrate workflow edits, and workflow_dispatch."
 expensive = true
 default_pr_exception = "ci-exception-microcrate-ci-default-pr"
 duplicate_of = ["ci-supported", "core-tests"]
@@ -347,8 +453,8 @@ intent = "Detect whether a PR touches grammar or golden-test surfaces."
 failure_mode = "Golden tests either run unnecessarily or miss a routed grammar change."
 proof_obligation = "Compute grammar_changed output for golden-tests routing."
 evidence = ["job logs", "grammar_changed output"]
-allowed_triggers = ["pull_request", "push"]
-routing_note = "Cheap setup job; matrix work remains gated by changed paths or ci:golden/full-ci labels."
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+routing_note = "Cheap setup job; matrix work remains gated by changed paths, workflow_dispatch, or ci:golden/full-ci labels."
 duplicate_of = ["pr-plan"]
 review_after = "2026-06-07"
 expires = "2026-11-07"
@@ -369,8 +475,8 @@ intent = "Validate Python and JavaScript golden parse tree references."
 failure_mode = "Grammar parity / golden output drifts."
 proof_obligation = "Run golden tests for python and javascript grammar surfaces."
 evidence = ["golden-test-failures-* artifacts on failure"]
-allowed_triggers = ["pull_request", "push"]
-routing_note = "paths job detects grammar/golden/corpus/glr-core changes; job skips on non-matching PRs unless 'ci:golden'/'full-ci' label present."
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+routing_note = "paths job detects grammar/golden/corpus/glr-core changes; job skips on non-matching PRs unless 'ci:golden'/'full-ci' label present. workflow_dispatch runs the matrix explicitly."
 expensive = true
 default_pr_exception = "ci-exception-golden-tests-default-pr"
 duplicate_of = ["product-proof-advisory"]
@@ -404,20 +510,42 @@ workflow = ".github/workflows/criterion-smoke.yml"
 job = "benchmark"
 display_name = "Criterion Smoke"
 kind = "performance"
-tier = "frontdoor"
-default_pr = true
+tier = "advisory"
+default_pr = false
 blocking = false
 runner = "ubuntu_latest"
 base_lem = 6
 owner = "core/perf"
 intent = "Verify benchmark crates compile."
 failure_mode = "Benchmark suite breaks without notice."
-proof_obligation = "cargo bench --no-run on benchmark crates."
+proof_obligation = "cargo bench -p adze-benchmarks --no-run."
 evidence = ["job logs"]
-allowed_triggers = ["pull_request", "push"]
+allowed_triggers = ["schedule", "workflow_dispatch"]
 duplicate_of = []
 review_after = "2026-06-07"
 expires = "2026-11-07"
+
+[[lane]]
+id = "ts-bridge-matrix-setup"
+workflow = ".github/workflows/ts-bridge-smoke.yml"
+job = "matrix-setup"
+display_name = "ts-bridge matrix setup"
+kind = "ffi"
+tier = "advisory"
+default_pr = false
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 1
+owner = "core/runtime"
+intent = "Select the scoped ts-bridge smoke runner matrix."
+failure_mode = "ts-bridge smoke runs too broadly or skips unexpectedly."
+proof_obligation = "Emit the OS matrix for ts-bridge smoke routing."
+evidence = ["job logs"]
+allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
+routing_note = "Runs only when the path-routed ts-bridge smoke workflow wakes. Linux-only by default; full OS matrix on 'platform-matrix'/'full-ci' labels or workflow_dispatch matrix=full-os."
+duplicate_of = []
+review_after = "2026-06-15"
+expires = "2026-09-15"
 
 [[lane]]
 id = "ts-bridge-smoke"
@@ -429,17 +557,17 @@ tier = "advisory"
 default_pr = false
 blocking = false
 runner = "ubuntu_latest"
-base_lem = 4
+base_lem = 2
 owner = "core/runtime"
 intent = "Smoke test for ts-bridge tooling."
 failure_mode = "ts-bridge tooling regresses silently."
 proof_obligation = "Run ts-bridge smoke harness."
 evidence = ["job logs"]
 allowed_triggers = ["pull_request", "push", "workflow_dispatch"]
-routing_note = "Workflow is path-routed to tools/ts-bridge, scripts/smoke-link.sh, Cargo manifests, or its own workflow file."
+routing_note = "Workflow is path-routed to tools/ts-bridge, scripts/smoke-link.sh, or its own workflow file. Ordinary PRs run Ubuntu only; 'platform-matrix'/'full-ci' labels and workflow_dispatch matrix=full-os run Ubuntu/macOS/Windows."
 duplicate_of = ["ts-bridge-parity"]
-review_after = "2026-06-07"
-expires = "2026-09-07"
+review_after = "2026-06-15"
+expires = "2026-09-15"
 
 [[lane]]
 id = "ts-bridge-parity"
@@ -487,26 +615,48 @@ expires = "2026-11-07"
 id = "ci-main"
 workflow = ".github/workflows/ci.yml"
 job = "multiple"
-display_name = "ci.yml (umbrella; legacy)"
+display_name = "ci.yml (legacy full CI)"
 kind = "rust"
-tier = "frontdoor"
-default_pr = true
-blocking = true
+tier = "deep"
+default_pr = false
+blocking = false
 runner = "ubuntu_latest"
 base_lem = 22
 owner = "core/build"
-intent = "Mirror just ci-supported in the main ci.yml as the canonical PR gate."
-failure_mode = "Different invocations of the supported lane drift apart."
-proof_obligation = "Run just ci-supported in CI."
+intent = "Keep the inherited public full-CI workflow available for scheduled and manual swarm verification without charging every PR or main-push merge."
+failure_mode = "Legacy full-CI drift is discovered on schedule/manual runs instead of ordinary swarm PRs."
+proof_obligation = "Run scheduled or manually dispatched ci.yml with run_full_ci when full legacy coverage is needed."
 evidence = ["job logs"]
-allowed_triggers = ["pull_request", "push", "merge_group"]
+allowed_triggers = ["schedule", "workflow_dispatch"]
 duplicate_of = ["ci-supported"]
 review_after = "2026-06-07"
 expires = "2026-11-07"
 
 # ---------------------------------------------------------------------------
-# Tier 3/4 — non-PR-default heavy lanes
+# Tier 2/3/4 — path-routed product proof and non-PR-default heavy lanes
 # ---------------------------------------------------------------------------
+
+[[lane]]
+id = "product-proof-stable"
+workflow = ".github/workflows/product-proof.yml"
+job = "ci-product-stable"
+display_name = "ci-product stable canaries"
+kind = "product-proof"
+tier = "product"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 25
+owner = "core/product"
+intent = "Run bounded Stable README/support-tier canaries when stable-claim surfaces change."
+failure_mode = "README Stable claims drift from the support-tier proof map or from clean downstream quickstart behavior."
+proof_obligation = "Run scripts/ci-product-stable.sh and fail on missing Stable-claim proof."
+evidence = ["job logs"]
+allowed_triggers = ["pull_request", "schedule", "workflow_dispatch"]
+routing_note = "Path-routed to README, support-tier/product-proof docs, quickstart tests, downstream demo, the stable canary script, and this workflow. Manual dispatch defaults to stable-only."
+duplicate_of = ["ci-supported"]
+review_after = "2026-06-15"
+expires = "2026-11-15"
 
 [[lane]]
 id = "product-proof-advisory"
@@ -520,12 +670,12 @@ blocking = false
 runner = "ubuntu_latest"
 base_lem = 25
 owner = "core/product"
-intent = "Validate stable and advisory product canaries."
+intent = "Validate broad advisory product canaries outside the Stable README contract."
 failure_mode = "README/support-tier product claims drift from actual proof commands."
-proof_obligation = "Run ci-product-stable and ci-product advisory lanes."
+proof_obligation = "Run scripts/ci-product.sh on schedule or manual dispatch with lane=all."
 evidence = ["job logs"]
 allowed_triggers = ["schedule", "workflow_dispatch"]
-duplicate_of = ["golden-tests", "ci-supported"]
+duplicate_of = ["golden-tests", "product-proof-stable", "ci-supported"]
 review_after = "2026-06-07"
 expires = "2026-11-07"
 
@@ -723,22 +873,67 @@ review_after = "2026-06-07"
 expires = "2026-11-07"
 
 [[lane]]
-id = "coverage"
+id = "coverage-paths"
 workflow = ".github/workflows/coverage.yml"
-job = "coverage"
-display_name = "Codecov Coverage"
+job = "paths"
+display_name = "Detect Coverage Paths"
+kind = "control"
+tier = "advisory"
+default_pr = true
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 1
+owner = "release/ci"
+intent = "Detect whether coverage-lite or coverage-full should run for this PR."
+failure_mode = "Coverage runs broadly or skips unexpectedly because path/label routing is not visible."
+proof_obligation = "Emit coverage_changed and full routing outputs from PR labels and changed paths."
+evidence = ["job logs"]
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+routing_note = "Cheap setup job; coverage-lite/full carry the actual cargo-llvm-cov cost."
+duplicate_of = []
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
+id = "coverage-lite"
+workflow = ".github/workflows/coverage.yml"
+job = "coverage-lite"
+display_name = "Coverage Lite"
 kind = "execution_surface"
-tier = "frontdoor"
+tier = "advisory"
+default_pr = false
+blocking = false
+runner = "ubuntu_latest"
+base_lem = 8
+owner = "release/ci"
+intent = "Lower-cost execution-surface reporting for the primary runtime package via cargo-llvm-cov."
+failure_mode = "A runtime change removes test execution visibility, but full coverage is too expensive for ordinary PR routing."
+proof_obligation = "Generate lcov.info for the adze runtime library and upload the coverage-lite-lcov artifact; upload to Codecov as non-blocking publication when CODECOV_TOKEN is present."
+evidence = ["lcov.info", "coverage-lite-lcov GitHub artifact"]
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+routing_note = "Path-routed for runtime/test coverage paths, label-routed with 'coverage', and manually runnable with workflow_dispatch mode=lite. Additional packages require measured runtime evidence before inclusion."
+duplicate_of = []
+review_after = "2026-06-07"
+expires = "2026-11-07"
+
+[[lane]]
+id = "coverage-full"
+workflow = ".github/workflows/coverage.yml"
+job = "coverage-full"
+display_name = "Coverage Full"
+kind = "execution_surface"
+tier = "deep"
 default_pr = false
 blocking = false
 runner = "ubuntu_latest"
 base_lem = 45
 owner = "release/ci"
-intent = "Execution-surface reporting for Adze Rust codebase via cargo-llvm-cov and Codecov."
-failure_mode = "A change removes test execution over the Rust parser/runtime/codegen surface without visibility."
-proof_obligation = "Generate coverage.json, coverage.txt, lcov.info, upload GitHub artifact, and upload LCOV to Codecov when CODECOV_TOKEN is present."
-evidence = ["coverage.json", "coverage.txt", "lcov.info", "coverage-report GitHub artifact"]
-allowed_triggers = ["push", "workflow_dispatch", "pull_request"]
-duplicate_of = []
+intent = "Explicit broader coverage evidence for the Adze Rust workspace via cargo-llvm-cov and Codecov."
+failure_mode = "Broad feature/workspace execution coverage drifts without an on-demand proof lane."
+proof_obligation = "Generate lcov.info for the broader workspace/features command and upload the coverage-full-lcov artifact; upload to Codecov as non-blocking publication when CODECOV_TOKEN is present."
+evidence = ["lcov.info", "coverage-full-lcov GitHub artifact"]
+allowed_triggers = ["pull_request", "workflow_dispatch"]
+routing_note = "Runs on workflow_dispatch mode=full and PRs labeled 'full-ci'. Not an ordinary PR default."
+duplicate_of = ["coverage-lite"]
 review_after = "2026-06-07"
 expires = "2026-11-07"

@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -318,10 +317,7 @@ fn readme_stable_claims_are_in_stable_product_lane() {
     let readme = include_str!("../../README.md");
     let support_tiers = include_str!("../../docs/status/SUPPORT_TIERS.md");
     let stable_lane = include_str!("../../scripts/ci-product-stable.sh");
-    let stable_rows: Vec<_> = readme_capability_rows(readme)
-        .into_iter()
-        .filter(|row| row.tier == "stable")
-        .collect();
+    let stable_rows = readme_stable_capability_rows(readme);
 
     assert!(
         !stable_rows.is_empty(),
@@ -329,6 +325,12 @@ fn readme_stable_claims_are_in_stable_product_lane() {
     );
 
     for row in stable_rows {
+        assert!(
+            support_tiers_has_stable_surface_row(support_tiers, &row.surface),
+            "README Stable surface must map to a Stable row in docs/status/SUPPORT_TIERS.md:\n{}",
+            row.surface
+        );
+
         for command in row.proof_commands {
             assert!(
                 support_tiers.contains(&command),
@@ -348,38 +350,137 @@ fn readme_stable_claims_are_in_stable_product_lane() {
 }
 
 #[test]
-fn readme_capability_rows_match_support_tiers() {
-    let readme = include_str!("../../README.md");
-    let support_tiers = include_str!("../../docs/status/SUPPORT_TIERS.md");
-    let readme_rows = readme_capability_rows(readme);
-    let support_rows = support_tier_rows(support_tiers);
+fn cargo_install_adze_cli_claims_stay_release_surface_bounded() {
+    let docs = [
+        ("README.md", include_str!("../../README.md")),
+        ("cli/README.md", include_str!("../README.md")),
+        (
+            "docs/tutorials/quickstart-10-minutes.md",
+            include_str!("../../docs/tutorials/quickstart-10-minutes.md"),
+        ),
+        (
+            "docs/tutorials/getting-started.md",
+            include_str!("../../docs/tutorials/getting-started.md"),
+        ),
+        (
+            "book/src/getting-started/quickstart.md",
+            include_str!("../../book/src/getting-started/quickstart.md"),
+        ),
+        (
+            "docs/product/ACCEPTANCE_MATRIX.md",
+            include_str!("../../docs/product/ACCEPTANCE_MATRIX.md"),
+        ),
+        (
+            "docs/specs/ADZE-SPEC-0012-glr-toolkit-product-contract.md",
+            include_str!("../../docs/specs/ADZE-SPEC-0012-glr-toolkit-product-contract.md"),
+        ),
+        (
+            "docs/status/KNOWN_RED.md",
+            include_str!("../../docs/status/KNOWN_RED.md"),
+        ),
+        (
+            "docs/status/PRODUCT_OBJECTIVE_AUDIT.md",
+            include_str!("../../docs/status/PRODUCT_OBJECTIVE_AUDIT.md"),
+        ),
+        (
+            "docs/status/PRODUCT_PROOF_MAP.md",
+            include_str!("../../docs/status/PRODUCT_PROOF_MAP.md"),
+        ),
+    ];
 
-    assert!(
-        !readme_rows.is_empty(),
-        "README capability table should include product surface rows"
-    );
+    for (path, text) in docs {
+        for (idx, line) in text.lines().enumerate() {
+            if !line.contains("cargo install adze-cli") {
+                continue;
+            }
 
-    for row in readme_rows {
-        assert!(
-            !row.proof_commands.is_empty(),
-            "README capability row should name at least one proof command: {}",
-            row.surface
-        );
-
-        let key = surface_lookup_key(&row.surface);
-        let Some(support_tier) = support_rows.get(&key) else {
-            panic!(
-                "README capability surface must exist in docs/status/SUPPORT_TIERS.md: {}",
-                row.surface
+            let context = surrounding_context(text, idx, 6).to_ascii_lowercase();
+            assert!(
+                install_claim_context_is_bounded(&context),
+                "`cargo install adze-cli` must stay explicitly bounded as a release-surface claim until a crates.io receipt exists.\nfile: {path}\nline: {}\ncontext:\n{}",
+                idx + 1,
+                surrounding_context(text, idx, 6)
             );
+        }
+    }
+}
+
+#[derive(Debug)]
+struct StableCapabilityRow {
+    surface: String,
+    proof_commands: Vec<String>,
+}
+
+fn support_tiers_has_stable_surface_row(support_tiers: &str, readme_surface: &str) -> bool {
+    let normalized_readme_surface = stable_surface_lookup_key(readme_surface);
+
+    support_tiers.lines().any(|line| {
+        if !line.starts_with('|') || !line.contains("| **Stable") {
+            return false;
+        }
+
+        let columns: Vec<&str> = line.split('|').collect();
+        let Some(surface) = columns.get(1) else {
+            return false;
         };
 
-        assert_eq!(
-            &row.tier, support_tier,
-            "README capability tier must match docs/status/SUPPORT_TIERS.md for {}",
-            row.surface
+        stable_surface_lookup_key(surface.trim()) == normalized_readme_surface
+    })
+}
+
+fn stable_surface_lookup_key(surface: &str) -> String {
+    surface
+        .split(" (")
+        .next()
+        .unwrap_or(surface)
+        .trim()
+        .trim_matches('`')
+        .to_ascii_lowercase()
+}
+
+fn readme_stable_capability_rows(readme: &str) -> Vec<StableCapabilityRow> {
+    let mut rows = Vec::new();
+    let mut in_capability_table = false;
+
+    for line in readme.lines() {
+        if line == "### Capability table" {
+            in_capability_table = true;
+            continue;
+        }
+
+        if in_capability_table && line.starts_with("##") {
+            break;
+        }
+
+        if !in_capability_table {
+            continue;
+        }
+
+        if !line.starts_with('|') || !line.contains("| **Stable** |") {
+            continue;
+        }
+
+        let columns: Vec<&str> = line.split('|').collect();
+        assert!(
+            columns.len() >= 4,
+            "README Stable capability row should have a surface and proof column: {line}"
         );
+
+        let surface = columns[1].trim().to_string();
+        let proof = columns[3];
+        let proof_commands = inline_code_spans(proof);
+        assert!(
+            !proof_commands.is_empty(),
+            "README Stable capability row should name at least one proof command: {line}"
+        );
+
+        rows.push(StableCapabilityRow {
+            surface,
+            proof_commands,
+        });
     }
+
+    rows
 }
 
 fn book_downstream_manifest(readme_toml: &str, runtime_path: &str, tool_path: &str) -> String {
@@ -475,105 +576,6 @@ edition = "2024"
     )
 }
 
-#[derive(Debug)]
-struct CapabilityRow {
-    surface: String,
-    tier: String,
-    proof_commands: Vec<String>,
-}
-
-fn readme_capability_rows(readme: &str) -> Vec<CapabilityRow> {
-    let mut rows = Vec::new();
-    let mut in_capability_table = false;
-
-    for line in readme.lines() {
-        if line == "### Capability table" {
-            in_capability_table = true;
-            continue;
-        }
-
-        if in_capability_table && line.starts_with("##") {
-            break;
-        }
-
-        if !in_capability_table {
-            continue;
-        }
-
-        if !line.starts_with('|') {
-            continue;
-        }
-
-        let columns = markdown_columns(line);
-        if columns.len() < 3 || is_markdown_separator(&columns) || columns[0] == "Surface" {
-            continue;
-        }
-
-        let proof = columns[2];
-        let row_commands = inline_code_spans(proof);
-        rows.push(CapabilityRow {
-            surface: columns[0].to_string(),
-            tier: tier_lookup_key(columns[1]),
-            proof_commands: row_commands,
-        });
-    }
-
-    rows
-}
-
-fn support_tier_rows(support_tiers: &str) -> BTreeMap<String, String> {
-    let mut rows = BTreeMap::new();
-
-    for line in support_tiers.lines() {
-        if !line.starts_with('|') {
-            continue;
-        }
-
-        let columns = markdown_columns(line);
-        if columns.len() < 2 || is_markdown_separator(&columns) || columns[0] == "Surface" {
-            continue;
-        }
-
-        rows.entry(surface_lookup_key(columns[0]))
-            .or_insert_with(|| tier_lookup_key(columns[1]));
-    }
-
-    rows
-}
-
-fn markdown_columns(line: &str) -> Vec<&str> {
-    line.trim()
-        .trim_matches('|')
-        .split('|')
-        .map(str::trim)
-        .collect()
-}
-
-fn is_markdown_separator(columns: &[&str]) -> bool {
-    columns
-        .iter()
-        .all(|column| !column.is_empty() && column.chars().all(|ch| matches!(ch, '-' | ':' | ' ')))
-}
-
-fn surface_lookup_key(surface: &str) -> String {
-    surface
-        .split(" (")
-        .next()
-        .unwrap_or(surface)
-        .replace('`', "")
-        .trim()
-        .to_ascii_lowercase()
-}
-
-fn tier_lookup_key(tier: &str) -> String {
-    let cleaned = tier.replace('*', "").trim().to_ascii_lowercase();
-    if cleaned.starts_with("stable") {
-        "stable".to_string()
-    } else {
-        cleaned
-    }
-}
-
 fn inline_code_spans(text: &str) -> Vec<String> {
     let mut spans = Vec::new();
     let mut rest = text;
@@ -593,6 +595,29 @@ fn inline_code_spans(text: &str) -> Vec<String> {
 
 fn is_required_gate(command: &str) -> bool {
     matches!(command, "just ci-supported" | "CI / ci-supported")
+}
+
+fn install_claim_context_is_bounded(context: &str) -> bool {
+    [
+        "intended published",
+        "only after",
+        "until `adze-cli` is published",
+        "until adze-cli is published",
+        "crates.io install receipt",
+        "release-surface",
+        "not prove crates.io",
+        "not a crates.io install claim",
+        "not a stable cli",
+    ]
+    .iter()
+    .any(|marker| context.contains(marker))
+}
+
+fn surrounding_context(text: &str, line_idx: usize, radius: usize) -> String {
+    let lines: Vec<&str> = text.lines().collect();
+    let start = line_idx.saturating_sub(radius);
+    let end = (line_idx + radius + 1).min(lines.len());
+    lines[start..end].join("\n")
 }
 
 fn grammar_module_from_readme(snippet: &str) -> String {

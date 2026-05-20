@@ -83,7 +83,8 @@ fn test_init_generates_buildable_project() {
     let project_dir = temp.path().join(project_name);
     assert!(project_dir.join("Cargo.toml").exists());
     assert!(project_dir.join("src/grammar.rs").exists());
-    assert!(project_dir.join("tests/basic.rs").exists());
+    assert!(project_dir.join("tests/parse.rs").exists());
+    assert!(project_dir.join("examples/parse.rs").exists());
 
     let status = Command::new("cargo")
         .arg("test")
@@ -95,12 +96,67 @@ fn test_init_generates_buildable_project() {
         "generated project should build and pass typed parser tests"
     );
 
+    let output = Command::new("cargo")
+        .arg("run")
+        .arg("--quiet")
+        .arg("--example")
+        .arg("parse")
+        .arg("--")
+        .arg("1 + 2 * 3")
+        .current_dir(&project_dir)
+        .output()
+        .expect("run generated parse example");
+    assert!(
+        output.status.success(),
+        "generated parse example should run\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stdout).contains("Add"),
+        "generated parse example should print the typed AST"
+    );
+
     let mut check = cargo_bin_cmd!("adze");
     check
         .arg("check")
         .arg(project_dir.join("src/grammar.rs"))
         .assert()
         .success();
+}
+
+#[test]
+fn test_init_project_supports_cli_stats_and_check_end_to_end() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "statslang";
+
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let grammar = temp.path().join(project_name).join("src/grammar.rs");
+
+    let mut check = cargo_bin_cmd!("adze");
+    check
+        .arg("check")
+        .arg(&grammar)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Grammar syntax is valid"));
+
+    let mut stats = cargo_bin_cmd!("adze");
+    stats
+        .arg("stats")
+        .arg(&grammar)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Grammar statistics"))
+        .stdout(predicate::str::contains("States:"))
+        .stdout(predicate::str::contains("Conflicts:"));
 }
 
 #[test]
@@ -121,6 +177,49 @@ fn test_check_rejects_file_without_adze_grammar() {
         .stderr(predicate::str::contains(
             "No adze grammar definitions found",
         ))
+        .stdout(predicate::str::contains("Grammar syntax is valid").not());
+}
+
+#[test]
+fn test_check_reports_missing_grammar_path() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let missing_grammar = temp.path().join("missing.rs");
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("check")
+        .arg(&missing_grammar)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Grammar file does not exist"))
+        .stderr(predicate::str::contains("Grammar analysis panicked").not())
+        .stdout(predicate::str::contains("Grammar syntax is valid").not());
+}
+
+#[test]
+fn test_check_reports_invalid_grammar_syntax() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let broken_grammar = temp.path().join("broken.rs");
+    std::fs::write(
+        &broken_grammar,
+        r#"
+#[adze::grammar("broken")]
+pub mod grammar {
+    #[adze::language]
+    pub struct Program {
+        #[adze::leaf(pattern = r"\d+", text = true)]
+        pub number: String
+    }
+"#,
+    )
+    .expect("write broken grammar fixture");
+
+    let mut cmd = cargo_bin_cmd!("adze");
+    cmd.arg("check")
+        .arg(&broken_grammar)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Grammar syntax is invalid"))
+        .stderr(predicate::str::contains("Grammar analysis panicked").not())
         .stdout(predicate::str::contains("Grammar syntax is valid").not());
 }
 
@@ -162,6 +261,158 @@ fn test_parse_static_mode_is_explicitly_unimplemented() {
         .stderr(predicate::str::contains("unimplemented"))
         .stdout(predicate::str::contains("adze build"))
         .stdout(predicate::str::contains("cargo test"));
+}
+
+#[test]
+fn test_parse_document_projection_modes_emit_schema_envelopes() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "parsejson";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let project_dir = temp.path().join(project_name);
+    let grammar = project_dir.join("src/grammar.rs");
+    let input = temp.path().join("input.txt");
+    std::fs::write(&input, "123").expect("write input");
+
+    for (mode, schema, required_field) in [
+        ("document-json", "adze.document.v1", "tree"),
+        ("tree-json", "adze.tree.v1", "tree"),
+        ("diagnostics-json", "adze.diagnostics.v1", "diagnostics"),
+        ("ambiguity-json", "adze.ambiguity.v1", "ambiguities"),
+    ] {
+        let mut cmd = cargo_bin_cmd!("adze");
+        let output = cmd
+            .arg("parse")
+            .arg(&grammar)
+            .arg(&input)
+            .arg("--output")
+            .arg(mode)
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+
+        let json: serde_json::Value = serde_json::from_slice(&output)
+            .unwrap_or_else(|err| panic!("{mode} output should be JSON: {err}"));
+        assert_eq!(json["schema"].as_str(), Some(schema), "{mode} schema");
+        assert_eq!(json["language"]["name"].as_str(), Some("parsejson"));
+        assert!(
+            !json[required_field].is_null(),
+            "{mode} should include `{required_field}` projection facts"
+        );
+
+        if mode == "document-json" {
+            assert_eq!(json["source"]["byte_len"].as_u64(), Some(3));
+            assert!(json["diagnostics"].is_array());
+        } else {
+            assert_eq!(
+                json["document_schema"].as_str(),
+                Some("adze.document.v1"),
+                "{mode} should declare its source document schema"
+            );
+        }
+    }
+}
+
+#[test]
+fn parse_document_json_modes_emit_recovery_diagnostics() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "parsejsonrecovery";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let project_dir = temp.path().join(project_name);
+    let grammar = project_dir.join("src/grammar.rs");
+    let input = temp.path().join("bad-input.txt");
+    std::fs::write(&input, "1 + @").expect("write bad input");
+
+    let document = parse_projection(&grammar, &input, "document-json");
+    assert_eq!(document["schema"].as_str(), Some("adze.document.v1"));
+    assert!(
+        document["metadata"]["error_count"].as_u64().unwrap_or(0) > 0,
+        "document-json should preserve parser recovery metadata: {document:?}"
+    );
+    assert_eq!(
+        document["tree"]["root"]["flags"]["has_error"].as_bool(),
+        Some(true),
+        "document-json should preserve root error facts: {document:?}"
+    );
+    assert_bad_input_diagnostic(&document["diagnostics"][0]);
+
+    let tree = parse_projection(&grammar, &input, "tree-json");
+    assert_eq!(tree["schema"].as_str(), Some("adze.tree.v1"));
+    assert_eq!(tree["document_schema"].as_str(), Some("adze.document.v1"));
+    assert_eq!(
+        tree["tree"]["root"]["flags"]["has_error"].as_bool(),
+        Some(true),
+        "tree-json should project selected-tree error facts from the document: {tree:?}"
+    );
+
+    let diagnostics = parse_projection(&grammar, &input, "diagnostics-json");
+    assert_eq!(diagnostics["schema"].as_str(), Some("adze.diagnostics.v1"));
+    assert_eq!(
+        diagnostics["document_schema"].as_str(),
+        Some("adze.document.v1")
+    );
+    assert_bad_input_diagnostic(&diagnostics["diagnostics"][0]);
+}
+
+fn parse_projection(
+    grammar: &std::path::Path,
+    input: &std::path::Path,
+    mode: &str,
+) -> serde_json::Value {
+    let mut cmd = cargo_bin_cmd!("adze");
+    let output = cmd
+        .arg("parse")
+        .arg(grammar)
+        .arg(input)
+        .arg("--output")
+        .arg(mode)
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    serde_json::from_slice(&output)
+        .unwrap_or_else(|err| panic!("{mode} output should be JSON: {err}"))
+}
+
+fn assert_bad_input_diagnostic(diagnostic: &serde_json::Value) {
+    assert_eq!(diagnostic["start_byte"].as_u64(), Some(4));
+    assert_eq!(diagnostic["end_byte"].as_u64(), Some(5));
+    assert_eq!(diagnostic["point_range"]["start"]["row"].as_u64(), Some(0));
+    assert_eq!(
+        diagnostic["point_range"]["start"]["column"].as_u64(),
+        Some(4)
+    );
+    assert!(
+        diagnostic["expected"]
+            .as_array()
+            .is_some_and(|expected| expected
+                .iter()
+                .any(|token| token.as_str() == Some(r"/\d+/"))),
+        "diagnostics projection should preserve expected-token names: {diagnostic:?}"
+    );
+    assert!(
+        diagnostic["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("expected one of:")),
+        "diagnostics projection should preserve useful parser context: {diagnostic:?}"
+    );
 }
 
 #[test]
@@ -288,7 +539,8 @@ fn test_init_default_cwd_generates_buildable_project() {
     let project_dir = temp.path().join(project_name);
     assert!(project_dir.join("Cargo.toml").exists());
     assert!(project_dir.join("src/grammar.rs").exists());
-    assert!(project_dir.join("tests/basic.rs").exists());
+    assert!(project_dir.join("tests/parse.rs").exists());
+    assert!(project_dir.join("examples/parse.rs").exists());
 
     let status = Command::new("cargo")
         .arg("check")
@@ -313,7 +565,12 @@ fn test_parse_reports_available_modes() {
         .stdout(predicate::str::contains("tree"))
         .stdout(predicate::str::contains("json"))
         .stdout(predicate::str::contains("sexp"))
-        .stdout(predicate::str::contains("dot"));
+        .stdout(predicate::str::contains("dot"))
+        .stdout(predicate::str::contains("document-json"))
+        .stdout(predicate::str::contains("tree-json"))
+        .stdout(predicate::str::contains("diagnostics-json"))
+        .stdout(predicate::str::contains("ambiguity-json"))
+        .stdout(predicate::str::contains("--output"));
 }
 
 #[test]
@@ -348,6 +605,43 @@ fn test_init_cargo_toml_references_adze_dependency() {
 }
 
 #[test]
+fn test_init_readme_teaches_parse_and_parse_document() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let project_name = "readmepath";
+    let mut init = cargo_bin_cmd!("adze");
+    init.arg("init")
+        .arg(project_name)
+        .arg("--output")
+        .arg(temp.path())
+        .assert()
+        .success();
+
+    let readme = std::fs::read_to_string(temp.path().join(project_name).join("README.md"))
+        .expect("read generated README");
+
+    assert!(
+        readme.contains("grammar::parse(\"1 + 2 * 3\")"),
+        "generated README should teach the typed parser path"
+    );
+    assert!(
+        readme.contains("grammar::parse_document(\"1 +\")"),
+        "generated README should teach the document parser path"
+    );
+    assert!(
+        readme.contains("document.diagnostics()"),
+        "generated README should point diagnostics users at document facts"
+    );
+    assert!(
+        readme.contains("cargo test"),
+        "generated README should keep the starter proof command visible"
+    );
+    assert!(
+        readme.contains("cargo run --example parse -- \"1 + 2 * 3\""),
+        "generated README should keep the parse example command visible"
+    );
+}
+
+#[test]
 fn test_parse_help_documents_available_modes() {
     let mut cmd = cargo_bin_cmd!("adze");
     cmd.arg("parse")
@@ -358,6 +652,10 @@ fn test_parse_help_documents_available_modes() {
         .stdout(predicate::str::contains("json"))
         .stdout(predicate::str::contains("sexp"))
         .stdout(predicate::str::contains("dot"))
+        .stdout(predicate::str::contains("document-json"))
+        .stdout(predicate::str::contains("tree-json"))
+        .stdout(predicate::str::contains("diagnostics-json"))
+        .stdout(predicate::str::contains("ambiguity-json"))
         .stdout(predicate::str::contains("experimental"));
 }
 
@@ -401,7 +699,7 @@ mod parsing {
         Parse {
             grammar: std::path::PathBuf,
             input: std::path::PathBuf,
-            #[arg(short, long, default_value = "tree")]
+            #[arg(short, long, visible_alias = "output", default_value = "tree")]
             format: OutputFormat,
             #[arg(long)]
             dynamic: bool,
@@ -434,6 +732,14 @@ mod parsing {
         Json,
         Sexp,
         Dot,
+        #[value(name = "document-json")]
+        DocumentJson,
+        #[value(name = "tree-json")]
+        TreeJson,
+        #[value(name = "diagnostics-json")]
+        DiagnosticsJson,
+        #[value(name = "ambiguity-json")]
+        AmbiguityJson,
     }
 
     // --- argument parsing unit tests ---
@@ -535,6 +841,25 @@ mod parsing {
                 assert_eq!(input.to_str().unwrap(), "input.txt");
                 assert!(dynamic);
                 assert_eq!(symbol, "my_lang");
+            }
+            _ => panic!("expected Parse command"),
+        }
+    }
+
+    #[test]
+    fn parse_parse_command_accepts_output_alias_and_document_json() {
+        let cli = Cli::try_parse_from([
+            "adze",
+            "parse",
+            "gram.rs",
+            "input.txt",
+            "--output",
+            "document-json",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Parse { format, .. } => {
+                assert!(matches!(format, OutputFormat::DocumentJson));
             }
             _ => panic!("expected Parse command"),
         }

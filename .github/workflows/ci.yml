@@ -1,10 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   schedule:
     # Run nightly at 2 AM UTC for scheduled jobs (fuzzing, etc)
     - cron: '0 2 * * *'
@@ -70,7 +66,7 @@ jobs:
             git fetch --no-tags --prune --depth=1 origin "${{ github.base_ref }}"
             cargo xtask check-debug-blocks --since "origin/${{ github.base_ref }}"
           else
-            # For push to main, check all tracked files
+            # For scheduled/manual full CI, check all tracked files
             cargo xtask check-debug-blocks
           fi
       
@@ -923,27 +919,27 @@ jobs:
       - name: Install cargo-fuzz
         run: cargo install cargo-fuzz
       
-      - name: Fuzz lexer (20k iterations)
+      - name: Fuzz lexer_simple (20k iterations)
         run: |
-          cd fuzz
-          cargo fuzz run fuzz_lexer -- -runs=20000 -max_len=1024
+          cd runtime/fuzz
+          cargo fuzz run fuzz_lexer_simple -- -runs=20000 -max_len=1024
       
-      - name: Fuzz parser (20k iterations)
+      - name: Fuzz glr_parser (20k iterations)
         run: |
-          cd fuzz
-          cargo fuzz run fuzz_parser -- -runs=20000 -max_len=2048
+          cd runtime/fuzz
+          cargo fuzz run fuzz_glr_parser -- -runs=20000 -max_len=2048
       
-      - name: Fuzz external scanner (10k iterations)
+      - name: Fuzz incremental_edits (10k iterations)
         run: |
-          cd fuzz
-          cargo fuzz run fuzz_external_scanner -- -runs=10000 -max_len=512
+          cd runtime/fuzz
+          cargo fuzz run fuzz_incremental_edits -- -runs=10000 -max_len=512
       
       - name: Upload crash artifacts
         if: failure()
         uses: actions/upload-artifact@v7.0.0
         with:
           name: fuzz-crashes
-          path: fuzz/artifacts/
+          path: runtime/fuzz/artifacts/
 
   test-connectivity:
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.run_full_ci)

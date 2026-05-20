@@ -1,11 +1,11 @@
 //! Shared syntax helpers for parsing macro/tool attributes.
 
-use std::collections::HashSet;
+pub use adze_common_type_ops_core::{filter_inner_type, try_extract_inner_type, wrap_leaf_type};
 
 use syn::{
+    Expr, Field, Ident, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    *,
 };
 
 /// Name-value expression for attribute parameters.
@@ -64,127 +64,19 @@ impl Parse for FieldThenParams {
     }
 }
 
-/// Extract the innermost generic argument from a container type.
-///
-/// # Arguments
-/// * `ty` - The type to extract from
-/// * `inner_of` - The target generic type to extract (e.g., "Vec", "Option")
-/// * `skip_over` - Set of container types to skip through (e.g., "Box", "Arc")
-///
-/// # Returns
-/// A tuple `(inner_type, was_extracted)` where `inner_type` is the extracted or original type,
-/// and `was_extracted` indicates whether the target type was found and extracted.
-pub fn try_extract_inner_type(
-    ty: &Type,
-    inner_of: &str,
-    skip_over: &HashSet<&str>,
-) -> (Type, bool) {
-    if let Type::Path(p) = &ty {
-        let type_segment = p.path.segments.last().unwrap();
-        if type_segment.ident == inner_of {
-            match &type_segment.arguments {
-                PathArguments::AngleBracketed(p) => {
-                    if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
-                        (t, true)
-                    } else {
-                        panic!("Argument in angle brackets must be a type")
-                    }
-                }
-                _ => (ty.clone(), false),
-            }
-        } else if skip_over.contains(type_segment.ident.to_string().as_str()) {
-            match &type_segment.arguments {
-                PathArguments::AngleBracketed(p) => {
-                    if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
-                        let (inner, extracted) = try_extract_inner_type(&t, inner_of, skip_over);
-                        if extracted {
-                            (inner, true)
-                        } else {
-                            (ty.clone(), false)
-                        }
-                    } else {
-                        panic!("Argument in angle brackets must be a type")
-                    }
-                }
-                _ => (ty.clone(), false),
-            }
-        } else {
-            (ty.clone(), false)
-        }
-    } else {
-        (ty.clone(), false)
-    }
-}
-
-/// Remove configured container wrappers from a type.
-///
-/// # Arguments
-/// * `ty` - The type to filter
-/// * `skip_over` - Set of container types to unwrap (e.g., "Box", "Arc")
-///
-/// # Returns
-/// The type with all specified container wrappers removed. If the type is not a container type
-/// in the skip set, returns the original type unchanged.
-pub fn filter_inner_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
-    if let Type::Path(p) = &ty {
-        let type_segment = p.path.segments.last().unwrap();
-        if skip_over.contains(type_segment.ident.to_string().as_str()) {
-            match &type_segment.arguments {
-                PathArguments::AngleBracketed(p) => {
-                    if let GenericArgument::Type(t) = p.args.first().unwrap().clone() {
-                        filter_inner_type(&t, skip_over)
-                    } else {
-                        panic!("Argument in angle brackets must be a type")
-                    }
-                }
-                _ => ty.clone(),
-            }
-        } else {
-            ty.clone()
-        }
-    } else {
-        ty.clone()
-    }
-}
-
-/// Wrap leaf types in `adze::WithLeaf` unless they are in the skip set.
-///
-/// # Arguments
-/// * `ty` - The type to potentially wrap
-/// * `skip_over` - Set of container types to skip wrapping (e.g., "Vec", "Option")
-///
-/// # Returns
-/// The type with leaf types wrapped in `adze::WithLeaf`, or the original type if it's
-/// a container type in the skip set. For skipped containers, recursively wraps their inner generic arguments.
-pub fn wrap_leaf_type(ty: &Type, skip_over: &HashSet<&str>) -> Type {
-    let mut ty = ty.clone();
-    if let Type::Path(p) = &mut ty {
-        let type_segment = p.path.segments.last_mut().unwrap();
-        if skip_over.contains(type_segment.ident.to_string().as_str()) {
-            match &mut type_segment.arguments {
-                PathArguments::AngleBracketed(args) => {
-                    for a in args.args.iter_mut() {
-                        if let syn::GenericArgument::Type(t) = a {
-                            *t = wrap_leaf_type(t, skip_over);
-                        }
-                    }
-
-                    ty
-                }
-                _ => ty,
-            }
-        } else {
-            parse_quote!(adze::WithLeaf<#ty>)
-        }
-    } else {
-        parse_quote!(adze::WithLeaf<#ty>)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use syn::parse_quote;
+    use std::collections::HashSet;
+    use syn::{Type, parse_quote};
+
+    fn skip_set(items: &[&'static str]) -> HashSet<&'static str> {
+        items.iter().copied().collect()
+    }
+
+    fn type_to_string(ty: &Type) -> String {
+        quote::ToTokens::to_token_stream(ty).to_string()
+    }
 
     #[test]
     fn test_parse_name_value_expr() {
@@ -206,5 +98,134 @@ mod tests {
         assert_eq!(input.params.len(), 2);
         assert_eq!(input.params[0].path.to_string(), "name");
         assert_eq!(input.params[1].path.to_string(), "value");
+    }
+
+    #[test]
+    fn try_extract_inner_type_extracts_target() {
+        let ty: Type = parse_quote!(Vec<u32>);
+        let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&[]));
+        assert!(extracted);
+        assert_eq!(type_to_string(&inner), "u32");
+    }
+
+    #[test]
+    fn try_extract_inner_type_not_a_match_returns_original() {
+        let ty: Type = parse_quote!(Option<String>);
+        let (out, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&[]));
+        assert!(!extracted);
+        assert_eq!(type_to_string(&out), "Option < String >");
+    }
+
+    #[test]
+    fn try_extract_inner_type_non_path_returns_original() {
+        let ty: Type = parse_quote!([u8; 4]);
+        let (out, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&[]));
+        assert!(!extracted);
+        assert_eq!(type_to_string(&out), "[u8 ; 4]");
+    }
+
+    #[test]
+    fn try_extract_inner_type_skip_over_unwraps_wrapper() {
+        let ty: Type = parse_quote!(Box<Vec<u32>>);
+        let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&["Box"]));
+        assert!(extracted);
+        assert_eq!(type_to_string(&inner), "u32");
+    }
+
+    #[test]
+    fn try_extract_inner_type_skip_over_with_no_target_returns_original() {
+        let ty: Type = parse_quote!(Box<String>);
+        let (out, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&["Box"]));
+        assert!(!extracted);
+        assert_eq!(type_to_string(&out), "Box < String >");
+    }
+
+    #[test]
+    fn try_extract_inner_type_target_without_generics_returns_original() {
+        let ty: Type = parse_quote!(Vec);
+        let (out, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&[]));
+        assert!(!extracted);
+        assert_eq!(type_to_string(&out), "Vec");
+    }
+
+    #[test]
+    fn try_extract_inner_type_handles_nested_skip_chain() {
+        let ty: Type = parse_quote!(Arc<Box<Vec<i64>>>);
+        let (inner, extracted) = try_extract_inner_type(&ty, "Vec", &skip_set(&["Arc", "Box"]));
+        assert!(extracted);
+        assert_eq!(type_to_string(&inner), "i64");
+    }
+
+    #[test]
+    fn filter_inner_type_unwraps_single_layer() {
+        let ty: Type = parse_quote!(Box<String>);
+        let out = filter_inner_type(&ty, &skip_set(&["Box"]));
+        assert_eq!(type_to_string(&out), "String");
+    }
+
+    #[test]
+    fn filter_inner_type_unwraps_nested_layers() {
+        let ty: Type = parse_quote!(Arc<Box<u32>>);
+        let out = filter_inner_type(&ty, &skip_set(&["Arc", "Box"]));
+        assert_eq!(type_to_string(&out), "u32");
+    }
+
+    #[test]
+    fn filter_inner_type_no_match_returns_original() {
+        let ty: Type = parse_quote!(Vec<u32>);
+        let out = filter_inner_type(&ty, &skip_set(&["Box"]));
+        assert_eq!(type_to_string(&out), "Vec < u32 >");
+    }
+
+    #[test]
+    fn filter_inner_type_skip_without_generics_returns_original() {
+        let ty: Type = parse_quote!(Box);
+        let out = filter_inner_type(&ty, &skip_set(&["Box"]));
+        assert_eq!(type_to_string(&out), "Box");
+    }
+
+    #[test]
+    fn filter_inner_type_non_path_returns_original() {
+        let ty: Type = parse_quote!([u8; 8]);
+        let out = filter_inner_type(&ty, &skip_set(&["Box"]));
+        assert_eq!(type_to_string(&out), "[u8 ; 8]");
+    }
+
+    #[test]
+    fn wrap_leaf_type_wraps_plain_path() {
+        let ty: Type = parse_quote!(String);
+        let out = wrap_leaf_type(&ty, &skip_set(&["Vec", "Option"]));
+        assert_eq!(type_to_string(&out), "adze :: WithLeaf < String >");
+    }
+
+    #[test]
+    fn wrap_leaf_type_wraps_non_path() {
+        let ty: Type = parse_quote!([u8; 4]);
+        let out = wrap_leaf_type(&ty, &skip_set(&["Vec"]));
+        assert_eq!(type_to_string(&out), "adze :: WithLeaf < [u8 ; 4] >");
+    }
+
+    #[test]
+    fn wrap_leaf_type_recurses_into_skipped_container() {
+        let ty: Type = parse_quote!(Vec<String>);
+        let out = wrap_leaf_type(&ty, &skip_set(&["Vec"]));
+        assert_eq!(type_to_string(&out), "Vec < adze :: WithLeaf < String > >");
+    }
+
+    #[test]
+    fn wrap_leaf_type_skipped_container_without_generics_returns_unchanged() {
+        let ty: Type = parse_quote!(Vec);
+        let out = wrap_leaf_type(&ty, &skip_set(&["Vec"]));
+        assert_eq!(type_to_string(&out), "Vec");
+    }
+
+    #[test]
+    fn wrap_leaf_type_recurses_through_nested_skipped_containers() {
+        let ty: Type = parse_quote!(Option<Vec<u32>>);
+        let out = wrap_leaf_type(&ty, &skip_set(&["Vec", "Option"]));
+        assert_eq!(
+            type_to_string(&out),
+            "Option < Vec < adze :: WithLeaf < u32 > > >"
+        );
     }
 }

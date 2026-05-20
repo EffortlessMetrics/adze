@@ -1,383 +1,83 @@
-id = "adze-0-9-contract-convergence"
-title = "Adze 0.9.0 contract convergence"
-status = "complete"
-owner = "droid-factory"
-created = "2026-05-12"
+id = "adze-residual-product-trust-hardening"
+title = "Adze Residual Product Trust Hardening"
+status = "active"
+owner = "runtime/product"
+created = "2026-05-19"
 
 objective = """
-Collapse or classify the workspace surface, recalibrate CI economics, update
-Rust/MSRV and lint policy in the right order, and promote product claims only
-where support-tier proof exists.
+Burn down the remaining product-trust gaps that surfaced after the public
+promotion execution closeout. Keep work in adze-swarm, keep public adze as the
+release/public-intake surface, and either prove or explicitly bound every
+remaining product claim before public promotion.
 """
 
 end_state = [
-  "Every workspace package is classified.",
-  "No durable unpublished production crate category exists.",
-  "No owner-module migration targets remain before the next release.",
-  "CI lane whitelist reflects the post-collapse workspace.",
-  "Ordinary PRs expose LEM estimates and over-ceiling PRs require override.",
-  "Rust/MSRV declarations agree after the 1.95 bump.",
-  "Lint policy checks pass without hiding easy refactors behind expect attributes.",
-  "Support tiers map every stable README claim to proof.",
-  "API foundation specs define AdzeDocument and every projection as one parse truth.",
+  "adze-swarm remains the operating repo for swarm implementation and product-proof work.",
+  "public adze receives no new swarm work outside an explicit public promotion or release PR.",
+  "Current release-facing docs no longer use unbacked production-ready wording for experimental or internal surfaces.",
+  "External-scanner recovery coverage is either backed by focused proof commands or remains explicitly listed as future work.",
+  "docs/status/PRODUCT_OBJECTIVE_AUDIT.md reflects the latest proof receipts and remaining non-completion reasons.",
+  "No crates.io cargo-install claim is made until a real install receipt exists.",
+  "ci-product-stable remains advisory unless branch-protection policy records a promotion.",
+  "Public promotion remains blocked or proceeds only through the recorded release-promotion plan.",
 ]
 
 [[work_item]]
-id = "source-of-truth-scaffolding"
+id = "release-facing-claim-boundary-sweep"
 status = "complete"
-proposal = ""
-spec = ""
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [681]
+proposal = "ADZE-PROP-0004-toolkit-excellence"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/product-gap-burn-down/implementation-plan.md"
+prs = [295, 296]
 commands = [
+  "rg -n \"Production Ready|production-ready|production ready\" docs README.md AGENTS.md CLAUDE.md -g \"!docs/archive/**\"",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
   "git diff --check",
 ]
 
 [[work_item]]
-id = "contract-convergence-proposal"
+id = "external-scanner-recovery-proof"
 status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = ""
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [691]
+proposal = "ADZE-PROP-0004-toolkit-excellence"
+spec = "ADZE-SPEC-0005"
+adr = "ADZE-ADR-0001"
+plan = "plans/product-gap-burn-down/implementation-plan.md"
+prs = [298, 300, 309]
 commands = [
+  "cargo test -p adze --features external_scanners",
+  "cargo test -p adze --features \"pure-rust,external_scanners\" parser_v4::tests::test_parser_with_external_scanner -- --exact --nocapture",
+  "cargo test -p adze --features \"pure-rust,external_scanners\" parser_v4::tests::test_external_scanner_rejects_token_not_in_valid_symbols -- --exact --nocapture",
+  "cargo test -p adze --features \"pure-rust,external_scanners\" parser_v4::tests::test_external_scanner_parse_document_bad_input_returns_diagnostic_document -- --exact --nocapture",
+  "cargo test --manifest-path example/Cargo.toml external_word_example::tests::generated_external_grammar_bad_input_returns_diagnostic_document --features pure-rust -- --exact --nocapture",
+  "cargo test -p adze --features \"pure-rust,glr,serialization,ts-compat\" --test recovery_matrix -- --nocapture",
   "git diff --check",
 ]
 
 [[work_item]]
-id = "package-boundary-spec"
+id = "product-objective-audit-refresh"
 status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
-adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [692]
+proposal = "ADZE-PROP-0005-release-promotion-readiness"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/product-gap-burn-down/implementation-plan.md"
 commands = [
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
   "git diff --check",
 ]
 
 [[work_item]]
-id = "ci-economics-spec"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "docs/specs/ADZE-SPEC-0002-ci-economics.md"
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [692]
+id = "public-promotion-blocker-watch"
+status = "active"
+proposal = "ADZE-PROP-0005-release-promotion-readiness"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/release-promotion/public-promotion-pr-plan.md"
 commands = [
-  "git diff --check",
-]
-
-[[work_item]]
-id = "adze-document-adr"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "ADZE-SPEC-0003-canonical-parse-document"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [692]
-commands = [
-  "git diff --check",
-]
-
-[[work_item]]
-id = "contract-convergence-plan"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = ""
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [692]
-commands = [
-  "git diff --check",
-  "python -c \"import tomllib; tomllib.load(open('.adze/goals/active.toml', 'rb'))\"",
-]
-
-[[work_item]]
-id = "package-boundary-audit"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
-adr = "ADZE-ADR-0002-no-durable-unpublished-production-crates"
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [694]
-commands = [
-  "cargo metadata --format-version 1 --no-deps",
-  "cargo run -q -p xtask -- check-package-boundary",
-  "just ci-supported",
-]
-
-[[work_item]]
-id = "ci-economics-verifier"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "docs/specs/ADZE-SPEC-0002-ci-economics.md"
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-prs = [695]
-commands = [
-  "cargo run -q -p xtask -- check-ci-lane-whitelist",
-  "cargo run -q -p xtask -- ci-plan",
-  "just ci-supported",
-]
-
-[[work_item]]
-id = "microcrate-collapse"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
-adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
-plan = "plans/0.9.0/microcrate-collapse.md"
-blocked_by = []
-prs = [696, 697, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759]
-commands = [
-  "cargo metadata --format-version 1 --no-deps",
-  "cargo run -q -p xtask -- check-package-boundary",
-  "cargo run -q -p xtask -- check-package-boundary --release-gate",
-  "just ci-supported",
-]
-
-[[work_item]]
-id = "package-boundary-release-gate"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "docs/specs/ADZE-SPEC-0001-package-surface-boundary.md"
-adr = "docs/adr/ADZE-ADR-0002-no-durable-unpublished-production-crates.md"
-plan = "plans/0.9.0/microcrate-collapse.md"
-blocked_by = []
-prs = [738, 758, 759]
-commands = [
-  "cargo run -q -p xtask -- check-package-boundary --release-gate",
-  "PACKAGE_BOUNDARY_RELEASE_GATE=1 ./scripts/validate-release-surface.sh",
-]
-
-[[work_item]]
-id = "rust-1.95-msrv-bump"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = ""
-adr = ""
-plan = "plans/0.9.0/rust-1.95.md"
-blocked_by = []
-prs = [760]
-commands = [
-  "cargo metadata --format-version 1 --no-deps",
-  "cargo run -q -p xtask -- check-lint-policy",
-  "cargo test -p xtask doctor -j 1 -- --nocapture",
-  "cargo test -p xtask lint_policy -j 1 -- --nocapture",
-  "cargo test -p adze-parsetable-metadata -- --test-threads=2",
-  "cargo clippy -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen --all-targets -- -D warnings",
-  "cargo run -q -p xtask -- check-package-boundary --release-gate",
-  "cargo fmt -p adze -- --check",
-  "cargo fmt -p adze-tool -- --check",
-  "cargo fmt -p adze-ir -- --check",
-  "cargo fmt -p adze-glr-core -- --check",
-  "cargo fmt -p adze-macro -- --check",
-  "cargo fmt -p adze-tablegen -- --check",
-  "cargo fmt -p xtask -p adze-parsetable-metadata -- --check",
-  "git diff --check",
-  "just ci-supported",
-]
-
-[[work_item]]
-id = "clippy-policy-refresh"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = ""
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-blocked_by = []
-prs = [762]
-commands = [
-  "cargo run -q -p xtask -- check-lint-policy",
-  "cargo test -p xtask lint_policy -j 1 -- --nocapture",
-  "cargo clippy -p xtask --all-targets -- -D warnings",
-  "just clippy",
-  "cargo clippy -p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen --all-targets -- -D warnings",
-  "cargo run -q -p xtask -- check-package-boundary --release-gate",
-  "git diff --check",
-  "just ci-supported",
-]
-
-[[work_item]]
-id = "product-proof-refresh"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0001-0.9-contract-convergence.md"
-spec = "docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md"
-adr = ""
-plan = "plans/0.9.0/implementation-plan.md"
-blocked_by = []
-prs = [763, 785]
-commands = [
-  "just ci-supported",
+  "gh pr view 795 --repo EffortlessMetrics/adze --json state,mergeable,headRefOid,reviewDecision,autoMergeRequest",
+  "gh pr checks 795 --repo EffortlessMetrics/adze",
   "just ci-product-stable",
-  "cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture",
-  "cargo test -p adze-cli readme_capability_rows_match_support_tiers -- --exact --nocapture",
-  "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
-  "cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture",
-]
-
-[[work_item]]
-id = "api-foundation-spec-stack"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [698, 764]
-commands = [
-  "python -c \"import tomllib; tomllib.load(open('policy/doc-artifacts.toml', 'rb')); tomllib.load(open('.adze/goals/active.toml', 'rb'))\"",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "document-model-alpha-v2"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [765]
-commands = [
-  "cargo test -p adze --features \"pure-rust,ts-compat\" --test adze_document_alpha -- --nocapture",
-  "cargo clippy -p adze --features \"pure-rust,ts-compat\" --all-targets -- -D warnings",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "pure-parser-document-bridge"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [766]
-commands = [
-  "cargo test -p adze --features \"pure-rust,ts-compat\" --test adze_document_alpha -- --nocapture",
-  "cargo test -p adze --features pure-rust --test typed_cst_generated_document generated_parse_document_bridge_populates_direct_node_edge_records -- --exact --nocapture",
-  "cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors -- --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "generated-parse-document-canonical"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0003-canonical-parse-document.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [767]
-commands = [
-  "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
-  "cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "parse-fast-path-delegates-to-document"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [768]
-commands = [
-  "cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_parse_document_ast_matches_parse -- --exact --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "typed-cst-schema-generation"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0004-typed-cst-and-ast-projections.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [769]
-commands = [
-  "cargo test -p adze --features pure-rust --test typed_cst_generated_document -- --nocapture",
-  "cargo test -p adze-tablegen --lib typed_cst -- --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "document-diagnostics-store"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0005-diagnostics-and-recovery.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [770]
-commands = [
-  "cargo test -p adze --features \"pure-rust,glr\" --test generated_parse_errors -- --nocapture",
-  "cargo test -p adze --features \"pure-rust,glr\" --test error_display_tests -- --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "ts-compat-document-adapter"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0006-tree-sitter-compatibility-adapter.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [771]
-commands = [
-  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_to_sexp -- --nocapture",
-  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_error -- --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "document-ambiguity-summary"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0007-glr-ambiguity-summary.md"
-adr = "docs/adr/ADZE-ADR-0003-summary-first-glr-ambiguity.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [772]
-commands = [
-  "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_e2e_ambiguous_grammar_glr generated_ambiguous_expr_parse_document_reports_ambiguity_summary -- --exact --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "document-json-schema-alpha"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0008-json-cli-wasm-projections.md"
-adr = "docs/adr/ADZE-ADR-0004-schema-versioned-projections.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [775]
-commands = [
-  "cargo test -p adze --features \"pure-rust,serialization\" --test adze_document_json -- --nocapture",
-  "git diff --check",
-]
-
-[[work_item]]
-id = "language-schema-node-types"
-status = "complete"
-proposal = "docs/proposals/ADZE-PROP-0002-api-foundation.md"
-spec = "docs/specs/ADZE-SPEC-0010-language-metadata-and-node-types.md"
-adr = "docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md"
-plan = "plans/0.9.0/api-foundation.md"
-blocked_by = []
-prs = [776]
-commands = [
-  "cargo test -p adze-tablegen node_types -- --nocapture",
-  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_language_metadata -- --nocapture",
-  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_language_fields -- --nocapture",
-  "git diff --check",
+  "just check-publishable",
 ]

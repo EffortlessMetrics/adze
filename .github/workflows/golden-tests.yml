@@ -10,15 +10,24 @@ name: Golden-Master Tests
 # `paths` setup job and is consumed by the matrix job's `if:`.
 
 on:
-  push:
-    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
     types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
   paths:
     name: Detect Grammar Paths
+    if: |
+      github.event_name != 'pull_request' ||
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'ci:golden' ||
+      github.event.label.name == 'full-ci' ||
+      github.event.label.name == 'skip-golden'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
@@ -47,7 +56,7 @@ jobs:
     name: Golden Tests - ${{ matrix.language }}
     needs: paths
     if: |
-      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
       contains(github.event.pull_request.labels.*.name, 'ci:golden') ||
       contains(github.event.pull_request.labels.*.name, 'full-ci') ||
       (

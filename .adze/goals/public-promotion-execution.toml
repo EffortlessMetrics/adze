@@ -1,0 +1,82 @@
+id = "adze-public-promotion-execution"
+title = "Adze Public Promotion Execution"
+status = "complete"
+owner = "release/product"
+created = "2026-05-19"
+
+objective = """
+Execute the next public-promotion decision from current adze-swarm/main without
+reopening public-repo drift. Refresh live queues, proof receipts, drift state,
+and claim boundaries before deciding whether to proceed, defer, or split a
+public EffortlessMetrics/adze promotion PR.
+"""
+
+end_state = [
+  "adze-swarm remains the operating repo until an explicit public promotion PR is prepared.",
+  "public adze remains release/public-intake and receives no new swarm work.",
+  "live adze-swarm and public adze PR queues are refreshed before any promotion decision.",
+  "post-readiness PRs #241 and later are included or deliberately excluded by name.",
+  "release-facing claims still match SUPPORT_TIERS.md and PRODUCT_PROOF_MAP.md.",
+  "stable product and publishability receipts are rerun from current adze-swarm/main.",
+  "public drift is refreshed against public/main before any public PR opens.",
+  "the decision is recorded as proceed, defer, or split with proof and rollback.",
+]
+
+[[work_item]]
+id = "promotion-execution-source-of-truth"
+status = "complete"
+proposal = "ADZE-PROP-0005-release-promotion-readiness"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/release-promotion/promotion-execution-plan.md"
+prs = [287]
+commands = [
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "fresh-promotion-preflight"
+status = "complete"
+proposal = "ADZE-PROP-0005-release-promotion-readiness"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/release-promotion/public-promotion-pr-plan.md"
+commands = [
+  "git status --short",
+  "gh pr list --repo EffortlessMetrics/adze-swarm --state open",
+  "gh pr list --repo EffortlessMetrics/adze --state open",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture",
+  "just ci-product-stable",
+  "just check-publishable",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "public-drift-refresh"
+status = "complete"
+proposal = "ADZE-PROP-0005-release-promotion-readiness"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/release-promotion/promotion-execution-plan.md"
+commands = [
+  "git fetch origin --prune",
+  "git fetch public --prune",
+  "git rev-list --left-right --count public/main...origin/main",
+  "git log --oneline --decorate --left-right public/main...origin/main --",
+]
+
+[[work_item]]
+id = "promotion-decision-record"
+status = "complete"
+proposal = "ADZE-PROP-0005-release-promotion-readiness"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/release-promotion/promotion-execution-plan.md"
+commands = [
+  "record proceed, defer, or split in plans/release-promotion/promotion-execution-plan.md",
+  "if proceeding, prepare the public promotion PR from the refreshed scope in plans/release-promotion/public-promotion-pr-plan.md",
+]
