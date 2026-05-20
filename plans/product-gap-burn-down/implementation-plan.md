@@ -412,3 +412,149 @@ git diff --check
 
 Revert the status-doc refresh. Do not revert PR #298 unless the parser-v4
 external-scanner behavior itself needs to be rolled back.
+
+## Work Item: release-publish-decision-preflight
+
+Status: complete
+Linked proposal: ../../docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md
+Linked spec: ../../docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md
+Linked ADR: ../../docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md
+Blocks: explicit-release-publish-workflow
+Blocked by: n/a
+
+### Goal
+
+Prepare the explicit release/publish decision without publishing. This item
+refreshes the registry boundary and local publish-readiness receipts so a human
+release decision can happen from current facts.
+
+### Production Delta
+
+Source-of-truth status only unless a proof command exposes a real package or
+claim-boundary failure.
+
+### Receipt
+
+On 2026-05-20 from `adze-swarm/main` at commit `390ab76f`:
+
+- `cargo info adze-cli` reported that `adze-cli` is not present in crates.io.
+- `just package-local adze-cli` packaged and verified `adze-cli v0.8.0-dev`
+  with local co-release patches.
+- `cargo run -q -p xtask -- verify-crates-io-install adze-cli --bin adze
+  --version X.Y.Z --locked --dry-run` printed the post-publish install command
+  plan and reiterated that dry-run is not registry installation proof.
+- `just check-publishable` passed for `adze-common`, `adze-ir`,
+  `adze-glr-core`, `adze-tablegen`, `adze-macro`, `adze-tool`, `adze-cli`, and
+  `adze`.
+
+This is a release decision preflight receipt, not a publish, tag, or install
+receipt.
+
+### Non-Goals
+
+- No crate publish.
+- No release tag.
+- No signing, Cargo-token, or release-workflow mutation.
+- No README claim that `cargo install adze-cli` is the supported quickstart.
+
+### Proof Commands
+
+```bash
+cargo info adze-cli
+just package-local adze-cli
+cargo run -q -p xtask -- verify-crates-io-install adze-cli --bin adze --version X.Y.Z --locked --dry-run
+just check-publishable
+```
+
+### Rollback
+
+Revert only source-of-truth receipt updates. If proof commands expose a real
+package or claim-boundary failure, fix that in a separate focused PR.
+
+## Work Item: explicit-release-publish-workflow
+
+Status: blocked
+Linked proposal: ../../docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md
+Linked spec: ../../docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md
+Linked ADR: ../../docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md
+Blocks: crates-io-cli-install-receipt
+Blocked by: explicit human release/publish authorization after the completed
+preflight
+
+### Goal
+
+Publish the release surface only through an explicit release workflow. This is
+outside routine swarm implementation and product-proof work.
+
+### Non-Goals
+
+- No automatic publish from product-proof receipts.
+- No tag, signing, Cargo-token, or release-workflow mutation without explicit
+  release authorization.
+- No public install claim until the post-publish install receipt passes.
+
+### Rollback
+
+If a release or publish operation happens, do not rewrite public history. Use
+the release incident process and publish a corrective release if needed.
+
+## Work Item: crates-io-cli-install-receipt
+
+Status: blocked
+Linked proposal: ../../docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md
+Linked spec: ../../docs/specs/ADZE-SPEC-0011-product-proof-and-support-tiers.md
+Linked ADR: ../../docs/adr/ADZE-ADR-0001-adze-document-one-parse-truth.md
+Blocks: objective-completion
+Blocked by: explicit-release-publish-workflow
+
+### Goal
+
+Close the remaining published first-use receipt gap only after the CLI release
+surface exists on crates.io. Until then, the product proof remains limited to
+repo-built CLI quickstarts, downstream fixtures, local package verification, and
+claim-boundary checks.
+
+### Current Receipt
+
+On 2026-05-20, `cargo info adze-cli` was run outside the workspace and reported:
+
+```text
+error: could not find `adze-cli` in registry `https://github.com/rust-lang/crates.io-index`
+```
+
+This confirms the `cargo install adze-cli` path is still a release-surface
+target, not current product proof.
+
+### Production Delta
+
+Source-of-truth status only until an explicit release/publish workflow runs.
+
+### Non-Goals
+
+- No crate publish from this work item.
+- No release tag.
+- No signing, Cargo-token, or release-workflow mutation.
+- No README claim that `cargo install adze-cli` is the supported quickstart
+  until the install receipt passes.
+
+### Proof Commands
+
+Pre-publish boundary:
+
+```bash
+cargo info adze-cli
+just package-local adze-cli
+cargo run -q -p xtask -- verify-crates-io-install adze-cli --bin adze --version X.Y.Z --locked --dry-run
+```
+
+Post-publish receipt:
+
+```bash
+cargo run -q -p xtask -- verify-crates-io-install adze-cli --bin adze --version X.Y.Z --locked
+```
+
+### Rollback
+
+Revert only the source-of-truth receipt update. If a release or publish
+operation has happened, use the release incident process instead of rewriting
+public history.
