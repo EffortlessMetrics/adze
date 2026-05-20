@@ -166,7 +166,8 @@ cargo run -q -p xtask -- verify-crates-io-install adze-cli --bin adze --version 
 
 `just package-local adze-cli` packages and verifies the CLI crate with local
 patches for unpublished co-release crates. It passed on 2026-05-19 from
-`adze-swarm`, producing and verifying `adze-cli v0.8.0-dev`. This is local
+`adze-swarm`, producing and verifying `adze-cli v0.8.0-dev`, and passed again
+on 2026-05-20 from `adze-swarm/main` at commit `390ab76f`. This is local
 publish-readiness evidence, not a crates.io install receipt.
 
 `cargo_install_adze_cli_claims_stay_release_surface_bounded` keeps live
@@ -175,15 +176,18 @@ quickstart until a crates.io receipt exists. It is a claim-boundary canary, not
 registry installation proof.
 
 The `cargo info adze-cli` command must be run outside the workspace when it is
-used to verify registry publication. On 2026-05-19 it reported that `adze-cli`
-could not be found in crates.io, so `cargo install adze-cli` remains a
-release-surface target rather than current product proof.
+used to verify registry publication. It reported on 2026-05-19 and again on
+2026-05-20 that `adze-cli` could not be found in crates.io, so
+`cargo install adze-cli` remains a release-surface target rather than current
+product proof.
 
 `cargo run -q -p xtask -- verify-crates-io-install adze-cli --bin adze --version
 X.Y.Z` is the post-publish receipt hook for the missing crates.io install proof.
 It installs from crates.io into an isolated temporary root and runs
 `adze --version`. The `--dry-run` mode is pre-publish command-shape evidence
 only; it does not contact crates.io and does not close the install-receipt gap.
+The dry-run command shape was refreshed on 2026-05-20 from `adze-swarm/main` at
+commit `390ab76f`.
 
 ## Current Non-Completion Reasons
 
