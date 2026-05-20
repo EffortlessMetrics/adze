@@ -1,0 +1,225 @@
+id = "adze-toolkit-excellence"
+title = "Adze Toolkit Excellence and Adoption"
+status = "complete"
+owner = "droid-factory"
+created = "2026-05-18"
+
+objective = """
+Convert the completed GLR toolkit foundation into a cohesive, easy-to-use
+product by proving end-to-end user workflows, tightening docs-to-code
+alignment, hardening examples and CLI flows, validating Tree-sitter, query,
+diagnostic, JSON, and performance receipts, and promoting only
+support-tier-backed claims.
+"""
+
+end_state = [
+  "A new user can initialize, build, test, and parse with one obvious path.",
+  "The generated parser API is the default public story.",
+  "AdzeDocument is the obvious tooling story and remains the one parse truth.",
+  "Tree-sitter-compatible selected-tree output is documented and tested as a subset.",
+  "Query compatibility has examples and known gaps.",
+  "Diagnostics and ambiguity behavior are taught with runnable examples.",
+  "Benchmarks produce receipts, not marketing claims.",
+  "README, book, and reference docs match support-tier proof.",
+  "Public adze remains release/intake, not swarm work.",
+]
+
+[[work_item]]
+id = "toolkit-excellence-campaign-source-of-truth"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0001"
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [217]
+commands = [
+  "python -c \"import tomllib; tomllib.load(open('.adze/goals/active.toml', 'rb')); tomllib.load(open('.adze/goals/toolkit-excellence.toml', 'rb')); tomllib.load(open('policy/doc-artifacts.toml', 'rb'))\"",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "product-acceptance-matrix"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = ""
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [218]
+commands = [
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "starter-project-hardening"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = ""
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [219]
+commands = [
+  "cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture",
+  "cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture",
+  "cargo test -p adze-cli test_init_cargo_toml_references_adze_dependency -- --exact --nocapture",
+  "cargo test -p adze-cli getting_started_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "downstream-starter-fixture"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = ""
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [222]
+commands = [
+  "cargo test --manifest-path testing/downstream-starter/Cargo.toml",
+  "cargo run --manifest-path testing/downstream-starter/Cargo.toml --example parse",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "beginner-docs-alignment"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = ""
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [223, 224]
+commands = [
+  "cargo test -p adze-cli readme_arithmetic_quickstart_builds_and_runs -- --exact --nocapture",
+  "cargo test -p adze-cli getting_started_quickstart_builds_parses_and_reports_diagnostics -- --exact --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "api-choice-guide"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0001"
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [225]
+commands = [
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "glr-ambiguity-example"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0003"
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [226]
+commands = [
+  "cargo run -p adze --features \"pure-rust,glr\" --example glr_ambiguity",
+  "cargo test -p adze --features \"pure-rust,glr,ts-compat\" cookbook -- --nocapture",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "query-highlighting-example"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0013"
+adr = ""
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [227]
+commands = [
+  "cargo run -p adze --features query --example query_highlighting",
+  "cargo test -p adze --lib query -- --nocapture",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "diagnostics-recovery-example"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0001"
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [228]
+commands = [
+  "cargo run -p adze --features \"pure-rust,glr,serialization\" --example diagnostics_recovery",
+  "cargo test -p adze --features \"pure-rust,glr,serialization,ts-compat\" --test recovery_matrix -- --nocapture",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "ts-compat-matrix-doc"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0001"
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [229]
+commands = [
+  "cargo test -p adze --features \"pure-rust,glr,ts-compat\" --test ts_compat_selected_tree -- --nocapture",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "ts-compat-imported-shape-smoke"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0001"
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [230]
+commands = [
+  "cargo test -p adze --features \"pure-rust,ts-compat,query\" --test ts_compat_imported_shape_smoke -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,ts-compat\" --test ts_compat_node_types -- --nocapture",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "benchmark-product-receipts"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0014"
+adr = ""
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [231]
+commands = [
+  "cargo run -q -p xtask -- perf-receipt --profile product-smoke",
+  "cargo test -p xtask perf_receipt -- --nocapture",
+  "cargo test -p adze-benchmarks --test verify_fixture_parsing verify_product_smoke_perf_receipt_is_documented -- --exact --nocapture",
+  "cargo test -p adze-benchmarks --test verify_fixture_parsing verify_benchmark_fixture_families_are_documented -- --exact --nocapture",
+  "cargo bench -p adze-benchmarks --bench document_projection --no-run",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "proven-slice-promotion"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0004-toolkit-excellence.md"
+spec = "ADZE-SPEC-0011"
+adr = ""
+plan = "plans/toolkit-excellence/implementation-plan.md"
+prs = [232]
+commands = [
+  "cargo test -p adze --features \"pure-rust,glr,ts-compat\" --test ts_compat_selected_tree -- --nocapture",
+  "cargo run -p adze --features query --example query_highlighting",
+  "cargo test -p adze --features query --lib query -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,ts-compat,query\" --test query_differential -- --nocapture",
+  "cargo run -q -p xtask -- perf-receipt --profile product-smoke",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "git diff --check",
+]

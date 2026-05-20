@@ -1,0 +1,103 @@
+id = "adze-release-promotion-readiness"
+title = "Adze Release Promotion Readiness"
+status = "complete"
+owner = "droid-factory"
+created = "2026-05-19"
+
+objective = """
+Prepare adze-swarm for a deliberate public promotion decision by inventorying
+completed campaigns, auditing public adze drift, freezing release-facing claims
+against support tiers, and defining the proof and rollback required before any
+public promotion PR.
+"""
+
+end_state = [
+  "adze-swarm remains the working repo.",
+  "public adze remains release/public-intake until an explicit promotion PR.",
+  "completed swarm campaigns are inventoried for release relevance.",
+  "public adze drift is audited before promotion.",
+  "README and release-facing claims match support-tier proof.",
+  "promotion scope, proof commands, non-goals, and rollback are documented.",
+]
+
+[[work_item]]
+id = "release-promotion-campaign-source-of-truth"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/release-promotion/implementation-plan.md"
+prs = [234]
+commands = [
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "release-readiness-inventory"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md"
+spec = "ADZE-SPEC-0011"
+adr = ""
+plan = "plans/release-promotion/readiness-inventory.md"
+prs = [235]
+commands = [
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "public-drift-audit"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md"
+spec = "ADZE-SPEC-0011"
+adr = ""
+plan = "plans/release-promotion/public-drift-audit.md"
+prs = [236, 237]
+commands = [
+  "gh pr list --repo EffortlessMetrics/adze --state open",
+  "gh pr list --repo EffortlessMetrics/adze-swarm --state open",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "release-claim-freeze"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md"
+spec = "ADZE-SPEC-0011"
+adr = ""
+plan = "plans/release-promotion/claim-freeze.md"
+prs = [238]
+commands = [
+  "cargo test -p adze-cli readme_stable_claims_are_in_stable_product_lane -- --exact --nocapture",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "public-promotion-pr-plan"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md"
+spec = "ADZE-SPEC-0011"
+adr = ""
+plan = "plans/release-promotion/public-promotion-pr-plan.md"
+prs = [239]
+commands = [
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "release-promotion-readiness-closeout"
+status = "complete"
+proposal = "docs/proposals/ADZE-PROP-0005-release-promotion-readiness.md"
+spec = "ADZE-SPEC-0011"
+adr = ""
+plan = "plans/release-promotion/closeout.md"
+prs = [240]
+commands = [
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]

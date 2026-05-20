@@ -1,0 +1,102 @@
+id = "adze-product-gap-burn-down"
+title = "Adze Product Gap Burn-Down"
+status = "complete"
+owner = "droid-factory"
+created = "2026-05-19"
+
+objective = """
+Burn down the remaining product-objective gaps after the completed toolkit
+excellence and release-promotion readiness campaigns. Keep the stable parser
+generator story proof-backed, keep public promotion deliberate, and either fix
+or explicitly bound the GLR, install, CI-policy, and release-surface blockers
+named in docs/status/PRODUCT_OBJECTIVE_AUDIT.md.
+"""
+
+end_state = [
+  "adze-swarm remains the operating repo.",
+  "public adze remains release/public-intake until an explicit promotion PR.",
+  "docs/status/PRODUCT_OBJECTIVE_AUDIT.md is current against the latest proof commands.",
+  "The stable product receipt lane remains green from current main.",
+  "Dangling-else selected-tree behavior is fixed with proof.",
+  "Generated reduce/reduce behavior is either promoted with proof or explicitly kept as a known product gap.",
+  "cargo install adze-cli is not claimed until a crates.io install receipt exists.",
+  "ci-product-stable is not treated as branch-protection required until policy records that promotion.",
+]
+
+[[work_item]]
+id = "product-gap-burn-down-source-of-truth"
+status = "complete"
+proposal = "ADZE-PROP-0004-toolkit-excellence"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/product-gap-burn-down/implementation-plan.md"
+prs = [263]
+commands = [
+  "python -c \"import tomllib; tomllib.load(open('.adze/goals/active.toml', 'rb')); tomllib.load(open('.adze/goals/product-gap-burn-down.toml', 'rb')); tomllib.load(open('policy/doc-artifacts.toml', 'rb'))\"",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "stable-product-receipt-refresh"
+status = "complete"
+proposal = "ADZE-PROP-0004-toolkit-excellence"
+spec = "ADZE-SPEC-0011"
+adr = ""
+plan = "plans/product-gap-burn-down/implementation-plan.md"
+commands = [
+  "just ci-product-stable",
+  "cargo test --manifest-path testing/downstream-starter/Cargo.toml",
+  "cargo run --manifest-path testing/downstream-starter/Cargo.toml --example parse",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "dangling-else-selected-tree-gap"
+status = "complete"
+proposal = "ADZE-PROP-0003-glr-toolkit-productization"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0003"
+plan = "plans/product-gap-burn-down/implementation-plan.md"
+commands = [
+  "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_dangling_else_conflicts generated_dangling_else_selects_nearest_else_and_records_ambiguity -- --exact --nocapture",
+  "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test test_dangling_else_conflicts -- --nocapture",
+  "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test glr_conflict_matrix -- --nocapture",
+  "cargo test -p adze --features pure-rust --test typed_ast_contract -- --nocapture",
+  "cargo test -p adze-tablegen --test lexer_generation_comprehensive -- --nocapture",
+  "cargo test -p adze-macro -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "generated-reduce-reduce-gap"
+status = "complete"
+proposal = "ADZE-PROP-0003-glr-toolkit-productization"
+spec = "ADZE-SPEC-0012"
+adr = "ADZE-ADR-0003"
+plan = "plans/product-gap-burn-down/implementation-plan.md"
+commands = [
+  "cargo test -p adze --features \"pure-rust,glr,runtime-e2e\" --test generated_reduce_reduce_gap -- --nocapture",
+  "cargo test -p adze-tool --lib tests::single_field_non_leaf_variants_preserve_identity_for_reduce_reduce -- --exact --nocapture",
+  "cargo test -p adze-glr-core decide_reduce_reduce -- --nocapture",
+  "cargo test -p adze-glr-core --test advanced_conflict_proptest -- --nocapture",
+  "git diff --check",
+]
+
+[[work_item]]
+id = "public-promotion-decision-refresh"
+status = "complete"
+proposal = "ADZE-PROP-0005-release-promotion-readiness"
+spec = "ADZE-SPEC-0011"
+adr = "ADZE-ADR-0001"
+plan = "plans/release-promotion/public-promotion-pr-plan.md"
+commands = [
+  "gh pr list --repo EffortlessMetrics/adze --state open",
+  "gh pr list --repo EffortlessMetrics/adze-swarm --state open",
+  "gh pr checks 267 --repo EffortlessMetrics/adze-swarm",
+  "just ci-product-stable",
+  "just check-publishable",
+  "cargo run -q -p xtask -- check-active-goal --mode blocking",
+  "cargo run -q -p xtask -- check-doc-artifacts --mode blocking",
+]

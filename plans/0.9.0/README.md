@@ -42,11 +42,6 @@ release-polish.md
 closeout.md
 ```
 
-The 0.9 contract-convergence campaign closeout lives in
-[`closeout.md`](./closeout.md). It records what shipped, proof commands,
-remaining work, and rollback/handoff notes after the active manifest reaches a
-complete state.
-
 ## Work Item Template
 
 ````md

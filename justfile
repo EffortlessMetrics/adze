@@ -10,9 +10,9 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 # PowerShell-launched tools. Keep just recipes usable from a clean Windows shell.
 set windows-shell := ["C:\\Program Files\\Git\\bin\\bash.exe", "-eu", "-o", "pipefail", "-c"]
 
-# Format all code
+# Format declared workspace members
 fmt:
-    cargo fmt --all --check
+    ./scripts/fmt-workspace.sh --check
 
 # Run clippy on core workspace members
 clippy:
@@ -66,19 +66,10 @@ bench-perf:
 snap:
     cargo insta review
 
-supported_crates := "-p adze -p adze-macro -p adze-tool -p adze-common -p adze-ir -p adze-glr-core -p adze-tablegen"
-
 # Required PR gate: this is the single supported CI lane for branch protection
 # See docs/status/KNOWN_RED.md; update it whenever ci-supported command targets change.
 ci-supported:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
-    export RUST_TEST_THREADS="${RUST_TEST_THREADS:-2}"
-    cargo fmt --all -- --check
-    cargo clippy {{supported_crates}} --all-targets -- -D warnings
-    cargo test {{supported_crates}} --lib --tests --bins -- --test-threads="$RUST_TEST_THREADS"
-    cargo test -p adze-glr-core --features serialization --doc -- --test-threads="$RUST_TEST_THREADS"
+    ./scripts/ci-supported.sh
 
 # Candidate product lane for README Stable claims. This is advisory until
 # branch protection explicitly promotes it.
@@ -128,6 +119,14 @@ check-msrv:
 # Show crates.io publish order
 publish-order:
     ./scripts/publish-order.sh
+
+# Verify publish metadata and cargo package file lists for the release surface
+check-publishable:
+    ./scripts/check-publish.sh
+
+# Verify a crate package with local patches for unpublished co-release crates
+package-local crate:
+    ./scripts/package-local-release.sh {{crate}}
 
 # Clean build artifacts
 clean:

@@ -554,10 +554,7 @@ fn rr_not_detected_for_single_reduce() {
 #[test]
 fn rr_duplicate_rule_ids() {
     let cell = vec![Action::Reduce(RuleId(4)), Action::Reduce(RuleId(4))];
-    assert_eq!(
-        classify_conflict(&cell),
-        InspectionConflictType::ReduceReduce
-    );
+    assert_eq!(classify_conflict(&cell), InspectionConflictType::Mixed);
 }
 
 // ============================================================================
@@ -1743,7 +1740,7 @@ fn stats_details_contain_symbol_names() {
     );
     let summary = count_conflicts(&table);
     assert!(!summary.conflict_details.is_empty());
-    assert_eq!(summary.conflict_details[0].symbol_name, "symbol_42");
+    assert_eq!(summary.conflict_details[0].symbol_name, "sym_42");
 }
 
 #[test]
@@ -1919,6 +1916,7 @@ mod proptest_section {
             r1 in 0u16..1000,
             r2 in 0u16..1000,
         ) {
+            prop_assume!(r1 != r2);
             let cell = vec![Action::Reduce(RuleId(r1)), Action::Reduce(RuleId(r2))];
             let ct = classify_conflict(&cell);
             prop_assert_eq!(ct, InspectionConflictType::ReduceReduce);

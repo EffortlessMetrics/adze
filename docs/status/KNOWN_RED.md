@@ -1,10 +1,11 @@
 # Known red
 
-**Last updated:** 2026-05-14
+**Last updated:** 2026-05-19
 
 This file tracks intentional exclusions from the supported lane:
 
-- Required PR gate: `just ci-supported` locally, `CI / ci-supported` in GitHub checks
+- Required `adze-swarm` PR gate: `Rust Small Result` in GitHub checks
+- Supported local/product proof: `just ci-supported`
 - Lane classification: [CI_LANES.md](../../.github/CI_LANES.md)
 
 Rule: if something is excluded from the supported lane, it must be listed here with:
@@ -32,14 +33,14 @@ Support tiers and proof commands for major surfaces are tracked in [`docs/status
 
 `ci-supported` currently checks the **core pipeline** (7 crates: `adze`, `adze-macro`, `adze-tool`, `adze-common`, `adze-ir`, `adze-glr-core`, `adze-tablegen`):
 
-- `cargo fmt --all --check`
+- `scripts/fmt-workspace.sh --check` for the declared workspace-member formatting proof. This replaces the intended `cargo fmt --all --check` release check with per-member invocations so Windows does not fail before rustfmt starts.
 - `cargo clippy` (supported crates, `-D warnings`)
 - `cargo test` (supported crates: lib, tests, bins)
 - `adze-glr-core` doctests with `serialization` feature
 
 This lane is intentionally bounded so it stays reliable and fast enough for day-to-day work.
 
-**Current required status:** GREEN when `just ci-supported` / `CI / ci-supported` passes. Broader feature matrices, audit, WASM, and product-proof checks are useful optional signal, but they are not part of the supported merge gate unless explicitly promoted here and in [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
+**Current required status:** GREEN when `Rust Small Result` passes in `adze-swarm`. `just ci-supported` remains the local supported/product proof. Broader feature matrices, audit, WASM, and product-proof checks are useful optional signal, but they are not part of the swarm merge gate unless explicitly promoted here, in [CI_LANES.md](../../.github/CI_LANES.md), and in [`SUPPORT_TIERS.md`](./SUPPORT_TIERS.md).
 
 ---
 
@@ -71,15 +72,27 @@ These may run as optional signal (nightly/manual/canary), but are not required f
 - deployment workflows (mdBook / pages)
 - performance regression canaries
 - All other `.github/workflows/ci.yml` jobs are optional unless explicitly promoted in settings.
+- Published `cargo install adze-cli` proof. `just package-local adze-cli`
+  passed on 2026-05-19 and verifies the local CLI package with co-release
+  patches, but current product proof still uses the repo-built CLI and
+  downstream fixtures. Treat crates.io CLI installation as release-surface work
+  until an install receipt exists.
 
 ---
 
 
 ## Advisory product proof lane (non-blocking)
 
-A broad-surface advisory lane now exists as `.github/workflows/product-proof.yml` and runs `scripts/ci-product.sh` on schedule/manual dispatch.
+A broad-surface advisory lane now exists as `.github/workflows/product-proof.yml` and runs `scripts/ci-product.sh` on schedule or manual dispatch with `lane=all`.
 
-This lane is **not** part of required merge gates. It provides bounded canary proof across product surfaces that are outside `ci-supported`. A narrower `just ci-product-stable` lane exists for README Stable claims only, but it is also advisory until branch protection explicitly promotes it.
+This lane is **not** part of required merge gates. It provides bounded canary proof across product surfaces that are outside `ci-supported`. A narrower `ci-product stable canaries` job runs `just ci-product-stable` on stable-claim PR surfaces, schedule, and stable-only manual dispatch, but it is also advisory until branch protection explicitly promotes it.
+
+Latest stable-product receipt: GitHub workflow dispatch
+[`Product Proof` run 26104726428](https://github.com/EffortlessMetrics/adze-swarm/actions/runs/26104726428)
+passed on 2026-05-19 from `adze-swarm/main` after PR #281. The
+`ci-product stable canaries` job passed in 3m02s and `ci-product advisory
+canaries` skipped under the stable-only default. This remains advisory and is
+not part of required branch protection.
 
 Current canaries:
 
@@ -92,7 +105,8 @@ Current canaries:
 - `adze` GLR reduce-reduce driver canary — **behavior** (`cargo test -p adze-glr-core --test parser_driver_tests reduce_reduce_parses_despite_conflict -- --exact --nocapture`)
 - `adze` GLR parser_v4 canonical conflict routing — **behavior** (`cargo test -p adze --features "pure-rust,glr" --test parser_v4_comprehensive test_parser_v4_rejects_single_action_fork_conflict_before_parsing -- --exact --nocapture`)
 - `adze` GLR dangling-else conflict preservation — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_dangling_else_conflicts verify_conflict_preservation_behavior -- --exact --nocapture`)
-- `adze` GLR dangling-else selection gap guardrail — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_dangling_else_conflicts generated_dangling_else_selection_gap_returns_error_without_panicking -- --exact --nocapture`)
+- `adze` GLR dangling-else selected tree — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test test_dangling_else_conflicts generated_dangling_else_selects_nearest_else_and_records_ambiguity -- --exact --nocapture`)
+- `adze` generated reduce/reduce preservation and selected tree — **behavior** (`cargo test -p adze --features "pure-rust,glr,runtime-e2e" --test generated_reduce_reduce_gap -- --nocapture`)
 - `adze` structured parse diagnostics — **behavior** (`cargo test -p adze --test error_display_tests reporting_parse_with_errors_includes_source_excerpt_after_bad_input --features "pure-rust,glr" -- --exact --nocapture`)
 - `adze` multiline parse diagnostic location — **behavior** (`cargo test -p adze --test error_display_tests reporting_parse_with_errors_tracks_multiline_bad_input_location_and_excerpt --features "pure-rust,glr" -- --exact --nocapture`)
 - `adze` parse diagnostic byte spans — **behavior** (`cargo test -p adze --test error_display_tests reporting_parse_diagnostics_include_byte_span_for_multiline_bad_input --features "pure-rust,glr" -- --exact --nocapture`)
@@ -133,11 +147,14 @@ Current canaries:
 - Checked-in downstream quickstart sample — **behavior** (`cargo test -p downstream-demo -- --nocapture`)
 - `adze` typed AST repeated-parse determinism — **behavior** (`cargo test -p adze --features pure-rust --test typed_ast_contract typed_ast_contract_repeated_parse_is_deterministic -- --exact --nocapture`)
 - `adze-cli` default-cwd init/check smoke — **behavior** (`cargo test -p adze-cli test_init_default_cwd_generates_buildable_project -- --exact --nocapture`)
+- `adze-cli` generated starter test/example/check smoke — **behavior** (`cargo test -p adze-cli test_init_generates_buildable_project -- --exact --nocapture`)
 - `adze-cli` clean-room init dependency smoke — **behavior** (`cargo test -p adze-cli test_init_cargo_toml_references_adze_dependency -- --exact --nocapture`)
 - `adze-cli` check rejects non-grammar Rust files — **behavior** (`cargo test -p adze-cli test_check_rejects_file_without_adze_grammar -- --exact --nocapture`)
 - `adze-cli` stats rejects non-grammar Rust files — **behavior** (`cargo test -p adze-cli test_stats_rejects_file_without_adze_grammar -- --exact --nocapture`)
 - `adze-cli` parse unsupported-mode truthfulness — **behavior** (`cargo test -p adze-cli test_parse_static_mode_is_explicitly_unimplemented -- --exact --nocapture`)
 - `adze-cli` parse help output-mode documentation — **behavior** (`cargo test -p adze-cli test_parse_help_documents_available_modes -- --exact --nocapture`)
+- `adze-cli` static document projection output modes — **behavior** (`cargo test -p adze-cli test_parse_document_projection_modes_emit_schema_envelopes -- --exact --nocapture`)
+- `adze-cli` document JSON recovery diagnostics — **behavior** (`cargo test -p adze-cli parse_document_json_modes_emit_recovery_diagnostics -- --exact --nocapture`)
 - `adze-tool` test command rejects corpus without parser execution — **behavior** (`cargo test -p adze-tool --test cli_test test_test_command_rejects_corpus_without_parser -- --exact --nocapture`)
 - `adze-golden-tests` JavaScript canary — **behavior** (`cargo test -p adze-golden-tests javascript_canary_expression_golden --features javascript-grammar -- --nocapture`)
 - benchmark arithmetic fixture validity — **behavior** (`cargo test -p adze-benchmarks --test verify_fixture_parsing verify_arithmetic_benchmark_fixtures_parse_with_arithmetic_grammar -- --exact --nocapture`)

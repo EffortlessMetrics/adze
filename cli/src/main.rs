@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 use colored::Colorize;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use walkdir::WalkDir;
 
 mod grammar_analysis;
@@ -52,7 +53,7 @@ pub(crate) enum Commands {
         /// Input file to parse
         input: PathBuf,
         /// Output format
-        #[arg(short, long, default_value = "tree")]
+        #[arg(short, long, visible_alias = "output", default_value = "tree")]
         format: OutputFormat,
         /// Use dynamic loader to load compiled grammar from shared library (experimental; requires --features dynamic)
         #[arg(long)]
@@ -103,6 +104,36 @@ pub(crate) enum OutputFormat {
     Json,
     Sexp,
     Dot,
+    #[value(name = "document-json")]
+    DocumentJson,
+    #[value(name = "tree-json")]
+    TreeJson,
+    #[value(name = "diagnostics-json")]
+    DiagnosticsJson,
+    #[value(name = "ambiguity-json")]
+    AmbiguityJson,
+}
+
+impl OutputFormat {
+    fn cli_name(&self) -> &'static str {
+        match self {
+            Self::Tree => "tree",
+            Self::Json => "json",
+            Self::Sexp => "sexp",
+            Self::Dot => "dot",
+            Self::DocumentJson => "document-json",
+            Self::TreeJson => "tree-json",
+            Self::DiagnosticsJson => "diagnostics-json",
+            Self::AmbiguityJson => "ambiguity-json",
+        }
+    }
+
+    fn is_document_projection(&self) -> bool {
+        matches!(
+            self,
+            Self::DocumentJson | Self::TreeJson | Self::DiagnosticsJson | Self::AmbiguityJson
+        )
+    }
 }
 
 fn main() -> Result<()> {
@@ -197,12 +228,20 @@ fn main() {
 
 #[adze::grammar("{}")]
 pub mod grammar {{
-    /// Root node of the grammar
+    /// Arithmetic expression grammar.
     #[adze::language]
-    #[derive(Debug, PartialEq, Eq)]
-    pub struct Program {{
-        #[adze::leaf(pattern = r"\d+", text = true)]
-        pub number: String,
+    #[derive(Debug, PartialEq)]
+    pub enum Expr {{
+        Number(
+            #[adze::leaf(pattern = r"\d+", transform = |v| v.parse().unwrap())]
+            i32,
+        ),
+
+        #[adze::prec_left(1)]
+        Add(Box<Expr>, #[adze::leaf(text = "+")] (), Box<Expr>),
+
+        #[adze::prec_left(2)]
+        Mul(Box<Expr>, #[adze::leaf(text = "*")] (), Box<Expr>),
     }}
 
     /// Whitespace ignored between tokens.
@@ -231,30 +270,112 @@ pub use grammar_file::grammar;
     // Create example test
     let crate_name = name.replace('-', "_");
     let test_rs = format!(
-        r#"use {}::grammar;
+        r#"use {}::grammar::{{self, Expr}};
 
 #[test]
-fn test_generated_parser_returns_number_ast() {{
-    let program = grammar::parse("42").expect("number program should parse");
+fn test_generated_parser_respects_precedence() {{
+    let expr = grammar::parse("1 + 2 * 3").expect("expression should parse");
 
-    assert_eq!(program.number, "42");
+    assert_eq!(
+        expr,
+        Expr::Add(
+            Box::new(Expr::Number(1)),
+            (),
+            Box::new(Expr::Mul(
+                Box::new(Expr::Number(2)),
+                (),
+                Box::new(Expr::Number(3)),
+            )),
+        )
+    );
+}}
+
+#[test]
+fn test_bad_input_reports_diagnostics() {{
+    let source = "1 + @";
+    let errors = grammar::parse(source).expect_err("bad input should fail");
+    let first = errors
+        .first()
+        .expect("bad input should produce at least one parse error");
+
+    assert_eq!(first.byte_span(), 4..5);
+    assert!(
+        first.expected.iter().any(|name| name == r"/\d+/"),
+        "diagnostic should name the expected number token, got {{:?}}",
+        first.expected
+    );
+
+    let rendered = first.display_with_source(source).to_string();
+    assert!(rendered.contains("bytes 4..5"));
+    assert!(rendered.contains("expected one of:"));
+}}
+
+#[test]
+fn test_parse_document_exposes_recovered_document() {{
+    let document = grammar::parse_document("1 +")
+        .expect("parse_document should return partial document facts for recoverable input");
+
+    assert!(document.tree().has_errors());
+    assert!(!document.diagnostics().is_empty());
 }}
 "#,
         crate_name
     );
 
-    fs::write(project_dir.join("tests/basic.rs"), test_rs)?;
+    fs::write(project_dir.join("tests/parse.rs"), test_rs)?;
+
+    let example_rs = format!(
+        r#"use {}::grammar;
+
+fn main() {{
+    let source = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "1 + 2 * 3".to_string());
+
+    match grammar::parse(&source) {{
+        Ok(expr) => println!("{{expr:?}}"),
+        Err(errors) => {{
+            for error in &errors {{
+                eprintln!("{{}}", error.display_with_source(&source));
+            }}
+            std::process::exit(1);
+        }}
+    }}
+}}
+"#,
+        crate_name
+    );
+
+    fs::write(project_dir.join("examples/parse.rs"), example_rs)?;
 
     // Create README
     let readme = format!(
         r#"# {}
 
-A adze grammar for {}.
+An Adze arithmetic grammar for {}.
 
-## Usage
+## Typed parsing
 
 ```rust
-let program = {}::grammar::parse("42")?;
+let expr = {}::grammar::parse("1 + 2 * 3")?;
+```
+
+## Document parsing and diagnostics
+
+Use `parse_document()` when you need tooling facts, recovered documents, or
+structured diagnostics:
+
+```rust
+let document = {}::grammar::parse_document("1 +")?;
+for diagnostic in document.diagnostics() {{
+    eprintln!("{{diagnostic}}");
+}}
+```
+
+Run the generated example:
+
+```bash
+cargo run --example parse -- "1 + 2 * 3"
 ```
 
 ## Development
@@ -273,7 +394,7 @@ cargo test
 
 MIT
 "#,
-        name, name, crate_name
+        name, name, crate_name, crate_name
     );
 
     fs::write(project_dir.join("README.md"), readme)?;
@@ -285,8 +406,8 @@ MIT
     );
     println!("\n{}", "Next steps:".bright_yellow());
     println!("  cd {}", name);
-    println!("  cargo build");
     println!("  cargo test");
+    println!("  cargo run --example parse -- \"1 + 2 * 3\"");
 
     Ok(())
 }
@@ -364,14 +485,14 @@ fn watch_and_build(path: &Path) -> Result<()> {
 fn parse_file(
     grammar: &Path,
     input: &Path,
-    _format: OutputFormat,
+    format: OutputFormat,
     dynamic: bool,
     _symbol: &str,
 ) -> Result<()> {
     if dynamic {
         #[cfg(feature = "dynamic")]
         {
-            return parse_file_dynamic(grammar, input, _format, _symbol);
+            return parse_file_dynamic(grammar, input, format, _symbol);
         }
         #[cfg(not(feature = "dynamic"))]
         {
@@ -382,19 +503,34 @@ fn parse_file(
             );
         }
     }
+
+    if format.is_document_projection() {
+        return parse_file_static_document_projection(grammar, input, format);
+    }
+
     println!("{} Parsing file: {}", "📄".blue(), input.display());
 
     let input_content = fs::read_to_string(input)?;
     println!(
-        "  Grammar: {}\n  Input: {} ({} bytes)",
+        "  Grammar: {}\n  Input: {} ({} bytes)\n  Output: {}",
         grammar.display(),
         input.display(),
-        input_content.len()
+        input_content.len(),
+        format.cli_name()
     );
     println!(
         "{} Static parse mode is not yet available in adze-cli.",
         "⚠️ ".yellow()
     );
+    if format.is_document_projection() {
+        println!(
+            "   `{}` is reserved for the ADZE-SPEC-0008 document projection surface.",
+            format.cli_name()
+        );
+        println!(
+            "   Until CLI schema output lands, use generated `parse_document()` from Rust code."
+        );
+    }
     println!(
         "   To parse files from Rust code, use `adze build` + `cargo test` in your grammar project."
     );
@@ -406,6 +542,208 @@ fn parse_file(
     anyhow::bail!(
         "static parse mode is currently unimplemented — use `adze build` + `cargo test` instead"
     )
+}
+
+fn parse_file_static_document_projection(
+    grammar: &Path,
+    input: &Path,
+    format: OutputFormat,
+) -> Result<()> {
+    let grammar = absolute_path(grammar)?;
+    let input = absolute_path(input)?;
+    if !input.is_file() {
+        anyhow::bail!("Input file does not exist: {}", input.display());
+    }
+
+    let module = single_top_level_grammar_module(&grammar)?;
+    let runner = tempfile::tempdir()?;
+    let src_dir = runner.path().join("src");
+    fs::create_dir_all(&src_dir)?;
+    fs::write(runner.path().join("Cargo.toml"), parse_runner_cargo_toml()?)?;
+    fs::write(
+        runner.path().join("build.rs"),
+        parse_runner_build_rs(&grammar),
+    )?;
+    fs::write(
+        src_dir.join("main.rs"),
+        parse_runner_main_rs(&grammar, &module),
+    )?;
+
+    let output = Command::new("cargo")
+        .arg("run")
+        .arg("--quiet")
+        .arg("--manifest-path")
+        .arg(runner.path().join("Cargo.toml"))
+        .arg("--")
+        .arg(&input)
+        .arg(format.cli_name())
+        .env("ADZE_USE_PURE_RUST", "1")
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        anyhow::bail!(
+            "static document projection failed for {} with status {}\nstdout:\n{}\nstderr:\n{}",
+            grammar.display(),
+            output.status,
+            stdout.trim_end(),
+            stderr.trim_end()
+        );
+    }
+
+    print!("{}", String::from_utf8_lossy(&output.stdout));
+    Ok(())
+}
+
+fn absolute_path(path: &Path) -> Result<PathBuf> {
+    if path.is_absolute() {
+        Ok(path.to_owned())
+    } else {
+        Ok(std::env::current_dir()?.join(path))
+    }
+}
+
+fn single_top_level_grammar_module(grammar: &Path) -> Result<String> {
+    let content = fs::read_to_string(grammar)
+        .map_err(|e| anyhow::anyhow!("Could not read grammar file {}: {}", grammar.display(), e))?;
+    let file = syn::parse_file(&content)
+        .map_err(|e| anyhow::anyhow!("Grammar syntax is invalid: {}: {}", grammar.display(), e))?;
+
+    let modules = file
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            syn::Item::Mod(module) if has_adze_grammar_attr(&module.attrs) => {
+                Some(module.ident.to_string())
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    match modules.as_slice() {
+        [module] => Ok(module.clone()),
+        [] => anyhow::bail!(
+            "No top-level adze grammar module found in {}",
+            grammar.display()
+        ),
+        _ => anyhow::bail!(
+            "Static CLI parse supports exactly one top-level grammar module; found {} in {}",
+            modules.len(),
+            grammar.display()
+        ),
+    }
+}
+
+fn has_adze_grammar_attr(attrs: &[syn::Attribute]) -> bool {
+    attrs.iter().any(|attr| {
+        attr.path()
+            .segments
+            .last()
+            .is_some_and(|segment| segment.ident == "grammar")
+    })
+}
+
+fn parse_runner_cargo_toml() -> Result<String> {
+    let version = env!("CARGO_PKG_VERSION");
+    let adze_dependency = if version.contains("dev") {
+        let cli_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let runtime_path = cli_dir.join("../runtime").canonicalize()?;
+        format!(
+            "{{ path = {}, features = [\"serialization\", \"glr\"] }}",
+            toml_basic_string_literal(&runtime_path.display().to_string())
+        )
+    } else {
+        format!("{{ version = \"{version}\", features = [\"serialization\", \"glr\"] }}")
+    };
+    let tool_dependency = if version.contains("dev") {
+        let cli_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let tool_path = cli_dir.join("../tool").canonicalize()?;
+        format!(
+            "{{ path = {} }}",
+            toml_basic_string_literal(&tool_path.display().to_string())
+        )
+    } else {
+        format!("{{ version = \"{version}\" }}")
+    };
+
+    Ok(format!(
+        r#"[package]
+name = "adze-cli-parse-runner"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+adze = {adze_dependency}
+serde_json = "1"
+
+[build-dependencies]
+adze-tool = {tool_dependency}
+"#
+    ))
+}
+
+fn parse_runner_build_rs(grammar: &Path) -> String {
+    let grammar = rust_string_literal(&grammar.display().to_string());
+    format!(
+        r#"fn main() {{
+    let grammar = std::path::PathBuf::from({grammar});
+    println!("cargo::rustc-check-cfg=cfg(adze_unsafe_attrs)");
+    println!("cargo:rerun-if-changed={{}}", grammar.display());
+    adze_tool::build_parsers(&grammar);
+}}
+"#
+    )
+}
+
+fn parse_runner_main_rs(grammar: &Path, module: &str) -> String {
+    let grammar = rust_string_literal(&grammar.display().to_string());
+    format!(
+        r#"#[path = {grammar}]
+mod grammar_input;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {{
+    let mut args = std::env::args_os().skip(1);
+    let input = args.next().ok_or("missing input path")?;
+    let output = args.next().ok_or("missing output format")?;
+    let source = std::fs::read_to_string(input)?;
+
+    let document = grammar_input::{module}::parse_document(&source)
+        .map_err(|errors| format!("parse_document failed: {{errors:?}}"))?;
+    let document_json = document.to_json_value();
+    let output = match output.to_str().ok_or("output format must be UTF-8")? {{
+        "document-json" => document_json,
+        "tree-json" => serde_json::json!({{
+            "schema": "adze.tree.v1",
+            "document_schema": document_json["schema"].clone(),
+            "language": document_json["language"].clone(),
+            "tree": document_json["tree"].clone(),
+        }}),
+        "diagnostics-json" => serde_json::json!({{
+            "schema": "adze.diagnostics.v1",
+            "document_schema": document_json["schema"].clone(),
+            "language": document_json["language"].clone(),
+            "diagnostics": document_json["diagnostics"].clone(),
+        }}),
+        "ambiguity-json" => serde_json::json!({{
+            "schema": "adze.ambiguity.v1",
+            "document_schema": document_json["schema"].clone(),
+            "language": document_json["language"].clone(),
+            "ambiguities": document_json["ambiguities"].clone(),
+        }}),
+        other => return Err(format!("unsupported output format: {{other}}").into()),
+    }};
+
+    println!("{{}}", serde_json::to_string_pretty(&output)?);
+    Ok(())
+}}
+"#
+    )
+}
+
+fn rust_string_literal(value: &str) -> String {
+    format!("{value:?}")
 }
 
 #[cfg(feature = "dynamic")]
@@ -449,7 +787,13 @@ fn parse_file_dynamic(
             grammar.display()
         );
         println!("Input size: {} bytes", input_content.len());
-        let _ = format;
+        println!("Requested output: {}", format.cli_name());
+        if format.is_document_projection() {
+            println!(
+                "{} Document projection output is reserved but not implemented for dynamic parse mode yet.",
+                "⚠️ ".yellow()
+            );
+        }
         println!(
             "{} Dynamic parse mode is experimental: loading works, but AST/output parsing is not implemented yet.",
             "⚠️ ".yellow()

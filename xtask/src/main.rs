@@ -16,8 +16,10 @@ mod goto_indexing;
 mod grammar_json;
 mod lint;
 mod no_mangle;
+mod perf_receipt;
 mod policy;
 mod profile;
+mod publish_install;
 mod ripr;
 mod test_grammars;
 mod test_local_grammars;
@@ -153,6 +155,12 @@ enum Commands {
         #[arg(long, default_value = "5.0")]
         threshold: f64,
     },
+    /// Print advisory performance receipt commands for product benchmark smoke.
+    PerfReceipt {
+        /// Receipt profile to print.
+        #[arg(long, value_enum, default_value = "product-smoke")]
+        profile: PerfReceiptProfile,
+    },
     /// Run local environment doctor checks (toolchain, targets, workspace)
     Doctor,
     /// Generate or check public Shields endpoint JSON under badges/.
@@ -283,6 +291,27 @@ enum Commands {
         #[arg(long)]
         release_gate: bool,
     },
+    /// Verify a published crates.io CLI install in an isolated temp root.
+    ///
+    /// This is intended as a post-publish receipt, not a pre-publish package
+    /// check. Use `--dry-run` before publishing to inspect the command plan.
+    VerifyCratesIoInstall {
+        /// Crate package to install from crates.io.
+        #[arg(default_value = "adze-cli")]
+        crate_name: String,
+        /// Binary expected after install.
+        #[arg(long, default_value = "adze")]
+        bin: String,
+        /// Exact version to install. Omit only when intentionally checking the latest registry version.
+        #[arg(long)]
+        version: Option<String>,
+        /// Pass `--locked` to `cargo install`.
+        #[arg(long)]
+        locked: bool,
+        /// Print the command plan without touching crates.io.
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Lint workflows against policy/ci-lane-whitelist.toml.
     ///
     /// Reports undeclared workflow jobs, missing exceptions for expensive
@@ -403,6 +432,19 @@ impl From<FixtureSize> for profile::FixtureSize {
     }
 }
 
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+enum PerfReceiptProfile {
+    ProductSmoke,
+}
+
+impl From<PerfReceiptProfile> for perf_receipt::Profile {
+    fn from(profile: PerfReceiptProfile) -> Self {
+        match profile {
+            PerfReceiptProfile::ProductSmoke => perf_receipt::Profile::ProductSmoke,
+        }
+    }
+}
+
 impl Grammar {
     fn name(&self) -> &'static str {
         match self {
@@ -511,6 +553,9 @@ fn main() -> Result<()> {
         } => {
             baseline::compare_baseline(&sh, &baseline_version, threshold)?;
         }
+        Commands::PerfReceipt { profile } => {
+            perf_receipt::run(profile.into())?;
+        }
         Commands::Lint {
             fix,
             changed_only,
@@ -569,6 +614,15 @@ fn main() -> Result<()> {
         Commands::CheckPackageBoundary { mode, release_gate } => {
             let mode = policy::Mode::parse(&mode)?;
             policy::package_boundary::run_check(mode, release_gate)?;
+        }
+        Commands::VerifyCratesIoInstall {
+            crate_name,
+            bin,
+            version,
+            locked,
+            dry_run,
+        } => {
+            publish_install::run(&crate_name, &bin, version.as_deref(), locked, dry_run)?;
         }
         Commands::CheckCiLaneWhitelist { mode } => {
             let mode = policy::Mode::parse(&mode)?;

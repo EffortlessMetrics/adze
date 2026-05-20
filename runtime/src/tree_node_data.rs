@@ -93,6 +93,22 @@ impl NodeFlags {
     }
 }
 
+macro_rules! node_flag_accessors {
+    ($(#[$get_doc:meta] $get:ident, #[$set_doc:meta] $set:ident, $flag:ident;)+) => {
+        $(
+            #[$get_doc]
+            pub fn $get(&self) -> bool {
+                self.flags.get(NodeFlags::$flag)
+            }
+
+            #[$set_doc]
+            pub fn $set(&mut self, value: bool) {
+                self.flags.set(NodeFlags::$flag, value);
+            }
+        )+
+    };
+}
+
 impl TreeNodeData {
     /// Create a new node with symbol and byte range
     ///
@@ -152,16 +168,9 @@ impl TreeNodeData {
         end_byte: u32,
         children: impl IntoIterator<Item = NodeHandle>,
     ) -> Self {
-        let children_vec: SmallVec<[NodeHandle; 3]> = children.into_iter().collect();
-        TreeNodeData {
-            symbol,
-            start_byte,
-            end_byte,
-            children: children_vec,
-            named_child_count: 0,
-            field_id: None,
-            flags: NodeFlags::new(),
-        }
+        let mut node = Self::new(symbol, start_byte, end_byte);
+        node.children = children.into_iter().collect();
+        node
     }
 
     // ========================================================================
@@ -243,44 +252,30 @@ impl TreeNodeData {
     // Flags
     // ========================================================================
 
-    /// Check if node is named
-    pub fn is_named(&self) -> bool {
-        self.flags.get(NodeFlags::IS_NAMED)
-    }
+    node_flag_accessors! {
+        /// Check if node is named
+        is_named,
+        /// Set named flag
+        set_named,
+        IS_NAMED;
 
-    /// Set named flag
-    pub fn set_named(&mut self, value: bool) {
-        self.flags.set(NodeFlags::IS_NAMED, value);
-    }
+        /// Check if node is error
+        is_error,
+        /// Set error flag
+        set_error,
+        IS_ERROR;
 
-    /// Check if node is error
-    pub fn is_error(&self) -> bool {
-        self.flags.get(NodeFlags::IS_ERROR)
-    }
+        /// Check if node is missing
+        is_missing,
+        /// Set missing flag
+        set_missing,
+        IS_MISSING;
 
-    /// Set error flag
-    pub fn set_error(&mut self, value: bool) {
-        self.flags.set(NodeFlags::IS_ERROR, value);
-    }
-
-    /// Check if node is missing
-    pub fn is_missing(&self) -> bool {
-        self.flags.get(NodeFlags::IS_MISSING)
-    }
-
-    /// Set missing flag
-    pub fn set_missing(&mut self, value: bool) {
-        self.flags.set(NodeFlags::IS_MISSING, value);
-    }
-
-    /// Check if node is extra
-    pub fn is_extra(&self) -> bool {
-        self.flags.get(NodeFlags::IS_EXTRA)
-    }
-
-    /// Set extra flag
-    pub fn set_extra(&mut self, value: bool) {
-        self.flags.set(NodeFlags::IS_EXTRA, value);
+        /// Check if node is extra
+        is_extra,
+        /// Set extra flag
+        set_extra,
+        IS_EXTRA;
     }
 
     // ========================================================================
@@ -346,5 +341,127 @@ mod tests {
         use std::mem;
 
         assert_eq!(mem::size_of::<NodeFlags>(), 1);
+    }
+
+    #[test]
+    fn test_new_and_leaf_initialize_empty_unnamed_nodes() {
+        let node = TreeNodeData::new(42, 10, 25);
+        assert_eq!(node.symbol(), 42);
+        assert_eq!(node.start_byte(), 10);
+        assert_eq!(node.end_byte(), 25);
+        assert_eq!(node.byte_range(), (10, 25));
+        assert_eq!(node.byte_len(), 15);
+        assert_eq!(node.child_count(), 0);
+        assert_eq!(node.named_child_count(), 0);
+        assert!(node.is_leaf());
+        assert!(node.children().is_empty());
+        assert_eq!(node.field_id(), None);
+        assert!(!node.is_named());
+        assert!(!node.is_error());
+        assert!(!node.is_missing());
+        assert!(!node.is_extra());
+
+        let leaf = TreeNodeData::leaf(7, 3, 3);
+        assert_eq!(leaf.symbol(), 7);
+        assert_eq!(leaf.byte_range(), (3, 3));
+        assert_eq!(leaf.byte_len(), 0);
+        assert!(leaf.is_leaf());
+    }
+
+    #[test]
+    fn test_byte_len_saturates_when_end_precedes_start() {
+        let node = TreeNodeData::new(1, 20, 5);
+
+        assert_eq!(node.byte_range(), (20, 5));
+        assert_eq!(node.byte_len(), 0);
+    }
+
+    #[test]
+    fn test_branch_preserves_child_order_and_supports_heap_spill() {
+        let children = [
+            NodeHandle::new(0, 0),
+            NodeHandle::new(0, 1),
+            NodeHandle::new(0, 2),
+            NodeHandle::new(0, 3),
+        ];
+
+        let branch = TreeNodeData::branch(10, 0, 50, children);
+
+        assert!(!branch.is_leaf());
+        assert_eq!(branch.child_count(), 4);
+        assert_eq!(branch.named_child_count(), 0);
+        assert_eq!(branch.children(), children);
+        assert_eq!(branch.child(0), Some(NodeHandle::new(0, 0)));
+        assert_eq!(branch.child(3), Some(NodeHandle::new(0, 3)));
+        assert_eq!(branch.child(4), None);
+    }
+
+    #[test]
+    fn test_add_child_and_add_named_child_update_counts() {
+        let mut node = TreeNodeData::new(1, 0, 0);
+        let unnamed = NodeHandle::new(1, 0);
+        let named = NodeHandle::new(1, 1);
+
+        node.add_child(unnamed);
+        assert_eq!(node.child_count(), 1);
+        assert_eq!(node.named_child_count(), 0);
+        assert_eq!(node.child(0), Some(unnamed));
+        assert!(!node.is_leaf());
+
+        node.add_named_child(named);
+        assert_eq!(node.child_count(), 2);
+        assert_eq!(node.named_child_count(), 1);
+        assert_eq!(node.child(1), Some(named));
+        assert_eq!(node.children(), &[unnamed, named]);
+    }
+
+    #[test]
+    fn test_add_named_child_saturates_named_count() {
+        let mut node = TreeNodeData::new(1, 0, 0);
+        node.named_child_count = u16::MAX;
+
+        node.add_named_child(NodeHandle::new(0, 0));
+
+        assert_eq!(node.named_child_count(), usize::from(u16::MAX));
+        assert_eq!(node.child_count(), 1);
+    }
+
+    #[test]
+    fn test_flags_can_be_toggled_independently() {
+        let mut node = TreeNodeData::new(1, 0, 0);
+
+        node.set_named(true);
+        node.set_error(true);
+        node.set_missing(true);
+        node.set_extra(true);
+        assert!(node.is_named());
+        assert!(node.is_error());
+        assert!(node.is_missing());
+        assert!(node.is_extra());
+
+        node.set_error(false);
+        assert!(node.is_named());
+        assert!(!node.is_error());
+        assert!(node.is_missing());
+        assert!(node.is_extra());
+
+        node.set_named(false);
+        node.set_missing(false);
+        node.set_extra(false);
+        assert!(!node.is_named());
+        assert!(!node.is_error());
+        assert!(!node.is_missing());
+        assert!(!node.is_extra());
+    }
+
+    #[test]
+    fn test_field_id_round_trips_and_clears() {
+        let mut node = TreeNodeData::new(1, 0, 0);
+
+        assert_eq!(node.field_id(), None);
+        node.set_field_id(Some(17));
+        assert_eq!(node.field_id(), Some(17));
+        node.set_field_id(None);
+        assert_eq!(node.field_id(), None);
     }
 }

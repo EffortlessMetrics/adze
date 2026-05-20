@@ -177,7 +177,10 @@ fn find_symbol_zero_warnings(path: &Path, text: &str) -> Vec<SymbolZeroWarning> 
 }
 
 fn is_allowed_goto_implementation_path(path: &Path) -> bool {
-    normalized_path(path) == "glr-core/src/lib.rs"
+    matches!(
+        normalized_path(path).as_str(),
+        "glr-core/src/lib.rs" | "glr-core/src/parse_table.rs"
+    )
 }
 
 fn is_runtime_test_path(path: &Path) -> bool {
@@ -262,6 +265,18 @@ let token = SymbolId(0);
             "indexing", "DirectSymbolId"
         );
         let violations = find_assignment_violations(Path::new("glr-core/src/lib.rs"), &line);
+
+        assert!(violations.is_empty());
+    }
+
+    #[test]
+    fn split_goto_implementation_path_is_exempt() {
+        let line = format!(
+            "table.goto_{} = GotoIndexing::{};",
+            "indexing", "NonterminalMap"
+        );
+        let violations =
+            find_assignment_violations(Path::new("glr-core/src/parse_table.rs"), &line);
 
         assert!(violations.is_empty());
     }

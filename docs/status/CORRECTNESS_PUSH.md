@@ -1,18 +1,25 @@
 # Correctness Push Plan
 
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-19
 **Scope:** current parser/runtime, GLR, tablegen ABI, CLI, and product-proof convergence.
 
 This is the execution playbook for moving Adze from "bounded core lane is green" to "the product claims are behavior-proven." It is intentionally narrower than a roadmap: keep the required lane bounded, land focused correctness work only when it has receipts, and track remaining product gaps without hiding them inside broad policy or infrastructure PRs.
 
 ## Baseline
 
-- Required fast gate stays `just ci-supported`.
+- Required `adze-swarm` GitHub gate is `Rust Small Result`.
+- Fast local supported proof stays `just ci-supported`.
 - `ci-supported` covers the seven core crates: `adze`, `adze-macro`, `adze-tool`, `adze-common`, `adze-ir`, `adze-glr-core`, and `adze-tablegen`.
+- As of `adze-swarm` PR #157, the supported proof uses
+  `scripts/fmt-workspace.sh` for formatting so Windows local runs avoid
+  Cargo/rustfmt command-line length failures while keeping the same supported
+  crate set and clippy/test/doc-test scope.
 - The broader product lane is advisory until each canary proves real behavior instead of only compile/no-run smoke.
 - README-stable claims must map to a proof command in `docs/status/SUPPORT_TIERS.md`.
 - Runtime2 remains an experimental proving ground unless a later promotion plan gives it required behavior tests and a public support contract.
-- Live GitHub state is the execution baseline. As of 2026-05-11, the correctness PR queue is empty after refreshing with `gh pr list --state open --limit 20 --json number,title,isDraft,headRefName,updatedAt,url`.
+- Live GitHub state is the execution baseline. As of 2026-05-19
+  after `adze-swarm` PR #248, live `gh pr list` checks showed no open PRs in
+  `EffortlessMetrics/adze-swarm` or public `EffortlessMetrics/adze`.
 
 ## Live-State Refresh
 
@@ -44,7 +51,7 @@ just ci-supported
 Apply the same rules that worked for the closed queue:
 
 - Keep each PR narrow and parser/tablegen/runtime focused.
-- Rebase on current `main` and use hosted `CI / ci-supported` as the required merge gate.
+- Rebase on current `main` and use hosted `Rust Small Result` as the required merge gate.
 - Add a focused behavior canary before claiming a product surface is proven.
 - Do not weaken strict canaries to make a dashboard green. The closed #501 JavaScript canary-ignore PR is the example to avoid.
 - Do not let broad policy, coverage, or governance work consume the parser-correctness lane.
@@ -120,11 +127,13 @@ JSON output surface without an exact proof command and support-tier entry.
 
 ## Green Ladder
 
-Rung 0 is the current required gate:
+Rung 0 is the current local supported proof:
 
 ```bash
 just ci-supported
 ```
+
+The current `adze-swarm` required GitHub merge gate is `Rust Small Result`.
 
 Rung 1 is advisory product behavior. Convert `scripts/ci-product.sh` from compile-only smoke to bounded behavior smokes, but keep it non-blocking until stable.
 
@@ -136,6 +145,13 @@ just ci-product-stable
 ```
 
 The stable product lane covers README stable proof-map alignment, clean-room README and Getting Started quickstarts, the checked-in downstream demo library and binary run, typed extraction exact-value and repeated-parse determinism tests, operator precedence, serialization doctests, and serialization roundtrip canaries. GLR ambiguity and broad structured parse-error diagnostics remain in the wider advisory lane until those surfaces graduate from Stabilizing.
+
+Latest receipt: GitHub workflow dispatch
+[`Product Proof` run 26104726428](https://github.com/EffortlessMetrics/adze-swarm/actions/runs/26104726428)
+passed on 2026-05-19 from current `adze-swarm/main` after PR #281. The
+`ci-product stable canaries` job passed in 3m02s and the broad advisory
+canaries skipped under the stable-only default. This remains advisory until
+branch protection explicitly promotes it.
 
 Rung 3 remains scheduled/manual: full workspace all-features, fuzzing, Miri, sanitizers, benchmarks, grammar corpus, runtime2, and browser WASM execution.
 
